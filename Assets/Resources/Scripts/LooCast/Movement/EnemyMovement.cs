@@ -4,30 +4,34 @@ using UnityEngine;
 
 namespace LooCast.Movement
 {
+    using Data;
     using Target;
-    using Util;
 
     public class EnemyMovement : TargetedMovement
     {
+        public EnemyMovementData Data;
         private GameObject playerObject;
         private CircleCollider2D playerCollider;
-        private float baseDrag = 0.75f;
+        private bool isMovementEnabled;
 
-        public override void Initialize()
+        private void Start()
         {
-            base.Initialize();
+            Initialize(Data);
+
+            isMovementEnabled = Data.IsMovementEnabled.Value;
+
             playerObject = GameObject.FindGameObjectWithTag("Player");
             playerCollider = playerObject.GetComponent<CircleCollider2D>();
+
             SetTarget(new Target(playerCollider));
-            SetMovementSpeed(0.75f * UnityEngine.Random.Range(0.9f, 1.1f));
+            Speed.AddPermanentMultiplier(UnityEngine.Random.Range(0.9f, 1.1f));
         }
 
         public override void Accelerate()
         {
             if (isMovementEnabled)
             {
-                Rigidbody.drag = baseDrag / SlownessMultiplier;
-                Rigidbody.AddForce((target.transform.position - transform.position).normalized * Constants.INERTIAL_COEFFICIENT * MovementSpeed * SlownessMultiplier);
+                Rigidbody.AddForce((target.transform.position - transform.position).normalized * Speed.Value);
 
                 Vector2 lookDir = target.transform.position - transform.position;
                 float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90.0f;

@@ -8,6 +8,7 @@ namespace LooCast.Movement.Data.Runtime
     public sealed class PlayerMovementRuntimeData : UniqueComponentRuntimeData
     {
         public float CurrentEnergy;
+        public float MaxEnergy;
         public float EnergyConsumption;
         public float EnergyGeneration;
         public bool IsUsingEnergy;

@@ -5,26 +5,24 @@ using LooCast.Target;
 
 namespace LooCast.Movement
 {
+    using Data;
+    using Target;
+
     public abstract class TargetedMovement : Movement
     {
-        protected LooCast.Target.Target target;
+        protected Target target;
 
-        public override void Initialize()
+        public void Initialize(TargetedMovementData data)
         {
-            base.Initialize();
+            base.Initialize(data);
         }
 
-        public override void Accelerate()
-        {
-
-        }
-
-        public virtual LooCast.Target.Target GetTarget()
+        public virtual Target GetTarget()
         {
             return target;
         }
 
-        public virtual void SetTarget(LooCast.Target.Target target)
+        public virtual void SetTarget(Target target)
         {
             this.target = target;
         }

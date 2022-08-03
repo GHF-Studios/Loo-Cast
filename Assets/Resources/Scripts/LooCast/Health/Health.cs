@@ -28,7 +28,7 @@ namespace LooCast.Health
             health = maxHealth;
 
             regenerationAmount = data.BaseRegenerationAmount.Value;
-            regenerationTime = 1.0f;
+            regenerationTime = data.BaseRegenerationTime.Value;
             regenerationTimer = 0.0f;
 
             defense = data.BaseDefense.Value;
@@ -116,33 +116,6 @@ namespace LooCast.Health
                     rigidbody.AddForce(knockbackDirection.normalized * -250f * damageInfo.knockback, ForceMode2D.Impulse); 
                 }
             }
-        }
-
-        protected virtual float GetHealth()
-        {
-            return health;
-        }
-        protected virtual void SetHealth(float health)
-        {
-            this.health = health;
-        }
-
-        protected virtual float GetMaxHealth()
-        {
-            return maxHealth;
-        }
-        protected virtual void SetMaxHealth(float maxHealth)
-        {
-            this.maxHealth = maxHealth;
-        }
-
-        protected virtual float GetRegenerationAmount()
-        {
-            return regenerationAmount;
-        }
-        protected virtual void SetRegenerationAmount(float regenerationAmount)
-        {
-            this.regenerationAmount = regenerationAmount;
         }
     } 
 }

@@ -7,8 +7,6 @@ namespace LooCast.Movement.Data
 
     public abstract class MovementData : Data
     {
-        public FloatReference SlownessMultiplier;
-        public BoolReference IsMovementEnabled;
-        public FloatReference MovementSpeed;
+        public FloatReference BaseSpeed;
     } 
 }

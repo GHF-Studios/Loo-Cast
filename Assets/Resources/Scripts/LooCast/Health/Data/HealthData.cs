@@ -7,6 +7,7 @@ namespace LooCast.Health.Data
     {
         public FloatReference BaseMaxHealth;
         public FloatReference BaseRegenerationAmount;
+        public FloatReference BaseRegenerationTime;
         public IntReference BaseDefense;
     } 
 }
