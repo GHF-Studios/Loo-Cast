@@ -4,12 +4,15 @@ using UnityEngine;
 
 namespace LooCast.Weapon
 {
+    using Data;
     using Projectile;
     using Target;
-    using Weapon.Data;
+    using Targeting;
 
-    public class ChargedPlasmaLauncherWeapon : Weapon
+    public sealed class ChargedPlasmaLauncherWeapon : Weapon
     {
+        public ChargedPlasmaLauncherWeaponData Data;
+
         public float arcLifetime { get; private set; }
         public float arcInitialWidth { get; private set; }
         public float arcWidthMultiplier { get; private set; }
@@ -37,36 +40,36 @@ namespace LooCast.Weapon
         public float branchChanceMultiplier { get; private set; }
         public int maxRecursionDepth { get; private set; }
 
-        public void Initialize(ChargedPlasmaLauncherWeaponData data)
+        private void Start()
         {
-            base.Initialize(data);
+            Initialize(Data);
 
-            arcLifetime = data.ArcLifetime.Value;
-            arcInitialWidth = data.ArcInitialWidth.Value;
-            arcWidthMultiplier = data.ArcWidthMultiplier.Value;
-            arcMinWidth = data.ArcMinWidth.Value;
-            arcBranchAttempts = data.ArcBranchAttempts.Value;
-            minSpreadDistance = data.MinSpreadDistance.Value;
-            minSpreadDistanceMultiplier = data.MinSpreadDistanceMultiplier.Value;
-            maxSpreadDistance = data.MaxSpreadDistance.Value;
-            maxSpreadDistanceMultiplier = data.MaxSpreadDistanceMultiplier.Value;
-            minSpreadAngle = data.MinSpreadAngle.Value;
-            minSpreadAngleMultiplier = data.MinSpreadAngleMultiplier.Value;
-            maxSpreadAngle = data.MaxSpreadAngle.Value;
-            maxSpreadAngleMultiplier = data.MaxSpreadAngleMultiplier.Value;
-            spreadChance = data.SpreadChance.Value;
-            spreadChanceMultiplier = data.SpreadChanceMultiplier.Value;
-            minBranchDistance = data.MinBranchDistance.Value;
-            minBranchDistanceMultiplier = data.MinBranchDistanceMultiplier.Value;
-            maxBranchDistance = data.MaxBranchDistance.Value;
-            maxBranchDistanceMultiplier = data.MaxBranchDistanceMultiplier.Value;
-            minBranchAngle = data.MinBranchAngle.Value;
-            minBranchAngleMultiplier = data.MinBranchAngleMultiplier.Value;
-            maxBranchAngle = data.MaxBranchAngle.Value;
-            maxBranchAngleMultiplier = data.MaxBranchAngleMultiplier.Value;
-            branchChance = data.BranchChance.Value;
-            branchChanceMultiplier = data.BranchChanceMultiplier.Value;
-            maxRecursionDepth = data.MaxRecursionDepth.Value;
+            arcLifetime = Data.ArcLifetime.Value;
+            arcInitialWidth = Data.ArcInitialWidth.Value;
+            arcWidthMultiplier = Data.ArcWidthMultiplier.Value;
+            arcMinWidth = Data.ArcMinWidth.Value;
+            arcBranchAttempts = Data.ArcBranchAttempts.Value;
+            minSpreadDistance = Data.MinSpreadDistance.Value;
+            minSpreadDistanceMultiplier = Data.MinSpreadDistanceMultiplier.Value;
+            maxSpreadDistance = Data.MaxSpreadDistance.Value;
+            maxSpreadDistanceMultiplier = Data.MaxSpreadDistanceMultiplier.Value;
+            minSpreadAngle = Data.MinSpreadAngle.Value;
+            minSpreadAngleMultiplier = Data.MinSpreadAngleMultiplier.Value;
+            maxSpreadAngle = Data.MaxSpreadAngle.Value;
+            maxSpreadAngleMultiplier = Data.MaxSpreadAngleMultiplier.Value;
+            spreadChance = Data.SpreadChance.Value;
+            spreadChanceMultiplier = Data.SpreadChanceMultiplier.Value;
+            minBranchDistance = Data.MinBranchDistance.Value;
+            minBranchDistanceMultiplier = Data.MinBranchDistanceMultiplier.Value;
+            maxBranchDistance = Data.MaxBranchDistance.Value;
+            maxBranchDistanceMultiplier = Data.MaxBranchDistanceMultiplier.Value;
+            minBranchAngle = Data.MinBranchAngle.Value;
+            minBranchAngleMultiplier = Data.MinBranchAngleMultiplier.Value;
+            maxBranchAngle = Data.MaxBranchAngle.Value;
+            maxBranchAngleMultiplier = Data.MaxBranchAngleMultiplier.Value;
+            branchChance = Data.BranchChance.Value;
+            branchChanceMultiplier = Data.BranchChanceMultiplier.Value;
+            maxRecursionDepth = Data.MaxRecursionDepth.Value;
         }
 
         public override bool TryFire()

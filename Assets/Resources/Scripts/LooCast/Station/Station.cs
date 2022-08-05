@@ -5,26 +5,23 @@ using UnityEngine;
 
 namespace LooCast.Station
 {
-    using Util;
-    using Health;
-    using Health.Data;
-    using Station.Data;
+    using Core;
+    using Data;
     using Data.Runtime;
 
     [DisallowMultipleComponent]
     public abstract class Station : ExtendedMonoBehaviour
     {
-        [SerializeField]
-        private StationRuntimeSet runtimeSet;
+        public StationRuntimeSet RuntimeSet;
 
-        public void Initialize(StationData data)
+        protected void Initialize(StationData data)
         {
-            runtimeSet.Add(this);
+            RuntimeSet.Add(this);
         }
 
         public void Kill()
         {
-            runtimeSet.Remove(this);
+            RuntimeSet.Remove(this);
             Destroy(gameObject);
         }
     } 

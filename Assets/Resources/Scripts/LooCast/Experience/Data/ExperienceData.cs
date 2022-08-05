@@ -1,9 +1,10 @@
+using UnityEngine;
+
 namespace LooCast.Experience.Data
 {
-    using LooCast.Core.Data;
     using LooCast.Data;
 
-    public abstract class ExperienceData : UniqueComponentData
+    public abstract class ExperienceData : ScriptableObject
     {
         public FloatReference InitialExperience;
         public FloatReference InitialLevelExperienceMax;

@@ -6,18 +6,20 @@ using System.Linq;
 
 namespace LooCast.Weapon
 {
+    using Data;
     using Target;
-    using Weapon.Data;
 
-    public class LaserEmitterWeapon : Weapon
+    public sealed class LaserEmitterWeapon : Weapon
     {
+        public LaserEmitterWeaponData Data;
+
         public float laserLength { get; private set; }
 
-        public void Initialize(LaserEmitterWeaponData data)
+        private void Start()
         {
-            base.Initialize(data);
+            Initialize(Data);
 
-            laserLength = data.LaserLength.Value;
+            laserLength = Data.LaserLength.Value;
         }
 
         public override bool TryFire()

@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace LooCast.Core.Data.Runtime
+namespace LooCast.Data.Runtime
 {
     public abstract class RuntimeSet<T> : ScriptableObject
     {
@@ -22,6 +22,11 @@ namespace LooCast.Core.Data.Runtime
             {
                 Items.Remove(t);
             }
+        }
+
+        public void Initialize()
+        {
+            Items.Clear();
         }
     } 
 }

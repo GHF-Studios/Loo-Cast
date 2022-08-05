@@ -1,9 +1,10 @@
+using UnityEngine;
+
 namespace LooCast.Health.Data
 {
-    using LooCast.Core.Data;
     using LooCast.Data;
 
-    public abstract class HealthData : Data
+    public abstract class HealthData : ScriptableObject
     {
         public FloatReference BaseMaxHealth;
         public FloatReference BaseRegenerationAmount;

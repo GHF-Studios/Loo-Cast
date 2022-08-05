@@ -5,6 +5,9 @@ namespace LooCast.Stat
 {
     public static class StatUtil
     {
+        /// <summary>
+        /// Applies Permanent Increases, then Permanent Multipliers, then Temporary Increases and then Temporary Multipliers
+        /// </summary>
         public static Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, float, float> DefaultFloatStatEvaluator = (permanentMultipliers, permanentIncreases, multipliers, increases, baseValue) =>
         {
             float value = baseValue;
@@ -32,6 +35,9 @@ namespace LooCast.Stat
             return value;
         };
 
+        /// <summary>
+        /// Applies Permanent Increases, then Permanent Multipliers, then Temporary Increases and then Temporary Multipliers
+        /// </summary>
         public static Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, int, int> DefaultIntStatEvaluator = (permanentMultipliers, permanentIncreases, multipliers, increases, baseValue) =>
         {
             float value = baseValue;
@@ -57,6 +63,22 @@ namespace LooCast.Stat
             }
 
             return (int)value;
+        };
+
+        /// <summary>
+        /// Ignores all Multipliers and Increases
+        /// </summary>
+        public static Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, float, float> StaticFloatStatEvaluator = (permanentMultipliers, permanentIncreases, multipliers, increases, baseValue) =>
+        {
+            return baseValue;
+        };
+
+        /// <summary>
+        /// Ignores all Multipliers and Increases
+        /// </summary>
+        public static Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, int, int> StaticIntStatEvaluator = (permanentMultipliers, permanentIncreases, multipliers, increases, baseValue) =>
+        {
+            return baseValue;
         };
     }
 }

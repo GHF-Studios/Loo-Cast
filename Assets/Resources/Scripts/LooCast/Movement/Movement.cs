@@ -11,7 +11,7 @@ namespace LooCast.Movement
     using Util;
 
     [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D))]
-    public abstract class Movement : Component
+    public abstract class Movement : ExtendedMonoBehaviour
     {
         public UnityEvent OnMovementEnabled { get; protected set; }
         public UnityEvent OnMovementDisabled { get; protected set; }

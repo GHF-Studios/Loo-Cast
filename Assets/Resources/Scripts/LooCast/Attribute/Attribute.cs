@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace LooCast.Attribute
-
 {
+    using LooCast.Data;
+
     public abstract class Attribute : ScriptableObject
     {
         public Stat.Stat[] stats;

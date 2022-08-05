@@ -2,10 +2,9 @@ using UnityEngine;
 
 namespace LooCast.Movement.Data
 {
-    using LooCast.Core.Data;
     using LooCast.Data;
 
-    public abstract class MovementData : Data
+    public abstract class MovementData : ScriptableObject
     {
         public FloatReference BaseSpeed;
     } 

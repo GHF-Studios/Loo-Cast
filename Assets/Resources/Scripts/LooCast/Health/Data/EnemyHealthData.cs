@@ -1,10 +1,11 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace LooCast.Health.Data
 {
+    using LooCast.Data;
+
     [CreateAssetMenu(fileName = "EnemyHealthData", menuName = "Data/Health/EnemyHealthData", order = 0)]
     public class EnemyHealthData : HealthData
     {

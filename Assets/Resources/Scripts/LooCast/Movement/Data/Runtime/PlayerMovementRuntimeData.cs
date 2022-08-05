@@ -2,10 +2,8 @@
 
 namespace LooCast.Movement.Data.Runtime
 {
-    using LooCast.Core.Data.Runtime;
-
     [CreateAssetMenu(fileName = "PlayerMovementRuntimeData", menuName = "Data/Movement/PlayerMovementRuntimeData", order = 0)]
-    public sealed class PlayerMovementRuntimeData : UniqueComponentRuntimeData
+    public sealed class PlayerMovementRuntimeData : ScriptableObject
     {
         public float CurrentEnergy;
         public float MaxEnergy;

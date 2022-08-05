@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace LooCast.UI.Value
 {
-    using LooCast.Player.Data.Runtime;
+    using LooCast.Experience.Data.Runtime;
 
     public class ExperienceLevelValue : Value
     {

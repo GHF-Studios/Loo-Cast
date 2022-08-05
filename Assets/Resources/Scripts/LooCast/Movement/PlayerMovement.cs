@@ -22,6 +22,8 @@ namespace LooCast.Movement
 
         private void Start()
         {
+            Initialize(Data);
+
             RuntimeData.CurrentEnergy = Data.BaseEnergy.Value;
             RuntimeData.EnergyConsumption = Data.BaseEnergyConsumption.Value * Stats.EnergyConsumptionMultiplier;
             RuntimeData.EnergyGeneration = Data.BaseEnergyGeneration.Value * Stats.EnergyRegenerationMultiplier;

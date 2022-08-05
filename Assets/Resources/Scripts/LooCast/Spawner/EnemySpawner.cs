@@ -4,9 +4,8 @@ using UnityEngine;
 
 namespace LooCast.Spawner
 {
+    using Data;
     using Enemy;
-    using Spawner.Data;
-    using Data.Runtime;
 
     public class EnemySpawner : Spawner
     {
@@ -18,17 +17,14 @@ namespace LooCast.Spawner
         public GameObject Prefab { get; protected set; }
         public List<Enemy> SpawnedEnemies { get; protected set; }
 
-        private void Awake()
+        private void Start()
         {
-            Initialize();
-        }
+            Initialize(Data);
 
-        public override void Initialize()
-        {
             SpawnDelay = Data.BaseSpawnDelay.Value;
             SpawnTimer = 0.0f;
             MaxEnemies = Data.BaseMaxEnemies.Value;
-            Prefab = Enemy.DataPrefab;
+            Prefab = Data.EnemyPrefab;
             SpawnedEnemies = new List<Enemy>();
         }
 

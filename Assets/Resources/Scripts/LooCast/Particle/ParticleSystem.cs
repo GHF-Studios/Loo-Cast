@@ -9,11 +9,11 @@ namespace LooCast.Particle
     [RequireComponent(typeof(UnityEngine.ParticleSystem))]
     public class ParticleSystem : ExtendedMonoBehaviour
     {
-        public new UnityEngine.ParticleSystem particleSystem { get; protected set; }
-        protected UnityEngine.ParticleSystem.EmissionModule emission;
-        public bool destructionScheduled;
+        private new UnityEngine.ParticleSystem particleSystem;
+        private UnityEngine.ParticleSystem.EmissionModule emission;
+        private bool destructionScheduled;
 
-        public virtual void Initialize()
+        private void Start()
         {
             particleSystem = GetComponent<UnityEngine.ParticleSystem>();
             emission = particleSystem.emission;

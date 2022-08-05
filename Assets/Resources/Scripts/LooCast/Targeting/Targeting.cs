@@ -2,21 +2,28 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace LooCast.Target
+namespace LooCast.Targeting
 {
+    using Data;
+    using LooCast.Target;
+
     public class Targeting : MonoBehaviour
     {
+        public TargetingData Data;
+
         public float radius;
         public string[] targetTags;
         public bool drawGizmos;
         private System.Random random;
         public List<Target> ignoredTargets;
+
         public List<Target> closestTargets
         {
             get
             {
                 return FilterTargets(GetClosestTargets(), ignoredTargets);
             }
+
             protected set
             {
                 _closestTargets = value;
@@ -30,6 +37,7 @@ namespace LooCast.Target
             {
                 return FilterTargets(GetFurthestTargets(), ignoredTargets);
             }
+
             protected set
             {
                 _furthestTargets = value;
@@ -43,6 +51,7 @@ namespace LooCast.Target
             {
                 return FilterTargets(GetRandomTargets(), ignoredTargets);
             }
+
             protected set
             {
                 _randomTargets = value;
@@ -56,6 +65,7 @@ namespace LooCast.Target
             {
                 return FilterTargets(GetRandomOnscreenTargets(), ignoredTargets);
             }
+
             protected set
             {
                 _randomOnscreenTargets = value;
@@ -69,6 +79,7 @@ namespace LooCast.Target
             {
                 return FilterTargets(GetRandomProximityTargets(), ignoredTargets);
             }
+
             protected set
             {
                 _randomProximityTargets = value;
@@ -92,11 +103,11 @@ namespace LooCast.Target
             _randomOnscreenTargets = null;
         }
 
-        public void Initialize()
+        private void Start()
         {
-            radius = 20.0f;
-            targetTags = new string[] {"Enemy", "EnemyStation"};
-            drawGizmos = false;
+            radius = Data.BaseRadius.Value;
+            targetTags = Data.TargetedTags;
+            drawGizmos = Data.DrawGizmos.Value;
             random = new System.Random(Mathf.RoundToInt(Time.time));
             ignoredTargets = new List<Target>();
         }
@@ -301,6 +312,7 @@ namespace LooCast.Target
             }
         }
     }
+
     public enum TargetingMode
     {
         Closest,

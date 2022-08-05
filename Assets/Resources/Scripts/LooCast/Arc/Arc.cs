@@ -3,8 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Arc
 {
-    using Target;
     using Core;
+    using Targeting;
+    using Target;
 
     public class Arc : ExtendedMonoBehaviour
     {
@@ -103,12 +104,15 @@ namespace LooCast.Arc
             this.branchChanceMultiplier = branchChanceMultiplier;
 
 
-            
 
+            //THIS IS TERRIBLE, CHANGE THIS
             targeting = gameObject.AddComponent<Targeting>();
-            targeting.Initialize();
             targeting.radius = maxSpreadDistance;
             targeting.ignoredTargets = ignoredTargets;
+            targeting.targetTags = new string[] { "Enemy", "EnemyStation" };
+            targeting.drawGizmos = false;
+            //THIS IS TERRIBLE, CHANGE THIS
+
             targets = new List<Target>();
             arcSegments = new List<ArcSegment>();
             this.arcs = new List<Arc>();

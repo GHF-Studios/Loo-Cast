@@ -5,28 +5,31 @@ using System.Linq;
 
 namespace LooCast.Weapon
 {
+    using Data;
     using Target;
+    using Targeting;
     using Projectile;
     using System;
-    using Weapon.Data;
 
-    public class MultiplexerWeapon : Weapon
+    public sealed class MultiplexerWeapon : Weapon
     {
+        public MultiplexerWeaponData Data;
+
         public int maxTargets { get; private set; }
         public int maxFragments { get; private set; }
         public int fragmentArmorPenetration { get; private set; }
         public bool isTargetSeeking { get; private set; }
-        public string fragmentPrefabResourcePath { get; protected set; }
-        public GameObject fragmentPrefab { get; protected set; }
+        public string fragmentPrefabResourcePath { get; private set; }
+        public GameObject fragmentPrefab { get; private set; }
 
-        public void Initialize(MultiplexerWeaponData data)
+        private void Start()
         {
-            base.Initialize(data);
+            Initialize(Data);
 
-            maxTargets = data.BaseMaxTargets.Value;
-            maxFragments = data.BaseMaxFragments.Value;
-            fragmentArmorPenetration = data.BaseFragmentArmorPenetration.Value;
-            isTargetSeeking = data.IsTargetSeeking.Value;
+            maxTargets = Data.BaseMaxTargets.Value;
+            maxFragments = Data.BaseMaxFragments.Value;
+            fragmentArmorPenetration = Data.BaseFragmentArmorPenetration.Value;
+            isTargetSeeking = Data.IsTargetSeeking.Value;
             fragmentPrefab = Resources.Load<GameObject>(fragmentPrefabResourcePath);
         }
 

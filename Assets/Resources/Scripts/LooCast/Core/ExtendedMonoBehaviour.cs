@@ -4,14 +4,19 @@ namespace LooCast.Core
 {
     public abstract class ExtendedMonoBehaviour : MonoBehaviour
     {
+        public static int nextID = 0;
+        public int ID;
         public bool IsPaused { get; private set; }
         public bool IsVisible;
 
         private void Awake()
         {
+            ID = nextID;
+            nextID++;
             IsPaused = false;
             IsVisible = false;
         }
+
         private void Update()
         {
             if (!IsPaused)
@@ -19,6 +24,7 @@ namespace LooCast.Core
                 OnPauseableUpdate();
             }
         }
+
         private void FixedUpdate()
         {
             if (!IsPaused)

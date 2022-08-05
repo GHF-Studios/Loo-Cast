@@ -1,8 +1,8 @@
+using UnityEngine;
+
 namespace LooCast.Experience
 {
-    using LooCast.Core;
-
-    public abstract class Experience : Component
+    public abstract class Experience : MonoBehaviour
     {
         public abstract void AddExperience(float xp);
 

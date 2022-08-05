@@ -7,55 +7,49 @@ using UnityEngine.Events;
 namespace LooCast.Enemy
 {
     using Core;
+    using Data;
+    using Data.Runtime;
     using Particle;
     using Manager;
     using Movement;
     using Health;
-    using Target;
     using Experience;
-    using Enemy.Data;
 
     [RequireComponent(typeof(Movement), typeof(EnemyHealth)), DisallowMultipleComponent]
     public abstract class Enemy : ExtendedMonoBehaviour
     {
-        public readonly static List<Enemy> Enemies = new List<Enemy>();
-
         public EnemyData Data;
+        public EnemyRuntimeSet RuntimeSet;
         public Experience PlayerExperience { get; private set; }
         public ParticleSystem ParticleSystem { get; private set; }
         public EnemyMovement Movement { get; private set; }
         public EnemyHealth Health { get; private set; }
-        public Targeting PlayerTargeting { get; private set; }
+
         public UnityEvent OnKilled { get; private set; }
 
 
-        private void Awake()
+        private void Start()
         {
-            Enemies.Add(this);
+            RuntimeSet.Add(this);
 
             PlayerExperience = FindObjectOfType<Experience>();
 
             ParticleSystem = GetComponentInChildren<ParticleSystem>();
-            ParticleSystem.Initialize();
 
             Movement = GetComponent<EnemyMovement>();
-            Movement.Initialize();
             Movement.OnMovementDisabled.AddListener(ParticleSystem.PauseParticleSpawning);
             Movement.OnMovementEnabled.AddListener(ParticleSystem.ResumeParticleSpawning);
 
             Health = GetComponent<EnemyHealth>();
-            Health.Initialize(Health.DataData);
             Health.onKilled.AddListener(Kill);
-
-            PlayerTargeting = GameSceneManager.Instance.Player.Targeting;
 
             OnKilled = new UnityEvent();
             Health.onKilled.AddListener( () => { OnKilled.Invoke(); } );
         }
 
-        public virtual void Kill()
+        public void Kill()
         {
-            Enemies.Remove(this);
+            RuntimeSet.Remove(this);
             ParticleSystem.Kill();
             Destroy(gameObject);
         }

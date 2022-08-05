@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace LooCast.Spawner.Data
 {
-    using Data.Runtime;
+    using LooCast.Data;
 
     [CreateAssetMenu(fileName = "EnemySpawnerData", menuName = "Data/Spawner/EnemySpawnerData", order = 0)]
     public sealed class EnemySpawnerData : SpawnerData

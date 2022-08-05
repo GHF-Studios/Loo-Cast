@@ -4,6 +4,8 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat
 {
+    using LooCast.Data;
+
     public abstract class Stat : ScriptableObject
     {
         public IntReference Level;

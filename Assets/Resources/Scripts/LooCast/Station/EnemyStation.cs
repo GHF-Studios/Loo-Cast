@@ -4,31 +4,23 @@ using UnityEngine;
 
 namespace LooCast.Station
 {
+    using Data;
     using Spawner;
     using Health;
-    using Station.Data;
 
     [RequireComponent(typeof(EnemyStationHealth))]
-    public class EnemyStation : Station
+    public sealed class EnemyStation : Station
     {
         public EnemyStationData Data;
-        public EnemyStationHealth Health { get; protected set; }
-        public EnemySpawner Spawner { get; protected set; }
+        public EnemyStationHealth Health { get; private set; }
+        public EnemySpawner Spawner { get; private set; }
 
-        private void Awake()
-        {
-            Initialize();
-        }
-
-        public void Initialize()
+        private void Start()
         {
             Initialize(Data);
 
             Health = GetComponent<EnemyStationHealth>();
-            Health.Initialize(Health.DataData);
-
             Spawner = GetComponentInChildren<EnemySpawner>();
-            Spawner.Initialize();
         }
     } 
 }

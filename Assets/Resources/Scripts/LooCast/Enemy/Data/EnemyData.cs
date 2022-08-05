@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace LooCast.Enemy.Data
 {
-    using Health;
+    using LooCast.Data;
 
     [CreateAssetMenu(fileName = "EnemyData", menuName = "Data/Enemy/EnemyData", order = 0)]
     public class EnemyData : ScriptableObject
     {
-        public EnemyHealthData HealthData;
         public FloatReference ContactDamage;
     }
 }

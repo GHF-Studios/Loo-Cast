@@ -4,13 +4,15 @@ using UnityEngine;
 
 namespace LooCast.Health
 {
-    using Health.Data;
+    using Data;
 
     public class PlayerStationHealth : StationHealth
     {
-        public void Initialize(PlayerStationHealthData data)
+        public PlayerStationHealthData Data;
+
+        private void Start()
         {
-            base.Initialize(data);
+            Initialize(Data);
         }
     } 
 }

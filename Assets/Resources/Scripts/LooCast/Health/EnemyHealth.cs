@@ -5,10 +5,10 @@ using UnityEngine.Events;
 
 namespace LooCast.Health
 {
+    using Data;
     using Random;
     using Orb;
     using Sound;
-    using Health.Data;
     using Attribute.Stat;
 
     public class EnemyHealth : Health
@@ -31,7 +31,7 @@ namespace LooCast.Health
             magnetDropChance = data.BaseMagnetDropChance.Value * Stats.RandomChanceMultiplier;
             experienceDropChance = data.BaseExperienceDropChance.Value * Stats.RandomChanceMultiplier;
             experienceDropAmount = data.BaseExperienceDropAmount.Value;
-            experienceOrbPrefab = Experience.DataOrbPrefab;
+            experienceOrbPrefab = data.ExperienceOrbPrefab;
             magnetOrbPrefab = data.MagnetOrbPrefab;
         }
 

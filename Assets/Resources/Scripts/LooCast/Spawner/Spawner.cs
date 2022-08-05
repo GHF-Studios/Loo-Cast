@@ -4,11 +4,12 @@ using UnityEngine;
 
 namespace LooCast.Spawner
 {
-    using Util;
+    using Core;
+    using Data;
 
     public abstract class Spawner : ExtendedMonoBehaviour
     {
-        public virtual void Initialize()
+        protected void Initialize(SpawnerData data)
         {
 
         }

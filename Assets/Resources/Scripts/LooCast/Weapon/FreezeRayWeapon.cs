@@ -5,14 +5,16 @@ using LooCast.AOE;
 
 namespace LooCast.Weapon
 {
+    using Data;
     using Target;
-    using Weapon.Data;
 
-    public class FreezeRayWeapon : Weapon
+    public sealed class FreezeRayWeapon : Weapon
     {
-        public void Initialize(FreezeRayWeaponData data)
+        public FreezeRayWeaponData Data;
+
+        private void Start()
         {
-            base.Initialize(data);
+            Initialize(Data);
         }
 
         public override bool TryFire()

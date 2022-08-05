@@ -5,10 +5,11 @@ using UnityEngine;
 namespace LooCast.Weapon
 {
     using Core;
-    using Attribute.Data.Stat;
+    using Data;
+    using Attribute.Stat;
     using Sound;
     using Target;
-    using Weapon.Data;
+    using Targeting;
 
     [RequireComponent(typeof(Targeting))]
     public abstract class Weapon : ExtendedMonoBehaviour
@@ -46,7 +47,7 @@ namespace LooCast.Weapon
         public float attackTimer;
         public bool hasCooledDown { get; protected set; }
 
-        public void Initialize(WeaponData data)
+        protected void Initialize(WeaponData data)
         {
             targeting = GetComponent<Targeting>();
             soundHandler = FindObjectOfType<GameSoundHandler>();

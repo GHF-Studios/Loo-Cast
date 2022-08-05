@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace LooCast.Station.Data
 {
-    using Health;
+    using LooCast.Health.Data;
 
     [CreateAssetMenu(fileName = "EnemyStationData", menuName = "Data/Station/EnemyStationData", order = 0)]
     public sealed class EnemyStationData : StationData
