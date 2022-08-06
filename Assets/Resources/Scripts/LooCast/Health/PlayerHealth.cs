@@ -79,26 +79,26 @@ namespace LooCast.Health
                 return;
             }
 
-            RuntimeData.Health -= damageInfo.damage;
-            if (RuntimeData.Health <= 0)
+            RuntimeData.Health.Value -= damageInfo.damage;
+            if (RuntimeData.Health.Value <= 0)
             {
-                RuntimeData.Health = 0;
+                RuntimeData.Health.Value = 0;
                 Kill();
             }
         }
 
         public override void Heal(float health)
         {
-            RuntimeData.Health += health;
-            if (RuntimeData.Health > RuntimeData.MaxHealth.Value)
+            RuntimeData.Health.Value += health;
+            if (RuntimeData.Health.Value > RuntimeData.MaxHealth.Value)
             {
-                RuntimeData.Health = RuntimeData.MaxHealth.Value;
+                RuntimeData.Health.Value = RuntimeData.MaxHealth.Value;
             }
         }
 
         public override void Kill()
         {
-            if (RuntimeData.IsAlive)
+            if (RuntimeData.IsAlive.Value)
             {
                 base.Kill();
                 GameSceneManager.Pause();

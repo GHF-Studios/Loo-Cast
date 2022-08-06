@@ -12,7 +12,6 @@ namespace LooCast.UI.Bar
     {
         public Image SliderImage { get; protected set; }
         public Image BorderImage { get; protected set; }
-        public PlayerMovementData PlayerMovementData;
         public PlayerMovementRuntimeData PlayerMovementRuntimeData;
 
         private void Start()
@@ -24,7 +23,7 @@ namespace LooCast.UI.Bar
         public override void Refresh()
         {
             Slider.minValue = 0.0f;
-            Slider.maxValue = PlayerMovementData.MaxEnergy.Value;
+            Slider.maxValue = PlayerMovementRuntimeData.MaxEnergy.Value;
             Slider.value = PlayerMovementRuntimeData.CurrentEnergy.Value;
         }
 

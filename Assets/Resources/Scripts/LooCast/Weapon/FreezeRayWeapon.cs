@@ -7,6 +7,7 @@ namespace LooCast.Weapon
 {
     using Data;
     using Target;
+    using Targeting;
 
     public sealed class FreezeRayWeapon : Weapon
     {

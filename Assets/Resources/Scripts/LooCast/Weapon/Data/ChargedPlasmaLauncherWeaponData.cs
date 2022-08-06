@@ -4,34 +4,36 @@ using UnityEngine;
 
 namespace LooCast.Weapon.Data
 {
+    using LooCast.Data;
+
     [CreateAssetMenu(fileName = "ChargedPlasmaLauncherWeaponData", menuName = "Data/Weapon/ChargedPlasmaLauncherWeaponData", order = 0)]
     public sealed class ChargedPlasmaLauncherWeaponData : WeaponData
     {
-        public FloatReference ArcLifetime;
-        public FloatReference ArcInitialWidth;
-        public FloatReference ArcWidthMultiplier;
-        public FloatReference ArcMinWidth;
-        public IntReference ArcBranchAttempts;
-        public FloatReference MinSpreadDistance;
-        public FloatReference MinSpreadDistanceMultiplier;
-        public FloatReference MaxSpreadDistance;
-        public FloatReference MaxSpreadDistanceMultiplier;
-        public FloatReference MinSpreadAngle;
-        public FloatReference MinSpreadAngleMultiplier;
-        public FloatReference MaxSpreadAngle;
-        public FloatReference MaxSpreadAngleMultiplier;
-        public FloatReference SpreadChance;
-        public FloatReference SpreadChanceMultiplier;
-        public FloatReference MinBranchDistance;
-        public FloatReference MinBranchDistanceMultiplier;
-        public FloatReference MaxBranchDistance;
-        public FloatReference MaxBranchDistanceMultiplier;
-        public FloatReference MinBranchAngle;
-        public FloatReference MinBranchAngleMultiplier;
-        public FloatReference MaxBranchAngle;
-        public FloatReference MaxBranchAngleMultiplier;
-        public FloatReference BranchChance;
-        public FloatReference BranchChanceMultiplier;
-        public IntReference MaxRecursionDepth;
+        public FloatDataReference ArcLifetime;
+        public FloatDataReference ArcInitialWidth;
+        public FloatDataReference ArcWidthMultiplier;
+        public FloatDataReference ArcMinWidth;
+        public IntDataReference ArcBranchAttempts;
+        public FloatDataReference MinSpreadDistance;
+        public FloatDataReference MinSpreadDistanceMultiplier;
+        public FloatDataReference MaxSpreadDistance;
+        public FloatDataReference MaxSpreadDistanceMultiplier;
+        public FloatDataReference MinSpreadAngle;
+        public FloatDataReference MinSpreadAngleMultiplier;
+        public FloatDataReference MaxSpreadAngle;
+        public FloatDataReference MaxSpreadAngleMultiplier;
+        public FloatDataReference SpreadChance;
+        public FloatDataReference SpreadChanceMultiplier;
+        public FloatDataReference MinBranchDistance;
+        public FloatDataReference MinBranchDistanceMultiplier;
+        public FloatDataReference MaxBranchDistance;
+        public FloatDataReference MaxBranchDistanceMultiplier;
+        public FloatDataReference MinBranchAngle;
+        public FloatDataReference MinBranchAngleMultiplier;
+        public FloatDataReference MaxBranchAngle;
+        public FloatDataReference MaxBranchAngleMultiplier;
+        public FloatDataReference BranchChance;
+        public FloatDataReference BranchChanceMultiplier;
+        public IntDataReference MaxRecursionDepth;
     } 
 }

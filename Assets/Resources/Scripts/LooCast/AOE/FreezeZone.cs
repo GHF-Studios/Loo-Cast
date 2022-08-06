@@ -6,6 +6,8 @@ namespace LooCast.AOE
 {
     using Core;
     using Attribute.Stat;
+    using LooCast.Movement;
+    using LooCast.Movement.Effect;
 
     public class FreezeZone : ExtendedMonoBehaviour
     {
@@ -106,7 +108,12 @@ namespace LooCast.AOE
         {
             if (collision.gameObject.CompareTag("Enemy"))
             {
-                collision.GetComponent<Movement.Movement>().SetSlownessMultiplier(freezeAmount);
+                if (collision.gameObject.GetComponent<FreezeMovementEffect>() == null)
+                {
+                    FreezeMovementEffect freezeMovementEffect = collision.gameObject.AddComponent<FreezeMovementEffect>();
+                    freezeMovementEffect.Initialize(freezeAmount, 5.0f);
+                    Debug.Log("This is suboptimal and has to be improved!");
+                }
             }
         }
 
@@ -114,7 +121,7 @@ namespace LooCast.AOE
         {
             if (collision.gameObject.CompareTag("Enemy"))
             {
-                collision.GetComponent<Movement.Movement>().SetSlownessMultiplier(freezeAmount);
+                
             }
         }
 
@@ -122,7 +129,7 @@ namespace LooCast.AOE
         {
             if (collision.gameObject.CompareTag("Enemy"))
             {
-                collision.GetComponent<Movement.Movement>().SetSlownessMultiplier(1.0f);
+                
             }
         }
 

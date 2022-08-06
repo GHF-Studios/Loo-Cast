@@ -15,7 +15,7 @@ namespace LooCast.UI.Bar
         {
             Slider.minValue = 0.0f;
             Slider.maxValue = PlayerHealthRuntimeData.MaxHealth.Value;
-            Slider.value = PlayerHealthRuntimeData.Health;
+            Slider.value = PlayerHealthRuntimeData.Health.Value;
         }
     }
 }

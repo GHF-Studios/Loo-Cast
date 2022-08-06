@@ -4,18 +4,20 @@ using UnityEngine;
 
 namespace LooCast.Weapon.Data
 {
+    using LooCast.Data;
+
     public abstract class WeaponData : ScriptableObject
     {
-        public FloatReference BaseDamage;
-        public FloatReference BaseCritChance;
-        public FloatReference BaseCritDamage;
-        public FloatReference BaseKnockback;
-        public FloatReference BaseAttackDelay;
-        public FloatReference BaseProjectileSpeed;
-        public FloatReference BaseProjectileSize;
-        public FloatReference BaseProjectileLifetime;
-        public IntReference BasePiercing;
-        public IntReference BaseArmorPenetration;
-        public StringReference ProjectilePrefabResourcePath;
+        public FloatDataReference BaseDamage;
+        public FloatDataReference BaseCritChance;
+        public FloatDataReference BaseCritDamage;
+        public FloatDataReference BaseKnockback;
+        public FloatDataReference BaseAttackDelay;
+        public FloatDataReference BaseProjectileSpeed;
+        public FloatDataReference BaseProjectileSize;
+        public FloatDataReference BaseProjectileLifetime;
+        public IntDataReference BasePiercing;
+        public IntDataReference BaseArmorPenetration;
+        public StringDataReference ProjectilePrefabResourcePath;
     } 
 }

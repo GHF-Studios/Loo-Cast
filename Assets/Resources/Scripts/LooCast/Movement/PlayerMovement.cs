@@ -8,6 +8,7 @@ namespace LooCast.Movement
     using Manager;
     using Data;
     using Data.Runtime;
+    using Variable;
     using Attribute.Stat;
 
     public class PlayerMovement : Movement
@@ -24,11 +25,13 @@ namespace LooCast.Movement
         {
             Initialize(Data);
 
-            RuntimeData.CurrentEnergy = Data.BaseEnergy.Value;
-            RuntimeData.EnergyConsumption = Data.BaseEnergyConsumption.Value * Stats.EnergyConsumptionMultiplier;
-            RuntimeData.EnergyGeneration = Data.BaseEnergyGeneration.Value * Stats.EnergyRegenerationMultiplier;
-            RuntimeData.IsUsingEnergy = Data.IsUsingEnergy.Value;
-            RuntimeData.IsEnergyDepleted = Data.IsEnergyDepleted.Value;
+            RuntimeData.CurrentEnergy = new FloatVariable(Data.BaseEnergy.Value);
+            RuntimeData.EnergyConsumption = new FloatComputedVariable(Data.BaseEnergyConsumption.Value);
+            RuntimeData.EnergyConsumption.AddPermanentMultiplier(Stats.EnergyConsumptionMultiplier);
+            RuntimeData.EnergyGeneration = new FloatComputedVariable(Data.BaseEnergyGeneration.Value);
+            RuntimeData.EnergyGeneration.AddPermanentMultiplier(Stats.EnergyRegenerationMultiplier);
+            RuntimeData.IsUsingEnergy = new BoolVariable(Data.IsUsingEnergy.Value);
+            RuntimeData.IsEnergyDepleted = new BoolVariable(Data.IsEnergyDepleted.Value);
 
             Speed.AddPermanentMultiplier(Stats.MovementSpeedMultiplier);
         }
@@ -36,36 +39,36 @@ namespace LooCast.Movement
         protected override void OnPauseableUpdate()
         {
             base.OnPauseableUpdate();
-            if (!RuntimeData.IsUsingEnergy)
+            if (!RuntimeData.IsUsingEnergy.Value)
             {
-                if (RuntimeData.CurrentEnergy + RuntimeData.EnergyGeneration >= RuntimeData.MaxEnergy)
+                if (RuntimeData.CurrentEnergy.Value + RuntimeData.EnergyGeneration.Value >= RuntimeData.MaxEnergy.Value)
                 {
-                    RuntimeData.CurrentEnergy = RuntimeData.MaxEnergy;
-                    RuntimeData.IsEnergyDepleted = false;
+                    RuntimeData.CurrentEnergy.Value = RuntimeData.MaxEnergy.Value;
+                    RuntimeData.IsEnergyDepleted.Value = false;
                 }
                 else
                 {
-                    RuntimeData.CurrentEnergy += RuntimeData.EnergyGeneration;
+                    RuntimeData.CurrentEnergy.Value += RuntimeData.EnergyGeneration.Value;
                 }
             }
-            if (RuntimeData.IsUsingEnergy && !RuntimeData.IsEnergyDepleted)
+            if (RuntimeData.IsUsingEnergy.Value && !RuntimeData.IsEnergyDepleted.Value)
             {
-                if (RuntimeData.CurrentEnergy - RuntimeData.EnergyConsumption <= 0.0f)
+                if (RuntimeData.CurrentEnergy.Value - RuntimeData.EnergyConsumption.Value <= 0.0f)
                 {
-                    RuntimeData.CurrentEnergy = 0.0f;
-                    RuntimeData.IsEnergyDepleted = true;
+                    RuntimeData.CurrentEnergy.Value = 0.0f;
+                    RuntimeData.IsEnergyDepleted.Value = true;
                     GameSceneManager.Instance.SoundHandler.SoundCooldown();
                 }
                 else
                 {
-                    RuntimeData.CurrentEnergy -= RuntimeData.EnergyConsumption;
+                    RuntimeData.CurrentEnergy.Value -= RuntimeData.EnergyConsumption.Value;
                 }
             }
         }
 
         public override void Accelerate()
         {
-            RuntimeData.IsUsingEnergy = false;
+            RuntimeData.IsUsingEnergy.Value = false;
             float[] axis = new float[2];
             if (Input.touchCount > 0)
             {
@@ -87,20 +90,20 @@ namespace LooCast.Movement
                 axis[1] = Input.GetAxis("Vertical");
             }
 
-            if ((axis[0] == 0 && axis[1] == 0) || RuntimeData.IsEnergyDepleted)
+            if ((axis[0] == 0 && axis[1] == 0) || RuntimeData.IsEnergyDepleted.Value)
             {
                 OnStopAccelerating.Invoke();
             }
             else
             {
                 OnStartAccelerating.Invoke();
-                if (!RuntimeData.IsEnergyDepleted)
+                if (!RuntimeData.IsEnergyDepleted.Value)
                 {
-                    RuntimeData.IsUsingEnergy = true;
+                    RuntimeData.IsUsingEnergy.Value = true;
                 }
             }
 
-            if (!RuntimeData.IsEnergyDepleted)
+            if (!RuntimeData.IsEnergyDepleted.Value)
             {
                 Rigidbody.AddForce(new Vector2(axis[0], axis[1]).normalized * Speed.Value); 
             }

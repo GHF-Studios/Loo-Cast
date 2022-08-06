@@ -12,8 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d99887d534fb1bf47b1b92a304ecd689, type: 3}
   m_Name: EnemyData
   m_EditorClassIdentifier: 
-  HealthData: {fileID: 11400000, guid: ef70d6a6c91a525429f07e71cafa7b2d, type: 2}
   ContactDamage:
     UseConstant: 0
     ConstantValue: 0
     Variable: {fileID: 11400000, guid: 3405a1bdbd630f741b6b4a1b0ea965ce, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
