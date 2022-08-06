@@ -6,6 +6,6 @@ namespace LooCast.Movement.Data
 
     public abstract class MovementData : ScriptableObject
     {
-        public FloatReference BaseSpeed;
+        public FloatDataReference BaseSpeed;
     } 
 }

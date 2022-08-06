@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class FortitudeStat : Stat
     {
-        public FloatReference EnergyConsumptionMultiplier;
+        public FloatDataReference EnergyConsumptionMultiplier;
     }
 }

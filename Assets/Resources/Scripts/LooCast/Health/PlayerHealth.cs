@@ -5,6 +5,7 @@ namespace LooCast.Health
 {
     using Data;
     using Data.Runtime;
+    using Variable;
     using Sound;
     using UI.Screen;
     using UI.Canvas;
@@ -26,19 +27,19 @@ namespace LooCast.Health
 
         private void Start()
         {
-            RuntimeData.MaxHealth = new LooCast.Stat.FloatStat(Data.BaseMaxHealth.Value);
-            RuntimeData.MaxHealth.AddPermanentMultiplier(Stats.HealthMultiplier);
-            RuntimeData.Health = RuntimeData.MaxHealth.Value;
-            RuntimeData.RegenerationAmount = new LooCast.Stat.FloatStat(Data.BaseRegenerationAmount.Value);
-            RuntimeData.RegenerationAmount.AddPermanentMultiplier(Stats.HealthRegenrationMultiplier);
-            RuntimeData.RegenerationTime = new LooCast.Stat.FloatStat(Data.BaseRegenerationTime.Value);
-            RuntimeData.RegenerationTimer = 0.0f;
-            RuntimeData.Defense = new LooCast.Stat.IntStat(Data.BaseDefense.Value);
-            RuntimeData.Defense.AddPermanentIncrease(Stats.DefenseIncrease);
-            RuntimeData.IsAlive = true;
+            Initialize(Data);
 
-            onKilled = new UnityEvent();
-            canvas = FindObjectOfType<WorldSpaceCanvas>();
+            RuntimeData.MaxHealth = new FloatComputedVariable(Data.BaseMaxHealth.Value);
+            RuntimeData.MaxHealth.AddPermanentMultiplier(Stats.HealthMultiplier);
+            RuntimeData.Health = new FloatVariable(RuntimeData.MaxHealth.Value);
+            RuntimeData.RegenerationAmount = new FloatComputedVariable(Data.BaseRegenerationAmount.Value);
+            RuntimeData.RegenerationAmount.AddPermanentMultiplier(Stats.HealthRegenrationMultiplier);
+            RuntimeData.RegenerationTime = new FloatComputedVariable(Data.BaseRegenerationTime.Value);
+            RuntimeData.RegenerationTimer = new FloatVariable(0.0f);
+            RuntimeData.Defense = new IntComputedVariable(Data.BaseDefense.Value);
+            RuntimeData.Defense.AddPermanentIncrease(Stats.DefenseIncrease);
+            RuntimeData.IsAlive = new BoolVariable(true);
+
             soundHandler = FindObjectOfType<GameSoundHandler>();
             deathScreen = FindObjectOfType<DeathScreen>();
         }

@@ -8,6 +8,6 @@ namespace LooCast.Attribute.Stat
 
     public class EgoStat : Stat
     {
-        public FloatReference DamageReflection;
+        public FloatDataReference DamageReflection;
     } 
 }

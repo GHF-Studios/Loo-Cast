@@ -2,11 +2,13 @@
 
 namespace LooCast.Experience.Data.Runtime
 {
+    using LooCast.Variable;
+
     [CreateAssetMenu(fileName = "PlayerExperienceRuntimeData", menuName = "Data/Experience/PlayerExperienceRuntimeData", order = 0)]
     public sealed class PlayerExperienceRuntimeData : ScriptableObject
     {
-        public float CurrentExperience;
-        public float LevelExperienceMax;
-        public int CurrentLevel;
+        public FloatComputedVariable CurrentExperience;
+        public FloatComputedVariable LevelExperienceMax;
+        public IntVariable CurrentLevel;
     }
 }

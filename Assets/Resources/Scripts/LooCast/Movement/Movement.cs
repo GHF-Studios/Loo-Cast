@@ -7,7 +7,7 @@ namespace LooCast.Movement
 {
     using Core;
     using Data;
-    using Stat;
+    using Variable;
     using Util;
 
     [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D))]
@@ -16,7 +16,7 @@ namespace LooCast.Movement
         public UnityEvent OnMovementEnabled { get; protected set; }
         public UnityEvent OnMovementDisabled { get; protected set; }
 
-        public FloatStat Speed { get; protected set; }
+        public FloatComputedVariable Speed { get; protected set; }
 
         public Rigidbody2D Rigidbody { get; protected set; }
         public Collider2D Collider { get; protected set; }
@@ -28,7 +28,7 @@ namespace LooCast.Movement
             OnMovementEnabled = new UnityEvent();
             OnMovementDisabled = new UnityEvent();
 
-            Speed = new FloatStat(data.BaseSpeed.Value);
+            Speed = new FloatComputedVariable(data.BaseSpeed.Value);
             Speed.AddPermanentMultiplier(Constants.INERTIAL_COEFFICIENT);
 
             Rigidbody = GetComponent<Rigidbody2D>();

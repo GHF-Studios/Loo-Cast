@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class IntellectStat : Stat
     {
-        public FloatReference ExperienceMultiplier;
+        public FloatDataReference ExperienceMultiplier;
     } 
 }

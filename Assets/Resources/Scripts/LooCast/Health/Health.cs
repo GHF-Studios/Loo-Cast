@@ -19,7 +19,7 @@ namespace LooCast.Health
         protected int defense;
         protected bool isAlive;
 
-        public UnityEvent onKilled;
+        public UnityEvent OnKilled;
         protected WorldSpaceCanvas canvas;
 
         public void Initialize(HealthData data)
@@ -35,7 +35,7 @@ namespace LooCast.Health
 
             isAlive = true;
 
-            onKilled = new UnityEvent();
+            OnKilled = new UnityEvent();
 
             canvas = FindObjectOfType<WorldSpaceCanvas>();
         }
@@ -102,7 +102,7 @@ namespace LooCast.Health
         public virtual void Kill()
         {
             isAlive = false;
-            onKilled.Invoke();
+            OnKilled.Invoke();
         }
 
         public virtual void Knockback(DamageInfo damageInfo)

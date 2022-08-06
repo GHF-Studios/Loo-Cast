@@ -8,6 +8,6 @@ namespace LooCast.Attribute.Stat
 
     public class EnduranceStat : Stat
     {
-        public FloatReference EnergyRegenerationMultiplier;
+        public FloatDataReference EnergyRegenerationMultiplier;
     } 
 }

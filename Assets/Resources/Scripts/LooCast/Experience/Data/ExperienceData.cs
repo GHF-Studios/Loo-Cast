@@ -6,8 +6,8 @@ namespace LooCast.Experience.Data
 
     public abstract class ExperienceData : ScriptableObject
     {
-        public FloatReference InitialExperience;
-        public FloatReference InitialLevelExperienceMax;
-        public IntReference InitialLevel;
+        public FloatDataReference BaseExperience;
+        public FloatDataReference BaseLevelExperienceMax;
+        public IntDataReference BaseLevel;
     } 
 }

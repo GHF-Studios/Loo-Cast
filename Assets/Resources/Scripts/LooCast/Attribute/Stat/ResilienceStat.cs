@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class ResilienceStat : Stat
     {
-        public IntReference ShieldStrengthIncrease;
+        public IntDataReference ShieldStrengthIncrease;
     } 
 }

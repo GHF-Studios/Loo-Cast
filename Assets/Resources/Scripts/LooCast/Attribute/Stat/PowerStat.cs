@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class PowerStat : Stat
     {
-        public FloatReference KnockbackMultiplier;
+        public FloatDataReference KnockbackMultiplier;
     }
 }

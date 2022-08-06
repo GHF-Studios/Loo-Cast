@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class KnowledgeStat : Stat
     {
-        public FloatReference LevelExperienceMaxMultiplier;
+        public FloatDataReference LevelExperienceMaxMultiplier;
     } 
 }

@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class PersonalityStat : Stat
     {
-        public FloatReference ProjectileSpeedMultiplier;
+        public FloatDataReference ProjectileSpeedMultiplier;
     } 
 }

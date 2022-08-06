@@ -6,7 +6,7 @@ namespace LooCast.Data.Editor
 {
     using LooCast.Data;
 
-    [CustomPropertyDrawer(typeof(FloatReference))]
+    [CustomPropertyDrawer(typeof(FloatDataReference))]
     public class FloatReferenceDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)

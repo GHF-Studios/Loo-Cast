@@ -6,8 +6,8 @@ namespace LooCast.Targeting.Data
 
     public class TargetingData : ScriptableObject
     {
-        public FloatReference BaseRadius;
+        public FloatDataReference BaseRadius;
         public string[] TargetedTags;
-        public BoolReference DrawGizmos;
+        public BoolDataReference DrawGizmos;
     }
 }

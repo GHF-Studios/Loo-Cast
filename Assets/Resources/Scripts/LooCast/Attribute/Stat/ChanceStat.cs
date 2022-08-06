@@ -8,6 +8,6 @@ namespace LooCast.Attribute.Stat
 
     public class ChanceStat : Stat
     {
-        public FloatReference RandomChanceMultiplier;
+        public FloatDataReference RandomChanceMultiplier;
     } 
 }

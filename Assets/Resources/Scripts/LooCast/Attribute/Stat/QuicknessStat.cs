@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class QuicknessStat : Stat
     {
-        public FloatReference AttackDelayMultiplier;
+        public FloatDataReference AttackDelayMultiplier;
     } 
 }

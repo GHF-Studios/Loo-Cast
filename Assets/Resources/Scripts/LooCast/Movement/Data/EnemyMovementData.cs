@@ -6,6 +6,6 @@ namespace LooCast.Movement.Data
 
     public abstract class EnemyMovementData : MovementData
     {
-        public BoolReference IsMovementEnabled;
+        public BoolDataReference IsMovementEnabled;
     } 
 }

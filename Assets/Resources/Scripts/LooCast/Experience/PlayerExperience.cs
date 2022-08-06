@@ -4,6 +4,7 @@ namespace LooCast.Experience
 {
     using Data;
     using Data.Runtime;
+    using Variable;
     using Attribute.Stat;
     using Currency;
     using Sound;
@@ -16,57 +17,56 @@ namespace LooCast.Experience
         public Coins Coins;
         public Tokens Tokens;
 
-        private float experienceMultiplier;
-        private float levelExperienceMultiplier;
-
         private GameSoundHandler soundHandler;
 
         private void Start()
         {
-            RuntimeData.CurrentExperience = Data.InitialExperience.Value;   //0.0f
-            RuntimeData.LevelExperienceMax = Data.InitialLevelExperienceMax.Value; //10.0f
-            RuntimeData.CurrentLevel = Data.InitialLevel.Value;             //0
-            experienceMultiplier = Stats.ExperienceMultiplier;
-            levelExperienceMultiplier = Stats.LevelExperienceMaxMultiplier;
+            Initialize(Data);
+
+            RuntimeData.CurrentExperience = new FloatComputedVariable(Data.BaseExperience.Value);
+            RuntimeData.CurrentExperience.AddPermanentMultiplier(Stats.ExperienceMultiplier);
+            RuntimeData.LevelExperienceMax = new FloatComputedVariable(Data.BaseLevelExperienceMax.Value);
+            RuntimeData.CurrentLevel = new IntVariable(Data.BaseLevel.Value);
+
             soundHandler = FindObjectOfType<GameSoundHandler>();
         }
 
         public override void AddExperience(float xp)
         {
-            Coins.Balance.Value = Coins.Balance.Value + Mathf.RoundToInt(xp);
-            RuntimeData.CurrentExperience += xp * experienceMultiplier;
+            Coins.Balance.Value += Mathf.RoundToInt(xp);
+            RuntimeData.CurrentExperience.BaseValue += xp;
 
-            UpdateLevelProgress(RuntimeData.CurrentExperience);
+            UpdateLevelProgress(RuntimeData.CurrentExperience.Value);
         }
 
         protected override void UpdateLevelProgress(float overflowXP)
         {
-            if (overflowXP == RuntimeData.LevelExperienceMax)
+            if (overflowXP == RuntimeData.LevelExperienceMax.Value)
             {
                 IncreaseLevel();
-                RuntimeData.CurrentExperience = 0;
+                RuntimeData.CurrentExperience.BaseValue = 0;
                 return;
             }
 
-            if (overflowXP > RuntimeData.LevelExperienceMax)
+            if (overflowXP > RuntimeData.LevelExperienceMax.Value)
             {
-                UpdateLevelProgress(overflowXP - RuntimeData.LevelExperienceMax);
+                UpdateLevelProgress(overflowXP - RuntimeData.LevelExperienceMax.Value);
                 IncreaseLevel();
                 return;
             }
 
-            if (overflowXP < RuntimeData.LevelExperienceMax)
+            if (overflowXP < RuntimeData.LevelExperienceMax.Value)
             {
-                RuntimeData.CurrentExperience = overflowXP;
+                RuntimeData.CurrentExperience.BaseValue = overflowXP;
                 return;
             }
         }
 
         protected override void IncreaseLevel()
         {
-            RuntimeData.CurrentLevel++;
-            RuntimeData.LevelExperienceMax = RuntimeData.LevelExperienceMax * levelExperienceMultiplier;
-            Tokens.Balance.Value = Tokens.Balance.Value + 1;
+            RuntimeData.CurrentLevel.Value++;
+            RuntimeData.LevelExperienceMax.BaseValue *= Stats.LevelExperienceMaxMultiplier;
+            Tokens.Balance.Value++;
             soundHandler.SoundUpgrade();
         }
     } 

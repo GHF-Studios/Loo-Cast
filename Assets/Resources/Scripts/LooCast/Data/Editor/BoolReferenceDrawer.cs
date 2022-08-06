@@ -6,7 +6,7 @@ namespace LooCast.Data.Editor
 {
     using LooCast.Data;
 
-    [CustomPropertyDrawer(typeof(BoolReference))]
+    [CustomPropertyDrawer(typeof(BoolDataReference))]
     public class BoolReferenceDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)

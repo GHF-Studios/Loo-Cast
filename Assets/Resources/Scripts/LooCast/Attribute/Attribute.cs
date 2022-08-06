@@ -9,9 +9,9 @@ namespace LooCast.Attribute
     public abstract class Attribute : ScriptableObject
     {
         public Stat.Stat[] stats;
-        public IntReference Level;
-        public IntReference MaxLevel;
-        public IntReference ProposedLevelChange;
+        public IntDataReference Level;
+        public IntDataReference MaxLevel;
+        public IntDataReference ProposedLevelChange;
 
         public int GetCost(int targetLevel)
         {

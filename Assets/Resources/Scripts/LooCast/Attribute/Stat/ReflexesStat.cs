@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class ReflexesStat : Stat
     {
-        public FloatReference ConsecutiveProjectileDelayMultiplier;
+        public FloatDataReference ConsecutiveProjectileDelayMultiplier;
     } 
 }

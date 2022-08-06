@@ -8,6 +8,6 @@ namespace LooCast.Attribute.Stat
 
     public class BodyStat : Stat
     {
-        public FloatReference EnergyMultiplier;
+        public FloatDataReference EnergyMultiplier;
     } 
 }

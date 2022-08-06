@@ -8,7 +8,7 @@ namespace LooCast.Currency
 
     public class Coins : ScriptableObject
     {
-        public IntReference Balance;
-        public IntReference ProposedBalanceChange;
+        public IntDataReference Balance;
+        public IntDataReference ProposedBalanceChange;
     } 
 }

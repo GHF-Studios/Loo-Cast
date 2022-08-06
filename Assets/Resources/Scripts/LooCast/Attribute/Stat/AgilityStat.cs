@@ -8,6 +8,6 @@ namespace LooCast.Attribute.Stat
 
     public class AgilityStat : Stat
     {
-        public FloatReference MovementSpeedMultiplier;
+        public FloatDataReference MovementSpeedMultiplier;
     } 
 }

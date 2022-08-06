@@ -6,9 +6,9 @@ namespace LooCast.Health.Data
 
     public abstract class HealthData : ScriptableObject
     {
-        public FloatReference BaseMaxHealth;
-        public FloatReference BaseRegenerationAmount;
-        public FloatReference BaseRegenerationTime;
-        public IntReference BaseDefense;
+        public FloatDataReference BaseMaxHealth;
+        public FloatDataReference BaseRegenerationAmount;
+        public FloatDataReference BaseRegenerationTime;
+        public IntDataReference BaseDefense;
     } 
 }

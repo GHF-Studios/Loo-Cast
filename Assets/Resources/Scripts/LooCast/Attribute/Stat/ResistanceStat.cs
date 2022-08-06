@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class ResistanceStat : Stat
     {
-        public IntReference DefenseIncrease;
+        public IntDataReference DefenseIncrease;
     } 
 }

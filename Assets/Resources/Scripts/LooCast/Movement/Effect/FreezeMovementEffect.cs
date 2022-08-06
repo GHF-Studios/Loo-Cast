@@ -2,13 +2,13 @@
 
 namespace LooCast.Movement.Effect
 {
-    using LooCast.Stat;
+    using LooCast.Variable;
 
     public class FreezeMovementEffect : MovementEffect
     {
-        public void Initialize(float freezingSlowness)
+        public void Initialize(float speedMultiplier, float duration)
         {
-            TemporaryMultiplier multiplier = Movement.Speed.AddTimedMultiplier(0.75f, 10.0f);
+            TemporaryMultiplier multiplier = Movement.Speed.AddTimedMultiplier(speedMultiplier, duration);
             multiplier.OnTimerElapsed.AddListener(() => { Destroy(this); });
         }
     }

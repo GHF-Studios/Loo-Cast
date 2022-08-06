@@ -41,10 +41,10 @@ namespace LooCast.Enemy
             Movement.OnMovementEnabled.AddListener(ParticleSystem.ResumeParticleSpawning);
 
             Health = GetComponent<EnemyHealth>();
-            Health.onKilled.AddListener(Kill);
+            Health.OnKilled.AddListener(Kill);
 
             OnKilled = new UnityEvent();
-            Health.onKilled.AddListener( () => { OnKilled.Invoke(); } );
+            Health.OnKilled.AddListener( () => { OnKilled.Invoke(); } );
         }
 
         public void Kill()

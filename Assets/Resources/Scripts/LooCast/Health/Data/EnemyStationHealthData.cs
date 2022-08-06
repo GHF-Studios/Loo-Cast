@@ -9,8 +9,8 @@ namespace LooCast.Health.Data
     [CreateAssetMenu(fileName = "EnemyStationHealthData", menuName = "Data/Health/EnemyStationHealthData", order = 0)]
     public class EnemyStationHealthData : StationHealthData
     {
-        public FloatReference BaseExperienceDropChance;
-        public FloatReference BaseExperienceDropAmount;
+        public FloatDataReference BaseExperienceDropChance;
+        public FloatDataReference BaseExperienceDropAmount;
         public GameObject ExperienceOrbPrefab;
     } 
 }

@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class MindStat : Stat
     {
-        public FloatReference RangeMultiplier;
+        public FloatDataReference RangeMultiplier;
     } 
 }

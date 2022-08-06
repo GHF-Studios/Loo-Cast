@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class ResolveStat : Stat
     {
-        public IntReference PiercingIncrease;
+        public IntDataReference PiercingIncrease;
     } 
 }

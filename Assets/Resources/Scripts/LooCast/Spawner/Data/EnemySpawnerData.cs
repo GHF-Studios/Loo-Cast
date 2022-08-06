@@ -9,8 +9,8 @@ namespace LooCast.Spawner.Data
     [CreateAssetMenu(fileName = "EnemySpawnerData", menuName = "Data/Spawner/EnemySpawnerData", order = 0)]
     public sealed class EnemySpawnerData : SpawnerData
     {
-        public FloatReference BaseSpawnDelay;
-        public IntReference BaseMaxEnemies;
+        public FloatDataReference BaseSpawnDelay;
+        public IntDataReference BaseMaxEnemies;
         public GameObject EnemyPrefab;
     } 
 }

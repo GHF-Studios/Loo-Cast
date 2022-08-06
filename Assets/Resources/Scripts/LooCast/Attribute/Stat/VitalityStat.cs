@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class VitalityStat : Stat
     {
-        public FloatReference HealthMultiplier;
+        public FloatDataReference HealthMultiplier;
     }
 }

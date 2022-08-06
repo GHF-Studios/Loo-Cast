@@ -6,7 +6,7 @@ namespace LooCast.Data.Editor
 {
     using LooCast.Data;
 
-    [CustomPropertyDrawer(typeof(IntReference))]
+    [CustomPropertyDrawer(typeof(IntDataReference))]
     public class IntReferenceDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)

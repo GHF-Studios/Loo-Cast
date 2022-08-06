@@ -8,6 +8,6 @@ namespace LooCast.Attribute.Stat
 
     public class BrawnStat : Stat
     {
-        public IntReference ArmorPenetrationIncrease;
+        public IntDataReference ArmorPenetrationIncrease;
     } 
 }

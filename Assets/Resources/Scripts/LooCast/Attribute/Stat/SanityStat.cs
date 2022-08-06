@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class SanityStat : Stat
     {
-        public FloatReference ProjectileSizeMultiplier;
+        public FloatDataReference ProjectileSizeMultiplier;
     } 
 }

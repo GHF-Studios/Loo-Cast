@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class RecoveryStat : Stat
     {
-        public FloatReference HealthRegenrationMultiplier;
+        public FloatDataReference HealthRegenrationMultiplier;
     } 
 }

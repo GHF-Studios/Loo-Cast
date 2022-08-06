@@ -6,11 +6,11 @@ namespace LooCast.Movement.Data
 
     public abstract class PlayerMovementData : MovementData
     {
-        public FloatReference BaseEnergy;
-        public FloatReference BaseMaxEnergy;
-        public FloatReference BaseEnergyConsumption;
-        public FloatReference BaseEnergyGeneration;
-        public BoolReference IsUsingEnergy;
-        public BoolReference IsEnergyDepleted;
+        public FloatDataReference BaseEnergy;
+        public FloatDataReference BaseMaxEnergy;
+        public FloatDataReference BaseEnergyConsumption;
+        public FloatDataReference BaseEnergyGeneration;
+        public BoolDataReference IsUsingEnergy;
+        public BoolDataReference IsEnergyDepleted;
     } 
 }

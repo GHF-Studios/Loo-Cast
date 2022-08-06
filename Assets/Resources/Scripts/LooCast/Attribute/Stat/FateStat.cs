@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class FateStat : Stat
     {
-        public FloatReference NegativeEventChanceMultiplier;
+        public FloatDataReference NegativeEventChanceMultiplier;
     } 
 }

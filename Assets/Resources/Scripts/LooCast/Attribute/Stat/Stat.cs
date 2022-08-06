@@ -8,9 +8,9 @@ namespace LooCast.Attribute.Stat
 
     public abstract class Stat : ScriptableObject
     {
-        public IntReference Level;
-        public IntReference MaxLevel;
-        public IntReference ProposedLevelChange;
+        public IntDataReference Level;
+        public IntDataReference MaxLevel;
+        public IntDataReference ProposedLevelChange;
 
         public virtual int GetCost(int targetLevel)
         {

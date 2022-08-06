@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class StaminaStat : Stat
     {
-        public FloatReference DurationMultiplier;
+        public FloatDataReference DurationMultiplier;
     } 
 }

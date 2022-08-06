@@ -2,17 +2,17 @@
 
 namespace LooCast.Health.Data.Runtime
 {
-    using LooCast.Stat;
+    using LooCast.Variable;
 
     [CreateAssetMenu(fileName = "PlayerHealthRuntimeData", menuName = "Data/Health/Runtime/PlayerHealthRuntimeData", order = 0)]
     public class PlayerHealthRuntimeData : ScriptableObject
     {
-        public float Health;
-        public FloatStat MaxHealth;
-        public FloatStat RegenerationAmount;
-        public FloatStat RegenerationTime;
-        public float RegenerationTimer;
-        public IntStat Defense;
-        public bool IsAlive;
+        public FloatVariable Health;
+        public FloatComputedVariable MaxHealth;
+        public FloatComputedVariable RegenerationAmount;
+        public FloatComputedVariable RegenerationTime;
+        public FloatVariable RegenerationTimer;
+        public IntComputedVariable Defense;
+        public BoolVariable IsAlive;
     }
 }

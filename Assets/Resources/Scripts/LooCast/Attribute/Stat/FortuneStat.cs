@@ -9,6 +9,6 @@ namespace LooCast.Attribute.Stat
 
     public class FortuneStat : Stat
     {
-        public FloatReference PositiveEventChanceMultiplier;
+        public FloatDataReference PositiveEventChanceMultiplier;
     } 
 }
