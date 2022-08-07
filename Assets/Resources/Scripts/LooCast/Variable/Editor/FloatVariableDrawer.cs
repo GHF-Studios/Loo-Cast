@@ -1,10 +1,9 @@
-using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace LooCast.Data.Editor
+namespace LooCast.Variable.Editor
 {
-    using LooCast.Variable;
+    using LooCast.Util;
 
     [CustomPropertyDrawer(typeof(FloatVariable))]
     public class FloatVariableDrawer : PropertyDrawer
@@ -15,11 +14,11 @@ namespace LooCast.Data.Editor
 
             position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
 
-            float value = property.FindPropertyRelative("Value").floatValue;
-            value = EditorGUI.FloatField(position, value);
-            property.FindPropertyRelative("BaseValue").floatValue = value;
+            FloatVariable floatVariable = (FloatVariable)PropertyDrawerUtil.GetTargetObjectOfProperty(property);
+            float value = EditorGUI.FloatField(position, floatVariable.Value);
+            floatVariable.Value = value;
 
             EditorGUI.EndProperty();
         }
-    } 
+    }
 }

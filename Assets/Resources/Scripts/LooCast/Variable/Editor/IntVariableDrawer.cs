@@ -1,10 +1,9 @@
-using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace LooCast.Data.Editor
+namespace LooCast.Variable.Editor
 {
-    using LooCast.Variable;
+    using LooCast.Util;
 
     [CustomPropertyDrawer(typeof(IntVariable))]
     public class IntVariableDrawer : PropertyDrawer
@@ -15,9 +14,9 @@ namespace LooCast.Data.Editor
 
             position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
 
-            int value = property.FindPropertyRelative("Value").intValue;
-            value = EditorGUI.IntField(position, value);
-            property.FindPropertyRelative("BaseValue").intValue = value;
+            IntVariable intVariable = (IntVariable)PropertyDrawerUtil.GetTargetObjectOfProperty(property);
+            int value = EditorGUI.IntField(position, intVariable.Value);
+            intVariable.Value = value;
 
             EditorGUI.EndProperty();
         }

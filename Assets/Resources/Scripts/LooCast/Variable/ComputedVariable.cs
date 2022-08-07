@@ -22,7 +22,7 @@ namespace LooCast.Variable
 
             set
             {
-                BaseValue = value;
+                baseValue = value;
                 OnValueChanged.Invoke();
             }
         }

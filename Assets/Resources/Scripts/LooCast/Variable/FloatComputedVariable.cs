@@ -4,6 +4,7 @@ using UnityEngine.Events;
 
 namespace LooCast.Variable
 {
+    [Serializable]
     public class FloatComputedVariable : ComputedVariable<float>
     {
         public FloatComputedVariable(float baseValue) : base(baseValue, ComputedVariableUtil.DefaultFloatStatEvaluator)
