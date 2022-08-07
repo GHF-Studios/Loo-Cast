@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
 
 namespace LooCast.Variable.Editor
@@ -13,10 +14,8 @@ namespace LooCast.Variable.Editor
             EditorGUI.BeginProperty(position, label, property);
 
             position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
-
             FloatVariable floatVariable = (FloatVariable)PropertyDrawerUtil.GetTargetObjectOfProperty(property);
-            float value = EditorGUI.FloatField(position, floatVariable.Value);
-            floatVariable.Value = value;
+            floatVariable.Value = EditorGUI.FloatField(position, floatVariable.Value);
 
             EditorGUI.EndProperty();
         }

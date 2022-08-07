@@ -13,30 +13,14 @@ MonoBehaviour:
   m_Name: AgilityStat
   m_EditorClassIdentifier: 
   Level:
-    UseConstant: 0
-    ConstantValue: 0
-    Variable: {fileID: 0}
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []
   MaxLevel:
-    UseConstant: 0
-    ConstantValue: 0
-    Variable: {fileID: 0}
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []
   ProposedLevelChange:
-    UseConstant: 0
-    ConstantValue: 0
-    Variable: {fileID: 0}
-    OnValueChanged:
-      m_PersistentCalls:
-        m_Calls: []
-  MovementSpeedMultiplier:
-    UseConstant: 0
-    ConstantValue: 0
-    Variable: {fileID: 0}
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []

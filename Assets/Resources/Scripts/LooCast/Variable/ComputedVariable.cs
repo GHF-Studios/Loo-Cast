@@ -4,6 +4,8 @@ using UnityEngine.Events;
 
 namespace LooCast.Variable
 {
+    using LooCast.Util;
+
     public abstract class ComputedVariable<T>
     {
         public T Value

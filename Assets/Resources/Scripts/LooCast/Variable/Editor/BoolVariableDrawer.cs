@@ -13,10 +13,8 @@ namespace LooCast.Variable.Editor
             EditorGUI.BeginProperty(position, label, property);
 
             position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
-
             BoolVariable boolVariable = (BoolVariable)PropertyDrawerUtil.GetTargetObjectOfProperty(property);
-            bool value = EditorGUI.Toggle(position, boolVariable.Value);
-            boolVariable.Value = value;
+            boolVariable.Value = EditorGUI.Toggle(position, boolVariable.Value);
 
             EditorGUI.EndProperty();
         }

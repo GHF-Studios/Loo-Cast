@@ -16,3 +16,15 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d04b5b63b772d0c42b44302bec780f48, type: 2}
   - {fileID: 11400000, guid: 04030c9d7320ec541bc5cde67cdee1f3, type: 2}
   - {fileID: 11400000, guid: 4dfbed8b0fd080e4aa353c7057d7c2c1, type: 2}
+  Level:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MaxLevel:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  ProposedLevelChange:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []

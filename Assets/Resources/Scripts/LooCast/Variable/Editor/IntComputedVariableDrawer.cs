@@ -13,10 +13,8 @@ namespace LooCast.Variable.Editor
             EditorGUI.BeginProperty(position, label, property);
 
             position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
-
-            IntComputedVariable intComputedVariable = (IntComputedVariable)PropertyDrawerUtil.GetTargetObjectOfProperty(property);
-            int value = EditorGUI.IntField(position, intComputedVariable.BaseValue);
-            intComputedVariable.BaseValue = value;
+            IntComputedVariable intVariable = (IntComputedVariable)PropertyDrawerUtil.GetTargetObjectOfProperty(property);
+            intVariable.BaseValue = EditorGUI.IntField(position, intVariable.BaseValue);
 
             EditorGUI.EndProperty();
         }

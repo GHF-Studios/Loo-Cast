@@ -13,10 +13,8 @@ namespace LooCast.Variable.Editor
             EditorGUI.BeginProperty(position, label, property);
 
             position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
-
             StringVariable stringVariable = (StringVariable)PropertyDrawerUtil.GetTargetObjectOfProperty(property);
-            string value = EditorGUI.TextField(position, stringVariable.Value);
-            stringVariable.Value = value;
+            stringVariable.Value = EditorGUI.TextField(position, stringVariable.Value);
 
             EditorGUI.EndProperty();
         }

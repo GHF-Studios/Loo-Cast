@@ -11,11 +11,10 @@ namespace LooCast.Variable.Editor
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             EditorGUI.BeginProperty(position, label, property);
-            position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
 
-            FloatComputedVariable floatComputedVariable = (FloatComputedVariable)PropertyDrawerUtil.GetTargetObjectOfProperty(property);
-            float value = EditorGUI.FloatField(position, floatComputedVariable.BaseValue);
-            floatComputedVariable.BaseValue = value;
+            position = EditorGUI.PrefixLabel(position, GUIUtility.GetControlID(FocusType.Passive), label);
+            FloatComputedVariable floatVariable = (FloatComputedVariable)PropertyDrawerUtil.GetTargetObjectOfProperty(property);
+            floatVariable.BaseValue = EditorGUI.FloatField(position, floatVariable.BaseValue);
 
             EditorGUI.EndProperty();
         }
