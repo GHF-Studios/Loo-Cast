@@ -13,6 +13,6 @@ namespace LooCast.Weapon.Data
         public IntDataReference BaseMaxFragments;
         public IntDataReference BaseFragmentArmorPenetration;
         public BoolDataReference IsTargetSeeking;
-        public StringDataReference FragmentPrefabResourcePath;
+        public GameObject FragmentPrefab;
     } 
 }

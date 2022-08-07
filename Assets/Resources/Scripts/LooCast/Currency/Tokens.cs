@@ -4,11 +4,12 @@ using UnityEngine;
 
 namespace LooCast.Currency
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "Tokens", menuName = "Data/Currency/Tokens", order = 0)]
     public class Tokens : ScriptableObject
     {
-        public IntDataReference Balance;
-        public IntDataReference ProposedBalanceChange;
+        public IntVariable Balance;
+        public IntVariable ProposedBalanceChange;
     } 
 }

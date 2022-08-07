@@ -321,6 +321,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fbf3f06ccc27924e8d3969ebef459a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
   text: {fileID: 0}
 --- !u!1 &43087070 stripped
 GameObject:
@@ -512,7 +514,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b123ccedc785b643b572ebf40629406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  slider: {fileID: 115050737}
+  Slider: {fileID: 0}
   weaponName: LaserEmitterWeapon
 --- !u!114 &115050737
 MonoBehaviour:
@@ -714,7 +716,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0b2b980517821c4286895d1af0c5509, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  slider: {fileID: 143556332}
+  Slider: {fileID: 0}
+  PlayerExperienceRuntimeData: {fileID: 0}
 --- !u!114 &143556332
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1262,7 +1265,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b123ccedc785b643b572ebf40629406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  slider: {fileID: 228983696}
+  Slider: {fileID: 0}
   weaponName: MultiplexerWeapon
 --- !u!114 &228983696
 MonoBehaviour:
@@ -1626,7 +1629,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 222cda74e1bdfad4585d6a84ac44fafa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  slider: {fileID: 374004322}
+  Slider: {fileID: 0}
+  PlayerMovementRuntimeData: {fileID: 0}
 --- !u!1 &497528163
 GameObject:
   m_ObjectHideFlags: 0
@@ -1842,6 +1846,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 40211629ad72eaf4d82e37e7473ad96a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
   target: {fileID: 43087070}
   speed: 2
 --- !u!114 &519420034
@@ -1856,6 +1862,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61ea9d70f3895ec4bbf27513aa032294, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
 --- !u!1 &521811081
 GameObject:
   m_ObjectHideFlags: 0
@@ -2521,7 +2529,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b123ccedc785b643b572ebf40629406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  slider: {fileID: 609760610}
+  Slider: {fileID: 0}
   weaponName: FreezeRayWeapon
 --- !u!114 &609760610
 MonoBehaviour:
@@ -2940,6 +2948,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c871dd2b39f22a4aa2f6e861a7a04c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
   priority: 5
 --- !u!1 &928513239
 GameObject:
@@ -3357,7 +3367,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2c2ef01878e68542b6529658dab3e4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  slider: {fileID: 1011226476}
+  Slider: {fileID: 0}
+  PlayerHealthRuntimeData: {fileID: 0}
 --- !u!114 &1011226476
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3819,7 +3830,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b123ccedc785b643b572ebf40629406, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  slider: {fileID: 1127928180}
+  Slider: {fileID: 0}
   weaponName: ChargedPlasmaLauncherWeapon
 --- !u!114 &1127928180
 MonoBehaviour:
@@ -4351,6 +4362,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27b861a94d2ee754b83e3fe9adb79825, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
 --- !u!1 &1465937271
 GameObject:
   m_ObjectHideFlags: 0
@@ -4660,6 +4673,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1da0583696f3239418156a3a119ddca8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
   priority: 9
 --- !u!1 &1611506726
 GameObject:
@@ -6275,5 +6290,6 @@ PrefabInstance:
       propertyPath: experienceBar
       value: 
       objectReference: {fileID: 143556331}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1593778177651288807, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}

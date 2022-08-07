@@ -19,7 +19,6 @@ namespace LooCast.Weapon
         public int maxFragments { get; private set; }
         public int fragmentArmorPenetration { get; private set; }
         public bool isTargetSeeking { get; private set; }
-        public string fragmentPrefabResourcePath { get; private set; }
         public GameObject fragmentPrefab { get; private set; }
 
         private void Start()
@@ -30,7 +29,7 @@ namespace LooCast.Weapon
             maxFragments = Data.BaseMaxFragments.Value;
             fragmentArmorPenetration = Data.BaseFragmentArmorPenetration.Value;
             isTargetSeeking = Data.IsTargetSeeking.Value;
-            fragmentPrefab = Resources.Load<GameObject>(fragmentPrefabResourcePath);
+            fragmentPrefab = Data.FragmentPrefab;
         }
 
         public override bool TryFire()

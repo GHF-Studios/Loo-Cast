@@ -4,10 +4,11 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "EnduranceStat", menuName = "Data/Attribute/Stat/EnduranceStat", order = 0)]
     public class EnduranceStat : Stat
     {
-        public FloatDataReference EnergyRegenerationMultiplier;
+        public FloatComputedVariable EnergyRegenerationMultiplier;
     } 
 }

@@ -5,10 +5,11 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "FortuneStat", menuName = "Data/Attribute/Stat/FortuneStat", order = 0)]
     public class FortuneStat : Stat
     {
-        public FloatDataReference PositiveEventChanceMultiplier;
+        public FloatComputedVariable PositiveEventChanceMultiplier;
     } 
 }

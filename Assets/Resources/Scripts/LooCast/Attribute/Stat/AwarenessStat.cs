@@ -4,8 +4,9 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "AwarenessStat", menuName = "Data/Attribute/Stat/AwarenessStat", order = 0)]
     public class AwarenessStat : Stat
     {
         

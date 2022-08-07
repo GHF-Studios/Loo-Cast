@@ -46,7 +46,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dff744b6e11544246be533c72b2d7cba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  destructionScheduled: 0
+  ID: 0
+  IsVisible: 0
 --- !u!198 &1593778176925625175
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -4968,7 +4969,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11cc1564dc4579243ba9fb396ed336df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
   Data: {fileID: 11400000, guid: 1d075a340614ef54991d174e04cd5661, type: 2}
+  RuntimeData: {fileID: 0}
+  Stats: {fileID: 0}
+  Coins: {fileID: 0}
+  Tokens: {fileID: 0}
 --- !u!114 &1593778177651288809
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4981,19 +4988,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b7c7749e02c1b34ebf140cb65c9151e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  onMovementEnabled:
+  ID: 0
+  IsVisible: 0
+  Data: {fileID: 0}
+  RuntimeData: {fileID: 0}
+  Stats: {fileID: 0}
+  OnStartAccelerating:
     m_PersistentCalls:
       m_Calls: []
-  onMovementDisabled:
+  OnStopAccelerating:
     m_PersistentCalls:
       m_Calls: []
-  onStartAccelerating:
-    m_PersistentCalls:
-      m_Calls: []
-  onStopAccelerating:
-    m_PersistentCalls:
-      m_Calls: []
-  energyBar: {fileID: 0}
 --- !u!114 &1593778177651288805
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5006,9 +5011,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c8a4dbd391ef034280f750fa3c76121, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  onKilled:
+  ID: 0
+  IsVisible: 0
+  OnKilled:
     m_PersistentCalls:
       m_Calls: []
+  Data: {fileID: 0}
+  RuntimeData: {fileID: 0}
+  Stats: {fileID: 0}
 --- !u!114 &1593778177651288807
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5018,14 +5028,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 1593778177651288796}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 11145422b580f024c9010e6a51775702, type: 3}
+  m_Script: {fileID: 11500000, guid: a59ad9106fb42ae47ae7688c10814b45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  experience: 0
-  levelExperienceMax: 10
-  level: 0
-  experienceBar: {fileID: 0}
-  levelCounter: {fileID: 0}
+  Data: {fileID: 0}
+  RuntimeData: {fileID: 0}
+  Stats: {fileID: 0}
+  Coins: {fileID: 0}
+  Tokens: {fileID: 0}
 --- !u!114 &1593778177651288810
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5038,6 +5048,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8b2aec9e4d68a64f8e80faddcd221b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Data: {fileID: 0}
   radius: 0
   targetTags: []
   drawGizmos: 0

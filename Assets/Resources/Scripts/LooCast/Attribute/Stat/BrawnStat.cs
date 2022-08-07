@@ -4,10 +4,11 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "BrawnStat", menuName = "Data/Attribute/Stat/BrawnStat", order = 0)]
     public class BrawnStat : Stat
     {
-        public IntDataReference ArmorPenetrationIncrease;
+        public IntComputedVariable ArmorPenetrationIncrease;
     } 
 }

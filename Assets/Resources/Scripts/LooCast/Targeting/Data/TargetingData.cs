@@ -4,10 +4,11 @@ namespace LooCast.Targeting.Data
 {
     using LooCast.Data;
 
+    [CreateAssetMenu(fileName = "TargetingData", menuName = "Data/Targeting/TargetingData", order = 0)]
     public class TargetingData : ScriptableObject
     {
-        public FloatDataReference BaseRadius;
-        public string[] TargetedTags;
+        public FloatDataReference Radius;
+        public StringDataReference[] TargetedTags;
         public BoolDataReference DrawGizmos;
     }
 }

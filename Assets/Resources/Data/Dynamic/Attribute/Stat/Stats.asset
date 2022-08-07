@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42d38265ab4eee24d9216b29c56cb5f3, type: 3}
+  m_Name: Stats
+  m_EditorClassIdentifier: 
+  Agility: {fileID: 11400000, guid: d04b5b63b772d0c42b44302bec780f48, type: 2}
+  Alertness: {fileID: 11400000, guid: 31ce17e61a29f4b4ba6da6299d0e5629, type: 2}
+  Awareness: {fileID: 11400000, guid: c2152d3606d596b488a9d28532c107f6, type: 2}
+  Body: {fileID: 11400000, guid: 07b87b9f341f0ad49b2b2a1004e0bd88, type: 2}
+  Brawn: {fileID: 11400000, guid: 7a5eafad22af9e0488f8e7a77849be38, type: 2}
+  Cautiousness: {fileID: 11400000, guid: 7b9fb08a06e535045b7081ac994c7af9, type: 2}
+  Chance: {fileID: 11400000, guid: 2e7e05e9b58533c408c1b6d99dbdb475, type: 2}
+  Charm: {fileID: 11400000, guid: 652c35e598dd5274087bfa488ece44f5, type: 2}
+  Ego: {fileID: 11400000, guid: 63faa691d328a9d428f24d16770a327e, type: 2}
+  Endurance: {fileID: 11400000, guid: 55c678831d453de4db0ab999ad160edc, type: 2}
+  Fate: {fileID: 11400000, guid: a77afb747f6ecb94ebc0d72ec091dc85, type: 2}
+  Fortitude: {fileID: 11400000, guid: 2bbe869543cca404fbad5ae94eb60812, type: 2}
+  Fortune: {fileID: 11400000, guid: 1f5030c46432d244aa8b78fc7a4227a0, type: 2}
+  Intellect: {fileID: 11400000, guid: 4cc97654bbb2d9a4db6f7e2d61071622, type: 2}
+  Knowledge: {fileID: 11400000, guid: 848798276c14c404b98bbeedcec96130, type: 2}
+  Might: {fileID: 11400000, guid: 9b0a1340543aff24d907fa4fd7add27a, type: 2}
+  Mind: {fileID: 11400000, guid: 5ff5257f062987d4d8dc66c41e4259f5, type: 2}
+  Personality: {fileID: 11400000, guid: 4810d47306554d4468ab83688359d618, type: 2}
+  Power: {fileID: 11400000, guid: 061805e5aef92e94886d66cb4895d9bb, type: 2}
+  Presence: {fileID: 11400000, guid: 21274fd6acfad2541bb610a6e43f082c, type: 2}
+  Psyche: {fileID: 11400000, guid: a2d698dff7864a84988eacce8504c830, type: 2}
+  Quickness: {fileID: 11400000, guid: 4dfbed8b0fd080e4aa353c7057d7c2c1, type: 2}
+  Recovery: {fileID: 11400000, guid: b97ec8bb44fb3484686fc0a74dd9a9b2, type: 2}
+  Reflexes: {fileID: 11400000, guid: 04030c9d7320ec541bc5cde67cdee1f3, type: 2}
+  Resilience: {fileID: 11400000, guid: 5b85373c3af14764696470e1cec3267b, type: 2}
+  Resistance: {fileID: 11400000, guid: 5e825e4a88b47084ebdc3c4a65373d7e, type: 2}
+  Resolve: {fileID: 11400000, guid: 2ef24fc501f6b754ea7f748dd1487dd4, type: 2}
+  Sanity: {fileID: 11400000, guid: 8397a4a5136292b4caa9865a916b78ae, type: 2}
+  Sense: {fileID: 11400000, guid: 11be4079e6b99e049855f9399b4a4900, type: 2}
+  Social: {fileID: 11400000, guid: db822cf1559137e4bb0b799810c46a6b, type: 2}
+  Spirit: {fileID: 11400000, guid: aaf0d2b98a7a8124da685224e81ecbf5, type: 2}
+  Stamina: {fileID: 11400000, guid: 4c2d4397116515b4d9eebf69e6757564, type: 2}
+  Vitality: {fileID: 11400000, guid: b984fa4b5fc4e6941a4ddaa5814c5b38, type: 2}
+  Wits: {fileID: 11400000, guid: df1346739daa6f3458faf46506186b42, type: 2}

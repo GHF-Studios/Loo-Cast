@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: caf77f66e3d12cc4ba5a54605ad969d1, type: 3}
+  m_Name: WisdomAttribute
+  m_EditorClassIdentifier: 
+  stats:
+  - {fileID: 11400000, guid: aaf0d2b98a7a8124da685224e81ecbf5, type: 2}
+  - {fileID: 11400000, guid: df1346739daa6f3458faf46506186b42, type: 2}
+  - {fileID: 11400000, guid: a2d698dff7864a84988eacce8504c830, type: 2}
+  - {fileID: 11400000, guid: 11be4079e6b99e049855f9399b4a4900, type: 2}

@@ -12,9 +12,9 @@ namespace LooCast.Player
     using Movement;
     using Weapon;
     using Particle;
-    using Currency;
     using Experience;
     using Attribute.Stat;
+    using Currency;
 
     [RequireComponent(typeof(PlayerHealth), typeof(Targeting), typeof(PlayerMovement)), DisallowMultipleComponent]
     public class Player : ExtendedMonoBehaviour
@@ -30,8 +30,8 @@ namespace LooCast.Player
         public ParticleSystem ParticleSystem { get; private set; }
 
         public Stats Stats;
-        public Coins Coins;
         public Tokens Tokens;
+        public Coins Coins;
 
         private void Awake()
         {

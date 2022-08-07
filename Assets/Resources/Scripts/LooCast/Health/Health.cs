@@ -19,7 +19,7 @@ namespace LooCast.Health
         protected int defense;
         protected bool isAlive;
 
-        public UnityEvent OnKilled;
+        [HideInInspector] public UnityEvent OnKilled;
         protected WorldSpaceCanvas canvas;
 
         public void Initialize(HealthData data)

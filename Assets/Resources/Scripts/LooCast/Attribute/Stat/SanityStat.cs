@@ -5,10 +5,11 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "SanityStat", menuName = "Data/Attribute/Stat/SanityStat", order = 0)]
     public class SanityStat : Stat
     {
-        public FloatDataReference ProjectileSizeMultiplier;
+        public FloatComputedVariable ProjectileSizeMultiplier;
     } 
 }

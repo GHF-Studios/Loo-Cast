@@ -4,13 +4,13 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat
 {
-    using LooCast.Data;
+    using LooCast.Variable;
 
     public abstract class Stat : ScriptableObject
     {
-        public IntDataReference Level;
-        public IntDataReference MaxLevel;
-        public IntDataReference ProposedLevelChange;
+        public IntVariable Level;
+        public IntVariable MaxLevel;
+        public IntVariable ProposedLevelChange;
 
         public virtual int GetCost(int targetLevel)
         {

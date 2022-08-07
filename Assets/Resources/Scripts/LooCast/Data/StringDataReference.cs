@@ -6,7 +6,7 @@ namespace LooCast.Data
     [Serializable]
     public class StringDataReference
     {
-        public bool UseConstant = true;
+        public bool UseConstant = false;
         public string ConstantValue;
         public StringData Variable;
         public UnityEvent OnValueChanged = new UnityEvent();

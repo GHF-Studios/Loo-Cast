@@ -4,10 +4,11 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "ChanceStat", menuName = "Data/Attribute/Stat/ChanceStat", order = 0)]
     public class ChanceStat : Stat
     {
-        public FloatDataReference RandomChanceMultiplier;
+        public FloatComputedVariable RandomChanceMultiplier;
     } 
 }

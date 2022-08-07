@@ -62,8 +62,7 @@ namespace LooCast.Weapon
             baseProjectileLifetime = data.BaseProjectileLifetime.Value;
             basePiercing = data.BasePiercing.Value;
             baseArmorPenetration = data.BaseArmorPenetration.Value;
-            projectilePrefabResourcePath = data.ProjectilePrefabResourcePath.Value;
-            projectilePrefab = Resources.Load<GameObject>(projectilePrefabResourcePath);
+            projectilePrefab = data.ProjectilePrefab;
 
 
             damage = baseDamage * Stats.DamageMultiplier;

@@ -18,8 +18,8 @@ namespace LooCast.Movement
 
         public Stats Stats;
 
-        public UnityEvent OnStartAccelerating;
-        public UnityEvent OnStopAccelerating;
+        [HideInInspector] public UnityEvent OnStartAccelerating;
+        [HideInInspector] public UnityEvent OnStopAccelerating;
 
         private void Start()
         {
@@ -30,8 +30,8 @@ namespace LooCast.Movement
             RuntimeData.EnergyConsumption.AddPermanentMultiplier(Stats.EnergyConsumptionMultiplier);
             RuntimeData.EnergyGeneration = new FloatComputedVariable(Data.BaseEnergyGeneration.Value);
             RuntimeData.EnergyGeneration.AddPermanentMultiplier(Stats.EnergyRegenerationMultiplier);
-            RuntimeData.IsUsingEnergy = new BoolVariable(Data.IsUsingEnergy.Value);
-            RuntimeData.IsEnergyDepleted = new BoolVariable(Data.IsEnergyDepleted.Value);
+            RuntimeData.IsUsingEnergy = new BoolVariable(Data.BaseIsUsingEnergy.Value);
+            RuntimeData.IsEnergyDepleted = new BoolVariable(Data.BaseIsEnergyDepleted.Value);
 
             Speed.AddPermanentMultiplier(Stats.MovementSpeedMultiplier);
         }

@@ -5,10 +5,11 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "StaminaStat", menuName = "Data/Attribute/Stat/StaminaStat", order = 0)]
     public class StaminaStat : Stat
     {
-        public FloatDataReference DurationMultiplier;
+        public FloatComputedVariable DurationMultiplier;
     } 
 }

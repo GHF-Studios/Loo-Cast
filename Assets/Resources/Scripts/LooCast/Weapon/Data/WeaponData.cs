@@ -18,6 +18,6 @@ namespace LooCast.Weapon.Data
         public FloatDataReference BaseProjectileLifetime;
         public IntDataReference BasePiercing;
         public IntDataReference BaseArmorPenetration;
-        public StringDataReference ProjectilePrefabResourcePath;
+        public GameObject ProjectilePrefab;
     } 
 }

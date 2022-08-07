@@ -105,8 +105,12 @@ namespace LooCast.Targeting
 
         private void Start()
         {
-            radius = Data.BaseRadius.Value;
-            targetTags = Data.TargetedTags;
+            radius = Data.Radius.Value;
+            targetTags = new string[Data.TargetedTags.Length];
+            for (int i = 0; i < targetTags.Length; i++)
+            {
+                targetTags[i] = Data.TargetedTags[i].Value;
+            }
             drawGizmos = Data.DrawGizmos.Value;
             random = new System.Random(Mathf.RoundToInt(Time.time));
             ignoredTargets = new List<Target>();

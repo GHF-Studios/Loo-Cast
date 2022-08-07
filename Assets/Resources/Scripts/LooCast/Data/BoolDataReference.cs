@@ -6,7 +6,7 @@ namespace LooCast.Data
     [Serializable]
     public class BoolDataReference
     {
-        public bool UseConstant = true;
+        public bool UseConstant = false;
         public bool ConstantValue;
         public BoolData Variable;
         public UnityEvent OnValueChanged = new UnityEvent();

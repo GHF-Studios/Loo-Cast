@@ -5,10 +5,11 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "IntellectStat", menuName = "Data/Attribute/Stat/IntellectStat", order = 0)]
     public class IntellectStat : Stat
     {
-        public FloatDataReference ExperienceMultiplier;
+        public FloatComputedVariable ExperienceMultiplier;
     } 
 }

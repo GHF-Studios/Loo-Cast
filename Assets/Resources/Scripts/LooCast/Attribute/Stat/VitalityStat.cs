@@ -5,10 +5,11 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "VitalityStat", menuName = "Data/Attribute/Stat/VitalityStat", order = 0)]
     public class VitalityStat : Stat
     {
-        public FloatDataReference HealthMultiplier;
+        public FloatComputedVariable HealthMultiplier;
     }
 }

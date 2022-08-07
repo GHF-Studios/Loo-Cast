@@ -5,10 +5,11 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "MindStat", menuName = "Data/Attribute/Stat/MindStat", order = 0)]
     public class MindStat : Stat
     {
-        public FloatDataReference RangeMultiplier;
+        public FloatComputedVariable RangeMultiplier;
     } 
 }

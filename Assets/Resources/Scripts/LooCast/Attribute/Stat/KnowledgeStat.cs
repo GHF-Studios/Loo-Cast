@@ -5,10 +5,11 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "KnowledgeStat", menuName = "Data/Attribute/Stat/KnowledgeStat", order = 0)]
     public class KnowledgeStat : Stat
     {
-        public FloatDataReference LevelExperienceMaxMultiplier;
+        public FloatComputedVariable LevelExperienceMaxMultiplier;
     } 
 }

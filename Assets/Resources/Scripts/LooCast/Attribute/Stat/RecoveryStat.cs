@@ -5,10 +5,11 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Data;
+    using Variable;
 
+    [CreateAssetMenu(fileName = "RecoveryStat", menuName = "Data/Attribute/Stat/RecoveryStat", order = 0)]
     public class RecoveryStat : Stat
     {
-        public FloatDataReference HealthRegenrationMultiplier;
+        public FloatComputedVariable HealthRegenrationMultiplier;
     } 
 }

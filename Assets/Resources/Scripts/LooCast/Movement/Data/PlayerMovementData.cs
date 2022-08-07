@@ -4,13 +4,14 @@ namespace LooCast.Movement.Data
 {
     using LooCast.Data;
 
-    public abstract class PlayerMovementData : MovementData
+    [CreateAssetMenu(fileName = "PlayerMovementData", menuName = "Data/Movement/PlayerMovementData", order = 0)]
+    public class PlayerMovementData : MovementData
     {
         public FloatDataReference BaseEnergy;
         public FloatDataReference BaseMaxEnergy;
         public FloatDataReference BaseEnergyConsumption;
         public FloatDataReference BaseEnergyGeneration;
-        public BoolDataReference IsUsingEnergy;
-        public BoolDataReference IsEnergyDepleted;
+        public BoolDataReference BaseIsUsingEnergy;
+        public BoolDataReference BaseIsEnergyDepleted;
     } 
 }
