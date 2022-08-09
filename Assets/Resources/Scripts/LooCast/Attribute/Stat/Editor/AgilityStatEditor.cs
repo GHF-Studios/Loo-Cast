@@ -2,13 +2,11 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace LooCast.Attribute.Editor
+namespace LooCast.Attribute.Stat.Editor
 {
-    [CustomEditor(typeof(Attribute), true)]
-    public class AttributeEditor : UnityEditor.Editor
+    [CustomEditor(typeof(AgilityStat))]
+    public class AgilityStatEditor : UnityEditor.Editor
     {
-        SerializedProperty Stats;
-
         SerializedProperty Level;
         SerializedProperty Level_OnValueChanged;
         SerializedProperty MaxLevel;
@@ -16,10 +14,10 @@ namespace LooCast.Attribute.Editor
         SerializedProperty ProposedLevelChange;
         SerializedProperty ProposedLevelChange_OnValueChanged;
 
+        SerializedProperty MovementSpeedMultiplier;
+
         void OnEnable()
         {
-            Stats = serializedObject.FindProperty("Stats");
-
             Level = serializedObject.FindProperty("Level");
             Level_OnValueChanged = Level.FindPropertyRelative("OnValueChanged");
 
@@ -28,13 +26,13 @@ namespace LooCast.Attribute.Editor
 
             ProposedLevelChange = serializedObject.FindProperty("ProposedLevelChange");
             ProposedLevelChange_OnValueChanged = ProposedLevelChange.FindPropertyRelative("OnValueChanged");
+
+            MovementSpeedMultiplier = serializedObject.FindProperty("MovementSpeedMultiplier");
         }
 
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
-
-            EditorGUILayout.PropertyField(Stats);
 
             EditorGUILayout.PropertyField(Level);
             EditorGUILayout.PropertyField(Level_OnValueChanged);
@@ -44,6 +42,8 @@ namespace LooCast.Attribute.Editor
 
             EditorGUILayout.PropertyField(ProposedLevelChange);
             EditorGUILayout.PropertyField(ProposedLevelChange_OnValueChanged);
+
+            EditorGUILayout.PropertyField(MovementSpeedMultiplier);
 
             serializedObject.ApplyModifiedProperties();
         }

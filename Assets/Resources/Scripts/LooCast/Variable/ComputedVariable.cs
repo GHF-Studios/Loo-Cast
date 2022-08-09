@@ -4,8 +4,6 @@ using UnityEngine.Events;
 
 namespace LooCast.Variable
 {
-    using LooCast.Util;
-
     public abstract class ComputedVariable<T>
     {
         public readonly bool IsInitialized = false;
@@ -26,7 +24,10 @@ namespace LooCast.Variable
             set
             {
                 baseValue = value;
-                OnValueChanged.Invoke();
+                if (IsInitialized)
+                {
+                    OnValueChanged.Invoke();
+                }
             }
         }
         private T baseValue;

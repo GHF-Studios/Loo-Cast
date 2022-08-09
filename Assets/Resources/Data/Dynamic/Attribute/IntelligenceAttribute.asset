@@ -12,7 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f6cf7b675913e94b94412cc26026c1b, type: 3}
   m_Name: IntelligenceAttribute
   m_EditorClassIdentifier: 
-  stats:
-  - {fileID: 11400000, guid: 4cc97654bbb2d9a4db6f7e2d61071622, type: 2}
-  - {fileID: 11400000, guid: 5ff5257f062987d4d8dc66c41e4259f5, type: 2}
-  - {fileID: 11400000, guid: 848798276c14c404b98bbeedcec96130, type: 2}
+  Stats: []
+  Level:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MaxLevel:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  ProposedLevelChange:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
