@@ -6290,6 +6290,18 @@ PrefabInstance:
       propertyPath: experienceBar
       value: 
       objectReference: {fileID: 143556331}
+    - target: {fileID: 1593778177651288809, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
+      propertyPath: Data
+      value: 
+      objectReference: {fileID: 11400000, guid: 6cca6b9c7ed3a074f8cb5a025ef0c5cf, type: 2}
+    - target: {fileID: 1593778177651288809, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
+      propertyPath: Stats
+      value: 
+      objectReference: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
+    - target: {fileID: 1593778177651288809, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
+      propertyPath: RuntimeData
+      value: 
+      objectReference: {fileID: 11400000, guid: 05a4787f9febc8642ac08c7712aabd31, type: 2}
     m_RemovedComponents:
     - {fileID: 1593778177651288807, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}

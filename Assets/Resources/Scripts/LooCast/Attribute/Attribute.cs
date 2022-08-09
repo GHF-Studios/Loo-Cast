@@ -1,15 +1,16 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace LooCast.Attribute
 {
     using LooCast.Variable;
 
+    [Serializable]
     public abstract class Attribute : ScriptableObject
     {
-        public Stat.Stat[] stats;
+        public Stat.Stat[] Stats;
         public IntVariable Level;
         public IntVariable MaxLevel;
         public IntVariable ProposedLevelChange;
@@ -49,5 +50,5 @@ namespace LooCast.Attribute
             }
             return cost;
         }
-    } 
+    }
 }

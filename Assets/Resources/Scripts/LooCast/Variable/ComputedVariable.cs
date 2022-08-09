@@ -8,6 +8,7 @@ namespace LooCast.Variable
 
     public abstract class ComputedVariable<T>
     {
+        public readonly bool IsInitialized = false;
         public T Value
         {
             get
@@ -38,6 +39,7 @@ namespace LooCast.Variable
 
         public ComputedVariable(T baseValue, Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, T, T> valueEvaluator)
         {
+            IsInitialized = true;
             BaseValue = baseValue;
             ValueEvaluator = valueEvaluator;
             PermanentMultipliers = new List<Multiplier>();
