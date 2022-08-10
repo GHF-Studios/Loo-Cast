@@ -16,7 +16,7 @@ namespace LooCast.Player
     using Attribute.Stat;
     using Currency;
 
-    [RequireComponent(typeof(PlayerHealth), typeof(Targeting), typeof(PlayerMovement)), DisallowMultipleComponent]
+    [RequireComponent(typeof(PlayerHealth), typeof(PlayerMovement), typeof(PlayerExperience)), DisallowMultipleComponent]
     public class Player : ExtendedMonoBehaviour
     {
         public PlayerData Data;

@@ -7,9 +7,9 @@ namespace LooCast.Targeting
     using Data;
     using LooCast.Target;
 
-    public class Targeting : MonoBehaviour
+    public class StationTargeting : MonoBehaviour, ITargeting
     {
-        public TargetingData Data;
+        public StationTargetingData Data;
 
         public float radius;
         public string[] targetTags;
@@ -29,7 +29,7 @@ namespace LooCast.Targeting
                 _closestTargets = value;
             }
         }
-        protected List<Target> _closestTargets;
+        private List<Target> _closestTargets;
 
         public List<Target> furthestTargets
         {
@@ -43,7 +43,7 @@ namespace LooCast.Targeting
                 _furthestTargets = value;
             }
         }
-        protected List<Target> _furthestTargets;
+        private List<Target> _furthestTargets;
 
         public List<Target> randomTargets
         {
@@ -57,7 +57,7 @@ namespace LooCast.Targeting
                 _randomTargets = value;
             }
         }
-        protected List<Target> _randomTargets;
+        private List<Target> _randomTargets;
 
         public List<Target> randomOnscreenTargets
         {
@@ -71,7 +71,7 @@ namespace LooCast.Targeting
                 _randomOnscreenTargets = value;
             }
         }
-        protected List<Target> _randomOnscreenTargets;
+        private List<Target> _randomOnscreenTargets;
 
         public List<Target> randomProximityTargets
         {
@@ -85,7 +85,20 @@ namespace LooCast.Targeting
                 _randomProximityTargets = value;
             }
         }
-        protected List<Target> _randomProximityTargets;
+        private List<Target> _randomProximityTargets;
+
+        private void Start()
+        {
+            radius = Data.Radius.Value;
+            targetTags = new string[Data.TargetedTags.Length];
+            for (int i = 0; i < targetTags.Length; i++)
+            {
+                targetTags[i] = Data.TargetedTags[i].Value;
+            }
+            drawGizmos = Data.DrawGizmos.Value;
+            random = new System.Random(Mathf.RoundToInt(Time.time));
+            ignoredTargets = new List<Target>();
+        }
 
         private void OnDrawGizmos()
         {
@@ -103,20 +116,7 @@ namespace LooCast.Targeting
             _randomOnscreenTargets = null;
         }
 
-        private void Start()
-        {
-            radius = Data.Radius.Value;
-            targetTags = new string[Data.TargetedTags.Length];
-            for (int i = 0; i < targetTags.Length; i++)
-            {
-                targetTags[i] = Data.TargetedTags[i].Value;
-            }
-            drawGizmos = Data.DrawGizmos.Value;
-            random = new System.Random(Mathf.RoundToInt(Time.time));
-            ignoredTargets = new List<Target>();
-        }
-
-        bool CheckTags(Collider2D collider, params string[] tags)
+        private bool CheckTags(Collider2D collider, params string[] tags)
         {
             foreach (string tag in tags)
             {
@@ -128,7 +128,7 @@ namespace LooCast.Targeting
             return false;
         }
 
-        public List<Target> FilterTargets(List<Target> targets, List<Target> ignoredTargets)
+        private List<Target> FilterTargets(List<Target> targets, List<Target> ignoredTargets)
         {
             if (targets == null || targets.Count == 0)
             {
@@ -151,7 +151,7 @@ namespace LooCast.Targeting
             return targets;
         }
 
-        public List<Target> ValidateTargets(List<Target> targets)
+        private List<Target> ValidateTargets(List<Target> targets)
         {
             targets.RemoveAll((target) => !target.IsValid() || target.IsLocked());
             if (targets == null || targets.Count == 0)
@@ -161,7 +161,7 @@ namespace LooCast.Targeting
             return targets;
         }
 
-        protected List<Target> GetClosestTargets()
+        private List<Target> GetClosestTargets()
         {
             if (_closestTargets == null || _closestTargets.Count == 0)
             {
@@ -198,7 +198,7 @@ namespace LooCast.Targeting
             }
         }
 
-        protected List<Target> GetFurthestTargets()
+        private List<Target> GetFurthestTargets()
         {
             if (_furthestTargets == null || _furthestTargets.Count == 0)
             {
@@ -235,7 +235,7 @@ namespace LooCast.Targeting
             }
         }
 
-        protected List<Target> GetRandomTargets()
+        private List<Target> GetRandomTargets()
         {
             if (_randomTargets == null || _randomTargets.Count == 0)
             {
@@ -260,7 +260,7 @@ namespace LooCast.Targeting
             }
         }
 
-        protected List<Target> GetRandomOnscreenTargets()
+        private List<Target> GetRandomOnscreenTargets()
         {
             if (_randomOnscreenTargets == null || _randomOnscreenTargets.Count == 0)
             {
@@ -295,7 +295,7 @@ namespace LooCast.Targeting
             }
         }
 
-        protected List<Target> GetRandomProximityTargets()
+        private List<Target> GetRandomProximityTargets()
         {
             if (_randomProximityTargets == null || _randomProximityTargets.Count == 0)
             {
@@ -315,14 +315,5 @@ namespace LooCast.Targeting
                 return ValidateTargets(_randomProximityTargets);
             }
         }
-    }
-
-    public enum TargetingMode
-    {
-        Closest,
-        Furthest,
-        Random,
-        RandomOnscreen,
-        RandomProximity
     }
 }
