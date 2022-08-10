@@ -30,8 +30,8 @@ namespace LooCast.Player
         public ParticleSystem ParticleSystem { get; private set; }
 
         public Stats Stats;
-        public Tokens Tokens;
         public Coins Coins;
+        public Tokens Tokens;
 
         private void Awake()
         {
@@ -62,22 +62,22 @@ namespace LooCast.Player
         {
             if (Input.GetKeyDown(KeyCode.F1))
             {
-                Tokens.Balance.Value = Tokens.Balance.Value + 100;
+                Coins.Balance.Value = Coins.Balance.Value + 1000;
             }
 
             if (Input.GetKeyDown(KeyCode.F2))
             {
-                Tokens.Balance.Value = Tokens.Balance.Value - 100;
+                Coins.Balance.Value = Coins.Balance.Value - 1000;
             }
 
             if (Input.GetKeyDown(KeyCode.F3))
             {
-                Coins.Balance.Value = Coins.Balance.Value + 1000;
+                Tokens.Balance.Value = Tokens.Balance.Value + 100;
             }
 
             if (Input.GetKeyDown(KeyCode.F4))
             {
-                Coins.Balance.Value = Coins.Balance.Value - 1000;
+                Tokens.Balance.Value = Tokens.Balance.Value - 100;
             }
 
             if (Input.GetKeyDown(KeyCode.F5))

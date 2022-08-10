@@ -12,3 +12,52 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a266adc1a0266004a9b3e9a3bab4be29, type: 3}
   m_Name: RecoveryStat
   m_EditorClassIdentifier: 
+  Attribute: {fileID: 0}
+  Level:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 11400000, guid: cc7294a44d130ff45a2e009a2c688e2a, type: 2}
+          m_TargetAssemblyTypeName: LooCast.Event.Event, Assembly-CSharp
+          m_MethodName: Raise
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  MaxLevel:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 11400000, guid: 5fda624a3b2407f4f9e285ef09257dc2, type: 2}
+          m_TargetAssemblyTypeName: LooCast.Event.Event, Assembly-CSharp
+          m_MethodName: Raise
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  ProposedLevelChange:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 11400000, guid: 468d7d9aab9e193478405770f21d998d, type: 2}
+          m_TargetAssemblyTypeName: LooCast.Event.Event, Assembly-CSharp
+          m_MethodName: Raise
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2

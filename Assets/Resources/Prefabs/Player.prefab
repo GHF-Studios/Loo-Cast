@@ -4842,7 +4842,7 @@ GameObject:
   - component: {fileID: 1593778177651288801}
   - component: {fileID: 1593778177651288809}
   - component: {fileID: 1593778177651288805}
-  - component: {fileID: 1593778177651288807}
+  - component: {fileID: 4400491884998746100}
   - component: {fileID: 1593778177651288810}
   - component: {fileID: 1593778177651288811}
   m_Layer: 7
@@ -4972,10 +4972,10 @@ MonoBehaviour:
   ID: 0
   IsVisible: 0
   Data: {fileID: 11400000, guid: 1d075a340614ef54991d174e04cd5661, type: 2}
-  RuntimeData: {fileID: 0}
-  Stats: {fileID: 0}
-  Coins: {fileID: 0}
-  Tokens: {fileID: 0}
+  RuntimeData: {fileID: 11400000, guid: f64ccd51b25956a4691ab4ed2cf368c5, type: 2}
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
+  Coins: {fileID: 11400000, guid: 9283a3a7e893a9e408b63cee721170e2, type: 2}
+  Tokens: {fileID: 11400000, guid: a26f08852deda9b48ae1a544e0c6f8c5, type: 2}
 --- !u!114 &1593778177651288809
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4990,9 +4990,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
-  Data: {fileID: 0}
-  RuntimeData: {fileID: 0}
-  Stats: {fileID: 0}
+  Data: {fileID: 11400000, guid: 6cca6b9c7ed3a074f8cb5a025ef0c5cf, type: 2}
+  RuntimeData: {fileID: 11400000, guid: 05a4787f9febc8642ac08c7712aabd31, type: 2}
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
   OnStartAccelerating:
     m_PersistentCalls:
       m_Calls: []
@@ -5016,10 +5016,10 @@ MonoBehaviour:
   OnKilled:
     m_PersistentCalls:
       m_Calls: []
-  Data: {fileID: 0}
-  RuntimeData: {fileID: 0}
-  Stats: {fileID: 0}
---- !u!114 &1593778177651288807
+  Data: {fileID: 11400000, guid: 27ed8463b7044cb46a2a2b5ee863b43a, type: 2}
+  RuntimeData: {fileID: 11400000, guid: 7085b01394b10d04ba1702313f6e1e21, type: 2}
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
+--- !u!114 &4400491884998746100
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5031,11 +5031,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a59ad9106fb42ae47ae7688c10814b45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Data: {fileID: 0}
-  RuntimeData: {fileID: 0}
-  Stats: {fileID: 0}
-  Coins: {fileID: 0}
-  Tokens: {fileID: 0}
+  Data: {fileID: 11400000, guid: 69c8ce70530339344837b8f70a62f707, type: 2}
+  RuntimeData: {fileID: 11400000, guid: fcdaad0b1bd019640818ff24e20e6f7c, type: 2}
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
+  Coins: {fileID: 11400000, guid: 9283a3a7e893a9e408b63cee721170e2, type: 2}
+  Tokens: {fileID: 11400000, guid: a26f08852deda9b48ae1a544e0c6f8c5, type: 2}
 --- !u!114 &1593778177651288810
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5048,7 +5048,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8b2aec9e4d68a64f8e80faddcd221b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Data: {fileID: 0}
+  Data: {fileID: 11400000, guid: 9014637c9982b9b4a84453c7613d4014, type: 2}
   radius: 0
   targetTags: []
   drawGizmos: 0

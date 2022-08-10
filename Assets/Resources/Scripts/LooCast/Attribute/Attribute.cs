@@ -50,5 +50,13 @@ namespace LooCast.Attribute
             }
             return cost;
         }
+
+        public void Refresh()
+        {
+            foreach (Stat.Stat Stat in Stats)
+            {
+                Stat.Refresh();
+            }
+        }
     }
 }

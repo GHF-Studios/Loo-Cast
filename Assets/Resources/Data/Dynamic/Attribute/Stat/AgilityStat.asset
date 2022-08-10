@@ -16,13 +16,13 @@ MonoBehaviour:
     OnValueChanged:
       m_PersistentCalls:
         m_Calls:
-        - m_Target: {fileID: 11400000}
-          m_TargetAssemblyTypeName: LooCast.Attribute.Stat.AgilityStat, Assembly-CSharp
-          m_MethodName: 
+        - m_Target: {fileID: 11400000, guid: 1b3d8c46636bcfe42bdc284e23d1a6d9, type: 2}
+          m_TargetAssemblyTypeName: LooCast.Event.Event, Assembly-CSharp
+          m_MethodName: Raise
           m_Mode: 1
           m_Arguments:
             m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: 
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
             m_IntArgument: 0
             m_FloatArgument: 0
             m_StringArgument: 
@@ -31,8 +31,35 @@ MonoBehaviour:
   MaxLevel:
     OnValueChanged:
       m_PersistentCalls:
-        m_Calls: []
+        m_Calls:
+        - m_Target: {fileID: 11400000, guid: b24a82ed2b012eb46a6db789dc41831b, type: 2}
+          m_TargetAssemblyTypeName: LooCast.Event.Event, Assembly-CSharp
+          m_MethodName: Raise
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
   ProposedLevelChange:
     OnValueChanged:
       m_PersistentCalls:
-        m_Calls: []
+        m_Calls:
+        - m_Target: {fileID: 11400000, guid: 537c29af0723a7a4fba4c59d428c9cb1, type: 2}
+          m_TargetAssemblyTypeName: LooCast.Event.Event, Assembly-CSharp
+          m_MethodName: Raise
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  OnLevelChanged: {fileID: 0}
+  OnMaxLevelChanged: {fileID: 0}
+  OnProposedLevelChangeChanged: {fileID: 0}

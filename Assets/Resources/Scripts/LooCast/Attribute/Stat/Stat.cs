@@ -8,6 +8,7 @@ namespace LooCast.Attribute.Stat
 
     public abstract class Stat : ScriptableObject
     {
+        public Attribute Attribute;
         public IntVariable Level;
         public IntVariable MaxLevel;
         public IntVariable ProposedLevelChange;
@@ -46,6 +47,11 @@ namespace LooCast.Attribute.Stat
                 cost *= -1;
             }
             return cost;
+        }
+
+        public void Refresh()
+        {
+            MaxLevel.Value = Attribute.Level.Value;
         }
     } 
 }

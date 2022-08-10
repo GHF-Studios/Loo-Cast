@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f23455b6f54cbfb4ca37277cd3b33355, type: 3}
+  m_Name: PlayerExperienceData
+  m_EditorClassIdentifier: 
+  BaseExperience:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 041d7b38b1e67514f8c8ef173a298567, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseLevelExperienceMax:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: ec0b1d3f59a8c6642973c9c5ed446c25, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseLevel:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 280e197edba29d545af272c6d71e130b, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
