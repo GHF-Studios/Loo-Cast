@@ -5,40 +5,119 @@ using UnityEngine.Events;
 
 namespace LooCast.Movement
 {
-    using Manager;
     using Data;
     using Data.Runtime;
-    using Variable;
-    using Attribute.Stat;
+    using LooCast.Core;
+    using LooCast.Manager;
+    using LooCast.Variable;
 
-    public class PlayerMovement : Movement
+    [DisallowMultipleComponent]
+    [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D))]
+    public sealed class PlayerMovement : ExtendedMonoBehaviour, IMovement
     {
+        #region Data
         public PlayerMovementData Data;
         public PlayerMovementRuntimeData RuntimeData;
+        #endregion
 
-        public Stats Stats;
+        #region Properties
+        public FloatComputedVariable Speed { get; private set; }
+        public Rigidbody2D Rigidbody { get; private set; }
+        public Collider2D Collider { get; private set; }
+        #endregion
 
-        [HideInInspector] public UnityEvent OnStartAccelerating;
-        [HideInInspector] public UnityEvent OnStopAccelerating;
+        #region Events
+        public UnityEvent OnMovementEnabled
+        {
+            get
+            {
+                return onMovementEnabled;
+            }
+            
+            set
+            {
+                onMovementEnabled = value;
+            }
+        }
+        [SerializeField]private UnityEvent onMovementEnabled;
+        public UnityEvent OnMovementDisabled
+        {
+            get
+            {
+                return onMovementDisabled;
+            }
 
+            set
+            {
+                onMovementDisabled = value;
+            }
+        }
+        [SerializeField]private UnityEvent onMovementDisabled;
+        public UnityEvent OnStartAccelerating
+        {
+            get
+            {
+                return onStartAccelerating;
+            }
+
+            set
+            {
+                onStartAccelerating = value;
+            }
+        }
+        [SerializeField]private UnityEvent onStartAccelerating;
+        public UnityEvent OnStopAccelerating
+        {
+            get
+            {
+                return onStopAccelerating;
+            }
+
+            set
+            {
+                onStopAccelerating = value;
+            }
+        }
+        [SerializeField]private UnityEvent onStopAccelerating;
+        #endregion
+
+        #region Fields
+        private Vector3 PAUSE_currentVelocity;
+        #endregion
+
+        #region Methods
         private void Start()
         {
-            Initialize(Data);
+            RuntimeData.Initialize(Data);
 
-            RuntimeData.CurrentEnergy = new FloatVariable(Data.BaseEnergy.Value);
-            RuntimeData.EnergyConsumption = new FloatComputedVariable(Data.BaseEnergyConsumption.Value);
-            RuntimeData.EnergyConsumption.AddPermanentMultiplier(Stats.EnergyConsumptionMultiplier);
-            RuntimeData.EnergyGeneration = new FloatComputedVariable(Data.BaseEnergyGeneration.Value);
-            RuntimeData.EnergyGeneration.AddPermanentMultiplier(Stats.EnergyRegenerationMultiplier);
-            RuntimeData.IsUsingEnergy = new BoolVariable(Data.BaseIsUsingEnergy.Value);
-            RuntimeData.IsEnergyDepleted = new BoolVariable(Data.BaseIsEnergyDepleted.Value);
+            Rigidbody = GetComponent<Rigidbody2D>();
+            Collider = GetComponent<Collider2D>();
 
-            Speed.AddPermanentMultiplier(Stats.MovementSpeedMultiplier);
+            OnMovementEnabled = new UnityEvent();
+            OnMovementDisabled = new UnityEvent();
+            OnStartAccelerating = new UnityEvent();
+            OnStopAccelerating = new UnityEvent();
+        }
+
+        protected override void OnPause()
+        {
+            PAUSE_currentVelocity = Rigidbody.velocity;
+            Rigidbody.velocity = Vector3.zero;
+        }
+
+        protected override void OnResume()
+        {
+            Rigidbody.velocity = PAUSE_currentVelocity;
+            PAUSE_currentVelocity = Vector3.zero;
+        }
+
+        protected override void OnPauseableFixedUpdate()
+        {
+            Accelerate();
         }
 
         protected override void OnPauseableUpdate()
         {
-            base.OnPauseableUpdate();
             if (!RuntimeData.IsUsingEnergy.Value)
             {
                 if (RuntimeData.CurrentEnergy.Value + RuntimeData.EnergyGeneration.Value >= RuntimeData.MaxEnergy.Value)
@@ -66,7 +145,7 @@ namespace LooCast.Movement
             }
         }
 
-        public override void Accelerate()
+        public void Accelerate()
         {
             RuntimeData.IsUsingEnergy.Value = false;
             float[] axis = new float[2];
@@ -108,5 +187,6 @@ namespace LooCast.Movement
                 Rigidbody.AddForce(new Vector2(axis[0], axis[1]).normalized * Speed.Value); 
             }
         }
+        #endregion
     } 
 }

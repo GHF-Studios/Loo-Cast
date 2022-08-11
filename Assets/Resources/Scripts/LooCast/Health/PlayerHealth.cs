@@ -5,22 +5,16 @@ namespace LooCast.Health
 {
     using Data;
     using Data.Runtime;
-    using Variable;
     using Sound;
     using UI.Screen;
-    using UI.Canvas;
-    using Attribute.Stat;
     using Manager;
-    using Player;
     using Random;
 
-    [RequireComponent(typeof(Player))]
+    [DisallowMultipleComponent]
     public class PlayerHealth : Health
     {
         public PlayerHealthData Data;
         public PlayerHealthRuntimeData RuntimeData;
-
-        public Stats Stats;
 
         private GameSoundHandler soundHandler;
         private DeathScreen deathScreen;
@@ -29,16 +23,7 @@ namespace LooCast.Health
         {
             Initialize(Data);
 
-            RuntimeData.MaxHealth = new FloatComputedVariable(Data.BaseMaxHealth.Value);
-            RuntimeData.MaxHealth.AddPermanentMultiplier(Stats.HealthMultiplier);
-            RuntimeData.Health = new FloatVariable(RuntimeData.MaxHealth.Value);
-            RuntimeData.RegenerationAmount = new FloatComputedVariable(Data.BaseRegenerationAmount.Value);
-            RuntimeData.RegenerationAmount.AddPermanentMultiplier(Stats.HealthRegenrationMultiplier);
-            RuntimeData.RegenerationTime = new FloatComputedVariable(Data.BaseRegenerationTime.Value);
-            RuntimeData.RegenerationTimer = new FloatVariable(0.0f);
-            RuntimeData.Defense = new IntComputedVariable(Data.BaseDefense.Value);
-            RuntimeData.Defense.AddPermanentIncrease(Stats.DefenseIncrease);
-            RuntimeData.IsAlive = new BoolVariable(true);
+            RuntimeData.Initialize(Data);
 
             soundHandler = FindObjectOfType<GameSoundHandler>();
             deathScreen = FindObjectOfType<DeathScreen>();

@@ -46,7 +46,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dff744b6e11544246be533c72b2d7cba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  destructionScheduled: 0
+  ID: 0
+  IsVisible: 0
 --- !u!198 &705598665404207660
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -4965,7 +4966,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a83d3255907f797409b17b7777452ecc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
   Data: {fileID: 11400000, guid: 2192a1a9a1a021548b8c55984abbbb69, type: 2}
+  RuntimeSet: {fileID: 11400000, guid: c2f9d9ade6d7c214d97dbec5f2cbd8d0, type: 2}
+  onKilled:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!114 &4758033360817606206
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4978,9 +4985,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22fa8c4ebc6715d4db14a3d7eba6e31e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  onKilled:
+  ID: 0
+  IsVisible: 0
+  OnKilled:
     m_PersistentCalls:
       m_Calls: []
+  Stats: {fileID: 0}
 --- !u!114 &1913491358346200415
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4993,9 +5003,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 157a0139485d3214f84fceadeb22d79f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
+  Data: {fileID: 11400000, guid: 5a1bbdaa9a9d2044fa27824476d557b8, type: 2}
   onMovementEnabled:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1112918004771588744}
+        m_TargetAssemblyTypeName: LooCast.Particle.ParticleSystem, Assembly-CSharp
+        m_MethodName: ResumeParticleSpawning
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   onMovementDisabled:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1112918004771588744}
+        m_TargetAssemblyTypeName: LooCast.Particle.ParticleSystem, Assembly-CSharp
+        m_MethodName: PauseParticleSpawning
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2

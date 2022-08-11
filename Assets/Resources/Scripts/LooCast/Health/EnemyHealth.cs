@@ -13,7 +13,21 @@ namespace LooCast.Health
 
     public class EnemyHealth : Health
     {
-        public Stats Stats;
+        #region Events
+        public UnityEvent OnKilled
+        {
+            get
+            {
+                return onKilled;
+            }
+
+            set
+            {
+                onKilled = value;
+            }
+        }
+        [SerializeField] private UnityEvent onKilled;
+        #endregion
 
         protected GameSoundHandler soundHandler;
         protected float magnetDropChance;

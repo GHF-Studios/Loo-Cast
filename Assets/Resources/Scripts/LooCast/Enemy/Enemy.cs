@@ -13,42 +13,55 @@ namespace LooCast.Enemy
     using Manager;
     using Movement;
     using Health;
-    using Experience;
 
-    [RequireComponent(typeof(Movement), typeof(EnemyHealth)), DisallowMultipleComponent]
+    [RequireComponent(typeof(EnemyMovement), typeof(EnemyHealth)), DisallowMultipleComponent]
     public abstract class Enemy : ExtendedMonoBehaviour
     {
+        #region Data
         public EnemyData Data;
         public EnemyRuntimeSet RuntimeSet;
-        public Experience PlayerExperience { get; private set; }
-        public ParticleSystem ParticleSystem { get; private set; }
+        #endregion
+
+        #region Properties
         public EnemyMovement Movement { get; private set; }
         public EnemyHealth Health { get; private set; }
+        public ParticleSystem ParticleSystem { get; private set; }
+        #endregion
 
-        public UnityEvent OnKilled { get; private set; }
+        #region Events
+        public UnityEvent OnKilled
+        {
+            get
+            {
+                return onKilled;
+            }
 
+            set
+            {
+                onKilled = value;
+            }
+        }
+        [SerializeField] private UnityEvent onKilled;
+        #endregion
 
+        #region Fields
+        #endregion
+
+        #region Methods
         private void Start()
         {
             RuntimeSet.Add(this);
 
-            PlayerExperience = FindObjectOfType<Experience>();
-
+            Movement = GetComponent<EnemyMovement>();
+            Health = GetComponent<EnemyHealth>();
             ParticleSystem = GetComponentInChildren<ParticleSystem>();
 
-            Movement = GetComponent<EnemyMovement>();
-            Movement.OnMovementDisabled.AddListener(ParticleSystem.PauseParticleSpawning);
-            Movement.OnMovementEnabled.AddListener(ParticleSystem.ResumeParticleSpawning);
-
-            Health = GetComponent<EnemyHealth>();
-            Health.OnKilled.AddListener(Kill);
-
             OnKilled = new UnityEvent();
-            Health.OnKilled.AddListener( () => { OnKilled.Invoke(); } );
         }
 
         public void Kill()
         {
+            OnKilled.Invoke();
             RuntimeSet.Remove(this);
             ParticleSystem.Kill();
             Destroy(gameObject);
@@ -68,5 +81,6 @@ namespace LooCast.Enemy
                 playerHealth.Damage(new DamageInfo(collision.gameObject, collision.gameObject, Data.ContactDamage.Value * difficulty, 0, 0, 0, 0));
             }
         }
+        #endregion
     } 
 }

@@ -11,10 +11,10 @@ namespace LooCast.Weapon
     using Target;
     using Targeting;
 
-    [RequireComponent(typeof(Targeting))]
+    [RequireComponent(typeof(ITargeting))]
     public abstract class Weapon : ExtendedMonoBehaviour
     {
-        protected Targeting targeting;
+        protected ITargeting targeting;
         protected GameSoundHandler soundHandler;
 
         public Stats Stats;
@@ -49,7 +49,7 @@ namespace LooCast.Weapon
 
         protected void Initialize(WeaponData data)
         {
-            targeting = GetComponent<Targeting>();
+            targeting = GetComponent<ITargeting>();
             soundHandler = FindObjectOfType<GameSoundHandler>();
 
             baseDamage = data.BaseDamage.Value;

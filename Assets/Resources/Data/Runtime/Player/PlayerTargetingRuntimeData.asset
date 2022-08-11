@@ -9,7 +9,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a8b703df4882fa94e9eb960838d6d831, type: 3}
-  m_Name: EnemyRuntimeSet
+  m_Script: {fileID: 11500000, guid: 84765681a95814f4a8f580d404781aef, type: 3}
+  m_Name: PlayerTargetingRuntimeData
   m_EditorClassIdentifier: 
-  Items: []
+  TargetTags: []
+  DrawGizmos:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []

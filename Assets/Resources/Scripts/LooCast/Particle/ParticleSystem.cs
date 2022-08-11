@@ -7,7 +7,7 @@ namespace LooCast.Particle
     using Core;
 
     [RequireComponent(typeof(UnityEngine.ParticleSystem))]
-    public class ParticleSystem : ExtendedMonoBehaviour
+    public sealed class ParticleSystem : ExtendedMonoBehaviour
     {
         private new UnityEngine.ParticleSystem particleSystem;
         private UnityEngine.ParticleSystem.EmissionModule emission;

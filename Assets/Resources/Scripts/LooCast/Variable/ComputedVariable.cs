@@ -50,6 +50,16 @@ namespace LooCast.Variable
             OnValueChanged = new UnityEvent();
         }
 
+        public static T[] Evaluate(ComputedVariable<T>[] computedValueVariables)
+        {
+            T[] evaluatedValues = new T[computedValueVariables.Length];
+            for (int i = 0; i < computedValueVariables.Length; i++)
+            {
+                evaluatedValues[i] = computedValueVariables[i].Value;
+            }
+            return evaluatedValues;
+        }
+
         public TemporaryMultiplier AddTimedMultiplier(float multiplier, float duration)
         {
             TemporaryMultiplier newMultiplier = new TemporaryMultiplier(multiplier, duration);

@@ -9,12 +9,12 @@ namespace LooCast.Station
     using Weapon;
     using Health;
 
-    [RequireComponent(typeof(PlayerStationHealth), typeof(Targeting), typeof(MultiplexerWeapon))]
+    [RequireComponent(typeof(PlayerStationHealth), typeof(StationTargeting), typeof(MultiplexerWeapon))]
     public sealed class PlayerStation : Station
     {
         public PlayerStationData Data;
         public PlayerStationHealth Health { get; private set; }
-        public Targeting Targeting { get; private set; }
+        public StationTargeting Targeting { get; private set; }
         public MultiplexerWeapon DefensiveWeapon { get; private set; }
 
         private void Start()
@@ -22,7 +22,7 @@ namespace LooCast.Station
             Initialize(Data);
 
             Health = GetComponent<PlayerStationHealth>();
-            Targeting = GetComponent<Targeting>();
+            Targeting = GetComponent<StationTargeting>();
             DefensiveWeapon = GetComponent<MultiplexerWeapon>();
         }
     } 

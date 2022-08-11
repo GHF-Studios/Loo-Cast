@@ -4,8 +4,10 @@ namespace LooCast.Movement.Data
 {
     using LooCast.Data;
 
-    public abstract class EnemyMovementData : MovementData
+    [CreateAssetMenu(fileName = "EnemyMovementData", menuName = "Data/Movement/EnemyMovementData", order = 0)]
+    public class EnemyMovementData : ScriptableObject
     {
+        public FloatDataReference BaseSpeed;
         public BoolDataReference IsMovementEnabled;
     } 
 }

@@ -16,7 +16,7 @@ namespace LooCast.Player
     using Attribute.Stat;
     using Currency;
 
-    [RequireComponent(typeof(PlayerHealth), typeof(PlayerMovement), typeof(PlayerExperience)), DisallowMultipleComponent]
+    [DisallowMultipleComponent]
     public class Player : ExtendedMonoBehaviour
     {
         public PlayerData Data;
@@ -24,7 +24,7 @@ namespace LooCast.Player
 
         public Dictionary<string, Weapon> Weapons { get; private set; }
         public PlayerHealth Health { get; private set; }
-        public Targeting Targeting { get; private set; }
+        public PlayerTargeting Targeting { get; private set; }
         public PlayerExperience Experience { get; private set; }
         public PlayerMovement Movement { get; private set; }
         public ParticleSystem ParticleSystem { get; private set; }
@@ -37,24 +37,20 @@ namespace LooCast.Player
         {
             Weapons = new Dictionary<string, Weapon>();
 
-            MultiplexerWeapon multiplexerWeapon = gameObject.AddComponent<MultiplexerWeapon>();
-            LaserEmitterWeapon laserEmitterWeapon = gameObject.AddComponent<LaserEmitterWeapon>();
-            FreezeRayWeapon freezeRayWeapon = gameObject.AddComponent<FreezeRayWeapon>();
-            ChargedPlasmaLauncherWeapon chargedPlasmaLauncherWeapon = gameObject.AddComponent<ChargedPlasmaLauncherWeapon>();
+            MultiplexerWeapon MultiplexerWeapon = GetComponent<MultiplexerWeapon>();
+            LaserEmitterWeapon LaserEmitterWeapon = GetComponent<LaserEmitterWeapon>();
+            FreezeRayWeapon FreezeRayWeapon = GetComponent<FreezeRayWeapon>();
+            ChargedPlasmaLauncherWeapon ChargedPlasmaLauncherWeapon = GetComponent<ChargedPlasmaLauncherWeapon>();
 
-            Weapons.Add("MultiplexerWeapon", multiplexerWeapon);
-            Weapons.Add("LaserEmitterWeapon", laserEmitterWeapon);
-            Weapons.Add("FreezeRayWeapon", freezeRayWeapon);
-            Weapons.Add("ChargedPlasmaLauncherWeapon", chargedPlasmaLauncherWeapon);
+            Weapons.Add("MultiplexerWeapon", MultiplexerWeapon);
+            Weapons.Add("LaserEmitterWeapon", LaserEmitterWeapon);
+            Weapons.Add("FreezeRayWeapon", FreezeRayWeapon);
+            Weapons.Add("ChargedPlasmaLauncherWeapon", ChargedPlasmaLauncherWeapon);
 
             Health = GetComponent<PlayerHealth>();
-            Targeting = GetComponent<Targeting>();
+            Targeting = GetComponent<PlayerTargeting>();
             Experience = GetComponent<PlayerExperience>();
             Movement = GetComponent<PlayerMovement>();
-            Movement.OnMovementDisabled.AddListener(ParticleSystem.PauseParticleSpawning);
-            Movement.OnMovementEnabled.AddListener(ParticleSystem.ResumeParticleSpawning);
-            Movement.OnStartAccelerating.AddListener(ParticleSystem.ResumeParticleSpawning);
-            Movement.OnStopAccelerating.AddListener(ParticleSystem.PauseParticleSpawning);
             ParticleSystem = GetComponentInChildren<ParticleSystem>();
         }
 

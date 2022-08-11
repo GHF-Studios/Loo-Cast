@@ -10,58 +10,58 @@ namespace LooCast.Arc
     public class Arc : ExtendedMonoBehaviour
     {
         #region Fields
-        protected Targeting targeting;
+        private ArcTargeting targeting;
         public List<Target> targets;
         public List<ArcSegment> arcSegments;
         public ArcSegment arcSegment;
-        protected Arc nextArc;
-        protected Arc nextBranch;
-        protected List<Arc> arcs;
-        
+        private Arc nextArc;
+        private Arc nextBranch;
+        private List<Arc> arcs;
 
 
-        
-        protected float lifetime;
-        protected float maxLifetime;
+
+
+        private float lifetime;
+        private float maxLifetime;
 
         public float width;
-        protected float widthMultiplier;
+        private float widthMultiplier;
         public float minWidth;
-        protected int branchTries;
+        private int branchTries;
 
 
 
-        protected float minSpreadDistance;
-        protected float minSpreadDistanceMultiplier;
+        private float minSpreadDistance;
+        private float minSpreadDistanceMultiplier;
 
-        protected float maxSpreadDistance;
-        protected float maxSpreadDistanceMultiplier;
+        private float maxSpreadDistance;
+        private float maxSpreadDistanceMultiplier;
 
-        protected float minSpreadAngle;
-        protected float minSpreadAngleMultiplier;
+        private float minSpreadAngle;
+        private float minSpreadAngleMultiplier;
 
-        protected float maxSpreadAngle;
-        protected float maxSpreadAngleMultiplier;
+        private float maxSpreadAngle;
+        private float maxSpreadAngleMultiplier;
 
-        protected float spreadChance;
-        protected float spreadChanceMultiplier;
+        private float spreadChance;
+        private float spreadChanceMultiplier;
 
 
 
-        protected float minBranchDistance;
-        protected float minBranchDistanceMultiplier;
+        private float minBranchDistance;
+        private float minBranchDistanceMultiplier;
 
-        protected float maxBranchDistance;
-        protected float maxBranchDistanceMultiplier;
+        private float maxBranchDistance;
+        private float maxBranchDistanceMultiplier;
 
-        protected float minBranchAngle;
-        protected float minBranchAngleMultiplier;
+        private float minBranchAngle;
+        private float minBranchAngleMultiplier;
 
-        protected float maxBranchAngle;
-        protected float maxBranchAngleMultiplier;
+        private float maxBranchAngle;
+        private float maxBranchAngleMultiplier;
 
-        protected float branchChance;
-        protected float branchChanceMultiplier;
+        private float branchChance;
+        private float branchChanceMultiplier;
 
         public bool isMainArc { get; protected set; }
 
@@ -106,7 +106,7 @@ namespace LooCast.Arc
 
 
             //THIS IS TERRIBLE, CHANGE THIS
-            targeting = gameObject.AddComponent<Targeting>();
+            targeting = gameObject.AddComponent<ArcTargeting>();
             targeting.radius = maxSpreadDistance;
             targeting.ignoredTargets = ignoredTargets;
             targeting.targetTags = new string[] { "Enemy", "EnemyStation" };

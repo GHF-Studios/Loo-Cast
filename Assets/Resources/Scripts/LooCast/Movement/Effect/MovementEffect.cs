@@ -2,14 +2,14 @@
 
 namespace LooCast.Movement.Effect
 {
-    [RequireComponent(typeof(Movement))]
+    [RequireComponent(typeof(IMovement))]
     public abstract class MovementEffect : MonoBehaviour
     {
-        public Movement Movement;
+        public IMovement Movement;
 
         private void Start()
         {
-            Movement = GetComponent<Movement>();
+            Movement = GetComponent<IMovement>();
         }
     }
 }

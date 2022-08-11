@@ -9,6 +9,7 @@ namespace LooCast.Experience
     using Currency;
     using Sound;
 
+    [DisallowMultipleComponent]
     public sealed class PlayerExperience : Experience
     {
         public PlayerExperienceData Data;

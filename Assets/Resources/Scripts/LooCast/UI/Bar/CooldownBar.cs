@@ -4,25 +4,16 @@ using UnityEngine;
 
 namespace LooCast.UI.Bar
 {
-    using Manager;
     using Weapon;
-    using Sound;
 
     public class CooldownBar : Bar
     { 
-        [SerializeField] private string weaponName;
-        private Weapon weapon;
-
-        public void Initialize()
-        {
-            GameSceneManager.Instance.Player.Weapons.TryGetValue(weaponName, out Weapon weapon);
-            this.weapon = weapon;
-        }
+        public Weapon Weapon;
 
         public override void Refresh()
         {
-            Slider.maxValue = weapon.attackDelay;
-            Slider.value = weapon.attackTimer;
+            Slider.maxValue = Weapon.attackDelay;
+            Slider.value = Weapon.attackTimer;
         }
 
         private void Update()
