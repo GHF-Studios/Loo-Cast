@@ -12,3 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 05f2d1f44063a504a8bee78135a27047, type: 3}
   m_Name: PlayerHealthRuntimeData
   m_EditorClassIdentifier: 
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
+  Health:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  RegenerationTimer:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  IsAlive:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []

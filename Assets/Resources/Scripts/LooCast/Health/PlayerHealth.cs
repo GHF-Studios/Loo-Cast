@@ -5,27 +5,116 @@ namespace LooCast.Health
 {
     using Data;
     using Data.Runtime;
-    using Sound;
-    using UI.Screen;
-    using Manager;
-    using Random;
+    using LooCast.Core;
+    using LooCast.Sound;
+    using LooCast.UI.Canvas;
+    using LooCast.UI.Screen;
+    using LooCast.Manager;
+    using LooCast.Random;
+    using LooCast.Indicator;
+    using LooCast.Variable;
+    using LooCast.Attribute.Stat;
 
     [DisallowMultipleComponent]
-    public class PlayerHealth : Health
+    public class PlayerHealth : ExtendedMonoBehaviour, IHealth
     {
+        #region Data
         public PlayerHealthData Data;
         public PlayerHealthRuntimeData RuntimeData;
+        #endregion
+
+        #region Properties
+        public FloatVariable Health
+        {
+            get
+            {
+                return RuntimeData.Health;
+            }
+        }
+        public FloatComputedVariable MaxHealth
+        {
+            get
+            {
+                return RuntimeData.MaxHealth;
+            }
+        }
+        public FloatComputedVariable RegenerationAmount
+        {
+            get
+            {
+                return RuntimeData.RegenerationAmount;
+            }
+        }
+        public FloatComputedVariable RegenerationTime
+        {
+            get
+            {
+                return RuntimeData.RegenerationTime;
+            }
+        }
+        public FloatVariable RegenerationTimer
+        {
+            get
+            {
+                return RuntimeData.RegenerationTimer;
+            }
+        }
+        public IntComputedVariable Defense
+        {
+            get
+            {
+                return RuntimeData.Defense;
+            }
+        }
+        public BoolVariable IsAlive
+        {
+            get
+            {
+                return RuntimeData.IsAlive;
+            }
+        }
+        public GameObject DamageIndicatorPrefab
+        {
+            get
+            {
+                return RuntimeData.DamageIndicatorPrefab;
+            }
+        }
+        #endregion
+
+        #region Events
+        public UnityEvent OnKilled
+        {
+            get
+            {
+                return onKilled;
+            }
+
+            set
+            {
+                onKilled = value;
+            }
+        }
+        [SerializeField] private UnityEvent onKilled;
+        #endregion
+
+        #region Fields
+        [SerializeField] private Stats stats;
 
         private GameSoundHandler soundHandler;
+        private WorldSpaceCanvas canvas;
         private DeathScreen deathScreen;
+        #endregion
 
+        #region Methods
         private void Start()
         {
-            Initialize(Data);
-
             RuntimeData.Initialize(Data);
 
+            OnKilled = new UnityEvent();
+
             soundHandler = FindObjectOfType<GameSoundHandler>();
+            canvas = FindObjectOfType<WorldSpaceCanvas>();
             deathScreen = FindObjectOfType<DeathScreen>();
         }
 
@@ -34,7 +123,7 @@ namespace LooCast.Health
             Heal(RuntimeData.RegenerationAmount.Value * Time.deltaTime);
         }
 
-        public override void Damage(DamageInfo damageInfo)
+        public void Damage(DamageInfo damageInfo)
         {
             bool TryCriticalStrike(ref DamageInfo refDamageInfo)
             {
@@ -59,20 +148,31 @@ namespace LooCast.Health
             }
 
             damageInfo.damage -= defense;
-            if (damageInfo.damage <= 0)
+            if (damageInfo.damage <= 0.0f)
             {
                 return;
             }
 
             RuntimeData.Health.Value -= damageInfo.damage;
-            if (RuntimeData.Health.Value <= 0)
+            if (RuntimeData.Health.Value <= 0.0f)
             {
-                RuntimeData.Health.Value = 0;
+                RuntimeData.Health.Value = 0.0f;
                 Kill();
             }
+
+            Knockback(damageInfo);
+            IndicateDamage(damageInfo);
+            soundHandler.SoundHit();
         }
 
-        public override void Heal(float health)
+        public void IndicateDamage(DamageInfo damageInfo)
+        {
+            Vector2 worldPos = new Vector2(transform.position.x + Random.Range(-0.5f, 0.5f), transform.position.y + Random.Range(-0.5f, 0.5f));
+            GameObject damageIndicator = Instantiate(Resources.Load<GameObject>("Prefabs/DamageIndicator"), worldPos, Quaternion.identity, canvas.transform);
+            damageIndicator.GetComponent<DamageIndicator>().Initialize(damageInfo.damage);
+        }
+
+        public void Heal(float health)
         {
             RuntimeData.Health.Value += health;
             if (RuntimeData.Health.Value > RuntimeData.MaxHealth.Value)
@@ -81,18 +181,19 @@ namespace LooCast.Health
             }
         }
 
-        public override void Kill()
+        public void Kill()
         {
             if (RuntimeData.IsAlive.Value)
             {
-                base.Kill();
+                RuntimeData.IsAlive.Value = false;
+                OnKilled.Invoke();
                 GameSceneManager.Pause();
                 soundHandler.SoundDeath();
                 deathScreen.SetVisibility(true);
             }
         }
 
-        public override void Knockback(DamageInfo damageInfo)
+        public void Knockback(DamageInfo damageInfo)
         {
             if (damageInfo.knockback != 0.0f)
             {
@@ -104,5 +205,6 @@ namespace LooCast.Health
                 }
             }
         }
+        #endregion
     } 
 }

@@ -110,7 +110,7 @@ namespace LooCast.Projectile
                 }
 
                 pierced += 1;
-                Health collisionHealth = collision.gameObject.GetComponentInParent<Health>();
+                IHealth collisionHealth = collision.gameObject.GetComponentInParent<IHealth>();
                 collisionHealth.Damage(new DamageInfo(origin, gameObject, damage * Random.Range(2.5f, 5.0f), knockback, armorPenetration, critChance, critDamage));
 
                 if (pierced > piercing)

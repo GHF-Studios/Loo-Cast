@@ -7,10 +7,12 @@ namespace LooCast.Targeting
 
     public interface ITargeting
     {
+        #region Properties
         List<Target> closestTargets { get; }
         List<Target> furthestTargets { get; }
         List<Target> randomTargets { get; }
         List<Target> randomOnscreenTargets { get; }
         List<Target> randomProximityTargets { get; }
+        #endregion
     }
 }

@@ -21,7 +21,13 @@ namespace LooCast.Movement
         #endregion
 
         #region Properties
-        public FloatComputedVariable Speed { get; private set; }
+        public FloatComputedVariable Speed
+        {
+            get
+            {
+                return RuntimeData.Speed;
+            }
+        }
         public Rigidbody2D Rigidbody { get; private set; }
         public Collider2D Collider { get; private set; }
         #endregion
@@ -184,7 +190,7 @@ namespace LooCast.Movement
 
             if (!RuntimeData.IsEnergyDepleted.Value)
             {
-                Rigidbody.AddForce(new Vector2(axis[0], axis[1]).normalized * Speed.Value); 
+                Rigidbody.AddForce(new Vector2(axis[0], axis[1]).normalized * RuntimeData.Speed.Value); 
             }
         }
         #endregion

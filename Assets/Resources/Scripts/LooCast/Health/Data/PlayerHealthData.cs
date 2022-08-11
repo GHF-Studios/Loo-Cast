@@ -14,5 +14,6 @@ namespace LooCast.Health.Data
         public FloatDataReference BaseRegenerationAmount;
         public FloatDataReference BaseRegenerationTime;
         public IntDataReference BaseDefense;
+        public GameObject DamageIndicatorPrefab;
     } 
 }

@@ -15,14 +15,14 @@ MonoBehaviour:
   BaseSpeed:
     UseConstant: 0
     ConstantValue: 0
-    Variable: {fileID: 0}
+    Variable: {fileID: 11400000, guid: 1a6baa20a65b3f348881d14378c5b3de, type: 2}
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []
   IsMovementEnabled:
     UseConstant: 0
     ConstantValue: 0
-    Variable: {fileID: 0}
+    Variable: {fileID: 11400000, guid: 3344a64eb96177a4581190baf34775d5, type: 2}
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []

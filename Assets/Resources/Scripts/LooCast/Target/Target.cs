@@ -13,7 +13,7 @@ namespace LooCast.Target
     {
         public GameObject gameObject { get; }
         public Transform transform { get { return gameObject.transform; } }
-        public Health health { get; }
+        public IHealth health { get; }
         private bool targetLockEngaged;
         /// <summary>
         /// Invoked, when this Target is invalid, and right before it will be destroyed
@@ -28,7 +28,7 @@ namespace LooCast.Target
             onInvalidated = new UnityEvent();
         }
 
-        public Target(GameObject gameObject, Health health)
+        public Target(GameObject gameObject, IHealth health)
         {
             this.gameObject = gameObject;
             this.health = health;
@@ -39,7 +39,7 @@ namespace LooCast.Target
         public Target(Collision2D collision)
         {
             gameObject = collision.gameObject;
-            health = gameObject.GetComponent<Health>();
+            health = gameObject.GetComponent<IHealth>();
             targetLockEngaged = false;
             onInvalidated = new UnityEvent();
         }
@@ -47,7 +47,7 @@ namespace LooCast.Target
         public Target(Collider2D collider)
         {
             gameObject = collider.gameObject;
-            health = gameObject.GetComponent<Health>();
+            health = gameObject.GetComponent<IHealth>();
             targetLockEngaged = false;
             onInvalidated = new UnityEvent();
         }

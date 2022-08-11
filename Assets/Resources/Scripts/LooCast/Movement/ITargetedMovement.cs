@@ -4,8 +4,6 @@ namespace LooCast.Movement
     
     public interface ITargetedMovement : IMovement
     {
-        Target GetTarget();
-
-        void SetTarget(Target target);
+        Target Target { set; }
     } 
 }

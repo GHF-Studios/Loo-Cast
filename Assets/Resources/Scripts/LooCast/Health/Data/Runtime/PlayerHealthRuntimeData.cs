@@ -22,6 +22,7 @@ namespace LooCast.Health.Data.Runtime
             Defense = new IntComputedVariable(data.BaseDefense.Value);
             Defense.AddPermanentIncrease(Stats.DefenseIncrease);
             IsAlive = new BoolVariable(true);
+            DamageIndicatorPrefab = data.DamageIndicatorPrefab;
         }
 
         public FloatVariable Health;
@@ -31,5 +32,6 @@ namespace LooCast.Health.Data.Runtime
         public FloatVariable RegenerationTimer;
         public IntComputedVariable Defense;
         public BoolVariable IsAlive;
+        public GameObject DamageIndicatorPrefab;
     }
 }

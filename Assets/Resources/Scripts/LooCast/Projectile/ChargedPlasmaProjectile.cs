@@ -178,14 +178,14 @@ namespace LooCast.Projectile
 
                         foreach (Target target in nextArc.targets)
                         {
-                            Health targetHealth = target.gameObject.GetComponentInParent<Health>();
+                            IHealth targetHealth = target.gameObject.GetComponentInParent<IHealth>();
                             targetHealth.Damage(new DamageInfo(origin, nextArc.gameObject, damage * Random.Range(2.5f, 5.0f), knockback, armorPenetration, critChance, critDamage));
                         }
                     }
 
                     if (arcs.Count == 0)
                     {
-                        Health collisionTargetHealth = collisionTarget.gameObject.GetComponentInParent<Health>();
+                        IHealth collisionTargetHealth = collisionTarget.gameObject.GetComponentInParent<IHealth>();
                         collisionTargetHealth.Damage(new DamageInfo(origin, gameObject, damage * Random.Range(2.5f, 5.0f), knockback, armorPenetration, critChance, critDamage));
                     }
                 }

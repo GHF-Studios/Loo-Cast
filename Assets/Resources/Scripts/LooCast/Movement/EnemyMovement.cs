@@ -21,6 +21,18 @@ namespace LooCast.Movement
         public FloatComputedVariable Speed { get; private set; }
         public Rigidbody2D Rigidbody { get; private set; }
         public Collider2D Collider { get; private set; }
+        public Target Target
+        {
+            get
+            {
+                return target;
+            }
+
+            set
+            {
+                target = value;
+            }
+        }
         #endregion
 
         #region Events
@@ -75,7 +87,7 @@ namespace LooCast.Movement
             isMovementEnabled = Data.IsMovementEnabled.Value;
             playerObject = GameObject.FindGameObjectWithTag("Player");
             playerCollider = playerObject.GetComponent<CircleCollider2D>();
-            SetTarget(new Target(playerCollider));
+            Target = new Target(playerCollider);
         }
 
         protected override void OnPauseableFixedUpdate()
@@ -105,16 +117,6 @@ namespace LooCast.Movement
                 float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90.0f;
                 transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y, angle);
             }
-        }
-
-        public Target GetTarget()
-        {
-            return target;
-        }
-
-        public void SetTarget(Target target)
-        {
-            this.target = target;
         }
         #endregion
     }
