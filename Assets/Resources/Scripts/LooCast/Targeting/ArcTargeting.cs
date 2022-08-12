@@ -9,8 +9,6 @@ namespace LooCast.Targeting
 
     public class ArcTargeting : MonoBehaviour, ITargeting
     {
-        public ArcTargetingData Data;
-
         public float radius;
         public string[] targetTags;
         public bool drawGizmos;
@@ -87,19 +85,6 @@ namespace LooCast.Targeting
         }
         private List<Target> _randomProximityTargets;
 
-        private void Start()
-        {
-            radius = Data.Radius.Value;
-            targetTags = new string[Data.TargetedTags.Length];
-            for (int i = 0; i < targetTags.Length; i++)
-            {
-                targetTags[i] = Data.TargetedTags[i].Value;
-            }
-            drawGizmos = Data.DrawGizmos.Value;
-            random = new System.Random(Mathf.RoundToInt(Time.time));
-            ignoredTargets = new List<Target>();
-        }
-
         private void OnDrawGizmos()
         {
             if (drawGizmos)
@@ -114,6 +99,15 @@ namespace LooCast.Targeting
             _furthestTargets = null;
             _randomTargets = null;
             _randomOnscreenTargets = null;
+        }
+
+        public void Initialize(float radius, string[] targetTags, bool drawGizmos)
+        {
+            this.radius = radius;
+            this.targetTags = targetTags;
+            this.drawGizmos = drawGizmos;
+            random = new System.Random(Mathf.RoundToInt(Time.time));
+            ignoredTargets = new List<Target>();
         }
 
         private bool CheckTags(Collider2D collider, params string[] tags)

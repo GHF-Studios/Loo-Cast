@@ -103,15 +103,11 @@ namespace LooCast.Arc
             this.branchChance = branchChance;
             this.branchChanceMultiplier = branchChanceMultiplier;
 
-
-
-            //THIS IS TERRIBLE, CHANGE THIS
             targeting = gameObject.AddComponent<ArcTargeting>();
             targeting.radius = maxSpreadDistance;
             targeting.ignoredTargets = ignoredTargets;
             targeting.targetTags = new string[] { "Enemy", "EnemyStation" };
             targeting.drawGizmos = false;
-            //THIS IS TERRIBLE, CHANGE THIS
 
             targets = new List<Target>();
             arcSegments = new List<ArcSegment>();

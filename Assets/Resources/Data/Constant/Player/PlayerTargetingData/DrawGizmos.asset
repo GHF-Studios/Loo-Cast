@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 814f8ae2eeb8c9541a6261b7d98bd78f, type: 3}
   m_Name: DrawGizmos
   m_EditorClassIdentifier: 
-  value: 0
+  value: 1
   OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
