@@ -23,7 +23,7 @@ namespace LooCast.Orb
         private float experience = 1.0f;
         private GameObject playerObject;
         private CircleCollider2D playerCollider;
-        private Experience playerExperience;
+        private IExperience playerExperience;
         private GameSoundHandler soundHandler;
         private static float pickupRangeMultiplier;
 
@@ -43,7 +43,7 @@ namespace LooCast.Orb
         public virtual void Initialize()
         {
             playerObject = GameObject.FindGameObjectWithTag("Player");
-            playerExperience = playerObject.GetComponent<LooCast.Experience.Experience>();
+            playerExperience = playerObject.GetComponent<LooCast.Experience.IExperience>();
             playerCollider = playerObject.GetComponent<CircleCollider2D>();
             soundHandler = GameObject.FindObjectOfType<GameSoundHandler>();
             pickupRangeMultiplier = Stats.RangeMultiplier;

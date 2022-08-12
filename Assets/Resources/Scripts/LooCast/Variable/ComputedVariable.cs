@@ -11,7 +11,11 @@ namespace LooCast.Variable
         {
             get
             {
-                return ValueEvaluator.Invoke(PermanentMultipliers, PermanentIncreases, ActiveMultipliers, ActiveIncreases, BaseValue);
+                if (IsInitialized)
+                {
+                    return ValueEvaluator.Invoke(PermanentMultipliers, PermanentIncreases, ActiveMultipliers, ActiveIncreases, BaseValue);
+                }
+                return default(T);
             }
         }
         public T BaseValue
@@ -40,6 +44,7 @@ namespace LooCast.Variable
 
         public ComputedVariable(T baseValue, Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, T, T> valueEvaluator)
         {
+            OnValueChanged = new UnityEvent();
             IsInitialized = true;
             BaseValue = baseValue;
             ValueEvaluator = valueEvaluator;
@@ -47,7 +52,6 @@ namespace LooCast.Variable
             PermanentIncreases = new List<Increase>();
             ActiveMultipliers = new List<TemporaryMultiplier>();
             ActiveIncreases = new List<TemporaryIncrease>();
-            OnValueChanged = new UnityEvent();
         }
 
         public static T[] Evaluate(ComputedVariable<T>[] computedValueVariables)

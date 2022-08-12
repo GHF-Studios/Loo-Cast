@@ -146,6 +146,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 865557de60cb06549b9b8d3ebf91d8be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
   isMagnetized: 0
   magnetizedSpeedMultiplier: 5000
   maxMagnetizedSpeed: 500

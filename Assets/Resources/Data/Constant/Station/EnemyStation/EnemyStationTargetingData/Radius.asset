@@ -9,11 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 414e251d8a0a8714794c9b157e19f2b2, type: 3}
-  m_Name: PlayerExperienceRuntimeData
+  m_Script: {fileID: 11500000, guid: f0342d0486f65964f8a3c93e761278c0, type: 3}
+  m_Name: Radius
   m_EditorClassIdentifier: 
-  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
-  CurrentLevel:
-    OnValueChanged:
-      m_PersistentCalls:
-        m_Calls: []
+  value: 0
+  OnValueChanged:
+    m_PersistentCalls:
+      m_Calls: []

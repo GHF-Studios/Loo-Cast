@@ -4,13 +4,14 @@ namespace LooCast.Experience
 {
     using Data;
     using Data.Runtime;
+    using LooCast.Core;
     using Variable;
     using Attribute.Stat;
     using Currency;
     using Sound;
 
     [DisallowMultipleComponent]
-    public sealed class PlayerExperience : Experience
+    public class PlayerExperience : ExtendedMonoBehaviour, IExperience
     {
         public PlayerExperienceData Data;
         public PlayerExperienceRuntimeData RuntimeData;
@@ -22,17 +23,12 @@ namespace LooCast.Experience
 
         private void Start()
         {
-            Initialize(Data);
-
-            RuntimeData.CurrentExperience = new FloatComputedVariable(Data.BaseExperience.Value);
-            RuntimeData.CurrentExperience.AddPermanentMultiplier(Stats.ExperienceMultiplier);
-            RuntimeData.LevelExperienceMax = new FloatComputedVariable(Data.BaseLevelExperienceMax.Value);
-            RuntimeData.CurrentLevel = new IntVariable(Data.BaseLevel.Value);
+            RuntimeData.Initialize(Data);
 
             soundHandler = FindObjectOfType<GameSoundHandler>();
         }
 
-        public override void AddExperience(float xp)
+        public void AddExperience(float xp)
         {
             Coins.Balance.Value += Mathf.RoundToInt(xp);
             RuntimeData.CurrentExperience.BaseValue += xp;
@@ -40,7 +36,7 @@ namespace LooCast.Experience
             UpdateLevelProgress(RuntimeData.CurrentExperience.Value);
         }
 
-        protected override void UpdateLevelProgress(float overflowXP)
+        private void UpdateLevelProgress(float overflowXP)
         {
             if (overflowXP == RuntimeData.LevelExperienceMax.Value)
             {
@@ -63,7 +59,7 @@ namespace LooCast.Experience
             }
         }
 
-        protected override void IncreaseLevel()
+        private void IncreaseLevel()
         {
             RuntimeData.CurrentLevel.Value++;
             RuntimeData.LevelExperienceMax.BaseValue *= Stats.LevelExperienceMaxMultiplier;

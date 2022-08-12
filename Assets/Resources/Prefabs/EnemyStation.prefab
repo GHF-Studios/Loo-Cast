@@ -241,7 +241,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30e7a65bdfb63164cae8c231f923e9cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  runtimeSet: {fileID: 11400000, guid: c9d187e318d873e48a323f601526b924, type: 2}
+  ID: 0
+  IsVisible: 0
+  RuntimeSet: {fileID: 11400000, guid: c9d187e318d873e48a323f601526b924, type: 2}
   Data: {fileID: 11400000, guid: 0349686f1975a8a4d946575955a18465, type: 2}
 --- !u!114 &513302948714513589
 MonoBehaviour:
@@ -255,9 +257,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8808eedc61682a6458be9e742a72b78e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
+  Data: {fileID: 11400000, guid: cdb92a795e9788a4685d757d333ca100, type: 2}
   onKilled:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 3016905653400388265}
+        m_TargetAssemblyTypeName: LooCast.Station.Station, Assembly-CSharp
+        m_MethodName: Kill
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
 --- !u!1 &3016905654385909483
 GameObject:
   m_ObjectHideFlags: 0

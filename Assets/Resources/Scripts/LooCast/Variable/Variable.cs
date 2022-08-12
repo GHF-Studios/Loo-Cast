@@ -23,6 +23,7 @@ namespace LooCast.Variable
 
         public Variable(T value)
         {
+            OnValueChanged = new UnityEvent();
             Value = value;
         }
 

@@ -7,9 +7,9 @@ namespace LooCast.Targeting
     using Data;
     using LooCast.Target;
 
-    public class StationTargeting : MonoBehaviour, ITargeting
+    public class EnemyStationTargeting : MonoBehaviour, ITargeting
     {
-        public StationTargetingData Data;
+        public EnemyStationTargetingData Data;
 
         public float radius;
         public string[] targetTags;

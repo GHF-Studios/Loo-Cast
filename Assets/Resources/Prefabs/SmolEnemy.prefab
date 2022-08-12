@@ -4987,10 +4987,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
-  OnKilled:
+  Data: {fileID: 11400000, guid: ef70d6a6c91a525429f07e71cafa7b2d, type: 2}
+  onKilled:
     m_PersistentCalls:
-      m_Calls: []
-  Stats: {fileID: 0}
+      m_Calls:
+      - m_Target: {fileID: 7689063019205122669}
+        m_TargetAssemblyTypeName: LooCast.Enemy.Enemy, Assembly-CSharp
+        m_MethodName: Kill
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
 --- !u!114 &1913491358346200415
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -12,3 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 93f2e45dd92aad944ab95e28cb97e2f7, type: 3}
   m_Name: PlayerMovementRuntimeData
   m_EditorClassIdentifier: 
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
+  CurrentEnergy:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  IsUsingEnergy:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  IsEnergyDepleted:
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
