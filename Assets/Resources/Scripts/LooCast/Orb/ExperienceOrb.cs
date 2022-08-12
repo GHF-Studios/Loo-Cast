@@ -23,7 +23,7 @@ namespace LooCast.Orb
         private float experience = 1.0f;
         private GameObject playerObject;
         private CircleCollider2D playerCollider;
-        private IExperience playerExperience;
+        private PlayerExperience playerExperience;
         private GameSoundHandler soundHandler;
         private static float pickupRangeMultiplier;
 
@@ -43,7 +43,7 @@ namespace LooCast.Orb
         public virtual void Initialize()
         {
             playerObject = GameObject.FindGameObjectWithTag("Player");
-            playerExperience = playerObject.GetComponent<LooCast.Experience.IExperience>();
+            playerExperience = playerObject.GetComponent<PlayerExperience>();
             playerCollider = playerObject.GetComponent<CircleCollider2D>();
             soundHandler = GameObject.FindObjectOfType<GameSoundHandler>();
             pickupRangeMultiplier = Stats.RangeMultiplier;
@@ -51,40 +51,37 @@ namespace LooCast.Orb
 
         protected override void OnPauseableUpdate()
         {
-            if (IsVisible)
+            if (playerObject != null)
             {
-                if (playerObject != null)
+                if (isMagnetized)
                 {
+                    timerMagnetized += Time.deltaTime;
+                    if (timerMagnetized >= magnetDuration)
+                    {
+                        Demagnetize();
+                    }
+                }
+
+                float dis = Vector3.Distance(playerObject.transform.position, transform.position);
+                if (dis <= playerCollider.radius)
+                {
+                    playerExperience.AddExperience(GetExperience());
+                    soundHandler.SoundExperience();
+                    Kill();
+                }
+                else
+                {
+                    float speed = 1 / Mathf.Pow(dis / pickupRangeMultiplier, 2) * Constants.INERTIAL_COEFFICIENT * 7.5f;
                     if (isMagnetized)
                     {
-                        timerMagnetized += Time.deltaTime;
-                        if (timerMagnetized >= magnetDuration)
+                        speed *= magnetizedSpeedMultiplier;
+                        if (speed >= maxMagnetizedSpeed)
                         {
-                            Demagnetize();
+                            speed = maxMagnetizedSpeed;
                         }
                     }
-
-                    float dis = Vector3.Distance(playerObject.transform.position, transform.position);
-                    if (dis <= playerCollider.radius)
-                    {
-                        playerExperience.AddExperience(GetExperience());
-                        soundHandler.SoundExperience();
-                        Kill();
-                    }
-                    else
-                    {
-                        float speed = 1 / Mathf.Pow(dis / pickupRangeMultiplier, 2) * Constants.INERTIAL_COEFFICIENT * 7.5f;
-                        if (isMagnetized)
-                        {
-                            speed *= magnetizedSpeedMultiplier;
-                            if (speed >= maxMagnetizedSpeed)
-                            {
-                                speed = maxMagnetizedSpeed;
-                            }
-                        }
-                        speed = speed * Time.deltaTime * .5f;
-                        transform.position = Vector3.MoveTowards(transform.position, playerObject.transform.position, speed);
-                    }
+                    speed = speed * Time.deltaTime * .5f;
+                    transform.position = Vector3.MoveTowards(transform.position, playerObject.transform.position, speed);
                 }
             }
         }

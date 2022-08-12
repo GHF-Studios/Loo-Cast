@@ -44,8 +44,8 @@ namespace LooCast.AOE
             deployTime = Resources.Load<AnimationClip>("Animations/AOEZonePopup").length;
             retractTime = Resources.Load<AnimationClip>("Animations/AOEZoneDisappear").length;
 
-            baseScale *= Stats.Sanity.ProjectileSizeMultiplier.Value;
-            movementSpeed *= Stats.Personality.ProjectileSpeedMultiplier.Value;
+            baseScale *= Stats.ProjectileSizeMultiplier;
+            movementSpeed *= Stats.ProjectileSpeedMultiplier;
             
             transform.localScale = baseScale * 0.1f; 
         }
@@ -112,7 +112,6 @@ namespace LooCast.AOE
                 {
                     FreezeMovementEffect freezeMovementEffect = collision.gameObject.AddComponent<FreezeMovementEffect>();
                     freezeMovementEffect.Initialize(freezeAmount, 5.0f);
-                    Debug.Log("This is suboptimal and has to be improved!");
                 }
             }
         }

@@ -12,7 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 490b3e7f6c589d24f9f3dfb943f25e9b, type: 3}
   m_Name: CharismaAttribute
   m_EditorClassIdentifier: 
-  Stats: []
+  Stats:
+  - {fileID: 11400000, guid: 21274fd6acfad2541bb610a6e43f082c, type: 2}
+  - {fileID: 11400000, guid: 652c35e598dd5274087bfa488ece44f5, type: 2}
+  - {fileID: 11400000, guid: db822cf1559137e4bb0b799810c46a6b, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

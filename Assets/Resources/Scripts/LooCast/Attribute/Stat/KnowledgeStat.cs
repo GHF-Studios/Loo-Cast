@@ -5,11 +5,15 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Variable;
-
     [CreateAssetMenu(fileName = "KnowledgeStat", menuName = "Data/Attribute/Stat/KnowledgeStat", order = 0)]
     public class KnowledgeStat : Stat
     {
-        public FloatComputedVariable LevelExperienceMaxMultiplier;
+        public float LevelExperienceMaxMultiplier
+        {
+            get
+            {
+                return 1.75f - Level.Value * 0.05f;
+            }
+        }
     } 
 }

@@ -11,6 +11,12 @@ namespace LooCast.UI.Bar
     {
         public PlayerHealthRuntimeData PlayerHealthRuntimeData;
 
+        private void Start()
+        {
+            PlayerHealthRuntimeData.MaxHealth.OnValueChanged.AddListener(() => { Refresh(); });
+            PlayerHealthRuntimeData.Health.OnValueChanged.AddListener(() => { Refresh(); });
+        }
+
         public override void Refresh()
         {
             Slider.minValue = 0.0f;

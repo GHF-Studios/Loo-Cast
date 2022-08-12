@@ -111,8 +111,6 @@ namespace LooCast.Health
         {
             RuntimeData.Initialize(Data);
 
-            OnKilled = new UnityEvent();
-
             soundHandler = FindObjectOfType<GameSoundHandler>();
             canvas = FindObjectOfType<WorldSpaceCanvas>();
             deathScreen = FindObjectOfType<DeathScreen>();

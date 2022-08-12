@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24e2ad1ab631646408cb413422b5e718, type: 3}
   m_Name: PsycheStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 600e31feeee1edb43b2299f8ecc1dc24, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

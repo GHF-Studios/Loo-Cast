@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ff7e1c49769c76242826ca8ab362fea6, type: 3}
   m_Name: FortuneStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 027c025c0edec4843986885ccc97365d, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

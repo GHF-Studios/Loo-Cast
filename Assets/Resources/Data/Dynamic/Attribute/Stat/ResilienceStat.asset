@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bbe5b06df132d1b4f864d90583d7c5a7, type: 3}
   m_Name: ResilienceStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 159e737dcb746b04a931b8b828900221, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

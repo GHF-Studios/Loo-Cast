@@ -7,7 +7,7 @@ namespace LooCast.Movement.Effect
     {
         public IMovement Movement;
 
-        private void Start()
+        public void Initialize()
         {
             Movement = GetComponent<IMovement>();
         }

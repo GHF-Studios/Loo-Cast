@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de1bc35834880b144a50eff489af3e4f, type: 3}
   m_Name: KnowledgeStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 20bf07df3dc2dda429f0075519151532, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

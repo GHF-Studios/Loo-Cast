@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 788792c14b3092e40b31c87e37f16b5e, type: 3}
   m_Name: ChanceStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 027c025c0edec4843986885ccc97365d, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

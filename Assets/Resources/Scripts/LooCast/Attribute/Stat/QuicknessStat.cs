@@ -5,11 +5,15 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Variable;
-
     [CreateAssetMenu(fileName = "QuicknessStat", menuName = "Data/Attribute/Stat/QuicknessStat", order = 0)]
     public class QuicknessStat : Stat
     {
-        public FloatComputedVariable AttackDelayMultiplier;
+        public float AttackDelayMultiplier
+        {
+            get
+            {
+                return 1 - Level.Value * 0.075f;
+            }
+        }
     } 
 }

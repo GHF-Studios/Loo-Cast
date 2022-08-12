@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,7 +6,10 @@ using UnityEngine;
 namespace LooCast.Attribute.Stat
 {
     using LooCast.Variable;
+    using LooCast.Data;
 
+
+    [Serializable]
     public abstract class Stat : ScriptableObject
     {
         public Attribute Attribute;

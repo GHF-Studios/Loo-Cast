@@ -13,6 +13,7 @@ namespace LooCast.Player
     using Weapon;
     using Particle;
     using Experience;
+    using Attribute;
     using Attribute.Stat;
     using Currency;
 
@@ -30,6 +31,7 @@ namespace LooCast.Player
         public ParticleSystem ParticleSystem { get; private set; }
 
         public Stats Stats;
+        public Attributes Attributes;
         public Coins Coins;
         public Tokens Tokens;
 
@@ -78,11 +80,13 @@ namespace LooCast.Player
 
             if (Input.GetKeyDown(KeyCode.F5))
             {
+                Attributes.Cheat();
                 Stats.Cheat();
             }
 
             if (Input.GetKeyDown(KeyCode.F6))
             {
+                Attributes.Uncheat();
                 Stats.Uncheat();
             }
         }

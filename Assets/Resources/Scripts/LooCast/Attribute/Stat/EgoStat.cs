@@ -4,11 +4,15 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat
 {
-    using Variable;
-
     [CreateAssetMenu(fileName = "EgoStat", menuName = "Data/Attribute/Stat/EgoStat", order = 0)]
     public class EgoStat : Stat
     {
-        public FloatComputedVariable DamageReflection;
+        public float DamageReflection
+        {
+            get
+            {
+                return 1 + Level.Value * 0.1f;
+            }
+        }
     } 
 }

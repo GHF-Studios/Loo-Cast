@@ -8,21 +8,6 @@ namespace LooCast.UI.Bar
     {
         public UnityEngine.UI.Slider Slider;
 
-        private void Start()
-        {
-            Refresh();
-        }
-
-        private void OnBecameVisible()
-        {
-            Refresh();
-        }
-
-        private void OnEnable()
-        {
-            Refresh();
-        }
-
         public abstract void Refresh();
     } 
 }

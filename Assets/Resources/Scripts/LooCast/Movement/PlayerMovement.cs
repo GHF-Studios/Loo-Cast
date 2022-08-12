@@ -33,58 +33,10 @@ namespace LooCast.Movement
         #endregion
 
         #region Events
-        public UnityEvent OnMovementEnabled
-        {
-            get
-            {
-                return onMovementEnabled;
-            }
-            
-            set
-            {
-                onMovementEnabled = value;
-            }
-        }
-        [SerializeField]private UnityEvent onMovementEnabled;
-        public UnityEvent OnMovementDisabled
-        {
-            get
-            {
-                return onMovementDisabled;
-            }
-
-            set
-            {
-                onMovementDisabled = value;
-            }
-        }
-        [SerializeField]private UnityEvent onMovementDisabled;
-        public UnityEvent OnStartAccelerating
-        {
-            get
-            {
-                return onStartAccelerating;
-            }
-
-            set
-            {
-                onStartAccelerating = value;
-            }
-        }
-        [SerializeField]private UnityEvent onStartAccelerating;
-        public UnityEvent OnStopAccelerating
-        {
-            get
-            {
-                return onStopAccelerating;
-            }
-
-            set
-            {
-                onStopAccelerating = value;
-            }
-        }
-        [SerializeField]private UnityEvent onStopAccelerating;
+        public UnityEvent OnMovementEnabled;
+        public UnityEvent OnMovementDisabled;
+        public UnityEvent OnStartAccelerating;
+        public UnityEvent OnStopAccelerating;
         #endregion
 
         #region Fields
@@ -98,11 +50,6 @@ namespace LooCast.Movement
 
             Rigidbody = GetComponent<Rigidbody2D>();
             Collider = GetComponent<Collider2D>();
-
-            OnMovementEnabled = new UnityEvent();
-            OnMovementDisabled = new UnityEvent();
-            OnStartAccelerating = new UnityEvent();
-            OnStopAccelerating = new UnityEvent();
         }
 
         protected override void OnPause()

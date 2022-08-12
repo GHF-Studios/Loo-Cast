@@ -5,11 +5,15 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Variable;
-
     [CreateAssetMenu(fileName = "ReflexesStat", menuName = "Data/Attribute/Stat/ReflexesStat", order = 0)]
     public class ReflexesStat : Stat
     {
-        public FloatComputedVariable ConsecutiveProjectileDelayMultiplier;
+        public float ConsecutiveProjectileDelayMultiplier
+        {
+            get
+            {
+                return 1 + Level.Value * 0.1f;
+            }
+        }
     } 
 }

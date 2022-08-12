@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b8dc5f4cf28f134898e0b9653ab4949, type: 3}
   m_Name: StaminaStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: d5b8391ca89606f40a476f5a7a904f55, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

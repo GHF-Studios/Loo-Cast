@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73315c03b7f1f3645bf106b891e1728b, type: 3}
   m_Name: BrawnStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 78bb918935f636c438e82425eb3ad919, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

@@ -877,7 +877,7 @@ ParticleSystem:
           m_PostInfinity: 2
           m_RotationOrder: 4
   EmissionModule:
-    enabled: 1
+    enabled: 0
     serializedVersion: 4
     rateOverTime:
       serializedVersion: 2
@@ -4978,6 +4978,7 @@ MonoBehaviour:
   Data: {fileID: 11400000, guid: 1d075a340614ef54991d174e04cd5661, type: 2}
   RuntimeData: {fileID: 11400000, guid: f64ccd51b25956a4691ab4ed2cf368c5, type: 2}
   Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
+  Attributes: {fileID: 11400000, guid: f170636109815e84bbc40a3a8788833f, type: 2}
   Coins: {fileID: 11400000, guid: 9283a3a7e893a9e408b63cee721170e2, type: 2}
   Tokens: {fileID: 11400000, guid: a26f08852deda9b48ae1a544e0c6f8c5, type: 2}
 --- !u!114 &1593778177651288805
@@ -4994,12 +4995,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
-  OnKilled:
-    m_PersistentCalls:
-      m_Calls: []
   Data: {fileID: 11400000, guid: 27ed8463b7044cb46a2a2b5ee863b43a, type: 2}
   RuntimeData: {fileID: 11400000, guid: 7085b01394b10d04ba1702313f6e1e21, type: 2}
-  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
+  onKilled:
+    m_PersistentCalls:
+      m_Calls: []
+  stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
 --- !u!114 &1593778177651288809
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5014,6 +5015,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
+  Data: {fileID: 11400000, guid: 6cca6b9c7ed3a074f8cb5a025ef0c5cf, type: 2}
+  RuntimeData: {fileID: 11400000, guid: 05a4787f9febc8642ac08c7712aabd31, type: 2}
   OnMovementEnabled:
     m_PersistentCalls:
       m_Calls:
@@ -5044,9 +5047,6 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  Data: {fileID: 11400000, guid: 6cca6b9c7ed3a074f8cb5a025ef0c5cf, type: 2}
-  RuntimeData: {fileID: 11400000, guid: 05a4787f9febc8642ac08c7712aabd31, type: 2}
-  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
   OnStartAccelerating:
     m_PersistentCalls:
       m_Calls:
@@ -5089,6 +5089,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a59ad9106fb42ae47ae7688c10814b45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
   Data: {fileID: 11400000, guid: 69c8ce70530339344837b8f70a62f707, type: 2}
   RuntimeData: {fileID: 11400000, guid: fcdaad0b1bd019640818ff24e20e6f7c, type: 2}
   Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}

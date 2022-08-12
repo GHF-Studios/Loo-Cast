@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 019760d42bbcf8d4a910acf55dc7dfc9, type: 3}
   m_Name: EgoStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 96dc025919036b845a7f0b2a2a80b10f, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

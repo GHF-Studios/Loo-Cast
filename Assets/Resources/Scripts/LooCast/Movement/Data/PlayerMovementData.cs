@@ -8,7 +8,6 @@ namespace LooCast.Movement.Data
     public class PlayerMovementData : ScriptableObject
     {
         public FloatDataReference BaseSpeed;
-        public FloatDataReference BaseEnergy;
         public FloatDataReference BaseMaxEnergy;
         public FloatDataReference BaseEnergyConsumption;
         public FloatDataReference BaseEnergyGeneration;

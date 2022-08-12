@@ -18,6 +18,9 @@ namespace LooCast.UI.Bar
         {
             SliderImage = transform.Find("SliderImage").GetComponent<Image>();
             BorderImage = transform.Find("BorderImage").GetComponent<Image>();
+            PlayerMovementRuntimeData.MaxEnergy.OnValueChanged.AddListener(() => { Refresh(); });
+            PlayerMovementRuntimeData.CurrentEnergy.OnValueChanged.AddListener(() => { Refresh(); });
+            PlayerMovementRuntimeData.IsEnergyDepleted.OnValueChanged.AddListener(() => { Refresh(); });
         }
 
         public override void Refresh()
@@ -25,6 +28,14 @@ namespace LooCast.UI.Bar
             Slider.minValue = 0.0f;
             Slider.maxValue = PlayerMovementRuntimeData.MaxEnergy.Value;
             Slider.value = PlayerMovementRuntimeData.CurrentEnergy.Value;
+            if (PlayerMovementRuntimeData.IsEnergyDepleted.Value)
+            {
+                IsDepleted = true;
+            }
+            else
+            {
+                IsDepleted = false;
+            }
         }
 
         public bool IsDepleted

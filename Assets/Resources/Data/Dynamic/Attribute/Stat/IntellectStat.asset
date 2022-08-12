@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 238c4853adc672b43b33ad92cb3ae709, type: 3}
   m_Name: IntellectStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 20bf07df3dc2dda429f0075519151532, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

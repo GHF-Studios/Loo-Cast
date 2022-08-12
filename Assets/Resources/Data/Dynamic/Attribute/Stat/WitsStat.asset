@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 497b42f653003db4e80c6bd382f7e8f0, type: 3}
   m_Name: WitsStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 600e31feeee1edb43b2299f8ecc1dc24, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

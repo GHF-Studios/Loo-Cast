@@ -12,7 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 167ee7538cf57004999a0172ddd59a7a, type: 3}
   m_Name: LuckAttribute
   m_EditorClassIdentifier: 
-  Stats: []
+  Stats:
+  - {fileID: 11400000, guid: a77afb747f6ecb94ebc0d72ec091dc85, type: 2}
+  - {fileID: 11400000, guid: 2e7e05e9b58533c408c1b6d99dbdb475, type: 2}
+  - {fileID: 11400000, guid: 1f5030c46432d244aa8b78fc7a4227a0, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

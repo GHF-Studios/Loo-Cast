@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3f5ddd0780bfc64dbeef6434f69ea80, type: 3}
   m_Name: StrengthAttribute
   m_EditorClassIdentifier: 
-  Stats: []
+  Stats:
+  - {fileID: 11400000, guid: 07b87b9f341f0ad49b2b2a1004e0bd88, type: 2}
+  - {fileID: 11400000, guid: 9b0a1340543aff24d907fa4fd7add27a, type: 2}
+  - {fileID: 11400000, guid: 7a5eafad22af9e0488f8e7a77849be38, type: 2}
+  - {fileID: 11400000, guid: 061805e5aef92e94886d66cb4895d9bb, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

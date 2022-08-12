@@ -7,40 +7,40 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "Stats", menuName = "Data/Attribute/Stat/Stats", order = 0)]
     public class Stats : ScriptableObject
     {
-        public float MovementSpeedMultiplier { get { return Agility.MovementSpeedMultiplier.Value; } }
-        //public float UNDEFINED { get { return Alertness.UNDEFINED.Value; } }
-        //public float UNDEFINED { get { return Awareness.UNDEFINED.Value; } }
-        public float EnergyMultiplier { get { return Body.EnergyMultiplier.Value; } }
-        public int ArmorPenetrationIncrease { get { return Brawn.ArmorPenetrationIncrease.Value; } }
-        //public float UNDEFINED { get { return Cautiousness.UNDEFINED.Value; } }
-        public float RandomChanceMultiplier { get { return Chance.RandomChanceMultiplier.Value; } }
-        //public float UNDEFINED { get { return Charm.UNDEFINED.Value; } }
-        public float DamageReflection { get { return Ego.DamageReflection.Value; } }
-        public float EnergyRegenerationMultiplier { get { return Endurance.EnergyRegenerationMultiplier.Value; } }
-        public float NegativeEventChanceMultiplier { get { return Fate.NegativeEventChanceMultiplier.Value; } }
-        public float EnergyConsumptionMultiplier { get { return Fortitude.EnergyConsumptionMultiplier.Value; } }
-        public float PositiveEventChanceMultiplier { get { return Fortune.PositiveEventChanceMultiplier.Value; } }
-        public float ExperienceMultiplier { get { return Intellect.ExperienceMultiplier.Value; } }
-        public float LevelExperienceMaxMultiplier { get { return Knowledge.LevelExperienceMaxMultiplier.Value; } }
-        public float DamageMultiplier { get { return Might.DamageMultiplier.Value; } }
-        public float RangeMultiplier { get { return Mind.RangeMultiplier.Value; } }
-        public float ProjectileSpeedMultiplier { get { return Personality.ProjectileSpeedMultiplier.Value; } }
-        public float KnockbackMultiplier { get { return Power.KnockbackMultiplier.Value; } }
-        //public float UNDEFINED { get { return Presence.UNDEFINED.Value; } }
-        //public float UNDEFINED { get { return Psyche.UNDEFINED.Value; } }
-        public float AttackDelayMultiplier { get { return Quickness.AttackDelayMultiplier.Value; } }
-        public float HealthRegenrationMultiplier { get { return Recovery.HealthRegenrationMultiplier.Value; } }
-        public float ConsecutiveProjectileDelayMultiplier { get { return Reflexes.ConsecutiveProjectileDelayMultiplier.Value; } }
-        public int ShieldStrengthIncrease { get { return Resilience.ShieldStrengthIncrease.Value; } }
-        public int DefenseIncrease { get { return Resistance.DefenseIncrease.Value; } }
-        public int PiercingIncrease { get { return Resolve.PiercingIncrease.Value; } }
-        public float ProjectileSizeMultiplier { get { return Sanity.ProjectileSizeMultiplier.Value; } }
-        //public float UNDEFINED { get { return Sense.UNDEFINED.Value; } }
-        //public float UNDEFINED { get { return Social.UNDEFINED.Value; } }
-        //public float UNDEFINED { get { return Spirit.UNDEFINED.Value; } }
-        public float DurationMultiplier { get { return Stamina.DurationMultiplier.Value; } }
-        public float HealthMultiplier { get { return Vitality.HealthMultiplier.Value; } }
-        //public float UNDEFINED { get { return Wits.UNDEFINED.Value; } }
+        public float MovementSpeedMultiplier { get { return Agility.MovementSpeedMultiplier; } }
+        //public float UNDEFINED { get { return Alertness.UNDEFINED; } }
+        //public float UNDEFINED { get { return Awareness.UNDEFINED; } }
+        public float EnergyMultiplier { get { return Body.EnergyMultiplier; } }
+        public int ArmorPenetrationIncrease { get { return Brawn.ArmorPenetrationIncrease; } }
+        //public float UNDEFINED { get { return Cautiousness.UNDEFINED; } }
+        public float RandomChanceMultiplier { get { return Chance.RandomChanceMultiplier; } }
+        //public float UNDEFINED { get { return Charm.UNDEFINED; } }
+        public float DamageReflection { get { return Ego.DamageReflection; } }
+        public float EnergyRegenerationMultiplier { get { return Endurance.EnergyRegenerationMultiplier; } }
+        public float NegativeEventChanceMultiplier { get { return Fate.NegativeEventChanceMultiplier; } }
+        public float EnergyConsumptionMultiplier { get { return Fortitude.EnergyConsumptionMultiplier; } }
+        public float PositiveEventChanceMultiplier { get { return Fortune.PositiveEventChanceMultiplier; } }
+        public float ExperienceMultiplier { get { return Intellect.ExperienceMultiplier; } }
+        public float LevelExperienceMaxMultiplier { get { return Knowledge.LevelExperienceMaxMultiplier; } }
+        public float DamageMultiplier { get { return Might.DamageMultiplier; } }
+        public float RangeMultiplier { get { return Mind.RangeMultiplier; } }
+        public float ProjectileSpeedMultiplier { get { return Personality.ProjectileSpeedMultiplier; } }
+        public float KnockbackMultiplier { get { return Power.KnockbackMultiplier; } }
+        //public float UNDEFINED { get { return Presence.UNDEFINED; } }
+        //public float UNDEFINED { get { return Psyche.UNDEFINED; } }
+        public float AttackDelayMultiplier { get { return Quickness.AttackDelayMultiplier; } }
+        public float HealthRegenrationMultiplier { get { return Recovery.HealthRegenrationMultiplier; } }
+        public float ConsecutiveProjectileDelayMultiplier { get { return Reflexes.ConsecutiveProjectileDelayMultiplier; } }
+        public int ShieldStrengthIncrease { get { return Resilience.ShieldStrengthIncrease; } }
+        public int DefenseIncrease { get { return Resistance.DefenseIncrease; } }
+        public int PiercingIncrease { get { return Resolve.PiercingIncrease; } }
+        public float ProjectileSizeMultiplier { get { return Sanity.ProjectileSizeMultiplier; } }
+        //public float UNDEFINED { get { return Sense.UNDEFINED; } }
+        //public float UNDEFINED { get { return Social.UNDEFINED; } }
+        //public float UNDEFINED { get { return Spirit.UNDEFINED; } }
+        public float DurationMultiplier { get { return Stamina.DurationMultiplier; } }
+        public float HealthMultiplier { get { return Vitality.HealthMultiplier; } }
+        //public float UNDEFINED { get { return Wits.UNDEFINED; } }
 
         public AgilityStat Agility;
         public AlertnessStat Alertness;

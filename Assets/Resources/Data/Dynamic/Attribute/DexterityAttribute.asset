@@ -12,7 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b31224c24e9ee9540af3023f1aac9eae, type: 3}
   m_Name: DexterityAttribute
   m_EditorClassIdentifier: 
-  Stats: []
+  Stats:
+  - {fileID: 11400000, guid: d04b5b63b772d0c42b44302bec780f48, type: 2}
+  - {fileID: 11400000, guid: 04030c9d7320ec541bc5cde67cdee1f3, type: 2}
+  - {fileID: 11400000, guid: 4dfbed8b0fd080e4aa353c7057d7c2c1, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

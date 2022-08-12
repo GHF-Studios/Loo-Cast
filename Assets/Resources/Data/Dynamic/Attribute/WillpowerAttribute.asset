@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 05db31c36ff5f7f44a1c607a420b3077, type: 3}
   m_Name: WillpowerAttribute
   m_EditorClassIdentifier: 
-  Stats: []
+  Stats:
+  - {fileID: 11400000, guid: 8397a4a5136292b4caa9865a916b78ae, type: 2}
+  - {fileID: 11400000, guid: 4810d47306554d4468ab83688359d618, type: 2}
+  - {fileID: 11400000, guid: 63faa691d328a9d428f24d16770a327e, type: 2}
+  - {fileID: 11400000, guid: 2ef24fc501f6b754ea7f748dd1487dd4, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

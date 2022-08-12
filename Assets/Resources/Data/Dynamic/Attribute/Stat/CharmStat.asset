@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36b19fdac0e8d6b42a75e043ce1fa5be, type: 3}
   m_Name: CharmStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 8550577b8dcf25c49a013d4dc4df73eb, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

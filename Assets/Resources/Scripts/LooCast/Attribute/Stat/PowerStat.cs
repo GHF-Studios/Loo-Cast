@@ -5,11 +5,15 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Variable;
-
     [CreateAssetMenu(fileName = "PowerStat", menuName = "Data/Attribute/Stat/PowerStat", order = 0)]
     public class PowerStat : Stat
     {
-        public FloatComputedVariable KnockbackMultiplier;
+        public float KnockbackMultiplier
+        {
+            get
+            {
+                return 1 + Level.Value * 0.1f;
+            }
+        }
     }
 }

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0790a850b10e2748a190edeef160b56, type: 3}
   m_Name: ReflexesStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: a1e7e2e658f705b4f9cd61370a8d16b4, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

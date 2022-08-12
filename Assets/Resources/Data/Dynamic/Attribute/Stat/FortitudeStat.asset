@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d010f0ef5a5250e4887b362a061fd052, type: 3}
   m_Name: FortitudeStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 159e737dcb746b04a931b8b828900221, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

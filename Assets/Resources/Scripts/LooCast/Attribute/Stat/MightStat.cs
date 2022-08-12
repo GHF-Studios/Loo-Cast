@@ -5,11 +5,15 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Variable;
-
     [CreateAssetMenu(fileName = "MightStat", menuName = "Data/Attribute/Stat/MightStat", order = 0)]
     public class MightStat : Stat
     {
-        public FloatComputedVariable DamageMultiplier;
+        public float DamageMultiplier
+        {
+            get
+            {
+                return 1 + Level.Value * 0.1f;
+            }
+        }
     } 
 }

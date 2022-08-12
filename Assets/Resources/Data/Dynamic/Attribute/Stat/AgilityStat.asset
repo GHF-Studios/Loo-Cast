@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3cd432bafce6ab4ea2298e9f4c39ba8, type: 3}
   m_Name: AgilityStat
   m_EditorClassIdentifier: 
+  Attribute: {fileID: 11400000, guid: a1e7e2e658f705b4f9cd61370a8d16b4, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:
@@ -60,6 +61,3 @@ MonoBehaviour:
             m_StringArgument: 
             m_BoolArgument: 0
           m_CallState: 2
-  OnLevelChanged: {fileID: 0}
-  OnMaxLevelChanged: {fileID: 0}
-  OnProposedLevelChangeChanged: {fileID: 0}

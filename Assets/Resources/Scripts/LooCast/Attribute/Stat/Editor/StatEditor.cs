@@ -4,8 +4,8 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat.Editor
 {
-    [CustomEditor(typeof(ChanceStat))]
-    public class ChanceStatEditor : UnityEditor.Editor
+    [CustomEditor(typeof(Stat), true)]
+    public class StatEditor : UnityEditor.Editor
     {
         SerializedProperty Level;
         SerializedProperty Level_OnValueChanged;
@@ -13,8 +13,6 @@ namespace LooCast.Attribute.Stat.Editor
         SerializedProperty MaxLevel_OnValueChanged;
         SerializedProperty ProposedLevelChange;
         SerializedProperty ProposedLevelChange_OnValueChanged;
-
-        SerializedProperty RandomChanceMultiplier;
 
         void OnEnable()
         {
@@ -26,8 +24,6 @@ namespace LooCast.Attribute.Stat.Editor
 
             ProposedLevelChange = serializedObject.FindProperty("ProposedLevelChange");
             ProposedLevelChange_OnValueChanged = ProposedLevelChange.FindPropertyRelative("OnValueChanged");
-
-            RandomChanceMultiplier = serializedObject.FindProperty("RandomChanceMultiplier");
         }
 
         public override void OnInspectorGUI()
@@ -42,8 +38,6 @@ namespace LooCast.Attribute.Stat.Editor
 
             EditorGUILayout.PropertyField(ProposedLevelChange);
             EditorGUILayout.PropertyField(ProposedLevelChange_OnValueChanged);
-
-            EditorGUILayout.PropertyField(RandomChanceMultiplier);
 
             serializedObject.ApplyModifiedProperties();
         }

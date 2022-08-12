@@ -12,7 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2948ae88b25fbfe4eb99ede62c7833f8, type: 3}
   m_Name: PerceptionAttribute
   m_EditorClassIdentifier: 
-  Stats: []
+  Stats:
+  - {fileID: 11400000, guid: 31ce17e61a29f4b4ba6da6299d0e5629, type: 2}
+  - {fileID: 11400000, guid: c2152d3606d596b488a9d28532c107f6, type: 2}
+  - {fileID: 11400000, guid: 7b9fb08a06e535045b7081ac994c7af9, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

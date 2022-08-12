@@ -13,11 +13,6 @@ namespace LooCast.Movement
         Collider2D Collider { get; }
         #endregion
 
-        #region Events
-        UnityEvent OnMovementEnabled { get; }
-        UnityEvent OnMovementDisabled { get; }
-        #endregion
-
         #region Methods
         void Accelerate();
         #endregion

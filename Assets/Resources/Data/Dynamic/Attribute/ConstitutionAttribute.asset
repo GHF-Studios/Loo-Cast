@@ -12,7 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7a739ca5d27879e44bcb086c4d49fd19, type: 3}
   m_Name: ConstitutionAttribute
   m_EditorClassIdentifier: 
-  Stats: []
+  Stats:
+  - {fileID: 11400000, guid: 4c2d4397116515b4d9eebf69e6757564, type: 2}
+  - {fileID: 11400000, guid: 55c678831d453de4db0ab999ad160edc, type: 2}
+  - {fileID: 11400000, guid: b984fa4b5fc4e6941a4ddaa5814c5b38, type: 2}
+  - {fileID: 11400000, guid: b97ec8bb44fb3484686fc0a74dd9a9b2, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:

@@ -5,11 +5,15 @@ using System.Data;
 
 namespace LooCast.Attribute.Stat
 {
-    using Variable;
-
     [CreateAssetMenu(fileName = "FortitudeStat", menuName = "Data/Attribute/Stat/FortitudeStat", order = 0)]
     public class FortitudeStat : Stat
     {
-        public FloatComputedVariable EnergyConsumptionMultiplier;
+        public float EnergyConsumptionMultiplier
+        {
+            get
+            {
+                return 1 + Level.Value * 0.05f;
+            }
+        }
     }
 }

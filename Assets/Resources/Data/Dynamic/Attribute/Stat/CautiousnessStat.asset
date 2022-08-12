@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a8079985f26955468125a40cdc3a414, type: 3}
   m_Name: CautiousnessStat
   m_EditorClassIdentifier: 
-  Attribute: {fileID: 0}
+  Attribute: {fileID: 11400000, guid: 776cc197a92272a4b903e8667760ba68, type: 2}
   Level:
     OnValueChanged:
       m_PersistentCalls:
