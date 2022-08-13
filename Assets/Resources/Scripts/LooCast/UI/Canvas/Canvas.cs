@@ -7,9 +7,6 @@ namespace LooCast.UI.Canvas
 {
     public abstract class Canvas : MonoBehaviour
     {
-        public virtual void Initialize()
-        {
 
-        }
     }
 }

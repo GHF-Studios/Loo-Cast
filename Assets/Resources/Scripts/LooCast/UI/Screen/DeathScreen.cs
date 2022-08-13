@@ -21,11 +21,10 @@ namespace LooCast.UI.Screen
         private bool isGameOverMoving = false;
         private bool isGameOver = false;
 
-        public override void Initialize(InterfaceCanvas canvas)
+        private void Start()
         {
             isInitiallyVisible = false;
             isHideable = true;
-
 
             continueButton = transform.Find("Continue").GetComponent<UnityEngine.UI.Button>();
             fade = transform.Find("Fade").GetComponent<Animator>();
@@ -34,8 +33,7 @@ namespace LooCast.UI.Screen
             gameOverTime = Resources.Load<AnimationClip>("Animations/UI/GameOverTextFade").length;
             gameOverMoveTime = Resources.Load<AnimationClip>("Animations/UI/GameOverTextMove").length;
 
-
-            base.Initialize(canvas);
+            Initialize();
         }
 
         private void Update()
@@ -84,7 +82,7 @@ namespace LooCast.UI.Screen
         {
             if (show)
             {
-                canvas.screenStack.Push(this);
+                Canvas.screenStack.Push(this);
                 transform.SetAsLastSibling();
                 IsVisible = true;
                 fade.gameObject.SetActive(true);

@@ -13,7 +13,9 @@ namespace LooCast.UI.Level
 
         private void Start()
         {
-            
+            Stat.Level.OnValueChanged.AddListener(() => { Refresh(); });
+            Stat.MaxLevel.OnValueChanged.AddListener(() => { Refresh(); });
+            Refresh();
         }
 
         public override void Refresh()

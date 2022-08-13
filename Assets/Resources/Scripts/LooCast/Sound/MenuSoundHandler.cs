@@ -21,7 +21,7 @@ namespace LooCast.Sound
 
         private System.Random random = new System.Random();
 
-        public override void Initialize()
+        private void Start()
         {
             base.Initialize();
             MusicBackground();

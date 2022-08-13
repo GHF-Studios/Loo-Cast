@@ -71,14 +71,14 @@ namespace LooCast.Enemy
         {
             if (collision.gameObject.CompareTag("Player"))
             {
-                PlayerHealth playerHealth = GameSceneManager.Instance.Player.Health;
+                PlayerHealth PlayerHealth = collision.gameObject.GetComponent<PlayerHealth>();
                 float difficulty;
                 if (!PlayerPrefs.HasKey("Difficulty"))
                 {
                     PlayerPrefs.SetFloat("Difficulty", 1.0f);
                 }
                 difficulty = PlayerPrefs.GetFloat("Difficulty");
-                playerHealth.Damage(new DamageInfo(collision.gameObject, collision.gameObject, Data.ContactDamage.Value * difficulty, 0, 0, 0, 0));
+                PlayerHealth.Damage(new DamageInfo(collision.gameObject, collision.gameObject, Data.ContactDamage.Value * difficulty, 0, 0, 0, 0));
             }
         }
         #endregion

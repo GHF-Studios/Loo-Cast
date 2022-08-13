@@ -10,7 +10,7 @@ namespace LooCast.Sound
         [SerializeField]
         protected AudioMixer audioMixer;
 
-        public virtual void Initialize()
+        public void Initialize()
         {
             InitializeVolume(Sound.Soundtype.Master);
             InitializeVolume(Sound.Soundtype.Music);

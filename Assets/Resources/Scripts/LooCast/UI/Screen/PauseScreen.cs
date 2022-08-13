@@ -8,21 +8,16 @@ namespace LooCast.UI.Screen
 {
     public class PauseScreen : Screen
     {
-        protected PauseButton pauseButton;
-
-        public override void Initialize(InterfaceCanvas canvas)
+        private void Start()
         {
             isInitiallyVisible = false;
             isHideable = true;
-            base.Initialize(canvas);
-
-            pauseButton = FindObjectOfType<PauseButton>();
+            Initialize();
         }
 
         public override void SetVisibility(bool show)
         {
             base.SetVisibility(show);
-            pauseButton.transform.SetAsLastSibling();
         }
     } 
 }

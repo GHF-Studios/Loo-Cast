@@ -1,6 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using LooCast.UI.Screen;
+using LooCast.Manager;
 
 namespace LooCast.UI.Canvas
 {

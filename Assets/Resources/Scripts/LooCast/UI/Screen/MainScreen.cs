@@ -7,11 +7,11 @@ namespace LooCast.UI.Screen
 {
     public class MainScreen : Screen
     {
-        public override void Initialize(InterfaceCanvas canvas)
+        private void Start()
         {
             isInitiallyVisible = true;
             isHideable = false;
-            base.Initialize(canvas);
+            Initialize();
         }
     } 
 }

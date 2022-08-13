@@ -4,17 +4,9 @@ using LooCast.Manager;
 
 namespace LooCast.UI.Canvas
 {
-    using Bar;
-
     public class GameCanvas : ScreenSpaceCameraCanvas
     {
-        public PauseScreen pauseScreen { get; private set; }
-
-        public override void Initialize()
-        {
-            base.Initialize();
-            pauseScreen = GetComponentInChildren<PauseScreen>();
-        }
+        public PauseScreen PauseScreen;
 
         private void Update()
         {
@@ -22,8 +14,8 @@ namespace LooCast.UI.Canvas
             {
                 if (screenStack.Count == 0)
                 {
-                    pauseScreen.SetVisibility(true);
-                    GameSceneManager.Pause();
+                    PauseScreen.SetVisibility(true);
+                    GameManager.Instance.Pause();
                 }
                 else
                 {

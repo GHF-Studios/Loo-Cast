@@ -10,7 +10,7 @@ namespace LooCast.Background
         private Sprite backgroundSprite;
         private SpriteRenderer[,] backgroundSprites = new SpriteRenderer[3, 3];
 
-        public virtual void Initialize()
+        private void Start()
         {
             cameraPos = Camera.main.transform.position;
             backgroundSprite = Resources.Load<Sprite>("Sprites/Background");

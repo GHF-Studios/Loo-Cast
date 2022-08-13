@@ -9,9 +9,8 @@ namespace LooCast.Generator
     {
         public List<Generator> generators;
 
-        public virtual void Initialize()
+        private void Start()
         {
-            generators = GetComponentsInChildren<Generator>().ToList();
             foreach (Generator generator in generators)
             {
                 generator.Initialize();

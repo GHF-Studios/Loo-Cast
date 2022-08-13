@@ -12,11 +12,11 @@ namespace LooCast.UI.Screen
         [HideInInspector]
         public bool loading = false;
 
-        public override void Initialize(InterfaceCanvas canvas)
+        private void Start()
         {
             isInitiallyVisible = false;
             isHideable = true;
-            base.Initialize(canvas);
+            Initialize();
         }
 
         public void LoadScene(string sceneIndex)
@@ -25,7 +25,7 @@ namespace LooCast.UI.Screen
             {
                 loading = true;
                 SetVisibility(true);
-                canvas.screenStack.Clear();
+                Canvas.screenStack.Clear();
                 StartCoroutine(LoadAsynchronously(sceneIndex));
             }
         }
@@ -36,7 +36,7 @@ namespace LooCast.UI.Screen
             {
                 loading = true;
                 SetVisibility(true);
-                canvas.screenStack.Clear();
+                Canvas.screenStack.Clear();
                 yield return StartCoroutine(LoadAsynchronously(sceneIndex));
             }
         }

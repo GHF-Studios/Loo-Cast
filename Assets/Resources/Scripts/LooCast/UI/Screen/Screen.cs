@@ -13,13 +13,12 @@ namespace LooCast.UI.Screen
         protected bool isHideable;
         protected bool isInitiallyVisible;
         protected List<GameObject> hideableObjects;
-        protected InterfaceCanvas canvas;
+        public InterfaceCanvas Canvas;
         public int priority = -1;
 
-        public virtual void Initialize(InterfaceCanvas canvas)
+        protected void Initialize()
         {
             IsVisible = isInitiallyVisible;
-            this.canvas = canvas;
 
             if (!isHideable)
             {
@@ -32,11 +31,11 @@ namespace LooCast.UI.Screen
             if (isInitiallyVisible)
             {
                 transform.SetAsLastSibling();
-                if (canvas.screenStack.Count > 0)
+                if (Canvas.screenStack.Count > 0)
                 {
                     throw new System.Exception("More than one screen initially visible!");
                 }
-                canvas.screenStack.Push(this);
+                Canvas.screenStack.Push(this);
             }
 
             if (isHideable)
@@ -63,12 +62,12 @@ namespace LooCast.UI.Screen
                     return;
                 }
 
-                if (canvas.screenStack.Peek().Equals(this))
+                if (Canvas.screenStack.Peek().Equals(this))
                 {
-                    canvas.screenStack.Pop();
-                    if (canvas.screenStack.Count == 0)
+                    Canvas.screenStack.Pop();
+                    if (Canvas.screenStack.Count == 0)
                     {
-                        GameSceneManager.Resume();
+                        GameManager.Instance.Resume();
                     }
                 }
                 else
@@ -84,14 +83,14 @@ namespace LooCast.UI.Screen
                     throw new System.Exception("Priority is not set!");
                 }
 
-                foreach (Screen screen in canvas.screenStack)
+                foreach (Screen screen in Canvas.screenStack)
                 {
                     if (priority < screen.priority)
                     {
                         return;
                     }
                 }
-                canvas.screenStack.Push(this);
+                Canvas.screenStack.Push(this);
                 transform.SetAsLastSibling();
             }
 
@@ -109,7 +108,7 @@ namespace LooCast.UI.Screen
 
         public virtual Stack<Screen> GetScreenStack()
         {
-            return canvas.screenStack;
+            return Canvas.screenStack;
         }
 
         public virtual bool GetVisibility()

@@ -19,11 +19,11 @@ namespace LooCast.UI.Screen
         [SerializeField]
         protected DifficultySlider difficultySlider;
 
-        public override void Initialize(InterfaceCanvas canvas)
+        private void Start()
         {
             isInitiallyVisible = false;
             isHideable = true;
-            base.Initialize(canvas);
+            Initialize();
 
             masterVolumeSlider.Initialize();
             effectsVolumeSlider.Initialize();

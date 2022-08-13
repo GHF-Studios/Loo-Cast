@@ -329,17 +329,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 1593778177651288796, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
   m_PrefabInstance: {fileID: 1593778177677581826}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &43087075 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1593778177651288801, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
-  m_PrefabInstance: {fileID: 1593778177677581826}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 43087070}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 11cc1564dc4579243ba9fb396ed336df, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &43087088 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3265152590629677029, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
@@ -456,7 +445,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: afc29f145838e8d4187a41b27bc37c1e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  generators: []
+  generators:
+  - {fileID: 1462691213}
 --- !u!4 &59765271
 Transform:
   m_ObjectHideFlags: 0
@@ -471,7 +461,7 @@ Transform:
   m_Children:
   - {fileID: 1462691212}
   m_Father: {fileID: 0}
-  m_RootOrder: 6
+  m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &115050734
 GameObject:
@@ -863,10 +853,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 1815381167}
     m_Modifications:
-    - target: {fileID: 2426833024950634073, guid: 89ce1aca24d4f6d4b8093f684b0a8363, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: -86.579834
-      objectReference: {fileID: 0}
     - target: {fileID: 2426833025820180160, guid: 89ce1aca24d4f6d4b8093f684b0a8363, type: 3}
       propertyPath: m_Name
       value: SettingsScreen
@@ -956,9 +942,9 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2426833025820180173, guid: 89ce1aca24d4f6d4b8093f684b0a8363, type: 3}
-      propertyPath: priority
-      value: 7
-      objectReference: {fileID: 0}
+      propertyPath: Canvas
+      value: 
+      objectReference: {fileID: 1815381168}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 89ce1aca24d4f6d4b8093f684b0a8363, type: 3}
 --- !u!224 &158069220 stripped
@@ -1129,7 +1115,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 2
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &220481180
 GameObject:
@@ -1843,7 +1829,7 @@ Transform:
   - {fileID: 1895702743}
   - {fileID: 1230164842}
   m_Father: {fileID: 0}
-  m_RootOrder: 1
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &519420033
 MonoBehaviour:
@@ -1994,7 +1980,6 @@ GameObject:
   - component: {fileID: 561694577}
   - component: {fileID: 561694576}
   - component: {fileID: 561694574}
-  - component: {fileID: 561694580}
   m_Layer: 5
   m_Name: ResumeButton
   m_TagString: Untagged
@@ -2101,7 +2086,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 561694578}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 919581479}
+        m_TargetAssemblyTypeName: LooCast.UI.Screen.PauseScreen, Assembly-CSharp
+        m_MethodName: SetVisibility
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &561694578
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2140,19 +2137,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 561694572}
   m_CullTransparentMesh: 1
---- !u!114 &561694580
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 561694572}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5cc6d4be579384c469a42287c310ace0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  screen: {fileID: 919581479}
 --- !u!1 &579027899
 GameObject:
   m_ObjectHideFlags: 0
@@ -2247,7 +2231,7 @@ RectTransform:
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 4
+  m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -2361,59 +2345,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Text: {fileID: 587534419}
   PlayerExperienceRuntimeData: {fileID: 11400000, guid: fcdaad0b1bd019640818ff24e20e6f7c, type: 2}
---- !u!1 &599664001
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 599664003}
-  - component: {fileID: 599664002}
-  m_Layer: 0
-  m_Name: GameSceneManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &599664002
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 599664001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 51401506c72513b46a09772d62da5cfe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gameCanvas: {fileID: 1815381168}
-  worldSpaceCanvas: {fileID: 579027904}
-  background: {fileID: 999689477}
-  soundHandler: {fileID: 2135698538}
-  player: {fileID: 43087075}
-  screenShake: {fileID: 519420034}
-  generators: {fileID: 59765270}
-  stationRuntimeSet: {fileID: 11400000, guid: c9d187e318d873e48a323f601526b924, type: 2}
-  enemyRuntimeSet: {fileID: 11400000, guid: c2f9d9ade6d7c214d97dbec5f2cbd8d0, type: 2}
---- !u!4 &599664003
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 599664001}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &609482242
 GameObject:
   m_ObjectHideFlags: 0
@@ -2963,6 +2894,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
+  Canvas: {fileID: 1815381168}
   priority: 5
 --- !u!1 &928513239
 GameObject:
@@ -2978,7 +2910,6 @@ GameObject:
   - component: {fileID: 928513244}
   - component: {fileID: 928513243}
   - component: {fileID: 928513242}
-  - component: {fileID: 928513247}
   m_Layer: 5
   m_Name: PauseButton
   m_TagString: Untagged
@@ -3085,7 +3016,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 928513245}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 919581479}
+        m_TargetAssemblyTypeName: LooCast.UI.Screen.Screen, Assembly-CSharp
+        m_MethodName: ToggleVisibility
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &928513245
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3124,19 +3067,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 928513239}
   m_CullTransparentMesh: 1
---- !u!114 &928513247
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 928513239}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 537aa205cefcfe742a0ab4c8951048ee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  screen: {fileID: 919581479}
 --- !u!1 &966546004
 GameObject:
   m_ObjectHideFlags: 0
@@ -3202,7 +3132,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 7
+  m_RootOrder: 9
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &999689475
 GameObject:
@@ -3234,7 +3164,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 8
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &999689477
 MonoBehaviour:
@@ -3527,7 +3457,6 @@ GameObject:
   - component: {fileID: 1058033993}
   - component: {fileID: 1058033992}
   - component: {fileID: 1058033990}
-  - component: {fileID: 1058033996}
   m_Layer: 5
   m_Name: SettingsButton
   m_TagString: Untagged
@@ -3634,7 +3563,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1058033994}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 158069221}
+        m_TargetAssemblyTypeName: LooCast.UI.Screen.Screen, Assembly-CSharp
+        m_MethodName: SetVisibility
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
 --- !u!114 &1058033994
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3673,19 +3614,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1058033988}
   m_CullTransparentMesh: 1
---- !u!114 &1058033996
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1058033988}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b911b728118d8e7498f9ee95692763b0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  screen: {fileID: 158069221}
 --- !u!1 &1124100517
 GameObject:
   m_ObjectHideFlags: 0
@@ -4453,6 +4381,53 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1465937271}
   m_CullTransparentMesh: 1
+--- !u!1 &1488776023
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1488776025}
+  - component: {fileID: 1488776024}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1488776024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1488776023}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f3fd126db2eac449aeb76ea733f5cf3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  LoadingScreen: {fileID: 1776415824}
+  RuntimeSets: {fileID: 11400000, guid: 42d5c62f6e4482b4c97a5a3b9df2cca5, type: 2}
+  GameSoundHandler: {fileID: 2135698538}
+--- !u!4 &1488776025
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1488776023}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1489195641
 GameObject:
   m_ObjectHideFlags: 0
@@ -4688,6 +4663,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
+  Canvas: {fileID: 1815381168}
   priority: 9
 --- !u!1 &1611506726
 GameObject:
@@ -4971,18 +4947,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 1815381167}
     m_Modifications:
-    - target: {fileID: 930307719135166943, guid: 6107bfedecba8974ea3045e3bdf5b348, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 930307719259599654, guid: 6107bfedecba8974ea3045e3bdf5b348, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 930307719729981124, guid: 6107bfedecba8974ea3045e3bdf5b348, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 930307719972410624, guid: 6107bfedecba8974ea3045e3bdf5b348, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -5071,10 +5035,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: LoadingScreen
       objectReference: {fileID: 0}
-    - target: {fileID: 930307720076057979, guid: 6107bfedecba8974ea3045e3bdf5b348, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
+    - target: {fileID: 930307719972410636, guid: 6107bfedecba8974ea3045e3bdf5b348, type: 3}
+      propertyPath: Canvas
+      value: 
+      objectReference: {fileID: 1815381168}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6107bfedecba8974ea3045e3bdf5b348, type: 3}
 --- !u!224 &1776415823 stripped
@@ -5082,6 +5046,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 930307719972410624, guid: 6107bfedecba8974ea3045e3bdf5b348, type: 3}
   m_PrefabInstance: {fileID: 1776415822}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1776415824 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 930307719972410636, guid: 6107bfedecba8974ea3045e3bdf5b348, type: 3}
+  m_PrefabInstance: {fileID: 1776415822}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f5c56dcace4010459a4baa6cb1da475, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1799685797
 GameObject:
   m_ObjectHideFlags: 0
@@ -5257,7 +5232,7 @@ RectTransform:
   - {fileID: 158069220}
   - {fileID: 1776415823}
   m_Father: {fileID: 0}
-  m_RootOrder: 5
+  m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -5276,6 +5251,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bbe3f4c7f0fef4941a4effd4a07e5465, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  PauseScreen: {fileID: 919581479}
 --- !u!1 &1822852611
 GameObject:
   m_ObjectHideFlags: 0
@@ -5290,7 +5266,6 @@ GameObject:
   - component: {fileID: 1822852616}
   - component: {fileID: 1822852615}
   - component: {fileID: 1822852613}
-  - component: {fileID: 1822852619}
   m_Layer: 5
   m_Name: QuitButton
   m_TagString: Untagged
@@ -5397,7 +5372,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1822852617}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1488776024}
+        m_TargetAssemblyTypeName: LooCast.Manager.GameManager, Assembly-CSharp
+        m_MethodName: LoadScene
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: MainMenu
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1822852617
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5436,19 +5423,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1822852611}
   m_CullTransparentMesh: 1
---- !u!114 &1822852619
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1822852611}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f921eb6b5b39434ba2c47baac74c832, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sceneName: MainMenu
 --- !u!1 &1848904854
 GameObject:
   m_ObjectHideFlags: 0
@@ -5461,7 +5435,6 @@ GameObject:
   - component: {fileID: 1848904858}
   - component: {fileID: 1848904857}
   - component: {fileID: 1848904856}
-  - component: {fileID: 1848904859}
   m_Layer: 5
   m_Name: Continue
   m_TagString: Untagged
@@ -5533,7 +5506,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1848904857}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1488776024}
+        m_TargetAssemblyTypeName: LooCast.Manager.GameManager, Assembly-CSharp
+        m_MethodName: LoadScene
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: MainMenu
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1848904857
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5572,19 +5557,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1848904854}
   m_CullTransparentMesh: 1
---- !u!114 &1848904859
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1848904854}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f921eb6b5b39434ba2c47baac74c832, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sceneName: MainMenu
 --- !u!1 &1879493765
 GameObject:
   m_ObjectHideFlags: 0
@@ -6275,7 +6247,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 9
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1593778177677581826
 PrefabInstance:
@@ -6290,7 +6262,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1593778177651288800, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
       propertyPath: m_RootOrder
-      value: 3
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 1593778177651288800, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
       propertyPath: m_LocalPosition.x
@@ -6332,5 +6304,9 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1593778177651288809, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
+      propertyPath: soundHandler
+      value: 
+      objectReference: {fileID: 2135698538}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}

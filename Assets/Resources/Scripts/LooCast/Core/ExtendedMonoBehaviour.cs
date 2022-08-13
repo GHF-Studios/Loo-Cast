@@ -2,6 +2,8 @@ using UnityEngine;
 
 namespace LooCast.Core
 {
+    using LooCast.Manager;
+
     public abstract class ExtendedMonoBehaviour : MonoBehaviour
     {
         public static int nextID = 0;
@@ -9,12 +11,18 @@ namespace LooCast.Core
         public bool IsPaused { get; private set; }
         [HideInInspector]public bool IsVisible;
 
-        private void Awake()
+        private void Start()
         {
+            GameManager.Instance.RuntimeSets.ExtendedMonoBehaviourRuntimeSet.Add(this);
             ID = nextID;
             nextID++;
             IsPaused = false;
             IsVisible = false;
+        }
+
+        private void OnDestroy()
+        {
+            GameManager.Instance.RuntimeSets.ExtendedMonoBehaviourRuntimeSet.Remove(this);
         }
 
         private void Update()

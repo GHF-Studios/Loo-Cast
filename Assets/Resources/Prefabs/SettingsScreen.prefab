@@ -173,6 +173,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   screen: {fileID: 2426833025820180173}
+  Attributes: {fileID: 11400000, guid: f170636109815e84bbc40a3a8788833f, type: 2}
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
 --- !u!1 &1274638093
 GameObject:
   m_ObjectHideFlags: 0
@@ -2048,7 +2050,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 0, y: -86.579926}
+  m_AnchoredPosition: {x: 0, y: -86.579834}
   m_SizeDelta: {x: 733.3606, y: 173.16}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2426833024950634075
@@ -2107,7 +2109,6 @@ GameObject:
   - component: {fileID: 2426833024989948916}
   - component: {fileID: 2426833024989948907}
   - component: {fileID: 2426833024989948905}
-  - component: {fileID: 2426833024989948919}
   m_Layer: 5
   m_Name: BackButton
   m_TagString: Untagged
@@ -2217,7 +2218,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2426833024989948917}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 2426833025820180173}
+        m_TargetAssemblyTypeName: LooCast.UI.Screen.Screen, Assembly-CSharp
+        m_MethodName: SetVisibility
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!95 &2426833024989948907
 Animator:
   serializedVersion: 4
@@ -2253,19 +2266,6 @@ MonoBehaviour:
   m_EffectColor: {r: 0, g: 0, b: 0, a: 0.5}
   m_EffectDistance: {x: 7, y: -7}
   m_UseGraphicAlpha: 1
---- !u!114 &2426833024989948919
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2426833024989948911}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5cc6d4be579384c469a42287c310ace0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  screen: {fileID: 2426833025820180173}
 --- !u!1 &2426833025200418617
 GameObject:
   m_ObjectHideFlags: 0
@@ -3154,7 +3154,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df16239cb05d1344e9d44ba9889a2ad0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  priority: 9
+  ID: 0
+  IsVisible: 0
+  priority: 7
   masterVolumeSlider: {fileID: 2426833024622101906}
   effectsVolumeSlider: {fileID: 2426833024834991136}
   musicVolumeSlider: {fileID: 2426833025689221509}

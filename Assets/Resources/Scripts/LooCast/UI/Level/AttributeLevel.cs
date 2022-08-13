@@ -11,6 +11,13 @@ namespace LooCast.UI.Level
     {
         public Attribute Attribute;
 
+        private void Start()
+        {
+            Attribute.Level.OnValueChanged.AddListener(() => { Refresh(); });
+            Attribute.MaxLevel.OnValueChanged.AddListener(() => { Refresh(); });
+            Refresh();
+        }
+
         public override void Refresh()
         {
             Text.text = $"{Attribute.Level.Value}/{Attribute.MaxLevel.Value}";

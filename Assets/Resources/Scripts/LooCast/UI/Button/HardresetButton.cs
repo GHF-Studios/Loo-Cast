@@ -4,10 +4,15 @@ using UnityEngine;
 
 namespace LooCast.UI.Button
 {
+    using LooCast.Attribute;
+    using LooCast.Attribute.Stat;
+
     public class HardresetButton : Button
     {
         [SerializeField]
         protected Screen.Screen screen;
+        public Attributes Attributes;
+        public Stats Stats;
 
         public override void Initialize()
         {
@@ -18,6 +23,8 @@ namespace LooCast.UI.Button
         public override void OnClick()
         {
             PlayerPrefs.DeleteAll();
+            Stats.Uncheat();
+            Attributes.Uncheat();
             screen.Refresh();
         }
     }

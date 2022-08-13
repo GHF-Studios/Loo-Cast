@@ -8,11 +8,11 @@ namespace LooCast.UI.Screen
 {
     public class StatsScreen : Screen
     {
-        public override void Initialize(InterfaceCanvas canvas)
+        private void Start()
         {
             isInitiallyVisible = false;
             isHideable = true;
-            base.Initialize(canvas);
+            Initialize();
         }
     } 
 }
