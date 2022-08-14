@@ -137,7 +137,7 @@ Animator:
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: 09f2c840b1d0bae458f148063f9afcb3, type: 2}
   m_CullingMode: 0
-  m_UpdateMode: 0
+  m_UpdateMode: 2
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
@@ -2243,7 +2243,7 @@ Animator:
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: 09f2c840b1d0bae458f148063f9afcb3, type: 2}
   m_CullingMode: 0
-  m_UpdateMode: 0
+  m_UpdateMode: 2
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
@@ -3156,6 +3156,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
+  Canvas: {fileID: 0}
   priority: 7
   masterVolumeSlider: {fileID: 2426833024622101906}
   effectsVolumeSlider: {fileID: 2426833024834991136}

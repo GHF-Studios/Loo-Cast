@@ -397,6 +397,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
+  Canvas: {fileID: 0}
   priority: 10
   loadingBar: {fileID: 930307719135166941}
   loading: 0

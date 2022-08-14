@@ -48,7 +48,7 @@ namespace LooCast.Manager
             if (!IsPaused)
             {
                 IsPaused = true;
-                foreach (ExtendedMonoBehaviour extendedMonoBehaviour in RuntimeSets.ExtendedMonoBehaviourRuntimeSet.Items)
+                foreach (ExtendedMonoBehaviour extendedMonoBehaviour in ExtendedMonoBehaviour.Instances)
                 {
                     extendedMonoBehaviour.Pause();
                 }
@@ -60,7 +60,7 @@ namespace LooCast.Manager
             if (IsPaused)
             {
                 IsPaused = false;
-                foreach (ExtendedMonoBehaviour extendedMonoBehaviour in RuntimeSets.ExtendedMonoBehaviourRuntimeSet.Items)
+                foreach (ExtendedMonoBehaviour extendedMonoBehaviour in ExtendedMonoBehaviour.Instances)
                 {
                     extendedMonoBehaviour.Resume();
                 }
