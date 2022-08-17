@@ -111,6 +111,14 @@ namespace LooCast.Attribute
             attribute.Level = dataContainer.GetLevel();
             attribute.MaxLevel = dataContainer.GetMaxLevel();
             attribute.ProposedLevelChange = dataContainer.GetProposedLevelChange();
+
+            attribute.Level.OnValueChanged.AddListener(() =>
+            {
+                foreach (Stat.Stat stat in attribute.Stats)
+                {
+                    stat.MaxLevel.Value = attribute.Level.Value;
+                }
+            });
         }
     } 
 }
