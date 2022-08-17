@@ -7,6 +7,12 @@ namespace LooCast.Attribute
     [CreateAssetMenu(fileName = "PerceptionAttribute", menuName = "Data/Attribute/PerceptionAttribute", order = 0)]
     public class PerceptionAttribute : Attribute
     {
-
+        public override string AttributeName
+        {
+            get
+            {
+                return "Perception";
+            }
+        }
     }
 }

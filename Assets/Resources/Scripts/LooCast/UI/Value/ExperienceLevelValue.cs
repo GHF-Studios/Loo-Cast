@@ -11,11 +11,6 @@ namespace LooCast.UI.Value
     {
         public PlayerExperienceRuntimeData PlayerExperienceRuntimeData;
 
-        private void Start()
-        {
-            PlayerExperienceRuntimeData.CurrentLevel.OnValueChanged.AddListener( () => { Refresh(); });
-        }
-
         public override void Refresh()
         {
             Text.text = $"Lvl {PlayerExperienceRuntimeData.CurrentLevel.Value}";

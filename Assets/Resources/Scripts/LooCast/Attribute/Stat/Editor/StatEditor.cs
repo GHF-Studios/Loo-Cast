@@ -4,42 +4,39 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat.Editor
 {
-    [CustomEditor(typeof(Stat), true)]
+    [CustomEditor(typeof(Stat), true), CanEditMultipleObjects]
     public class StatEditor : UnityEditor.Editor
     {
+        SerializedProperty Attribute;
+
         SerializedProperty Level;
-        SerializedProperty Level_OnValueChanged;
         SerializedProperty MaxLevel;
-        SerializedProperty MaxLevel_OnValueChanged;
         SerializedProperty ProposedLevelChange;
-        SerializedProperty ProposedLevelChange_OnValueChanged;
 
         void OnEnable()
         {
+            Attribute = serializedObject.FindProperty("Attribute");
             Level = serializedObject.FindProperty("Level");
-            Level_OnValueChanged = Level.FindPropertyRelative("OnValueChanged");
-
             MaxLevel = serializedObject.FindProperty("MaxLevel");
-            MaxLevel_OnValueChanged = MaxLevel.FindPropertyRelative("OnValueChanged");
-
             ProposedLevelChange = serializedObject.FindProperty("ProposedLevelChange");
-            ProposedLevelChange_OnValueChanged = ProposedLevelChange.FindPropertyRelative("OnValueChanged");
         }
 
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
 
+            EditorGUILayout.PropertyField(Attribute);
             EditorGUILayout.PropertyField(Level);
-            EditorGUILayout.PropertyField(Level_OnValueChanged);
-
             EditorGUILayout.PropertyField(MaxLevel);
-            EditorGUILayout.PropertyField(MaxLevel_OnValueChanged);
-
             EditorGUILayout.PropertyField(ProposedLevelChange);
-            EditorGUILayout.PropertyField(ProposedLevelChange_OnValueChanged);
 
             serializedObject.ApplyModifiedProperties();
+
+            Stat stat = (Stat)target;
+            if (GUILayout.Button("Create default data!"))
+            {
+                stat.Save(true);
+            }
         }
     }
 }

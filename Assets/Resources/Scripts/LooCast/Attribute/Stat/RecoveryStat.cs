@@ -8,6 +8,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "RecoveryStat", menuName = "Data/Attribute/Stat/RecoveryStat", order = 0)]
     public class RecoveryStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Recovery";
+            }
+        }
         public float HealthRegenrationMultiplier
         {
             get

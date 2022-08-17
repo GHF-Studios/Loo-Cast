@@ -8,6 +8,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "MightStat", menuName = "Data/Attribute/Stat/MightStat", order = 0)]
     public class MightStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Might";
+            }
+        }
         public float DamageMultiplier
         {
             get

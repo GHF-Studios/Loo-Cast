@@ -8,6 +8,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "ReflexesStat", menuName = "Data/Attribute/Stat/ReflexesStat", order = 0)]
     public class ReflexesStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Reflexes";
+            }
+        }
         public float ConsecutiveProjectileDelayMultiplier
         {
             get

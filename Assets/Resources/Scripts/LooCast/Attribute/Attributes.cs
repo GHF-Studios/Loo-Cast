@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -44,6 +45,24 @@ namespace LooCast.Attribute
             Strength.Level.Value = 0;
             Willpower.Level.Value = 0;
             Wisdom.Level.Value = 0;
+        }
+
+        public Attribute GetAttribute(string attributeName)
+        {
+            switch (attributeName)
+            {
+                case "Charisma": return Charisma;
+                case "Constitution": return Constitution;
+                case "Defense": return Defense;
+                case "Dexterity": return Dexterity;
+                case "Intelligence": return Intelligence;
+                case "Luck": return Luck;
+                case "Perception": return Perception;
+                case "Strength": return Strength;
+                case "Willpower": return Willpower;
+                case "Wisdom": return Wisdom;
+                default: throw new ArgumentException("Invalid attribute name!");
+            }
         }
     } 
 }

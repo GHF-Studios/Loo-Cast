@@ -340,6 +340,39 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9dc711d8db7cae940ab2e1341d872991, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &43087089 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8367300367323412196, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
+  m_PrefabInstance: {fileID: 1593778177677581826}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 43087070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 839136a5c3f090a48aed7ca77ef6d565, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &43087090 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7749002067280524912, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
+  m_PrefabInstance: {fileID: 1593778177677581826}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 43087070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b82ca5cb2ea47044b94ee9e3d162cc6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &43087091 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3831199038858315735, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
+  m_PrefabInstance: {fileID: 1593778177677581826}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 43087070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b08989223167744f9ec5f891274eec0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &53193333
 GameObject:
   m_ObjectHideFlags: 0
@@ -516,7 +549,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Slider: {fileID: 115050737}
-  Weapon: {fileID: 43087088}
+  Weapon: {fileID: 43087090}
 --- !u!114 &115050737
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1263,7 +1296,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Slider: {fileID: 228983696}
-  Weapon: {fileID: 43087088}
+  Weapon: {fileID: 43087089}
 --- !u!114 &228983696
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2474,7 +2507,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Slider: {fileID: 609760610}
-  Weapon: {fileID: 43087088}
+  Weapon: {fileID: 43087091}
 --- !u!114 &609760610
 MonoBehaviour:
   m_ObjectHideFlags: 0

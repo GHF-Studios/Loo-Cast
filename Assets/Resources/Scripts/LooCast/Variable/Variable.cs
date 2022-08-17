@@ -18,8 +18,8 @@ namespace LooCast.Variable
                 OnValueChanged.Invoke();
             }
         }
-        private T value;
-        public UnityEvent OnValueChanged;
+        [HideInInspector, SerializeField] private T value;
+        public UnityEvent OnValueChanged { get; private set; }
 
         public Variable(T value)
         {

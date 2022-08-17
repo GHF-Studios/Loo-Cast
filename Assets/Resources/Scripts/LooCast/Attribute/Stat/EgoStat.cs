@@ -7,6 +7,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "EgoStat", menuName = "Data/Attribute/Stat/EgoStat", order = 0)]
     public class EgoStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Ego";
+            }
+        }
         public float DamageReflection
         {
             get

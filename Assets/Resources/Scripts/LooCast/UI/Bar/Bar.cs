@@ -8,6 +8,11 @@ namespace LooCast.UI.Bar
     {
         public UnityEngine.UI.Slider Slider;
 
+        private void Update()
+        {
+            Refresh();
+        }
+
         public abstract void Refresh();
     } 
 }

@@ -9,6 +9,11 @@ namespace LooCast.UI.Level
     {
         public Text Text;
 
+        private void Update()
+        {
+            Refresh();
+        }
+
         public abstract void Refresh();
     }
 }

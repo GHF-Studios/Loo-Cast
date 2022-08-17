@@ -7,6 +7,12 @@ namespace LooCast.Attribute
     [CreateAssetMenu(fileName = "LuckAttribute", menuName = "Data/Attribute/LuckAttribute", order = 0)]
     public class LuckAttribute : Attribute
     {
-
+        public override string AttributeName
+        {
+            get
+            {
+                return "Luck";
+            }
+        }
     } 
 }

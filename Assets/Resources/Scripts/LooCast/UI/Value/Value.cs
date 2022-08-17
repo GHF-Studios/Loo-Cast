@@ -9,17 +9,7 @@ namespace LooCast.UI.Value
     {
         public Text Text;
 
-        private void Start()
-        {
-            Refresh();
-        }
-
-        private void OnBecameVisible()
-        {
-            Refresh();
-        }
-
-        private void OnEnable()
+        private void Update()
         {
             Refresh();
         }

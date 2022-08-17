@@ -11,16 +11,9 @@ namespace LooCast.UI.Level
     {
         public Stat Stat;
 
-        private void Start()
-        {
-            Stat.Level.OnValueChanged.AddListener(() => { Refresh(); });
-            Stat.MaxLevel.OnValueChanged.AddListener(() => { Refresh(); });
-            Refresh();
-        }
-
         public override void Refresh()
         {
-            Text.text = $"{Stat.Level.Value}/{Stat.MaxLevel.Value}";
+            Text.text = $"{Stat.Level}/{Stat.MaxLevel}";
         }
     } 
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace LooCast.Variable.Editor
 {
-    using LooCast.Util;
+    using LooCast.Util.Editor;
 
     [CustomPropertyDrawer(typeof(FloatVariable))]
     public class FloatVariableDrawer : PropertyDrawer

@@ -8,6 +8,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "SanityStat", menuName = "Data/Attribute/Stat/SanityStat", order = 0)]
     public class SanityStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Sanity";
+            }
+        }
         public float ProjectileSizeMultiplier
         {
             get

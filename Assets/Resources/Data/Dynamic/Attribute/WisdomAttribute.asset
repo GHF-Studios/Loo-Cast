@@ -18,62 +18,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a2d698dff7864a84988eacce8504c830, type: 2}
   - {fileID: 11400000, guid: 11be4079e6b99e049855f9399b4a4900, type: 2}
   Level:
-    OnValueChanged:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 11400000, guid: da59ca3d753f4264e947d335615ddea2, type: 2}
-          m_TargetAssemblyTypeName: LooCast.Event.Event, Assembly-CSharp
-          m_MethodName: Raise
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
-        - m_Target: {fileID: 11400000}
-          m_TargetAssemblyTypeName: LooCast.Attribute.Attribute, Assembly-CSharp
-          m_MethodName: Refresh
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
+    value: 0
   MaxLevel:
-    OnValueChanged:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 11400000, guid: 49940ff21f9a4cc49a7e4d1f3f3a45f6, type: 2}
-          m_TargetAssemblyTypeName: LooCast.Event.Event, Assembly-CSharp
-          m_MethodName: Raise
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
+    value: 10
   ProposedLevelChange:
-    OnValueChanged:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 11400000, guid: e55317567b2bad842b184e9787cfd6cf, type: 2}
-          m_TargetAssemblyTypeName: LooCast.Event.Event, Assembly-CSharp
-          m_MethodName: Raise
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
+    value: 0
+  allStats: {fileID: 0}

@@ -7,6 +7,12 @@ namespace LooCast.Attribute
     [CreateAssetMenu(fileName = "WillpowerAttribute", menuName = "Data/Attribute/WillpowerAttribute", order = 0)]
     public class WillpowerAttribute : Attribute
     {
-
+        public override string AttributeName
+        {
+            get
+            {
+                return "Willpower";
+            }
+        }
     } 
 }

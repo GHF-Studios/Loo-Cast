@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Events;
 
 namespace LooCast.Variable
@@ -34,7 +35,7 @@ namespace LooCast.Variable
                 }
             }
         }
-        private T baseValue;
+        [HideInInspector, SerializeField] private T baseValue;
         public Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, T, T> ValueEvaluator { get; protected set; }
         public List<Multiplier> PermanentMultipliers { get; protected set; }
         public List<Increase> PermanentIncreases { get; protected set; }

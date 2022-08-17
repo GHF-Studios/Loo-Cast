@@ -7,6 +7,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "PsycheStat", menuName = "Data/Attribute/Stat/PsycheStat", order = 0)]
     public class PsycheStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Psyche";
+            }
+        }
         
     }
 }

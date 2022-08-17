@@ -15,10 +15,5 @@ namespace LooCast.UI.Bar
             Slider.maxValue = Weapon.attackDelay;
             Slider.value = Weapon.attackTimer;
         }
-
-        private void Update()
-        {
-            Refresh();
-        }
     }
 }

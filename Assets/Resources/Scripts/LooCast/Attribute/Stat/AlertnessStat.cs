@@ -7,6 +7,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "AlertnessStat", menuName = "Data/Attribute/Stat/AlertnessStat", order = 0)]
     public class AlertnessStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Alertness";
+            }
+        }
         
     }
 }

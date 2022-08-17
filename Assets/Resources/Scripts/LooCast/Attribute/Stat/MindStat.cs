@@ -8,6 +8,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "MindStat", menuName = "Data/Attribute/Stat/MindStat", order = 0)]
     public class MindStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Mind";
+            }
+        }
         public float RangeMultiplier
         {
             get

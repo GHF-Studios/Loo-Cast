@@ -8,6 +8,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "QuicknessStat", menuName = "Data/Attribute/Stat/QuicknessStat", order = 0)]
     public class QuicknessStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Quickness";
+            }
+        }
         public float AttackDelayMultiplier
         {
             get

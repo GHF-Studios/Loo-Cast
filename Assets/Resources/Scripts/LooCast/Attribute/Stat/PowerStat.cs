@@ -8,6 +8,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "PowerStat", menuName = "Data/Attribute/Stat/PowerStat", order = 0)]
     public class PowerStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Power";
+            }
+        }
         public float KnockbackMultiplier
         {
             get

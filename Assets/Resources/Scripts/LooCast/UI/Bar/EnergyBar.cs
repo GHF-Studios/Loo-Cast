@@ -18,9 +18,6 @@ namespace LooCast.UI.Bar
         {
             SliderImage = transform.Find("SliderImage").GetComponent<Image>();
             BorderImage = transform.Find("BorderImage").GetComponent<Image>();
-            PlayerMovementRuntimeData.MaxEnergy.OnValueChanged.AddListener(() => { Refresh(); });
-            PlayerMovementRuntimeData.CurrentEnergy.OnValueChanged.AddListener(() => { Refresh(); });
-            PlayerMovementRuntimeData.IsEnergyDepleted.OnValueChanged.AddListener(() => { Refresh(); });
         }
 
         public override void Refresh()

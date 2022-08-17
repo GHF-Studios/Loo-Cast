@@ -7,6 +7,12 @@ namespace LooCast.Attribute
     [CreateAssetMenu(fileName = "ConstitutionAttribute", menuName = "Data/Attribute/ConstitutionAttribute", order = 0)]
     public class ConstitutionAttribute : Attribute
     {
-
+        public override string AttributeName
+        {
+            get
+            {
+                return "Constitution";
+            }
+        }
     } 
 }

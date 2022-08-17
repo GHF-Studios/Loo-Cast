@@ -8,6 +8,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "KnowledgeStat", menuName = "Data/Attribute/Stat/KnowledgeStat", order = 0)]
     public class KnowledgeStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Knowledge";
+            }
+        }
         public float LevelExperienceMaxMultiplier
         {
             get

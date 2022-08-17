@@ -7,6 +7,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "ChanceStat", menuName = "Data/Attribute/Stat/ChanceStat", order = 0)]
     public class ChanceStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Chance";
+            }
+        }
         public float RandomChanceMultiplier
         {
             get

@@ -8,6 +8,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "FateStat", menuName = "Data/Attribute/Stat/FateStat", order = 0)]
     public class FateStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Fate";
+            }
+        }
         public float NegativeEventChanceMultiplier
         {
             get

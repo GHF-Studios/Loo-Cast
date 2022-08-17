@@ -8,6 +8,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "StaminaStat", menuName = "Data/Attribute/Stat/StaminaStat", order = 0)]
     public class StaminaStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Stamina";
+            }
+        }
         public float DurationMultiplier
         {
             get

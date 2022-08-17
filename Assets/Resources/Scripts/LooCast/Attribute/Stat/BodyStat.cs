@@ -7,6 +7,13 @@ namespace LooCast.Attribute.Stat
     [CreateAssetMenu(fileName = "BodyStat", menuName = "Data/Attribute/Stat/BodyStat", order = 0)]
     public class BodyStat : Stat
     {
+        public override string StatName
+        {
+            get
+            {
+                return "Body";
+            }
+        }
         public float EnergyMultiplier
         {
             get

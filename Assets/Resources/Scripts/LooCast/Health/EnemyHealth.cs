@@ -143,7 +143,7 @@ namespace LooCast.Health
             {
                 IsAlive.Value = false;
                 OnKilled.Invoke();
-                soundHandler.SoundBigExplosion();
+                soundHandler.SoundHit();
                 Destroy(gameObject);
 
                 if (Random.Range(0.0f, 1.0f) <= ExperienceDropChance.Value)

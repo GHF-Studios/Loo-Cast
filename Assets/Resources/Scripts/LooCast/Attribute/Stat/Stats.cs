@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -151,6 +152,48 @@ namespace LooCast.Attribute.Stat
             Stamina.Level.Value = 0;
             Vitality.Level.Value = 0;
             Wits.Level.Value = 0;
+        }
+
+        public Stat GetStat(string statName)
+        {
+            switch (statName)
+            {
+                case "Agility": return Agility;
+                case "Alertness": return Alertness;
+                case "Awareness": return Awareness;
+                case "Body": return Body;
+                case "Brawn": return Brawn;
+                case "Cautiousness": return Cautiousness;
+                case "Chance": return Chance;
+                case "Charm": return Charm;
+                case "Ego": return Ego;
+                case "Endurance": return Endurance;
+                case "Fate": return Fate;
+                case "Fortitude": return Fortitude;
+                case "Fortune": return Fortune;
+                case "Intellect": return Intellect;
+                case "Knowledge": return Knowledge;
+                case "Might": return Might;
+                case "Mind": return Mind;
+                case "Personality": return Personality;
+                case "Power": return Power;
+                case "Presence": return Presence;
+                case "Psyche": return Psyche;
+                case "Quickness": return Quickness;
+                case "Recovery": return Recovery;
+                case "Reflexes": return Reflexes;
+                case "Resilience": return Resilience;
+                case "Resistance": return Resistance;
+                case "Resolve": return Resolve;
+                case "Sanity": return Sanity;
+                case "Sense": return Sense;
+                case "Social": return Social;
+                case "Spirit": return Spirit;
+                case "Stamina": return Stamina;
+                case "Vitality": return Vitality;
+                case "Wits": return Wits;
+                default: throw new ArgumentException("Invalid stat name!");
+            }
         }
     } 
 }
