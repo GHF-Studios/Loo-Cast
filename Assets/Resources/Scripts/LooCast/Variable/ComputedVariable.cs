@@ -7,7 +7,6 @@ namespace LooCast.Variable
 {
     public abstract class ComputedVariable<T>
     {
-        public readonly bool IsInitialized = false;
         public T Value
         {
             get
@@ -42,17 +41,18 @@ namespace LooCast.Variable
         public List<TemporaryMultiplier> ActiveMultipliers { get; protected set; }
         public List<TemporaryIncrease> ActiveIncreases { get; protected set; }
         public UnityEvent OnValueChanged { get; protected set; }
+        public readonly bool IsInitialized = false;
 
         public ComputedVariable(T baseValue, Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, T, T> valueEvaluator)
         {
             OnValueChanged = new UnityEvent();
-            IsInitialized = true;
             BaseValue = baseValue;
             ValueEvaluator = valueEvaluator;
             PermanentMultipliers = new List<Multiplier>();
             PermanentIncreases = new List<Increase>();
             ActiveMultipliers = new List<TemporaryMultiplier>();
             ActiveIncreases = new List<TemporaryIncrease>();
+            IsInitialized = true;
         }
 
         public static T[] Evaluate(ComputedVariable<T>[] computedValueVariables)

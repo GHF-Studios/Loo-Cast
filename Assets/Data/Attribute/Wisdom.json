@@ -1,0 +1,11 @@
+{
+    "statNames": [
+        "Spirit",
+        "Wits",
+        "Psyche",
+        "Sense"
+    ],
+    "level": 0,
+    "maxLevel": 0,
+    "proposedLevelChange": 0
+}

@@ -9,22 +9,31 @@ namespace LooCast.Variable
         {
             get
             {
-                return value;
+                if (IsInitialized)
+                {
+                    return value;
+                }
+                return default(T);
             }
 
             set
             {
                 this.value = value;
-                OnValueChanged.Invoke();
+                if (IsInitialized)
+                {
+                    OnValueChanged.Invoke();
+                }
             }
         }
         [HideInInspector, SerializeField] private T value;
         public UnityEvent OnValueChanged { get; private set; }
+        public readonly bool IsInitialized = false;
 
         public Variable(T value)
         {
             OnValueChanged = new UnityEvent();
             Value = value;
+            IsInitialized = true;
         }
 
         public static T[] Evaluate(Variable<T>[] valueVariables)

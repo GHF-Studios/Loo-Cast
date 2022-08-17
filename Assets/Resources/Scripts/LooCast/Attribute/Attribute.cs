@@ -8,13 +8,11 @@ namespace LooCast.Attribute
 {
     using LooCast.Attribute.Stat;
     using LooCast.Variable;
-    using LooCast.Data;
-    using LooCast.Util;
 
     [Serializable]
-    public abstract class Attribute : ScriptableObject, ISaveable
+    public abstract class Attribute : ScriptableObject
     {
-        private class DataContainer
+        public class DataContainer
         {
             [SerializeField] private string[] statNames;
             [SerializeField] private int level;
@@ -58,23 +56,13 @@ namespace LooCast.Attribute
                 return new IntVariable(proposedLevelChange);
             }
         }
+
+        public abstract string AttributeName { get; }
+
         public Stat.Stat[] Stats;
         public IntVariable Level;
         public IntVariable MaxLevel;
         public IntVariable ProposedLevelChange;
-        public abstract string AttributeName { get; }
-
-        [SerializeField] private Stats allStats;
-
-        private void OnEnable()
-        {
-            Load();
-        }
-
-        private void OnDisable()
-        {
-            Save();
-        }
 
         public int GetCost(int targetLevel)
         {
@@ -118,20 +106,6 @@ namespace LooCast.Attribute
             {
                 Stat.Refresh();
             }
-        }
-
-        public void Save(bool saveDefault = false)
-        {
-            JSONUtil.SaveData(new DataContainer(Stats, Level, MaxLevel, ProposedLevelChange), $"{(saveDefault ? "Default/" : "")}Attribute/{AttributeName}.json");
-        }
-
-        public void Load()
-        {
-            DataContainer dataContainer = JSONUtil.LoadData<DataContainer>($"Attribute/{AttributeName}.json");
-            Stats = dataContainer.GetStats(allStats);
-            Level = dataContainer.GetLevel();
-            MaxLevel = dataContainer.GetMaxLevel();
-            ProposedLevelChange = dataContainer.GetProposedLevelChange();
         }
     }
 }

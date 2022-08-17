@@ -5,9 +5,15 @@ using UnityEngine;
 
 namespace LooCast.Attribute
 {
+    using LooCast.Attribute.Stat;
+    using LooCast.Data;
+    using LooCast.Util;
+
     [CreateAssetMenu(fileName = "Attributes", menuName = "Data/Attribute/Attributes", order = 0)]
     public class Attributes : ScriptableObject
     {
+        public Stats Stats;
+
         public CharismaAttribute Charisma;
         public ConstitutionAttribute Constitution;
         public DefenseAttribute Defense;
@@ -18,6 +24,34 @@ namespace LooCast.Attribute
         public StrengthAttribute Strength;
         public WillpowerAttribute Willpower;
         public WisdomAttribute Wisdom;
+
+        private void OnEnable()
+        {
+            LoadAttribute(Charisma);
+            LoadAttribute(Constitution);
+            LoadAttribute(Defense);
+            LoadAttribute(Dexterity);
+            LoadAttribute(Intelligence);
+            LoadAttribute(Luck);
+            LoadAttribute(Perception);
+            LoadAttribute(Strength);
+            LoadAttribute(Willpower);
+            LoadAttribute(Wisdom);
+        }
+
+        private void OnDisable()
+        {
+            SaveAttribute(Charisma);
+            SaveAttribute(Constitution);
+            SaveAttribute(Defense);
+            SaveAttribute(Dexterity);
+            SaveAttribute(Intelligence);
+            SaveAttribute(Luck);
+            SaveAttribute(Perception);
+            SaveAttribute(Strength);
+            SaveAttribute(Willpower);
+            SaveAttribute(Wisdom);
+        }
 
         public void Cheat()
         {
@@ -63,6 +97,20 @@ namespace LooCast.Attribute
                 case "Wisdom": return Wisdom;
                 default: throw new ArgumentException("Invalid attribute name!");
             }
+        }
+
+        public void SaveAttribute(Attribute attribute, bool saveDefault = false)
+        {
+            JSONUtil.SaveData(new Attribute.DataContainer(attribute.Stats, attribute.Level, attribute.MaxLevel, attribute.ProposedLevelChange), $"{(saveDefault ? "Default/" : "")}Attribute/{attribute.AttributeName}.json");
+        }
+
+        public void LoadAttribute(Attribute attribute)
+        {
+            Attribute.DataContainer dataContainer = JSONUtil.LoadData<Attribute.DataContainer>($"Attribute/{attribute.AttributeName}.json");
+            attribute.Stats = dataContainer.GetStats(Stats);
+            attribute.Level = dataContainer.GetLevel();
+            attribute.MaxLevel = dataContainer.GetMaxLevel();
+            attribute.ProposedLevelChange = dataContainer.GetProposedLevelChange();
         }
     } 
 }

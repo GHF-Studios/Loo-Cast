@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42d38265ab4eee24d9216b29c56cb5f3, type: 3}
   m_Name: Stats
   m_EditorClassIdentifier: 
+  Attributes: {fileID: 11400000, guid: f170636109815e84bbc40a3a8788833f, type: 2}
   Agility: {fileID: 11400000, guid: d04b5b63b772d0c42b44302bec780f48, type: 2}
   Alertness: {fileID: 11400000, guid: 31ce17e61a29f4b4ba6da6299d0e5629, type: 2}
   Awareness: {fileID: 11400000, guid: c2152d3606d596b488a9d28532c107f6, type: 2}

@@ -28,8 +28,6 @@ namespace LooCast.Variable.Editor
                 EditorGUI.LabelField(position, "Evaluation:\tN/A");
             }
 
-            
-
             EditorGUI.EndProperty();
         }
 

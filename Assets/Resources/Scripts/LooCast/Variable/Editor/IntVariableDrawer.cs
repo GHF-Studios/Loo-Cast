@@ -9,8 +9,6 @@ namespace LooCast.Variable.Editor
     [CustomPropertyDrawer(typeof(IntVariable))]
     public class IntVariableDrawer : PropertyDrawer
     {
-        private UnityEventDrawer eventDrawer;
-
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             EditorGUI.BeginProperty(position, label, property);

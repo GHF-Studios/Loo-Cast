@@ -5,6 +5,9 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat
 {
+    using LooCast.Data;
+    using LooCast.Util;
+
     [CreateAssetMenu(fileName = "Stats", menuName = "Data/Attribute/Stat/Stats", order = 0)]
     public class Stats : ScriptableObject
     {
@@ -43,6 +46,8 @@ namespace LooCast.Attribute.Stat
         public float HealthMultiplier { get { return Vitality.HealthMultiplier; } }
         //public float UNDEFINED { get { return Wits.UNDEFINED; } }
 
+        public Attributes Attributes;
+
         public AgilityStat Agility;
         public AlertnessStat Alertness;
         public AwarenessStat Awareness;
@@ -77,6 +82,82 @@ namespace LooCast.Attribute.Stat
         public StaminaStat Stamina;
         public VitalityStat Vitality;
         public WitsStat Wits;
+
+        private void OnEnable()
+        {
+            LoadStat(Agility);
+            LoadStat(Alertness);
+            LoadStat(Awareness);
+            LoadStat(Body);
+            LoadStat(Brawn);
+            LoadStat(Cautiousness);
+            LoadStat(Chance);
+            LoadStat(Charm);
+            LoadStat(Ego);
+            LoadStat(Endurance);
+            LoadStat(Fate);
+            LoadStat(Fortitude);
+            LoadStat(Fortune);
+            LoadStat(Intellect);
+            LoadStat(Knowledge);
+            LoadStat(Might);
+            LoadStat(Mind);
+            LoadStat(Personality);
+            LoadStat(Power);
+            LoadStat(Presence);
+            LoadStat(Psyche);
+            LoadStat(Quickness);
+            LoadStat(Recovery);
+            LoadStat(Reflexes);
+            LoadStat(Resilience);
+            LoadStat(Resistance);
+            LoadStat(Resolve);
+            LoadStat(Sanity);
+            LoadStat(Sense);
+            LoadStat(Social);
+            LoadStat(Spirit);
+            LoadStat(Stamina);
+            LoadStat(Vitality);
+            LoadStat(Wits);
+        }
+
+        private void OnDisable()
+        {
+            SaveStat(Agility);
+            SaveStat(Alertness);
+            SaveStat(Awareness);
+            SaveStat(Body);
+            SaveStat(Brawn);
+            SaveStat(Cautiousness);
+            SaveStat(Chance);
+            SaveStat(Charm);
+            SaveStat(Ego);
+            SaveStat(Endurance);
+            SaveStat(Fate);
+            SaveStat(Fortitude);
+            SaveStat(Fortune);
+            SaveStat(Intellect);
+            SaveStat(Knowledge);
+            SaveStat(Might);
+            SaveStat(Mind);
+            SaveStat(Personality);
+            SaveStat(Power);
+            SaveStat(Presence);
+            SaveStat(Psyche);
+            SaveStat(Quickness);
+            SaveStat(Recovery);
+            SaveStat(Reflexes);
+            SaveStat(Resilience);
+            SaveStat(Resistance);
+            SaveStat(Resolve);
+            SaveStat(Sanity);
+            SaveStat(Sense);
+            SaveStat(Social);
+            SaveStat(Spirit);
+            SaveStat(Stamina);
+            SaveStat(Vitality);
+            SaveStat(Wits);
+        }
 
         public void Cheat()
         {
@@ -194,6 +275,20 @@ namespace LooCast.Attribute.Stat
                 case "Wits": return Wits;
                 default: throw new ArgumentException("Invalid stat name!");
             }
+        }
+
+        public void SaveStat(Stat stat, bool saveDefault = false)
+        {
+            JSONUtil.SaveData(new Stat.DataContainer(stat.Attribute, stat.Level, stat.MaxLevel, stat.ProposedLevelChange), $"{(saveDefault ? "Default/" : "")}Attribute/Stat/{stat.StatName}.json");
+        }
+
+        public void LoadStat(Stat stat)
+        {
+            Stat.DataContainer dataContainer = JSONUtil.LoadData<Stat.DataContainer>($"Attribute/Stat/{stat.StatName}.json");
+            stat.Attribute = dataContainer.GetAttribute(Attributes);
+            stat.Level = dataContainer.GetLevel();
+            stat.MaxLevel = dataContainer.GetMaxLevel();
+            stat.ProposedLevelChange = dataContainer.GetProposedLevelChange();
         }
     } 
 }

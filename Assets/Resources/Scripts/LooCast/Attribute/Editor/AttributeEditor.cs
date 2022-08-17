@@ -8,7 +8,6 @@ namespace LooCast.Attribute.Editor
     public class AttributeEditor : UnityEditor.Editor
     {
         SerializedProperty Stats;
-
         SerializedProperty Level;
         SerializedProperty MaxLevel;
         SerializedProperty ProposedLevelChange;
@@ -31,12 +30,6 @@ namespace LooCast.Attribute.Editor
             EditorGUILayout.PropertyField(ProposedLevelChange);
 
             serializedObject.ApplyModifiedProperties();
-
-            Attribute attribute = (Attribute)target;
-            if (GUILayout.Button("Create default data!"))
-            {
-                attribute.Save(true);
-            }
         }
     }
 }

@@ -11,7 +11,7 @@ namespace LooCast.Currency
 
     [CreateAssetMenu(fileName = "Tokens", menuName = "Data/Currency/Tokens", order = 0)]
     [Serializable]
-    public class Tokens : ScriptableObject, ISaveable
+    public class Tokens : ScriptableObject
     {
         private class DataContainer
         {

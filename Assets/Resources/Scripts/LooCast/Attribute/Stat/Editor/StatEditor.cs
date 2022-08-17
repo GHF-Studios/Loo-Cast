@@ -31,12 +31,6 @@ namespace LooCast.Attribute.Stat.Editor
             EditorGUILayout.PropertyField(ProposedLevelChange);
 
             serializedObject.ApplyModifiedProperties();
-
-            Stat stat = (Stat)target;
-            if (GUILayout.Button("Create default data!"))
-            {
-                stat.Save(true);
-            }
         }
     }
 }

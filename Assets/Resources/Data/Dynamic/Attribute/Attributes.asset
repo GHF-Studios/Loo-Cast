@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6356c971f28876f40a2e3a302777f197, type: 3}
   m_Name: Attributes
   m_EditorClassIdentifier: 
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
   Charisma: {fileID: 11400000, guid: 8550577b8dcf25c49a013d4dc4df73eb, type: 2}
   Constitution: {fileID: 11400000, guid: d5b8391ca89606f40a476f5a7a904f55, type: 2}
   Defense: {fileID: 11400000, guid: 159e737dcb746b04a931b8b828900221, type: 2}
