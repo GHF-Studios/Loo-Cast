@@ -13,7 +13,7 @@ namespace LooCast.UI.Level
 
         public override void Refresh()
         {
-            Text.text = $"{Stat.Level}/{Stat.MaxLevel}";
+            Text.text = $"{Stat.Level.Value}/{Stat.MaxLevel.Value}";
         }
     } 
 }
