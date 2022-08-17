@@ -79,9 +79,6 @@ namespace LooCast.Health
             ExperienceOrbPrefab = Data.ExperienceOrbPrefab;
             MagnetOrbPrefab = Data.MagnetOrbPrefab;
 
-
-            OnKilled = new UnityEvent();
-
             soundHandler = FindObjectOfType<GameSoundHandler>();
             canvas = FindObjectOfType<WorldSpaceCanvas>();
         }

@@ -81,9 +81,6 @@ namespace LooCast.Movement
             Rigidbody = GetComponent<Rigidbody2D>();
             Collider = GetComponent<Collider2D>();
 
-            OnMovementEnabled = new UnityEvent();
-            OnMovementDisabled = new UnityEvent();
-
             isMovementEnabled = Data.IsMovementEnabled.Value;
             playerObject = GameObject.FindGameObjectWithTag("Player");
             playerCollider = playerObject.GetComponent<CircleCollider2D>();

@@ -9,6 +9,11 @@ namespace LooCast.UI.Value
     {
         public Tokens Tokens;
 
+        private void Start()
+        {
+            Refresh();
+        }
+
         public override void Refresh()
         {
             if (Tokens.ProposedBalanceChange.Value == 0)

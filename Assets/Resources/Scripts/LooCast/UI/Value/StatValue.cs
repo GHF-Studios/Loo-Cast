@@ -10,6 +10,11 @@ namespace LooCast.UI.Value
     {
         public Stat Stat;
 
+        private void Start()
+        {
+            Refresh();
+        }
+
         public override void Refresh()
         {
             if (Stat.ProposedLevelChange.Value == 0)

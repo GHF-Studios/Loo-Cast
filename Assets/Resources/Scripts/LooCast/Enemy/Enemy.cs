@@ -55,8 +55,6 @@ namespace LooCast.Enemy
             Movement = GetComponent<EnemyMovement>();
             Health = GetComponent<EnemyHealth>();
             ParticleSystem = GetComponentInChildren<ParticleSystem>();
-
-            OnKilled = new UnityEvent();
         }
 
         public void Kill()

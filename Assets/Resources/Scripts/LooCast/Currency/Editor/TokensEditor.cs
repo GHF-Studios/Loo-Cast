@@ -24,12 +24,6 @@ namespace LooCast.Currency.Editor
             EditorGUILayout.PropertyField(ProposedBalanceChange);
 
             serializedObject.ApplyModifiedProperties();
-
-            Tokens tokens = (Tokens)target;
-            if (GUILayout.Button("Create default data!"))
-            {
-                tokens.Save(true);
-            }
         }
     }
 }

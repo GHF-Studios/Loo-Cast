@@ -24,12 +24,6 @@ namespace LooCast.Currency.Editor
             EditorGUILayout.PropertyField(ProposedBalanceChange);
 
             serializedObject.ApplyModifiedProperties();
-
-            Coins coins = (Coins)target;
-            if (GUILayout.Button("Create default data!"))
-            {
-                coins.Save(true);
-            }
         }
     }
 }
