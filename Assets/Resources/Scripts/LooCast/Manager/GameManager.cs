@@ -8,6 +8,7 @@ namespace LooCast.Manager
     using LooCast.UI.Screen;
     using LooCast.Sound;
     using LooCast.Core;
+    using LooCast.Statistic;
 
     public class GameManager : MonoBehaviour
     {
@@ -36,6 +37,7 @@ namespace LooCast.Manager
 
             RuntimeSets.Initialize();
             IsPaused = false;
+            KillsStatistic.Kills = 0;
         }
 
         private void OnApplicationQuit()

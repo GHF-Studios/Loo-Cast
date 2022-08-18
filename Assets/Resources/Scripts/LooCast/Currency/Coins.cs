@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Steamworks;
 
 namespace LooCast.Currency
 {
@@ -40,6 +41,26 @@ namespace LooCast.Currency
         private void OnEnable()
         {
             Load();
+            Balance.OnValueChanged.AddListener(() =>
+            {
+                if (SteamManager.Initialized)
+                {
+                    SteamUserStats.GetStat("highscore_coins_balance", out int highscore_coins_balance);
+                    if (Balance.Value > highscore_coins_balance)
+                    {
+                        SteamUserStats.SetStat("highscore_coins_balance", Balance.Value);
+                    }
+                    if (Balance.Value >= 42069)
+                    {
+                        SteamUserStats.GetAchievement("The_Most_Funny_Number", out bool achievementCompleted);
+                        if (!achievementCompleted)
+                        {
+                            SteamUserStats.SetAchievement("The_Most_Funny_Number");
+                        }
+                    }
+                    SteamUserStats.StoreStats();
+                }
+            });
         }
 
         private void OnDisable()

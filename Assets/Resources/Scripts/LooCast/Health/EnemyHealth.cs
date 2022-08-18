@@ -14,6 +14,7 @@ namespace LooCast.Health
     using LooCast.Random;
     using LooCast.Orb;
     using LooCast.Attribute.Stat;
+    using LooCast.Statistic;
 
     public class EnemyHealth : ExtendedMonoBehaviour, IHealth
     {
@@ -157,6 +158,8 @@ namespace LooCast.Health
                     MagnetOrb magnetOrb = magnetOrbObject.GetComponent<MagnetOrb>();
                     magnetOrb.Initialize();
                 }
+
+                KillsStatistic.Kills += 1;
             }
         }
 
