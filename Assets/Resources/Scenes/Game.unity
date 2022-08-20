@@ -480,6 +480,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   generators:
   - {fileID: 1462691213}
+  - {fileID: 1027258440}
 --- !u!4 &59765271
 Transform:
   m_ObjectHideFlags: 0
@@ -493,6 +494,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1462691212}
+  - {fileID: 1027258439}
   m_Father: {fileID: 0}
   m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -3408,6 +3410,66 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &1027258438
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1027258439}
+  - component: {fileID: 1027258440}
+  m_Layer: 0
+  m_Name: Asteroid Generator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1027258439
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1027258438}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 59765271}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1027258440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1027258438}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a34220dbe0a5754a9a809ce61ee5a35, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
+  prefabs:
+  - {fileID: 8741796213071797658, guid: e91b02aa0513a2a4084c4cb38be38c2f, type: 3}
+  - {fileID: 8741796213071797658, guid: bbed9be47bbb5f34babc985066036aed, type: 3}
+  - {fileID: 8741796213071797658, guid: 85f6974b82bf7e2479b984329f5a1330, type: 3}
+  - {fileID: 8741796213071797658, guid: 0593ccd729fda7a4ca967795ccf7b39c, type: 3}
+  - {fileID: 8741796213071797658, guid: 7f81464920aa6b8408ddb497c0401c69, type: 3}
+  - {fileID: 8741796213071797658, guid: fbfa2da0476005a4eb708c6d096881d1, type: 3}
+  - {fileID: 8741796213071797658, guid: 3bdd5afceeb47d347a4862d613b15b1f, type: 3}
+  - {fileID: 8741796213071797658, guid: eb4aa293073f43b469e4c4fa6be00615, type: 3}
+  - {fileID: 8741796213071797658, guid: c25d3d366d1ccf644a5c81b1420ec0e0, type: 3}
+  - {fileID: 8741796213071797658, guid: 277eebce99ed3aa42b00260b9277613b, type: 3}
+  minAsteroidCount: 250
+  maxAsteroidCount: 500
+  spawnRange: 500
 --- !u!1 &1048338298
 GameObject:
   m_ObjectHideFlags: 0

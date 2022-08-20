@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b46a147a6bc2b54e90749b78ad9788a, type: 3}
+  m_Name: AsteroidData
+  m_EditorClassIdentifier: 
+  angularSpeedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: -5
+      inSlope: 506.16443
+      outSlope: 506.16443
+      tangentMode: 0
+      weightedMode: 3
+      inWeight: 0
+      outWeight: 0.020551765
+    - serializedVersion: 3
+      time: 1
+      value: 4.914551
+      inSlope: 380.97998
+      outSlope: 380.97998
+      tangentMode: 0
+      weightedMode: 3
+      inWeight: 0.027204216
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  speedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: -15.337433
+      inSlope: 1060.9073
+      outSlope: 1060.9073
+      tangentMode: 0
+      weightedMode: 3
+      inWeight: 0
+      outWeight: 0.026231678
+    - serializedVersion: 3
+      time: 1
+      value: 15
+      inSlope: 470.73138
+      outSlope: 470.73138
+      tangentMode: 0
+      weightedMode: 3
+      inWeight: 0.05622232
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  scaleCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0.5
+      inSlope: 0.22166504
+      outSlope: 0.22166504
+      tangentMode: 0
+      weightedMode: 3
+      inWeight: 0
+      outWeight: 0.59583336
+    - serializedVersion: 3
+      time: 1
+      value: 2.5
+      inSlope: 17.235954
+      outSlope: 17.235954
+      tangentMode: 0
+      weightedMode: 3
+      inWeight: 0.13658953
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
