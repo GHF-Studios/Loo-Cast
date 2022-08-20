@@ -15,6 +15,10 @@ namespace LooCast.Asteroid
         #endregion
 
         #region Fields
+        private MeshFilter meshFilter;
+        private MeshCollider meshCollider;
+        private Rigidbody rigidbody;
+
         private Vector3 randomRotation;
         private Vector3 randomSpeed;
         #endregion
@@ -22,6 +26,10 @@ namespace LooCast.Asteroid
         private void Start()
         {
             RuntimeSet.Add(this);
+
+            rigidbody = GetComponent<Rigidbody>();
+            meshFilter = GetComponent<MeshFilter>();
+            meshCollider = GetComponent<MeshCollider>();
 
             randomRotation = new Vector3
                 (
@@ -35,10 +43,17 @@ namespace LooCast.Asteroid
                 Data.speedCurve.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)),
                 0.0f
                 );
-            Rigidbody rigidbody = GetComponent<Rigidbody>();
-            rigidbody.velocity = randomSpeed;
-            rigidbody.angularVelocity = randomRotation;
-            transform.localScale = Vector3.one * Data.scaleCurve.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
+            float randomScale = Data.scaleCurve.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
+            float density = 1000.0f;
+            Mesh randomMesh = Data.Meshes[UnityEngine.Random.Range(0, Data.Meshes.Length - 1)];
+
+            rigidbody.velocity = randomSpeed * (1 / randomScale);
+            rigidbody.angularVelocity = randomRotation * (1 / randomScale);
+            rigidbody.mass = Mathf.Pow(randomScale, 3) * density;
+            transform.localScale = Vector3.one * randomScale;
+            meshFilter.mesh = randomMesh;
+            meshCollider.sharedMesh = randomMesh;
+
         }
 
         private void Update()

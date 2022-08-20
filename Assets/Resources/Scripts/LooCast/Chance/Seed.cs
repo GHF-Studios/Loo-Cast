@@ -1,16 +1,19 @@
 ﻿using System;
 
-public struct Seed<T> where T : IComparable
+namespace LooCast.Chance
 {
-    public IComparable seed { get; private set; }
-
-    public Seed(IComparable seed = null)
+    public struct Seed<T> where T : IComparable
     {
-        this.seed = seed;
-    }
+        public IComparable seed { get; private set; }
 
-    public static implicit operator Seed<T>(Seed<int> v)
-    {
-        return new Seed<T>(v.seed);
-    }
+        public Seed(IComparable seed = null)
+        {
+            this.seed = seed;
+        }
+
+        public static implicit operator Seed<T>(Seed<int> v)
+        {
+            return new Seed<T>(v.seed);
+        }
+    } 
 }

@@ -17,7 +17,10 @@ namespace LooCast.Generator
         {
             stationCount = 3;
             prefab = Resources.Load<GameObject>("Prefabs/EnemyStation");
-            Generate();
+            if (enabled)
+            {
+                Generate();
+            }
         }
 
         public override void Generate()
