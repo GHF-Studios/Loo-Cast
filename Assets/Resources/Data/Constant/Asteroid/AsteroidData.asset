@@ -12,21 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b46a147a6bc2b54e90749b78ad9788a, type: 3}
   m_Name: AsteroidData
   m_EditorClassIdentifier: 
-  Meshes:
-  - {fileID: 5107826464522001213, guid: 53660ff6ddefd3c4d92c1427034aa428, type: 3}
-  - {fileID: -792660944072588704, guid: f2f19a76d4d745d45a4012576fc7d626, type: 3}
-  - {fileID: -7728034271303320596, guid: 184703339fe012f4ba39f9039d7e666a, type: 3}
-  - {fileID: -3230602620048832063, guid: 3d7ca162bf3ff7841aea9444816cc4cd, type: 3}
-  - {fileID: 4260201756946942477, guid: f66ff58897bd9dc4a9e0727b4d2cbbe7, type: 3}
-  Materials:
-  - {fileID: 2100000, guid: 699189d545f511a4282f159e5c9cbe47, type: 2}
-  - {fileID: 2100000, guid: 57118d5381c3dbb4aaa0a413284f9dfc, type: 2}
-  - {fileID: 2100000, guid: 4f4903856ebcca24aa0c64c30b730d8f, type: 2}
-  - {fileID: 2100000, guid: d0a7a623bd878be4aa1583dcd919221d, type: 2}
-  - {fileID: 2100000, guid: 7f6b08412f4343e438a7ea161b382537, type: 2}
-  RarityWeights: e8030000fa000000320000001900000005000000
-  SizeWeights: 010000000a000000640000000a00000001000000
-  AngularSpeedDistribution:
+  SizeWeights: 140000000a000000320000000a00000005000000
+  RarityWeights: ee0200009600000041000000230000000a000000
+  AsteroidSizeDatas:
+  - {fileID: 11400000, guid: c46f418e1d2e34e458a0a16430711cf4, type: 2}
+  - {fileID: 11400000, guid: 4ce4f02e31967ad4995dd55d36925c29, type: 2}
+  - {fileID: 11400000, guid: 262466bb098b93248970ba266de55fbf, type: 2}
+  - {fileID: 11400000, guid: 877ee73d4aa44ba46bd5161491b12246, type: 2}
+  - {fileID: 11400000, guid: 72a9d1f7785e48a428fe8024b0178729, type: 2}
+  AsteroidRarityDatas:
+  - {fileID: 11400000, guid: b5177d7c6d1a7d847940e09897aa9cd3, type: 2}
+  - {fileID: 11400000, guid: 223f35eb89593704cbc2e01451560e6b, type: 2}
+  - {fileID: 11400000, guid: 151a02ab07b64a44ba2642918628ccb5, type: 2}
+  - {fileID: 11400000, guid: e9acba4fbbb9d9c4e8bb5c50e1bce6a6, type: 2}
+  - {fileID: 11400000, guid: 9073935a261609a4fb776033d9ad436c, type: 2}
+  AngularSpeed:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
@@ -50,7 +50,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  SpeedDistribution:
+  Speed:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
@@ -74,7 +74,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  ScaleDistribution:
+  Scale:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3

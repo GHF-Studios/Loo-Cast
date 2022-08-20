@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb6f3455e77608b43a84194b383b45b0, type: 3}
+  m_Name: MediumAsteroidSizeData
+  m_EditorClassIdentifier: 
+  Meshes:
+  - {fileID: 3707393989712682981, guid: eaf157c4e9f1851448c74cf73da4c80d, type: 3}
+  - {fileID: -4409389809901307226, guid: 9029fe14e6ae9fd4f924e2cd41188536, type: 3}
+  - {fileID: -8311349723739748628, guid: 0993feba9e05f7a44bb127b77880c555, type: 3}
+  - {fileID: -682987679934886879, guid: 1926fe36c38575744a577fef762f5558, type: 3}
+  - {fileID: -4515425157441778829, guid: d33f5210d6c16c54188ce94bc71d2b6f, type: 3}
+  - {fileID: -8540595104381560147, guid: 7a21819c222b21d4e946d4ce52bf63cd, type: 3}
+  - {fileID: 253487455487138570, guid: 2fc12a92da16e3648b501c181de9398f, type: 3}
+  - {fileID: 3749235441839993086, guid: 6e5c8718ac633984890693b7ab2a29eb, type: 3}
+  - {fileID: -6770660442534784266, guid: 1e93087613f027141b8af9485aecfbc9, type: 3}
+  - {fileID: -1142699721071797972, guid: 516b6a21e95852b4383eb90379253c03, type: 3}

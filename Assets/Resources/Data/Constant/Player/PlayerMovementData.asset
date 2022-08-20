@@ -13,16 +13,9 @@ MonoBehaviour:
   m_Name: PlayerMovementData
   m_EditorClassIdentifier: 
   BaseSpeed:
-    UseConstant: 0
-    ConstantValue: 0
+    UseConstant: 1
+    ConstantValue: 2.5
     Variable: {fileID: 11400000, guid: 45ba00af1907a07448772a412d714e23, type: 2}
-    OnValueChanged:
-      m_PersistentCalls:
-        m_Calls: []
-  BaseEnergy:
-    UseConstant: 0
-    ConstantValue: 0
-    Variable: {fileID: 11400000, guid: 353b373b160b8c2408d59fb5cc6584a8, type: 2}
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []
@@ -34,7 +27,7 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
   BaseEnergyConsumption:
-    UseConstant: 0
+    UseConstant: 1
     ConstantValue: 0
     Variable: {fileID: 11400000, guid: 5bd6b7cf503658c4895a46bba83abd05, type: 2}
     OnValueChanged:
