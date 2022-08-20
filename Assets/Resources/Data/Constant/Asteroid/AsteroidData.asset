@@ -10,21 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5b46a147a6bc2b54e90749b78ad9788a, type: 3}
-  m_Name: LegendaryAsteroidData
+  m_Name: AsteroidData
   m_EditorClassIdentifier: 
-  Rarity: 4
   Meshes:
-  - {fileID: 3707393989712682981, guid: e93dcbb9fcbf05b43829e7e1b393b39a, type: 3}
-  - {fileID: -4409389809901307226, guid: 7364b4e5c26a1f94faf5d610c4ffcb57, type: 3}
-  - {fileID: -8311349723739748628, guid: e95b7865ebe5fbb4f956ebf307001cfc, type: 3}
-  - {fileID: -682987679934886879, guid: f8807d96426e99a4f82cb9b637403659, type: 3}
-  - {fileID: -4515425157441778829, guid: 0a3e8bd86ad7d3147a8e2bd620d735b4, type: 3}
-  - {fileID: -8540595104381560147, guid: c4f5655d7fd5385419c6d0e0386ff4a5, type: 3}
-  - {fileID: 253487455487138570, guid: 40ec5aac7fdd078468e140f04ea901fe, type: 3}
-  - {fileID: 3749235441839993086, guid: 799e8c1cbf44bdd48b47ff46480586a2, type: 3}
-  - {fileID: -6770660442534784266, guid: d336869e90b8ff346aa2cd3c24495d0b, type: 3}
-  - {fileID: -1142699721071797972, guid: 7d566c16f274f264fa8525c62b33a02e, type: 3}
-  angularSpeedCurve:
+  - {fileID: 5107826464522001213, guid: 53660ff6ddefd3c4d92c1427034aa428, type: 3}
+  - {fileID: -792660944072588704, guid: f2f19a76d4d745d45a4012576fc7d626, type: 3}
+  - {fileID: -7728034271303320596, guid: 184703339fe012f4ba39f9039d7e666a, type: 3}
+  - {fileID: -3230602620048832063, guid: 3d7ca162bf3ff7841aea9444816cc4cd, type: 3}
+  - {fileID: 4260201756946942477, guid: f66ff58897bd9dc4a9e0727b4d2cbbe7, type: 3}
+  Materials:
+  - {fileID: 2100000, guid: 699189d545f511a4282f159e5c9cbe47, type: 2}
+  - {fileID: 2100000, guid: 57118d5381c3dbb4aaa0a413284f9dfc, type: 2}
+  - {fileID: 2100000, guid: 4f4903856ebcca24aa0c64c30b730d8f, type: 2}
+  - {fileID: 2100000, guid: d0a7a623bd878be4aa1583dcd919221d, type: 2}
+  - {fileID: 2100000, guid: 7f6b08412f4343e438a7ea161b382537, type: 2}
+  RarityWeights: e8030000fa000000320000001900000005000000
+  SizeWeights: 010000000a000000640000000a00000001000000
+  AngularSpeedDistribution:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
@@ -48,7 +50,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  speedCurve:
+  SpeedDistribution:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
@@ -72,26 +74,26 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  scaleCurve:
+  ScaleDistribution:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0.1
-      inSlope: 0.03572399
-      outSlope: 0.03572399
+      value: 0.8
+      inSlope: 195.46504
+      outSlope: 195.46504
       tangentMode: 0
       weightedMode: 3
       inWeight: 0
-      outWeight: 0.7405153
+      outWeight: 0.0020274397
     - serializedVersion: 3
-      time: 0.9942932
-      value: 1
-      inSlope: 15.611717
-      outSlope: 15.611717
+      time: 1
+      value: 1.2
+      inSlope: 821.51117
+      outSlope: 821.51117
       tangentMode: 0
       weightedMode: 3
-      inWeight: 0.061049107
+      inWeight: 0.00049746037
       outWeight: 0
     m_PreInfinity: 2
     m_PostInfinity: 2

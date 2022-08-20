@@ -6,6 +6,7 @@ namespace LooCast.Asteroid
 {
     using Data;
     using Data.Runtime;
+    using LooCast.Chance;
 
     public class Asteroid : MonoBehaviour
     {
@@ -14,13 +15,36 @@ namespace LooCast.Asteroid
         public AsteroidRuntimeSet RuntimeSet;
         #endregion
 
+        #region Classes
+        public enum Size
+        {
+            Tiny,
+            Small,
+            Medium,
+            Large,
+            Huge
+        }
+
+        public enum Rarity
+        {
+            Common,
+            Uncommon,
+            Rare,
+            Epic,
+            Legendary
+        }
+        #endregion
+
+        #region Properties
+        public Size AsteroidSize {get; private set;}
+        public Rarity AsteroidRarity {get; private set;}
+        #endregion
+
         #region Fields
         private MeshFilter meshFilter;
+        private MeshRenderer meshRenderer;
         private MeshCollider meshCollider;
         private Rigidbody rigidbody;
-
-        private Vector3 randomRotation;
-        private Vector3 randomSpeed;
         #endregion
 
         private void Start()
@@ -29,31 +53,25 @@ namespace LooCast.Asteroid
 
             rigidbody = GetComponent<Rigidbody>();
             meshFilter = GetComponent<MeshFilter>();
+            meshRenderer = GetComponent<MeshRenderer>();
             meshCollider = GetComponent<MeshCollider>();
 
-            randomRotation = new Vector3
-                (
-                Data.angularSpeedCurve.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)),
-                Data.angularSpeedCurve.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)),
-                Data.angularSpeedCurve.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f))
-                );
-            randomSpeed = new Vector3
-                (
-                Data.speedCurve.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)),
-                Data.speedCurve.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)),
-                0.0f
-                );
-            float randomScale = Data.scaleCurve.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
+            Vector3 randomRotation = new Vector3(Data.AngularSpeedDistribution.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)), Data.AngularSpeedDistribution.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)), Data.AngularSpeedDistribution.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)));
+            Vector3 randomSpeed = new Vector3(Data.SpeedDistribution.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)), Data.SpeedDistribution.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)), 0.0f);
+            float randomScale = Data.ScaleDistribution.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
             float density = 1000.0f;
-            Mesh randomMesh = Data.Meshes[UnityEngine.Random.Range(0, Data.Meshes.Length - 1)];
+            AsteroidSize = (Size)Chance.GetRandomWeightedIndex(Data.SizeWeights);
+            AsteroidRarity = (Rarity)Chance.GetRandomWeightedIndex(Data.RarityWeights);
+            Mesh mesh = Data.Meshes[(int)AsteroidSize];
+            Material material = Data.Materials[(int)AsteroidRarity];
 
+            transform.localScale = Vector3.one * 100.0f * randomScale;
             rigidbody.velocity = randomSpeed * (1 / randomScale);
             rigidbody.angularVelocity = randomRotation * (1 / randomScale);
             rigidbody.mass = Mathf.Pow(randomScale, 3) * density;
-            transform.localScale = Vector3.one * randomScale;
-            meshFilter.mesh = randomMesh;
-            meshCollider.sharedMesh = randomMesh;
-
+            meshFilter.mesh = mesh;
+            meshRenderer.material = material;
+            meshCollider.sharedMesh = mesh;
         }
 
         private void Update()

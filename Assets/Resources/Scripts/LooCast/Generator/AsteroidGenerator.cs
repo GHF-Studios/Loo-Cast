@@ -10,9 +10,7 @@ namespace LooCast.Generator
 
     public class AsteroidGenerator : Generator
     {
-        [SerializeField] private GameObject[] asteroidPrefabs;
-        [SerializeField] private int[] asteroidSpawnWeights;
-
+        [SerializeField] private GameObject asteroidPrefab;
         [SerializeField] private int minAsteroidCount;
         [SerializeField] private int maxAsteroidCount;
         [SerializeField] private int spawnRange;
@@ -22,11 +20,6 @@ namespace LooCast.Generator
         public override void Initialize()
         {
             asteroidCount = UnityEngine.Random.Range(minAsteroidCount, maxAsteroidCount);
-
-            if (asteroidPrefabs.Length != asteroidSpawnWeights.Length)
-            {
-                throw new System.Exception("Must have same amount of prefabs and spawn weights!");
-            }
 
             if (enabled)
             {
@@ -39,11 +32,8 @@ namespace LooCast.Generator
             for (int i = 0; i < asteroidCount; i++)
             {
                 Vector2 spawnPosition = Random.InsideUnitCircle() * spawnRange;
-                int weightedRandomPrefabIndex = Chance.GetRandomWeightedIndex(asteroidSpawnWeights);
-                GameObject asteroidObject = Instantiate(asteroidPrefabs[weightedRandomPrefabIndex], spawnPosition, Quaternion.identity, null);
+                GameObject asteroidObject = Instantiate(asteroidPrefab, spawnPosition, Quaternion.identity, null);
             }
         }
-
-        
     } 
 }
