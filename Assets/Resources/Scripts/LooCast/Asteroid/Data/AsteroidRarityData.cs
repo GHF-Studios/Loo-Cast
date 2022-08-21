@@ -9,7 +9,7 @@ namespace LooCast.Asteroid.Data
     public class AsteroidRarityData : ScriptableObject
     {
         public Resource[] Resources;
-        public AnimationCurve[] Deposits;
+        public AnimationCurve[] DepositWeights;
         public Material Material;
     }
 }

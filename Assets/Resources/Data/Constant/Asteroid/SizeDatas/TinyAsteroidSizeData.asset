@@ -12,6 +12,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb6f3455e77608b43a84194b383b45b0, type: 3}
   m_Name: TinyAsteroidSizeData
   m_EditorClassIdentifier: 
+  Mass:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 100
+      inSlope: 5137.1045
+      outSlope: 5137.1045
+      tangentMode: 0
+      weightedMode: 3
+      inWeight: 0
+      outWeight: 0.009537372
+    - serializedVersion: 3
+      time: 1
+      value: 150
+      inSlope: 9260.056
+      outSlope: 9260.056
+      tangentMode: 0
+      weightedMode: 3
+      inWeight: 0.00537014
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   Meshes:
   - {fileID: 3707393989712682981, guid: f9db26939a5de1743afd0857b18e8d43, type: 3}
   - {fileID: -4409389809901307226, guid: a9888cf78afb08745bd91dd921116464, type: 3}

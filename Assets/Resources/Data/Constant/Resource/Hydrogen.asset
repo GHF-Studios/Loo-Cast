@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b51200da247084e438b2832522286088, type: 3}
   m_Name: Hydrogen
   m_EditorClassIdentifier: 
-  ResourceType: 0
-  ResourceRarity: 0
+  resoureceName: Hydrogen
+  resourceRarity: 0

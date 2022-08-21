@@ -12,6 +12,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb6f3455e77608b43a84194b383b45b0, type: 3}
   m_Name: LargeAsteroidSizeData
   m_EditorClassIdentifier: 
+  Mass:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 6400
+      inSlope: 1267200
+      outSlope: 1267200
+      tangentMode: 0
+      weightedMode: 3
+      inWeight: 0
+      outWeight: 0.0025252525
+    - serializedVersion: 3
+      time: 1
+      value: 9600
+      inSlope: 633603.1
+      outSlope: 633603.1
+      tangentMode: 0
+      weightedMode: 3
+      inWeight: 0.0050504804
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   Meshes:
   - {fileID: 3707393989712682981, guid: 3f70d14c4ed72954994a85971e821b94, type: 3}
   - {fileID: -4409389809901307226, guid: 15706ec7f3d1c304f9e8cbffc40b92bf, type: 3}

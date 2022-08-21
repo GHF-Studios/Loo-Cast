@@ -11,11 +11,6 @@ namespace LooCast.Asteroid
 
     public class Asteroid : MonoBehaviour
     {
-        #region Data
-        public AsteroidData Data;
-        public AsteroidRuntimeSet RuntimeSet;
-        #endregion
-
         #region Enums
         public enum Size
         {
@@ -34,24 +29,40 @@ namespace LooCast.Asteroid
             Legendary
         }
         #endregion
-
+        
         #region Structs
         public struct ResourceDeposit
         {
             public Resource Resource { get; private set; }
-            public float Deposit { get; set; }
+            public float Deposit { get; private set; }
 
             public ResourceDeposit(Resource resource, float deposit)
             {
                 Resource = resource;
                 Deposit = deposit;
             }
+
+            public bool TryExtractMass(float mass)
+            {
+                if (mass <= Deposit)
+                {
+                    Deposit -= mass;
+                    return true;
+                }
+                return false;
+            }
         }
+        #endregion
+
+        #region Data
+        public AsteroidData Data;
+        public AsteroidRuntimeSet RuntimeSet;
         #endregion
 
         #region Properties
         public Size AsteroidSize {get; private set;}
         public Rarity AsteroidRarity {get; private set;}
+        public float TotalMass {get; private set;}
         public ResourceDeposit[] ResourceDeposits {get; private set;}
         #endregion
 
@@ -62,6 +73,7 @@ namespace LooCast.Asteroid
         private Rigidbody rigidbody;
         #endregion
 
+        #region Unity Callbacks
         private void Start()
         {
             RuntimeSet.Add(this);
@@ -70,7 +82,7 @@ namespace LooCast.Asteroid
             meshFilter = GetComponent<MeshFilter>();
             meshRenderer = GetComponent<MeshRenderer>();
             meshCollider = GetComponent<MeshCollider>();
-
+            
             Vector3 randomRotation = new Vector3(Data.AngularSpeed.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)), Data.AngularSpeed.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)), Data.AngularSpeed.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)));
             Vector3 randomSpeed = new Vector3(Data.Speed.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)), Data.Speed.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)), 0.0f);
             float randomScale = Data.Scale.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
@@ -88,11 +100,39 @@ namespace LooCast.Asteroid
             AsteroidSizeData asteroidSizeData = Data.AsteroidSizeDatas[(int)AsteroidSize];
             AsteroidRarityData asteroidRarityData = Data.AsteroidRarityDatas[(int)AsteroidRarity];
 
+            TotalMass = asteroidSizeData.Mass.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
+
+            #region Deposit Creation
+            //First we get all the deposit weights and calculate the deposit weight sum
+            float depositWeightSum = 0;
+            float[] depositWeights = new float[asteroidRarityData.Resources.Length];
+            for (int i = 0; i < depositWeights.Length; i++)
+            {
+                depositWeights[i] = asteroidRarityData.DepositWeights[i].Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
+                depositWeightSum += depositWeights[i];
+            }
+
+            //Then we calculate the respective fractions of the total mass
+            float[] totalMassFractions = new float[depositWeights.Length];
+            for (int i = 0; i < totalMassFractions.Length; i++)
+            {
+                totalMassFractions[i] = depositWeights[i] / depositWeightSum;
+            }
+
+            //Then we use the fractions to calculate the actual mass of each deposit
+            float[] depositMasses = new float[totalMassFractions.Length];
+            for (int i = 0; i < depositMasses.Length; i++)
+            {
+                depositMasses[i] = TotalMass * totalMassFractions[i];
+            }
+
+            //Finally we actually create the deposits
             ResourceDeposits = new ResourceDeposit[asteroidRarityData.Resources.Length];
             for (int i = 0; i < ResourceDeposits.Length; i++)
             {
-                ResourceDeposits[i] = new ResourceDeposit(asteroidRarityData.Resources[i], asteroidRarityData.Deposits[i].Evaluate(UnityEngine.Random.Range(0.0f, 1.0f)));
+                ResourceDeposits[i] = new ResourceDeposit(asteroidRarityData.Resources[i], depositMasses[i]);
             }
+            #endregion
 
             Mesh mesh = asteroidSizeData.Meshes[UnityEngine.Random.Range(0, asteroidSizeData.Meshes.Length - 1)];
             Material material = asteroidRarityData.Material;
@@ -111,5 +151,33 @@ namespace LooCast.Asteroid
         {
             RuntimeSet.Remove(this);
         }
+
+        private void OnMouseOver()
+        {
+            if (Input.GetMouseButtonDown(1))
+            {
+                string message = "Total: " + string.Format("{0:n0}", TotalMass) + "t\n";
+                foreach (ResourceDeposit resourceDeposit in ResourceDeposits)
+                {
+                    message += $"{resourceDeposit.Resource.ResourceName}: " + string.Format("{0:n0}", resourceDeposit.Deposit) + "t\n";
+                }
+                Debug.Log(message);
+            }
+        }
+        #endregion
+
+        #region Methods
+        public bool TryExtractResource(float extractedMass, Resource resource)
+        {
+            foreach (ResourceDeposit resourceDeposit in ResourceDeposits)
+            {
+                if (resourceDeposit.Resource == resource)
+                {
+                    return resourceDeposit.TryExtractMass(extractedMass);
+                }
+            }
+            return false;
+        }
+        #endregion
     } 
 }

@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b51200da247084e438b2832522286088, type: 3}
   m_Name: Antimatter
   m_EditorClassIdentifier: 
-  ResourceRarity: 4
+  resoureceName: Antimatter
+  resourceRarity: 4

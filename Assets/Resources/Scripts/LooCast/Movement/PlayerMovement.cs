@@ -102,25 +102,8 @@ namespace LooCast.Movement
         {
             RuntimeData.IsUsingEnergy.Value = false;
             float[] axis = new float[2];
-            if (Input.touchCount > 0)
-            {
-                Vector2 touchPosition = Camera.main.ScreenToWorldPoint(Input.GetTouch(0).position, Camera.MonoOrStereoscopicEye.Mono);
-                Vector2 direction = touchPosition - (Vector2)transform.position;
-                axis[0] = direction.x;
-                axis[1] = direction.y;
-            }
-            else if (Input.GetMouseButton(0))
-            {
-                Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition, Camera.MonoOrStereoscopicEye.Mono);
-                Vector2 direction = mousePosition - (Vector2)transform.position;
-                axis[0] = direction.x;
-                axis[1] = direction.y;
-            }
-            else
-            {
-                axis[0] = Input.GetAxis("Horizontal");
-                axis[1] = Input.GetAxis("Vertical");
-            }
+            axis[0] = Input.GetAxis("Horizontal");
+            axis[1] = Input.GetAxis("Vertical");
 
             if ((axis[0] == 0 && axis[1] == 0) || RuntimeData.IsEnergyDepleted.Value)
             {

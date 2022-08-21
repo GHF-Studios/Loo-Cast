@@ -17,8 +17,14 @@ namespace LooCast.Resource
         }
         #endregion
 
+        #region Properties
+        public string ResourceName { get { return resoureceName; } }
+        public Rarity ResourceRarity { get { return resourceRarity; } }
+        #endregion
+
         #region Fields
-        public Rarity ResourceRarity;
+        [SerializeField] private string resoureceName;
+        [SerializeField] private Rarity resourceRarity;
         #endregion
     }
 }

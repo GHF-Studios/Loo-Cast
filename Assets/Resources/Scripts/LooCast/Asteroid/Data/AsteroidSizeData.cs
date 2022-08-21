@@ -7,6 +7,7 @@ namespace LooCast.Asteroid.Data
     [CreateAssetMenu(fileName = "AsteroidSizeData", menuName = "Data/Asteroid/AsteroidSizeData", order = 0)]
     public class AsteroidSizeData : ScriptableObject
     {
+        public AnimationCurve Mass;
         public Mesh[] Meshes;
     }
 }

@@ -18,7 +18,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a6d9bf343a26a1c45b1f51a8eca34df5, type: 2}
   - {fileID: 11400000, guid: 6e454a437a915b748b9ad5bfe7a8b1f0, type: 2}
   - {fileID: 11400000, guid: 3218c153c80c6ef44a36f3ee5dc760df, type: 2}
-  Deposits:
+  DepositWeights:
   - serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
