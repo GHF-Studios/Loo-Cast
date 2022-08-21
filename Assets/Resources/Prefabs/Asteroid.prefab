@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 8471394624726032585}
   - component: {fileID: 8951083109922076835}
   - component: {fileID: 5587531873190355593}
-  m_Layer: 0
+  m_Layer: 14
   m_Name: Asteroid
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -100,7 +100,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Data: {fileID: 11400000, guid: 37e02f15e976a974981ae87b884b6f2f, type: 2}
   RuntimeSet: {fileID: 11400000, guid: 920d8d62c4f845143be34101f9cbaab4, type: 2}
-  asteroidInspectorRuntimeData: {fileID: 11400000, guid: d7e8de18391723b499d77d1e0c23136c, type: 2}
 --- !u!64 &8951083109922076835
 MeshCollider:
   m_ObjectHideFlags: 0

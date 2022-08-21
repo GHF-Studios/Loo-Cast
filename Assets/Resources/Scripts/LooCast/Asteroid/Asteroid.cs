@@ -8,7 +8,6 @@ namespace LooCast.Asteroid
     using Data.Runtime;
     using LooCast.Chance;
     using LooCast.Resource;
-    using LooCast.UI.Inspector.Data.Runtime;
 
     public class Asteroid : MonoBehaviour
     {
@@ -31,8 +30,8 @@ namespace LooCast.Asteroid
         }
         #endregion
         
-        #region Structs
-        public struct ResourceDeposit
+        #region Classes
+        public class ResourceDeposit
         {
             public Resource Resource { get; private set; }
             public float Deposit { get; private set; }
@@ -65,10 +64,6 @@ namespace LooCast.Asteroid
         public Rarity AsteroidRarity {get; private set;}
         public float Mass {get; private set;}
         public ResourceDeposit[] ResourceDeposits {get; private set;}
-        #endregion
-
-        #region Serialized Fields
-        [SerializeField] private AsteroidInspectorRuntimeData asteroidInspectorRuntimeData;
         #endregion
 
         #region Fields
@@ -155,15 +150,6 @@ namespace LooCast.Asteroid
         private void OnDestroy()
         {
             RuntimeSet.Remove(this);
-        }
-
-        private void OnMouseOver()
-        {
-            if (Input.GetMouseButtonDown(1))
-            {
-                asteroidInspectorRuntimeData.CurrentAsteroid = this;
-                Debug.Log("I've been hovered");
-            }
         }
         #endregion
 

@@ -6,6 +6,7 @@ using UnityEngine.UI;
 namespace LooCast.UI.Panel
 {
     using LooCast.Asteroid;
+    using LooCast.Resource;
 
     public class AsteroidResourceDepositsPanel : MonoBehaviour
     {
@@ -17,28 +18,43 @@ namespace LooCast.UI.Panel
             }
             set
             {
+                if (currentAsteroid == null)
+                {
+                    for (int i = 0; i < value.ResourceDeposits.Length; i++)
+                    {
+                        GameObject resourceDepositLabel = Instantiate(textPrefab, resourceDepositLabelParent);
+                        GameObject resourceDepositValue = Instantiate(textPrefab, resourceDepositValueParent);
+                    }
+                }
+                else
+                {
+                    if (currentAsteroid.ResourceDeposits.Length < value.ResourceDeposits.Length)
+                    {
+                        int amountNewDeposits = value.ResourceDeposits.Length - currentAsteroid.ResourceDeposits.Length;
+                        for (int i = 0; i < amountNewDeposits; i++)
+                        {
+                            GameObject resourceDepositLabel = Instantiate(textPrefab, resourceDepositLabelParent);
+                            GameObject resourceDepositValue = Instantiate(textPrefab, resourceDepositValueParent);
+                        }
+                    }
+                    else
+                    {
+                        int amountOldDeposits = currentAsteroid.ResourceDeposits.Length - value.ResourceDeposits.Length;
+                        for (int i = 0; i < amountOldDeposits; i++)
+                        {
+                            Destroy(resourceDepositLabelParent.GetChild(i).gameObject);
+                            Destroy(resourceDepositValueParent.GetChild(i).gameObject);
+                        }
+                    }
+                }
+
                 currentAsteroid = value;
 
-                //Destroy old Resource Deposit Labels
-                for (int i = 0; i < resourceDepositLabelParent.childCount; i++)
-                {
-                    Destroy(resourceDepositLabelParent.GetChild(i).gameObject);
-                }
-
-                //Destroy old Resource Deposit Values
-                for (int i = 0; i < resourceDepositValueParent.childCount; i++)
-                {
-                    Destroy(resourceDepositValueParent.GetChild(i).gameObject);
-                }
-
-                //Create new Resource Deposit Labels & Values
+                //Update Resource Deposit Labels & Values
                 for (int i = 0; i < currentAsteroid.ResourceDeposits.Length; i++)
                 {
-                    GameObject resourceDepositLabel = Instantiate(textPrefab, resourceDepositLabelParent);
-                    resourceDepositLabel.name = currentAsteroid.ResourceDeposits[i].Resource.ResourceName;
-
-                    GameObject resourceDepositValue = Instantiate(textPrefab, resourceDepositValueParent);
-                    resourceDepositValue.name = currentAsteroid.ResourceDeposits[i].Resource.ResourceName;
+                    resourceDepositLabelParent.GetChild(i).gameObject.name = currentAsteroid.ResourceDeposits[i].Resource.ResourceName;
+                    resourceDepositValueParent.GetChild(i).gameObject.name = currentAsteroid.ResourceDeposits[i].Resource.ResourceName;
                 }
 
                 Refresh();

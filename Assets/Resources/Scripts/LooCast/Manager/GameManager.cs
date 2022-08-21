@@ -9,6 +9,9 @@ namespace LooCast.Manager
     using LooCast.Sound;
     using LooCast.Core;
     using LooCast.Statistic;
+    using LooCast.Asteroid;
+    using LooCast.UI.Inspector.Data.Runtime;
+    using LooCast.UI.Cursor;
 
     public class GameManager : MonoBehaviour
     {
@@ -18,9 +21,13 @@ namespace LooCast.Manager
         #endregion
 
         #region Fields
-        public LoadingScreen LoadingScreen;
-        public RuntimeSets RuntimeSets;
-        public GameSoundHandler GameSoundHandler;
+        public LoadingScreen loadingScreen;
+        public RuntimeSets runtimeSets;
+        public GameSoundHandler gameSoundHandler;
+
+        [SerializeField] private AsteroidInspectorRuntimeData asteroidInspectorRuntimeData;
+        [SerializeField] private LayerMask asteroidLayerMask;
+        [SerializeField] private AsteroidCursor asteroidCursor;
         #endregion
 
         #region Methods
@@ -35,14 +42,35 @@ namespace LooCast.Manager
                 Instance = this;
             }
 
-            RuntimeSets.Initialize();
+            runtimeSets.Initialize();
             IsPaused = false;
             KillsStatistic.Kills = 0;
         }
 
+        private void Update()
+        {
+            if (Input.GetMouseButtonDown(1))
+            {
+                RaycastHit hit;
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+    
+                if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidLayerMask))
+                {
+                    Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
+                    asteroidInspectorRuntimeData.CurrentAsteroid = hitAsteroid;
+                    asteroidCursor.CurrentAsteroid = hitAsteroid;
+                }
+                else
+                {
+                    asteroidInspectorRuntimeData.CurrentAsteroid = null;
+                    asteroidCursor.CurrentAsteroid = null;
+                }
+            }
+        }
+
         private void OnApplicationQuit()
         {
-            RuntimeSets.Initialize();
+            runtimeSets.Initialize();
         }
 
         public void Pause()
@@ -83,7 +111,7 @@ namespace LooCast.Manager
 
         public void LoadScene(string sceneIndex)
         {
-            StartCoroutine(LoadingScreen.LoadSceneAsynchronously(sceneIndex));
+            StartCoroutine(loadingScreen.LoadSceneAsynchronously(sceneIndex));
         }
         #endregion
     }

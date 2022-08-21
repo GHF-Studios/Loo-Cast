@@ -89,7 +89,7 @@ namespace LooCast.Movement
                 {
                     RuntimeData.CurrentEnergy.Value = 0.0f;
                     RuntimeData.IsEnergyDepleted.Value = true;
-                    GameManager.Instance.GameSoundHandler.SoundCooldown();
+                    GameManager.Instance.gameSoundHandler.SoundCooldown();
                 }
                 else
                 {

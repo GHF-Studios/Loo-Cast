@@ -25,9 +25,9 @@ namespace LooCast.UI.Inspector
                 }
                 else
                 {
-                    gameObject.SetActive(true);
                     asteroidInfoPanel.CurrentAsteroid = runtimeData.CurrentAsteroid; 
                     asteroidResourceDepositsPanel.CurrentAsteroid = runtimeData.CurrentAsteroid;
+                    gameObject.SetActive(true);
                 }
             });
 
