@@ -462,8 +462,9 @@ GameObject:
   - component: {fileID: 53351032}
   - component: {fileID: 53351034}
   - component: {fileID: 53351033}
+  - component: {fileID: 53351035}
   m_Layer: 5
-  m_Name: Resource Deposits Property Panel
+  m_Name: Asteroid Resource Deposits Panel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -570,6 +571,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 53351029}
   m_CullTransparentMesh: 1
+--- !u!114 &53351035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 53351029}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3d9036eb42733241b986181810779e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  resourceDepositLabelParent: {fileID: 462290857}
+  resourceDepositValueParent: {fileID: 302066032}
+  textPrefab: {fileID: 8190086052928977992, guid: ad7ba088ec1f4ef4b87c5e505c14785b, type: 3}
 --- !u!1 &59765269
 GameObject:
   m_ObjectHideFlags: 0
@@ -3957,8 +3973,9 @@ GameObject:
   - component: {fileID: 969401801}
   - component: {fileID: 969401803}
   - component: {fileID: 969401802}
+  - component: {fileID: 969401804}
   m_Layer: 5
-  m_Name: General Information Property Panel
+  m_Name: Asteroid Info Panel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4065,6 +4082,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 969401798}
   m_CullTransparentMesh: 1
+--- !u!114 &969401804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 969401798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebc7caae2cd01a548b92c001d901732f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sizeValue: {fileID: 1000699790}
+  rarityValue: {fileID: 294734145}
+  massValue: {fileID: 1704303262}
 --- !u!1 &999689475
 GameObject:
   m_ObjectHideFlags: 0
@@ -5141,6 +5173,7 @@ GameObject:
   - component: {fileID: 1187248584}
   - component: {fileID: 1187248583}
   - component: {fileID: 1187248585}
+  - component: {fileID: 1187248586}
   m_Layer: 5
   m_Name: Asteroid Inspector
   m_TagString: Untagged
@@ -5217,7 +5250,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.7490196}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -5248,6 +5281,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_HorizontalFit: 2
   m_VerticalFit: 2
+--- !u!114 &1187248586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1187248579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2842130ef94dadc4d899fef8d59e286d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  runtimeData: {fileID: 11400000, guid: d7e8de18391723b499d77d1e0c23136c, type: 2}
+  asteroidInfoPanel: {fileID: 969401804}
+  asteroidResourceDepositsPanel: {fileID: 53351035}
 --- !u!1 &1219183374
 GameObject:
   m_ObjectHideFlags: 0

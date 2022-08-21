@@ -8,6 +8,7 @@ namespace LooCast.Asteroid
     using Data.Runtime;
     using LooCast.Chance;
     using LooCast.Resource;
+    using LooCast.UI.Inspector.Data.Runtime;
 
     public class Asteroid : MonoBehaviour
     {
@@ -62,15 +63,19 @@ namespace LooCast.Asteroid
         #region Properties
         public Size AsteroidSize {get; private set;}
         public Rarity AsteroidRarity {get; private set;}
-        public float TotalMass {get; private set;}
+        public float Mass {get; private set;}
         public ResourceDeposit[] ResourceDeposits {get; private set;}
+        #endregion
+
+        #region Serialized Fields
+        [SerializeField] private AsteroidInspectorRuntimeData asteroidInspectorRuntimeData;
         #endregion
 
         #region Fields
         private MeshFilter meshFilter;
         private MeshRenderer meshRenderer;
         private MeshCollider meshCollider;
-        private Rigidbody rigidbody;
+        private new Rigidbody rigidbody;
         #endregion
 
         #region Unity Callbacks
@@ -100,7 +105,7 @@ namespace LooCast.Asteroid
             AsteroidSizeData asteroidSizeData = Data.AsteroidSizeDatas[(int)AsteroidSize];
             AsteroidRarityData asteroidRarityData = Data.AsteroidRarityDatas[(int)AsteroidRarity];
 
-            TotalMass = asteroidSizeData.Mass.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
+            Mass = asteroidSizeData.Mass.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
 
             #region Deposit Creation
             //First we get all the deposit weights and calculate the deposit weight sum
@@ -123,7 +128,7 @@ namespace LooCast.Asteroid
             float[] depositMasses = new float[totalMassFractions.Length];
             for (int i = 0; i < depositMasses.Length; i++)
             {
-                depositMasses[i] = TotalMass * totalMassFractions[i];
+                depositMasses[i] = Mass * totalMassFractions[i];
             }
 
             //Finally we actually create the deposits
@@ -156,12 +161,8 @@ namespace LooCast.Asteroid
         {
             if (Input.GetMouseButtonDown(1))
             {
-                string message = "Total: " + string.Format("{0:n0}", TotalMass) + "t\n";
-                foreach (ResourceDeposit resourceDeposit in ResourceDeposits)
-                {
-                    message += $"{resourceDeposit.Resource.ResourceName}: " + string.Format("{0:n0}", resourceDeposit.Deposit) + "t\n";
-                }
-                Debug.Log(message);
+                asteroidInspectorRuntimeData.CurrentAsteroid = this;
+                Debug.Log("I've been hovered");
             }
         }
         #endregion
