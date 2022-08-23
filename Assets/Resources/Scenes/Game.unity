@@ -490,7 +490,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 197.07431, y: 0}
+  m_AnchoredPosition: {x: 195.65918, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &53351031
@@ -1788,7 +1788,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 169.78363, y: 0}
+  m_AnchoredPosition: {x: 170.80386, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!114 &294734144
@@ -2067,7 +2067,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 10, y: 0}
-  m_SizeDelta: {x: 334.14862, y: 0}
+  m_SizeDelta: {x: 331.31836, y: 0}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &439039444
 MonoBehaviour:
@@ -3215,7 +3215,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 238.94638, y: 0}
+  m_AnchoredPosition: {x: 241.54341, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &647433641
@@ -3900,7 +3900,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 197.07431, y: 0}
+  m_AnchoredPosition: {x: 195.65918, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &969401800
@@ -4076,7 +4076,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 169.78363, y: 0}
+  m_AnchoredPosition: {x: 170.80386, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!114 &1000699789
@@ -5614,7 +5614,7 @@ MonoBehaviour:
   runtimeSets: {fileID: 11400000, guid: 42d5c62f6e4482b4c97a5a3b9df2cca5, type: 2}
   gameSoundHandler: {fileID: 2135698538}
   asteroidInspectorRuntimeData: {fileID: 11400000, guid: d7e8de18391723b499d77d1e0c23136c, type: 2}
-  asteroidLayerMask:
+  asteroidCursorLayerMask:
     serializedVersion: 2
     m_Bits: 16384
   asteroidCursor: {fileID: 1614225562}
@@ -5964,7 +5964,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 10, y: 0}
-  m_SizeDelta: {x: 323.8382, y: 0}
+  m_SizeDelta: {x: 326.94534, y: 0}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &1608763989
 MonoBehaviour:
@@ -6406,7 +6406,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 169.78363, y: 0}
+  m_AnchoredPosition: {x: 170.80386, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!114 &1704303261
@@ -7106,7 +7106,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 37.02728, y: 0}
+  m_AnchoredPosition: {x: 38.07074, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1844191857
@@ -7794,7 +7794,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 177.07431, y: 0}
+  m_AnchoredPosition: {x: 175.65918, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1993054903
@@ -8035,7 +8035,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 171.9191, y: 0}
+  m_AnchoredPosition: {x: 173.47267, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2047996846
@@ -8476,9 +8476,5 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1593778177651288809, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}
-      propertyPath: soundHandler
-      value: 
-      objectReference: {fileID: 2135698538}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3093ebb228f044a43874ee159ba7e215, type: 3}

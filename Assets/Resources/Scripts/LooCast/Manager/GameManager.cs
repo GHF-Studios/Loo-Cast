@@ -26,7 +26,7 @@ namespace LooCast.Manager
         public GameSoundHandler gameSoundHandler;
 
         [SerializeField] private AsteroidInspectorRuntimeData asteroidInspectorRuntimeData;
-        [SerializeField] private LayerMask asteroidLayerMask;
+        [SerializeField] private LayerMask asteroidCursorLayerMask;
         [SerializeField] private AsteroidCursor asteroidCursor;
         #endregion
 
@@ -54,7 +54,7 @@ namespace LooCast.Manager
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
     
-                if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidLayerMask))
+                if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask))
                 {
                     Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
                     asteroidInspectorRuntimeData.CurrentAsteroid = hitAsteroid;
@@ -71,7 +71,7 @@ namespace LooCast.Manager
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-                if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidLayerMask))
+                if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask))
                 {
                     Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
                     if (hitAsteroid == asteroidCursor.CurrentAsteroid)
