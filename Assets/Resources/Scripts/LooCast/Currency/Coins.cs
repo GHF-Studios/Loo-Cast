@@ -38,6 +38,11 @@ namespace LooCast.Currency
         public IntVariable Balance;
         public IntVariable ProposedBalanceChange;
 
+        private void OnValidate()
+        {
+            Save(true);
+        }
+
         private void OnEnable()
         {
             Load();
