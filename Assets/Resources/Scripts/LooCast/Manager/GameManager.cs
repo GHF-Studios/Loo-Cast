@@ -66,6 +66,22 @@ namespace LooCast.Manager
                     asteroidCursor.CurrentAsteroid = null;
                 }
             }
+            else if (Input.GetMouseButtonDown(0))
+            {
+                RaycastHit hit;
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+                if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidLayerMask))
+                {
+                    Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
+                    if (hitAsteroid == asteroidCursor.CurrentAsteroid)
+                    {
+                        asteroidInspectorRuntimeData.CurrentAsteroid = null;
+                        asteroidCursor.CurrentAsteroid = null;
+                    }
+                    Destroy(hitAsteroid.gameObject);
+                }
+            }
         }
 
         private void OnApplicationQuit()

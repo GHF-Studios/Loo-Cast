@@ -18,19 +18,16 @@ namespace LooCast.UI.Panel
             }
             set
             {
-                if (currentAsteroid == null)
+                if (value == null)
                 {
-                    for (int i = 0; i < value.ResourceDeposits.Length; i++)
-                    {
-                        GameObject resourceDepositLabel = Instantiate(textPrefab, resourceDepositLabelParent);
-                        GameObject resourceDepositValue = Instantiate(textPrefab, resourceDepositValueParent);
-                    }
+                    currentAsteroid = null;
+                    return;
                 }
                 else
                 {
-                    if (currentAsteroid.ResourceDeposits.Length < value.ResourceDeposits.Length)
+                    if (resourceDepositLabelParent.childCount < value.ResourceDeposits.Length)
                     {
-                        int amountNewDeposits = value.ResourceDeposits.Length - currentAsteroid.ResourceDeposits.Length;
+                        int amountNewDeposits = value.ResourceDeposits.Length - resourceDepositLabelParent.childCount;
                         for (int i = 0; i < amountNewDeposits; i++)
                         {
                             GameObject resourceDepositLabel = Instantiate(textPrefab, resourceDepositLabelParent);
@@ -39,7 +36,7 @@ namespace LooCast.UI.Panel
                     }
                     else
                     {
-                        int amountOldDeposits = currentAsteroid.ResourceDeposits.Length - value.ResourceDeposits.Length;
+                        int amountOldDeposits = resourceDepositLabelParent.childCount - value.ResourceDeposits.Length;
                         for (int i = 0; i < amountOldDeposits; i++)
                         {
                             Destroy(resourceDepositLabelParent.GetChild(i).gameObject);

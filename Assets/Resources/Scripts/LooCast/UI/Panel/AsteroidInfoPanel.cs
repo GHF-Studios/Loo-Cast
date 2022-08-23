@@ -18,6 +18,7 @@ namespace LooCast.UI.Panel
             set
             {
                 currentAsteroid = value;
+                Refresh();
             }
         }
         private Asteroid currentAsteroid;
