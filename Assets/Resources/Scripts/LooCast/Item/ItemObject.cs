@@ -3,23 +3,20 @@ using UnityEngine;
 
 namespace LooCast.Item
 {
-    public abstract class ItemObject : MonoBehaviour
-    {
-        public Item Item
-        {
-            get
-            {
-                return item;
-            }
-        }
-        [SerializeField] private Item item;
+    using LooCast.Core;
+    using LooCast.Util;
 
-        private void Awake()
+    [RequireComponent(typeof(SpriteRenderer))]
+    public abstract class ItemObject : ExtendedMonoBehaviour
+    {
+        public Item Item { get; protected set; }
+        public SpriteRenderer SpriteRenderer { get; protected set; }
+
+        protected void Initialize(Item item)
         {
-            if (Item == null)
-            {
-                throw new Exception("Item is null!");
-            }
+            Item = item;
+            SpriteRenderer = GetComponent<SpriteRenderer>();
+            SpriteRenderer.sprite = item.Sprite;
         }
     }
 }

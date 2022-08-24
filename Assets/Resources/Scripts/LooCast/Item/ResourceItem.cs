@@ -1,14 +1,15 @@
 namespace LooCast.Item
 {
+    using Data;
     using LooCast.Resource;
 
-    public abstract class ResourceItem : AmountableItem
+    public class ResourceItem : AmountableItem
     {
-        public abstract Resource Resource { get; protected set; }
+        public Resource Resource { get; protected set; }
 
-        public ResourceItem(string name, float maxAmount, float amount, Resource resource) : base(name, maxAmount, amount)
+        public ResourceItem(ResourceItemData data) : base(data)
         {
-            Resource = resource;
+            Resource = data.Resource;
         }
     }
 }

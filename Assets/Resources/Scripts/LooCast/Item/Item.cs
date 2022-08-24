@@ -6,11 +6,13 @@ namespace LooCast.Item
 
     public abstract class Item
     {
-        public abstract string Name { get; protected set; }
+        public string Name { get; protected set; }
+        public Sprite Sprite { get; protected set; }
 
-        public Item(string name)
+        public Item(ItemData data)
         {
-            Name = name;
+            Name = data.Name;
+            Sprite = data.Sprite;
         }
     }
 }

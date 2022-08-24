@@ -4,13 +4,13 @@ namespace LooCast.Item
 
     public abstract class CountableItem : Item
     {
-        public abstract int MaxCount { get; protected set; }
-        public abstract int Count { get; protected set; }
+        public int MaxCount { get; protected set; }
+        public int Count { get; protected set; }
 
-        public CountableItem(string name, int maxCount, int count) : base(name)
+        public CountableItem(CountableItemData data) : base(data)
         {
-            MaxCount = maxCount;
-            Count = count;
+            MaxCount = data.MaxCount;
+            Count = 0;
         }
     }
 }

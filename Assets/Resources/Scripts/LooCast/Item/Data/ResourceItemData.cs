@@ -4,7 +4,8 @@ namespace LooCast.Item.Data
 {
     using LooCast.Resource;
 
-    public abstract class ResourceItemData : ScriptableObject
+    [CreateAssetMenu(fileName = "ResourceItemData", menuName = "Data/Item/ResourceItemData", order = 0)]
+    public class ResourceItemData : AmountableItemData
     {
         public Resource Resource;
     }

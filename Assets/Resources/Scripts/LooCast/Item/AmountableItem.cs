@@ -4,13 +4,13 @@ namespace LooCast.Item
 
     public abstract class AmountableItem : Item
     {
-        public abstract float MaxAmount { get; protected set; }
-        public abstract float Amount { get; protected set; }
+        public float MaxAmount { get; protected set; }
+        public float Amount { get; protected set; }
 
-        public AmountableItem(string name, float maxAmount, float amount) : base(name)
+        public AmountableItem(AmountableItemData data) : base(data)
         {
-            MaxAmount = maxAmount;
-            Amount = amount;
+            MaxAmount = data.MaxAmount;
+            Amount = 0.0f;
         }
     }
 }
