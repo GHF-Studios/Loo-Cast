@@ -7,9 +7,12 @@ namespace LooCast.Item
 
     public abstract class CountableItemObject : ItemObject
     {
-        protected new void Initialize(Item item)
+        public CountableItem CountableItem { get; protected set; }
+
+        protected void Initialize(CountableItem countableItem)
         {
-            base.Initialize(item);
+            base.Initialize(countableItem);
+            CountableItem = countableItem;
         }
     }
 }

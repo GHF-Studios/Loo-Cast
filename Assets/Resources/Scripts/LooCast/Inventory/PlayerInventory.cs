@@ -6,6 +6,7 @@ namespace LooCast.Inventory
 {
     using Data;
     using Data.Runtime;
+    using LooCast.Item;
 
     public sealed class PlayerInventory : MonoBehaviour
     {

@@ -9,10 +9,12 @@ namespace LooCast.Item
     {
         [SerializeField] protected ResourceItemData data;
 
+        public ResourceItem ResourceItem { get; protected set; }
+
         private void Start()
         {
-            Item item = new ResourceItem(data);
-            base.Initialize(item);
+            ResourceItem = new ResourceItem(data);
+            Initialize(ResourceItem);
         }
     }
 }

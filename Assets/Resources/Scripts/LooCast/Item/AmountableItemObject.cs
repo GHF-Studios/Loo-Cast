@@ -7,9 +7,12 @@ namespace LooCast.Item
 
     public abstract class AmountableItemObject : ItemObject
     {
-        protected new void Initialize(Item item)
+        public AmountableItem AmountableItem { get; protected set; }
+
+        protected void Initialize(AmountableItem amountableItem)
         {
-            base.Initialize(item);
+            base.Initialize(amountableItem);
+            AmountableItem = amountableItem;
         }
     }
 }
