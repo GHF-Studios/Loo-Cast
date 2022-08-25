@@ -1,5 +1,5 @@
-using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace LooCast.Item
 {
@@ -9,11 +9,35 @@ namespace LooCast.Item
     [RequireComponent(typeof(SpriteRenderer))]
     public abstract class ItemObject : ExtendedMonoBehaviour
     {
-        public Item Item { get; protected set; }
+        public UnityEvent OnItemChanged
+        {
+            get
+            {
+                return onItemChanged;
+            }
+        }
+        public Item Item
+        {
+            get
+            {
+                return item;
+            }
+
+            set
+            {
+                item = value;
+                onItemChanged.Invoke();
+            }
+        }
         public SpriteRenderer SpriteRenderer { get; protected set; }
+
+        private UnityEvent onItemChanged;
+        private Item item;
 
         protected void Initialize(Item item)
         {
+            onItemChanged = new UnityEvent();
+
             Item = item;
             SpriteRenderer = GetComponent<SpriteRenderer>();
             SpriteRenderer.sprite = item.Sprite;
@@ -25,9 +49,14 @@ namespace LooCast.Item
             {
                 PlayerInventory playerInventory = collider.GetComponent<PlayerInventory>();
                 ItemContainer playerItemContainer = playerInventory.RuntimeData.ItemContainer;
-                if (playerItemContainer.CanFit(Item))
+
+                playerItemContainer.AddItem(Item, out Item remainingItem);
+                if (remainingItem != null)
                 {
-                    playerItemContainer.AddItem(Item);
+                    Item = remainingItem;
+                }
+                else
+                {
                     Destroy(gameObject);
                 }
             }

@@ -20,6 +20,7 @@ namespace LooCast.Item
 
             Rigidbody2D = GetComponent<Rigidbody2D>();
             ResourceItem.OnAmountChanged.AddListener(() => { Refresh(); });
+            OnItemChanged.AddListener(() => { Refresh(); });
 
             SpriteRenderer = GetComponent<SpriteRenderer>();
 

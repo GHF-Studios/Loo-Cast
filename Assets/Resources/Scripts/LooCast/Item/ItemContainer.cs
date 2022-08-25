@@ -40,7 +40,7 @@ namespace LooCast.Item
             onSlotsChanged = new UnityEvent<int[]>();
         }
 
-        public void AddItem(Item item)
+        public void AddItem(Item item, out Item remainingItem)
         {
             if (item == null)
             {
@@ -48,18 +48,21 @@ namespace LooCast.Item
             }
             else if (item is CountableItem)
             {
-                AddItem((CountableItem)item, out int[] changedSlots);
+                AddItem((CountableItem)item, out CountableItem remainingCountableItem, out int[] changedSlots);
+                remainingItem = remainingCountableItem;
                 onSlotsChanged.Invoke(changedSlots);
             }
             else if (item is AmountableItem)
             {
-                AddItem((AmountableItem)item, out int[] changedSlots);
+                AddItem((AmountableItem)item, out AmountableItem remainingAmountableItem, out int[] changedSlots);
+                remainingItem = remainingAmountableItem;
                 onSlotsChanged.Invoke(changedSlots);
             }
             else if (item is UniqueItem)
             {
-                AddItem((UniqueItem)item, out int[] changedSlots);
-                onSlotsChanged.Invoke(changedSlots);
+                AddItem((UniqueItem)item, out UniqueItem remainingUniqueItem, out int? changedSlot);
+                remainingItem = remainingUniqueItem;
+                onSlotsChanged.Invoke(changedSlot != null ? new int[] { (int)changedSlot } : Array.Empty<int>());
             }
             else
             {
@@ -67,118 +70,102 @@ namespace LooCast.Item
             }
         }
 
-        private void AddItem(CountableItem countableItem, out int[] changedSlots)
+        private void AddItem(CountableItem countableItem, out CountableItem remainingCountableItem, out int[] changedSlots)
         {
-            if (CanFit(countableItem))
+            remainingCountableItem = countableItem;
+            List<int> changedSlotsList = new List<int>();
+            for (int i = 0; i < itemSlots.Length; i++)
             {
-                int countToAdd = countableItem.Count;
-                List<int> changedSlotsList = new List<int>();
-                for (int i = 0; i < itemSlots.Length; i++)
+                if (itemSlots[i] == null)
                 {
-                    if (itemSlots[i] == null)
+                    itemSlots[i] = remainingCountableItem;
+                    remainingCountableItem = null;
+
+                    changedSlotsList.Add(i);
+                    break;
+                }
+                else if (itemSlots[i].Equals(remainingCountableItem))
+                {
+                    CountableItem countableItemSlot = (CountableItem)itemSlots[i];
+                    if (!countableItemSlot.IsFull())
                     {
-                        countableItem.Count = countToAdd;
-                        changedSlotsList.Add(i);
-                        changedSlots = changedSlotsList.ToArray();
-                        return;
-                    }
-                    else if (itemSlots[i].Equals(countableItem))
-                    {
-                        CountableItem itemSlot = (CountableItem)itemSlots[i];
-                        if (!itemSlot.IsFull())
+                        int freeCount = countableItemSlot.GetFreeCount();
+                        if (freeCount >= remainingCountableItem.Count)
                         {
-                            int freeCount = itemSlot.GetFreeCount();
-                            if (countToAdd > freeCount)
-                            {
-                                itemSlot.Count = itemSlot.MaxCount;
-                                countToAdd -= freeCount;
-                                changedSlotsList.Add(i);
-                            }
-                            else if (countToAdd < freeCount)
-                            {
-                                itemSlot.Count += countToAdd;
-                                changedSlotsList.Add(i);
-                                changedSlots = changedSlotsList.ToArray();
-                                return;
-                            }
-                            else
-                            {
-                                itemSlot.Count = itemSlot.MaxCount;
-                                changedSlotsList.Add(i);
-                                changedSlots = changedSlotsList.ToArray();
-                                return;
-                            }
+                            countableItemSlot.Count += remainingCountableItem.Count;
+                            remainingCountableItem = null;
+
+                            changedSlotsList.Add(i);
+                            break;
+                        }
+                        else
+                        {
+                            countableItemSlot.Count = countableItemSlot.MaxCount;
+                            remainingCountableItem.Count -= freeCount;
+
+                            changedSlotsList.Add(i);
                         }
                     }
                 }
             }
-            changedSlots = Array.Empty<int>();
+            changedSlots = changedSlotsList.ToArray();
         }
 
-        private void AddItem(AmountableItem amountableItem, out int[] changedSlots)
+        private void AddItem(AmountableItem amountableItem, out AmountableItem remainingAmountableItem, out int[] changedSlots)
         {
-            if (CanFit(amountableItem))
+            remainingAmountableItem = amountableItem;
+            List<int> changedSlotsList = new List<int>();
+            for (int i = 0; i < itemSlots.Length; i++)
             {
-                float amountToAdd = amountableItem.Amount;
-                List<int> changedSlotsList = new List<int>();
-                for (int i = 0; i < itemSlots.Length; i++)
+                if (itemSlots[i] == null)
                 {
-                    if (itemSlots[i] == null)
+                    itemSlots[i] = remainingAmountableItem;
+                    remainingAmountableItem = null;
+
+                    changedSlotsList.Add(i);
+                    break;
+                }
+                else if (itemSlots[i].Equals(remainingAmountableItem))
+                {
+                    AmountableItem amountableItemSlot = (AmountableItem)itemSlots[i];
+                    if (!amountableItemSlot.IsFull())
                     {
-                        amountableItem.Amount = amountToAdd;
-                        itemSlots[i] = amountableItem;
-                        changedSlotsList.Add(i);
-                        changedSlots = changedSlotsList.ToArray();
-                        return;
-                    }
-                    else if (itemSlots[i].Equals(amountableItem))
-                    {
-                        AmountableItem itemSlot = (AmountableItem)itemSlots[i];
-                        if (!itemSlot.IsFull())
+                        float freeAmount = amountableItemSlot.GetFreeAmount();
+                        if (freeAmount >= remainingAmountableItem.Amount)
                         {
-                            float freeAmount = itemSlot.GetFreeAmount();
-                            if (amountToAdd > freeAmount)
-                            {
-                                itemSlot.Amount = itemSlot.MaxAmount;
-                                amountToAdd -= freeAmount;
-                                changedSlotsList.Add(i);
-                            }
-                            else if (amountToAdd < freeAmount)
-                            {
-                                itemSlot.Amount += amountToAdd;
-                                changedSlotsList.Add(i);
-                                changedSlots = changedSlotsList.ToArray();
-                                return;
-                            }
-                            else
-                            {
-                                itemSlot.Amount = itemSlot.MaxAmount;
-                                changedSlotsList.Add(i);
-                                changedSlots = changedSlotsList.ToArray();
-                                return;
-                            }
+                            amountableItemSlot.Amount += remainingAmountableItem.Amount;
+                            remainingAmountableItem = null;
+
+                            changedSlotsList.Add(i);
+                            break;
+                        }
+                        else
+                        {
+                            amountableItemSlot.Amount = amountableItemSlot.MaxAmount;
+                            remainingAmountableItem.Amount -= freeAmount;
+
+                            changedSlotsList.Add(i);
                         }
                     }
                 }
             }
-            changedSlots = Array.Empty<int>();
+            changedSlots = changedSlotsList.ToArray();
         }
 
-        private void AddItem(UniqueItem uniqueItem, out int[] changedSlots)
+        private void AddItem(UniqueItem uniqueItem, out UniqueItem remainingUniqueItem, out int? changedSlot)
         {
-            if (CanFit(uniqueItem))
+            for (int i = 0; i < itemSlots.Length; i++)
             {
-                for (int i = 0; i < itemSlots.Length; i++)
+                if (itemSlots[i] == null)
                 {
-                    if (itemSlots[i] == null)
-                    {
-                        itemSlots[i] = uniqueItem;
-                        changedSlots = new int[] { i };
-                        return;
-                    }
+                    itemSlots[i] = uniqueItem;
+                    remainingUniqueItem = null;
+                    changedSlot = i;
+                    return;
                 }
             }
-            changedSlots = Array.Empty<int>();
+            remainingUniqueItem = uniqueItem;
+            changedSlot = null;
         }
 
         public void SetItem(int slot, Item item)
@@ -223,114 +210,6 @@ namespace LooCast.Item
                 }
             }
             return false;
-        }
-
-        public bool CanFit(Item item)
-        {
-            if (item == null)
-            {
-                throw new ArgumentNullException("Item cannot be null!");
-            }
-            else if (item is CountableItem)
-            {
-                return CanFit((CountableItem)item);
-            }
-            else if (item is AmountableItem)
-            {
-                return CanFit((AmountableItem)item);
-            }
-            else if (item is UniqueItem)
-            {
-                return CanFit((UniqueItem)item);
-            }
-            else
-            {
-                throw new NotSupportedException("Unsupported Item Type!");
-            }
-        }
-
-        private bool CanFit(CountableItem countableItem)
-        {
-            List<CountableItem> partiallyVacantSlots = new List<CountableItem>();
-            for (int i = 0; i < itemSlots.Length; i++)
-            {
-                if (itemSlots[i] == null)
-                {
-                    return true;
-                }
-                else if (itemSlots[i].Equals(countableItem))
-                {
-                    CountableItem potentiallyVacantSlot = (CountableItem)itemSlots[i];
-                    if (!potentiallyVacantSlot.IsFull())
-                    {
-                        partiallyVacantSlots.Add(potentiallyVacantSlot);
-                    }
-                }
-            }
-
-            if (partiallyVacantSlots.Count == 0)
-            {
-                return false;
-            }
-
-            int countToAdd = countableItem.Count;
-            foreach (CountableItem partiallyVacantSlot in partiallyVacantSlots)
-            {
-                countToAdd -= partiallyVacantSlot.GetFreeCount();
-                if (countToAdd <= 0)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool CanFit(AmountableItem amountableItem)
-        {
-            List<AmountableItem> partiallyVacantSlots = new List<AmountableItem>();
-            for (int i = 0; i < itemSlots.Length; i++)
-            {
-                if (itemSlots[i] == null)
-                {
-                    return true;
-                }
-                else if (itemSlots[i].Equals(amountableItem))
-                {
-                    AmountableItem potentiallyVacantSlot = (AmountableItem)itemSlots[i];
-                    if (!potentiallyVacantSlot.IsFull())
-                    {
-                        partiallyVacantSlots.Add(potentiallyVacantSlot);
-                    }
-                }
-            }
-
-            if (partiallyVacantSlots.Count == 0)
-            {
-                return false;
-            }
-
-            float amountToAdd = amountableItem.Amount;
-            foreach (AmountableItem partiallyVacantSlot in partiallyVacantSlots)
-            {
-                amountToAdd -= partiallyVacantSlot.GetFreeAmount();
-                if (amountToAdd <= 0.0f)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool CanFit(UniqueItem uniqueItem)
-        {
-            for (int i = 0; i < itemSlots.Length; i++)
-                {
-                    if (itemSlots[i] == null)
-                    {
-                        return true;
-                    }
-                }
-                return false;
         }
 
         public void Clear()
