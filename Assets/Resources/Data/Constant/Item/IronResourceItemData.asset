@@ -16,5 +16,5 @@ MonoBehaviour:
   Sprite: {fileID: 21300000, guid: 46ab649ed131b1743938b4a2a2c9a141, type: 3}
   ItemObjectPrefab: {fileID: 1246603900679997429, guid: c9f20f2e0f73ccb4c90d24d570799091, type: 3}
   MaxAmount: 1000
-  DefaultAmount: 0.001
+  DefaultAmount: 10
   Resource: {fileID: 11400000, guid: a6d9bf343a26a1c45b1f51a8eca34df5, type: 2}

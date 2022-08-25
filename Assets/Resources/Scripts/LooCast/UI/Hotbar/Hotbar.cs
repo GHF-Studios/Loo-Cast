@@ -14,14 +14,14 @@ namespace LooCast.UI.Hotbar
 
         private void Start()
         {
-            playerInventoryRuntimeData.ItemContainer.OnContentChanged.AddListener(() => { Refresh(); });
+            playerInventoryRuntimeData.ItemContainer.OnContentChanged.AddListener((slots) => { RefreshSlots(slots); });
         }
 
-        public void Refresh()
+        public void RefreshSlots(int[] slots)
         {
-            for (int i = 0; i < hotbarSlots.Length; i++)
+            foreach (int slot in slots)
             {
-                hotbarSlots[i].Item = playerInventoryRuntimeData.ItemContainer.GetItem(i);
+                hotbarSlots[slot].Item = playerInventoryRuntimeData.ItemContainer.GetItem(slot);
             }
         }
     }

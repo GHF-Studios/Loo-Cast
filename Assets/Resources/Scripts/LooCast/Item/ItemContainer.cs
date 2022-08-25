@@ -7,14 +7,14 @@ namespace LooCast.Item
     public sealed class ItemContainer
     {
         private Item[] itemSlots;
-        public UnityEvent OnContentChanged
+        public UnityEvent<int[]> OnContentChanged
         {
             get
             {
                 return onContentChanged;
             }
         }
-        private UnityEvent onContentChanged;
+        private UnityEvent<int[]> onContentChanged;
 
         public ItemContainer(int slotCount)
         {
@@ -23,7 +23,7 @@ namespace LooCast.Item
                 throw new ArgumentOutOfRangeException("Slot Count must be greater than 0!");
             }
             itemSlots = new Item[slotCount];
-            onContentChanged = new UnityEvent();
+            onContentChanged = new UnityEvent<int[]>();
         }
 
         public ItemContainer(Item[] items)
@@ -37,7 +37,7 @@ namespace LooCast.Item
                 throw new ArgumentOutOfRangeException("Items must have atleast one entry!");
             }
             itemSlots = items;
-            onContentChanged = new UnityEvent();
+            onContentChanged = new UnityEvent<int[]>();
         }
 
         public void AddItem(Item item)
@@ -48,18 +48,18 @@ namespace LooCast.Item
             }
             else if (item is CountableItem)
             {
-                AddItem((CountableItem)item);
-                onContentChanged.Invoke();
+                AddItem((CountableItem)item, out int[] changedSlots);
+                onContentChanged.Invoke(changedSlots);
             }
             else if (item is AmountableItem)
             {
-                AddItem((AmountableItem)item);
-                onContentChanged.Invoke();
+                AddItem((AmountableItem)item, out int[] changedSlots);
+                onContentChanged.Invoke(changedSlots);
             }
             else if (item is UniqueItem)
             {
-                AddItem((UniqueItem)item);
-                onContentChanged.Invoke();
+                AddItem((UniqueItem)item, out int[] changedSlots);
+                onContentChanged.Invoke(changedSlots);
             }
             else
             {
@@ -67,16 +67,19 @@ namespace LooCast.Item
             }
         }
 
-        private void AddItem(CountableItem countableItem)
+        private void AddItem(CountableItem countableItem, out int[] changedSlots)
         {
             if (CanFit(countableItem))
             {
                 int countToAdd = countableItem.Count;
+                List<int> changedSlotsList = new List<int>();
                 for (int i = 0; i < itemSlots.Length; i++)
                 {
                     if (itemSlots[i] == null)
                     {
                         itemSlots[i] = countableItem;
+                        changedSlots = new int[] { i };
+                        return;
                     }
                     else if (itemSlots[i].Equals(countableItem))
                     {
@@ -88,33 +91,42 @@ namespace LooCast.Item
                             {
                                 itemSlot.Count = itemSlot.MaxCount;
                                 countToAdd -= freeCount;
+                                changedSlotsList.Add(i);
                             }
                             else if (countToAdd < freeCount)
                             {
                                 itemSlot.Count += countToAdd;
+                                changedSlotsList.Add(i);
+                                changedSlots = changedSlotsList.ToArray();
                                 return;
                             }
                             else
                             {
                                 itemSlot.Count = itemSlot.MaxCount;
+                                changedSlotsList.Add(i);
+                                changedSlots = changedSlotsList.ToArray();
                                 return;
                             }
                         }
                     }
                 }
             }
+            changedSlots = Array.Empty<int>();
         }
 
-        private void AddItem(AmountableItem amountableItem)
+        private void AddItem(AmountableItem amountableItem, out int[] changedSlots)
         {
             if (CanFit(amountableItem))
             {
                 float amountToAdd = amountableItem.Amount;
+                List<int> changedSlotsList = new List<int>();
                 for (int i = 0; i < itemSlots.Length; i++)
                 {
                     if (itemSlots[i] == null)
                     {
                         itemSlots[i] = amountableItem;
+                        changedSlots = new int[] { i };
+                        return;
                     }
                     else if (itemSlots[i].Equals(amountableItem))
                     {
@@ -126,24 +138,30 @@ namespace LooCast.Item
                             {
                                 itemSlot.Amount = itemSlot.MaxAmount;
                                 amountToAdd -= freeAmount;
+                                changedSlotsList.Add(i);
                             }
                             else if (amountToAdd < freeAmount)
                             {
                                 itemSlot.Amount += amountToAdd;
+                                changedSlotsList.Add(i);
+                                changedSlots = changedSlotsList.ToArray();
                                 return;
                             }
                             else
                             {
                                 itemSlot.Amount = itemSlot.MaxAmount;
+                                changedSlotsList.Add(i);
+                                changedSlots = changedSlotsList.ToArray();
                                 return;
                             }
                         }
                     }
                 }
             }
+            changedSlots = Array.Empty<int>();
         }
 
-        private void AddItem(UniqueItem uniqueItem)
+        private void AddItem(UniqueItem uniqueItem, out int[] changedSlots)
         {
             if (CanFit(uniqueItem))
             {
@@ -152,10 +170,12 @@ namespace LooCast.Item
                     if (itemSlots[i] == null)
                     {
                         itemSlots[i] = uniqueItem;
+                        changedSlots = new int[] { i };
                         return;
                     }
                 }
             }
+            changedSlots = Array.Empty<int>();
         }
 
         public void SetItem(int slot, Item item)
@@ -169,7 +189,7 @@ namespace LooCast.Item
                 throw new ArgumentOutOfRangeException($"Invalid slot! Slot must be between 0 {itemSlots.Length - 1}!");
             }
             itemSlots[slot] = item;
-            onContentChanged.Invoke();
+            onContentChanged.Invoke(new int[] { slot });
         }
 
         public Item GetItem(int slot)
@@ -313,17 +333,12 @@ namespace LooCast.Item
         public void Clear()
         {
             itemSlots = new Item[itemSlots.Length];
-            onContentChanged.Invoke();
-        }
-
-        public void Clear(int newSlotCount)
-        {
-            if (newSlotCount <= 0)
+            int[] changedSlots = new int[itemSlots.Length];
+            for (int i = 0; i < changedSlots.Length; i++)
             {
-                throw new ArgumentOutOfRangeException("Slot Count must be greater than 0!");
+                changedSlots[i] = i;
             }
-            itemSlots = new Item[newSlotCount];
-            onContentChanged.Invoke();
+            onContentChanged.Invoke(changedSlots);
         }
 
         public bool IsValidSlot(int slot)
