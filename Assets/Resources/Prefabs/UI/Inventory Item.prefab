@@ -106,9 +106,10 @@ GameObject:
   - component: {fileID: 6850456354299182857}
   - component: {fileID: 6850456354299182859}
   - component: {fileID: 6850456354299182856}
-  - component: {fileID: 5648235129051425835}
+  - component: {fileID: 6936508635879720028}
+  - component: {fileID: -1204570536598015056}
   m_Layer: 5
-  m_Name: HotbarSlot
+  m_Name: Inventory Item
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -132,7 +133,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -324, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 64, y: 64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6850456354299182859
@@ -150,7 +151,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6850456354299182854}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
@@ -173,7 +174,7 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &5648235129051425835
+--- !u!114 &6936508635879720028
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -182,8 +183,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 6850456354299182854}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e426e3f3db8caac43bd2b30173617805, type: 3}
+  m_Script: {fileID: 11500000, guid: 56462a068f6b4604dbc9d808e3752304, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   image: {fileID: 6850456354299182856}
   quantityValue: {fileID: 9072974111883956088}
+  canvasGroup: {fileID: -1204570536598015056}
+  rectTransform: {fileID: 6850456354299182857}
+--- !u!225 &-1204570536598015056
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6850456354299182854}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0

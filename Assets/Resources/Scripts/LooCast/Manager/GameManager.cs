@@ -9,9 +9,6 @@ namespace LooCast.Manager
     using LooCast.Sound;
     using LooCast.Core;
     using LooCast.Statistic;
-    using LooCast.Asteroid;
-    using LooCast.UI.Inspector.Data.Runtime;
-    using LooCast.UI.Cursor;
 
     public class GameManager : MonoBehaviour
     {
@@ -24,10 +21,6 @@ namespace LooCast.Manager
         public LoadingScreen loadingScreen;
         public RuntimeSets runtimeSets;
         public GameSoundHandler gameSoundHandler;
-
-        [SerializeField] private AsteroidInspectorRuntimeData asteroidInspectorRuntimeData;
-        [SerializeField] private LayerMask asteroidCursorLayerMask;
-        [SerializeField] private AsteroidCursor asteroidCursor;
         #endregion
 
         #region Unity Callbacks
@@ -45,43 +38,6 @@ namespace LooCast.Manager
             runtimeSets.Initialize();
             IsPaused = false;
             KillsStatistic.Kills = 0;
-        }
-
-        private void Update()
-        {
-            if (Input.GetMouseButtonDown(1))
-            {
-                RaycastHit hit;
-                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-                if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask))
-                {
-                    Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
-                    asteroidInspectorRuntimeData.CurrentAsteroid = hitAsteroid;
-                    asteroidCursor.CurrentAsteroid = hitAsteroid;
-                }
-                else
-                {
-                    asteroidInspectorRuntimeData.CurrentAsteroid = null;
-                    asteroidCursor.CurrentAsteroid = null;
-                }
-            }
-            else if (Input.GetMouseButtonDown(0))
-            {
-                RaycastHit hit;
-                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-                if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask))
-                {
-                    Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
-                    if (hitAsteroid == asteroidCursor.CurrentAsteroid)
-                    {
-                        asteroidInspectorRuntimeData.CurrentAsteroid = null;
-                        asteroidCursor.CurrentAsteroid = null;
-                    }
-                    hitAsteroid.Destroy();
-                }
-            }
         }
 
         private void OnApplicationQuit()

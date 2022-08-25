@@ -23,6 +23,11 @@ namespace LooCast.Item
             MaxObjectScale = data.MaxObjectScale;
         }
 
+        public override string ToString()
+        {
+            return Name;
+        }
+
         public override bool Equals(object obj)
         {
             Item item = (Item)obj;

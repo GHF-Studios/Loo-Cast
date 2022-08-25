@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Events;
 
 namespace LooCast.Item
@@ -170,10 +171,6 @@ namespace LooCast.Item
 
         public void SetItem(int slot, Item item)
         {
-            if (item == null)
-            {
-                throw new ArgumentNullException("Item cannot be null!");
-            }
             if (!IsValidSlot(slot))
             {
                 throw new ArgumentOutOfRangeException($"Invalid slot! Slot must be between 0 {itemSlots.Length - 1}!");
@@ -226,6 +223,24 @@ namespace LooCast.Item
         public bool IsValidSlot(int slot)
         {
             return slot < itemSlots.Length && slot >= 0;
+        }
+
+        public override string ToString()
+        {
+            string message = "";
+            for (int i = 0; i < itemSlots.Length; i++)
+            {
+                message += $"Slot {i}:\t";
+                if (itemSlots[i] != null)
+                {
+                    message += $"{itemSlots[i]}\n";
+                }
+                else
+                {
+                    message += "null\n";
+                }
+            }
+            return message;
         }
     }
 }
