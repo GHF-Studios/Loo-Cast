@@ -14,7 +14,7 @@ namespace LooCast.UI.Hotbar
 
         private void Start()
         {
-            playerInventoryRuntimeData.ItemContainer.OnContentChanged.AddListener((slots) => { RefreshSlots(slots); });
+            playerInventoryRuntimeData.ItemContainer.OnSlotsChanged.AddListener((slots) => { RefreshSlots(slots); });
         }
 
         public void RefreshSlots(int[] slots)

@@ -4,5 +4,6 @@ namespace LooCast.Item.Data
     {
         public float MaxAmount;
         public float DefaultAmount;
+        public float Density;
     }
 }

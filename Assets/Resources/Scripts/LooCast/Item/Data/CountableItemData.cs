@@ -4,5 +4,6 @@ namespace LooCast.Item.Data
     {
         public int MaxCount;
         public int DefaultCount;
+        public float Density;
     }
 }

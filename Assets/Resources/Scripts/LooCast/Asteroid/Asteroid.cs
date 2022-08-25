@@ -8,6 +8,8 @@ namespace LooCast.Asteroid
     using Data.Runtime;
     using LooCast.Chance;
     using LooCast.Resource;
+    using LooCast.Item;
+    using LooCast.Item.Data;
 
     public class Asteroid : MonoBehaviour
     {
@@ -51,6 +53,27 @@ namespace LooCast.Asteroid
                 }
                 return false;
             }
+
+            public void DropAll(Vector3 dropPosition, float maxOffsetMagnitude, ItemDatas itemDatas, ItemObjectPrefabs itemObjectPrefabs)
+            {
+                ResourceItemData resourceItemData = (ResourceItemData)itemDatas.GetItemData(Resource.ResourceName);
+                float depositToDrop = Deposit;
+                while (depositToDrop > resourceItemData.MaxAmount)
+                {
+                    Drop(resourceItemData.MaxAmount);
+                    depositToDrop -= resourceItemData.MaxAmount;
+                }
+                Drop(depositToDrop);
+
+                void Drop(float dropAmount)
+                {
+                    GameObject resourceItemObjectPrefab = itemObjectPrefabs.GetItemObjectPrefab(Resource.ResourceName);
+                    Vector3 randomSpawnPositionOffset = Vector3.one * UnityEngine.Random.Range(-maxOffsetMagnitude, maxOffsetMagnitude);
+                    randomSpawnPositionOffset.z = 0.0f;
+                    ResourceItemObject resourceItemObject = Instantiate(resourceItemObjectPrefab, dropPosition + randomSpawnPositionOffset, Quaternion.identity).GetComponent<ResourceItemObject>();
+                    resourceItemObject.ResourceItem.Amount = dropAmount;
+                }
+            }
         }
         #endregion
 
@@ -67,6 +90,9 @@ namespace LooCast.Asteroid
         #endregion
 
         #region Fields
+        [SerializeField] private ItemDatas itemDatas;
+        [SerializeField] private ItemObjectPrefabs itemObjectPrefabs;
+
         private MeshFilter meshFilter;
         private MeshRenderer meshRenderer;
         private MeshCollider meshCollider;
@@ -164,6 +190,18 @@ namespace LooCast.Asteroid
                 }
             }
             return false;
+        }
+
+        public void Destroy()
+        {
+            foreach (ResourceDeposit resourceDeposit in ResourceDeposits)
+            {
+                if (resourceDeposit.Deposit >= 1.0f)
+                {
+                    resourceDeposit.DropAll(transform.position, meshFilter.mesh.bounds.max.magnitude * 0.75f, itemDatas, itemObjectPrefabs); 
+                }
+            }
+            Destroy(gameObject);
         }
         #endregion
     } 

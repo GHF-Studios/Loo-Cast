@@ -1,4 +1,5 @@
 using System;
+using UnityEngine.Events;
 
 namespace LooCast.Item
 {
@@ -6,6 +7,13 @@ namespace LooCast.Item
 
     public abstract class AmountableItem : Item
     {
+        public UnityEvent OnAmountChanged
+        {
+            get
+            {
+                return onAmountChanged;
+            }
+        }
         public float MaxAmount { get; protected set; }
         public float Amount
         {
@@ -27,15 +35,22 @@ namespace LooCast.Item
                 else
                 {
                     amount = value;
+                    onAmountChanged.Invoke();
                 }
             }
         }
+        public float Density { get; protected set; }
+
         private float amount;
+        private UnityEvent onAmountChanged;
 
         public AmountableItem(AmountableItemData data) : base(data)
         {
+            onAmountChanged = new UnityEvent();
+
             MaxAmount = data.MaxAmount;
             Amount = data.DefaultAmount;
+            Density = data.Density;
         }
 
         public bool IsFull()

@@ -4,7 +4,7 @@ namespace LooCast.Item.Data
 {
     public abstract class ItemData : ScriptableObject
     {
-        public string Name;
+        public string ItemName;
         public Sprite Sprite;
         public GameObject ItemObjectPrefab;
     }

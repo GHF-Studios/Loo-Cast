@@ -30,7 +30,7 @@ namespace LooCast.Manager
         [SerializeField] private AsteroidCursor asteroidCursor;
         #endregion
 
-        #region Methods
+        #region Unity Callbacks
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -53,7 +53,7 @@ namespace LooCast.Manager
             {
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-    
+
                 if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask))
                 {
                     Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
@@ -79,7 +79,7 @@ namespace LooCast.Manager
                         asteroidInspectorRuntimeData.CurrentAsteroid = null;
                         asteroidCursor.CurrentAsteroid = null;
                     }
-                    Destroy(hitAsteroid.gameObject);
+                    hitAsteroid.Destroy();
                 }
             }
         }
@@ -88,7 +88,9 @@ namespace LooCast.Manager
         {
             runtimeSets.Initialize();
         }
+        #endregion
 
+        #region Methods
         public void Pause()
         {
             if (!IsPaused)

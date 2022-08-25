@@ -1,4 +1,5 @@
 using System;
+using UnityEngine.Events;
 
 namespace LooCast.Item
 {
@@ -6,6 +7,13 @@ namespace LooCast.Item
 
     public abstract class CountableItem : Item
     {
+        public UnityEvent OnCountChanged
+        {
+            get
+            {
+                return onCountChanged;
+            }
+        }
         public int MaxCount { get; protected set; }
         public int Count
         {
@@ -27,15 +35,22 @@ namespace LooCast.Item
                 else
                 {
                     count = value;
+                    onCountChanged.Invoke();
                 }
             }
         }
+        public float Density { get; protected set; }
+
+        private UnityEvent onCountChanged;
         private int count;
 
-        public CountableItem(CountableItemData data, int count) : base(data)
+        public CountableItem(CountableItemData data) : base(data)
         {
+            onCountChanged = new UnityEvent();
+
             MaxCount = data.MaxCount;
-            Count = count;
+            Count = data.DefaultCount;
+            Density = data.Density;
         }
 
         public bool IsFull()

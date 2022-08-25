@@ -15,7 +15,7 @@ namespace LooCast.Item
         {
             ID = IDCounter;
             IDCounter++;
-            Name = data.Name;
+            Name = data.ItemName;
             Sprite = data.Sprite;
         }
 
