@@ -44,6 +44,7 @@ namespace LooCast.UI.Inventory
         private UnityEvent onDestroy;
         private Item item;
         private InventorySlot currentInventorySlot;
+        private bool droppedOntoOtherSlot;
 
         #region Unity Callbacks
         private void Start()
@@ -55,6 +56,7 @@ namespace LooCast.UI.Inventory
         {
             canvasGroup.alpha = 0.6f;
             canvasGroup.blocksRaycasts = false;
+            droppedOntoOtherSlot = false;
         }
 
         public void OnDrag(PointerEventData eventData)
@@ -66,6 +68,11 @@ namespace LooCast.UI.Inventory
         {
             canvasGroup.alpha = 1.0f;
             canvasGroup.blocksRaycasts = true;
+
+            if (!droppedOntoOtherSlot)
+            {
+                RevertToCurrentSlot();
+            }
         }
         #endregion
 
@@ -108,6 +115,8 @@ namespace LooCast.UI.Inventory
             RectTransform inventorySlotRectTransform = inventorySlot.transform as RectTransform;
             rectTransform.SetParent(inventorySlotRectTransform);
             rectTransform.anchoredPosition = Vector2.zero;
+
+            droppedOntoOtherSlot = true;
         }
 
         public void RevertToCurrentSlot()
