@@ -68,7 +68,7 @@ namespace LooCast.Asteroid
                 void Drop(float dropAmount)
                 {
                     GameObject resourceItemObjectPrefab = itemObjectPrefabs.GetItemObjectPrefab(Resource.ResourceName);
-                    Vector3 randomSpawnPositionOffset = Vector3.one * UnityEngine.Random.Range(-maxOffsetMagnitude, maxOffsetMagnitude);
+                    Vector3 randomSpawnPositionOffset = new Vector3(UnityEngine.Random.Range(-maxOffsetMagnitude, maxOffsetMagnitude), UnityEngine.Random.Range(-maxOffsetMagnitude, maxOffsetMagnitude));
                     randomSpawnPositionOffset.z = 0.0f;
                     ResourceItemObject resourceItemObject = Instantiate(resourceItemObjectPrefab, dropPosition + randomSpawnPositionOffset, Quaternion.identity).GetComponent<ResourceItemObject>();
                     resourceItemObject.ResourceItem.Amount = dropAmount;
@@ -198,7 +198,7 @@ namespace LooCast.Asteroid
             {
                 if (resourceDeposit.Deposit >= 1.0f)
                 {
-                    resourceDeposit.DropAll(transform.position, meshFilter.mesh.bounds.max.magnitude * 0.75f, itemDatas, itemObjectPrefabs); 
+                    resourceDeposit.DropAll(transform.position, meshFilter.mesh.bounds.max.magnitude, itemDatas, itemObjectPrefabs); 
                 }
             }
             Destroy(gameObject);

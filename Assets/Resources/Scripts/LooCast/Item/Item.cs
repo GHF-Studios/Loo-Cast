@@ -10,6 +10,8 @@ namespace LooCast.Item
         public int ID { get; private set; }
         public string Name { get; protected set; }
         public Sprite Sprite { get; protected set; }
+        public float MinObjectScale { get; protected set; }
+        public float MaxObjectScale { get; protected set; }
 
         public Item(ItemData data)
         {
@@ -17,6 +19,8 @@ namespace LooCast.Item
             IDCounter++;
             Name = data.ItemName;
             Sprite = data.Sprite;
+            MinObjectScale = data.MinObjectScale;
+            MaxObjectScale = data.MaxObjectScale;
         }
 
         public override bool Equals(object obj)

@@ -7,5 +7,7 @@ namespace LooCast.Item.Data
         public string ItemName;
         public Sprite Sprite;
         public GameObject ItemObjectPrefab;
+        public float MinObjectScale;
+        public float MaxObjectScale;
     }
 }
