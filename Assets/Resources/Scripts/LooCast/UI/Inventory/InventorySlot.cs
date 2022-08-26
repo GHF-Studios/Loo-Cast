@@ -70,7 +70,6 @@ namespace LooCast.UI.Inventory
         {
             SlotID = slotID;
             ItemContainer = itemContainer;
-            pointerStay = false;
         }
         #endregion
     }

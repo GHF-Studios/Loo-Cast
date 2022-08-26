@@ -16,6 +16,7 @@ namespace LooCast.Item
             {
                 base.Item = value;
                 ResourceItem = (ResourceItem)value;
+                Refresh();
             }
         }
         public ResourceItem ResourceItem { get; protected set; }
