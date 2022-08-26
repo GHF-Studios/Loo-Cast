@@ -53,7 +53,7 @@ namespace LooCast.UI.Inventory
         public void OnDrop(PointerEventData eventData)
         {
             InventoryItem inventoryItem = eventData.pointerDrag.GetComponent<InventoryItem>();
-            if (inventoryItem != null)
+            if (currentItem == null && inventoryItem != null)
             {
                 inventoryItem.DropOntoSlot(this);
             }

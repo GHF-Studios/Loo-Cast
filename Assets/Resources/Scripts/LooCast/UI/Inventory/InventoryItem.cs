@@ -57,6 +57,10 @@ namespace LooCast.UI.Inventory
             canvasGroup.alpha = 0.6f;
             canvasGroup.blocksRaycasts = false;
             droppedOntoOtherSlot = false;
+
+            rectTransform.SetParent(currentInventorySlot.RectTransform.parent);
+            rectTransform.SetAsLastSibling();
+            //rectTransform.anchoredPosition = Vector2.zero;
         }
 
         public void OnDrag(PointerEventData eventData)
@@ -112,8 +116,7 @@ namespace LooCast.UI.Inventory
             currentInventorySlot = inventorySlot;
             currentInventorySlot.CurrentItem = this;
 
-            RectTransform inventorySlotRectTransform = inventorySlot.transform as RectTransform;
-            rectTransform.SetParent(inventorySlotRectTransform);
+            rectTransform.SetParent(inventorySlot.RectTransform);
             rectTransform.anchoredPosition = Vector2.zero;
 
             droppedOntoOtherSlot = true;
@@ -121,6 +124,7 @@ namespace LooCast.UI.Inventory
 
         public void RevertToCurrentSlot()
         {
+            rectTransform.SetParent(currentInventorySlot.RectTransform);
             rectTransform.anchoredPosition = Vector2.zero;
         }
         #endregion
