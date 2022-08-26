@@ -16,7 +16,7 @@ namespace LooCast.Item
                 return onItemChanged;
             }
         }
-        public Item Item
+        public virtual Item Item
         {
             get
             {
@@ -27,6 +27,7 @@ namespace LooCast.Item
             {
                 item = value;
                 onItemChanged.Invoke();
+                SpriteRenderer.sprite = item.Sprite;
             }
         }
         public SpriteRenderer SpriteRenderer { get; protected set; }
@@ -37,10 +38,9 @@ namespace LooCast.Item
         protected void Initialize(Item item)
         {
             onItemChanged = new UnityEvent();
+            SpriteRenderer = GetComponent<SpriteRenderer>();
 
             Item = item;
-            SpriteRenderer = GetComponent<SpriteRenderer>();
-            SpriteRenderer.sprite = item.Sprite;
         }
 
         private void OnTriggerEnter2D(Collider2D collider)

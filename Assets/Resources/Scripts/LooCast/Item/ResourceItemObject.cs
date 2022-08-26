@@ -10,6 +10,14 @@ namespace LooCast.Item
     {
         [SerializeField] protected ResourceItemData data;
 
+        public override Item Item
+        {
+            set
+            {
+                base.Item = value;
+                ResourceItem = (ResourceItem)value;
+            }
+        }
         public ResourceItem ResourceItem { get; protected set; }
         public Rigidbody2D Rigidbody2D { get; protected set; }
 

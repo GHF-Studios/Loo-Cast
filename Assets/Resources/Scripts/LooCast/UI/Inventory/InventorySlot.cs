@@ -41,12 +41,6 @@ namespace LooCast.UI.Inventory
         #endregion
 
         #region Unity Callbacks
-        public void Initialize(int slotID, ItemContainer itemContainer)
-        {
-            SlotID = slotID;
-            ItemContainer = itemContainer;
-        }
-
         public void OnDrop(PointerEventData eventData)
         {
             InventoryItem inventoryItem = eventData.pointerDrag.GetComponent<InventoryItem>();
@@ -68,6 +62,15 @@ namespace LooCast.UI.Inventory
             Color color = image.color;
             color.a = 0.0f;
             image.color = color;
+        }
+        #endregion
+
+        #region Methods
+        public void Initialize(int slotID, ItemContainer itemContainer)
+        {
+            SlotID = slotID;
+            ItemContainer = itemContainer;
+            pointerStay = false;
         }
         #endregion
     }

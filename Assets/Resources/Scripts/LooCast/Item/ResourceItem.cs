@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace LooCast.Item
 {
     using Data;

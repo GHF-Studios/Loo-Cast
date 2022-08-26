@@ -8,6 +8,14 @@ namespace LooCast.Item
     public abstract class UniqueItemObject : ItemObject
     {
         public UniqueItem UniqueItem { get; protected set; }
+        public override Item Item
+        {
+            set
+            {
+                base.Item = value;
+                UniqueItem = (UniqueItem)value;
+            }
+        }
 
         protected void Initialize(UniqueItem uniqueItem)
         {
