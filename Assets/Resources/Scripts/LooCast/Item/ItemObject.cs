@@ -43,7 +43,7 @@ namespace LooCast.Item
             Item = item;
         }
 
-        private void OnTriggerEnter2D(Collider2D collider)
+        private void OnTriggerStay2D(Collider2D collider)
         {
             if (collider.CompareTag("Player"))
             {

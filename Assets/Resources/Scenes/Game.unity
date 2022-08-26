@@ -3234,6 +3234,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f76a2a806c966d44bd648ef0bc35ca7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: 3183ba18703dabd4e82bb30d9bdddf52, type: 2}
   playerInventoryRuntimeData: {fileID: 11400000, guid: bbe9ca0fd05a539469a48be6149f0345, type: 2}
   inventoryItemPrefab: {fileID: 6850456354299182854, guid: 18866111ef1172347960c8caf5224105, type: 3}
   inventorySlots:
@@ -3248,6 +3249,7 @@ MonoBehaviour:
   - {fileID: 1788852413}
   - {fileID: 1644035537}
   currentInventorySlotCursor: {fileID: 4815284235374153747}
+  canvas: {fileID: 1815381166}
 --- !u!1 &587534417
 GameObject:
   m_ObjectHideFlags: 0

@@ -27,6 +27,10 @@ namespace LooCast.UI.Inventory
                 else
                 {
                     ItemContainer.SetItem(SlotID, currentItem.Item);
+                    currentItem.CurrentInventorySlot = this;
+
+                    currentItem.RectTransform.SetParent(RectTransform);
+                    currentItem.RectTransform.anchoredPosition = Vector2.zero;
                 }
             }
         }
@@ -47,16 +51,25 @@ namespace LooCast.UI.Inventory
         [SerializeField] private RectTransform rectTransform;
 
         private InventoryItem currentItem;
+        private UnityEngine.Canvas canvas;
         #endregion
 
         #region Unity Callbacks
         public void OnDrop(PointerEventData eventData)
         {
             InventoryItem inventoryItem = eventData.pointerDrag.GetComponent<InventoryItem>();
-            if (currentItem == null && inventoryItem != null)
+            if (inventoryItem != null)
             {
-                inventoryItem.DropOntoSlot(this);
+                if (currentItem == null)
+                {
+                    inventoryItem.DropOntoSlot(this); 
+                }
+                else
+                {
+                    inventoryItem.SwapSlots(CurrentItem);
+                }
             }
+
         }
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -75,10 +88,11 @@ namespace LooCast.UI.Inventory
         #endregion
 
         #region Methods
-        public void Initialize(int slotID, ItemContainer itemContainer)
+        public void Initialize(int slotID, ItemContainer itemContainer, UnityEngine.Canvas canvas)
         {
             SlotID = slotID;
             ItemContainer = itemContainer;
+            this.canvas = canvas;
         }
         #endregion
     }

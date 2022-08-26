@@ -4,11 +4,17 @@ using UnityEngine;
 
 namespace LooCast.UI.Inventory
 {
+    using Data;
     using LooCast.Inventory.Data.Runtime;
     using LooCast.Item;
 
     public class InventoryHotbar : MonoBehaviour
     {
+        #region Data
+        [SerializeField] private InventoryHotbarData data;
+        #endregion
+
+        #region Properties
         public InventorySlot CurrentInventorySlot
         {
             get
@@ -25,19 +31,24 @@ namespace LooCast.UI.Inventory
                 currentInventorySlotCursor.CurrentInventorySlot = value;
             }
         }
+        #endregion
 
+        #region Fields
         [SerializeField] private PlayerInventoryRuntimeData playerInventoryRuntimeData;
         [SerializeField] private GameObject inventoryItemPrefab;
         [SerializeField] private InventorySlot[] inventorySlots;
         [SerializeField] private InventorySlotCursor currentInventorySlotCursor;
+        [SerializeField] private UnityEngine.Canvas canvas;
+        #endregion
 
+        #region Unity Callbacks
         private void Start()
         {
             playerInventoryRuntimeData.ItemContainer.OnSlotsChanged.AddListener((slots) => { RefreshSlots(slots); });
 
             for (int i = 0; i < inventorySlots.Length; i++)
             {
-                inventorySlots[i].Initialize(i, playerInventoryRuntimeData.ItemContainer);
+                inventorySlots[i].Initialize(i, playerInventoryRuntimeData.ItemContainer, canvas);
             }
         }
 
@@ -84,6 +95,27 @@ namespace LooCast.UI.Inventory
                 CurrentInventorySlot = inventorySlots[9];
             }
 
+            float scaledDeltaMouseScroll = (Input.mouseScrollDelta * data.MouseScrollScale).y;
+            int currentSlotID = CurrentInventorySlot.SlotID;
+            if (scaledDeltaMouseScroll < -0.1f)
+            {
+                currentSlotID++;
+            }
+            else if (scaledDeltaMouseScroll > 0.1f)
+            {
+                currentSlotID--;
+            }
+
+            if (currentSlotID >= inventorySlots.Length)
+            {
+                currentSlotID = 0;
+            }
+            else if (currentSlotID < 0)
+            {
+                currentSlotID = inventorySlots.Length - 1;
+            }
+            CurrentInventorySlot = inventorySlots[currentSlotID];
+
             if (Input.GetKeyDown(KeyCode.Q))
             {
                 if (CurrentInventorySlot.CurrentItem != null)
@@ -94,7 +126,9 @@ namespace LooCast.UI.Inventory
                 }
             }
         }
+        #endregion
 
+        #region Methods
         public void RefreshSlots(int[] slots)
         {
             foreach (int slot in slots)
@@ -113,6 +147,7 @@ namespace LooCast.UI.Inventory
                     {
                         GameObject inventoryItemObject = Instantiate(inventoryItemPrefab, inventorySlots[slot].transform);
                         InventoryItem inventoryItem = inventoryItemObject.GetComponent<InventoryItem>();
+                        inventoryItem.Initialize(canvas);
                         inventoryItem.Item = playerInventoryRuntimeData.ItemContainer.GetItem(slot);
                         inventoryItem.DropOntoSlot(inventorySlots[slot]);
                     }
@@ -123,5 +158,6 @@ namespace LooCast.UI.Inventory
                 }
             }
         }
+        #endregion
     }
 }

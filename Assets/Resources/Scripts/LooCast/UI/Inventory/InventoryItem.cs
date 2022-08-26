@@ -8,9 +8,11 @@ namespace LooCast.UI.Inventory
 {
     using LooCast.Item;
     using LooCast.UI.Canvas;
+    using LooCast.Util;
 
     public class InventoryItem : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler
     {
+        #region Properties
         public UnityEvent OnDestroy
         {
             get
@@ -35,7 +37,33 @@ namespace LooCast.UI.Inventory
                 Refresh();
             }
         }
-        
+        public RectTransform RectTransform
+        {
+            get
+            {
+                return rectTransform;
+
+            }
+        }
+        public InventorySlot CurrentInventorySlot
+        {
+            get
+            {
+                return currentInventorySlot;
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new NullReferenceException("Current Inventory Slot can not be null!");
+                }
+                currentInventorySlot = value;
+            }
+        }
+        #endregion
+
+        #region Fields
         [SerializeField] private Image image;
         [SerializeField] private Text quantityValue;
         [SerializeField] private CanvasGroup canvasGroup;
@@ -44,21 +72,19 @@ namespace LooCast.UI.Inventory
         private UnityEvent onDestroy;
         private Item item;
         private InventorySlot currentInventorySlot;
-        private bool droppedOntoOtherSlot;
+        private bool revertToCurrentInventorySlot;
+        private UnityEngine.Canvas canvas;
+        #endregion
 
         #region Unity Callbacks
-        private void Start()
-        {
-            onDestroy = new UnityEvent();
-        }
-
         public void OnBeginDrag(PointerEventData eventData)
         {
             canvasGroup.alpha = 0.6f;
             canvasGroup.blocksRaycasts = false;
-            droppedOntoOtherSlot = false;
+            revertToCurrentInventorySlot = true;
 
-            rectTransform.SetParent(currentInventorySlot.RectTransform.parent);
+            rectTransform.anchoredPosition = RectTransformUtil.ScreenToRectPos(Input.mousePosition, rectTransform, canvas);
+            rectTransform.SetParent(CurrentInventorySlot.RectTransform.parent);
             rectTransform.SetAsLastSibling();
         }
 
@@ -72,7 +98,7 @@ namespace LooCast.UI.Inventory
             canvasGroup.alpha = 1.0f;
             canvasGroup.blocksRaycasts = true;
 
-            if (!droppedOntoOtherSlot)
+            if (revertToCurrentInventorySlot)
             {
                 RevertToCurrentSlot();
             }
@@ -80,6 +106,12 @@ namespace LooCast.UI.Inventory
         #endregion
 
         #region Method
+        public void Initialize(UnityEngine.Canvas canvas)
+        {
+            onDestroy = new UnityEvent();
+            this.canvas = canvas;
+        }
+
         public void Refresh()
         {
             if (item is CountableItem)
@@ -108,22 +140,40 @@ namespace LooCast.UI.Inventory
 
         public void DropOntoSlot(InventorySlot inventorySlot)
         {
-            if (currentInventorySlot != null)
+            if (CurrentInventorySlot != null)
             {
-                currentInventorySlot.CurrentItem = null;
+                CurrentInventorySlot.CurrentItem = null;
             }
-            currentInventorySlot = inventorySlot;
-            currentInventorySlot.CurrentItem = this;
 
-            rectTransform.SetParent(inventorySlot.RectTransform);
-            rectTransform.anchoredPosition = Vector2.zero;
+            CurrentInventorySlot = inventorySlot;
+            CurrentInventorySlot.CurrentItem = this;
 
-            droppedOntoOtherSlot = true;
+            revertToCurrentInventorySlot = false;
         }
 
-        public void RevertToCurrentSlot()
+        public void SwapSlots(InventoryItem otherInventoryItem)
         {
-            rectTransform.SetParent(currentInventorySlot.RectTransform);
+            if (otherInventoryItem.CurrentInventorySlot == null)
+            {
+                throw new NullReferenceException("Other Inventory Item is not contained in any slot! Drop it into a slot first!");
+            }
+            if (CurrentInventorySlot == null)
+            {
+                throw new NullReferenceException("This Inventory Item is not contained in any slot! Drop it into a slot first!");
+            }
+
+            InventorySlot thisInventorySlot = CurrentInventorySlot;
+            InventorySlot otherInventorySlot = otherInventoryItem.CurrentInventorySlot;
+
+            thisInventorySlot.CurrentItem = otherInventoryItem;
+            otherInventorySlot.CurrentItem = this;
+
+            revertToCurrentInventorySlot = false;
+        }
+
+        private void RevertToCurrentSlot()
+        {
+            rectTransform.SetParent(CurrentInventorySlot.RectTransform);
             rectTransform.anchoredPosition = Vector2.zero;
         }
         #endregion
