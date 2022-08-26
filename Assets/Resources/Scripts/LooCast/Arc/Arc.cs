@@ -10,10 +10,10 @@ namespace LooCast.Arc
     public class Arc : ExtendedMonoBehaviour
     {
         #region Fields
-        private ArcTargeting targeting;
+        [SerializeField] private Targeting targeting;
         public List<Target> targets;
-        public List<ArcSegment> arcSegments;
-        public ArcSegment arcSegment;
+        [HideInInspector] public List<ArcSegment> arcSegments;
+        [HideInInspector] public ArcSegment arcSegment;
         private Arc nextArc;
         private Arc nextBranch;
         private List<Arc> arcs;
@@ -24,9 +24,9 @@ namespace LooCast.Arc
         private float lifetime;
         private float maxLifetime;
 
-        public float width;
+        [HideInInspector] public float width;
         private float widthMultiplier;
-        public float minWidth;
+        [HideInInspector] public float minWidth;
         private int branchTries;
 
 
@@ -103,11 +103,8 @@ namespace LooCast.Arc
             this.branchChance = branchChance;
             this.branchChanceMultiplier = branchChanceMultiplier;
 
-            targeting = gameObject.AddComponent<ArcTargeting>();
             targeting.radius = maxSpreadDistance;
-            targeting.ignoredTargets = ignoredTargets;
-            targeting.targetTags = new string[] { "Enemy", "EnemyStation" };
-            targeting.drawGizmos = false;
+            targeting.IgnoredTargets = ignoredTargets;
 
             targets = new List<Target>();
             arcSegments = new List<ArcSegment>();
@@ -223,7 +220,7 @@ namespace LooCast.Arc
                 minBranchAngle * minBranchAngleMultiplier, minBranchAngleMultiplier,
                 maxBranchAngle * maxBranchAngleMultiplier, maxBranchAngleMultiplier,
                 branchChance * branchChanceMultiplier, branchChanceMultiplier,
-                ref targeting.ignoredTargets, out List<Arc> nextArcSubArcs, newSegment, isMainSegment);
+                ref targeting.IgnoredTargets, out List<Arc> nextArcSubArcs, newSegment, isMainSegment);
             if (nextArcSubArcs != null)
             {
                 subArcs.AddRange(nextArcSubArcs);
@@ -232,7 +229,7 @@ namespace LooCast.Arc
 
         protected Target GetSpreadTarget()
         {
-            List<Target> closestTargets = targeting.closestTargets;
+            List<Target> closestTargets = targeting.ClosestTargets;
             if (closestTargets != null && closestTargets.Count > 0)
             {
                 foreach (Target target in closestTargets)
@@ -248,7 +245,7 @@ namespace LooCast.Arc
 
         protected Target GetBranchtarget()
         {
-            List<Target> closestTargets = targeting.closestTargets;
+            List<Target> closestTargets = targeting.ClosestTargets;
             if (closestTargets != null && closestTargets.Count > 0)
             {
                 foreach (Target target in closestTargets)

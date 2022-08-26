@@ -31,5 +31,15 @@ namespace LooCast.Data
                 OnValueChanged.Invoke();
             }
         }
+
+        public static bool[] Evaluate(BoolDataReference[] boolDataReferences)
+        {
+            bool[] evaluatedValues = new bool[boolDataReferences.Length];
+            for (int i = 0; i < boolDataReferences.Length; i++)
+            {
+                evaluatedValues[i] = boolDataReferences[i].Value;
+            }
+            return evaluatedValues;
+        }
     } 
 }

@@ -58,7 +58,7 @@ namespace LooCast.Projectile
 
         protected int maxRecursion;
 
-
+        [SerializeField] private GameObject arcObjectPrefab;
 
         public virtual void Initialize(Target target, GameObject origin, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int armorPenetration, float arcLifetime, float initialWidth, float widthMultiplier, float minWidth, int branchTries, float minSpreadDistance, float minSpreadDistanceMultiplier, float maxSpreadDistance, float maxSpreadDistanceMultiplier, float minSpreadAngle, float minSpreadAngleMultiplier, float maxSpreadAngle, float maxSpreadAngleMultiplier, float spreadChance, float spreadChanceMultiplier, float minBranchDistance, float minBranchDistanceMultiplier, float maxBranchDistance, float maxBranchDistanceMultiplier, float minBranchAngle, float minBranchAngleMultiplier, float maxBranchAngle, float maxBranchAngleMultiplier, float branchChance, float branchChanceMultiplier, int maxRecursion)
         {
@@ -144,10 +144,7 @@ namespace LooCast.Projectile
 
             if (CheckTags("Enemy", "EnemyStation"))
             {
-                GameObject arcObject = new GameObject();
-                arcObject.name = "Arc";
-                arcObject.transform.position = collision.transform.position;
-                Arc arc = arcObject.AddComponent<Arc>();
+                Arc arc = Instantiate(arcObjectPrefab, collision.transform.position, Quaternion.identity).GetComponent<Arc>();
                 Target collisionTarget = new Target(collision);
                 ignoredTargets.Add(collisionTarget);
                 arc.Initialize(

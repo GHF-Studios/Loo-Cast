@@ -11,7 +11,6 @@ namespace LooCast.Weapon
     using Target;
     using Targeting;
 
-    [RequireComponent(typeof(ITargeting))]
     public abstract class Weapon : ExtendedMonoBehaviour
     {
         protected ITargeting targeting;
@@ -47,7 +46,7 @@ namespace LooCast.Weapon
         public float attackTimer;
         public bool hasCooledDown { get; protected set; }
 
-        protected void Initialize(WeaponData data)
+        protected void Initialize(WeaponData data, ITargeting targeting)
         {
             targeting = GetComponent<ITargeting>();
             soundHandler = FindObjectOfType<GameSoundHandler>();
@@ -105,19 +104,19 @@ namespace LooCast.Weapon
             switch (targetType)
             {
                 case TargetingMode.Closest:
-                    targetsFound = targeting.closestTargets;
+                    targetsFound = targeting.ClosestTargets;
                     break;
                 case TargetingMode.Furthest:
-                    targetsFound = targeting.furthestTargets;
+                    targetsFound = targeting.FurthestTargets;
                     break;
                 case TargetingMode.Random:
-                    targetsFound = targeting.randomTargets;
+                    targetsFound = targeting.RandomTargets;
                     break;
                 case TargetingMode.RandomOnscreen:
-                    targetsFound = targeting.randomOnscreenTargets;
+                    targetsFound = targeting.RandomOnscreenTargets;
                     break;
                 case TargetingMode.RandomProximity:
-                    targetsFound = targeting.randomProximityTargets;
+                    targetsFound = targeting.RandomProximityTargets;
                     break;
                 default:
                     targetsFound = null;

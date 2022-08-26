@@ -13,23 +13,21 @@ namespace LooCast.Weapon
 
     public sealed class MultiplexerWeapon : Weapon
     {
-        public MultiplexerWeaponData Data;
-
         public int maxTargets { get; private set; }
         public int maxFragments { get; private set; }
         public int fragmentArmorPenetration { get; private set; }
         public bool isTargetSeeking { get; private set; }
         public GameObject fragmentPrefab { get; private set; }
 
-        private void Start()
+        public void Initialize(MultiplexerWeaponData data, ITargeting targeting)
         {
-            Initialize(Data);
+            Initialize(data, targeting);
 
-            maxTargets = Data.BaseMaxTargets.Value;
-            maxFragments = Data.BaseMaxFragments.Value;
-            fragmentArmorPenetration = Data.BaseFragmentArmorPenetration.Value;
-            isTargetSeeking = Data.IsTargetSeeking.Value;
-            fragmentPrefab = Data.FragmentPrefab;
+            maxTargets = data.BaseMaxTargets.Value;
+            maxFragments = data.BaseMaxFragments.Value;
+            fragmentArmorPenetration = data.BaseFragmentArmorPenetration.Value;
+            isTargetSeeking = data.IsTargetSeeking.Value;
+            fragmentPrefab = data.FragmentPrefab;
         }
 
         public override bool TryFire()

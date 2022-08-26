@@ -31,5 +31,15 @@ namespace LooCast.Data
                 OnValueChanged.Invoke();
             }
         }
+
+        public static string[] Evaluate(StringDataReference[] stringDataReferences)
+        {
+            string[] evaluatedValues = new string[stringDataReferences.Length];
+            for (int i = 0; i < stringDataReferences.Length; i++)
+            {
+                evaluatedValues[i] = stringDataReferences[i].Value;
+            }
+            return evaluatedValues;
+        }
     } 
 }

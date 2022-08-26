@@ -5,26 +5,28 @@ using UnityEngine;
 namespace LooCast.Targeting
 {
     using Data;
-    using Data.Runtime;
-    using LooCast.Variable;
     using LooCast.Target;
+    using LooCast.Data;
 
-    public sealed class PlayerTargeting : MonoBehaviour, ITargeting
+    public class Targeting : MonoBehaviour, ITargeting
     {
         #region Data
-        [SerializeField] private PlayerTargetingData Data;
-        [SerializeField] private PlayerTargetingRuntimeData RuntimeData;
+        [SerializeField] private TargetingData data;
         #endregion
 
         #region Properties
+        public float radius;
+        public string[] targetTags { get; protected set; }
+        public bool drawGizmos { get; protected set; }
+
         public List<Target> ClosestTargets
         {
             get
             {
-                return FilterTargets(GetClosestTargets());
+                return FilterTargets(GetClosestTargets(), IgnoredTargets);
             }
 
-            private set
+            protected set
             {
                 closestTargets = value;
             }
@@ -33,10 +35,10 @@ namespace LooCast.Targeting
         {
             get
             {
-                return FilterTargets(GetFurthestTargets());
+                return FilterTargets(GetFurthestTargets(), IgnoredTargets);
             }
 
-            private set
+            protected set
             {
                 furthestTargets = value;
             }
@@ -45,10 +47,10 @@ namespace LooCast.Targeting
         {
             get
             {
-                return FilterTargets(GetRandomTargets());
+                return FilterTargets(GetRandomTargets(), IgnoredTargets);
             }
 
-            private set
+            protected set
             {
                 randomTargets = value;
             }
@@ -57,10 +59,10 @@ namespace LooCast.Targeting
         {
             get
             {
-                return FilterTargets(GetRandomOnscreenTargets());
+                return FilterTargets(GetRandomOnscreenTargets(), IgnoredTargets);
             }
 
-            private set
+            protected set
             {
                 randomOnscreenTargets = value;
             }
@@ -69,10 +71,10 @@ namespace LooCast.Targeting
         {
             get
             {
-                return FilterTargets(GetRandomProximityTargets());
+                return FilterTargets(GetRandomProximityTargets(), IgnoredTargets);
             }
 
-            private set
+            protected set
             {
                 randomProximityTargets = value;
             }
@@ -80,31 +82,22 @@ namespace LooCast.Targeting
         #endregion
 
         #region Fields
+        public List<Target> IgnoredTargets;
+
         private List<Target> closestTargets;
         private List<Target> furthestTargets;
         private List<Target> randomTargets;
         private List<Target> randomOnscreenTargets;
         private List<Target> randomProximityTargets;
+        private System.Random random;
         #endregion
 
         #region Unity Callbacks
-        private void Start()
-        {
-            RuntimeData.Radius = new FloatComputedVariable(Data.Radius.Value);
-            RuntimeData.TargetTags = new StringVariable[Data.TargetedTags.Length];
-            for (int i = 0; i < RuntimeData.TargetTags.Length; i++)
-            {
-                RuntimeData.TargetTags[i] = new StringVariable(Data.TargetedTags[i].Value);
-            }
-            RuntimeData.DrawGizmos = new BoolVariable(Data.DrawGizmos.Value);
-            RuntimeData.Random = new System.Random(Mathf.RoundToInt(Time.time));
-            RuntimeData.IgnoredTargets = new List<Target>();
-        }
         private void OnDrawGizmos()
         {
-            if (RuntimeData.DrawGizmos.Value)
+            if (drawGizmos)
             {
-                Gizmos.DrawWireSphere(transform.position, RuntimeData.Radius.Value);
+                Gizmos.DrawWireSphere(transform.position, radius);
             }
         }
         private void LateUpdate()
@@ -117,6 +110,15 @@ namespace LooCast.Targeting
         #endregion
 
         #region Methods
+        public void Initialize(TargetingData data)
+        {
+            radius = data.Radius.Value;
+            targetTags = StringDataReference.Evaluate(data.TargetedTags);
+            drawGizmos = data.DrawGizmos.Value;
+            random = new System.Random(Mathf.RoundToInt(Time.time));
+            IgnoredTargets = new List<Target>();
+        }
+        
         private bool CheckTags(Collider2D collider, params string[] tags)
         {
             foreach (string tag in tags)
@@ -128,18 +130,18 @@ namespace LooCast.Targeting
             }
             return false;
         }
-        private List<Target> FilterTargets(List<Target> targets)
+        private List<Target> FilterTargets(List<Target> targets, List<Target> ignoredTargets)
         {
             if (targets == null || targets.Count == 0)
             {
                 return null;
             }
-            if (RuntimeData.IgnoredTargets == null || RuntimeData.IgnoredTargets.Count == 0)
+            if (ignoredTargets == null || ignoredTargets.Count == 0)
             {
                 return targets;
             }
 
-            foreach (Target ignoredTarget in RuntimeData.IgnoredTargets)
+            foreach (Target ignoredTarget in ignoredTargets)
             {
                 targets.RemoveAll(target => target.Equals(ignoredTarget));
             }
@@ -163,14 +165,14 @@ namespace LooCast.Targeting
         {
             if (closestTargets == null || closestTargets.Count == 0)
             {
-                List<Collider2D> collisions = Physics2D.OverlapCircleAll(transform.position, RuntimeData.Radius.Value).ToList();
+                List<Collider2D> collisions = Physics2D.OverlapCircleAll(transform.position, radius).ToList();
 
                 if (collisions == null || collisions.Count == 0)
                 {
                     return null;
                 }
 
-                collisions.RemoveAll(collision => !CheckTags(collision, Variable<string>.Evaluate(RuntimeData.TargetTags)));
+                collisions.RemoveAll(collision => !CheckTags(collision, targetTags));
 
                 if (collisions.Count <= 0)
                 {
@@ -199,14 +201,14 @@ namespace LooCast.Targeting
         {
             if (furthestTargets == null || furthestTargets.Count == 0)
             {
-                List<Collider2D> collisions = Physics2D.OverlapCircleAll(transform.position, RuntimeData.Radius.Value).Reverse().ToList();
+                List<Collider2D> collisions = Physics2D.OverlapCircleAll(transform.position, radius).Reverse().ToList();
 
                 if (collisions == null || collisions.Count == 0)
                 {
                     return null;
                 }
 
-                collisions.RemoveAll(collision => !CheckTags(collision, Variable<string>.Evaluate(RuntimeData.TargetTags)));
+                collisions.RemoveAll(collision => !CheckTags(collision, targetTags));
 
                 if (collisions.Count == 0)
                 {
@@ -236,7 +238,7 @@ namespace LooCast.Targeting
             if (randomTargets == null || randomTargets.Count == 0)
             {
                 List<Target> targets = new List<Target>();
-                foreach (string targetTag in Variable<string>.Evaluate(RuntimeData.TargetTags))
+                foreach (string targetTag in targetTags)
                 {
                     targets.AddRange(GameObject.FindGameObjectsWithTag(targetTag).ToList().ConvertAll(x => new Target(x.GetComponent<Collider2D>())));
                 }
@@ -244,7 +246,7 @@ namespace LooCast.Targeting
                 {
                     return null;
                 }
-                targets = targets.OrderBy(x => RuntimeData.Random.Next()).ToList();
+                targets = targets.OrderBy(x => random.Next()).ToList();
                 targets = ValidateTargets(targets);
 
                 randomTargets = targets;
@@ -266,7 +268,7 @@ namespace LooCast.Targeting
                     return null;
                 }
 
-                collisions.RemoveAll(collision => !CheckTags(collision, Variable<string>.Evaluate(RuntimeData.TargetTags)));
+                collisions.RemoveAll(collision => !CheckTags(collision, targetTags));
 
                 if (collisions.Count <= 0)
                 {
@@ -298,7 +300,7 @@ namespace LooCast.Targeting
                 {
                     return null;
                 }
-                targets = targets.OrderBy(x => RuntimeData.Random.Next()).ToList();
+                targets = targets.OrderBy(x => random.Next()).ToList();
                 targets = ValidateTargets(targets);
 
                 randomProximityTargets = targets;

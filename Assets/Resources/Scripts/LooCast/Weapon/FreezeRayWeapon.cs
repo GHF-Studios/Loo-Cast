@@ -11,11 +11,9 @@ namespace LooCast.Weapon
 
     public sealed class FreezeRayWeapon : Weapon
     {
-        public FreezeRayWeaponData Data;
-
-        private void Start()
+        public void Initialize(FreezeRayWeaponData data, ITargeting targeting)
         {
-            Initialize(Data);
+            Initialize(data, targeting);
         }
 
         public override bool TryFire()

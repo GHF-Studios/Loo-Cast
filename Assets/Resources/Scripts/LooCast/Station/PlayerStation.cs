@@ -9,21 +9,39 @@ namespace LooCast.Station
     using Weapon;
     using Health;
 
-    [RequireComponent(typeof(PlayerStationHealth), typeof(StationTargeting), typeof(MultiplexerWeapon))]
     public sealed class PlayerStation : Station
     {
+        #region Data
         public PlayerStationData Data;
-        public PlayerStationHealth Health { get; private set; }
-        public StationTargeting Targeting { get; private set; }
-        public MultiplexerWeapon DefensiveWeapon { get; private set; }
+        #endregion
 
+        #region Properties
+        public PlayerStationHealth Health
+        {
+            get
+            {
+                return health;
+            }
+        }
+        public Targeting Targeting
+        {
+            get
+            {
+                return targeting;
+            }
+        }
+        #endregion
+
+        #region Fields
+        [SerializeField] private PlayerStationHealth health;
+        [SerializeField] private Targeting targeting;
+        #endregion
+
+        #region Unity Callbacks
         private void Start()
         {
             Initialize(Data);
-
-            Health = GetComponent<PlayerStationHealth>();
-            Targeting = GetComponent<StationTargeting>();
-            DefensiveWeapon = GetComponent<MultiplexerWeapon>();
         }
+        #endregion
     } 
 }

@@ -12,15 +12,13 @@ namespace LooCast.Weapon
 
     public sealed class LaserEmitterWeapon : Weapon
     {
-        public LaserEmitterWeaponData Data;
-
         public float laserLength { get; private set; }
 
-        private void Start()
+        public void Initialize(LaserEmitterWeaponData data, ITargeting targeting)
         {
-            Initialize(Data);
+            Initialize(data, targeting);
 
-            laserLength = Data.LaserLength.Value;
+            laserLength = data.LaserLength.Value;
         }
 
         public override bool TryFire()

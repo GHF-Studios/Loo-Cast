@@ -84,6 +84,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de72a9fb210d15446b516dc13e919a92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
   arcGradient:
     serializedVersion: 2
     key0: {r: 1, g: 0, b: 1, a: 1}
@@ -113,6 +115,7 @@ MonoBehaviour:
     m_Mode: 0
     m_NumColorKeys: 3
     m_NumAlphaKeys: 2
+  arcObjectPrefab: {fileID: 6909029171402157772, guid: fa4f9827037bb7547977ac4a4840f574, type: 3}
 --- !u!1 &8870720673177286064
 GameObject:
   m_ObjectHideFlags: 0
