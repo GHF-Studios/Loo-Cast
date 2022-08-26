@@ -24,16 +24,17 @@ namespace LooCast.Item
 
         private void Awake()
         {
+            //First we initialize independent members
             ResourceItem = new ResourceItem(data);
-            Initialize(ResourceItem);
-
             Rigidbody2D = GetComponent<Rigidbody2D>();
-            ResourceItem.OnAmountChanged.AddListener(() => { Refresh(); });
-            OnItemChanged.AddListener(() => { Refresh(); });
-
             SpriteRenderer = GetComponent<SpriteRenderer>();
 
-            Refresh();
+            //Then we Initialize the ItemObject, as this sets the item and thus triggers Refresh, which needs to happen after Independent members have been initialized
+            Initialize(ResourceItem);
+
+            //Lastly we add Listeners for Refreshing when neccessary
+            ResourceItem.OnAmountChanged.AddListener(() => { Refresh(); });
+            OnItemChanged.AddListener(() => { Refresh(); });
         }
 
         public void Refresh()

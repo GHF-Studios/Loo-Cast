@@ -32,10 +32,19 @@ namespace LooCast.UI.Inventory
         }
         public int SlotID { get; private set; }
         public ItemContainer ItemContainer { get; private set; }
+        public RectTransform RectTransform
+        {
+            get
+            {
+                return rectTransform;
+
+            }
+        }
         #endregion
 
         #region Fields
         [SerializeField] private Image image;
+        [SerializeField] private RectTransform rectTransform;
 
         private InventoryItem currentItem;
         #endregion

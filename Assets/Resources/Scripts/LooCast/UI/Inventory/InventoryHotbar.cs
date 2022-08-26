@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,10 +9,27 @@ namespace LooCast.UI.Inventory
 
     public class InventoryHotbar : MonoBehaviour
     {
+        public InventorySlot CurrentInventorySlot
+        {
+            get
+            {
+                return currentInventorySlotCursor.CurrentInventorySlot;
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new NullReferenceException("Current Inventory Slot cannot be null!");
+                }
+                currentInventorySlotCursor.CurrentInventorySlot = value;
+            }
+        }
+
         [SerializeField] private PlayerInventoryRuntimeData playerInventoryRuntimeData;
-        [SerializeField] private InventorySlot[] inventorySlots;
-        [SerializeField] private InventorySlot currentInventorySlot;
         [SerializeField] private GameObject inventoryItemPrefab;
+        [SerializeField] private InventorySlot[] inventorySlots;
+        [SerializeField] private InventorySlotCursor currentInventorySlotCursor;
 
         private void Start()
         {
@@ -22,60 +39,58 @@ namespace LooCast.UI.Inventory
             {
                 inventorySlots[i].Initialize(i, playerInventoryRuntimeData.ItemContainer);
             }
-            currentInventorySlot = inventorySlots[0];
-
         }
 
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
-                currentInventorySlot = inventorySlots[0];
+                CurrentInventorySlot = inventorySlots[0];
             }
             else if (Input.GetKeyDown(KeyCode.Alpha2))
             {
-                currentInventorySlot = inventorySlots[1];
+                CurrentInventorySlot = inventorySlots[1];
             }
             else if (Input.GetKeyDown(KeyCode.Alpha3))
             {
-                currentInventorySlot = inventorySlots[2];
+                CurrentInventorySlot = inventorySlots[2];
             }
             else if (Input.GetKeyDown(KeyCode.Alpha4))
             {
-                currentInventorySlot = inventorySlots[3];
+                CurrentInventorySlot = inventorySlots[3];
             }
             else if (Input.GetKeyDown(KeyCode.Alpha5))
             {
-                currentInventorySlot = inventorySlots[4];
+                CurrentInventorySlot = inventorySlots[4];
             }
             else if (Input.GetKeyDown(KeyCode.Alpha6))
             {
-                currentInventorySlot = inventorySlots[5];
+                CurrentInventorySlot = inventorySlots[5];
             }
             else if (Input.GetKeyDown(KeyCode.Alpha7))
             {
-                currentInventorySlot = inventorySlots[6];
+                CurrentInventorySlot = inventorySlots[6];
             }
             else if (Input.GetKeyDown(KeyCode.Alpha8))
             {
-                currentInventorySlot = inventorySlots[7];
+                CurrentInventorySlot = inventorySlots[7];
             }
             else if (Input.GetKeyDown(KeyCode.Alpha9))
             {
-                currentInventorySlot = inventorySlots[8];
+                CurrentInventorySlot = inventorySlots[8];
             }
             else if (Input.GetKeyDown(KeyCode.Alpha0))
             {
-                currentInventorySlot = inventorySlots[9];
+                CurrentInventorySlot = inventorySlots[9];
             }
 
             if (Input.GetKeyDown(KeyCode.Q))
             {
-                if (currentInventorySlot.CurrentItem != null)
+                if (CurrentInventorySlot.CurrentItem != null)
                 {
-                    currentInventorySlot.CurrentItem.Item.SpawnItem((Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition));
-                    currentInventorySlot.ItemContainer.SetItem(currentInventorySlot.SlotID, null);
-                    currentInventorySlot.CurrentItem.Destroy();
+                    CurrentInventorySlot.CurrentItem.Item.SpawnItem((Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition));
+                    CurrentInventorySlot.ItemContainer.SetItem(CurrentInventorySlot.SlotID, null);
+                    CurrentInventorySlot.CurrentItem.Destroy();
                 }
             }
         }
