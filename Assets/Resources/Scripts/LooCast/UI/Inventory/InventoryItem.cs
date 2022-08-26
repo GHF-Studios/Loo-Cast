@@ -60,7 +60,6 @@ namespace LooCast.UI.Inventory
 
             rectTransform.SetParent(currentInventorySlot.RectTransform.parent);
             rectTransform.SetAsLastSibling();
-            //rectTransform.anchoredPosition = Vector2.zero;
         }
 
         public void OnDrag(PointerEventData eventData)
