@@ -1,13 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-namespace LooCast.Weapon.Data
+namespace LooCast.Item.Data
 {
     using LooCast.Data;
 
-    [CreateAssetMenu(fileName = "ChargedPlasmaLauncherWeaponData", menuName = "Data/Weapon/ChargedPlasmaLauncherWeaponData", order = 0)]
-    public sealed class ChargedPlasmaLauncherWeaponData : WeaponData
+    [CreateAssetMenu(fileName = "ChargedPlasmaLauncherWeaponItemData", menuName = "Data/Item/ChargedPlasmaLauncherWeaponItemData", order = 0)]
+    public class ChargedPlasmaLauncherWeaponItemData : WeaponItemData
     {
         public FloatDataReference ArcLifetime;
         public FloatDataReference ArcInitialWidth;
@@ -35,5 +33,5 @@ namespace LooCast.Weapon.Data
         public FloatDataReference BranchChance;
         public FloatDataReference BranchChanceMultiplier;
         public IntDataReference MaxRecursionDepth;
-    } 
+    }
 }

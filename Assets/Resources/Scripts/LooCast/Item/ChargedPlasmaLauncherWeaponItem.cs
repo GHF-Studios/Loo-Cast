@@ -1,16 +1,21 @@
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace LooCast.Weapon
+namespace LooCast.Item
 {
     using Data;
-    using Projectile;
-    using Target;
-    using Targeting;
+    using LooCast.Attribute.Stat;
+    using LooCast.Targeting;
+    using LooCast.Target;
+    using LooCast.Projectile;
 
-    public sealed class ChargedPlasmaLauncherWeapon : Weapon
+    public class ChargedPlasmaLauncherWeaponItem : WeaponItem
     {
+        #region Data
+        public ChargedPlasmaLauncherWeaponItemData ChargedPlasmaLauncherWeaponItemData { get; private set; }
+        #endregion
+
+        #region Properties
         public float arcLifetime { get; private set; }
         public float arcInitialWidth { get; private set; }
         public float arcWidthMultiplier { get; private set; }
@@ -37,11 +42,14 @@ namespace LooCast.Weapon
         public float branchChance { get; private set; }
         public float branchChanceMultiplier { get; private set; }
         public int maxRecursionDepth { get; private set; }
+        #endregion
 
-        public void Initialize(ChargedPlasmaLauncherWeaponData data, ITargeting targeting)
+        #region Fields
+        #endregion
+
+        #region Constructors
+        public ChargedPlasmaLauncherWeaponItem(ChargedPlasmaLauncherWeaponItemData data, Stats stats, ITargeting mainTargeting, GameObject originObject) : base(data, stats, mainTargeting, originObject)
         {
-            Initialize(data, targeting);
-
             arcLifetime = data.ArcLifetime.Value;
             arcInitialWidth = data.ArcInitialWidth.Value;
             arcWidthMultiplier = data.ArcWidthMultiplier.Value;
@@ -69,11 +77,16 @@ namespace LooCast.Weapon
             branchChanceMultiplier = data.BranchChanceMultiplier.Value;
             maxRecursionDepth = data.MaxRecursionDepth.Value;
         }
+        #endregion
 
+        #region Methods
         public override bool TryFire()
         {
-            if (attackTimer <= 0.0f && hasCooledDown)
+            if (canFire)
             {
+                canFire = false;
+                fireTimer.Start();
+
                 List<Target> targets = AcquireTargets(1, TargetingMode.Closest);
                 if (targets == null || targets.Count == 0)
                 {
@@ -81,16 +94,17 @@ namespace LooCast.Weapon
                 }
                 Target target = targets[0];
 
-                GameObject bulletObject = Instantiate(projectilePrefab, transform.position, Quaternion.identity);
+                GameObject bulletObject = GameObject.Instantiate(projectilePrefab, originObject.transform.position, Quaternion.identity);
                 bulletObject.transform.position += new Vector3(0, 0, 0.1f);
-                bulletObject.GetComponent<ChargedPlasmaProjectile>().Initialize(target, gameObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, baseProjectileLifetime, armorPenetration, arcLifetime, arcInitialWidth, arcWidthMultiplier, arcMinWidth, arcBranchAttempts, minSpreadDistance, minSpreadDistanceMultiplier, maxSpreadDistance, maxSpreadDistanceMultiplier, minSpreadAngle, minSpreadAngleMultiplier, maxSpreadAngle, maxSpreadAngleMultiplier, spreadChance, spreadChanceMultiplier, minBranchDistance, minBranchDistanceMultiplier, maxBranchDistance, maxBranchDistanceMultiplier, minBranchAngle, minBranchAngleMultiplier, maxBranchAngle, maxBranchAngleMultiplier, branchChance, branchChanceMultiplier, maxRecursionDepth);
+                bulletObject.GetComponent<ChargedPlasmaProjectile>().Initialize(target, originObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, armorPenetration, arcLifetime, arcInitialWidth, arcWidthMultiplier, arcMinWidth, arcBranchAttempts, minSpreadDistance, minSpreadDistanceMultiplier, maxSpreadDistance, maxSpreadDistanceMultiplier, minSpreadAngle, minSpreadAngleMultiplier, maxSpreadAngle, maxSpreadAngleMultiplier, spreadChance, spreadChanceMultiplier, minBranchDistance, minBranchDistanceMultiplier, maxBranchDistance, maxBranchDistanceMultiplier, minBranchAngle, minBranchAngleMultiplier, maxBranchAngle, maxBranchAngleMultiplier, branchChance, branchChanceMultiplier, maxRecursionDepth);
                 soundHandler.SoundShoot();
-
-                attackTimer = attackDelay;
-                hasCooledDown = false;
                 return true;
             }
-            return false;
+            else
+            {
+                return false;
+            }
         }
-    } 
+        #endregion
+    }
 }

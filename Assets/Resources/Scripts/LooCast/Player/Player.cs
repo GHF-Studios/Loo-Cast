@@ -10,7 +10,6 @@ namespace LooCast.Player
     using Health;
     using Targeting;
     using Movement;
-    using Weapon;
     using Particle;
     using Experience;
     using Attribute;
@@ -23,7 +22,6 @@ namespace LooCast.Player
         public PlayerData Data;
         public PlayerRuntimeData RuntimeData;
 
-        public Dictionary<string, Weapon> Weapons { get; private set; }
         public PlayerHealth Health { get; private set; }
         public PlayerTargeting Targeting { get; private set; }
         public PlayerExperience Experience { get; private set; }
@@ -37,18 +35,6 @@ namespace LooCast.Player
 
         private void Awake()
         {
-            Weapons = new Dictionary<string, Weapon>();
-
-            MultiplexerWeapon MultiplexerWeapon = GetComponent<MultiplexerWeapon>();
-            LaserEmitterWeapon LaserEmitterWeapon = GetComponent<LaserEmitterWeapon>();
-            FreezeRayWeapon FreezeRayWeapon = GetComponent<FreezeRayWeapon>();
-            ChargedPlasmaLauncherWeapon ChargedPlasmaLauncherWeapon = GetComponent<ChargedPlasmaLauncherWeapon>();
-
-            Weapons.Add("MultiplexerWeapon", MultiplexerWeapon);
-            Weapons.Add("LaserEmitterWeapon", LaserEmitterWeapon);
-            Weapons.Add("FreezeRayWeapon", FreezeRayWeapon);
-            Weapons.Add("ChargedPlasmaLauncherWeapon", ChargedPlasmaLauncherWeapon);
-
             Health = GetComponent<PlayerHealth>();
             Targeting = GetComponent<PlayerTargeting>();
             Experience = GetComponent<PlayerExperience>();

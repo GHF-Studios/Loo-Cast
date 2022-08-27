@@ -1,40 +1,24 @@
+using System;
+using System.Timers;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
 namespace LooCast.Item
 {
     using Data;
-    using LooCast.Resource;
+    using LooCast.Targeting;
     using LooCast.Attribute.Stat;
+    using LooCast.Sound;
+    using LooCast.Target;
 
-    public class WeaponItem : UniqueItem
+    public abstract class WeaponItem : UniqueItem
     {
         #region Data
-        public WeaponItemData Data { get; private set; }
+        public WeaponItemData WeaponItemData { get; private set; }
         #endregion
 
         #region Properties
-        public GameObject MainGameObject
-        {
-            get
-            {
-                return mainGameObject;
-            }
-            
-            protected set
-            {
-                mainGameObject = value;
-                onMainGameObjectChanged.Invoke();
-            }
-        }
-        public UnityEvent OnMainGameObjectChanged
-        {
-            get
-            {
-                return onMainGameObjectChanged;
-            }
-        }
-
         public float damage { get; protected set; }
         public float critChance { get; protected set; }
         public float critDamage { get; protected set; }
@@ -47,45 +31,117 @@ namespace LooCast.Item
         public int armorPenetration { get; protected set; }
 
         public GameObject projectilePrefab { get; protected set; }
-        public float attackTimer { get; protected set; }
-        public bool hasCooledDown { get; protected set; }
         #endregion
 
         #region Fields
-        protected ITargeting targeting;
+        protected Stats stats;
+        protected ITargeting mainTargeting;
         protected GameSoundHandler soundHandler;
-
-        private GameObject mainGameObject;
-        private UnityEvent onMainGameObjectChanged;
-        private Stats Stats;
+        protected Timer fireTimer;
+        protected bool canFire;
+        protected GameObject originObject;
         #endregion
 
-        public WeaponItem(WeaponItemData data, GameObject mainGameObject, Stats stats) : base(data)
+        #region Constructors
+        public WeaponItem(WeaponItemData data, Stats stats, ITargeting mainTargeting, GameObject originObject) : base(data)
         {
-            onMainGameObjectChanged = new UnityEvent();
-            
-            Data = data;
+            if (stats == null)
+            {
+                throw new ArgumentNullException("Stats can not be null!");
+            }
+            if (mainTargeting == null)
+            {
+                throw new ArgumentNullException("MainTargeting can not be null!");
+            }
 
-            targeting = GetComponent<ITargeting>();
-            soundHandler = FindObjectOfType<GameSoundHandler>();
+            WeaponItemData = data;
 
-            damage = data.BaseDamage.Value * Stats.DamageMultiplier;
-            critChance = data.BaseCritChance.Value * Stats.RandomChanceMultiplier;
-            critDamage = data.BaseCritDamage.Value * Stats.DamageMultiplier;
-            knockback = data.BaseKnockback.Value * Stats.KnockbackMultiplier;
-            attackDelay = data.BaseAttackDelay.Value * Stats.AttackDelayMultiplier;
-            projectileSpeed = data.BaseProjectileSpeed.Value * Stats.ProjectileSpeedMultiplier;
-            projectileSize = data.BaseProjectileSize.Value * Stats.ProjectileSizeMultiplier;
+            this.stats = stats;
+            this.mainTargeting = mainTargeting;
+            soundHandler = GameObject.FindObjectOfType<GameSoundHandler>();
+            fireTimer = new Timer(data.BaseAttackDelay.Value * 1000);
+            fireTimer.Elapsed += (sender, elapsedEventArgs) => { canFire = true; };
+            fireTimer.Start();
+            canFire = false;
+            this.originObject = originObject;
+
+            damage = data.BaseDamage.Value * this.stats.DamageMultiplier;
+            critChance = data.BaseCritChance.Value * this.stats.RandomChanceMultiplier;
+            critDamage = data.BaseCritDamage.Value * this.stats.DamageMultiplier;
+            knockback = data.BaseKnockback.Value * this.stats.KnockbackMultiplier;
+            attackDelay = data.BaseAttackDelay.Value * this.stats.AttackDelayMultiplier;
+            projectileSpeed = data.BaseProjectileSpeed.Value * this.stats.ProjectileSpeedMultiplier;
+            projectileSize = data.BaseProjectileSize.Value * this.stats.ProjectileSizeMultiplier;
             projectileLifetime = data.BaseProjectileLifetime.Value;
-            piercing = data.BasePiercing.Value + Stats.PiercingIncrease;
-            armorPenetration = data.BaseArmorPenetration.Value + Stats.ArmorPenetrationIncrease;
+            piercing = data.BasePiercing.Value + this.stats.PiercingIncrease;
+            armorPenetration = data.BaseArmorPenetration.Value + this.stats.ArmorPenetrationIncrease;
 
             projectilePrefab = data.ProjectilePrefab;
-            attackTimer = 0.0f;
-            hasCooledDown = false;
-
-            MainGameObject = mainGameObject;
-            Stats = stats;
         }
+        #endregion
+
+        #region Methods
+        public abstract bool TryFire();
+
+        protected virtual List<Target> AcquireTargets(int count, TargetingMode targetType)
+        {
+            List<Target> targetsFound;
+
+            switch (targetType)
+            {
+                case TargetingMode.Closest:
+                    targetsFound = mainTargeting.ClosestTargets;
+                    break;
+                case TargetingMode.Furthest:
+                    targetsFound = mainTargeting.FurthestTargets;
+                    break;
+                case TargetingMode.Random:
+                    targetsFound = mainTargeting.RandomTargets;
+                    break;
+                case TargetingMode.RandomOnscreen:
+                    targetsFound = mainTargeting.RandomOnscreenTargets;
+                    break;
+                case TargetingMode.RandomProximity:
+                    targetsFound = mainTargeting.RandomProximityTargets;
+                    break;
+                default:
+                    targetsFound = null;
+                    break;
+            }
+
+            if (targetsFound == null)
+            {
+                return null;
+            }
+
+            List<Target> targets = new List<Target>();
+
+            foreach (Target target in targetsFound)
+            {
+                if (targets.Count >= count)
+                {
+                    break;
+                }
+
+                if (target == null || !target.IsValid() || target.IsLocked())
+                {
+                    continue;
+                }
+
+                Target.EngageTargetLock(target, out bool targetLockSuccess);
+
+                if (targetLockSuccess)
+                {
+                    targets.Add(target);
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
+            return targets;
+        }
+        #endregion
     }
 }

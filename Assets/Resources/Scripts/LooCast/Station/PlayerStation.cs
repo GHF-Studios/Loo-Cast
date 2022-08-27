@@ -6,7 +6,6 @@ namespace LooCast.Station
 {
     using Data;
     using Targeting;
-    using Weapon;
     using Health;
 
     public sealed class PlayerStation : Station

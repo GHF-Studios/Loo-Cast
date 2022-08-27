@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace LooCast.Item.Data
 {
-    using LooCast.Resource;
+    using LooCast.Data;
 
     [CreateAssetMenu(fileName = "WeaponItemData", menuName = "Data/Item/WeaponItemData", order = 0)]
     public class WeaponItemData : UniqueItemData
