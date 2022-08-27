@@ -5,9 +5,9 @@ using UnityEngine.Events;
 
 namespace LooCast.Item
 {
-    public sealed class ItemContainer
+    public class ItemContainer
     {
-        private Item[] itemSlots;
+        protected Item[] itemSlots;
         public UnityEvent<int[]> OnSlotsChanged
         {
             get
@@ -16,8 +16,9 @@ namespace LooCast.Item
             }
         }
         private UnityEvent<int[]> onSlotsChanged;
+        protected Func<Item, bool> itemValidator;
 
-        public ItemContainer(int slotCount)
+        public ItemContainer(int slotCount, Func<Item, bool> itemValidator = null)
         {
             if (slotCount <= 0)
             {
@@ -25,9 +26,10 @@ namespace LooCast.Item
             }
             itemSlots = new Item[slotCount];
             onSlotsChanged = new UnityEvent<int[]>();
+            this.itemValidator = itemValidator;
         }
 
-        public ItemContainer(Item[] items)
+        public ItemContainer(Item[] items, Func<Item, bool> itemValidator = null)
         {
             if (items == null)
             {
@@ -37,8 +39,16 @@ namespace LooCast.Item
             {
                 throw new ArgumentOutOfRangeException("Items must have atleast one entry!");
             }
+            for (int i = 0; i < items.Length; i++)
+            {
+                if (itemValidator != null && !itemValidator.Invoke(items[i]))
+                {
+                    throw new ArgumentException("Items have to be valid, according to the Item Validator!");
+                }
+            }
             itemSlots = items;
             onSlotsChanged = new UnityEvent<int[]>();
+            this.itemValidator = itemValidator;
         }
 
         public void AddItem(Item item, out Item remainingItem)
@@ -47,28 +57,37 @@ namespace LooCast.Item
             {
                 throw new ArgumentNullException("Item cannot be null!");
             }
-            else if (item is CountableItem)
+
+            if (itemValidator != null && itemValidator.Invoke(item))
             {
-                AddItem((CountableItem)item, out CountableItem remainingCountableItem, out int[] changedSlots);
-                remainingItem = remainingCountableItem;
-                onSlotsChanged.Invoke(changedSlots);
+                if (item is CountableItem)
+                {
+                    AddItem((CountableItem)item, out CountableItem remainingCountableItem, out int[] changedSlots);
+                    remainingItem = remainingCountableItem;
+                    onSlotsChanged.Invoke(changedSlots);
+                    return;
+                }
+                else if (item is AmountableItem)
+                {
+                    AddItem((AmountableItem)item, out AmountableItem remainingAmountableItem, out int[] changedSlots);
+                    remainingItem = remainingAmountableItem;
+                    onSlotsChanged.Invoke(changedSlots);
+                    return;
+                }
+                else if (item is UniqueItem)
+                {
+                    AddItem((UniqueItem)item, out UniqueItem remainingUniqueItem, out int? changedSlot);
+                    remainingItem = remainingUniqueItem;
+                    onSlotsChanged.Invoke(changedSlot != null ? new int[] { (int)changedSlot } : Array.Empty<int>());
+                    return;
+                }
+                else
+                {
+                    throw new NotSupportedException("Unsupported Item Type!");
+                } 
             }
-            else if (item is AmountableItem)
-            {
-                AddItem((AmountableItem)item, out AmountableItem remainingAmountableItem, out int[] changedSlots);
-                remainingItem = remainingAmountableItem;
-                onSlotsChanged.Invoke(changedSlots);
-            }
-            else if (item is UniqueItem)
-            {
-                AddItem((UniqueItem)item, out UniqueItem remainingUniqueItem, out int? changedSlot);
-                remainingItem = remainingUniqueItem;
-                onSlotsChanged.Invoke(changedSlot != null ? new int[] { (int)changedSlot } : Array.Empty<int>());
-            }
-            else
-            {
-                throw new NotSupportedException("Unsupported Item Type!");
-            }
+
+            remainingItem = item;
         }
 
         private void AddItem(CountableItem countableItem, out CountableItem remainingCountableItem, out int[] changedSlots)
