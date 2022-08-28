@@ -1,9 +1,13 @@
 namespace LooCast.Item.Data
 {
+    using LooCast.Data;
+
     public abstract class CountableItemData : ItemData
     {
-        public int MaxCount;
-        public int DefaultCount;
-        public float Density;
+        public IntDataReference MaxCount;
+        public IntDataReference DefaultCount;
+        public FloatDataReference Density;
+        public FloatDataReference MinObjectScale;
+        public FloatDataReference MaxObjectScale;
     }
 }

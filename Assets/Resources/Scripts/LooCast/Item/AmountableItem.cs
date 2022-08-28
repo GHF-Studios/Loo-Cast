@@ -40,17 +40,21 @@ namespace LooCast.Item
             }
         }
         public float Density { get; protected set; }
+        public float MinObjectScale { get; protected set; }
+        public float MaxObjectScale { get; protected set; }
 
         private float amount;
         private UnityEvent onAmountChanged;
 
-        public AmountableItem(AmountableItemData data) : base(data)
+        public AmountableItem(AmountableItemData data, ItemObject itemObject) : base(data, itemObject)
         {
             onAmountChanged = new UnityEvent();
 
-            MaxAmount = data.MaxAmount;
-            Amount = data.DefaultAmount;
-            Density = data.Density;
+            MaxAmount = data.MaxAmount.Value;
+            Amount = data.DefaultAmount.Value;
+            Density = data.Density.Value;
+            MinObjectScale = data.MinObjectScale.Value;
+            MaxObjectScale = data.MaxObjectScale.Value;
         }
 
         public bool IsFull()

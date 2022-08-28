@@ -4,7 +4,7 @@ namespace LooCast.Item.Data
 {
     using LooCast.Data;
 
-    [CreateAssetMenu(fileName = "MultiplexerWeaponItemData", menuName = "Data/Item/MultiplexerWeaponItemData", order = 0)]
+    [CreateAssetMenu(fileName = "MultiplexerWeaponItemData", menuName = "Data/Item/Weapon/MultiplexerWeaponItemData", order = 0)]
     public class MultiplexerWeaponItemData : WeaponItemData
     {
         public IntDataReference BaseMaxTargets;

@@ -5,8 +5,9 @@ using UnityEngine;
 namespace LooCast.Station
 {
     using Data;
-    using Targeting;
-    using Health;
+    using LooCast.Targeting;
+    using LooCast.Health;
+    using LooCast.Inventory;
 
     public sealed class PlayerStation : Station
     {
@@ -29,11 +30,19 @@ namespace LooCast.Station
                 return targeting;
             }
         }
+        public PlayerStationInventory PlayerStationInventory
+        {
+            get
+            {
+                return playerStationInventory;
+            }
+        }
         #endregion
 
         #region Fields
         [SerializeField] private PlayerStationHealth health;
         [SerializeField] private Targeting targeting;
+        [SerializeField] private PlayerStationInventory playerStationInventory;
         #endregion
 
         #region Unity Callbacks

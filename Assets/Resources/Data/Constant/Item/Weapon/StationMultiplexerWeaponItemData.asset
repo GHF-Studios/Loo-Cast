@@ -1,0 +1,130 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cc95a4bbeb305d469c28cf57119fcdb, type: 3}
+  m_Name: StationMultiplexerWeaponItemData
+  m_EditorClassIdentifier: 
+  ItemName:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: 69bb08f328027984abf51633c42808cf, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  ItemDataName:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: a5b4e34373d933141b62586cf3b3f965, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  Sprite: {fileID: 21300000, guid: d3dfdc7aecc4bc64699cc67815c60daa, type: 3}
+  ItemObjectPrefab: {fileID: 652465653129609928, guid: 76bfd031d478c4d4bb6a1f9efec8e447, type: 3}
+  BaseDamage:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 066e778f9467767439dd0f87010f343d, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseCritChance:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 7ff616ebb8c75bb43a9031f382588b4e, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseCritDamage:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 6d62a557430e6f144bf784e99bfcaf3f, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseKnockback:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: df1d13aa1e754dc4aacf0f8fc65f75b4, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseAttackDelay:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: f3f4124582058064bbc0bc68b9d4c346, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseProjectileSpeed:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 9541f791dcf9c6d4392353c78ef5bb95, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseProjectileSize:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: efb20fe8263bc7340aaa6f4e845e3d03, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseProjectileLifetime:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 8dff20483cc8a2f48afa4189246497c8, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BasePiercing:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: fdfe9de1344812a4ea710cabe75095e6, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseArmorPenetration:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 3e0bfe88b69020047a52c3a9aa7ef73b, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  ProjectilePrefab: {fileID: 5945390780475517518, guid: fe80e0587082084428fc1dbee2211116, type: 3}
+  BaseMaxTargets:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 2b1ede13deccc624f9e9be34102570af, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseMaxFragments:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: b084d25147f4aa344a46ae2b00de4045, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseFragmentArmorPenetration:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: d18833987226ee14a98d46ea11fa2f92, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  IsTargetSeeking:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 692ad5537b176ba44ad63c9e87317a1c, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  FragmentPrefab: {fileID: 5945390780475517518, guid: f2f511936543dc84285880b7f58eabb6, type: 3}

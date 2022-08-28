@@ -35,7 +35,7 @@ namespace LooCast.UI.Inventory
             }
         }
         public int SlotID { get; private set; }
-        public ItemContainer ItemContainer { get; private set; }
+        public ItemContainer<Item> ItemContainer { get; private set; }
         public RectTransform RectTransform
         {
             get
@@ -88,7 +88,7 @@ namespace LooCast.UI.Inventory
         #endregion
 
         #region Methods
-        public void Initialize(int slotID, ItemContainer itemContainer, UnityEngine.Canvas canvas)
+        public void Initialize(int slotID, ItemContainer<Item> itemContainer, UnityEngine.Canvas canvas)
         {
             SlotID = slotID;
             ItemContainer = itemContainer;

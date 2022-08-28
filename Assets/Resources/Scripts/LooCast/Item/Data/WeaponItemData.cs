@@ -4,8 +4,7 @@ namespace LooCast.Item.Data
 {
     using LooCast.Data;
 
-    [CreateAssetMenu(fileName = "WeaponItemData", menuName = "Data/Item/WeaponItemData", order = 0)]
-    public class WeaponItemData : UniqueItemData
+    public abstract class WeaponItemData : UniqueItemData
     {
         public FloatDataReference BaseDamage;
         public FloatDataReference BaseCritChance;

@@ -29,8 +29,8 @@ namespace LooCast.Item
         public float projectileLifetime { get; protected set; }
         public int piercing { get; protected set; }
         public int armorPenetration { get; protected set; }
-
         public GameObject projectilePrefab { get; protected set; }
+        public bool autoFire { get; protected set; }
         #endregion
 
         #region Fields
@@ -43,27 +43,49 @@ namespace LooCast.Item
         #endregion
 
         #region Constructors
-        public WeaponItem(WeaponItemData data, Stats stats, ITargeting mainTargeting, GameObject originObject) : base(data)
+        public WeaponItem(WeaponItemData data, ItemObject itemObject, Stats stats, bool autoFire = false) : base(data, itemObject)
         {
-            if (stats == null)
-            {
-                throw new ArgumentNullException("Stats can not be null!");
-            }
-            if (mainTargeting == null)
-            {
-                throw new ArgumentNullException("MainTargeting can not be null!");
-            }
-
             WeaponItemData = data;
 
             this.stats = stats;
-            this.mainTargeting = mainTargeting;
+            this.autoFire = autoFire;
             soundHandler = GameObject.FindObjectOfType<GameSoundHandler>();
             fireTimer = new Timer(data.BaseAttackDelay.Value * 1000);
-            fireTimer.Elapsed += (sender, elapsedEventArgs) => { canFire = true; };
-            fireTimer.Start();
+            fireTimer.Elapsed += (sender, elapsedEventArgs) =>
+            {
+                canFire = true;
+                if (autoFire)
+                {
+                    TryFire();
+                }
+            };
+            if (!IsDropped)
+            {
+                fireTimer.Start();
+            }
             canFire = false;
-            this.originObject = originObject;
+            OnDrop.AddListener(() => 
+            { 
+                fireTimer.Stop(); 
+                canFire = false; 
+                mainTargeting = null; 
+                originObject = null; 
+            });
+            OnPickup.AddListener((origin) => 
+            {
+                if (origin == null)
+                {
+                    throw new NullReferenceException("Origin cannot be null here!");
+                }
+                fireTimer.Start(); 
+                canFire = true; 
+                mainTargeting = origin.GetComponentInChildren<ITargeting>();
+                if (mainTargeting == null)
+                {
+                    throw new NullReferenceException("No Targeting found in origin!");
+                }
+                originObject = origin; 
+            });
 
             damage = data.BaseDamage.Value * this.stats.DamageMultiplier;
             critChance = data.BaseCritChance.Value * this.stats.RandomChanceMultiplier;
@@ -75,13 +97,24 @@ namespace LooCast.Item
             projectileLifetime = data.BaseProjectileLifetime.Value;
             piercing = data.BasePiercing.Value + this.stats.PiercingIncrease;
             armorPenetration = data.BaseArmorPenetration.Value + this.stats.ArmorPenetrationIncrease;
-
             projectilePrefab = data.ProjectilePrefab;
         }
         #endregion
 
         #region Methods
-        public abstract bool TryFire();
+        public bool TryFire()
+        {
+            if (canFire && !IsDropped)
+            {
+                canFire = false;
+                Fire();
+                fireTimer.Start();
+                return true;
+            }
+            return false;
+        }
+
+        public abstract void Fire();
 
         protected virtual List<Target> AcquireTargets(int count, TargetingMode targetType)
         {

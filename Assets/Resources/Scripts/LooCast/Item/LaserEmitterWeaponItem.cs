@@ -16,44 +16,33 @@ namespace LooCast.Item
         #endregion
 
         #region Properties
-        public float laserLength { get; private set; }
+        public float LaserLength { get; private set; }
         #endregion
 
         #region Fields
         #endregion
 
         #region Constructors
-        public LaserEmitterWeaponItem(LaserEmitterWeaponItemData data, Stats stats, ITargeting mainTargeting, GameObject originObject) : base(data, stats, mainTargeting, originObject)
+        public LaserEmitterWeaponItem(LaserEmitterWeaponItemData data, ItemObject itemObject, Stats stats, bool autoFire = false) : base(data, itemObject, stats, autoFire)
         {
-            laserLength = data.LaserLength.Value;
+            LaserLength = data.LaserLength.Value;
         }
         #endregion
 
         #region Methods
-        public override bool TryFire()
+        public override void Fire()
         {
-            if (canFire)
+            List<Target> targets = AcquireTargets(1, TargetingMode.Closest);
+            if (targets == null || targets.Count == 0)
             {
-                canFire = false;
-                fireTimer.Start();
-
-                List<Target> targets = AcquireTargets(1, TargetingMode.Closest);
-                if (targets == null || targets.Count == 0)
-                {
-                    return false;
-                }
-                Target target = targets[0];
-
-                GameObject bulletObject = GameObject.Instantiate(projectilePrefab, originObject.transform.position, Quaternion.identity);
-                bulletObject.transform.position += new Vector3(0, 0, 0.1f);
-                bulletObject.GetComponent<LaserProjectile>().Initialize(target, originObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, piercing, armorPenetration, laserLength);
-                soundHandler.SoundShoot();
-                return true;
+                return;
             }
-            else
-            {
-                return false;
-            }
+            Target target = targets[0];
+
+            GameObject bulletObject = GameObject.Instantiate(projectilePrefab, originObject.transform.position, Quaternion.identity);
+            bulletObject.transform.position += new Vector3(0, 0, 0.1f);
+            bulletObject.GetComponent<LaserProjectile>().Initialize(target, originObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, piercing, armorPenetration, LaserLength);
+            soundHandler.SoundShoot();
         }
         #endregion
     }

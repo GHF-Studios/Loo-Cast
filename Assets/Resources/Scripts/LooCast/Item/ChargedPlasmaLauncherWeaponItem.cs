@@ -16,94 +16,83 @@ namespace LooCast.Item
         #endregion
 
         #region Properties
-        public float arcLifetime { get; private set; }
-        public float arcInitialWidth { get; private set; }
-        public float arcWidthMultiplier { get; private set; }
-        public float arcMinWidth { get; private set; }
-        public int arcBranchAttempts { get; private set; }
-        public float minSpreadDistance { get; private set; }
-        public float minSpreadDistanceMultiplier { get; private set; }
-        public float maxSpreadDistance { get; private set; }
-        public float maxSpreadDistanceMultiplier { get; private set; }
-        public float minSpreadAngle { get; private set; }
-        public float minSpreadAngleMultiplier { get; private set; }
-        public float maxSpreadAngle { get; private set; }
-        public float maxSpreadAngleMultiplier { get; private set; }
-        public float spreadChance { get; private set; }
-        public float spreadChanceMultiplier { get; private set; }
-        public float minBranchDistance { get; private set; }
-        public float minBranchDistanceMultiplier { get; private set; }
-        public float maxBranchDistance { get; private set; }
-        public float maxBranchDistanceMultiplier { get; private set; }
-        public float minBranchAngle { get; private set; }
-        public float minBranchAngleMultiplier { get; private set; }
-        public float maxBranchAngle { get; private set; }
-        public float maxBranchAngleMultiplier { get; private set; }
-        public float branchChance { get; private set; }
-        public float branchChanceMultiplier { get; private set; }
-        public int maxRecursionDepth { get; private set; }
+        public float ArcLifetime { get; private set; }
+        public float ArcInitialWidth { get; private set; }
+        public float ArcWidthMultiplier { get; private set; }
+        public float ArcMinWidth { get; private set; }
+        public int ArcBranchAttempts { get; private set; }
+        public float MinSpreadDistance { get; private set; }
+        public float MinSpreadDistanceMultiplier { get; private set; }
+        public float MaxSpreadDistance { get; private set; }
+        public float MaxSpreadDistanceMultiplier { get; private set; }
+        public float MinSpreadAngle { get; private set; }
+        public float MinSpreadAngleMultiplier { get; private set; }
+        public float MaxSpreadAngle { get; private set; }
+        public float MaxSpreadAngleMultiplier { get; private set; }
+        public float SpreadChance { get; private set; }
+        public float SpreadChanceMultiplier { get; private set; }
+        public float MinBranchDistance { get; private set; }
+        public float MinBranchDistanceMultiplier { get; private set; }
+        public float MaxBranchDistance { get; private set; }
+        public float MaxBranchDistanceMultiplier { get; private set; }
+        public float MinBranchAngle { get; private set; }
+        public float MinBranchAngleMultiplier { get; private set; }
+        public float MaxBranchAngle { get; private set; }
+        public float MaxBranchAngleMultiplier { get; private set; }
+        public float BranchChance { get; private set; }
+        public float BranchChanceMultiplier { get; private set; }
+        public int MaxRecursionDepth { get; private set; }
         #endregion
 
         #region Fields
         #endregion
 
         #region Constructors
-        public ChargedPlasmaLauncherWeaponItem(ChargedPlasmaLauncherWeaponItemData data, Stats stats, ITargeting mainTargeting, GameObject originObject) : base(data, stats, mainTargeting, originObject)
+        public ChargedPlasmaLauncherWeaponItem(ChargedPlasmaLauncherWeaponItemData data, ItemObject itemObject, Stats stats, bool autoFire = false) : base(data, itemObject, stats, autoFire)
         {
-            arcLifetime = data.ArcLifetime.Value;
-            arcInitialWidth = data.ArcInitialWidth.Value;
-            arcWidthMultiplier = data.ArcWidthMultiplier.Value;
-            arcMinWidth = data.ArcMinWidth.Value;
-            arcBranchAttempts = data.ArcBranchAttempts.Value;
-            minSpreadDistance = data.MinSpreadDistance.Value;
-            minSpreadDistanceMultiplier = data.MinSpreadDistanceMultiplier.Value;
-            maxSpreadDistance = data.MaxSpreadDistance.Value;
-            maxSpreadDistanceMultiplier = data.MaxSpreadDistanceMultiplier.Value;
-            minSpreadAngle = data.MinSpreadAngle.Value;
-            minSpreadAngleMultiplier = data.MinSpreadAngleMultiplier.Value;
-            maxSpreadAngle = data.MaxSpreadAngle.Value;
-            maxSpreadAngleMultiplier = data.MaxSpreadAngleMultiplier.Value;
-            spreadChance = data.SpreadChance.Value;
-            spreadChanceMultiplier = data.SpreadChanceMultiplier.Value;
-            minBranchDistance = data.MinBranchDistance.Value;
-            minBranchDistanceMultiplier = data.MinBranchDistanceMultiplier.Value;
-            maxBranchDistance = data.MaxBranchDistance.Value;
-            maxBranchDistanceMultiplier = data.MaxBranchDistanceMultiplier.Value;
-            minBranchAngle = data.MinBranchAngle.Value;
-            minBranchAngleMultiplier = data.MinBranchAngleMultiplier.Value;
-            maxBranchAngle = data.MaxBranchAngle.Value;
-            maxBranchAngleMultiplier = data.MaxBranchAngleMultiplier.Value;
-            branchChance = data.BranchChance.Value;
-            branchChanceMultiplier = data.BranchChanceMultiplier.Value;
-            maxRecursionDepth = data.MaxRecursionDepth.Value;
+            ArcLifetime = data.ArcLifetime.Value;
+            ArcInitialWidth = data.ArcInitialWidth.Value;
+            ArcWidthMultiplier = data.ArcWidthMultiplier.Value;
+            ArcMinWidth = data.ArcMinWidth.Value;
+            ArcBranchAttempts = data.ArcBranchAttempts.Value;
+            MinSpreadDistance = data.MinSpreadDistance.Value;
+            MinSpreadDistanceMultiplier = data.MinSpreadDistanceMultiplier.Value;
+            MaxSpreadDistance = data.MaxSpreadDistance.Value;
+            MaxSpreadDistanceMultiplier = data.MaxSpreadDistanceMultiplier.Value;
+            MinSpreadAngle = data.MinSpreadAngle.Value;
+            MinSpreadAngleMultiplier = data.MinSpreadAngleMultiplier.Value;
+            MaxSpreadAngle = data.MaxSpreadAngle.Value;
+            MaxSpreadAngleMultiplier = data.MaxSpreadAngleMultiplier.Value;
+            SpreadChance = data.SpreadChance.Value;
+            SpreadChanceMultiplier = data.SpreadChanceMultiplier.Value;
+            MinBranchDistance = data.MinBranchDistance.Value;
+            MinBranchDistanceMultiplier = data.MinBranchDistanceMultiplier.Value;
+            MaxBranchDistance = data.MaxBranchDistance.Value;
+            MaxBranchDistanceMultiplier = data.MaxBranchDistanceMultiplier.Value;
+            MinBranchAngle = data.MinBranchAngle.Value;
+            MinBranchAngleMultiplier = data.MinBranchAngleMultiplier.Value;
+            MaxBranchAngle = data.MaxBranchAngle.Value;
+            MaxBranchAngleMultiplier = data.MaxBranchAngleMultiplier.Value;
+            BranchChance = data.BranchChance.Value;
+            BranchChanceMultiplier = data.BranchChanceMultiplier.Value;
+            MaxRecursionDepth = data.MaxRecursionDepth.Value;
         }
         #endregion
 
         #region Methods
-        public override bool TryFire()
+        public override void Fire()
         {
-            if (canFire)
+            List<Target> targets = AcquireTargets(1, TargetingMode.Closest);
+            if (targets == null || targets.Count == 0)
             {
-                canFire = false;
-                fireTimer.Start();
-
-                List<Target> targets = AcquireTargets(1, TargetingMode.Closest);
-                if (targets == null || targets.Count == 0)
-                {
-                    return false;
-                }
-                Target target = targets[0];
-
-                GameObject bulletObject = GameObject.Instantiate(projectilePrefab, originObject.transform.position, Quaternion.identity);
-                bulletObject.transform.position += new Vector3(0, 0, 0.1f);
-                bulletObject.GetComponent<ChargedPlasmaProjectile>().Initialize(target, originObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, armorPenetration, arcLifetime, arcInitialWidth, arcWidthMultiplier, arcMinWidth, arcBranchAttempts, minSpreadDistance, minSpreadDistanceMultiplier, maxSpreadDistance, maxSpreadDistanceMultiplier, minSpreadAngle, minSpreadAngleMultiplier, maxSpreadAngle, maxSpreadAngleMultiplier, spreadChance, spreadChanceMultiplier, minBranchDistance, minBranchDistanceMultiplier, maxBranchDistance, maxBranchDistanceMultiplier, minBranchAngle, minBranchAngleMultiplier, maxBranchAngle, maxBranchAngleMultiplier, branchChance, branchChanceMultiplier, maxRecursionDepth);
-                soundHandler.SoundShoot();
-                return true;
+                return;
             }
-            else
-            {
-                return false;
-            }
+            Target target = targets[0];
+
+            GameObject bulletObject = GameObject.Instantiate(projectilePrefab, originObject.transform.position, Quaternion.identity);
+            bulletObject.transform.position += new Vector3(0, 0, 0.1f);
+            bulletObject.GetComponent<ChargedPlasmaProjectile>().Initialize(target, originObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, armorPenetration, ArcLifetime, ArcInitialWidth, ArcWidthMultiplier, ArcMinWidth, ArcBranchAttempts, MinSpreadDistance, MinSpreadDistanceMultiplier, MaxSpreadDistance, MaxSpreadDistanceMultiplier, MinSpreadAngle, MinSpreadAngleMultiplier, MaxSpreadAngle, MaxSpreadAngleMultiplier, SpreadChance, SpreadChanceMultiplier, MinBranchDistance, MinBranchDistanceMultiplier, MaxBranchDistance, MaxBranchDistanceMultiplier, MinBranchAngle, MinBranchAngleMultiplier, MaxBranchAngle, MaxBranchAngleMultiplier, BranchChance, BranchChanceMultiplier, MaxRecursionDepth);
+            soundHandler.SoundShoot();
         }
         #endregion
     }

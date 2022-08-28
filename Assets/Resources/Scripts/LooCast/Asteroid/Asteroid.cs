@@ -58,10 +58,10 @@ namespace LooCast.Asteroid
             {
                 ResourceItemData resourceItemData = (ResourceItemData)itemDatas.GetItemData(Resource.ResourceName);
                 float depositToDrop = Deposit;
-                while (depositToDrop > resourceItemData.MaxAmount)
+                while (depositToDrop > resourceItemData.MaxAmount.Value)
                 {
-                    Drop(resourceItemData.MaxAmount);
-                    depositToDrop -= resourceItemData.MaxAmount;
+                    Drop(resourceItemData.MaxAmount.Value);
+                    depositToDrop -= resourceItemData.MaxAmount.Value;
                 }
                 Drop(depositToDrop);
 

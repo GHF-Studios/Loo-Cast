@@ -45,3 +45,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   data: {fileID: 11400000, guid: f21ef753ccf9de4449b9a11e8dad879b, type: 2}
+  radius: 50

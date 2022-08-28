@@ -40,17 +40,21 @@ namespace LooCast.Item
             }
         }
         public float Density { get; protected set; }
+        public float MinObjectScale { get; protected set; }
+        public float MaxObjectScale { get; protected set; }
 
         private UnityEvent onCountChanged;
         private int count;
 
-        public CountableItem(CountableItemData data) : base(data)
+        public CountableItem(CountableItemData data, ItemObject itemObject) : base(data, itemObject)
         {
             onCountChanged = new UnityEvent();
 
-            MaxCount = data.MaxCount;
-            Count = data.DefaultCount;
-            Density = data.Density;
+            MaxCount = data.MaxCount.Value;
+            Count = data.DefaultCount.Value;
+            Density = data.Density.Value;
+            MinObjectScale = data.MinObjectScale.Value;
+            MaxObjectScale = data.MaxObjectScale.Value;
         }
 
         public bool IsFull()

@@ -44,11 +44,11 @@ namespace LooCast.UI.Inventory
         #region Unity Callbacks
         private void Start()
         {
-            playerInventoryRuntimeData.ItemContainer.OnSlotsChanged.AddListener((slots) => { RefreshSlots(slots); });
+            playerInventoryRuntimeData.Hotbar.OnSlotsChanged.AddListener((slots) => { RefreshSlots(slots); });
 
             for (int i = 0; i < inventorySlots.Length; i++)
             {
-                inventorySlots[i].Initialize(i, playerInventoryRuntimeData.ItemContainer, canvas);
+                inventorySlots[i].Initialize(i, playerInventoryRuntimeData.Hotbar, canvas);
             }
         }
 
@@ -133,7 +133,7 @@ namespace LooCast.UI.Inventory
         {
             foreach (int slot in slots)
             {
-                Item item = playerInventoryRuntimeData.ItemContainer.GetItem(slot);
+                Item item = playerInventoryRuntimeData.Hotbar.GetItem(slot);
                 if (item == null)
                 {
                     if (inventorySlots[slot].CurrentItem != null)
@@ -148,12 +148,12 @@ namespace LooCast.UI.Inventory
                         GameObject inventoryItemObject = Instantiate(inventoryItemPrefab, inventorySlots[slot].transform);
                         InventoryItem inventoryItem = inventoryItemObject.GetComponent<InventoryItem>();
                         inventoryItem.Initialize(canvas);
-                        inventoryItem.Item = playerInventoryRuntimeData.ItemContainer.GetItem(slot);
+                        inventoryItem.Item = playerInventoryRuntimeData.Hotbar.GetItem(slot);
                         inventoryItem.DropOntoSlot(inventorySlots[slot]);
                     }
                     else
                     {
-                        inventorySlots[slot].CurrentItem.Item = playerInventoryRuntimeData.ItemContainer.GetItem(slot);
+                        inventorySlots[slot].CurrentItem.Item = playerInventoryRuntimeData.Hotbar.GetItem(slot);
                     }
                 }
             }

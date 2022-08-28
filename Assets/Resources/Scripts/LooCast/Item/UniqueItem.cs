@@ -4,7 +4,7 @@ namespace LooCast.Item
 
     public abstract class UniqueItem : Item
     {
-        public UniqueItem(UniqueItemData data) : base(data)
+        public UniqueItem(UniqueItemData data, ItemObject itemObject) : base(data, itemObject)
         {
             
         }

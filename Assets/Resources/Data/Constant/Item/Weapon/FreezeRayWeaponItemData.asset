@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dbc80e1d7a4ac4da8b74cfe02022fc, type: 3}
+  m_Name: FreezeRayWeaponItemData
+  m_EditorClassIdentifier: 
+  ItemName:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: 43ad038d8942b024488afc1cdc76cdf2, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  ItemDataName:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: 2851a7b244c888f4da1134c4dac7f90d, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  Sprite: {fileID: 21300000, guid: 2caae2b653776ed46b64cbf9b4705949, type: 3}
+  ItemObjectPrefab: {fileID: 4900875070671698304, guid: fe9c646a6e7058744b6cc152946648c8, type: 3}
+  BaseDamage:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: b00cf742f9d2ed742b9d86e90c67edaf, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseCritChance:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: c0c9975184a347d4a8f7375ad9e32c1b, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseCritDamage:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 0b8f80f92d23c8c4a99d93784c260eba, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseKnockback:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: e124bd21547a0d948bf536a9c6ecf824, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseAttackDelay:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: b1cd4a48aa2da9848b23732d5b01213c, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseProjectileSpeed:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 919ab2d331d98fa44a02713093bb4056, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseProjectileSize:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: fd37995885ee5e14584000ac4dca41cb, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseProjectileLifetime:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 0c1ed739a36bfb545bd28ed646dc7574, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BasePiercing:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 68c50b9cc00be04479844ae0f0d05bb2, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseArmorPenetration:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 3859d454fa8572b4e8dbde4187a6d550, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  ProjectilePrefab: {fileID: 1990222616869937636, guid: 033e06cebc74cb7448897e11d43e5416, type: 3}
