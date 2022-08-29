@@ -2502,6 +2502,7 @@ GameObject:
   - component: {fileID: 584879699}
   - component: {fileID: 584879698}
   - component: {fileID: 584879700}
+  - component: {fileID: 584879701}
   m_Layer: 5
   m_Name: InventoryHotbar
   m_TagString: Untagged
@@ -2605,6 +2606,34 @@ MonoBehaviour:
   - {fileID: 1644035537}
   currentInventorySlotCursor: {fileID: 4815284235374153747}
   canvas: {fileID: 1815381166}
+--- !u!114 &584879701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 584879696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f1a9d79df7421b49ba8e6411f9c1c2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Event: {fileID: 11400000, guid: ec74e8dc047a06e4096cbdf0bcf8d1a9, type: 2}
+  Response:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 584879700}
+        m_TargetAssemblyTypeName: LooCast.UI.Inventory.InventoryHotbar, Assembly-CSharp
+        m_MethodName: RefreshSlots
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &587534417
 GameObject:
   m_ObjectHideFlags: 0

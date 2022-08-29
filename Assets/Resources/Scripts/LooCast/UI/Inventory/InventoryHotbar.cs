@@ -7,6 +7,7 @@ namespace LooCast.UI.Inventory
     using Data;
     using LooCast.Inventory.Data.Runtime;
     using LooCast.Item;
+    using LooCast.Event;
 
     public class InventoryHotbar : MonoBehaviour
     {
@@ -44,8 +45,6 @@ namespace LooCast.UI.Inventory
         #region Unity Callbacks
         private void Start()
         {
-            playerInventoryRuntimeData.Hotbar.OnSlotsChanged.AddListener((slots) => { RefreshSlots(slots); });
-
             for (int i = 0; i < inventorySlots.Length; i++)
             {
                 inventorySlots[i].Initialize(i, playerInventoryRuntimeData.Hotbar, canvas);
@@ -129,31 +128,31 @@ namespace LooCast.UI.Inventory
         #endregion
 
         #region Methods
-        public void RefreshSlots(int[] slots)
+        public void RefreshSlots()
         {
-            foreach (int slot in slots)
+            foreach (InventorySlot inventorySlot in inventorySlots)
             {
-                Item item = playerInventoryRuntimeData.Hotbar.GetItem(slot);
+                Item item = playerInventoryRuntimeData.Hotbar.GetItem(inventorySlot.SlotID);
                 if (item == null)
                 {
-                    if (inventorySlots[slot].CurrentItem != null)
+                    if (inventorySlot.CurrentItem != null)
                     {
-                        inventorySlots[slot].CurrentItem.Destroy();
+                        inventorySlot.CurrentItem.Destroy();
                     }
                 }
                 else
                 {
-                    if (inventorySlots[slot].CurrentItem == null)
+                    if (inventorySlot.CurrentItem == null)
                     {
-                        GameObject inventoryItemObject = Instantiate(inventoryItemPrefab, inventorySlots[slot].transform);
+                        GameObject inventoryItemObject = Instantiate(inventoryItemPrefab, inventorySlot.transform);
                         InventoryItem inventoryItem = inventoryItemObject.GetComponent<InventoryItem>();
                         inventoryItem.Initialize(canvas);
-                        inventoryItem.Item = playerInventoryRuntimeData.Hotbar.GetItem(slot);
-                        inventoryItem.DropOntoSlot(inventorySlots[slot]);
+                        inventoryItem.Item = playerInventoryRuntimeData.Hotbar.GetItem(inventorySlot.SlotID);
+                        inventoryItem.DropOntoSlot(inventorySlot);
                     }
                     else
                     {
-                        inventorySlots[slot].CurrentItem.Item = playerInventoryRuntimeData.Hotbar.GetItem(slot);
+                        inventorySlot.CurrentItem.Item = playerInventoryRuntimeData.Hotbar.GetItem(inventorySlot.SlotID);
                     }
                 }
             }

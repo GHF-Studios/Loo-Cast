@@ -38,18 +38,18 @@ namespace LooCast.Inventory
             ChargedPlasmaLauncherWeaponItem chargedPlasmaLauncherWeaponItem = new ChargedPlasmaLauncherWeaponItem(Data.ChargedPlasmaLauncherWeaponItemData, null, stats);
             chargedPlasmaLauncherWeaponItem.OnPickup.Invoke(gameObject);
             RuntimeData.Hotbar.SetItem(0, chargedPlasmaLauncherWeaponItem);
-
-            FreezeRayWeaponItem freezeRayWeaponItem = new FreezeRayWeaponItem(Data.FreezeRayWeaponItemData, null, stats);
-            freezeRayWeaponItem.OnPickup.Invoke(gameObject);
-            RuntimeData.Hotbar.SetItem(1, freezeRayWeaponItem);
-
-            LaserEmitterWeaponItem laserEmitterWeaponItem = new LaserEmitterWeaponItem(Data.LaserEmitterWeaponItemData, null, stats);
-            laserEmitterWeaponItem.OnPickup.Invoke(gameObject);
-            RuntimeData.Hotbar.SetItem(2, laserEmitterWeaponItem);
-
-            MultiplexerWeaponItem multiplexerWeaponItem = new MultiplexerWeaponItem(Data.MultiplexerWeaponItemData, null, stats);
-            multiplexerWeaponItem.OnPickup.Invoke(gameObject);
-            RuntimeData.Hotbar.SetItem(3, multiplexerWeaponItem);
+            
+            //FreezeRayWeaponItem freezeRayWeaponItem = new FreezeRayWeaponItem(Data.FreezeRayWeaponItemData, null, stats);
+            //freezeRayWeaponItem.OnPickup.Invoke(gameObject);
+            //RuntimeData.Hotbar.SetItem(1, freezeRayWeaponItem);
+            //
+            //LaserEmitterWeaponItem laserEmitterWeaponItem = new LaserEmitterWeaponItem(Data.LaserEmitterWeaponItemData, null, stats);
+            //laserEmitterWeaponItem.OnPickup.Invoke(gameObject);
+            //RuntimeData.Hotbar.SetItem(2, laserEmitterWeaponItem);
+            //
+            //MultiplexerWeaponItem multiplexerWeaponItem = new MultiplexerWeaponItem(Data.MultiplexerWeaponItemData, null, stats);
+            //multiplexerWeaponItem.OnPickup.Invoke(gameObject);
+            //RuntimeData.Hotbar.SetItem(3, multiplexerWeaponItem);
         }
         #endregion
 

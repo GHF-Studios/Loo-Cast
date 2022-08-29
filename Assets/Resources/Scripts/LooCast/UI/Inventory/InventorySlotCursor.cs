@@ -21,6 +21,7 @@ namespace LooCast.UI.Inventory
                 }
                 currentInventorySlot = value;
                 rectTransform.SetParent(currentInventorySlot.RectTransform);
+                rectTransform.SetAsFirstSibling();
                 rectTransform.anchoredPosition = Vector2.zero;
             }
         }

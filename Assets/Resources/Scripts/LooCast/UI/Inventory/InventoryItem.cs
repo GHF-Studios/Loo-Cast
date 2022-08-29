@@ -122,13 +122,21 @@ namespace LooCast.UI.Inventory
                 quantityValue.enabled = true;
                 quantityValue.text = $"{countableItem.Count}";
             }
-            else if(item is AmountableItem)
+            else if (item is AmountableItem)
             {
                 AmountableItem amountableItem = (AmountableItem)item;
                 image.enabled = true;
                 image.sprite = amountableItem.Sprite;
                 quantityValue.enabled = true;
                 quantityValue.text = string.Format("{0:n0}", amountableItem.Amount) + "t";
+            }
+            else if (item is UniqueItem)
+            {
+                UniqueItem uniqueItem = (UniqueItem)item;
+                image.enabled = true;
+                image.sprite = uniqueItem.Sprite;
+                quantityValue.enabled = false;
+                quantityValue.text = "";
             }
         }
 
@@ -174,6 +182,7 @@ namespace LooCast.UI.Inventory
         private void RevertToCurrentSlot()
         {
             rectTransform.SetParent(CurrentInventorySlot.RectTransform);
+            rectTransform.SetAsLastSibling();
             rectTransform.anchoredPosition = Vector2.zero;
         }
         #endregion
