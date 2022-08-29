@@ -35,21 +35,21 @@ namespace LooCast.Inventory
 
             Player player = GetComponentInParent<Player>();
 
-            ChargedPlasmaLauncherWeaponItem chargedPlasmaLauncherWeaponItem = new ChargedPlasmaLauncherWeaponItem(Data.ChargedPlasmaLauncherWeaponItemData, null, stats);
-            chargedPlasmaLauncherWeaponItem.OnPickup.Invoke(gameObject);
-            RuntimeData.Hotbar.SetItem(0, chargedPlasmaLauncherWeaponItem);
-            
+            //ChargedPlasmaLauncherWeaponItem chargedPlasmaLauncherWeaponItem = new ChargedPlasmaLauncherWeaponItem(Data.ChargedPlasmaLauncherWeaponItemData, null, stats);
+            //chargedPlasmaLauncherWeaponItem.OnPickup.Invoke(gameObject);
+            //RuntimeData.Hotbar.AddItem(chargedPlasmaLauncherWeaponItem, out Item remainingChargedPlasmaLauncherWeaponItem);
+            //
             //FreezeRayWeaponItem freezeRayWeaponItem = new FreezeRayWeaponItem(Data.FreezeRayWeaponItemData, null, stats);
             //freezeRayWeaponItem.OnPickup.Invoke(gameObject);
-            //RuntimeData.Hotbar.SetItem(1, freezeRayWeaponItem);
-            //
-            //LaserEmitterWeaponItem laserEmitterWeaponItem = new LaserEmitterWeaponItem(Data.LaserEmitterWeaponItemData, null, stats);
-            //laserEmitterWeaponItem.OnPickup.Invoke(gameObject);
-            //RuntimeData.Hotbar.SetItem(2, laserEmitterWeaponItem);
-            //
-            //MultiplexerWeaponItem multiplexerWeaponItem = new MultiplexerWeaponItem(Data.MultiplexerWeaponItemData, null, stats);
-            //multiplexerWeaponItem.OnPickup.Invoke(gameObject);
-            //RuntimeData.Hotbar.SetItem(3, multiplexerWeaponItem);
+            //RuntimeData.Hotbar.AddItem(freezeRayWeaponItem, out Item remainingFreezeRayWeaponItem);
+            
+            LaserEmitterWeaponItem laserEmitterWeaponItem = new LaserEmitterWeaponItem(Data.LaserEmitterWeaponItemData, null, stats);
+            laserEmitterWeaponItem.OnPickup.Invoke(gameObject);
+            RuntimeData.Hotbar.AddItem(laserEmitterWeaponItem, out Item remainingLaserEmitterWeaponItem);
+            
+            MultiplexerWeaponItem multiplexerWeaponItem = new MultiplexerWeaponItem(Data.MultiplexerWeaponItemData, null, stats);
+            multiplexerWeaponItem.OnPickup.Invoke(gameObject);
+            RuntimeData.Hotbar.AddItem(multiplexerWeaponItem, out Item remainingMultiplexerWeaponItem);
         }
         #endregion
 

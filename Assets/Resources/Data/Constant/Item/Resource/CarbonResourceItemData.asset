@@ -12,12 +12,55 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2d8e4122dbfece4cb1fed659813128c, type: 3}
   m_Name: CarbonResourceItemData
   m_EditorClassIdentifier: 
-  ItemName: Carbon
+  ItemName:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: 60eadc55ee651c344a297ac612e29c6f, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  ItemDataName:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: b3f8cf69cb7447143b3ff18c77ae20c0, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   Sprite: {fileID: 21300000, guid: 2c5673b23b8c65c499ae789c11458fa7, type: 3}
   ItemObjectPrefab: {fileID: 3825356681221801737, guid: 817d582c7c0c1154dac771b2d0d8b4d2, type: 3}
-  MinObjectScale: 1
-  MaxObjectScale: 3
-  MaxAmount: 1000
-  DefaultAmount: 900
-  Density: 2
+  MaxAmount:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: bdd1a4536316f5640b3e32d0569f4e60, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  DefaultAmount:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 6ecf445b12ff5be488c3b6818a9c0286, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  Density:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 6bc03dd365eaff04abef6fe16d32e6cd, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MinObjectScale:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 3ae5f8c049d585a48b8e13d58d7da6be, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MaxObjectScale:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 5a175ee325c662843acb09d1ca69abc7, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   Resource: {fileID: 11400000, guid: 35c94f553a36dff4e8515ff8e293a21b, type: 2}

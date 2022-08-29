@@ -15,22 +15,22 @@ namespace LooCast.Item.Data
             itemDataDictionary = new Dictionary<string, ItemData>();
             foreach (ItemData itemData in itemDataList)
             {
-                if (itemDataDictionary.ContainsKey(itemData.ItemName.Value))
+                if (itemDataDictionary.ContainsKey(itemData.ItemDataName.Value))
                 {
-                    throw new Exception($"Already contains item {itemData.ItemName.Value}!");
+                    throw new Exception($"Already contains item {itemData.ItemDataName.Value}!");
                 }
-                itemDataDictionary.Add(itemData.ItemName.Value, itemData);
+                itemDataDictionary.Add(itemData.ItemDataName.Value, itemData);
             }
         }
 
         public void AddItemData(ItemData itemData)
         {
-            if (itemDataDictionary.ContainsKey(itemData.ItemName.Value))
+            if (itemDataDictionary.ContainsKey(itemData.ItemDataName.Value))
             {
-                throw new Exception($"Already contains item {itemData.ItemName.Value}!");
+                throw new Exception($"Already contains item {itemData.ItemDataName.Value}!");
             }
             itemDataList.Add(itemData);
-            itemDataDictionary.Add(itemData.ItemName.Value, itemData);
+            itemDataDictionary.Add(itemData.ItemDataName.Value, itemData);
         }
 
         public ItemData GetItemData(string name)

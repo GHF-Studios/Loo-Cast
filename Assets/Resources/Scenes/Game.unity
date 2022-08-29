@@ -341,7 +341,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 197.54718, y: 0}
+  m_AnchoredPosition: {x: 195.36313, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &53351031
@@ -1354,7 +1354,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 170.26416, y: 0}
+  m_AnchoredPosition: {x: 168.0447, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!114 &294734144
@@ -1735,7 +1735,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 10, y: 0}
-  m_SizeDelta: {x: 335.09436, y: 0}
+  m_SizeDelta: {x: 330.72626, y: 0}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &439039444
 MonoBehaviour:
@@ -2502,6 +2502,7 @@ GameObject:
   - component: {fileID: 584879699}
   - component: {fileID: 584879698}
   - component: {fileID: 584879700}
+  - component: {fileID: 584879702}
   - component: {fileID: 584879701}
   m_Layer: 5
   m_Name: InventoryHotbar
@@ -2624,7 +2625,35 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 584879700}
         m_TargetAssemblyTypeName: LooCast.UI.Inventory.InventoryHotbar, Assembly-CSharp
-        m_MethodName: RefreshSlots
+        m_MethodName: Refresh
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!114 &584879702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 584879696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f1a9d79df7421b49ba8e6411f9c1c2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Event: {fileID: 11400000, guid: 5907b26bf9968994c97b50b9439d3adb, type: 2}
+  Response:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 584879700}
+        m_TargetAssemblyTypeName: LooCast.UI.Inventory.InventoryHotbar, Assembly-CSharp
+        m_MethodName: Initialize
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2945,7 +2974,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 239.39624, y: 0}
+  m_AnchoredPosition: {x: 237.31842, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &647433641
@@ -3554,7 +3583,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 197.54718, y: 0}
+  m_AnchoredPosition: {x: 195.36313, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &969401800
@@ -3768,7 +3797,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &999689476
 Transform:
   m_ObjectHideFlags: 0
@@ -3796,6 +3825,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3cd08800f5059a41b90d49fdb76bae2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  backgroundSprite: {fileID: 21300000, guid: cd7e120cf0a2b84469c7f141ea2d7d00, type: 3}
 --- !u!1 &1000699787
 GameObject:
   m_ObjectHideFlags: 0
@@ -3832,7 +3862,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 170.26416, y: 0}
+  m_AnchoredPosition: {x: 168.0447, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!114 &1000699789
@@ -5129,13 +5159,14 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1462691211}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 27b861a94d2ee754b83e3fe9adb79825, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
+  enemyStationPrefab: {fileID: 3016905653400388266, guid: 58d4f76317bcfeb428392876ea364587, type: 3}
 --- !u!1 &1488776023
 GameObject:
   m_ObjectHideFlags: 0
@@ -5536,7 +5567,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 10, y: 0}
-  m_SizeDelta: {x: 324.52832, y: 0}
+  m_SizeDelta: {x: 321.34076, y: 0}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &1608763989
 MonoBehaviour:
@@ -5855,7 +5886,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 170.26416, y: 0}
+  m_AnchoredPosition: {x: 168.0447, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!114 &1704303261
@@ -6697,7 +6728,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 37.132076, y: 0}
+  m_AnchoredPosition: {x: 36.648045, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1844191857
@@ -7320,7 +7351,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 177.54718, y: 0}
+  m_AnchoredPosition: {x: 175.36313, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1993054903
@@ -7481,7 +7512,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 172.26416, y: 0}
+  m_AnchoredPosition: {x: 170.67038, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2047996846

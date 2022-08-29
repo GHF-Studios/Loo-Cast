@@ -5,11 +5,11 @@ using UnityEngine;
 namespace LooCast.UI.Inventory
 {
     using Data;
+    using LooCast.Core;
     using LooCast.Inventory.Data.Runtime;
     using LooCast.Item;
-    using LooCast.Event;
 
-    public class InventoryHotbar : MonoBehaviour
+    public class InventoryHotbar : ExtendedMonoBehaviour
     {
         #region Data
         [SerializeField] private InventoryHotbarData data;
@@ -42,8 +42,8 @@ namespace LooCast.UI.Inventory
         [SerializeField] private UnityEngine.Canvas canvas;
         #endregion
 
-        #region Unity Callbacks
-        private void Start()
+        #region Methods
+        public void Initialize()
         {
             for (int i = 0; i < inventorySlots.Length; i++)
             {
@@ -51,7 +51,7 @@ namespace LooCast.UI.Inventory
             }
         }
 
-        private void Update()
+        protected override void OnPauseableUpdate()
         {
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
@@ -124,11 +124,14 @@ namespace LooCast.UI.Inventory
                     CurrentInventorySlot.CurrentItem.Destroy();
                 }
             }
-        }
-        #endregion
 
-        #region Methods
-        public void RefreshSlots()
+            if (Input.GetMouseButton(0))
+            {
+                CurrentInventorySlot.CurrentItem.Item.Use();
+            }
+        }
+
+        public void Refresh()
         {
             foreach (InventorySlot inventorySlot in inventorySlots)
             {

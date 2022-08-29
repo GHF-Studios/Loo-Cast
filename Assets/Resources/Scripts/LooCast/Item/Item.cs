@@ -74,6 +74,11 @@ namespace LooCast.Item
             OnPickup.Invoke(origin);
         }
 
+        public virtual void Use()
+        {
+
+        }
+
         public override string ToString()
         {
             return Name;

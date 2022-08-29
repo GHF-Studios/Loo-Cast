@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0342d0486f65964f8a3c93e761278c0, type: 3}
   m_Name: BaseAttackDelay
   m_EditorClassIdentifier: 
-  value: 20
+  value: 5
   OnValueChanged:
     m_PersistentCalls:
       m_Calls: []

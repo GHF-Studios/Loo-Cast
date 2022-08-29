@@ -6,14 +6,13 @@ namespace LooCast.Background
 {
     public class Background : MonoBehaviour
     {
+        [SerializeField] private Sprite backgroundSprite;
         private Vector2 cameraPos;
-        private Sprite backgroundSprite;
         private SpriteRenderer[,] backgroundSprites = new SpriteRenderer[3, 3];
 
         private void Start()
         {
             cameraPos = Camera.main.transform.position;
-            backgroundSprite = Resources.Load<Sprite>("Sprites/Background");
 
             for (int x = -1; x < 2; x++)
             {

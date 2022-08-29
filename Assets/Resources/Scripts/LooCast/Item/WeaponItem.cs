@@ -116,6 +116,11 @@ namespace LooCast.Item
 
         public abstract void Fire();
 
+        public override void Use()
+        {
+            TryFire();
+        }
+
         protected virtual List<Target> AcquireTargets(int count, TargetingMode targetType)
         {
             List<Target> targetsFound;

@@ -19,7 +19,7 @@ namespace LooCast.Attribute.Stat
         {
             get
             {
-                return 1.75f - Level.Value * 0.05f;
+                return 1.75f - Level.Value * 0.01f;
             }
         }
     } 

@@ -10,6 +10,7 @@ namespace LooCast.Inventory.Data.Runtime
     public sealed class PlayerInventoryRuntimeData : ScriptableObject
     {
         #region Events
+        [SerializeField] private Event onPlayerInventoryInitialize;
         [SerializeField] private Event onPlayerInventoryChange;
         #endregion
 
@@ -22,6 +23,7 @@ namespace LooCast.Inventory.Data.Runtime
         {
             Hotbar = new ItemContainer<Item>(data.SlotCount.Value);
             Hotbar.OnChange.AddListener(() => { onPlayerInventoryChange.Raise(); });
+            onPlayerInventoryInitialize.Raise();
         }
         #endregion
     }

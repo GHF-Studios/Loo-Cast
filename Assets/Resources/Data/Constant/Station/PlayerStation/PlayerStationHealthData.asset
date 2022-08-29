@@ -40,3 +40,4 @@ MonoBehaviour:
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []
+  DamageIndicatorPrefab: {fileID: 859752393602704814, guid: fcf4e81977de76e47adf35c8228d6f00, type: 3}

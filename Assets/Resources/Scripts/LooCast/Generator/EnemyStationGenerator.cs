@@ -10,13 +10,13 @@ namespace LooCast.Generator
 
     public class EnemyStationGenerator : Generator
     {
-        public int stationCount { get; protected set; }
-        public GameObject prefab { get; protected set; }
+        public int StationCount { get; protected set; }
+
+        [SerializeField] private GameObject enemyStationPrefab;
 
         public override void Initialize()
         {
-            stationCount = 3;
-            prefab = Resources.Load<GameObject>("Prefabs/EnemyStation");
+            StationCount = 3;
             if (enabled)
             {
                 Generate();
@@ -25,10 +25,10 @@ namespace LooCast.Generator
 
         public override void Generate()
         {
-            for (int i = 0; i < stationCount; i++)
+            for (int i = 0; i < StationCount; i++)
             {
                 Vector2 potentialSpawnPosition = Random.InsideUnitCircle() * 500.0f;
-                GameObject stationObject = Instantiate(prefab, potentialSpawnPosition, Quaternion.identity, null);
+                GameObject stationObject = Instantiate(enemyStationPrefab, potentialSpawnPosition, Quaternion.identity, null);
                 EnemyStation station = stationObject.GetComponent<EnemyStation>();
             }
         }

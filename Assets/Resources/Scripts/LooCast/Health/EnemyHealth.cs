@@ -122,7 +122,7 @@ namespace LooCast.Health
         public void IndicateDamage(DamageInfo damageInfo)
         {
             Vector2 worldPos = new Vector2(transform.position.x + Random.Range(-0.5f, 0.5f), transform.position.y + Random.Range(-0.5f, 0.5f));
-            GameObject damageIndicator = Instantiate(Resources.Load<GameObject>("Prefabs/DamageIndicator"), worldPos, Quaternion.identity, canvas.transform);
+            GameObject damageIndicator = Instantiate(DamageIndicatorPrefab, worldPos, Quaternion.identity, canvas.transform);
             damageIndicator.GetComponent<DamageIndicator>().Initialize(damageInfo.damage);
         }
 

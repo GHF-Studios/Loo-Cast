@@ -71,7 +71,7 @@ namespace LooCast.Orb
                 }
                 else
                 {
-                    float speed = 1 / Mathf.Pow(dis / pickupRangeMultiplier, 2) * Constants.INERTIAL_COEFFICIENT * 7.5f;
+                    float speed = 1 / Mathf.Pow(dis / (2.5f * pickupRangeMultiplier), 2) * Constants.INERTIAL_COEFFICIENT * 7.5f;
                     if (isMagnetized)
                     {
                         speed *= magnetizedSpeedMultiplier;

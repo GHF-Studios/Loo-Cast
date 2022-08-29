@@ -1,6 +1,6 @@
 {
     "attributeName": "Luck",
-    "level": 0,
-    "maxLevel": 0,
+    "level": 10,
+    "maxLevel": 10,
     "proposedLevelChange": 0
 }

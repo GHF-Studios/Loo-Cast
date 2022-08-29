@@ -12,12 +12,55 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2d8e4122dbfece4cb1fed659813128c, type: 3}
   m_Name: AntimatterResourceItemData
   m_EditorClassIdentifier: 
-  ItemName: Antimatter
+  ItemName:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: c03ed00768cd1d74f83b0eed6deb81e7, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  ItemDataName:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: 5b30e31b37aa96147ac59a1fed5914ff, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   Sprite: {fileID: 21300000, guid: 8739697c5ae346b46a79c3c46e9f979e, type: 3}
   ItemObjectPrefab: {fileID: 9055202098588976892, guid: c5c00a204fcc0994bb21c32b7b9cabf7, type: 3}
-  MinObjectScale: 1
-  MaxObjectScale: 3
-  MaxAmount: 1000
-  DefaultAmount: 900
-  Density: 5
+  MaxAmount:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: ba4f3e86eb514694abec040cbb247c11, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  DefaultAmount:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 02ad65e7add429940bed4c8d17e03531, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  Density:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 5a3c37f1a6ab37d42bb93954ca2a352c, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MinObjectScale:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 496ff1658c191f54c9e561b267bfa500, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MaxObjectScale:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 7aaa3ef6a18e81745a2b04994be64868, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   Resource: {fileID: 11400000, guid: 3218c153c80c6ef44a36f3ee5dc760df, type: 2}
