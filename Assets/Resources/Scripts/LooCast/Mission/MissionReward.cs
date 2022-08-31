@@ -7,6 +7,6 @@ namespace LooCast.Mission
 
         }
         
-        public abstract void Apply();
+        public abstract void Reward();
     }
 }

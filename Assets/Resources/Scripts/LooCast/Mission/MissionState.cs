@@ -4,7 +4,6 @@ namespace LooCast.Mission
     {
         Offered,
         Accepted,
-        Active,
         Completed
     }
 }

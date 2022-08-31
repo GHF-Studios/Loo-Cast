@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace LooCast.Mission
 {
@@ -10,11 +11,20 @@ namespace LooCast.Mission
     {
         [SerializeField] private MissionManagerData data;
 
+        public UnityEvent<Mission> OnActiveMissionChange { get; private set; }
+
         public int MaxCommonMissions { get; private set; }
         public int MaxUncommonMissions { get; private set; }
         public int MaxRareMissions { get; private set; }
         public int MaxEpicMissions { get; private set; }
         public int MaxLegendaryMissions { get; private set; }
+        public List<Mission> AcceptedMissions
+        {
+            get
+            {
+                return acceptedMissions;
+            }
+        }
         public List<Mission> AcceptedCommonMissions
         {
             get
@@ -90,6 +100,13 @@ namespace LooCast.Mission
                 return acceptedLegendaryMissions;
             }
         }
+        public List<Mission> CompletedMissions
+        {
+            get
+            {
+                return completedMissions;
+            }
+        }
         public Mission ActiveMission
         {
             get
@@ -99,7 +116,17 @@ namespace LooCast.Mission
 
             set
             {
+                switch (value.MissionState)
+                {
+                    case MissionState.Offered:
+                        throw new ArgumentException("Cannot set Mission active: Mission has not yet been accepted!");
+                    case MissionState.Completed:
+                        throw new ArgumentException("Cannot set Mission active: Mission has already been completed!");
+                    default:
+                        break;
+                }
                 activeMission = value;
+                OnActiveMissionChange.Invoke(activeMission);
             }
         }
 
@@ -109,6 +136,8 @@ namespace LooCast.Mission
 
         private void Start()
         {
+            OnActiveMissionChange = new UnityEvent<Mission>();
+            
             MaxCommonMissions = data.MaxCommonMissions.Value;
             MaxUncommonMissions = data.MaxUncommonMissions.Value;
             MaxRareMissions = data.MaxRareMissions.Value;
@@ -158,6 +187,18 @@ namespace LooCast.Mission
             }
         }
 
+        public bool ContainsMission(Mission mission)
+        {
+            foreach (Mission acceptedMission in acceptedMissions)
+            {
+                if (acceptedMission == mission)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public bool TryAcceptMission(MissionProvider missionProvider, Mission mission)
         {
             if (ContainsMission(mission))
@@ -177,36 +218,6 @@ namespace LooCast.Mission
         {
             acceptedMissions.Add(mission);
             mission.Accept();
-        }
-
-        public bool ContainsMission(Mission mission)
-        {
-            foreach (Mission acceptedMission in acceptedMissions)
-            {
-                if (acceptedMission == mission)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public void SetActiveMission(Mission mission)
-        {
-            switch (mission.MissionState)
-            {
-                case MissionState.Offered:
-                    throw new ArgumentException("Cannot set Mission active: Mission has not yet been accepted!");
-                case MissionState.Accepted:
-                    ActiveMission = mission;
-                    break;
-                case MissionState.Active:
-                    throw new ArgumentException("Cannot set Mission active: Mission is already active!");
-                case MissionState.Completed:
-                    throw new ArgumentException("Cannot set Mission active: Mission has already been completed!");
-                default:
-                    throw new NotImplementedException($"Mission State '{mission.MissionState}' is not implemented!");
-            }
         }
     }
 }

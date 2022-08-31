@@ -9,5 +9,10 @@ namespace LooCast.Mission.Data
     {
         public Credits Credits;
         public IntDataReference CreditsReward;
+
+        public override Mission CreateMission(MissionProvider missionProvider)
+        {
+            return new ConquerStationMission(this, missionProvider);
+        }
     }
 }

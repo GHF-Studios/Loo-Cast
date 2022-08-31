@@ -13,9 +13,9 @@ namespace LooCast.Mission
             CreditsReward = creditsReward;
         }
 
-        public override void Apply()
+        public override void Reward()
         {
-            Credits.Balance += CreditsReward;
+            Credits.Balance.Value += CreditsReward;
         }
     }
 }

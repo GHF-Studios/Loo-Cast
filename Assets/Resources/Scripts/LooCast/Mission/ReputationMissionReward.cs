@@ -7,13 +7,13 @@ namespace LooCast.Mission
         public MissionProvider MissionProvider { get; private set; }
         public int ReputationReward { get; private set; }
 
-        public CreditsMissionReward(MissionProvider missionProvider, int reputationReward) : base()
+        public ReputationMissionReward(MissionProvider missionProvider, int reputationReward) : base()
         {
             MissionProvider = missionProvider;
             ReputationReward = reputationReward;
         }
 
-        public override void Apply()
+        public override void Reward()
         {
             MissionProvider.Reputation += ReputationReward;
         }

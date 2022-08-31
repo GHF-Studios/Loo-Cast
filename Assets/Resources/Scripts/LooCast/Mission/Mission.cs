@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Events;
 
 namespace LooCast.Mission
@@ -11,7 +13,8 @@ namespace LooCast.Mission
         private static int IDCounter = 0;
         public int ID { get; private set; }
 
-        public UnityEvent OnMissionComplete { get; private set; }
+        public UnityEvent OnAccept { get; private set; }
+        public UnityEvent OnComplete { get; private set; }
         public UnityEvent OnFinalize { get; private set; }
 
         public MissionRarity MissionRarity { get; private set; } 
@@ -38,7 +41,8 @@ namespace LooCast.Mission
             ID = IDCounter;
             IDCounter++;
 
-            OnMissionComplete = new UnityEvent();
+            OnAccept = new UnityEvent();
+            OnComplete = new UnityEvent();
             OnFinalize = new UnityEvent();
 
             MissionRarity = data.MissionRarity;
@@ -46,6 +50,8 @@ namespace LooCast.Mission
             MissionProvider = missionProvider;
             MissionState = MissionState.Offered;
             MissionRewards = new List<MissionReward>();
+
+            OnComplete.AddListener(() => { missionProvider.CompleteMission(this); });
 
             missionDictionary.Add(ID, this);
         }
@@ -63,7 +69,18 @@ namespace LooCast.Mission
 
         public void Accept()
         {
-            missionState = MissionState.Accepted;   
+            missionState = MissionState.Accepted;
+            OnAccept.Invoke();
+        }
+
+        public void Complete()
+        {
+            missionState = MissionState.Completed;
+            foreach (MissionReward missionReward in MissionRewards)
+            {
+                missionReward.Reward();
+            }
+            OnComplete.Invoke();
         }
 
         public override bool Equals(object obj)
