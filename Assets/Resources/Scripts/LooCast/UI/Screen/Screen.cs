@@ -5,7 +5,7 @@ using UnityEngine;
 namespace LooCast.UI.Screen
 {
     using LooCast.Core;
-    using LooCast.Manager;
+    using LooCast.Game;
     using LooCast.UI.Canvas;
 
     public abstract class Screen : ExtendedMonoBehaviour

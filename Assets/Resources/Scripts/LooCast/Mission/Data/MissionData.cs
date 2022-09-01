@@ -8,6 +8,9 @@ namespace LooCast.Mission.Data
     {
         public MissionRarity MissionRarity;
         public IntDataReference RequiredReputation;
+        public StringDataReference MissionTitle;
+        public StringDataReference MissionDescription;
+        public StringDataReference MissionTask;
 
         public abstract Mission CreateMission(MissionProvider missionProvider);
     }

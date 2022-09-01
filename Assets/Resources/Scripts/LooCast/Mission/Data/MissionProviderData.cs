@@ -3,13 +3,14 @@ using System.Collections.Generic;
 
 namespace LooCast.Mission.Data
 {
-    using Data;
-    
+    using LooCast.Data;
+
+    [CreateAssetMenu(fileName = "MissionProviderData", menuName = "Data/Mission/MissionProviderData", order = 0)]
     public class MissionProviderData : ScriptableObject
     {
-        public int BaseReputation;
-        public int MinMissionCount;
-        public int MaxMissionCount;
+        public IntDataReference BaseReputation;
+        public IntDataReference MinMissionCount;
+        public IntDataReference MaxMissionCount;
         public MissionData[] CommonMissionDatas;
         public MissionData[] UncommonMissionDatas;
         public MissionData[] RareMissionDatas;

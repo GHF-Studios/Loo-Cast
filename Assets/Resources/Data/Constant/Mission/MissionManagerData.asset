@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4c9d46549baa4148b9e82574fac2665, type: 3}
+  m_Name: MissionManagerData
+  m_EditorClassIdentifier: 
+  MaxCommonMissions:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 3a6b38a8917068c4aadce7bdc852e4ee, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MaxUncommonMissions:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 1d46ad75567804447ae699aa31da124a, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MaxRareMissions:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 082bf66a7a9d2b346b8ebbcf26cd4db3, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MaxEpicMissions:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 40cc36f17de318b488d6ca381bc5a4cc, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MaxLegendaryMissions:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 29c57bd2a310fbb46a1ec0e3213b5da7, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []

@@ -7,6 +7,7 @@ namespace LooCast.UI.HUD
     using LooCast.Asteroid;
     using LooCast.UI.Inspector.Data.Runtime;
     using LooCast.UI.Cursor;
+    using LooCast.UI.Screen;
 
     public class HUD : MonoBehaviour
     {
@@ -14,6 +15,9 @@ namespace LooCast.UI.HUD
         [SerializeField] private AsteroidInspectorRuntimeData asteroidInspectorRuntimeData;
         [SerializeField] private LayerMask asteroidCursorLayerMask;
         [SerializeField] private AsteroidCursor asteroidCursor;
+
+        [SerializeField] private LayerMask stationScreenLayerMask;
+        [SerializeField] private StationScreen stationScreen;
         #endregion
 
         #region Unity Callbacks

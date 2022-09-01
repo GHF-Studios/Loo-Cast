@@ -1,6 +1,6 @@
 using UnityEngine;
 using LooCast.UI.Screen;
-using LooCast.Manager;
+using LooCast.Game;
 
 namespace LooCast.UI.Canvas
 {

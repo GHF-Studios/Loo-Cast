@@ -2,14 +2,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace LooCast.Manager
+namespace LooCast.MainMenu
 {
     using LooCast.UI.Screen;
     
-    public class MenuManager : MonoBehaviour
+    public class MainMenuManager : MonoBehaviour
     {
         #region Properties
-        public static MenuManager Instance { get; private set; }
+        public static MainMenuManager Instance { get; private set; }
         #endregion
 
         #region Fields

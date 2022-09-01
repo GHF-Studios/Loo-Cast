@@ -6,13 +6,12 @@ using UnityEngine.Events;
 
 namespace LooCast.Enemy
 {
-    using Core;
     using Data;
     using Data.Runtime;
-    using Particle;
-    using Manager;
-    using Movement;
-    using Health;
+    using LooCast.Core;
+    using LooCast.Particle;
+    using LooCast.Movement;
+    using LooCast.Health;
 
     [RequireComponent(typeof(EnemyMovement), typeof(EnemyHealth)), DisallowMultipleComponent]
     public abstract class Enemy : ExtendedMonoBehaviour

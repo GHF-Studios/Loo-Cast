@@ -40,14 +40,16 @@ namespace LooCast.Mission
         {
             OnMissionListChange = new UnityEvent();
 
-            Reputation = Data.BaseReputation;
+            Reputation = Data.BaseReputation.Value;
+
+            RefreshMissionList();
         }
 
         private void RefreshMissionList()
         {
-            if (missions.Count < Data.MinMissionCount)
+            if (missions == null || missions.Count < Data.MinMissionCount.Value)
             {
-                int newMissionsCount = Data.MaxMissionCount - missions.Count;
+                int newMissionsCount = Data.MaxMissionCount.Value - missions.Count;
                 GenerateMissions(newMissionsCount);
                 OnMissionListChange.Invoke();
             }

@@ -8,6 +8,7 @@ namespace LooCast.Station
     using LooCast.Targeting;
     using LooCast.Health;
     using LooCast.Inventory;
+    using LooCast.Mission;
 
     public sealed class PlayerStation : Station
     {
@@ -37,12 +38,20 @@ namespace LooCast.Station
                 return playerStationInventory;
             }
         }
+        public MissionProvider MissionProvider
+        {
+            get
+            {
+                return missionProvider;
+            }
+        }
         #endregion
 
         #region Fields
         [SerializeField] private PlayerStationHealth health;
         [SerializeField] private Targeting targeting;
         [SerializeField] private PlayerStationInventory playerStationInventory;
+        [SerializeField] private MissionProvider missionProvider;
         #endregion
 
         #region Unity Callbacks

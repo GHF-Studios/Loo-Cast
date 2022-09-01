@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace LooCast.Manager
+namespace LooCast.Game
 {
-    using Data.Runtime;
+    using LooCast.Data.Runtime;
     using LooCast.UI.Screen;
     using LooCast.Sound;
     using LooCast.Core;

@@ -301,6 +301,7 @@ GameObject:
   - component: {fileID: 763854818110676721}
   - component: {fileID: 513973484690270647}
   - component: {fileID: 8069749462028607627}
+  - component: {fileID: 7338236622547215644}
   m_Layer: 11
   m_Name: PlayerStation
   m_TagString: PlayerStation
@@ -442,6 +443,19 @@ MonoBehaviour:
   playerStation: {fileID: 763854818110676721}
   stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
   stationMultiplexerWeaponItemData: {fileID: 11400000, guid: 07499e717c9f840439a9e319d0e3820a, type: 2}
+--- !u!114 &7338236622547215644
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 763854818110676724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6741339cca6a704dbec8c290bb6401e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Data: {fileID: 11400000, guid: 789ce5e87ebbe6048b17c095f0ea8041, type: 2}
 --- !u!1001 &5583516419031045034
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -8,7 +8,7 @@ namespace LooCast.Movement
     using Data;
     using Data.Runtime;
     using LooCast.Core;
-    using LooCast.Manager;
+    using LooCast.Game;
     using LooCast.Variable;
 
     [DisallowMultipleComponent]

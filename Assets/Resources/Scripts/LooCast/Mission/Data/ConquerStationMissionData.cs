@@ -5,6 +5,7 @@ namespace LooCast.Mission.Data
     using LooCast.Data;
     using LooCast.Currency;
 
+    [CreateAssetMenu(fileName = "ConquerStationMissionData", menuName = "Data/Mission/ConquerStationMissionData", order = 0)]
     public class ConquerStationMissionData : MissionData
     {
         public Credits Credits;

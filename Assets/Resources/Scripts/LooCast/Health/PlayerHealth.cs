@@ -9,7 +9,7 @@ namespace LooCast.Health
     using LooCast.Sound;
     using LooCast.UI.Canvas;
     using LooCast.UI.Screen;
-    using LooCast.Manager;
+    using LooCast.Game;
     using LooCast.Random;
     using LooCast.Indicator;
     using LooCast.Variable;

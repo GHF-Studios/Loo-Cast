@@ -3,8 +3,6 @@ using System.Collections.Generic;
 
 namespace LooCast.Core
 {
-    using LooCast.Manager;
-
     public abstract class ExtendedMonoBehaviour : MonoBehaviour
     {
         public static List<ExtendedMonoBehaviour> Instances = new List<ExtendedMonoBehaviour>();
