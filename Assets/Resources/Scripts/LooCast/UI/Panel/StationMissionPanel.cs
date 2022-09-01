@@ -6,9 +6,40 @@ using UnityEngine.UI;
 namespace LooCast.UI.Panel
 {
     using LooCast.Mission;
+    using LooCast.UI.Button;
+    using LooCast.Util;
 
     public class StationMissionPanel : Panel
     {
+        public MissionProvider MissionProvider
+        {
+            get
+            {
+                return missionProvider;
+            }
+
+            set
+            {
+                missionProvider = value;
+                if (missionProvider.Missions.Count == 0)
+                {
+                    throw new Exception("Mission Provider must contain at least 1 Mission!");
+                }
+
+                for (int i = 0; i < missionButtonParent.childCount; i++)
+                {
+                    Destroy(missionButtonParent.GetChild(i).gameObject);
+                }
+
+                foreach (Mission mission in missionProvider.Missions)
+                {
+                    GameObject missionButtonObject = Instantiate(missionButtonPrefab, missionButtonParent);
+                    MissionButton missionButton = missionButtonObject.GetComponent<MissionButton>();
+                    missionButton.Initialize(mission);
+                }
+                SelectedMission = missionProvider.Missions[0];
+            }
+        }
         public Mission SelectedMission
         {
             get
@@ -16,13 +47,26 @@ namespace LooCast.UI.Panel
                 return selectedMission;
             }
 
-            set
+            private set
             {
+                if (value == null)
+                {
+                    throw new ArgumentNullException("Selected Mission can not be null!");
+                }
                 selectedMission = value;
+
+                Color rarityColor = ColorUtil.RarityColors.GetMissionRarityColor(selectedMission.MissionRarity);
+                foreach (Image missionRarityBorderImage in missionRarityBorderImages)
+                {
+                    missionRarityBorderImage.color = rarityColor;
+                }
+
+                missionTitle.text = selectedMission.MissionTitle;
+                missionDescription.text = selectedMission.MissionDescription;
+                missionTasks.text = selectedMission.MissionTasks;
             }
         }
 
-        [SerializeField] private MissionProvider missionProvider;
         [SerializeField] private RectTransform missionButtonParent;
         [SerializeField] private GameObject missionButtonPrefab;
         [SerializeField] private Image[] missionRarityBorderImages;
@@ -33,8 +77,9 @@ namespace LooCast.UI.Panel
         [SerializeField] private GameObject missionRewardPrefab;
         
         private Mission selectedMission;
+        private MissionProvider missionProvider;
 
-        public override void Refresh()
+        public void Refresh()
         {
             
         }

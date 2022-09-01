@@ -10,7 +10,7 @@ namespace LooCast.Mission.Data
         public IntDataReference RequiredReputation;
         public StringDataReference MissionTitle;
         public StringDataReference MissionDescription;
-        public StringDataReference MissionTask;
+        public StringDataReference MissionTasks;
 
         public abstract Mission CreateMission(MissionProvider missionProvider);
     }

@@ -21,8 +21,8 @@ TagManager:
   - Enemy
   - PlayerBullet
   - EnemyBullet
-  - PlayerStructure
-  - EnemyStructure
+  - PlayerStation
+  - EnemyStation
   - Indicator
   - Asteroid
   - Item

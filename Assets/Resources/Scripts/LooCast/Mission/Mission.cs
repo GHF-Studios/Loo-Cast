@@ -34,7 +34,7 @@ namespace LooCast.Mission
         }
         public string MissionTitle { get; private set; }
         public string MissionDescription { get; private set; }
-        public string MissionTask { get; private set; }
+        public string MissionTasks { get; private set; }
         public List<MissionReward> MissionRewards { get; private set; }
 
         [SerializeField] private MissionState missionState;
@@ -54,7 +54,7 @@ namespace LooCast.Mission
             MissionState = MissionState.Offered;
             MissionTitle = data.MissionTitle.Value;
             MissionDescription = data.MissionDescription.Value;
-            MissionTask = data.MissionTask.Value;
+            MissionTasks = data.MissionTasks.Value;
             MissionRewards = new List<MissionReward>();
 
             OnComplete.AddListener(() => { missionProvider.CompleteMission(this); });

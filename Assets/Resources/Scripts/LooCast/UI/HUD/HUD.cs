@@ -5,6 +5,7 @@ using UnityEngine;
 namespace LooCast.UI.HUD
 {
     using LooCast.Asteroid;
+    using LooCast.Station;
     using LooCast.UI.Inspector.Data.Runtime;
     using LooCast.UI.Cursor;
     using LooCast.UI.Screen;
@@ -28,7 +29,9 @@ namespace LooCast.UI.HUD
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-                if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask))
+                //Asteroid
+                bool asteroidRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask);
+                if (asteroidRaycastSuccess)
                 {
                     Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
                     asteroidInspectorRuntimeData.CurrentAsteroid = hitAsteroid;
@@ -39,13 +42,24 @@ namespace LooCast.UI.HUD
                     asteroidInspectorRuntimeData.CurrentAsteroid = null;
                     asteroidCursor.CurrentAsteroid = null;
                 }
+
+                //Station
+                bool stationRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, stationScreenLayerMask);
+                if (stationRaycastSuccess)
+                {
+                    PlayerStation hitPlayerStation = hit.transform.gameObject.GetComponent<PlayerStation>();
+                    stationScreen.CurrentPlayerStation = hitPlayerStation;
+                    stationScreen.SetVisibility(true);
+                }
             }
             else if (Input.GetMouseButtonDown(0))
             {
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-                if (Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask))
+                
+                //Asteroid
+                bool asteroidRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask);
+                if (asteroidRaycastSuccess)
                 {
                     Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
                     if (hitAsteroid == asteroidCursor.CurrentAsteroid)

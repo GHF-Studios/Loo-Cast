@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,24 +9,20 @@ namespace LooCast.UI.Screen
 
     public class StationScreen : Screen
     {
-        public PlayerStation PlayerStation
+        public PlayerStation CurrentPlayerStation
         {
             get
             {
-                return playerStation;
+                return currentPlayerStation;
             }
 
             set
             {
                 if (value == null)
                 {
-                    
+                    throw new ArgumentNullException("PlayerStation cannot be null!");
                 }
-                else
-                {
-                    
-                }
-                playerStation = value;
+                currentPlayerStation = value;
             }
         }
 
@@ -38,7 +34,7 @@ namespace LooCast.UI.Screen
         [SerializeField] private StationBlackmarketPanel stationBlackmarketPanel;
         private Panel activePanel;
 
-        private PlayerStation playerStation;
+        private PlayerStation currentPlayerStation;
 
         private void Start()
         {
@@ -49,21 +45,18 @@ namespace LooCast.UI.Screen
             ShowStationHUB();
         }
 
-        public override void Refresh()
+        public void ShowStationHUB()
         {
-            if (PlayerStation == null)
+            if (CurrentPlayerStation == null)
             {
                 SetVisibility(false);
                 return;
             }
             if (enabled)
             {
-                
+                //Refresh StationHUB
             }
-        }
 
-        public void ShowStationHUB()
-        {
             activePanel = stationHUBPanel;
             stationHUBPanel.enabled = true;
             stationMarketPanel.enabled = false;
@@ -71,12 +64,20 @@ namespace LooCast.UI.Screen
             stationManufacturingPanel.enabled = false;
             stationUpgradesPanel.enabled = false;
             stationBlackmarketPanel.enabled = false;
-
-            Refresh();
         }
 
         public void ShowMarket()
         {
+            if (CurrentPlayerStation == null)
+            {
+                SetVisibility(false);
+                return;
+            }
+            if (enabled)
+            {
+                //Refresh StationHUB
+            }
+
             activePanel = stationMarketPanel;
             stationHUBPanel.enabled = false;
             stationMarketPanel.enabled = true;
@@ -84,12 +85,21 @@ namespace LooCast.UI.Screen
             stationManufacturingPanel.enabled = false;
             stationUpgradesPanel.enabled = false;
             stationBlackmarketPanel.enabled = false;
-
-            Refresh();
         }
 
         public void ShowMissions()
         {
+            if (CurrentPlayerStation == null)
+            {
+                SetVisibility(false);
+                return;
+            }
+            if (enabled)
+            {
+                //Refresh Missions
+                stationMissionPanel.MissionProvider = CurrentPlayerStation.MissionProvider;
+            }
+            
             activePanel = stationMissionPanel;
             stationHUBPanel.enabled = false;
             stationMarketPanel.enabled = false;
@@ -97,12 +107,20 @@ namespace LooCast.UI.Screen
             stationManufacturingPanel.enabled = false;
             stationUpgradesPanel.enabled = false;
             stationBlackmarketPanel.enabled = false;
-
-            Refresh();
         }
 
         public void ShowManufacturing()
         {
+            if (CurrentPlayerStation == null)
+            {
+                SetVisibility(false);
+                return;
+            }
+            if (enabled)
+            {
+                //Refresh Manufacturing
+            }
+
             activePanel = stationManufacturingPanel;
             stationHUBPanel.enabled = false;
             stationMarketPanel.enabled = false;
@@ -110,12 +128,20 @@ namespace LooCast.UI.Screen
             stationManufacturingPanel.enabled = true;
             stationUpgradesPanel.enabled = false;
             stationBlackmarketPanel.enabled = false;
-
-            Refresh();
         }
 
         public void ShowUpgrades()
         {
+            if (CurrentPlayerStation == null)
+            {
+                SetVisibility(false);
+                return;
+            }
+            if (enabled)
+            {
+                //Refresh Upgrades
+            }
+
             activePanel = stationUpgradesPanel;
             stationHUBPanel.enabled = false;
             stationMarketPanel.enabled = false;
@@ -123,12 +149,20 @@ namespace LooCast.UI.Screen
             stationManufacturingPanel.enabled = false;
             stationUpgradesPanel.enabled = true;
             stationBlackmarketPanel.enabled = false;
-
-            Refresh();
         }
 
         public void ShowBlackmarket()
         {
+            if (CurrentPlayerStation == null)
+            {
+                SetVisibility(false);
+                return;
+            }
+            if (enabled)
+            {
+                //Refresh Blackmarket
+            }
+
             activePanel = stationBlackmarketPanel;
             stationHUBPanel.enabled = false;
             stationMarketPanel.enabled = false;
@@ -136,8 +170,6 @@ namespace LooCast.UI.Screen
             stationManufacturingPanel.enabled = false;
             stationUpgradesPanel.enabled = false;
             stationBlackmarketPanel.enabled = true;
-
-            Refresh();
         }
     } 
 }
