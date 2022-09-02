@@ -127,7 +127,10 @@ namespace LooCast.UI.Inventory
 
             if (Input.GetMouseButton(0))
             {
-                CurrentInventorySlot.CurrentItem.Item.Use();
+                if (CurrentInventorySlot.CurrentItem != null)
+                {
+                    CurrentInventorySlot.CurrentItem.Item.Use();
+                }
             }
         }
 

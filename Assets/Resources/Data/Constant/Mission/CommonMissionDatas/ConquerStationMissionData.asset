@@ -16,15 +16,36 @@ MonoBehaviour:
   RequiredReputation:
     UseConstant: 0
     ConstantValue: 0
-    Variable: {fileID: 0}
+    Variable: {fileID: 11400000, guid: 098f3a4c78acde44e8c9e07bfdc436d2, type: 2}
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []
-  Credits: {fileID: 0}
+  MissionTitle:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: eb9f273b273945a4cb0dcef1c7a21886, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MissionDescription:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: 457e38aeff52dad49a0c99b6da03542e, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MissionTasks:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: 4a31b3856c657734c88b135472b55370, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  Credits: {fileID: 11400000, guid: 166c3c551a42b554ab5aa20fba1dd6d7, type: 2}
   CreditsReward:
     UseConstant: 0
     ConstantValue: 0
-    Variable: {fileID: 0}
+    Variable: {fileID: 11400000, guid: 7bcacb2dc65b2a14994ef2770e962fbb, type: 2}
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []

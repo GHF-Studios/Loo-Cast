@@ -17,25 +17,20 @@ namespace LooCast.Util
 
             public static Color GetMissionRarityColor(MissionRarity missionRarity)
             {
-                switch (mission.MissionRarity)
+                switch (missionRarity)
                 {
                     case MissionRarity.Common:
                         return ColorUtil.RarityColors.Common;
-                        break;
                     case MissionRarity.Uncommon:
                         return ColorUtil.RarityColors.Uncommon;
-                        break;
                     case MissionRarity.Rare:
                         return ColorUtil.RarityColors.Rare;
-                        break;
                     case MissionRarity.Epic:
                         return ColorUtil.RarityColors.Epic;
-                        break;
                     case MissionRarity.Legendary:
                         return ColorUtil.RarityColors.Legendary;
-                        break;
                     default:
-                        throw new NotImplementedException($"Mission Rarity '{mission.MissionRarity}' is not implemented!");
+                        throw new NotImplementedException($"Mission Rarity '{missionRarity}' is not implemented!");
                 }
             }
         }

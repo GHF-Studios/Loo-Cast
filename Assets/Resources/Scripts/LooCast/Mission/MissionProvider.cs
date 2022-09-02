@@ -38,6 +38,27 @@ namespace LooCast.Mission
 
         private void Start()
         {
+            if (Data.CommonMissionDatas.Length <= 0)
+            {
+                throw new Exception("Mission Provider Data can not contain less than 1 Common Mission Data!");
+            }
+            if (Data.UncommonMissionDatas.Length <= 0)
+            {
+                throw new Exception("Mission Provider Data can not contain less than 1 Uncommon Mission Data!");
+            }
+            if (Data.RareMissionDatas.Length <= 0)
+            {
+                throw new Exception("Mission Provider Data can not contain less than 1 Rare Mission Data!");
+            }
+            if (Data.EpicMissionDatas.Length <= 0)
+            {
+                throw new Exception("Mission Provider Data can not contain less than 1 Epic Mission Data!");
+            }
+            if (Data.LegendaryMissionDatas.Length <= 0)
+            {
+                throw new Exception("Mission Provider Data can not contain less than 1 Legendary Mission Data!");
+            }
+
             OnMissionListChange = new UnityEvent();
 
             Reputation = Data.BaseReputation.Value;
@@ -47,7 +68,11 @@ namespace LooCast.Mission
 
         private void RefreshMissionList()
         {
-            if (missions == null || missions.Count < Data.MinMissionCount.Value)
+            if (missions == null)
+            {
+                missions = new List<Mission>();
+            }
+            if (missions.Count < Data.MinMissionCount.Value)
             {
                 int newMissionsCount = Data.MaxMissionCount.Value - missions.Count;
                 GenerateMissions(newMissionsCount);
@@ -88,27 +113,27 @@ namespace LooCast.Mission
                 if (randomEvaluation < commonMissionFraction)
                 {
                     int randomCommonMissionDataIndex = UnityEngine.Random.Range(0, Data.CommonMissionDatas.Length - 1);
-                    missions.Add(Data.CommonMissionDatas[i].CreateMission(this));
+                    missions.Add(Data.CommonMissionDatas[randomCommonMissionDataIndex].CreateMission(this));
                 }
                 else if (randomEvaluation < uncommonMissionFraction)
                 {
                     int randomUncommonMissionDataIndex = UnityEngine.Random.Range(0, Data.UncommonMissionDatas.Length - 1);
-                    missions.Add(Data.UncommonMissionDatas[i].CreateMission(this));
+                    missions.Add(Data.UncommonMissionDatas[randomUncommonMissionDataIndex].CreateMission(this));
                 }
                 else if (randomEvaluation < rareMissionFraction)
                 {
                     int randomRareMissionDataIndex = UnityEngine.Random.Range(0, Data.RareMissionDatas.Length - 1);
-                    missions.Add(Data.RareMissionDatas[i].CreateMission(this));
+                    missions.Add(Data.RareMissionDatas[randomRareMissionDataIndex].CreateMission(this));
                 }
                 else if (randomEvaluation < epicMissionFraction)
                 {
                     int randomEpicMissionDataIndex = UnityEngine.Random.Range(0, Data.EpicMissionDatas.Length - 1);
-                    missions.Add(Data.EpicMissionDatas[i].CreateMission(this));
+                    missions.Add(Data.EpicMissionDatas[randomEpicMissionDataIndex].CreateMission(this));
                 }
                 else if (randomEvaluation < legendaryMissionFraction)
                 {
                     int randomLegendaryMissionDataIndex = UnityEngine.Random.Range(0, Data.LegendaryMissionDatas.Length - 1);
-                    missions.Add(Data.LegendaryMissionDatas[i].CreateMission(this));
+                    missions.Add(Data.LegendaryMissionDatas[randomLegendaryMissionDataIndex].CreateMission(this));
                 }
             }
         }

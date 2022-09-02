@@ -7,6 +7,6 @@ namespace LooCast.UI.Panel
 {
     public abstract class Panel : MonoBehaviour
     {
-        public abstract void Refresh();
+        
     }
 }

@@ -21,5 +21,10 @@ namespace LooCast.UI.Button
             missionRarityBorderImage.color = ColorUtil.RarityColors.GetMissionRarityColor(mission.MissionRarity);
             missionTitle.text = mission.MissionTitle;
         }
+
+        public override void OnClick()
+        {
+            
+        }
     }
 }

@@ -7,6 +7,7 @@ namespace LooCast.UI.Panel
 {
     using LooCast.Mission;
     using LooCast.UI.Button;
+    using LooCast.UI.Reward;
     using LooCast.Util;
 
     public class StationMissionPanel : Panel
@@ -68,11 +69,26 @@ namespace LooCast.UI.Panel
                 {
                     Destroy(missionRewardParent.GetChild(i).gameObject);
                 }
-                foreach (MissionReward missionReward in selectedMission.MissionRewards)
+                foreach (LooCast.Mission.MissionReward missionReward in selectedMission.MissionRewards)
                 {
-                    GameObject missionRewardObject = Instantiate(missionRewardPrefab, missionRewardParent);
-                     = missionRewardObject.GetComponent<>();
-                    .Initialize();
+                    if (missionReward is LooCast.Mission.CreditsMissionReward)
+                    {
+                        GameObject creditsMissionRewardObject = Instantiate(creditsMissionRewardPrefab, missionRewardParent);
+                        UI.Reward.CreditsMissionReward creditsMissionReward = creditsMissionRewardObject.GetComponent<UI.Reward.CreditsMissionReward>();
+                        creditsMissionReward.Initialize((LooCast.Mission.CreditsMissionReward)missionReward);
+                    }
+                    else if (missionReward is LooCast.Mission.ReputationMissionReward)
+                    {
+                        GameObject reputationMissionRewardObject = Instantiate(reputationMissionRewardPrefab, missionRewardParent);
+                        UI.Reward.ReputationMissionReward reputationMissionReward = reputationMissionRewardObject.GetComponent<UI.Reward.ReputationMissionReward>();
+                        reputationMissionReward.Initialize((LooCast.Mission.ReputationMissionReward)missionReward);
+                    }
+                    else if (missionReward is LooCast.Mission.ItemMissionReward)
+                    {
+                        GameObject itemMissionRewardObject = Instantiate(itemMissionRewardPrefab, missionRewardParent);
+                        UI.Reward.ItemMissionReward itemMissionReward = itemMissionRewardObject.GetComponent<UI.Reward.ItemMissionReward>();
+                        itemMissionReward.Initialize((LooCast.Mission.ItemMissionReward)missionReward);
+                    }
                 }
             }
         }
@@ -84,14 +100,11 @@ namespace LooCast.UI.Panel
         [SerializeField] private Text missionDescription;
         [SerializeField] private Text missionTasks;
         [SerializeField] private RectTransform missionRewardParent;
-        [SerializeField] private GameObject missionRewardPrefab;
+        [SerializeField] private GameObject creditsMissionRewardPrefab;
+        [SerializeField] private GameObject reputationMissionRewardPrefab;
+        [SerializeField] private GameObject itemMissionRewardPrefab;
         
         private Mission selectedMission;
         private MissionProvider missionProvider;
-
-        public void Refresh()
-        {
-            
-        }
     }
 }

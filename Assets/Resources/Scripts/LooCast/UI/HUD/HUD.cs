@@ -44,12 +44,20 @@ namespace LooCast.UI.HUD
                 }
 
                 //Station
-                bool stationRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, stationScreenLayerMask);
-                if (stationRaycastSuccess)
+                RaycastHit2D[] stationRaycastHits = Physics2D.GetRayIntersectionAll(ray, float.PositiveInfinity, stationScreenLayerMask);
+                if (stationRaycastHits != null && stationRaycastHits.Length > 0)
                 {
-                    PlayerStation hitPlayerStation = hit.transform.gameObject.GetComponent<PlayerStation>();
-                    stationScreen.CurrentPlayerStation = hitPlayerStation;
-                    stationScreen.SetVisibility(true);
+                    foreach (RaycastHit2D raycastHit2D in stationRaycastHits)
+                    {
+                        if (raycastHit2D.collider)
+                        {
+                            PlayerStation hitPlayerStation = stationRaycastHits[0].collider.gameObject.GetComponent<PlayerStation>();
+                            stationScreen.CurrentPlayerStation = hitPlayerStation;
+                            stationScreen.SetVisibility(true);
+                            break;
+                        }
+                    }
+                    
                 }
             }
             else if (Input.GetMouseButtonDown(0))

@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2aefcfda225519c4982840695051352b, type: 3}
+  m_Name: UncommonPlaceholderMissionData
+  m_EditorClassIdentifier: 
+  MissionRarity: 1
+  RequiredReputation:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 8d95c83222d4fa84d81938c0dde42ca6, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MissionTitle:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: 5e6c59a59a209b545a0db877361e7ec6, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MissionDescription:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: d116d45e3f4174046b6edc536e38f11c, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MissionTasks:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: eeac7c58533cd4a4ea109b82cfc6eaca, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  Credits: {fileID: 11400000, guid: 166c3c551a42b554ab5aa20fba1dd6d7, type: 2}
+  CreditsReward:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: a734ecf6dd4d5634e90886836b267d4a, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []

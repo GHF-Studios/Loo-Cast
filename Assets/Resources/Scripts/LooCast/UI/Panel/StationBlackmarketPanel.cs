@@ -9,9 +9,6 @@ namespace LooCast.UI.Panel
 
     public class StationBlackmarketPanel : Panel
     {
-        public override void Refresh()
-        {
-            
-        }
+
     }
 }

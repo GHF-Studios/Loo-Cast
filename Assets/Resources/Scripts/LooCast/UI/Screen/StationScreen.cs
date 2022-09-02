@@ -18,10 +18,6 @@ namespace LooCast.UI.Screen
 
             set
             {
-                if (value == null)
-                {
-                    throw new ArgumentNullException("PlayerStation cannot be null!");
-                }
                 currentPlayerStation = value;
             }
         }
@@ -32,7 +28,6 @@ namespace LooCast.UI.Screen
         [SerializeField] private StationManufacturingPanel stationManufacturingPanel;
         [SerializeField] private StationUpgradesPanel stationUpgradesPanel;
         [SerializeField] private StationBlackmarketPanel stationBlackmarketPanel;
-        private Panel activePanel;
 
         private PlayerStation currentPlayerStation;
 
@@ -41,8 +36,15 @@ namespace LooCast.UI.Screen
             isInitiallyVisible = false;
             isHideable = true;
             Initialize();
+        }
 
-            ShowStationHUB();
+        public override void SetVisibility(bool show)
+        {
+            base.SetVisibility(show);
+            if (show)
+            {
+                ShowMissions();
+            }
         }
 
         public void ShowStationHUB()
@@ -57,7 +59,6 @@ namespace LooCast.UI.Screen
                 //Refresh StationHUB
             }
 
-            activePanel = stationHUBPanel;
             stationHUBPanel.enabled = true;
             stationMarketPanel.enabled = false;
             stationMissionPanel.enabled = false;
@@ -78,7 +79,6 @@ namespace LooCast.UI.Screen
                 //Refresh StationHUB
             }
 
-            activePanel = stationMarketPanel;
             stationHUBPanel.enabled = false;
             stationMarketPanel.enabled = true;
             stationMissionPanel.enabled = false;
@@ -100,7 +100,6 @@ namespace LooCast.UI.Screen
                 stationMissionPanel.MissionProvider = CurrentPlayerStation.MissionProvider;
             }
             
-            activePanel = stationMissionPanel;
             stationHUBPanel.enabled = false;
             stationMarketPanel.enabled = false;
             stationMissionPanel.enabled = true;
@@ -121,7 +120,6 @@ namespace LooCast.UI.Screen
                 //Refresh Manufacturing
             }
 
-            activePanel = stationManufacturingPanel;
             stationHUBPanel.enabled = false;
             stationMarketPanel.enabled = false;
             stationMissionPanel.enabled = false;
@@ -142,7 +140,6 @@ namespace LooCast.UI.Screen
                 //Refresh Upgrades
             }
 
-            activePanel = stationUpgradesPanel;
             stationHUBPanel.enabled = false;
             stationMarketPanel.enabled = false;
             stationMissionPanel.enabled = false;
@@ -163,7 +160,6 @@ namespace LooCast.UI.Screen
                 //Refresh Blackmarket
             }
 
-            activePanel = stationBlackmarketPanel;
             stationHUBPanel.enabled = false;
             stationMarketPanel.enabled = false;
             stationMissionPanel.enabled = false;

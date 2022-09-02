@@ -12,3 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b358ff8cc6842ae44a135e556e3302ca, type: 3}
   m_Name: PlayerStationInventoryData
   m_EditorClassIdentifier: 
+  SlotCount:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 7d03e3f642b4d164e8458af2efc67640, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []

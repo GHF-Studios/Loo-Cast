@@ -397,6 +397,7 @@ MonoBehaviour:
   health: {fileID: 513973484690270647}
   targeting: {fileID: 4769729375747433725}
   playerStationInventory: {fileID: 8069749462028607627}
+  missionProvider: {fileID: 0}
 --- !u!114 &513973484690270647
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -466,6 +467,10 @@ PrefabInstance:
     - target: {fileID: 531101224602771061, guid: 6630d483c7dbe434ea329093412c1013, type: 3}
       propertyPath: m_Name
       value: PlayerStationTargeting
+      objectReference: {fileID: 0}
+    - target: {fileID: 531101224602771061, guid: 6630d483c7dbe434ea329093412c1013, type: 3}
+      propertyPath: m_Layer
+      value: 11
       objectReference: {fileID: 0}
     - target: {fileID: 8866468071358670489, guid: 6630d483c7dbe434ea329093412c1013, type: 3}
       propertyPath: m_RootOrder

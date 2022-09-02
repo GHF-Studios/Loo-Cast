@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2aefcfda225519c4982840695051352b, type: 3}
+  m_Name: EpicPlaceholderMissionData
+  m_EditorClassIdentifier: 
+  MissionRarity: 3
+  RequiredReputation:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 35c8e566d22a70e4ebde8551934f0659, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MissionTitle:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: cb976b1455a9a0e42af2664b46f82769, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MissionDescription:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: f7ea02421235aae4292247facb731e35, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MissionTasks:
+    UseConstant: 0
+    ConstantValue: 
+    Variable: {fileID: 11400000, guid: 62e7a9f1a5c268e47b2f5b45ddd179f3, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  Credits: {fileID: 11400000, guid: 166c3c551a42b554ab5aa20fba1dd6d7, type: 2}
+  CreditsReward:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: e4911be5c741e544ba0e435c7a55e0ed, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
