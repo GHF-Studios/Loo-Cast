@@ -28,7 +28,7 @@ namespace LooCast.Item
         {
             //First we initialize independent members
             FreezeRayWeaponItem = new FreezeRayWeaponItem(data, this, stats);
-            FreezeRayWeaponItem.OnDrop.Invoke();
+            FreezeRayWeaponItem.OnSpawn.Invoke();
             SpriteRenderer = GetComponent<SpriteRenderer>();
 
             //Then we Initialize the ItemObject, as this sets the item and thus triggers Refresh, which needs to happen after Independent members have been initialized

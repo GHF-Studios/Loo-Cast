@@ -8,5 +8,10 @@ namespace LooCast.Item.Data
     public class ResourceItemData : AmountableItemData
     {
         public Resource Resource;
+
+        public override Item CreateItem()
+        {
+            return new ResourceItem(this);
+        }
     }
 }

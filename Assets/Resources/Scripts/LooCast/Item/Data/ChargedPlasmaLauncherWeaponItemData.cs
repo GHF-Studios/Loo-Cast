@@ -33,5 +33,11 @@ namespace LooCast.Item.Data
         public FloatDataReference BranchChance;
         public FloatDataReference BranchChanceMultiplier;
         public IntDataReference MaxRecursionDepth;
+
+        public override Item CreateItem()
+        {
+            ChargedPlasmaLauncherWeaponItem chargedPlasmaLauncherWeaponItem = new ChargedPlasmaLauncherWeaponItem(this);
+            return chargedPlasmaLauncherWeaponItem;
+        }
     }
 }

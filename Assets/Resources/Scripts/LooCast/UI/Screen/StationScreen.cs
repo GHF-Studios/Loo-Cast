@@ -59,12 +59,12 @@ namespace LooCast.UI.Screen
                 //Refresh StationHUB
             }
 
-            stationHUBPanel.enabled = true;
-            stationMarketPanel.enabled = false;
-            stationMissionPanel.enabled = false;
-            stationManufacturingPanel.enabled = false;
-            stationUpgradesPanel.enabled = false;
-            stationBlackmarketPanel.enabled = false;
+            stationHUBPanel.gameObject.SetActive(true);
+            stationMarketPanel.gameObject.SetActive(false);
+            stationMissionPanel.gameObject.SetActive(false);
+            stationManufacturingPanel.gameObject.SetActive(false);
+            stationUpgradesPanel.gameObject.SetActive(false);
+            stationBlackmarketPanel.gameObject.SetActive(false);
         }
 
         public void ShowMarket()
@@ -79,12 +79,12 @@ namespace LooCast.UI.Screen
                 //Refresh StationHUB
             }
 
-            stationHUBPanel.enabled = false;
-            stationMarketPanel.enabled = true;
-            stationMissionPanel.enabled = false;
-            stationManufacturingPanel.enabled = false;
-            stationUpgradesPanel.enabled = false;
-            stationBlackmarketPanel.enabled = false;
+            stationHUBPanel.gameObject.SetActive(false);
+            stationMarketPanel.gameObject.SetActive(true);
+            stationMissionPanel.gameObject.SetActive(false);
+            stationManufacturingPanel.gameObject.SetActive(false);
+            stationUpgradesPanel.gameObject.SetActive(false);
+            stationBlackmarketPanel.gameObject.SetActive(false);
         }
 
         public void ShowMissions()
@@ -100,12 +100,12 @@ namespace LooCast.UI.Screen
                 stationMissionPanel.MissionProvider = CurrentPlayerStation.MissionProvider;
             }
             
-            stationHUBPanel.enabled = false;
-            stationMarketPanel.enabled = false;
-            stationMissionPanel.enabled = true;
-            stationManufacturingPanel.enabled = false;
-            stationUpgradesPanel.enabled = false;
-            stationBlackmarketPanel.enabled = false;
+            stationHUBPanel.gameObject.SetActive(false);
+            stationMarketPanel.gameObject.SetActive(false);
+            stationMissionPanel.gameObject.SetActive(true);
+            stationManufacturingPanel.gameObject.SetActive(false);
+            stationUpgradesPanel.gameObject.SetActive(false);
+            stationBlackmarketPanel.gameObject.SetActive(false);
         }
 
         public void ShowManufacturing()
@@ -120,12 +120,12 @@ namespace LooCast.UI.Screen
                 //Refresh Manufacturing
             }
 
-            stationHUBPanel.enabled = false;
-            stationMarketPanel.enabled = false;
-            stationMissionPanel.enabled = false;
-            stationManufacturingPanel.enabled = true;
-            stationUpgradesPanel.enabled = false;
-            stationBlackmarketPanel.enabled = false;
+            stationHUBPanel.gameObject.SetActive(false);
+            stationMarketPanel.gameObject.SetActive(false);
+            stationMissionPanel.gameObject.SetActive(false);
+            stationManufacturingPanel.gameObject.SetActive(true);
+            stationUpgradesPanel.gameObject.SetActive(false);
+            stationBlackmarketPanel.gameObject.SetActive(false);
         }
 
         public void ShowUpgrades()
@@ -140,12 +140,12 @@ namespace LooCast.UI.Screen
                 //Refresh Upgrades
             }
 
-            stationHUBPanel.enabled = false;
-            stationMarketPanel.enabled = false;
-            stationMissionPanel.enabled = false;
-            stationManufacturingPanel.enabled = false;
-            stationUpgradesPanel.enabled = true;
-            stationBlackmarketPanel.enabled = false;
+            stationHUBPanel.gameObject.SetActive(false);
+            stationMarketPanel.gameObject.SetActive(false);
+            stationMissionPanel.gameObject.SetActive(false);
+            stationManufacturingPanel.gameObject.SetActive(false);
+            stationUpgradesPanel.gameObject.SetActive(true);
+            stationBlackmarketPanel.gameObject.SetActive(false);
         }
 
         public void ShowBlackmarket()
@@ -160,12 +160,12 @@ namespace LooCast.UI.Screen
                 //Refresh Blackmarket
             }
 
-            stationHUBPanel.enabled = false;
-            stationMarketPanel.enabled = false;
-            stationMissionPanel.enabled = false;
-            stationManufacturingPanel.enabled = false;
-            stationUpgradesPanel.enabled = false;
-            stationBlackmarketPanel.enabled = true;
+            stationHUBPanel.gameObject.SetActive(false);
+            stationMarketPanel.gameObject.SetActive(false);
+            stationMissionPanel.gameObject.SetActive(false);
+            stationManufacturingPanel.gameObject.SetActive(false);
+            stationUpgradesPanel.gameObject.SetActive(false);
+            stationBlackmarketPanel.gameObject.SetActive(true);
         }
     } 
 }

@@ -12,5 +12,10 @@ namespace LooCast.Item.Data
         public IntDataReference BaseFragmentArmorPenetration;
         public BoolDataReference IsTargetSeeking;
         public GameObject FragmentPrefab;
+
+        public override Item CreateItem()
+        {
+            return new MultiplexerWeaponItem(this);
+        }
     }
 }

@@ -28,7 +28,7 @@ namespace LooCast.Item
         {
             //First we initialize independent members
             ChargedPlasmaLauncherWeaponItem = new ChargedPlasmaLauncherWeaponItem(data, this, stats);
-            ChargedPlasmaLauncherWeaponItem.OnDrop.Invoke();
+            ChargedPlasmaLauncherWeaponItem.OnSpawn.Invoke();
             SpriteRenderer = GetComponent<SpriteRenderer>();
 
             //Then we Initialize the ItemObject, as this sets the item and thus triggers Refresh, which needs to happen after Independent members have been initialized

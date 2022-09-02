@@ -6,7 +6,6 @@ using UnityEngine.Events;
 namespace LooCast.Item
 {
     using Data;
-    using LooCast.Player;
 
     public abstract class Item
     {
@@ -17,6 +16,7 @@ namespace LooCast.Item
         public Sprite Sprite { get; protected set; }
         public GameObject ItemObjectPrefab { get; protected set; }
         public ItemObject ItemObject { get; private set; }
+        public ItemContainer<Item> ItemContainer { get; private set; }
         public UnityEvent OnFinalize { get; private set; }
         public bool IsDropped
         {
@@ -25,14 +25,36 @@ namespace LooCast.Item
                 return ItemObject != null;
             }
         }
-        public UnityEvent OnDrop { get; private set; }
+        public UnityEvent OnSpawn { get; private set; }
         public UnityEvent<GameObject> OnPickup { get; private set; }
+        public ItemContainmentState ItemContainmentState { get; private set; }
+
+        public Item(ItemData data)
+        {
+            OnFinalize = new UnityEvent();
+            OnSpawn = new UnityEvent();
+            OnPickup = new UnityEvent<GameObject>();
+
+            ItemContainmentState = ItemContainmentState.Standalone;
+
+            ID = IDCounter;
+            IDCounter++;
+            Name = data.ItemName.Value;
+            Sprite = data.Sprite;
+            ItemObjectPrefab = data.ItemObjectPrefab;
+            ItemObject = null;
+            ItemContainer = null;
+
+            itemDictionary.Add(ID, this);
+        }
 
         public Item(ItemData data, ItemObject itemObject)
         {
             OnFinalize = new UnityEvent();
-            OnDrop = new UnityEvent();
+            OnSpawn = new UnityEvent();
             OnPickup = new UnityEvent<GameObject>();
+
+            ItemContainmentState = ItemContainmentState.Dropped;
 
             ID = IDCounter;
             IDCounter++;
@@ -40,8 +62,32 @@ namespace LooCast.Item
             Sprite = data.Sprite;
             ItemObjectPrefab = data.ItemObjectPrefab;
             ItemObject = itemObject;
+            ItemContainer = null;
 
             itemDictionary.Add(ID, this);
+
+            OnSpawn.Invoke();
+        }
+
+        public Item(ItemData data, ItemContainer<Item> itemContainer, GameObject itemContainerOrigin)
+        {
+            OnFinalize = new UnityEvent();
+            OnSpawn = new UnityEvent();
+            OnPickup = new UnityEvent<GameObject>();
+
+            ItemContainmentState = ItemContainmentState.Contained;
+
+            ID = IDCounter;
+            IDCounter++;
+            Name = data.ItemName.Value;
+            Sprite = data.Sprite;
+            ItemObjectPrefab = data.ItemObjectPrefab;
+            ItemObject = null;
+            ItemContainer = itemContainer;
+
+            itemDictionary.Add(ID, this);
+
+            OnPickup.Invoke(itemContainerOrigin);
         }
 
         ~Item()
@@ -60,18 +106,49 @@ namespace LooCast.Item
             return item;
         }
 
-        public void SpawnItem(Vector3 spawnPosition)
+        public void DropItem(Vector3 spawnPosition)
         {
+            if (ItemContainmentState == ItemContainmentState.Dropped)
+            {
+                throw new Exception("Can not spawn Item: Item has already dropped!");
+            }
+            if (ItemContainmentState == ItemContainmentState.Contained)
+            {
+                UncontainItem();
+            }
             ItemObject = GameObject.Instantiate(ItemObjectPrefab, spawnPosition, Quaternion.identity).GetComponent<ItemObject>();
             ItemObject.Item = this;
-            OnDrop.Invoke();
+            ItemContainer = null;
+            ItemContainmentState = ItemContainmentState.Dropped;
+            OnSpawn.Invoke();
         }
 
-        public void DespawnItem(GameObject origin)
+        public void UndropItem()
         {
             GameObject.Destroy(ItemObject.gameObject);
             ItemObject = null;
-            OnPickup.Invoke(origin);
+            ItemContainmentState = ItemContainmentState.Standalone;
+        }
+
+        public void ContainItem(ItemContainer<Item> itemContainer, GameObject itemContainerOrigin)
+        {
+            if (ItemContainmentState == ItemContainmentState.Contained)
+            {
+                throw new Exception("Can not contain Item: Item is already contained!");
+            }
+            if (ItemContainmentState == ItemContainmentState.Dropped)
+            {
+                UndropItem();
+            }
+            ItemContainer = itemContainer;
+            ItemContainmentState = ItemContainmentState.Contained;
+            OnPickup.Invoke(itemContainerOrigin);
+        }
+
+        public void UncontainItem()
+        {
+            ItemContainer = null;
+            ItemContainmentState = ItemContainmentState.Standalone;
         }
 
         public virtual void Use()

@@ -64,7 +64,7 @@ namespace LooCast.Item
                 fireTimer.Start();
             }
             canFire = false;
-            OnDrop.AddListener(() => 
+            OnSpawn.AddListener(() => 
             { 
                 fireTimer.Stop(); 
                 canFire = false; 

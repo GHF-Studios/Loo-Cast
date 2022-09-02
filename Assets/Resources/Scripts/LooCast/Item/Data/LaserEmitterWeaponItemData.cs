@@ -8,5 +8,10 @@ namespace LooCast.Item.Data
     public class LaserEmitterWeaponItemData : WeaponItemData
     {
         public FloatDataReference LaserLength;
+
+        public override Item CreateItem()
+        {
+            return new LaserEmitterWeaponItem(this);
+        }
     }
 }

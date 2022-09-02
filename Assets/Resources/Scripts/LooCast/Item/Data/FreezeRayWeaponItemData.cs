@@ -7,6 +7,9 @@ namespace LooCast.Item.Data
     [CreateAssetMenu(fileName = "FreezeRayWeaponItemData", menuName = "Data/Item/Weapon/FreezeRayWeaponItemData", order = 0)]
     public class FreezeRayWeaponItemData : WeaponItemData
     {
-        
+        public override Item CreateItem()
+        {
+            return new FreezeRayWeaponItem(this);
+        }
     }
 }

@@ -28,7 +28,7 @@ namespace LooCast.Item
         {
             //First we initialize independent members
             LaserEmitterWeaponItem = new LaserEmitterWeaponItem(data, this, stats);
-            LaserEmitterWeaponItem.OnDrop.Invoke();
+            LaserEmitterWeaponItem.OnSpawn.Invoke();
             SpriteRenderer = GetComponent<SpriteRenderer>();
 
             //Then we Initialize the ItemObject, as this sets the item and thus triggers Refresh, which needs to happen after Independent members have been initialized

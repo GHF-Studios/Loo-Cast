@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,7 +9,7 @@ namespace LooCast.UI.Button
 {
     public abstract class Button : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
-        protected UnityEngine.UI.Button button;
+        [SerializeField] protected UnityEngine.UI.Button button;
         protected MenuSoundHandler soundHandler;
 
         private void Start()
@@ -19,7 +19,15 @@ namespace LooCast.UI.Button
 
         public virtual void Initialize()
         {
-            button = GetComponent<UnityEngine.UI.Button>();
+            if (button == null)
+            {
+                button = GetComponent<UnityEngine.UI.Button>();
+                if (button == null)
+                {
+                    throw new MissingComponentException("A UnityEngine.Button Component is required, but could not be found!");
+                }
+            }
+            
             button.onClick.AddListener(OnClick);
             soundHandler = GameObject.FindObjectOfType<MenuSoundHandler>();
         }

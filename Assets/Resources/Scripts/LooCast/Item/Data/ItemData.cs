@@ -10,5 +10,7 @@ namespace LooCast.Item.Data
         public StringDataReference ItemDataName;
         public Sprite Sprite;
         public GameObject ItemObjectPrefab;
+
+        public abstract Item CreateItem();
     }
 }
