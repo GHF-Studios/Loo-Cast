@@ -64,6 +64,16 @@ namespace LooCast.UI.Panel
                 missionTitle.text = selectedMission.MissionTitle;
                 missionDescription.text = selectedMission.MissionDescription;
                 missionTasks.text = selectedMission.MissionTasks;
+                for (int i = 0; i < missionRewardParent.childCount; i++)
+                {
+                    Destroy(missionRewardParent.GetChild(i).gameObject);
+                }
+                foreach (MissionReward missionReward in selectedMission.MissionRewards)
+                {
+                    GameObject missionRewardObject = Instantiate(missionRewardPrefab, missionRewardParent);
+                     = missionRewardObject.GetComponent<>();
+                    .Initialize();
+                }
             }
         }
 

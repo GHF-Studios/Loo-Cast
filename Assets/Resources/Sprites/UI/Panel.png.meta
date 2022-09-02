@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 92b4a1ad1327e1240ba60bf3c8cb03df
+guid: 86c882b0030a0fc46a7fecda3aee087d
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -43,7 +43,7 @@ TextureImporter:
   lightmap: 0
   compressionQuality: 50
   spriteMode: 1
-  spriteExtrude: 0
+  spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
@@ -52,7 +52,7 @@ TextureImporter:
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
-  spriteTessellationDetail: -1
+  spriteTessellationDetail: 0
   textureType: 8
   textureShape: 1
   singleChannelComponent: 0
@@ -138,197 +138,12 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
-    sprites:
-    - serializedVersion: 2
-      name: Panel_0
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 22
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 4c8866cd395a16545a7ee6e84451f201
-      internalID: 1380266434
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Panel_1
-      rect:
-        serializedVersion: 2
-        x: 11
-        y: 22
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 5034e5a1e8e00db4ab7d28ccc5f8ed8f
-      internalID: 185339449
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Panel_2
-      rect:
-        serializedVersion: 2
-        x: 22
-        y: 22
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 82ea0f2001f4a12459544d3dc3af4b6f
-      internalID: -1811455115
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Panel_3
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 11
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 662cb5d9d85a9134298fafc935b569e2
-      internalID: -910706814
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Panel_4
-      rect:
-        serializedVersion: 2
-        x: 11
-        y: 11
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 9a07d39141e088b40a18e66205c8cd78
-      internalID: -426135143
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Panel_5
-      rect:
-        serializedVersion: 2
-        x: 22
-        y: 11
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: b105fffc20657b2469fafefabe05178b
-      internalID: 1157592584
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Panel_6
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 0
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 05bb968f2eb0b714981fe2e2d9d2ee34
-      internalID: -2038423046
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Panel_7
-      rect:
-        serializedVersion: 2
-        x: 11
-        y: 0
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 65aa4e7c02fedce47a7135d9e1c13404
-      internalID: -263918765
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: Panel_8
-      rect:
-        serializedVersion: 2
-        x: 22
-        y: 0
-        width: 11
-        height: 11
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: acb14359cc1042d4598ebeca87b01a79
-      internalID: 1642740415
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    outline: []
+    sprites: []
+    outline:
+    - - {x: -16.5, y: 16.5}
+      - {x: -16.5, y: -16.5}
+      - {x: 16.5, y: -16.5}
+      - {x: 16.5, y: 16.5}
     physicsShape: []
     bones: []
     spriteID: 5e97eb03825dee720800000000000000
@@ -338,16 +153,7 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable:
-      Panel_7: -263918765
-      Panel_2: -1811455115
-      Panel_4: -426135143
-      Panel_6: -2038423046
-      Panel_8: 1642740415
-      Panel_3: -910706814
-      Panel_1: 185339449
-      Panel_0: 1380266434
-      Panel_5: 1157592584
+    nameFileIdTable: {}
   spritePackingTag: 
   pSDRemoveMatte: 0
   pSDShowRemoveMatteOption: 0
