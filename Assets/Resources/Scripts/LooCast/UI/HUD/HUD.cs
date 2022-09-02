@@ -29,7 +29,6 @@ namespace LooCast.UI.HUD
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-                //Asteroid
                 bool asteroidRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask);
                 if (asteroidRaycastSuccess)
                 {
@@ -43,21 +42,15 @@ namespace LooCast.UI.HUD
                     asteroidCursor.CurrentAsteroid = null;
                 }
 
-                //Station
-                RaycastHit2D[] stationRaycastHits = Physics2D.GetRayIntersectionAll(ray, float.PositiveInfinity, stationScreenLayerMask);
-                if (stationRaycastHits != null && stationRaycastHits.Length > 0)
+                bool stationRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, stationScreenLayerMask, QueryTriggerInteraction.Collide);
+                if (stationRaycastSuccess)
                 {
-                    foreach (RaycastHit2D raycastHit2D in stationRaycastHits)
+                    PlayerStation playerStation = hit.transform.gameObject.GetComponentInParent<PlayerStation>();
+                    if (playerStation != null)
                     {
-                        if (raycastHit2D.collider)
-                        {
-                            PlayerStation hitPlayerStation = stationRaycastHits[0].collider.gameObject.GetComponent<PlayerStation>();
-                            stationScreen.CurrentPlayerStation = hitPlayerStation;
-                            stationScreen.SetVisibility(true);
-                            break;
-                        }
+                        stationScreen.CurrentPlayerStation = playerStation;
+                        stationScreen.SetVisibility(true);
                     }
-                    
                 }
             }
             else if (Input.GetMouseButtonDown(0))
@@ -65,7 +58,6 @@ namespace LooCast.UI.HUD
                 RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
                 
-                //Asteroid
                 bool asteroidRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask);
                 if (asteroidRaycastSuccess)
                 {
