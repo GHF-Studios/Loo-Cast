@@ -18,9 +18,17 @@ namespace LooCast.Item
                 return onChange;
             }
         }
+        public GameObject OriginObject
+        {
+            get
+            {
+                return originObject;
+            }
+        }
         private UnityEvent onChange;
+        private GameObject originObject;
 
-        public ItemContainer(int slotCount)
+        public ItemContainer(int slotCount, GameObject originObject = null)
         {
             if (slotCount <= 0)
             {
@@ -30,9 +38,14 @@ namespace LooCast.Item
             onChange = new UnityEvent();
 
             Clear(slotCount);
+
+            if (originObject != null)
+            {
+                this.originObject = originObject;
+            }
         }
 
-        public ItemContainer(T[] items)
+        public ItemContainer(T[] items, GameObject originObject = null)
         {
             if (items == null)
             {
@@ -49,6 +62,11 @@ namespace LooCast.Item
             foreach (T item in items)
             {
                 AddItem(item, out Item remainingItem);
+            }
+
+            if (originObject != null)
+            {
+                this.originObject = originObject;
             }
         }
 
@@ -246,6 +264,11 @@ namespace LooCast.Item
         public void RemoveSlot(int slotID)
         {
             itemSlots.Remove(slotID);
+        }
+
+        public bool IsBoundToObject()
+        {
+            return originObject != null;
         }
 
         public override string ToString()

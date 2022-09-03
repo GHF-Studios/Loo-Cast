@@ -31,9 +31,9 @@ namespace LooCast.Inventory
         #region Unity Callbacks
         private void Start()
         {
-            RuntimeData.Initialize(Data);
-
             Player player = GetComponentInParent<Player>();
+
+            RuntimeData.Initialize(Data, player);
 
             //ChargedPlasmaLauncherWeaponItem chargedPlasmaLauncherWeaponItem = new ChargedPlasmaLauncherWeaponItem(Data.ChargedPlasmaLauncherWeaponItemData, null, stats);
             //chargedPlasmaLauncherWeaponItem.OnPickup.Invoke(gameObject);
@@ -44,11 +44,9 @@ namespace LooCast.Inventory
             //RuntimeData.Hotbar.AddItem(freezeRayWeaponItem, out Item remainingFreezeRayWeaponItem);
             
             LaserEmitterWeaponItem laserEmitterWeaponItem = new LaserEmitterWeaponItem(Data.LaserEmitterWeaponItemData, null, stats);
-            laserEmitterWeaponItem.OnPickup.Invoke(gameObject);
             RuntimeData.Hotbar.AddItem(laserEmitterWeaponItem, out Item remainingLaserEmitterWeaponItem);
             
             MultiplexerWeaponItem multiplexerWeaponItem = new MultiplexerWeaponItem(Data.MultiplexerWeaponItemData, null, stats);
-            multiplexerWeaponItem.OnPickup.Invoke(gameObject);
             RuntimeData.Hotbar.AddItem(multiplexerWeaponItem, out Item remainingMultiplexerWeaponItem);
         }
         #endregion

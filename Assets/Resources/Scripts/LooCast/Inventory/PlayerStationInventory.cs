@@ -30,10 +30,9 @@ namespace LooCast.Inventory
 
         private void Start()
         {
-            WeaponItemContainer = new ItemContainer<WeaponItem>(Data.SlotCount.Value);
+            WeaponItemContainer = new ItemContainer<WeaponItem>(Data.SlotCount.Value, playerStation.gameObject);
 
             MultiplexerWeaponItem multiplexerWeaponItem = new MultiplexerWeaponItem(stationMultiplexerWeaponItemData, null, stats, true);
-            multiplexerWeaponItem.OnPickup.Invoke(gameObject);
             WeaponItemContainer.SetItem(0, multiplexerWeaponItem);
         }
     }

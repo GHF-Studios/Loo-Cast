@@ -26,14 +26,14 @@ namespace LooCast.Item
             }
         }
         public UnityEvent OnSpawn { get; private set; }
-        public UnityEvent<GameObject> OnPickup { get; private set; }
+        public UnityEvent<ItemContainer<Item>> OnPickup { get; private set; }
         public ItemContainmentState ItemContainmentState { get; private set; }
 
         public Item(ItemData data)
         {
             OnFinalize = new UnityEvent();
             OnSpawn = new UnityEvent();
-            OnPickup = new UnityEvent<GameObject>();
+            OnPickup = new UnityEvent<ItemContainer<Item>>();
 
             ItemContainmentState = ItemContainmentState.Standalone;
 
@@ -52,7 +52,7 @@ namespace LooCast.Item
         {
             OnFinalize = new UnityEvent();
             OnSpawn = new UnityEvent();
-            OnPickup = new UnityEvent<GameObject>();
+            OnPickup = new UnityEvent<ItemContainer<Item>>();
 
             ItemContainmentState = ItemContainmentState.Dropped;
 
@@ -69,11 +69,11 @@ namespace LooCast.Item
             OnSpawn.Invoke();
         }
 
-        public Item(ItemData data, ItemContainer<Item> itemContainer, GameObject itemContainerOrigin)
+        public Item(ItemData data, ItemContainer<Item> itemContainer)
         {
             OnFinalize = new UnityEvent();
             OnSpawn = new UnityEvent();
-            OnPickup = new UnityEvent<GameObject>();
+            OnPickup = new UnityEvent<ItemContainer<Item>>();
 
             ItemContainmentState = ItemContainmentState.Contained;
 
@@ -87,7 +87,7 @@ namespace LooCast.Item
 
             itemDictionary.Add(ID, this);
 
-            OnPickup.Invoke(itemContainerOrigin);
+            OnPickup.Invoke(itemContainer);
         }
 
         ~Item()
@@ -130,7 +130,7 @@ namespace LooCast.Item
             ItemContainmentState = ItemContainmentState.Standalone;
         }
 
-        public void ContainItem(ItemContainer<Item> itemContainer, GameObject itemContainerOrigin)
+        public void ContainItem(ItemContainer<Item> itemContainer)
         {
             if (ItemContainmentState == ItemContainmentState.Contained)
             {
@@ -142,7 +142,7 @@ namespace LooCast.Item
             }
             ItemContainer = itemContainer;
             ItemContainmentState = ItemContainmentState.Contained;
-            OnPickup.Invoke(itemContainerOrigin);
+            OnPickup.Invoke(itemContainer);
         }
 
         public void UncontainItem()

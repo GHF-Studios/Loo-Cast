@@ -5,6 +5,7 @@ namespace LooCast.Inventory.Data.Runtime
 {
     using LooCast.Item;
     using LooCast.Event;
+    using LooCast.Player;
 
     [CreateAssetMenu(fileName = "PlayerInventoryRuntimeData", menuName = "Data/Inventory/Runtime/PlayerInventoryRuntimeData", order = 0)]
     public sealed class PlayerInventoryRuntimeData : ScriptableObject
@@ -19,9 +20,9 @@ namespace LooCast.Inventory.Data.Runtime
         #endregion
 
         #region Methods
-        public void Initialize(PlayerInventoryData data)
+        public void Initialize(PlayerInventoryData data, Player player)
         {
-            Hotbar = new ItemContainer<Item>(data.SlotCount.Value);
+            Hotbar = new ItemContainer<Item>(data.SlotCount.Value, player.gameObject);
             Hotbar.OnChange.AddListener(() => { onPlayerInventoryChange.Raise(); });
             onPlayerInventoryInitialize.Raise();
         }

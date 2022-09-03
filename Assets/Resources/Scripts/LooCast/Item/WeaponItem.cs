@@ -71,20 +71,20 @@ namespace LooCast.Item
                 mainTargeting = null; 
                 originObject = null; 
             });
-            OnPickup.AddListener((origin) => 
+            OnPickup.AddListener((itemContainer) => 
             {
-                if (origin == null)
+                if (!itemContainer.IsBoundToObject())
                 {
-                    throw new NullReferenceException("Origin cannot be null here!");
+                    return;
                 }
                 fireTimer.Start(); 
                 canFire = true; 
-                mainTargeting = origin.GetComponentInChildren<ITargeting>();
+                mainTargeting = itemContainer.OriginObject.GetComponentInChildren<ITargeting>();
                 if (mainTargeting == null)
                 {
                     throw new NullReferenceException("No Targeting found in origin!");
                 }
-                originObject = origin; 
+                originObject = itemContainer.OriginObject; 
             });
 
             damage = data.BaseDamage.Value * this.stats.DamageMultiplier;

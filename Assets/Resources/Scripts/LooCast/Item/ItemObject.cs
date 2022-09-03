@@ -57,7 +57,7 @@ namespace LooCast.Item
                 }
                 else
                 {
-                    Item.DespawnItem(collider.gameObject);
+                    Item.UndropItem();
                 }
             }
         }
