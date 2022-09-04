@@ -46,7 +46,7 @@ namespace LooCast.Item
         private float amount;
         private UnityEvent onAmountChanged;
 
-        public AmountableItem(AmountableItemData data, ItemObject itemObject) : base(data, itemObject)
+        public AmountableItem(AmountableItemData data) : base(data)
         {
             onAmountChanged = new UnityEvent();
 

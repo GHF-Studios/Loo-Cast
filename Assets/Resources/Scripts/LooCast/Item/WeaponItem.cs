@@ -39,11 +39,10 @@ namespace LooCast.Item
         protected GameSoundHandler soundHandler;
         protected Timer fireTimer;
         protected bool canFire;
-        protected GameObject originObject;
         #endregion
 
         #region Constructors
-        public WeaponItem(WeaponItemData data, ItemObject itemObject, Stats stats, bool autoFire = false) : base(data, itemObject)
+        public WeaponItem(WeaponItemData data, Stats stats, bool autoFire = false) : base(data)
         {
             WeaponItemData = data;
 
@@ -59,32 +58,37 @@ namespace LooCast.Item
                     TryFire();
                 }
             };
-            if (!IsDropped)
-            {
-                fireTimer.Start();
-            }
             canFire = false;
-            OnSpawn.AddListener(() => 
-            { 
-                fireTimer.Stop(); 
-                canFire = false; 
-                mainTargeting = null; 
-                originObject = null; 
-            });
-            OnPickup.AddListener((itemContainer) => 
+
+            OnContainmentStateChange.AddListener(() =>
             {
-                if (!itemContainer.IsBoundToObject())
+                switch (ItemContainmentState)
                 {
-                    return;
+                    case ContainmentState.Contained:
+                        if (ItemContainer.IsBoundToObject())
+                        {
+                            fireTimer.Start();
+                            canFire = true;
+                            mainTargeting = ItemContainer.OriginObject.GetComponentInChildren<ITargeting>();
+                            if (mainTargeting == null)
+                            {
+                                throw new NullReferenceException("No Targeting found in origin!");
+                            }
+                        }
+                        break;
+                    case ContainmentState.Dropped:
+                        fireTimer.Stop();
+                        canFire = false;
+                        mainTargeting = null;
+                        break;
+                    case ContainmentState.Standalone:
+                        fireTimer.Stop();
+                        canFire = false;
+                        mainTargeting = null;
+                        break;
+                    default:
+                        break;
                 }
-                fireTimer.Start(); 
-                canFire = true; 
-                mainTargeting = itemContainer.OriginObject.GetComponentInChildren<ITargeting>();
-                if (mainTargeting == null)
-                {
-                    throw new NullReferenceException("No Targeting found in origin!");
-                }
-                originObject = itemContainer.OriginObject; 
             });
 
             damage = data.BaseDamage.Value * this.stats.DamageMultiplier;
@@ -104,7 +108,7 @@ namespace LooCast.Item
         #region Methods
         public bool TryFire()
         {
-            if (canFire && !IsDropped)
+            if (canFire)
             {
                 canFire = false;
                 Fire();

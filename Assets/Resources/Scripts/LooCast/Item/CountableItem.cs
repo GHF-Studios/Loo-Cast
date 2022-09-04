@@ -46,7 +46,7 @@ namespace LooCast.Item
         private UnityEvent onCountChanged;
         private int count;
 
-        public CountableItem(CountableItemData data, ItemObject itemObject) : base(data, itemObject)
+        public CountableItem(CountableItemData data) : base(data)
         {
             onCountChanged = new UnityEvent();
 

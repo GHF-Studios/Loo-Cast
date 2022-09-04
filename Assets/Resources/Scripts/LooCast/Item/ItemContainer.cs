@@ -8,9 +8,9 @@ namespace LooCast.Item
     using Data;
     using LooCast.Util;
 
-    public class ItemContainer<T> where T : Item
+    public class ItemContainer
     {
-        protected Dictionary<int, ItemContainerSlot<T>> itemSlots;
+        protected Dictionary<int, ItemContainerSlot> itemSlots;
         public UnityEvent OnChange
         {
             get
@@ -45,7 +45,7 @@ namespace LooCast.Item
             }
         }
 
-        public ItemContainer(T[] items, GameObject originObject = null)
+        public ItemContainer(Item[] items, GameObject originObject = null)
         {
             if (items == null)
             {
@@ -59,7 +59,7 @@ namespace LooCast.Item
             onChange = new UnityEvent();
             
             Clear(itemSlots.Count);
-            foreach (T item in items)
+            foreach (Item item in items)
             {
                 AddItem(item, out Item remainingItem);
             }
@@ -81,21 +81,21 @@ namespace LooCast.Item
             {
                 AddItem((CountableItem)item, out CountableItem remainingCountableItem);
                 remainingItem = remainingCountableItem;
-                onChange.Invoke();
+                OnChange.Invoke();
                 return;
             }
             else if (item is AmountableItem)
             {
                 AddItem((AmountableItem)item, out AmountableItem remainingAmountableItem);
                 remainingItem = remainingAmountableItem;
-                onChange.Invoke();
+                OnChange.Invoke();
                 return;
             }
             else if (item is UniqueItem)
             {
                 AddItem((UniqueItem)item, out UniqueItem remainingUniqueItem);
                 remainingItem = remainingUniqueItem;
-                onChange.Invoke();
+                OnChange.Invoke();
                 return;
             }
             else
@@ -104,20 +104,21 @@ namespace LooCast.Item
             }
         }
 
-        private void AddItem(CountableItem countableItem, out CountableItem remainingCountableItem)
+        protected void AddItem(CountableItem countableItem, out CountableItem remainingCountableItem)
         {
             remainingCountableItem = countableItem;
             for (int i = 0; i < itemSlots.Count; i++)
             {
                 if (itemSlots[i].ItemContent == null)
                 {
-                    itemSlots[i].ItemContent = (T)(Item)remainingCountableItem;
+                    itemSlots[i].ItemContent = remainingCountableItem;
+                    itemSlots[i].ItemContent.ContainItem(this);
                     remainingCountableItem = null;
                     break;
                 }
                 else if (itemSlots[i].Equals(remainingCountableItem))
                 {
-                    CountableItem countableItemSlot = (CountableItem)(Item)itemSlots[i].ItemContent;
+                    CountableItem countableItemSlot = (CountableItem)itemSlots[i].ItemContent;
                     if (!countableItemSlot.IsFull())
                     {
                         int freeCount = countableItemSlot.GetFreeCount();
@@ -137,20 +138,21 @@ namespace LooCast.Item
             }
         }
 
-        private void AddItem(AmountableItem amountableItem, out AmountableItem remainingAmountableItem)
+        protected void AddItem(AmountableItem amountableItem, out AmountableItem remainingAmountableItem)
         {
             remainingAmountableItem = amountableItem;
             for (int i = 0; i < itemSlots.Count; i++)
             {
                 if (itemSlots[i].ItemContent == null)
                 {
-                    itemSlots[i].ItemContent = (T)(Item)remainingAmountableItem;
+                    itemSlots[i].ItemContent = remainingAmountableItem;
+                    itemSlots[i].ItemContent.ContainItem(this);
                     remainingAmountableItem = null;
                     break;
                 }
                 else if (itemSlots[i].Equals(remainingAmountableItem))
                 {
-                    AmountableItem amountableItemSlot = (AmountableItem)(Item)itemSlots[i].ItemContent;
+                    AmountableItem amountableItemSlot = (AmountableItem)itemSlots[i].ItemContent;
                     if (!amountableItemSlot.IsFull())
                     {
                         float freeAmount = amountableItemSlot.GetFreeAmount();
@@ -170,13 +172,14 @@ namespace LooCast.Item
             }
         }
 
-        private void AddItem(UniqueItem uniqueItem, out UniqueItem remainingUniqueItem)
+        protected void AddItem(UniqueItem uniqueItem, out UniqueItem remainingUniqueItem)
         {
             for (int i = 0; i < itemSlots.Count; i++)
             {
                 if (itemSlots[i].ItemContent == null)
                 {
-                    itemSlots[i].ItemContent = (T)(Item)uniqueItem;
+                    itemSlots[i].ItemContent = uniqueItem;
+                    itemSlots[i].ItemContent.ContainItem(this);
                     remainingUniqueItem = null;
                     return;
                 }
@@ -184,14 +187,14 @@ namespace LooCast.Item
             remainingUniqueItem = uniqueItem;
         }
 
-        public void SetItem(int slotID, T item)
+        public void SetItem(int slotID, Item item)
         {
             if (!IsValidSlot(slotID))
             {
                 throw new ArgumentOutOfRangeException($"Invalid slot! Slot must be between 0 {itemSlots.Count - 1}!");
             }
             itemSlots[slotID].ItemContent = item;
-            onChange.Invoke();
+            OnChange.Invoke();
         }
 
         public Item GetItem(int slotID)
@@ -200,7 +203,7 @@ namespace LooCast.Item
             {
                 throw new ArgumentOutOfRangeException($"Invalid slot! Slot must be between 0 {itemSlots.Count - 1}!");
             }
-            bool success = itemSlots.TryGetValue(slotID, out ItemContainerSlot<T> slot);
+            bool success = itemSlots.TryGetValue(slotID, out ItemContainerSlot slot);
             if (!success)
             {
                 throw new Exception($"Unable to get Item at SlotID: {slotID}");
@@ -219,7 +222,7 @@ namespace LooCast.Item
             {
                 throw new ArgumentNullException("Item cannot be null!");
             }
-            foreach (KeyValuePair<int, ItemContainerSlot<T>> slot in itemSlots)
+            foreach (KeyValuePair<int, ItemContainerSlot> slot in itemSlots)
             {
                 if (slot.Value.ItemContent.Equals(item))
                 {
@@ -236,7 +239,7 @@ namespace LooCast.Item
 
         public void Clear(int slotCount)
         {
-            itemSlots = new Dictionary<int, ItemContainerSlot<T>>();
+            itemSlots = new Dictionary<int, ItemContainerSlot>();
 
             for (int i = 0; i < slotCount; i++)
             {
@@ -258,7 +261,7 @@ namespace LooCast.Item
             {
                 throw new ArgumentException("SlotID is already occupied!");
             }
-            itemSlots.Add(slotID, new ItemContainerSlot<T>());
+            itemSlots.Add(slotID, new ItemContainerSlot());
         }
 
         public void RemoveSlot(int slotID)

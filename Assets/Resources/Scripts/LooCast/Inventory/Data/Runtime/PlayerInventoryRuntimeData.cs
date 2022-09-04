@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace LooCast.Inventory.Data.Runtime
 {
@@ -16,13 +15,13 @@ namespace LooCast.Inventory.Data.Runtime
         #endregion
 
         #region Properties
-        public ItemContainer<Item> Hotbar { get; private set; }
+        public ItemContainer Hotbar { get; private set; }
         #endregion
 
         #region Methods
         public void Initialize(PlayerInventoryData data, Player player)
         {
-            Hotbar = new ItemContainer<Item>(data.SlotCount.Value, player.gameObject);
+            Hotbar = new ItemContainer(data.SlotCount.Value, player.gameObject);
             Hotbar.OnChange.AddListener(() => { onPlayerInventoryChange.Raise(); });
             onPlayerInventoryInitialize.Raise();
         }

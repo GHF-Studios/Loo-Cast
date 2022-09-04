@@ -18,7 +18,7 @@ namespace LooCast.Inventory
         #endregion
 
         #region Properties
-        public ItemContainer<WeaponItem> WeaponItemContainer { get; private set; }
+        public WeaponItemContainer WeaponItemContainer { get; private set; }
         #endregion
 
         #region Fields
@@ -30,7 +30,7 @@ namespace LooCast.Inventory
 
         private void Start()
         {
-            WeaponItemContainer = new ItemContainer<WeaponItem>(Data.SlotCount.Value, playerStation.gameObject);
+            WeaponItemContainer = new WeaponItemContainer(Data.SlotCount.Value, playerStation.gameObject);
 
             MultiplexerWeaponItem multiplexerWeaponItem = new MultiplexerWeaponItem(stationMultiplexerWeaponItemData, null, stats, true);
             WeaponItemContainer.SetItem(0, multiplexerWeaponItem);

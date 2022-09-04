@@ -5,10 +5,10 @@ namespace LooCast.Mission
 
     public class ItemMissionReward : MissionReward
     {
-        public ItemContainer<Item> ItemContainerRewardee { get; private set; }
+        public ItemContainer ItemContainerRewardee { get; private set; }
         public ItemData RewardedItemData { get; private set; }
 
-        public ItemMissionReward(ItemContainer<Item> itemContainerRewardee, ItemData rewardedItemData) : base()
+        public ItemMissionReward(ItemContainer itemContainerRewardee, ItemData rewardedItemData) : base()
         {
             ItemContainerRewardee = itemContainerRewardee;
             RewardedItemData = rewardedItemData;

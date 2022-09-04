@@ -5,9 +5,9 @@ using UnityEngine.Events;
 
 namespace LooCast.Item
 {
-    public class ItemContainerSlot<T> where T : Item
+    public class ItemContainerSlot
     {
-        public T ItemContent
+        public Item ItemContent
         {
             get
             {
@@ -21,9 +21,9 @@ namespace LooCast.Item
             }
         }
         public UnityEvent OnItemContentChanged { get; private set; }
-        private T itemContent;
+        private Item itemContent;
 
-        public ItemContainerSlot(T itemContent = null)
+        public ItemContainerSlot(Item itemContent = null)
         {
             OnItemContentChanged = new UnityEvent();
             this.itemContent = itemContent;
