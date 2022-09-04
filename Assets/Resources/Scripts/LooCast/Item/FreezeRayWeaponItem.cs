@@ -22,7 +22,7 @@ namespace LooCast.Item
         #endregion
 
         #region Constructors
-        public FreezeRayWeaponItem(FreezeRayWeaponItemData data, ItemObject itemObject, Stats stats, bool autoFire = false) : base(data, itemObject, stats, autoFire)
+        public FreezeRayWeaponItem(FreezeRayWeaponItemData data, Stats stats, bool autoFire) : base(data, stats, autoFire)
         {
 
         }
@@ -38,7 +38,7 @@ namespace LooCast.Item
             }
             Target target = targets[0];
 
-            GameObject freezeOrbObject = GameObject.Instantiate(projectilePrefab, originObject.transform.position, Quaternion.identity);
+            GameObject freezeOrbObject = GameObject.Instantiate(projectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             freezeOrbObject.transform.position += new Vector3(0, 0, 0.1f);
             float freezeSpeedMultiplier = 0.5f;
             float freezeRadiusMultiplier = projectileSize;

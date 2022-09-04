@@ -15,7 +15,7 @@ namespace LooCast.Item.Data
 
         public override Item CreateItem()
         {
-            return new MultiplexerWeaponItem(this);
+            return new MultiplexerWeaponItem(this, Stats, AutoFire.Value);
         }
     }
 }

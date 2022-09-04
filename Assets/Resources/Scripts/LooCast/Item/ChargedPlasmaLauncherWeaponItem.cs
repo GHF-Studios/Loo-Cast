@@ -48,7 +48,7 @@ namespace LooCast.Item
         #endregion
 
         #region Constructors
-        public ChargedPlasmaLauncherWeaponItem(ChargedPlasmaLauncherWeaponItemData data, ItemObject itemObject, Stats stats, bool autoFire = false) : base(data, itemObject, stats, autoFire)
+        public ChargedPlasmaLauncherWeaponItem(ChargedPlasmaLauncherWeaponItemData data, Stats stats, bool autoFire) : base(data, stats, autoFire)
         {
             ArcLifetime = data.ArcLifetime.Value;
             ArcInitialWidth = data.ArcInitialWidth.Value;
@@ -89,9 +89,9 @@ namespace LooCast.Item
             }
             Target target = targets[0];
 
-            GameObject bulletObject = GameObject.Instantiate(projectilePrefab, originObject.transform.position, Quaternion.identity);
+            GameObject bulletObject = GameObject.Instantiate(projectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             bulletObject.transform.position += new Vector3(0, 0, 0.1f);
-            bulletObject.GetComponent<ChargedPlasmaProjectile>().Initialize(target, originObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, armorPenetration, ArcLifetime, ArcInitialWidth, ArcWidthMultiplier, ArcMinWidth, ArcBranchAttempts, MinSpreadDistance, MinSpreadDistanceMultiplier, MaxSpreadDistance, MaxSpreadDistanceMultiplier, MinSpreadAngle, MinSpreadAngleMultiplier, MaxSpreadAngle, MaxSpreadAngleMultiplier, SpreadChance, SpreadChanceMultiplier, MinBranchDistance, MinBranchDistanceMultiplier, MaxBranchDistance, MaxBranchDistanceMultiplier, MinBranchAngle, MinBranchAngleMultiplier, MaxBranchAngle, MaxBranchAngleMultiplier, BranchChance, BranchChanceMultiplier, MaxRecursionDepth);
+            bulletObject.GetComponent<ChargedPlasmaProjectile>().Initialize(target, ItemContainer.OriginObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, armorPenetration, ArcLifetime, ArcInitialWidth, ArcWidthMultiplier, ArcMinWidth, ArcBranchAttempts, MinSpreadDistance, MinSpreadDistanceMultiplier, MaxSpreadDistance, MaxSpreadDistanceMultiplier, MinSpreadAngle, MinSpreadAngleMultiplier, MaxSpreadAngle, MaxSpreadAngleMultiplier, SpreadChance, SpreadChanceMultiplier, MinBranchDistance, MinBranchDistanceMultiplier, MaxBranchDistance, MaxBranchDistanceMultiplier, MinBranchAngle, MinBranchAngleMultiplier, MaxBranchAngle, MaxBranchAngleMultiplier, BranchChance, BranchChanceMultiplier, MaxRecursionDepth);
             soundHandler.SoundShoot();
         }
         #endregion

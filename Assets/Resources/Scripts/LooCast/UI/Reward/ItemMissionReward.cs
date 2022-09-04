@@ -21,8 +21,8 @@ namespace LooCast.UI.Reward
                 }
                 else
                 {
-                    rewardText.text = value.RewardedItem.Name;
-                    rewardImage.sprite = value.RewardedItem.Sprite;
+                    rewardText.text = value.RewardedItemData.ItemName.Value;
+                    rewardImage.sprite = value.RewardedItemData.Sprite;
                 }
             }
         }

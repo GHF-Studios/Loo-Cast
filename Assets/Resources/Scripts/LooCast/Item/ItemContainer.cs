@@ -70,7 +70,7 @@ namespace LooCast.Item
             }
         }
 
-        public void AddItem(Item item, out Item remainingItem)
+        public virtual void AddItem(Item item, out Item remainingItem)
         {
             if (item == null)
             {
@@ -187,7 +187,7 @@ namespace LooCast.Item
             remainingUniqueItem = uniqueItem;
         }
 
-        public void SetItem(int slotID, Item item)
+        public virtual void SetItem(int slotID, Item item)
         {
             if (!IsValidSlot(slotID))
             {
@@ -216,7 +216,7 @@ namespace LooCast.Item
             return itemSlots.GetItems();
         }
 
-        public bool Contains(Item item)
+        public virtual bool Contains(Item item)
         {
             if (item == null)
             {

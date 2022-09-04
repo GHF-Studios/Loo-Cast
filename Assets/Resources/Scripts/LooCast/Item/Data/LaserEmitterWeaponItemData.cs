@@ -11,7 +11,7 @@ namespace LooCast.Item.Data
 
         public override Item CreateItem()
         {
-            return new LaserEmitterWeaponItem(this);
+            return new LaserEmitterWeaponItem(this, Stats, AutoFire.Value);
         }
     }
 }

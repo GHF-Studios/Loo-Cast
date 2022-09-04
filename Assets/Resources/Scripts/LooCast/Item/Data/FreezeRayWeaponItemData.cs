@@ -9,7 +9,7 @@ namespace LooCast.Item.Data
     {
         public override Item CreateItem()
         {
-            return new FreezeRayWeaponItem(this);
+            return new FreezeRayWeaponItem(this, Stats, AutoFire.Value);
         }
     }
 }

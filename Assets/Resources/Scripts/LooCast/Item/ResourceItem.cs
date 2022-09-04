@@ -9,7 +9,7 @@ namespace LooCast.Item
     {
         public Resource Resource { get; protected set; }
 
-        public ResourceItem(ResourceItemData data, ItemObject itemObject = null) : base(data, itemObject)
+        public ResourceItem(ResourceItemData data) : base(data)
         {
             Resource = data.Resource;
         }

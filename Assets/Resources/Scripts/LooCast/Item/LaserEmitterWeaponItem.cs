@@ -23,7 +23,7 @@ namespace LooCast.Item
         #endregion
 
         #region Constructors
-        public LaserEmitterWeaponItem(LaserEmitterWeaponItemData data, ItemObject itemObject, Stats stats, bool autoFire = false) : base(data, itemObject, stats, autoFire)
+        public LaserEmitterWeaponItem(LaserEmitterWeaponItemData data, Stats stats, bool autoFire) : base(data, stats, autoFire)
         {
             LaserLength = data.LaserLength.Value;
         }
@@ -39,9 +39,9 @@ namespace LooCast.Item
             }
             Target target = targets[0];
 
-            GameObject bulletObject = GameObject.Instantiate(projectilePrefab, originObject.transform.position, Quaternion.identity);
+            GameObject bulletObject = GameObject.Instantiate(projectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             bulletObject.transform.position += new Vector3(0, 0, 0.1f);
-            bulletObject.GetComponent<LaserProjectile>().Initialize(target, originObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, piercing, armorPenetration, LaserLength);
+            bulletObject.GetComponent<LaserProjectile>().Initialize(target, ItemContainer.OriginObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, piercing, armorPenetration, LaserLength);
             soundHandler.SoundShoot();
         }
         #endregion

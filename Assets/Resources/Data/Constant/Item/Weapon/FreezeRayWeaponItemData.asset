@@ -99,3 +99,11 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
   ProjectilePrefab: {fileID: 1990222616869937636, guid: 033e06cebc74cb7448897e11d43e5416, type: 3}
+  AutoFire:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: d1761706be7b45d4c84244d6dad37e05, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}

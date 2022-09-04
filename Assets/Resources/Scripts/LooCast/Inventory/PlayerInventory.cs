@@ -35,18 +35,16 @@ namespace LooCast.Inventory
 
             RuntimeData.Initialize(Data, player);
 
-            //ChargedPlasmaLauncherWeaponItem chargedPlasmaLauncherWeaponItem = new ChargedPlasmaLauncherWeaponItem(Data.ChargedPlasmaLauncherWeaponItemData, null, stats);
-            //chargedPlasmaLauncherWeaponItem.OnPickup.Invoke(gameObject);
+            //ChargedPlasmaLauncherWeaponItem chargedPlasmaLauncherWeaponItem = (ChargedPlasmaLauncherWeaponItem)Data.ChargedPlasmaLauncherWeaponItemData.CreateItem();
             //RuntimeData.Hotbar.AddItem(chargedPlasmaLauncherWeaponItem, out Item remainingChargedPlasmaLauncherWeaponItem);
             //
-            //FreezeRayWeaponItem freezeRayWeaponItem = new FreezeRayWeaponItem(Data.FreezeRayWeaponItemData, null, stats);
-            //freezeRayWeaponItem.OnPickup.Invoke(gameObject);
+            //FreezeRayWeaponItem freezeRayWeaponItem = (FreezeRayWeaponItem)Data.FreezeRayWeaponItemData.CreateItem();
             //RuntimeData.Hotbar.AddItem(freezeRayWeaponItem, out Item remainingFreezeRayWeaponItem);
             
-            LaserEmitterWeaponItem laserEmitterWeaponItem = new LaserEmitterWeaponItem(Data.LaserEmitterWeaponItemData, null, stats);
+            LaserEmitterWeaponItem laserEmitterWeaponItem = (LaserEmitterWeaponItem)Data.LaserEmitterWeaponItemData.CreateItem();
             RuntimeData.Hotbar.AddItem(laserEmitterWeaponItem, out Item remainingLaserEmitterWeaponItem);
             
-            MultiplexerWeaponItem multiplexerWeaponItem = new MultiplexerWeaponItem(Data.MultiplexerWeaponItemData, null, stats);
+            MultiplexerWeaponItem multiplexerWeaponItem = (MultiplexerWeaponItem)Data.MultiplexerWeaponItemData.CreateItem();
             RuntimeData.Hotbar.AddItem(multiplexerWeaponItem, out Item remainingMultiplexerWeaponItem);
         }
         #endregion

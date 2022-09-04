@@ -36,8 +36,7 @@ namespace LooCast.Item.Data
 
         public override Item CreateItem()
         {
-            ChargedPlasmaLauncherWeaponItem chargedPlasmaLauncherWeaponItem = new ChargedPlasmaLauncherWeaponItem(this);
-            return chargedPlasmaLauncherWeaponItem;
+            return new ChargedPlasmaLauncherWeaponItem(this, Stats, AutoFire.Value);
         }
     }
 }

@@ -3,6 +3,7 @@ using UnityEngine;
 namespace LooCast.Item.Data
 {
     using LooCast.Data;
+    using LooCast.Attribute.Stat;
 
     public abstract class WeaponItemData : UniqueItemData
     {
@@ -17,5 +18,7 @@ namespace LooCast.Item.Data
         public IntDataReference BasePiercing;
         public IntDataReference BaseArmorPenetration;
         public GameObject ProjectilePrefab;
+        public BoolDataReference AutoFire;
+        public Stats Stats;
     }
 }

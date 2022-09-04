@@ -27,7 +27,7 @@ namespace LooCast.Item
         #endregion
 
         #region Constructors
-        public MultiplexerWeaponItem(MultiplexerWeaponItemData data, ItemObject itemObject, Stats stats, bool autoFire = false) : base(data, itemObject, stats, autoFire)
+        public MultiplexerWeaponItem(MultiplexerWeaponItemData data, Stats stats, bool autoFire) : base(data, stats, autoFire)
         {
             MaxTargets = data.BaseMaxTargets.Value;
             MaxFragments = data.BaseMaxFragments.Value;
@@ -48,14 +48,14 @@ namespace LooCast.Item
 
             foreach (Target target in targets)
             {
-                GameObject bulletObject = GameObject.Instantiate(projectilePrefab, originObject.transform.position, Quaternion.identity);
+                GameObject bulletObject = GameObject.Instantiate(projectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
                 bulletObject.transform.position += new Vector3(0, 0, 0.1f);
                 var finalFragments = MaxFragments;
                 if (MaxFragments >= 1)
                 {
                     finalFragments = UnityEngine.Random.Range(1, MaxFragments);
                 }
-                bulletObject.GetComponent<MultiplexerProjectile>().Initialize(target, originObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, piercing, armorPenetration, finalFragments, FragmentArmorPenetration, IsTargetSeeking, FragmentPrefab);
+                bulletObject.GetComponent<MultiplexerProjectile>().Initialize(target, ItemContainer.OriginObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, piercing, armorPenetration, finalFragments, FragmentArmorPenetration, IsTargetSeeking, FragmentPrefab);
             }
             soundHandler.SoundShoot();
         }
