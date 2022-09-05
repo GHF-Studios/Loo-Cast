@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -29,75 +30,35 @@ namespace LooCast.Mission
         {
             get
             {
-                List<Mission> acceptedCommonMissions = new List<Mission>();
-                foreach (Mission acceptedMission in acceptedMissions)
-                {
-                    if (acceptedMission.MissionRarity == MissionRarity.Common)
-                    {
-                        acceptedCommonMissions.Add(acceptedMission);
-                    }
-                }
-                return acceptedCommonMissions;
+                return AcceptedMissions.Where((mission) => { return mission.MissionRarity == MissionRarity.Common; }).ToList();
             }
         }
         public List<Mission> AcceptedUncommonMissions
         {
             get
             {
-                List<Mission> acceptedUncommonMissions = new List<Mission>();
-                foreach (Mission acceptedMission in acceptedMissions)
-                {
-                    if (acceptedMission.MissionRarity == MissionRarity.Uncommon)
-                    {
-                        acceptedUncommonMissions.Add(acceptedMission);
-                    }
-                }
-                return acceptedUncommonMissions;
+                return AcceptedMissions.Where((mission) => { return mission.MissionRarity == MissionRarity.Uncommon; }).ToList();
             }
         }
         public List<Mission> AcceptedRareMissions
         {
             get
             {
-                List<Mission> acceptedRareMissions = new List<Mission>();
-                foreach (Mission acceptedMission in acceptedMissions)
-                {
-                    if (acceptedMission.MissionRarity == MissionRarity.Rare)
-                    {
-                        acceptedRareMissions.Add(acceptedMission);
-                    }
-                }
-                return acceptedRareMissions;
+                return AcceptedMissions.Where((mission) => { return mission.MissionRarity == MissionRarity.Rare; }).ToList();
             }
         }
         public List<Mission> AcceptedEpicMissions
         {
             get
             {
-                List<Mission> acceptedEpicMissions = new List<Mission>();
-                foreach (Mission acceptedMission in acceptedMissions)
-                {
-                    if (acceptedMission.MissionRarity == MissionRarity.Epic)
-                    {
-                        acceptedEpicMissions.Add(acceptedMission);
-                    }
-                }
-                return acceptedEpicMissions;
+                return AcceptedMissions.Where((mission) => { return mission.MissionRarity == MissionRarity.Epic; }).ToList();
             }
         }
         public List<Mission> AcceptedLegendaryMissions
         {
             get
             {
-                List<Mission> acceptedLegendaryMissions = new List<Mission>();
-                foreach (Mission acceptedMission in acceptedMissions)
-                {
-                    if (acceptedMission.MissionRarity == MissionRarity.Legendary)
-                    {
-                        acceptedLegendaryMissions.Add(acceptedMission);
-                    }
-                }
-                return acceptedLegendaryMissions;
+                return AcceptedMissions.Where((mission) => { return mission.MissionRarity == MissionRarity.Legendary; }).ToList();
             }
         }
         public List<Mission> CompletedMissions

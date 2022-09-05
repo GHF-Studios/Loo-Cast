@@ -13,9 +13,9 @@ namespace LooCast.UI.Button
         public UnityEvent onTabSelected;
         public UnityEvent onTabDeselected;
 
-        public override void Initialize()
+        private void Start()
         {
-            base.Initialize();
+            Initialize();
         }
 
         public override void OnClick()

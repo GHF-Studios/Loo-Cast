@@ -44,122 +44,51 @@ MonoBehaviour:
   LegendaryMissionDatas:
   - {fileID: 11400000, guid: 70b54658753b6fd4facc2999695e52ff, type: 2}
   CommonMissionWeight:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 10
-      inSlope: Infinity
-      outSlope: Infinity
-      tangentMode: 103
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0.49740788
-    - serializedVersion: 3
-      time: 1
-      value: 10
-      inSlope: Infinity
-      outSlope: Infinity
-      tangentMode: 103
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+    UseConstant: 1
+    ConstantValue: 80
+    Variable: {fileID: 0}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   UncommonMissionWeight:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 8
-      inSlope: Infinity
-      outSlope: Infinity
-      tangentMode: 103
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0.49740788
-    - serializedVersion: 3
-      time: 1
-      value: 8
-      inSlope: Infinity
-      outSlope: Infinity
-      tangentMode: 103
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+    UseConstant: 1
+    ConstantValue: 50
+    Variable: {fileID: 0}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   RareMissionWeight:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 6
-      inSlope: Infinity
-      outSlope: Infinity
-      tangentMode: 103
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0.49740788
-    - serializedVersion: 3
-      time: 1
-      value: 6
-      inSlope: Infinity
-      outSlope: Infinity
-      tangentMode: 103
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+    UseConstant: 1
+    ConstantValue: 30
+    Variable: {fileID: 0}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   EpicMissionWeight:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 4
-      inSlope: Infinity
-      outSlope: Infinity
-      tangentMode: 103
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0.49740788
-    - serializedVersion: 3
-      time: 1
-      value: 4
-      inSlope: Infinity
-      outSlope: Infinity
-      tangentMode: 103
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+    UseConstant: 1
+    ConstantValue: 20
+    Variable: {fileID: 0}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   LegendaryMissionWeight:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 2
-      inSlope: Infinity
-      outSlope: Infinity
-      tangentMode: 103
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0.49740788
-    - serializedVersion: 3
-      time: 1
-      value: 2
-      inSlope: Infinity
-      outSlope: Infinity
-      tangentMode: 103
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+    UseConstant: 1
+    ConstantValue: 10
+    Variable: {fileID: 0}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MinDeviationScale:
+    UseConstant: 1
+    ConstantValue: 0.5
+    Variable: {fileID: 0}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MaxDeviationScale:
+    UseConstant: 1
+    ConstantValue: 1.5
+    Variable: {fileID: 0}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []

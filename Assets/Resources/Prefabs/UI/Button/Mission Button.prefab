@@ -198,22 +198,10 @@ MonoBehaviour:
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
   m_Interactable: 1
-  m_TargetGraphic: {fileID: 0}
+  m_TargetGraphic: {fileID: 2581781533186703710}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: LooCast.UI.Screen.Screen, Assembly-CSharp
-        m_MethodName: SetVisibility
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &3491316432252144616
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -226,7 +214,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c38b7198fc972f48af2a58cfa825b26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  button: {fileID: 0}
+  button: {fileID: -3438117825188426631}
   missionRarityBorderImage: {fileID: 2581781533088994646}
   missionTitle: {fileID: 2581781534372387460}
 --- !u!95 &-1922815310101871256

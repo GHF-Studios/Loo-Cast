@@ -16,10 +16,12 @@ namespace LooCast.Mission.Data
         public MissionData[] RareMissionDatas;
         public MissionData[] EpicMissionDatas;
         public MissionData[] LegendaryMissionDatas;
-        public AnimationCurve CommonMissionWeight;
-        public AnimationCurve UncommonMissionWeight;
-        public AnimationCurve RareMissionWeight;
-        public AnimationCurve EpicMissionWeight;
-        public AnimationCurve LegendaryMissionWeight;
+        public FloatDataReference CommonMissionWeight;
+        public FloatDataReference UncommonMissionWeight;
+        public FloatDataReference RareMissionWeight;
+        public FloatDataReference EpicMissionWeight;
+        public FloatDataReference LegendaryMissionWeight;
+        public FloatDataReference MinDeviationScale;
+        public FloatDataReference MaxDeviationScale;
     }
 }

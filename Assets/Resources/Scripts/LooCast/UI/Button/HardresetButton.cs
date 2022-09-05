@@ -14,7 +14,12 @@ namespace LooCast.UI.Button
         public Attributes Attributes;
         public Stats Stats;
 
-        public override void Initialize()
+        private void Start()
+        {
+            Initialize();
+        }
+
+        public void Initialize()
         {
             base.Initialize();
             screen = transform.GetComponentInParent<Screen.Screen>(true);

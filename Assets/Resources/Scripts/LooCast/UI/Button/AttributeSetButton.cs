@@ -14,6 +14,11 @@ namespace LooCast.UI.Button
         public int attributeIncrement;
         public Attribute attribute;
 
+        private void Start()
+        {
+            Initialize();
+        }
+
         public override void OnClick()
         {
             int currentLevel = attribute.Level.Value;

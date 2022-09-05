@@ -37,6 +37,10 @@ namespace LooCast.UI.Panel
                     GameObject missionButtonObject = Instantiate(missionButtonPrefab, missionButtonParent);
                     MissionButton missionButton = missionButtonObject.GetComponent<MissionButton>();
                     missionButton.Initialize(mission);
+                    missionButton.UnityButton.onClick.AddListener(() =>
+                    {
+                        SelectedMission = missionButton.Mission;
+                    });
                 }
                 SelectedMission = missionProvider.Missions[0];
             }

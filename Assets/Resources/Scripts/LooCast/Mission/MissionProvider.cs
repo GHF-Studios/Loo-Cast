@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
-using DataStructures.RandomSelector;
 
 namespace LooCast.Mission
 {
     using Data;
+    using LooCast.Util;
     
     public class MissionProvider : MonoBehaviour
     {
@@ -19,6 +20,41 @@ namespace LooCast.Mission
             get
             {
                 return missions;
+            }
+        }
+        public List<Mission> CommonMissions
+        {
+            get
+            {
+                return Missions.Where((mission) => { return mission.MissionRarity == MissionRarity.Common; }).ToList();
+            }
+        }
+        public List<Mission> UncommonMissions
+        {
+            get
+            {
+                return Missions.Where((mission) => { return mission.MissionRarity == MissionRarity.Uncommon; }).ToList();
+            }
+        }
+        public List<Mission> RareMissions
+        {
+            get
+            {
+                return Missions.Where((mission) => { return mission.MissionRarity == MissionRarity.Rare; }).ToList();
+            }
+        }
+        public List<Mission> EpicMissions
+        {
+            get
+            {
+                return Missions.Where((mission) => { return mission.MissionRarity == MissionRarity.Epic; }).ToList();
+            }
+        }
+        public List<Mission> LegendaryMissions
+        {
+            get
+            {
+                return Missions.Where((mission) => { return mission.MissionRarity == MissionRarity.Legendary; }).ToList();
             }
         }
         public int Reputation
@@ -75,38 +111,116 @@ namespace LooCast.Mission
             }
             if (missions.Count < Data.MinMissionCount.Value)
             {
-                int newMissionsCount = Data.MaxMissionCount.Value - missions.Count;
-                GenerateMissions(newMissionsCount);
+                GenerateMissions();
                 OnMissionListChange.Invoke();
             }
         }
 
-        private void GenerateMissions(int missionCount)
+        private void GenerateMissions()
         {
-            float commonMissionWeight = Data.CommonMissionWeight.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
-            float uncommonMissionWeight = Data.UncommonMissionWeight.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
-            float rareMissionWeight = Data.RareMissionWeight.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
-            float epicMissionWeight = Data.EpicMissionWeight.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
-            float legendaryMissionWeight = Data.LegendaryMissionWeight.Evaluate(UnityEngine.Random.Range(0.0f, 1.0f));
+            float commonMissionWeight = Data.CommonMissionWeight.Value * UnityEngine.Random.Range(Data.MinDeviationScale.Value, Data.MaxDeviationScale.Value);
+            float uncommonMissionWeight = Data.UncommonMissionWeight.Value * UnityEngine.Random.Range(Data.MinDeviationScale.Value, Data.MaxDeviationScale.Value);
+            float rareMissionWeight = Data.RareMissionWeight.Value * UnityEngine.Random.Range(Data.MinDeviationScale.Value, Data.MaxDeviationScale.Value);
+            float epicMissionWeight = Data.EpicMissionWeight.Value * UnityEngine.Random.Range(Data.MinDeviationScale.Value, Data.MaxDeviationScale.Value);
+            float legendaryMissionWeight = Data.LegendaryMissionWeight.Value * UnityEngine.Random.Range(Data.MinDeviationScale.Value, Data.MaxDeviationScale.Value);
 
-            DynamicRandomSelector<MissionData[]> dynamicRandomSelector = new DynamicRandomSelector<MissionData[]>();
-            dynamicRandomSelector.Add(Data.CommonMissionDatas, commonMissionWeight);
-            dynamicRandomSelector.Add(Data.UncommonMissionDatas, uncommonMissionWeight);
-            dynamicRandomSelector.Add(Data.RareMissionDatas, rareMissionWeight);
-            dynamicRandomSelector.Add(Data.EpicMissionDatas, epicMissionWeight);
-            dynamicRandomSelector.Add(Data.LegendaryMissionDatas, legendaryMissionWeight);
-            dynamicRandomSelector.Build();
-            if (missions == null)
+            float missionWeightsSum = 0.0f;
+            missionWeightsSum += commonMissionWeight;
+            missionWeightsSum += uncommonMissionWeight;
+            missionWeightsSum += rareMissionWeight;
+            missionWeightsSum += epicMissionWeight;
+            missionWeightsSum += legendaryMissionWeight;
+
+            float commonMissionFraction = commonMissionWeight / missionWeightsSum;
+            float uncommonMissionFraction = uncommonMissionWeight / missionWeightsSum;
+            float rareMissionFraction = rareMissionWeight / missionWeightsSum;
+            float epicMissionFraction = epicMissionWeight / missionWeightsSum;
+            float legendaryMissionFraction = legendaryMissionWeight / missionWeightsSum;
+
+            int commonMissionCount = Mathf.FloorToInt(Data.MaxMissionCount.Value * commonMissionFraction);
+            int uncommonMissionCount = Mathf.FloorToInt(Data.MaxMissionCount.Value * uncommonMissionFraction);
+            int rareMissionCount = Mathf.FloorToInt(Data.MaxMissionCount.Value * rareMissionFraction);
+            int epicMissionCount = Mathf.FloorToInt(Data.MaxMissionCount.Value * epicMissionFraction);
+            int legendaryMissionCount = Mathf.FloorToInt(Data.MaxMissionCount.Value * legendaryMissionFraction);
+
+            int missionCountsSum = 0;
+            missionCountsSum += commonMissionCount;
+            missionCountsSum += uncommonMissionCount;
+            missionCountsSum += rareMissionCount;
+            missionCountsSum += epicMissionCount;
+            missionCountsSum += legendaryMissionCount;
+
+            for (int i = 0; i < commonMissionCount; i++)
             {
-                missions = new List<Mission>();
+                if (CommonMissions.Count < commonMissionCount)
+                {
+                    int randomCommonMissionDataIndex = UnityEngine.Random.Range(0, Data.CommonMissionDatas.Length - 1);
+                    MissionData randomCommonMissionData = Data.CommonMissionDatas[randomCommonMissionDataIndex];
+                    missions.Add(randomCommonMissionData.CreateMission(this));
+                }
+                else
+                {
+                    break;
+                }
             }
-            for (int i = 0; i < missionCount; i++)
+
+            for (int i = 0; i < uncommonMissionCount; i++)
             {
-                MissionData[] randomMissionDatas = dynamicRandomSelector.SelectRandomItem();
-                int randomMissionDataIndex = UnityEngine.Random.Range(0, randomMissionDatas.Length - 1);
-                MissionData randomMissionData = randomMissionDatas[randomMissionDataIndex];
-                missions.Add(randomMissionData.CreateMission(this));
+                if (UncommonMissions.Count < uncommonMissionCount)
+                {
+                    int randomUncommonMissionDataIndex = UnityEngine.Random.Range(0, Data.UncommonMissionDatas.Length - 1);
+                    MissionData randomUncommonMissionData = Data.UncommonMissionDatas[randomUncommonMissionDataIndex];
+                    missions.Add(randomUncommonMissionData.CreateMission(this));
+                }
+                else
+                {
+                    break;
+                }
             }
+
+            for (int i = 0; i < rareMissionCount; i++)
+            {
+                if (RareMissions.Count < rareMissionCount)
+                {
+                    int randomRareMissionDataIndex = UnityEngine.Random.Range(0, Data.RareMissionDatas.Length - 1);
+                    MissionData randomRareMissionData = Data.RareMissionDatas[randomRareMissionDataIndex];
+                    missions.Add(randomRareMissionData.CreateMission(this));
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            for (int i = 0; i < epicMissionCount; i++)
+            {
+                if (EpicMissions.Count < epicMissionCount)
+                {
+                    int randomEpicMissionDataIndex = UnityEngine.Random.Range(0, Data.EpicMissionDatas.Length - 1);
+                    MissionData randomEpicMissionData = Data.EpicMissionDatas[randomEpicMissionDataIndex];
+                    missions.Add(randomEpicMissionData.CreateMission(this));
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            for (int i = 0; i < legendaryMissionCount; i++)
+            {
+                if (LegendaryMissions.Count < legendaryMissionCount)
+                {
+                    int randomLegendaryMissionDataIndex = UnityEngine.Random.Range(0, Data.LegendaryMissionDatas.Length - 1);
+                    MissionData randomLegendaryMissionData = Data.LegendaryMissionDatas[randomLegendaryMissionDataIndex];
+                    missions.Add(randomLegendaryMissionData.CreateMission(this));
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            missions.Shuffle();
         }
 
         public bool CanProvideMission(Mission mission)

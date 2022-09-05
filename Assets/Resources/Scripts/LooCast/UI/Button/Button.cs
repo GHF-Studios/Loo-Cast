@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using LooCast.Sound;
 
@@ -9,15 +10,17 @@ namespace LooCast.UI.Button
 {
     public abstract class Button : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
+        public UnityEngine.UI.Button UnityButton
+        {
+            get
+            {
+                return button;
+            }
+        }
         [SerializeField] protected UnityEngine.UI.Button button;
         protected MenuSoundHandler soundHandler;
 
-        private void Start()
-        {
-            Initialize();
-        }
-
-        public virtual void Initialize()
+        public void Initialize()
         {
             if (button == null)
             {

@@ -15,6 +15,11 @@ namespace LooCast.UI.Button
         public int statIncrement;
         public Stat Stat;
 
+        private void Start()
+        {
+            Initialize();
+        }
+
         public override void OnClick()
         {
             int currentLevel = Stat.Level.Value;

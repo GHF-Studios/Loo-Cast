@@ -17,6 +17,7 @@ namespace LooCast.UI.Button
 
         public void Initialize(Mission mission)
         {
+            base.Initialize();
             Mission = mission;
             missionRarityBorderImage.color = ColorUtil.RarityColors.GetMissionRarityColor(mission.MissionRarity);
             missionTitle.text = mission.MissionTitle;
@@ -24,7 +25,7 @@ namespace LooCast.UI.Button
 
         public override void OnClick()
         {
-            
+
         }
     }
 }
