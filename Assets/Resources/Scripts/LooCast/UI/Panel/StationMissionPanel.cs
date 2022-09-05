@@ -42,7 +42,7 @@ namespace LooCast.UI.Panel
                         SelectedMission = missionButton.Mission;
                     });
                 }
-                SelectedMission = missionProvider.Missions[0];
+                SelectedMission = null;
             }
         }
         public Mission SelectedMission
@@ -54,44 +54,68 @@ namespace LooCast.UI.Panel
 
             private set
             {
-                if (value == null)
-                {
-                    throw new ArgumentNullException("Selected Mission can not be null!");
-                }
                 selectedMission = value;
-
-                Color rarityColor = ColorUtil.RarityColors.GetMissionRarityColor(selectedMission.MissionRarity);
-                foreach (Image missionRarityBorderImage in missionRarityBorderImages)
+                if (selectedMission == null)
                 {
-                    missionRarityBorderImage.color = rarityColor;
-                }
-
-                missionTitle.text = selectedMission.MissionTitle;
-                missionDescription.text = selectedMission.MissionDescription;
-                missionTasks.text = selectedMission.MissionTasks;
-                for (int i = 0; i < missionRewardParent.childCount; i++)
-                {
-                    Destroy(missionRewardParent.GetChild(i).gameObject);
-                }
-                foreach (LooCast.Mission.MissionReward missionReward in selectedMission.MissionRewards)
-                {
-                    if (missionReward is LooCast.Mission.CreditsMissionReward)
+                    foreach (Image missionRarityBorderImage in missionRarityBorderImages)
                     {
-                        GameObject creditsMissionRewardObject = Instantiate(creditsMissionRewardPrefab, missionRewardParent);
-                        UI.Reward.CreditsMissionReward creditsMissionReward = creditsMissionRewardObject.GetComponent<UI.Reward.CreditsMissionReward>();
-                        creditsMissionReward.Initialize((LooCast.Mission.CreditsMissionReward)missionReward);
+                        missionRarityBorderImage.color = ColorUtil.RarityColors.GetMissionRarityColor(MissionRarity.Common);
                     }
-                    else if (missionReward is LooCast.Mission.ReputationMissionReward)
+
+                    missionTitle.enabled = false;
+                    missionDescription.enabled = false;
+                    missionTasks.enabled = false;
+                    missionTasksTitle.enabled = false;
+                    missionRewardTitle.enabled = false;
+                    acceptMissionButton.enabled = false;
+                    for (int i = 0; i < missionRewardParent.childCount; i++)
                     {
-                        GameObject reputationMissionRewardObject = Instantiate(reputationMissionRewardPrefab, missionRewardParent);
-                        UI.Reward.ReputationMissionReward reputationMissionReward = reputationMissionRewardObject.GetComponent<UI.Reward.ReputationMissionReward>();
-                        reputationMissionReward.Initialize((LooCast.Mission.ReputationMissionReward)missionReward);
+                        Destroy(missionRewardParent.GetChild(i).gameObject);
                     }
-                    else if (missionReward is LooCast.Mission.ItemMissionReward)
+                }
+                else
+                {
+                    Color rarityColor = ColorUtil.RarityColors.GetMissionRarityColor(selectedMission.MissionRarity);
+                    foreach (Image missionRarityBorderImage in missionRarityBorderImages)
                     {
-                        GameObject itemMissionRewardObject = Instantiate(itemMissionRewardPrefab, missionRewardParent);
-                        UI.Reward.ItemMissionReward itemMissionReward = itemMissionRewardObject.GetComponent<UI.Reward.ItemMissionReward>();
-                        itemMissionReward.Initialize((LooCast.Mission.ItemMissionReward)missionReward);
+                        missionRarityBorderImage.color = rarityColor;
+                    }
+
+                    missionTitle.enabled = true;
+                    missionDescription.enabled = true;
+                    missionTasks.enabled = true;
+                    missionTasksTitle.enabled = true;
+                    missionRewardTitle.enabled = true;
+                    acceptMissionButton.enabled = true;
+
+                    missionTitle.text = selectedMission.MissionTitle;
+                    missionDescription.text = selectedMission.MissionDescription;
+                    missionTasks.text = selectedMission.MissionTasks;
+                    for (int i = 0; i < missionRewardParent.childCount; i++)
+                    {
+                        Destroy(missionRewardParent.GetChild(i).gameObject);
+                    }
+
+                    foreach (LooCast.Mission.MissionReward missionReward in selectedMission.MissionRewards)
+                    {
+                        if (missionReward is LooCast.Mission.CreditsMissionReward)
+                        {
+                            GameObject creditsMissionRewardObject = Instantiate(creditsMissionRewardPrefab, missionRewardParent);
+                            UI.Reward.CreditsMissionReward creditsMissionReward = creditsMissionRewardObject.GetComponent<UI.Reward.CreditsMissionReward>();
+                            creditsMissionReward.Initialize((LooCast.Mission.CreditsMissionReward)missionReward);
+                        }
+                        else if (missionReward is LooCast.Mission.ReputationMissionReward)
+                        {
+                            GameObject reputationMissionRewardObject = Instantiate(reputationMissionRewardPrefab, missionRewardParent);
+                            UI.Reward.ReputationMissionReward reputationMissionReward = reputationMissionRewardObject.GetComponent<UI.Reward.ReputationMissionReward>();
+                            reputationMissionReward.Initialize((LooCast.Mission.ReputationMissionReward)missionReward);
+                        }
+                        else if (missionReward is LooCast.Mission.ItemMissionReward)
+                        {
+                            GameObject itemMissionRewardObject = Instantiate(itemMissionRewardPrefab, missionRewardParent);
+                            UI.Reward.ItemMissionReward itemMissionReward = itemMissionRewardObject.GetComponent<UI.Reward.ItemMissionReward>();
+                            itemMissionReward.Initialize((LooCast.Mission.ItemMissionReward)missionReward);
+                        }
                     }
                 }
             }
@@ -103,12 +127,24 @@ namespace LooCast.UI.Panel
         [SerializeField] private Text missionTitle;
         [SerializeField] private Text missionDescription;
         [SerializeField] private Text missionTasks;
+        [SerializeField] private Text missionTasksTitle;
+        [SerializeField] private Text missionRewardTitle;
         [SerializeField] private RectTransform missionRewardParent;
         [SerializeField] private GameObject creditsMissionRewardPrefab;
         [SerializeField] private GameObject reputationMissionRewardPrefab;
         [SerializeField] private GameObject itemMissionRewardPrefab;
+        [SerializeField] private UnityEngine.UI.Button acceptMissionButton;
         
         private Mission selectedMission;
         private MissionProvider missionProvider;
+
+        public void AcceptSelectedMission()
+        {
+            bool acceptedMission = MissionManager.Instance.TryAcceptMission(missionProvider, selectedMission);
+            if (acceptedMission)
+            {
+                selectedMission = null;
+            }
+        }
     }
 }

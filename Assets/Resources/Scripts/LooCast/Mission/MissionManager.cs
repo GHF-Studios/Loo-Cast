@@ -10,6 +10,8 @@ namespace LooCast.Mission
 
     public class MissionManager : MonoBehaviour
     {
+        public static MissionManager Instance { get; private set;}
+
         [SerializeField] private MissionManagerData data;
 
         public UnityEvent<Mission> OnActiveMissionChange { get; private set; }
@@ -94,6 +96,18 @@ namespace LooCast.Mission
         private List<Mission> acceptedMissions;
         private List<Mission> completedMissions;
         private Mission activeMission;
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+            }
+            else
+            {
+                Instance = this;
+            }
+        }
 
         private void Start()
         {
