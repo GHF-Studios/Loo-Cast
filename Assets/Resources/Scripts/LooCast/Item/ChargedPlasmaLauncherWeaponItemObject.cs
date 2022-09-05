@@ -15,8 +15,12 @@ namespace LooCast.Item
         {
             set
             {
-                base.Item = value;
                 ChargedPlasmaLauncherWeaponItem = (ChargedPlasmaLauncherWeaponItem)value;
+                if (ChargedPlasmaLauncherWeaponItem == null)
+                {
+                    throw new ArgumentException("Invalid Item Type!");
+                }
+                base.Item = value;
                 Refresh();
             }
         }
@@ -28,8 +32,7 @@ namespace LooCast.Item
         {
             SpriteRenderer = GetComponent<SpriteRenderer>();
 
-            //Then we Initialize the ItemObject, as this sets the item and thus triggers Refresh, which needs to happen after Independent members have been initialized
-            Initialize(ChargedPlasmaLauncherWeaponItem);
+            Initialize((ChargedPlasmaLauncherWeaponItem)data.CreateItem());
         }
 
         public void Refresh()

@@ -15,8 +15,12 @@ namespace LooCast.Item
         {
             set
             {
-                base.Item = value;
                 FreezeRayWeaponItem = (FreezeRayWeaponItem)value;
+                if (FreezeRayWeaponItem == null)
+                {
+                    throw new ArgumentException("Invalid Item Type!");
+                }
+                base.Item = value;
                 Refresh();
             }
         }
@@ -28,7 +32,7 @@ namespace LooCast.Item
         {
             SpriteRenderer = GetComponent<SpriteRenderer>();
 
-            Initialize(FreezeRayWeaponItem);
+            Initialize((FreezeRayWeaponItem)data.CreateItem());
         }
 
         public void Refresh()

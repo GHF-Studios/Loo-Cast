@@ -26,7 +26,7 @@ namespace LooCast.Item
             set
             {
                 item = value;
-                onItemChanged.Invoke();
+                OnItemChanged.Invoke();
                 SpriteRenderer.sprite = item.Sprite;
             }
         }
@@ -54,10 +54,6 @@ namespace LooCast.Item
                 if (remainingItem != null)
                 {
                     Item = remainingItem;
-                }
-                else
-                {
-                    Item.UndropItem();
                 }
             }
         }

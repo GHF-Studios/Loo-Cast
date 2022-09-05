@@ -79,11 +79,11 @@ namespace LooCast.Item
         {
             if (ItemContainmentState == ContainmentState.Dropped)
             {
-                throw new Exception("Can not spawn Item: Item has already dropped!");
+                throw new Exception("Can not drop Item: Item is already dropped!");
             }
             if (ItemContainmentState == ContainmentState.Contained)
             {
-                UncontainItem();
+                throw new Exception("Can not drop Item: Item is contained!");
             }
             ItemObject = GameObject.Instantiate(ItemObjectPrefab, spawnPosition, Quaternion.identity).GetComponent<ItemObject>();
             ItemObject.Item = this;
@@ -93,6 +93,14 @@ namespace LooCast.Item
 
         public void UndropItem()
         {
+            if (ItemContainmentState == ContainmentState.Standalone)
+            {
+                throw new Exception("Can not undrop Item: Item is alreay standalone!");
+            }
+            if (ItemContainmentState == ContainmentState.Contained)
+            {
+                throw new Exception("Can not undrop Item: Item is contained!");
+            }
             GameObject.Destroy(ItemObject.gameObject);
             ItemObject = null;
             ItemContainmentState = ContainmentState.Standalone;
@@ -106,7 +114,7 @@ namespace LooCast.Item
             }
             if (ItemContainmentState == ContainmentState.Dropped)
             {
-                UndropItem();
+                throw new Exception("Can not contain Item: Item is dropped!");
             }
             ItemContainer = itemContainer;
             ItemContainmentState = ContainmentState.Contained;
@@ -114,6 +122,14 @@ namespace LooCast.Item
 
         public void UncontainItem()
         {
+            if (ItemContainmentState == ContainmentState.Standalone)
+            {
+                throw new Exception("Can not uncontain Item: Item is alreay standalone!");
+            }
+            if (ItemContainmentState == ContainmentState.Dropped)
+            {
+                throw new Exception("Can not uncontain Item: Item is dropped!");
+            }
             ItemContainer = null;
             ItemContainmentState = ContainmentState.Standalone;
         }

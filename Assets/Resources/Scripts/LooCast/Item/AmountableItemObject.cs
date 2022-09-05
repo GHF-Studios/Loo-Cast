@@ -12,8 +12,12 @@ namespace LooCast.Item
         {
             set
             {
-                base.Item = value;
                 AmountableItem = (AmountableItem)value;
+                if (AmountableItem == null)
+                {
+                    throw new ArgumentException("Invalid Item Type!");
+                }
+                base.Item = value;
             }
         }
 

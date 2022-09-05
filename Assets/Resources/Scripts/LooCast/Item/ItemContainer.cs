@@ -111,8 +111,12 @@ namespace LooCast.Item
             {
                 if (itemSlots[i].ItemContent == null)
                 {
+                    if (remainingCountableItem.ItemContainmentState == Item.ContainmentState.Dropped)
+                    {
+                        remainingCountableItem.UndropItem();
+                    }
+                    remainingCountableItem.ContainItem(this);
                     itemSlots[i].ItemContent = remainingCountableItem;
-                    itemSlots[i].ItemContent.ContainItem(this);
                     remainingCountableItem = null;
                     break;
                 }
@@ -136,6 +140,7 @@ namespace LooCast.Item
                     }
                 }
             }
+            OnChange.Invoke();
         }
 
         protected void AddItem(AmountableItem amountableItem, out AmountableItem remainingAmountableItem)
@@ -145,8 +150,12 @@ namespace LooCast.Item
             {
                 if (itemSlots[i].ItemContent == null)
                 {
+                    if (remainingAmountableItem.ItemContainmentState == Item.ContainmentState.Dropped)
+                    {
+                        remainingAmountableItem.UndropItem();
+                    }
+                    remainingAmountableItem.ContainItem(this);
                     itemSlots[i].ItemContent = remainingAmountableItem;
-                    itemSlots[i].ItemContent.ContainItem(this);
                     remainingAmountableItem = null;
                     break;
                 }
@@ -170,21 +179,27 @@ namespace LooCast.Item
                     }
                 }
             }
+            OnChange.Invoke();
         }
 
         protected void AddItem(UniqueItem uniqueItem, out UniqueItem remainingUniqueItem)
         {
+            remainingUniqueItem = uniqueItem;
             for (int i = 0; i < itemSlots.Count; i++)
             {
                 if (itemSlots[i].ItemContent == null)
                 {
-                    itemSlots[i].ItemContent = uniqueItem;
-                    itemSlots[i].ItemContent.ContainItem(this);
+                    if (remainingUniqueItem.ItemContainmentState == Item.ContainmentState.Dropped)
+                    {
+                        remainingUniqueItem.UndropItem();
+                    }
+                    remainingUniqueItem.ContainItem(this);
+                    itemSlots[i].ItemContent = remainingUniqueItem;
                     remainingUniqueItem = null;
+                    OnChange.Invoke();
                     return;
                 }
             }
-            remainingUniqueItem = uniqueItem;
         }
 
         public virtual void SetItem(int slotID, Item item)
@@ -247,7 +262,7 @@ namespace LooCast.Item
                 AddSlot(i);
             }
 
-            onChange.Invoke();
+            OnChange.Invoke();
         }
 
         public bool IsValidSlot(int slot)

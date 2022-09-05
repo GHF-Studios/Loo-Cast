@@ -15,8 +15,12 @@ namespace LooCast.Item
         {
             set
             {
-                base.Item = value;
                 LaserEmitterWeaponItem = (LaserEmitterWeaponItem)value;
+                if (LaserEmitterWeaponItem == null)
+                {
+                    throw new ArgumentException("Invalid Item Type!");
+                }
+                base.Item = value;
                 Refresh();
             }
         }
@@ -28,7 +32,7 @@ namespace LooCast.Item
         {
             SpriteRenderer = GetComponent<SpriteRenderer>();
 
-            Initialize(LaserEmitterWeaponItem);
+            Initialize((LaserEmitterWeaponItem)data.CreateItem());
         }
 
         public void Refresh()

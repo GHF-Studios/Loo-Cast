@@ -14,8 +14,12 @@ namespace LooCast.Item
         {
             set
             {
-                base.Item = value;
                 ResourceItem = (ResourceItem)value;
+                if (ResourceItem == null)
+                {
+                    throw new ArgumentException("Invalid Item Type!");
+                }
+                base.Item = value;
                 Refresh();
             }
         }
@@ -25,12 +29,11 @@ namespace LooCast.Item
         private void Awake()
         {
             //First we initialize independent members
-            ResourceItem = new ResourceItem(data);
             Rigidbody2D = GetComponent<Rigidbody2D>();
             SpriteRenderer = GetComponent<SpriteRenderer>();
 
             //Then we Initialize the ItemObject, as this sets the item and thus triggers Refresh, which needs to happen after Independent members have been initialized
-            Initialize(ResourceItem);
+            Initialize((ResourceItem)data.CreateItem());
 
             //Lastly we add Listeners for Refreshing when neccessary
             ResourceItem.OnAmountChanged.AddListener(() => { Refresh(); });
