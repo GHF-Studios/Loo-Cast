@@ -7,6 +7,7 @@ namespace LooCast.Mission.Data
     [CreateAssetMenu(fileName = "MissionManagerData", menuName = "Data/Mission/MissionManagerData", order = 0)]
     public class MissionManagerData : ScriptableObject
     {
+        public IntDataReference MaxMissions;
         public IntDataReference MaxCommonMissions;
         public IntDataReference MaxUncommonMissions;
         public IntDataReference MaxRareMissions;

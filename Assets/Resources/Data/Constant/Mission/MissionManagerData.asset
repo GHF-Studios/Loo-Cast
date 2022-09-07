@@ -12,6 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4c9d46549baa4148b9e82574fac2665, type: 3}
   m_Name: MissionManagerData
   m_EditorClassIdentifier: 
+  MaxMissions:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: fead1dbc071da8546b66b557ce72c9e8, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   MaxCommonMissions:
     UseConstant: 0
     ConstantValue: 0

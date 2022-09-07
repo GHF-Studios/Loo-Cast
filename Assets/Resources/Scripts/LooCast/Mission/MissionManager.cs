@@ -16,6 +16,7 @@ namespace LooCast.Mission
 
         public UnityEvent<Mission> OnActiveMissionChange { get; private set; }
 
+        public int MaxMissions { get; private set; }
         public int MaxCommonMissions { get; private set; }
         public int MaxUncommonMissions { get; private set; }
         public int MaxRareMissions { get; private set; }
@@ -112,7 +113,8 @@ namespace LooCast.Mission
         private void Start()
         {
             OnActiveMissionChange = new UnityEvent<Mission>();
-            
+
+            MaxMissions = data.MaxMissions.Value;
             MaxCommonMissions = data.MaxCommonMissions.Value;
             MaxUncommonMissions = data.MaxUncommonMissions.Value;
             MaxRareMissions = data.MaxRareMissions.Value;
@@ -125,6 +127,10 @@ namespace LooCast.Mission
 
         public bool CanAcceptMission(Mission mission)
         {
+            if (AcceptedMissions.Count >= MaxMissions)
+            {
+                return false;
+            }
             switch (mission.MissionRarity)
             {
                 case MissionRarity.Common:

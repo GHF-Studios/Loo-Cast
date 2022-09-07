@@ -22,6 +22,20 @@ namespace LooCast.Mission
                 return missions;
             }
         }
+        public List<Mission> OfferedMissions
+        {
+            get
+            {
+                return Missions.Where((mission) => { return mission.MissionState == MissionState.Offered; }).ToList();
+            }
+        }
+        public List<Mission> AcceptedMissions
+        {
+            get
+            {
+                return Missions.Where((mission) => { return mission.MissionState == MissionState.Accepted; }).ToList();
+            }
+        }
         public List<Mission> CommonMissions
         {
             get
@@ -250,6 +264,12 @@ namespace LooCast.Mission
         }
 
         public void CompleteMission(Mission mission)
+        {
+            missions.Remove(mission);
+            OnMissionListChange.Invoke();
+        }
+
+        public void AcceptMission(Mission mission)
         {
             missions.Remove(mission);
             OnMissionListChange.Invoke();
