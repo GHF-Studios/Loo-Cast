@@ -14,7 +14,7 @@ namespace LooCast.Util
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
             writer.Write(json);
-            Debug.Log($"Saved data at {path}");
+            //Debug.Log($"Saved data at {path}");
         }
 
         public static T LoadData<T>(string path)
@@ -25,7 +25,7 @@ namespace LooCast.Util
             {
                 using StreamReader reader = new StreamReader(path);
                 string json = reader.ReadToEnd();
-                Debug.Log($"Loaded data from {path}");
+                //Debug.Log($"Loaded data from {path}");
                 return JsonUtility.FromJson<T>(json);
             }
             else
@@ -34,7 +34,7 @@ namespace LooCast.Util
                 {
                     using StreamReader reader = new StreamReader(defaultPath);
                     string json = reader.ReadToEnd();
-                    Debug.Log($"Loaded data from {defaultPath}");
+                    //Debug.Log($"Loaded data from {defaultPath}");
                     return JsonUtility.FromJson<T>(json);
                 }
                 else

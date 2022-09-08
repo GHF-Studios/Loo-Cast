@@ -55,7 +55,8 @@ namespace LooCast.UI.Panel
                 }
                 else
                 {
-                    missionTasks.text = selectedMission.MissionTasks;
+                    //missionTasks.text = selectedMission.MissionTasks;
+                    missionTasks.text = "1. Deine Mama bumsen\n2. Profit";
                     missionAcceptButton.onClick.RemoveAllListeners();
                     missionAcceptButton.onClick.AddListener(() =>
                     {
@@ -216,6 +217,11 @@ namespace LooCast.UI.Panel
                     missionAcceptButtonLabel.text = "Need more Reputation!";
                 }
             }
+        }
+
+        private void RefreshMissionTasks()
+        {
+
         }
 
         private void RefreshMissionRewards()
