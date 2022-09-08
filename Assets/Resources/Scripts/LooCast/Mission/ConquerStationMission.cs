@@ -11,6 +11,8 @@ namespace LooCast.Mission
         public ConquerStationMission(ConquerStationMissionData data, MissionProvider missionProvider) : base(data, missionProvider)
         {
             AddReward(new CreditsMissionReward(data.Credits, data.CreditsReward.Value));
+            AddReward(new ReputationMissionReward(missionProvider, data.ReputationReward.Value));
+            AddReward(new ItemMissionReward(data.PlayerInventoryRuntimeData.Hotbar, data.ItemReward));
         }
     }
 }

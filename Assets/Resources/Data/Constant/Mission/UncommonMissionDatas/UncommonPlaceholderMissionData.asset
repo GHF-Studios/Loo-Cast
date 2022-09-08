@@ -42,6 +42,7 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
   Credits: {fileID: 11400000, guid: 166c3c551a42b554ab5aa20fba1dd6d7, type: 2}
+  PlayerInventoryRuntimeData: {fileID: 11400000, guid: bbe9ca0fd05a539469a48be6149f0345, type: 2}
   CreditsReward:
     UseConstant: 0
     ConstantValue: 0
@@ -49,3 +50,11 @@ MonoBehaviour:
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []
+  ReputationReward:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: aff2bd3ec1a73ea4c9aeb85afda4ae28, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  ItemReward: {fileID: 11400000, guid: e449ae7593ee71c4080c08af823c2ff4, type: 2}

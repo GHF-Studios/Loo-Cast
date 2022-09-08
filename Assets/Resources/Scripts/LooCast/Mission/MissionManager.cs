@@ -15,6 +15,7 @@ namespace LooCast.Mission
         [SerializeField] private MissionManagerData data;
 
         public UnityEvent<Mission> OnActiveMissionChange { get; private set; }
+        public UnityEvent<Mission> OnAcceptMission { get; private set; }
 
         public int MaxMissions { get; private set; }
         public int MaxCommonMissions { get; private set; }
@@ -113,6 +114,7 @@ namespace LooCast.Mission
         private void Start()
         {
             OnActiveMissionChange = new UnityEvent<Mission>();
+            OnAcceptMission = new UnityEvent<Mission>();
 
             MaxMissions = data.MaxMissions.Value;
             MaxCommonMissions = data.MaxCommonMissions.Value;
@@ -168,21 +170,9 @@ namespace LooCast.Mission
             }
         }
 
-        public bool ContainsMission(Mission mission)
-        {
-            foreach (Mission acceptedMission in acceptedMissions)
-            {
-                if (acceptedMission == mission)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         public bool TryAcceptMission(MissionProvider missionProvider, Mission mission)
         {
-            if (ContainsMission(mission))
+            if (AcceptedMissions.Contains(mission))
             {
                 throw new ArgumentException("Already accepted mission!");
             }
@@ -199,6 +189,7 @@ namespace LooCast.Mission
         {
             acceptedMissions.Add(mission);
             mission.Accept();
+            OnAcceptMission.Invoke(mission);
         }
     }
 }

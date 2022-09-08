@@ -4,13 +4,12 @@ using UnityEngine.UI;
 
 namespace LooCast.UI.Reward
 {
-    using LooCast.Mission;
-
     public class ReputationMissionReward : MissionReward
     {
-        public void Initialize(LooCast.Mission.ReputationMissionReward reputationMissionReward)
+        public void Initialize(Mission.ReputationMissionReward reputationMissionReward, Color rarityColor)
         {
             rewardText.text = reputationMissionReward.ReputationReward.ToString("+#;-#;0") + " REP";
+            SetRarityColor(rarityColor);
         }
     }
 }

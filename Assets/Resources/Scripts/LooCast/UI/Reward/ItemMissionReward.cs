@@ -4,32 +4,15 @@ using UnityEngine.UI;
 
 namespace LooCast.UI.Reward
 {
-    using LooCast.Item;
-
     public class ItemMissionReward : MissionReward
     {
         [SerializeField] private Image rewardImage;
 
-        private LooCast.Mission.ItemMissionReward itemMissionReward
+        public void Initialize(Mission.ItemMissionReward itemMissionReward, Color rarityColor)
         {
-            set
-            {
-                if (value == null)
-                {
-                    rewardText.text = "null";
-                    rewardImage.sprite = null;
-                }
-                else
-                {
-                    rewardText.text = value.RewardedItemData.ItemName.Value;
-                    rewardImage.sprite = value.RewardedItemData.Sprite;
-                }
-            }
-        }
-
-        public void Initialize(LooCast.Mission.ItemMissionReward itemMissionReward)
-        {
-            this.itemMissionReward = itemMissionReward;
+            rewardText.text = itemMissionReward.RewardedItemData.ItemName.Value;
+            rewardImage.sprite = itemMissionReward.RewardedItemData.Sprite;
+            SetRarityColor(rarityColor);
         }
     }
 }

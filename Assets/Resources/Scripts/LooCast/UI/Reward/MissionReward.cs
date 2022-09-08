@@ -4,10 +4,17 @@ using UnityEngine.UI;
 
 namespace LooCast.UI.Reward
 {
-    using LooCast.Item;
-
     public class MissionReward : MonoBehaviour
     {
         [SerializeField] protected Text rewardText;
+        [SerializeField] private Image[] missionRarityImages;
+
+        protected void SetRarityColor(Color rarityColor)
+        {
+            foreach (Image missionRarityBorderImage in missionRarityImages)
+            {
+                missionRarityBorderImage.color = rarityColor;
+            }
+        }
     }
 }

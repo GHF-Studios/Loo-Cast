@@ -48,60 +48,15 @@ namespace LooCast.UI.Panel
                 selectedMission = value;
                 if (selectedMission == null)
                 {
-                    if (missionButtonCursor != null)
-                    {
-                        Destroy(missionButtonCursor.gameObject);
-                    }
-                    
-                    foreach (Image missionRarityBorderImage in missionRarityBorderImages)
-                    {
-                        missionRarityBorderImage.color = ColorUtil.RarityColors.GetMissionRarityColor(MissionRarity.Common);
-                    }
-
-                    missionTitle.gameObject.SetActive(false);
-                    missionDescription.gameObject.SetActive(false);
-                    missionTasks.gameObject.SetActive(false);
-                    missionTasksTitle.gameObject.SetActive(false);
-                    missionRewardTitle.gameObject.SetActive(false);
-                    missionAcceptButton.interactable = false;
-                    acceptedRarityMissionsLabel.gameObject.SetActive(false);
-                    acceptedRarityMissionsValue.gameObject.SetActive(false);
-                    acceptedTotalMissionsLabel.gameObject.SetActive(false);
-                    acceptedTotalMissionsValue.gameObject.SetActive(false);
-                    for (int i = 0; i < missionRewardParent.childCount; i++)
-                    {
-                        Destroy(missionRewardParent.GetChild(i).gameObject);
-                    }
+                    RefreshMissionButtonCursor();
+                    RefreshMissionRewards();
+                    SetRarityColor(ColorUtil.RarityColors.GetMissionRarityColor(MissionRarity.Common));
+                    SetPanelContentVisibility(false);
                 }
                 else
                 {
-                    Color rarityColor = ColorUtil.RarityColors.GetMissionRarityColor(selectedMission.MissionRarity);
-
-                    if (missionButtonCursor == null)
-                    {
-                        GameObject missionButtonCursorObject = Instantiate(missionButtonCursorPrefab);
-                        missionButtonCursor = missionButtonCursorObject.GetComponent<MissionButtonCursor>();
-                    }
-
-                    foreach (Image missionRarityBorderImage in missionRarityBorderImages)
-                    {
-                        missionRarityBorderImage.color = rarityColor;
-                    }
-
-                    missionTitle.gameObject.SetActive(true);
-                    missionDescription.gameObject.SetActive(true);
-                    missionTasks.gameObject.SetActive(true);
-                    missionTasksTitle.gameObject.SetActive(true);
-                    missionRewardTitle.gameObject.SetActive(true);
-                    missionAcceptButton.interactable = true;
-                    acceptedRarityMissionsLabel.gameObject.SetActive(true);
-                    acceptedRarityMissionsValue.gameObject.SetActive(true);
-                    acceptedTotalMissionsLabel.gameObject.SetActive(true);
-                    acceptedTotalMissionsValue.gameObject.SetActive(true);
-
-                    missionTitle.text = selectedMission.MissionTitle;
-                    missionDescription.text = selectedMission.MissionDescription;
                     missionTasks.text = selectedMission.MissionTasks;
+                    missionAcceptButton.onClick.RemoveAllListeners();
                     missionAcceptButton.onClick.AddListener(() =>
                     {
                         bool acceptMissionSuccess = MissionManager.Instance.TryAcceptMission(missionProvider, selectedMission);
@@ -114,73 +69,18 @@ namespace LooCast.UI.Panel
                             throw new InvalidOperationException("Could not accept Mission!");
                         }
                     });
-                    int acceptedMissionCount;
-                    int maxAcceptedMissionCount;
-                    switch (selectedMission.MissionRarity)
-                    {
-                        case MissionRarity.Common:
-                            acceptedMissionCount = MissionManager.Instance.AcceptedCommonMissions.Count;
-                            maxAcceptedMissionCount = MissionManager.Instance.MaxCommonMissions;
-                            break;
-                        case MissionRarity.Uncommon:
-                            acceptedMissionCount = MissionManager.Instance.AcceptedUncommonMissions.Count;
-                            maxAcceptedMissionCount = MissionManager.Instance.MaxUncommonMissions;
-                            break;
-                        case MissionRarity.Rare:
-                            acceptedMissionCount = MissionManager.Instance.AcceptedRareMissions.Count;
-                            maxAcceptedMissionCount = MissionManager.Instance.MaxRareMissions;
-                            break;
-                        case MissionRarity.Epic:
-                            acceptedMissionCount = MissionManager.Instance.AcceptedEpicMissions.Count;
-                            maxAcceptedMissionCount = MissionManager.Instance.MaxEpicMissions;
-                            break;
-                        case MissionRarity.Legendary:
-                            acceptedMissionCount = MissionManager.Instance.AcceptedLegendaryMissions.Count;
-                            maxAcceptedMissionCount = MissionManager.Instance.MaxLegendaryMissions;
-                            break;
-                        default:
-                            throw new Exception("Selected Mission: Invalid Mission Rarity!");
-                    }
-
-                    acceptedRarityMissionsLabel.text = $"{selectedMission.MissionRarity}:";
-                    acceptedRarityMissionsValue.text = $"{acceptedMissionCount}/{maxAcceptedMissionCount}";
-                    acceptedTotalMissionsValue.text = $"{MissionManager.Instance.AcceptedMissions.Count}/{MissionManager.Instance.MaxMissions}";
-
-                    if (!MissionManager.Instance.CanAcceptMission(selectedMission) || selectedMission.MissionState != MissionState.Offered)
-                    {
-                        missionAcceptButton.interactable = false;
-                    }
-                    else
-                    {
-                        missionAcceptButton.interactable = true;
-                    }
-
-                    for (int i = 0; i < missionRewardParent.childCount; i++)
-                    {
-                        Destroy(missionRewardParent.GetChild(i).gameObject);
-                    }
-
-                    foreach (LooCast.Mission.MissionReward missionReward in selectedMission.MissionRewards)
-                    {
-                        if (missionReward is LooCast.Mission.CreditsMissionReward)
-                        {
-                            GameObject creditsMissionRewardObject = Instantiate(creditsMissionRewardPrefab, missionRewardParent);
-                            UI.Reward.CreditsMissionReward creditsMissionReward = creditsMissionRewardObject.GetComponent<UI.Reward.CreditsMissionReward>();
-                            creditsMissionReward.Initialize((LooCast.Mission.CreditsMissionReward)missionReward);
-                        }
-                        else if (missionReward is LooCast.Mission.ReputationMissionReward)
-                        {
-                            GameObject reputationMissionRewardObject = Instantiate(reputationMissionRewardPrefab, missionRewardParent);
-                            UI.Reward.ReputationMissionReward reputationMissionReward = reputationMissionRewardObject.GetComponent<UI.Reward.ReputationMissionReward>();
-                            reputationMissionReward.Initialize((LooCast.Mission.ReputationMissionReward)missionReward);
-                        }
-                        else if (missionReward is LooCast.Mission.ItemMissionReward)
-                        {
-                            GameObject itemMissionRewardObject = Instantiate(itemMissionRewardPrefab, missionRewardParent);
-                            UI.Reward.ItemMissionReward itemMissionReward = itemMissionRewardObject.GetComponent<UI.Reward.ItemMissionReward>();
-                            itemMissionReward.Initialize((LooCast.Mission.ItemMissionReward)missionReward);
-                        }
-                    }
+                    MissionManager.Instance.OnAcceptMission.AddListener((mission) => 
+                    { 
+                        RefreshAcceptedMissionCount();
+                        RefreshMissionAcceptButton();
+                    });
+                    RefreshMissionSumary();
+                    RefreshMissionButtonCursor();
+                    RefreshAcceptedMissionCount();
+                    RefreshMissionAcceptButton();
+                    RefreshMissionRewards();
+                    SetRarityColor(ColorUtil.RarityColors.GetMissionRarityColor(selectedMission.MissionRarity));
+                    SetPanelContentVisibility(true);
                 }
             }
         }
@@ -192,6 +92,8 @@ namespace LooCast.UI.Panel
         [SerializeField] private Image[] missionRarityBorderImages;
         [SerializeField] private Text missionTitle;
         [SerializeField] private Text missionDescription;
+        [SerializeField] private Text missionRequiredReputationLabel;
+        [SerializeField] private Text missionRequiredReputationValue;
         [SerializeField] private Text missionTasks;
         [SerializeField] private Text missionTasksTitle;
         [SerializeField] private Text missionRewardTitle;
@@ -200,6 +102,7 @@ namespace LooCast.UI.Panel
         [SerializeField] private GameObject reputationMissionRewardPrefab;
         [SerializeField] private GameObject itemMissionRewardPrefab;
         [SerializeField] private UnityEngine.UI.Button missionAcceptButton;
+        [SerializeField] private Text missionAcceptButtonLabel;
         [SerializeField] private Text acceptedRarityMissionsLabel;
         [SerializeField] private Text acceptedRarityMissionsValue;
         [SerializeField] private Text acceptedTotalMissionsLabel;
@@ -210,7 +113,7 @@ namespace LooCast.UI.Panel
         private MissionProvider missionProvider;
         private MissionButtonCursor missionButtonCursor;
 
-        public void RefreshMissionList()
+        private void RefreshMissionList()
         {
             for (int i = 1; i < acceptedMissionsParent.childCount; i++)
             {
@@ -245,6 +148,149 @@ namespace LooCast.UI.Panel
                     selectedMissionButton = missionButton;
                     missionButtonCursor.CurrentMissionButton = missionButton;
                 });
+            }
+        }
+
+        private void RefreshMissionSumary()
+        {
+            missionTitle.text = selectedMission.MissionTitle;
+            missionDescription.text = selectedMission.MissionDescription;
+            missionRequiredReputationValue.text = $"{selectedMission.RequiredReputation} REP";
+        }
+
+        private void RefreshAcceptedMissionCount()
+        {
+            int acceptedMissionCount;
+            int maxAcceptedMissionCount;
+            switch (selectedMission.MissionRarity)
+            {
+                case MissionRarity.Common:
+                    acceptedMissionCount = MissionManager.Instance.AcceptedCommonMissions.Count;
+                    maxAcceptedMissionCount = MissionManager.Instance.MaxCommonMissions;
+                    break;
+                case MissionRarity.Uncommon:
+                    acceptedMissionCount = MissionManager.Instance.AcceptedUncommonMissions.Count;
+                    maxAcceptedMissionCount = MissionManager.Instance.MaxUncommonMissions;
+                    break;
+                case MissionRarity.Rare:
+                    acceptedMissionCount = MissionManager.Instance.AcceptedRareMissions.Count;
+                    maxAcceptedMissionCount = MissionManager.Instance.MaxRareMissions;
+                    break;
+                case MissionRarity.Epic:
+                    acceptedMissionCount = MissionManager.Instance.AcceptedEpicMissions.Count;
+                    maxAcceptedMissionCount = MissionManager.Instance.MaxEpicMissions;
+                    break;
+                case MissionRarity.Legendary:
+                    acceptedMissionCount = MissionManager.Instance.AcceptedLegendaryMissions.Count;
+                    maxAcceptedMissionCount = MissionManager.Instance.MaxLegendaryMissions;
+                    break;
+                default:
+                    throw new Exception("Selected Mission: Invalid Mission Rarity!");
+            }
+
+            acceptedRarityMissionsLabel.text = $"{selectedMission.MissionRarity}:";
+            acceptedRarityMissionsValue.text = $"{acceptedMissionCount}/{maxAcceptedMissionCount}";
+            acceptedTotalMissionsValue.text = $"{MissionManager.Instance.AcceptedMissions.Count}/{MissionManager.Instance.MaxMissions}";
+        }
+
+        private void RefreshMissionAcceptButton()
+        {
+            if (!MissionManager.Instance.CanAcceptMission(selectedMission) || selectedMission.MissionState != MissionState.Offered)
+            {
+                missionAcceptButton.interactable = false;
+                if (selectedMission.MissionState == MissionState.Accepted)
+                {
+                    missionAcceptButtonLabel.text = "Mission already accepted!";
+                }
+            }
+            else
+            {
+                if (missionProvider.CanProvideMission(selectedMission))
+                {
+                    missionAcceptButton.interactable = true;
+                    missionAcceptButtonLabel.text = "Accept Mission";
+                }
+                else
+                {
+                    missionAcceptButton.interactable = false;
+                    missionAcceptButtonLabel.text = "Need more Reputation!";
+                }
+            }
+        }
+
+        private void RefreshMissionRewards()
+        {
+            for (int i = 0; i < missionRewardParent.childCount; i++)
+            {
+                Destroy(missionRewardParent.GetChild(i).gameObject);
+            }
+
+            if (selectedMission != null)
+            {
+                foreach (MissionReward missionReward in selectedMission.MissionRewards)
+                {
+                    if (missionReward is CreditsMissionReward)
+                    {
+                        GameObject creditsMissionRewardObject = Instantiate(creditsMissionRewardPrefab, missionRewardParent);
+                        Reward.CreditsMissionReward creditsMissionReward = creditsMissionRewardObject.GetComponent<Reward.CreditsMissionReward>();
+                        creditsMissionReward.Initialize((CreditsMissionReward)missionReward, ColorUtil.RarityColors.GetMissionRarityColor(selectedMission.MissionRarity));
+                    }
+                    else if (missionReward is ReputationMissionReward)
+                    {
+                        GameObject reputationMissionRewardObject = Instantiate(reputationMissionRewardPrefab, missionRewardParent);
+                        Reward.ReputationMissionReward reputationMissionReward = reputationMissionRewardObject.GetComponent<Reward.ReputationMissionReward>();
+                        reputationMissionReward.Initialize((ReputationMissionReward)missionReward, ColorUtil.RarityColors.GetMissionRarityColor(selectedMission.MissionRarity));
+                    }
+                    else if (missionReward is ItemMissionReward)
+                    {
+                        GameObject itemMissionRewardObject = Instantiate(itemMissionRewardPrefab, missionRewardParent);
+                        Reward.ItemMissionReward itemMissionReward = itemMissionRewardObject.GetComponent<Reward.ItemMissionReward>();
+                        itemMissionReward.Initialize((ItemMissionReward)missionReward, ColorUtil.RarityColors.GetMissionRarityColor(selectedMission.MissionRarity));
+                    }
+                } 
+            }
+        }
+
+        private void RefreshMissionButtonCursor()
+        {
+            if (selectedMission == null)
+            {
+                if (missionButtonCursor != null)
+                {
+                    Destroy(missionButtonCursor.gameObject);
+                }
+            }
+            else
+            {
+                if (missionButtonCursor == null)
+                {
+                    GameObject missionButtonCursorObject = Instantiate(missionButtonCursorPrefab);
+                    missionButtonCursor = missionButtonCursorObject.GetComponent<MissionButtonCursor>();
+                }
+            }
+        }
+
+        private void SetPanelContentVisibility(bool visibility)
+        {
+            missionTitle.gameObject.SetActive(visibility);
+            missionDescription.gameObject.SetActive(visibility);
+            missionRequiredReputationLabel.gameObject.SetActive(visibility);
+            missionRequiredReputationValue.gameObject.SetActive(visibility);
+            missionTasks.gameObject.SetActive(visibility);
+            missionTasksTitle.gameObject.SetActive(visibility);
+            missionRewardTitle.gameObject.SetActive(visibility);
+            missionAcceptButton.gameObject.SetActive(visibility);
+            acceptedRarityMissionsLabel.gameObject.SetActive(visibility);
+            acceptedRarityMissionsValue.gameObject.SetActive(visibility);
+            acceptedTotalMissionsLabel.gameObject.SetActive(visibility);
+            acceptedTotalMissionsValue.gameObject.SetActive(visibility);
+        }
+
+        private void SetRarityColor(Color rarityColor)
+        {
+            foreach (Image missionRarityBorderImage in missionRarityBorderImages)
+            {
+                missionRarityBorderImage.color = rarityColor;
             }
         }
     }

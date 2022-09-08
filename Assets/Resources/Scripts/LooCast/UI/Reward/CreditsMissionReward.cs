@@ -4,13 +4,12 @@ using UnityEngine.UI;
 
 namespace LooCast.UI.Reward
 {
-    using LooCast.Mission;
-
     public class CreditsMissionReward : MissionReward
     {
-        public void Initialize(LooCast.Mission.CreditsMissionReward creditsMissionReward)
+        public void Initialize(Mission.CreditsMissionReward creditsMissionReward, Color rarityColor)
         {
             rewardText.text = creditsMissionReward.CreditsReward.ToString("+#;-#;0") + " CR";
+            SetRarityColor(rarityColor);
         }
     }
 }

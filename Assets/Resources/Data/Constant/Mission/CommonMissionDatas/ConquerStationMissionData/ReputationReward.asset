@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d6b7bcb13af436247aa9e5e0d755e078, type: 3}
-  m_Name: RequiredReputation
+  m_Name: ReputationReward
   m_EditorClassIdentifier: 
-  value: 160
+  value: 5
   OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
