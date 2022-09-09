@@ -28,6 +28,18 @@ namespace LooCast.Enemy
         #endregion
 
         #region Events
+        public static UnityEvent<Type> OnKillCounted
+        {
+            get
+            {
+                return onKillCounted;
+            }
+
+            private set
+            {
+                onKillCounted = value;
+            }
+        }
         public UnityEvent OnKilled
         {
             get
@@ -40,6 +52,8 @@ namespace LooCast.Enemy
                 onKilled = value;
             }
         }
+
+        [SerializeField] private static UnityEvent<Type> onKillCounted = new UnityEvent<Type>();
         [SerializeField] private UnityEvent onKilled;
         #endregion
 
@@ -59,6 +73,7 @@ namespace LooCast.Enemy
         public void Kill()
         {
             OnKilled.Invoke();
+            OnKillCounted.Invoke(GetType());
             RuntimeSet.Remove(this);
             ParticleSystem.Kill();
             Destroy(gameObject);

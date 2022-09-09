@@ -15,6 +15,7 @@ namespace LooCast.Health
     using LooCast.Orb;
     using LooCast.Attribute.Stat;
     using LooCast.Statistic;
+    using LooCast.Enemy;
 
     public class EnemyHealth : ExtendedMonoBehaviour, IHealth
     {
@@ -39,18 +40,6 @@ namespace LooCast.Health
         #endregion
 
         #region Events
-        public static UnityEvent<Type> OnKillCounted
-        {
-            get
-            {
-                return onKillCounted;
-            }
-
-            private set
-            {
-                onKillCounted = value;
-            }
-        }
         public UnityEvent OnKilled
         {
             get
@@ -64,7 +53,6 @@ namespace LooCast.Health
             }
         }
         
-        [SerializeField] private static UnityEvent<Type> onKillCounted = new UnityEvent<Type>();
         [SerializeField] private UnityEvent onKilled;
         #endregion
 
@@ -174,7 +162,6 @@ namespace LooCast.Health
                 }
 
                 KillsStatistic.Kills += 1;
-                onKillCounted.Invoke(GetType());
             }
         }
 

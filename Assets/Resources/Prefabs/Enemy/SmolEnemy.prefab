@@ -5004,6 +5004,7 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
+  enemy: {fileID: 7689063019205122669}
 --- !u!114 &1913491358346200415
 MonoBehaviour:
   m_ObjectHideFlags: 0

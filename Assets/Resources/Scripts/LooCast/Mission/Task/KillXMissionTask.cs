@@ -7,6 +7,7 @@ namespace LooCast.Mission.Task
 {
     using LooCast.Mission.Trigger;
     using LooCast.Health;
+    using LooCast.Enemy;
     
     public class KillXMissionTask : MissionTask
     {
@@ -28,30 +29,43 @@ namespace LooCast.Mission.Task
         }
         private MissionTaskState missionTaskState;
         private UnityAction<Type> onKillCountedCall;
-        private Type enemyType;
+        private Type requiredEnemyType;
         private int requiredKillCount;
         private int killCount;
 
         public KillXMissionTask(Type requiredEnemyType, int requiredKillCount) : base($"Kill {requiredKillCount} {requiredEnemyType.Name}")
         {
+            if (!IsValidType(requiredEnemyType, typeof(Enemy)))
+            {
+                throw new ArgumentException("Required Enemy Type provided is not Enemy, or a Subclass of Enemy!");
+            }
             missionTaskState = MissionTaskState.Incomplete;
-            this.enemyType = requiredEnemyType;
+            this.requiredEnemyType = requiredEnemyType;
             this.requiredKillCount = requiredKillCount;
             killCount = 0;
             onKillCountedCall = (enemyType) =>
             {
-                if (enemyType == requiredEnemyType)
+                if (IsValidType(enemyType, requiredEnemyType) && MissionTaskState != MissionTaskState.Locked)
                 {
                     KillCount++;
                 }
             };
-            EnemyHealth.OnKillCounted.AddListener(onKillCountedCall);
+            Enemy.OnKillCounted.AddListener(onKillCountedCall);
         }
 
         public override void Complete()
         {
             base.Complete();
-            EnemyHealth.OnKillCounted.RemoveListener(onKillCountedCall);
+            Enemy.OnKillCounted.RemoveListener(onKillCountedCall);
+        }
+
+        private bool IsValidType(Type type, Type validationType)
+        {
+            if (!type.IsSubclassOf(validationType) && type != validationType)
+            {
+                return false;
+            }
+            return true;
         }
     }
 }

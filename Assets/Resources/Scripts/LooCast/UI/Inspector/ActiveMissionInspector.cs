@@ -28,6 +28,7 @@ namespace LooCast.UI.Inspector
                 else
                 {
                     gameObject.SetActive(true);
+                    tasks.ClearTasks();
                     tasks.AddTask(activeMission.RootMissionTask);
                 }
             }

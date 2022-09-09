@@ -21,6 +21,10 @@ namespace LooCast.UI.Task
             GameObject uiTaskObject = Instantiate(uiTaskPrefab, transform);
             MissionTask uiTask = uiTaskObject.GetComponent<MissionTask>();
             uiTask.Initialize(task);
+            foreach (Mission.Task.MissionTask subTask in task.SubTasks)
+            {
+                uiTask.AddSubTask(subTask);
+            }
         }
     }
 }

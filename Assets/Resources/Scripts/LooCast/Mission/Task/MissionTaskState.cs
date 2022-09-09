@@ -3,6 +3,7 @@ namespace LooCast.Mission.Task
     public enum MissionTaskState
     {
         Incomplete,
-        Complete
+        Complete,
+        Locked
     }
 }
