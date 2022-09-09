@@ -9,6 +9,8 @@ namespace LooCast.UI.Panel
     using LooCast.UI.Button;
     using LooCast.UI.Cursor;
     using LooCast.Util;
+    using LooCast.Mission.Reward;
+    using LooCast.Mission.Task;
 
     public class StationMissionPanel : Panel
     {
@@ -55,8 +57,7 @@ namespace LooCast.UI.Panel
                 }
                 else
                 {
-                    //missionTasks.text = selectedMission.MissionTasks;
-                    missionTasks.text = "1. Deine Mama bumsen\n2. Profit";
+                    RefreshMissionTasks();
                     missionAcceptButton.onClick.RemoveAllListeners();
                     missionAcceptButton.onClick.AddListener(() =>
                     {
@@ -221,7 +222,7 @@ namespace LooCast.UI.Panel
 
         private void RefreshMissionTasks()
         {
-
+            missionTasks.text = selectedMission.RootMissionTask.Summary;
         }
 
         private void RefreshMissionRewards()

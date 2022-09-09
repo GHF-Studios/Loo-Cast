@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -39,6 +39,18 @@ namespace LooCast.Health
         #endregion
 
         #region Events
+        public static UnityEvent<Type> OnKillCounted
+        {
+            get
+            {
+                return onKillCounted;
+            }
+
+            private set
+            {
+                onKillCounted = value;
+            }
+        }
         public UnityEvent OnKilled
         {
             get
@@ -46,11 +58,13 @@ namespace LooCast.Health
                 return onKilled;
             }
 
-            set
+            private set
             {
                 onKilled = value;
             }
         }
+        
+        [SerializeField] private static UnityEvent<Type> onKillCounted = new UnityEvent<Type>();
         [SerializeField] private UnityEvent onKilled;
         #endregion
 
@@ -160,6 +174,7 @@ namespace LooCast.Health
                 }
 
                 KillsStatistic.Kills += 1;
+                onKillCounted.Invoke(GetType());
             }
         }
 

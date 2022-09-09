@@ -34,13 +34,6 @@ MonoBehaviour:
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []
-  MissionTasks:
-    UseConstant: 0
-    ConstantValue: 
-    Variable: {fileID: 11400000, guid: eeac7c58533cd4a4ea109b82cfc6eaca, type: 2}
-    OnValueChanged:
-      m_PersistentCalls:
-        m_Calls: []
   Credits: {fileID: 11400000, guid: 166c3c551a42b554ab5aa20fba1dd6d7, type: 2}
   PlayerInventoryRuntimeData: {fileID: 11400000, guid: bbe9ca0fd05a539469a48be6149f0345, type: 2}
   CreditsReward:
@@ -58,3 +51,10 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
   ItemReward: {fileID: 11400000, guid: e449ae7593ee71c4080c08af823c2ff4, type: 2}
+  RequiredEnemyKillCount:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 6f4547c5fe52fa2459bcc947871ccb98, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []

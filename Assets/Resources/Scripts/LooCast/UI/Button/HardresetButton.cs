@@ -19,7 +19,7 @@ namespace LooCast.UI.Button
             Initialize();
         }
 
-        public void Initialize()
+        public new void Initialize()
         {
             base.Initialize();
             screen = transform.GetComponentInParent<Screen.Screen>(true);

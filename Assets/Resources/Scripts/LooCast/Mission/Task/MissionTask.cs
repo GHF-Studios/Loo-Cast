@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine.Events;
 
-namespace LooCast.Mission
+namespace LooCast.Mission.Task
 {
     public abstract class MissionTask
     {
@@ -35,7 +35,7 @@ namespace LooCast.Mission
             missionTaskDictionary.Remove(ID);
         }
 
-        public void Complete()
+        public virtual void Complete()
         {
             MissionTaskState = MissionTaskState.Complete;
             OnComplete.Invoke();

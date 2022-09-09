@@ -15,6 +15,7 @@ namespace LooCast.Mission.Data
         public IntDataReference CreditsReward;
         public IntDataReference ReputationReward;
         public ItemData ItemReward;
+        public IntDataReference RequiredEnemyKillCount;
 
         public override Mission CreateMission(MissionProvider missionProvider)
         {

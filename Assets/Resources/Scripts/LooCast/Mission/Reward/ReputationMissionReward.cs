@@ -1,4 +1,4 @@
-namespace LooCast.Mission
+namespace LooCast.Mission.Reward
 {
     using LooCast.Station;
 

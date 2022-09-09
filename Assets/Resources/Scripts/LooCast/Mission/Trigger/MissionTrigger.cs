@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LooCast.Mission
+namespace LooCast.Mission.Trigger
 {
     public class MissionTrigger : MonoBehaviour
     {

@@ -6,6 +6,10 @@ using UnityEngine.Events;
 namespace LooCast.Mission
 {
     using Data;
+    using Reward;
+    using Target;
+    using Task;
+    using Trigger;
 
     public abstract class Mission
     {
@@ -34,12 +38,20 @@ namespace LooCast.Mission
         }
         public string MissionTitle { get; private set; }
         public string MissionDescription { get; private set; }
-        public List<MissionTask> MissionTasks { get; private set; }
+        public MissionTask RootMissionTask
+        {
+            get
+            {
+                return rootMissionTask;
+            }
+        }
         public List<MissionReward> MissionRewards { get; private set; }
 
         [SerializeField] private MissionState missionState;
 
-        public Mission(MissionData data, MissionProvider missionProvider, List<MissionTask> missionTasks)
+        private MissionTask rootMissionTask;
+
+        public Mission(MissionData data, MissionProvider missionProvider)
         {
             ID = IDCounter;
             IDCounter++;
@@ -54,7 +66,6 @@ namespace LooCast.Mission
             MissionState = MissionState.Offered;
             MissionTitle = data.MissionTitle.Value;
             MissionDescription = data.MissionDescription.Value;
-            MissionTasks = missionTasks;
             MissionRewards = new List<MissionReward>();
 
             OnComplete.AddListener(() => { missionProvider.CompleteMission(this); });
@@ -71,6 +82,16 @@ namespace LooCast.Mission
         protected void AddReward(MissionReward reward)
         {
             MissionRewards.Add(reward);
+        }
+
+        protected void InitializeRootTask(MissionTask rootMissionTask)
+        {
+            if (this.rootMissionTask != null)
+            {
+                throw new InvalidOperationException("Root Task has already been initialized!");
+            }
+            this.rootMissionTask = rootMissionTask;
+            rootMissionTask.OnComplete.AddListener(Complete);
         }
 
         public void Accept()

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace LooCast.Mission
+namespace LooCast.Mission.Task
 {
     public class DestroyMissionTask : MissionTask
     {

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LooCast.Mission
+namespace LooCast.Mission.Target
 {
     public class MissionTarget : MonoBehaviour
     {

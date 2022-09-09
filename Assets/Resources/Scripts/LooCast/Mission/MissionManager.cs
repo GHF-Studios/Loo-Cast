@@ -109,10 +109,7 @@ namespace LooCast.Mission
             {
                 Instance = this;
             }
-        }
 
-        private void Start()
-        {
             OnActiveMissionChange = new UnityEvent<Mission>();
             OnAcceptMission = new UnityEvent<Mission>();
 
@@ -189,6 +186,7 @@ namespace LooCast.Mission
         {
             acceptedMissions.Add(mission);
             mission.Accept();
+            ActiveMission = mission;
             OnAcceptMission.Invoke(mission);
         }
     }
