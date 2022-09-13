@@ -97,6 +97,7 @@ namespace LooCast.Mission
         public void Accept()
         {
             missionState = MissionState.Accepted;
+            rootMissionTask.Unlock();
             OnAccept.Invoke();
         }
 

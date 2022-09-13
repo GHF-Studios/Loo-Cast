@@ -43,7 +43,7 @@ namespace LooCast.Mission.Task
             OnTaskStateChange = new UnityEvent();
 
             Summary = summary;
-            MissionTaskState = MissionTaskState.Incomplete;
+            MissionTaskState = MissionTaskState.Locked;
             SubTasks = new List<MissionTask>();
 
             missionTaskDictionary.Add(ID, this);
