@@ -54,7 +54,7 @@ namespace LooCast.Asteroid
                 return false;
             }
 
-            public void DropAll(Vector3 dropPosition, float maxOffsetMagnitude, ItemDatas itemDatas, ItemObjectPrefabs itemObjectPrefabs)
+            public void DropAll(Vector3 dropPosition, float maxOffsetMagnitude, ItemDatas itemDatas)
             {
                 ResourceItemData resourceItemData = (ResourceItemData)itemDatas.GetItemData(Resource.ResourceName);
                 float depositToDrop = Deposit;
@@ -67,11 +67,12 @@ namespace LooCast.Asteroid
 
                 void Drop(float dropAmount)
                 {
-                    GameObject resourceItemObjectPrefab = itemObjectPrefabs.GetItemObjectPrefab(Resource.ResourceName);
                     Vector3 randomSpawnPositionOffset = new Vector3(UnityEngine.Random.Range(-maxOffsetMagnitude, maxOffsetMagnitude), UnityEngine.Random.Range(-maxOffsetMagnitude, maxOffsetMagnitude));
                     randomSpawnPositionOffset.z = 0.0f;
-                    ResourceItemObject resourceItemObject = Instantiate(resourceItemObjectPrefab, dropPosition + randomSpawnPositionOffset, Quaternion.identity).GetComponent<ResourceItemObject>();
-                    resourceItemObject.ResourceItem.Amount = dropAmount;
+
+                    ResourceItem resourceItem = (ResourceItem)resourceItemData.CreateItem();
+                    resourceItem.Amount = dropAmount;
+                    resourceItem.DropItem(dropPosition + randomSpawnPositionOffset);
                 }
             }
         }
@@ -83,15 +84,14 @@ namespace LooCast.Asteroid
         #endregion
 
         #region Properties
-        public Size AsteroidSize {get; private set;}
-        public Rarity AsteroidRarity {get; private set;}
-        public float Mass {get; private set;}
-        public ResourceDeposit[] ResourceDeposits {get; private set;}
+        public Size AsteroidSize { get; private set; }
+        public Rarity AsteroidRarity { get; private set; }
+        public float Mass { get; private set; }
+        public ResourceDeposit[] ResourceDeposits { get; private set; }
         #endregion
 
         #region Fields
         [SerializeField] private ItemDatas itemDatas;
-        [SerializeField] private ItemObjectPrefabs itemObjectPrefabs;
 
         private MeshFilter meshFilter;
         private MeshRenderer meshRenderer;
@@ -198,7 +198,7 @@ namespace LooCast.Asteroid
             {
                 if (resourceDeposit.Deposit >= 1.0f)
                 {
-                    resourceDeposit.DropAll(transform.position, meshFilter.mesh.bounds.max.magnitude, itemDatas, itemObjectPrefabs); 
+                    resourceDeposit.DropAll(transform.position, meshFilter.mesh.bounds.max.magnitude, itemDatas); 
                 }
             }
             Destroy(gameObject);

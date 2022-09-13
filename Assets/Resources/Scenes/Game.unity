@@ -2867,6 +2867,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerStation (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 763854818110676726, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
       propertyPath: m_RootOrder
       value: 13
@@ -4947,6 +4951,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerStation (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 763854818110676726, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
       propertyPath: m_RootOrder
       value: 12
@@ -6420,6 +6428,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerStation (6)
       objectReference: {fileID: 0}
+    - target: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 763854818110676726, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
       propertyPath: m_RootOrder
       value: 17
@@ -6630,6 +6642,10 @@ PrefabInstance:
     - target: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
       propertyPath: m_Name
       value: PlayerStation (5)
+      objectReference: {fileID: 0}
+    - target: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 763854818110676726, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
       propertyPath: m_RootOrder
@@ -8991,6 +9007,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerStation
       objectReference: {fileID: 0}
+    - target: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 763854818110676726, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
       propertyPath: m_RootOrder
       value: 11
@@ -11161,7 +11181,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1027258438}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2a34220dbe0a5754a9a809ce61ee5a35, type: 3}
   m_Name: 
@@ -12184,6 +12204,10 @@ PrefabInstance:
     - target: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
       propertyPath: m_Name
       value: PlayerStation (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 763854818110676726, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
       propertyPath: m_RootOrder
@@ -21634,6 +21658,10 @@ PrefabInstance:
     - target: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
       propertyPath: m_Name
       value: PlayerStation (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 763854818110676726, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
       propertyPath: m_RootOrder
