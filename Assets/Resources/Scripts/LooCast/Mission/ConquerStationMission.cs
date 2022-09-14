@@ -19,11 +19,11 @@ namespace LooCast.Mission
             AddReward(new ReputationMissionReward(missionProvider, data.ReputationReward.Value));
             AddReward(new ItemMissionReward(data.PlayerInventoryRuntimeData.Hotbar, data.ItemReward));
 
-            KillXMissionTask rootTask = new KillXMissionTask(typeof(Enemy), data.RequiredEnemyKillCount.Value);
-            rootTask.AddSubTask(new KillXMissionTask(typeof(Enemy), data.RequiredEnemyKillCount.Value));
-            rootTask.AddSubTask(new KillXMissionTask(typeof(Enemy), data.RequiredEnemyKillCount.Value));
-            rootTask.AddSubTask(new KillXMissionTask(typeof(Enemy), data.RequiredEnemyKillCount.Value));
-            InitializeRootTask(rootTask);
+            //KillXMissionTask rootTask = new KillXMissionTask(typeof(Enemy), data.RequiredEnemyKillCount.Value);
+            //rootTask.AddSubTask(new KillXMissionTask(typeof(Enemy), data.RequiredEnemyKillCount.Value));
+            //rootTask.AddSubTask(new KillXMissionTask(typeof(Enemy), data.RequiredEnemyKillCount.Value));
+            //rootTask.AddSubTask(new KillXMissionTask(typeof(Enemy), data.RequiredEnemyKillCount.Value));
+            //InitializeRootTask(rootTask);
 
             //New Classes: LogicMissionTrigger(params MissionTrigger[] missionTriggers), LogicMissionTrigger(List<MissionTrigger> missionTriggers), ANDLogicMissionTrigger, ORLogicMissionTrigger
         }
