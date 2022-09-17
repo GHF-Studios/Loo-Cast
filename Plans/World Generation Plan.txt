@@ -1,0 +1,104 @@
+Regions
+	- Intergalactic Space
+	- Interstellar Space
+	- Interplanetary Space
+
+Region Parameters
+	- Light Matter Concentration
+	- Medium Matter Concentration
+	- Heavy Matter Concentration
+
+- Events
+	- Gamma Ray Burst
+	- Star Merger
+	- Black Hole Merger
+	- Supernova
+
+- Discrete Structures
+	- Planet
+		- Composition Types
+			- Rock
+			- Gas
+			- Ice
+			
+		- Sizes
+			- Dwarf
+			- Standard
+			- Giant
+			- Super-Giant
+	
+	- Star
+		- Regular Variants
+			- Main Types
+				- Type O (Blue)
+				- Type B (Blue)
+				- Type A (Blue)
+				- Type F (White)
+				- Type G (White)
+				- Type K (White)
+				- Type M (Yellow)
+				- Type L (Orange)
+				- Type T (Red)
+				
+			- Sizes
+				- Dwarf
+				- Subdwarf
+				- Main Sequence
+				- Subgiant
+				- Giant
+				- Super-Giant
+				- Hyper-Giant
+				
+		- Special Variants
+			- Neutron Star
+				- Magnetar Variant
+				- Pulsar Variant
+			- 
+		
+	- Black Hole
+		- Masses
+			- Miniature
+			- Stellar
+			- Supermassive
+			- Ultramassive
+			
+		- Types
+			- Regular
+			- Quasar
+			
+- Continuous Structures
+	- Nebulae
+		- Main Variants
+			- Graveyard
+			- Intermediate
+			- Nursery
+	
+		- Types
+			- Emission
+			- Reflection
+			- Dark
+	
+		- Sizes
+			- Planetary
+			- Interstellar
+			- Galactic
+	
+		- Densities
+			- Diffuse Variant
+			- Dense Variant
+			
+		- Composition Types (Combinable)
+			- Gas
+			- Dust
+			- Plasma
+	
+	- Asteroid Field
+		- Densities
+			- Scattered
+			- Standard
+			- Concentrated
+			
+	- Void
+		- Main Variants
+			- Cosmic Void
+			- Super-Void

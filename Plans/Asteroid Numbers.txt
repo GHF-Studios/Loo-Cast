@@ -1,0 +1,7 @@
+Name	MeshFactor	Diameter	Volume Avg.		Volume Range
+
+Tiny	0.01		5			125				(100	-	150)
+Small	0.025		10			1000			(800	-	1200)
+Medium	0.05		15			3375			(2700	-	4050)
+Large	0.1			20			8000			(6400	-	9600)
+Huge	0.2			25			15625			(12500	-	18750)

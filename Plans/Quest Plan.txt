@@ -1,0 +1,19 @@
+Common
+- Headhunter
+- Gather Resources
+- Gather Unique Item
+- Hint (Where to find rare shit, etc.)
+
+Uncommon
+- Headhunter
+
+Rare
+- Conquer Outpost
+
+Epic
+- Gather Illegal Resource
+- Conquer Station
+
+Legendary
+- Gather Illegal Resource
+- Conquer System HUB
