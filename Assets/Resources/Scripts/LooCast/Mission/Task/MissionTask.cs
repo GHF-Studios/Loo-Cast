@@ -16,22 +16,22 @@ namespace LooCast.Mission.Task
         public UnityEvent OnTaskStateChange { get; private set; }
 
         public string Summary { get; private set; }
-        public MissionTaskState MissionTaskState
-        {
-            get
-            {
-                return missionTaskState;
-            }
-
-            private set
-            {
-                missionTaskState = value;
-                OnTaskStateChange.Invoke();
-            }
-        }
+        //public MissionTaskState MissionTaskState
+        //{
+        //    get
+        //    {
+        //        return missionTaskState;
+        //    }
+        //
+        //    private set
+        //    {
+        //        missionTaskState = value;
+        //        OnTaskStateChange.Invoke();
+        //    }
+        //}
         public List<MissionTask> SubTasks { get; private set; }
 
-        private MissionTaskState missionTaskState;
+        //private MissionTaskState missionTaskState;
 
         protected MissionTask(string summary)
         {
@@ -43,7 +43,7 @@ namespace LooCast.Mission.Task
             OnTaskStateChange = new UnityEvent();
 
             Summary = summary;
-            MissionTaskState = MissionTaskState.Locked;
+            //MissionTaskState = MissionTaskState.Locked;
             SubTasks = new List<MissionTask>();
 
             missionTaskDictionary.Add(ID, this);
@@ -57,30 +57,30 @@ namespace LooCast.Mission.Task
 
         public void AddSubTask(MissionTask subTask)
         {
-            MissionTaskState = MissionTaskState.Locked;
+            //MissionTaskState = MissionTaskState.Locked;
             SubTasks.Add(subTask);
             subTask.OnComplete.AddListener(() =>
             {
-                if (SubTasks.Where((task) => { return task.MissionTaskState == MissionTaskState.Incomplete; }).Count() == 0)
-                {
-                    Unlock();
-                }
+                //if (SubTasks.Where((task) => { return task.MissionTaskState == MissionTaskState.Incomplete; }).Count() == 0)
+                //{
+                //    Unlock();
+                //}
             });
         }
 
         public virtual void Complete()
         {
-            if (MissionTaskState == MissionTaskState.Locked)
-            {
-                throw new Exception("Mission can not be completed, when it is locked!");
-            }
-            MissionTaskState = MissionTaskState.Complete;
-            OnComplete.Invoke();
+            //if (MissionTaskState == MissionTaskState.Locked)
+            //{
+            //    throw new Exception("Mission can not be completed, when it is locked!");
+            //}
+            //MissionTaskState = MissionTaskState.Complete;
+            //OnComplete.Invoke();
         }
 
         public void Unlock()
         {
-            MissionTaskState = MissionTaskState.Incomplete;
+            //MissionTaskState = MissionTaskState.Incomplete;
         }
 
         public override bool Equals(object obj)

@@ -2,33 +2,73 @@ using UnityEngine;
 
 namespace LooCast.Noise
 {
-    public class PerlinNoise
+    public static class PerlinNoise
     {
-        public int width = 256;
-        public int height = 256;
-
-        public float scale = 20.0f;
-
-        public float offsetX = 100.0f;
-        public float offsetY = 100.0f;
-
-        public PerlinNoise(int width, int height, float scale, float offsetX, float offsetY)
+        public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, int octaves, float persistence, float lacunarity, Vector2 offset)
         {
-            this.width = width;
-            this.height = height;
+            float[,] noiseMap = new float[mapWidth, mapHeight];
 
-            this.scale = scale;
+            System.Random prng = new System.Random(seed);
+            Vector2[] octaveOffsets = new Vector2[octaves];
+            for (int i = 0; i < octaves; i++)
+            {
+                float offsetX = prng.Next(-100000, 100000) +  offset.x;
+                float offsetY = prng.Next(-100000, 100000) +  offset.y;
+                octaveOffsets[i] = new Vector2(offsetX, offsetY);
+            }
 
-            this.offsetX = offsetX;
-            this.offsetY = offsetY;
-        }
+            if (scale <= 0)
+            {
+                scale = 0.0001f;
+            }
 
-        public float Evaluate(int x, int y)
-        {
-            float xCoord = (float)x / width * scale + offsetX;
-            float yCoord = (float)y / height * scale + offsetY;
+            float maxNoiseHeight = float.MinValue;
+            float minNoiseHeight = float.MaxValue;
 
-            return Mathf.PerlinNoise(xCoord, yCoord);
+            float halfWidth = mapWidth / 2.0f;
+            float halfHeight = mapHeight / 2.0f;
+
+            for (int y = 0; y < mapHeight; y++)
+            {
+                for (int x = 0; x < mapWidth; x++)
+                {
+                    float amplitude = 1.0f;
+                    float frequency = 1.0f;
+                    float noiseHeight = 0.0f;
+
+                    for (int i = 0; i < octaves; i++)
+                    {
+                        float sampleX = (x - halfWidth) / scale * frequency + octaveOffsets[i].x;
+                        float sampleY = (y - halfHeight) / scale * frequency + octaveOffsets[i].y;
+    
+                        float perlinValue = Mathf.PerlinNoise(sampleX, sampleY) * 2 - 1;
+                        noiseHeight += perlinValue * amplitude;
+
+                        amplitude *= persistence;
+                        frequency *= lacunarity;
+                    }
+
+                    if (noiseHeight > maxNoiseHeight)
+                    {
+                        maxNoiseHeight = noiseHeight;
+                    }
+                    else if (noiseHeight < minNoiseHeight)
+                    {
+                        minNoiseHeight = noiseHeight;
+                    }
+                    noiseMap[x, y] = noiseHeight;
+                }
+            }
+
+            for (int y = 0; y < mapHeight; y++)
+            {
+                for (int x = 0; x < mapWidth; x++)
+                {
+                    noiseMap[x, y] = Mathf.InverseLerp(minNoiseHeight, maxNoiseHeight, noiseMap[x, y]);
+                }
+            }
+
+            return noiseMap;
         }
     } 
 }

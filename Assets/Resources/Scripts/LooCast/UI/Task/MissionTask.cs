@@ -13,39 +13,39 @@ namespace LooCast.UI.Task
 
         public void Initialize(Mission.Task.MissionTask task)
         {
-            summaryText.text = task.Summary;
-            subTasksParent.SetActive(false);
-            task.OnTaskStateChange.AddListener(() => { RefreshTaskState(task.MissionTaskState); });
-            RefreshTaskState(task.MissionTaskState);
+            //summaryText.text = task.Summary;
+            //subTasksParent.SetActive(false);
+            //task.OnTaskStateChange.AddListener(() => { RefreshTaskState(task.MissionTaskState); });
+            //RefreshTaskState(task.MissionTaskState);
         }
 
         public void AddSubTask(Mission.Task.MissionTask subTask)
         {
-            if (!subTasksParent.activeSelf)
-            {
-                subTasksParent.SetActive(true);
-            }
-            subTaskContainer.AddTask(subTask);
+            //if (!subTasksParent.activeSelf)
+            //{
+            //    subTasksParent.SetActive(true);
+            //}
+            //subTaskContainer.AddTask(subTask);
         }
 
-        private void RefreshTaskState(Mission.Task.MissionTaskState taskState)
-        {
-            summaryText.color = GetTaskStateColor(taskState);
-        }
+        //private void RefreshTaskState(Mission.Task.MissionTaskState taskState)
+        //{
+        //    summaryText.color = GetTaskStateColor(taskState);
+        //}
 
-        private Color GetTaskStateColor(Mission.Task.MissionTaskState taskState)
-        {
-            switch (taskState)
-            {
-                case Mission.Task.MissionTaskState.Incomplete:
-                    return Color.yellow;
-                case Mission.Task.MissionTaskState.Complete:
-                    return Color.green;
-                case Mission.Task.MissionTaskState.Locked:
-                    return Color.red;
-                default:
-                    throw new ArgumentException("Invalid Task State!");
-            }
-        }
+        //private Color GetTaskStateColor(Mission.Task.MissionTaskState taskState)
+        //{
+        //    switch (taskState)
+        //    {
+        //        case Mission.Task.MissionTaskState.Incomplete:
+        //            return Color.yellow;
+        //        case Mission.Task.MissionTaskState.Complete:
+        //            return Color.green;
+        //        case Mission.Task.MissionTaskState.Locked:
+        //            return Color.red;
+        //        default:
+        //            throw new ArgumentException("Invalid Task State!");
+        //    }
+        //}
     }
 }
