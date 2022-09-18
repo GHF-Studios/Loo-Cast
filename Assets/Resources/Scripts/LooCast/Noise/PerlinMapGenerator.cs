@@ -20,6 +20,7 @@ namespace LooCast.Noise
         public float persistence;
         public float lacunarity;
 
+        [Range(0, 2109876543)]
         public int seed;
         public Vector2 offset;
 

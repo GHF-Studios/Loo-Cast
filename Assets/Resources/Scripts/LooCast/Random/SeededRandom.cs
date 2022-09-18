@@ -31,7 +31,12 @@ namespace LooCast.Random
 
         public Color Color()
         {
-            return new Color(Range(0.0f, 1.0f), Range(0.0f, 1.0f), Range(0.0f, 1.0f), 1.0f);
+            return Color(1.0f);
+        }
+
+        public Color Color(float normalizedAlpha)
+        {
+            return new Color(Range(0.0f, 1.0f), Range(0.0f, 1.0f), Range(0.0f, 1.0f), normalizedAlpha);
         }
     }
 }

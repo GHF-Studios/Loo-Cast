@@ -12,7 +12,7 @@ namespace LooCast.Noise.Editor
 
             if(DrawDefaultInspector())
             {
-                if (voronoiMapGenerator.autoUpdate)
+                if (voronoiMapGenerator.autoUpdate && voronoiMapGenerator.gameObject.activeInHierarchy)
                 {
                     voronoiMapGenerator.GenerateMap();
                 }

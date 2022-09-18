@@ -12,7 +12,7 @@ namespace LooCast.Noise.Editor
 
             if(DrawDefaultInspector())
             {
-                if (perlinMapGenerator.autoUpdate)
+                if (perlinMapGenerator.autoUpdate && perlinMapGenerator.gameObject.activeInHierarchy)
                 {
                     perlinMapGenerator.GenerateMap();
                 }

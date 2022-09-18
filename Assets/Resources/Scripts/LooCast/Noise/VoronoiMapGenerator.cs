@@ -13,10 +13,26 @@ namespace LooCast.Noise
         }
         public DrawMode drawMode;
 
+
         public int mapWidth;
         public int mapHeight;
-        public int regionAmount;
+        public Vector2Int sampleCellAmount;
+        public Vector2 sampleCellOffset;
+        public Vector2Int borderedSampleCellAmount
+        {
+            get
+            {
+                return new Vector2Int(sampleCellAmount.x + cellSampleBorderThickness * 2, sampleCellAmount.y + cellSampleBorderThickness * 2);
+            }
+        }
 
+        public int cellSampleBorderThickness;
+        [Range(0.0f, 1.0f)]
+        public float cellSpread;
+        public float scale;
+        public float power;
+
+        [Range(0, 2109876543)]
         public int seed;
 
         public bool autoUpdate;
@@ -38,10 +54,73 @@ namespace LooCast.Noise
         private Vector2Int[] GetCentroids()
         {
             SeededRandom prng = new SeededRandom(seed);
-            Vector2Int[] centroids = new Vector2Int[regionAmount];
-            for (int i = 0; i < regionAmount; i++)
+            Vector2Int[] centroids = new Vector2Int[borderedSampleCellAmount.x * borderedSampleCellAmount.y];
+            for (int y = 0; y < borderedSampleCellAmount.y; y++)
             {
-                centroids[i] = new Vector2Int(prng.Range(0, mapWidth), prng.Range(0, mapHeight));
+                for (int x = 0; x < borderedSampleCellAmount.x; x++)
+                {
+                    int centroidIndex = y * borderedSampleCellAmount.x + x;
+                    Vector2 centroidDimensions = new Vector2
+                    (
+                        mapWidth / sampleCellAmount.x,
+                        mapHeight / sampleCellAmount.y
+                    );
+                    Vector2 halfCentroidDimensions = centroidDimensions / 2;
+                    Vector2 centroidPositionOffset = new Vector2
+                    (
+                        prng.Range
+                        (
+                            -(int)
+                            (
+                                (halfCentroidDimensions.x * cellSpread)
+                            ),
+                            (int)
+                            (
+                                (halfCentroidDimensions.x * cellSpread)
+                            )
+                        ) - ((centroidDimensions.x * cellSampleBorderThickness)) - centroidDimensions.x,
+                        prng.Range
+                        (
+                            -(int)
+                            (
+                                (halfCentroidDimensions.y * cellSpread)
+                            ),
+                            (int)
+                            (
+                                (halfCentroidDimensions.y * cellSpread)
+                            )
+                        ) - ((centroidDimensions.y * cellSampleBorderThickness)) - centroidDimensions.y
+                    );
+
+                    centroids[centroidIndex] = new Vector2Int
+                    (
+                        (int)
+                        (
+                            (
+                                (
+                                    (
+                                        (
+                                            x + sampleCellOffset.x
+                                        ) * centroidDimensions.x
+                                    ) + centroidPositionOffset.x
+                                )
+                            ) / scale
+                        ),
+                        (int)
+                        (
+                            (
+                                (
+                                    (
+                                        (
+                                            y + sampleCellOffset.y
+                                        ) * centroidDimensions.y
+                                    ) + centroidPositionOffset.y
+                                )
+                            ) / scale
+                        )
+                    );
+
+                }
             }
             return centroids;
         }
@@ -50,8 +129,9 @@ namespace LooCast.Noise
         {
             SeededRandom prng = new SeededRandom(seed);
             Vector2Int[] centroids = GetCentroids();
-            Color[] centroidColors = new Color[regionAmount];
-            for (int i = 0; i < regionAmount; i++)
+
+            Color[] centroidColors = new Color[borderedSampleCellAmount.x * borderedSampleCellAmount.y];
+            for (int i = 0; i < centroidColors.Length; i++)
             {
                 centroidColors[i] = prng.Color();
             }
@@ -61,7 +141,18 @@ namespace LooCast.Noise
             {
                 for (int x = 0; x < mapWidth; x++)
                 {
-                    colorMap[y * mapWidth + x] = centroidColors[GetClosestCentroidIndex(new Vector2Int(x, y), centroids)];
+                    int currentPixelIndex = y * mapWidth + x;
+                    Vector2Int currentPixelPosition = new Vector2Int(x, y);
+                    int closestCentroidIndex = GetClosestCentroidIndex(currentPixelPosition, centroids);
+                    Vector2Int closestCentroid = centroids[closestCentroidIndex];
+                    if (closestCentroid == currentPixelPosition)
+                    {
+                        colorMap[currentPixelIndex] = Color.black;
+                    }
+                    else
+                    {
+                        colorMap[currentPixelIndex] = centroidColors[closestCentroidIndex];     
+                    }
                 }
             }
 
@@ -70,10 +161,7 @@ namespace LooCast.Noise
 
         private Color[] GetDistanceColorMap()
         {
-            SeededRandom prng = new SeededRandom(seed);
             Vector2Int[] centroids = GetCentroids();
-
-            Color[] colorMap = new Color[mapWidth * mapHeight];
             float[] distances = new float[mapWidth * mapHeight];
             for (int y = 0; y < mapHeight; y++)
             {
@@ -82,12 +170,15 @@ namespace LooCast.Noise
                     distances[y * mapWidth + x] = Vector2.Distance(new Vector2Int(x, y), centroids[GetClosestCentroidIndex(new Vector2Int(x, y), centroids)]);
                 }
             }
+
+            Color[] colorMap = new Color[mapWidth * mapHeight];
             float maxDistance = GetMaxDistance(distances);
             for (int i = 0; i < distances.Length; i++)
             {
-                float colorValue = distances[i] / maxDistance;
+                float colorValue = Mathf.Pow(distances[i] / maxDistance, power);
                 colorMap[i] = new Color(colorValue, colorValue, colorValue, 1.0f);
             }
+
             return colorMap;
         }
 
@@ -129,6 +220,14 @@ namespace LooCast.Noise
             if (mapHeight < 1)
             {
                 mapHeight = 1;
+            }
+            if (sampleCellAmount.x < 1)
+            {
+                sampleCellAmount.x = 1;
+            }
+            if (sampleCellAmount.y < 1)
+            {
+                sampleCellAmount.y = 1;
             }
         }
     } 
