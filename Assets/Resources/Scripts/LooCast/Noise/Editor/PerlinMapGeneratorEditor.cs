@@ -3,24 +3,24 @@ using UnityEditor;
 
 namespace LooCast.Noise.Editor
 {
-    [CustomEditor(typeof(MapGenerator))]
+    [CustomEditor(typeof(PerlinMapGenerator))]
     public class MapGeneratorEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
-            MapGenerator mapGenerator = (MapGenerator)target;
+            PerlinMapGenerator perlinMapGenerator = (PerlinMapGenerator)target;
 
             if(DrawDefaultInspector())
             {
-                if (mapGenerator.autoUpdate)
+                if (perlinMapGenerator.autoUpdate)
                 {
-                    mapGenerator.GenerateMap();
+                    perlinMapGenerator.GenerateMap();
                 }
             }
 
             if (GUILayout.Button("Generate"))
             {
-                mapGenerator.GenerateMap();
+                perlinMapGenerator.GenerateMap();
             }
         }
     }

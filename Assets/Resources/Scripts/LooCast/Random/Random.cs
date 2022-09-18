@@ -49,9 +49,19 @@ namespace LooCast.Random
             return point;
         }
 
+        public static int Range(int minInclusive, int maxInclusive)
+        {
+            return UnityEngine.Random.Range(minInclusive, maxInclusive);
+        }
+
         public static float Range(float minInclusive, float maxInclusive)
         {
             return UnityEngine.Random.Range(minInclusive, maxInclusive);
+        }
+
+        public static Color Color()
+        {
+            return new Color(UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f), 1.0f);
         }
     } 
 }
