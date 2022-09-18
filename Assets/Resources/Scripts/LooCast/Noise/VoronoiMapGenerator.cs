@@ -100,7 +100,7 @@ namespace LooCast.Noise
                                 (
                                     (
                                         (
-                                            x + sampleCellOffset.x
+                                            x + sampleCellOffset.x + (scale + 0.5f)
                                         ) * centroidDimensions.x
                                     ) + centroidPositionOffset.x
                                 )
@@ -112,7 +112,7 @@ namespace LooCast.Noise
                                 (
                                     (
                                         (
-                                            y + sampleCellOffset.y
+                                            y + sampleCellOffset.y + (scale + 0.5f)
                                         ) * centroidDimensions.y
                                     ) + centroidPositionOffset.y
                                 )

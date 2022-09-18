@@ -369,7 +369,7 @@ MonoBehaviour:
   drawMode: 1
   mapWidth: 64
   mapHeight: 64
-  sampleCellAmount: {x: 2, y: 2}
+  sampleCellAmount: {x: 3, y: 3}
   sampleCellOffset: {x: 0, y: 0}
   cellSampleBorderThickness: 1
   cellSpread: 0
