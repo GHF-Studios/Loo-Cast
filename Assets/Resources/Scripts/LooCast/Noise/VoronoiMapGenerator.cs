@@ -29,7 +29,6 @@ namespace LooCast.Noise
         public int cellSampleBorderThickness;
         [Range(0.0f, 1.0f)]
         public float cellSpread;
-        public float scale;
         public float power;
 
         [Range(0, 2109876543)]
@@ -66,57 +65,33 @@ namespace LooCast.Noise
                         mapHeight / sampleCellAmount.y
                     );
                     Vector2 halfCentroidDimensions = centroidDimensions / 2;
-                    Vector2 centroidPositionOffset = new Vector2
-                    (
-                        prng.Range
+                    Vector2 centroidPositionOffset = Vector2.zero;
+                    if (cellSpread > 0.0f)
+                    {
+                        centroidPositionOffset = new Vector2
                         (
-                            -(int)
+                            prng.Range
                             (
+                                -(halfCentroidDimensions.x * cellSpread),
                                 (halfCentroidDimensions.x * cellSpread)
                             ),
-                            (int)
+                            prng.Range
                             (
-                                (halfCentroidDimensions.x * cellSpread)
-                            )
-                        ) - ((centroidDimensions.x * cellSampleBorderThickness)) - centroidDimensions.x,
-                        prng.Range
-                        (
-                            -(int)
-                            (
-                                (halfCentroidDimensions.y * cellSpread)
-                            ),
-                            (int)
-                            (
+                                -(halfCentroidDimensions.y * cellSpread),
                                 (halfCentroidDimensions.y * cellSpread)
                             )
-                        ) - ((centroidDimensions.y * cellSampleBorderThickness)) - centroidDimensions.y
-                    );
+                        ); 
+                    }
 
                     centroids[centroidIndex] = new Vector2Int
                     (
                         (int)
                         (
-                            (
-                                (
-                                    (
-                                        (
-                                            x + sampleCellOffset.x + (scale + 0.5f)
-                                        ) * centroidDimensions.x
-                                    ) + centroidPositionOffset.x
-                                )
-                            ) / scale
+                            (((x + sampleCellOffset.x + 0.5f - cellSampleBorderThickness) * centroidDimensions.x) + centroidPositionOffset.x)
                         ),
                         (int)
                         (
-                            (
-                                (
-                                    (
-                                        (
-                                            y + sampleCellOffset.y + (scale + 0.5f)
-                                        ) * centroidDimensions.y
-                                    ) + centroidPositionOffset.y
-                                )
-                            ) / scale
+                            (((y + sampleCellOffset.y + 0.5f - cellSampleBorderThickness) * centroidDimensions.y) + centroidPositionOffset.y)
                         )
                     );
 
