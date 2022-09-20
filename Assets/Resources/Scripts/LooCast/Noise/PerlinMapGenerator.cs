@@ -14,6 +14,7 @@ namespace LooCast.Noise
         public int mapWidth;
         public int mapHeight;
         public float noiseScale;
+        public float noiseAmplitude;
 
         public int octaves;
         [Range(0.0f, 1.0f)]
@@ -30,7 +31,7 @@ namespace LooCast.Noise
 
         public void GenerateMap()
         {
-            float[,] noiseMap = PerlinNoise.GenerateNoiseMap(mapWidth, mapHeight, seed, noiseScale, octaves, persistence, lacunarity, offset);
+            float[,] noiseMap = PerlinNoise.GenerateNoiseMap(mapWidth, mapHeight, seed, noiseScale, octaves, persistence, lacunarity, noiseAmplitude, offset);
 
             Color[] colorMap = new Color[mapWidth * mapHeight];
             for (int y = 0; y < mapHeight; y++)
