@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LooCast.Noise
+namespace LooCast.Test
 {
     public class MapDisplay : MonoBehaviour
     {

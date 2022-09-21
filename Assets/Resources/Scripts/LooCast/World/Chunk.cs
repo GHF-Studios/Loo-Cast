@@ -4,6 +4,8 @@ using System;
 namespace LooCast.World
 {
     using LooCast.Noise;
+    using LooCast.Util;
+    using LooCast.Test;
 
     public class Chunk
     {
@@ -63,7 +65,8 @@ namespace LooCast.World
         [SerializeField] private Vector2Int chunkPosition;
         [SerializeField] private Vector2 worldPosition;
 
-        [SerializeField] private NoiseMap noiseMap; //TODO: Make serializeable
+        [SerializeField] private Vector2Int centroid;
+        [SerializeField] private NoiseMap noiseMap;
 
         private GameObject chunkObject;
 
@@ -74,6 +77,9 @@ namespace LooCast.World
             worldPosition = chunkPosition * size;
 
             //Any world generation happens here
+            System.Random prng = new System.Random(generationSettings.seed);
+            centroid = new Vector2Int(prng.Next(-size / 2, size / 2), prng.Next(-size / 2, size / 2));
+
             noiseMap = new NoiseMap(PerlinNoise.GenerateNoiseMap
             (
                 size, 
@@ -88,6 +94,11 @@ namespace LooCast.World
             ));
         }
 
+        public void GenerateCentroids()
+        {
+
+        }
+
         public void Spawn(GameObject prefab)
         {
             chunkObject = GameObject.Instantiate(prefab);
@@ -95,7 +106,7 @@ namespace LooCast.World
             chunkObject.transform.position = worldPosition * 10.0f;
 
             MapDisplay mapDisplay = chunkObject.GetComponentInChildren<MapDisplay>();
-            mapDisplay.DrawTexture(TextureGenerator.TextureFromHeightMap(noiseMap.DataPointArray2D));
+            mapDisplay.DrawTexture(TextureUtil.TextureFromHeightMap(noiseMap.DataPointArray2D));
         }
 
         public void Despawn()

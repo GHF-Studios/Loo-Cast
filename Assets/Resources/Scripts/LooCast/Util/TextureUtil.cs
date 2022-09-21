@@ -1,8 +1,8 @@
 using UnityEngine;
 
-namespace LooCast.Noise
+namespace LooCast.Util
 {
-    public static class TextureGenerator
+    public static class TextureUtil
     {
         public static Texture2D TextureFromColorMap(Color[] colorMap, int width, int height)
         {

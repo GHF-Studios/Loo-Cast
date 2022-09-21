@@ -1,8 +1,10 @@
 using UnityEngine;
 
-namespace LooCast.Noise
+namespace LooCast.Test
 {
     using LooCast.Random;
+    using LooCast.Util;
+    using LooCast.Noise;
 
     public class VoronoiMapGenerator : MonoBehaviour
     {
@@ -17,19 +19,12 @@ namespace LooCast.Noise
         public int mapWidth;
         public int mapHeight;
         public Vector2Int sampleCellAmount;
-        public Vector2 sampleCellOffset;
-        public Vector2Int borderedSampleCellAmount
-        {
-            get
-            {
-                return new Vector2Int(sampleCellAmount.x + cellSampleBorderThickness * 2, sampleCellAmount.y + cellSampleBorderThickness * 2);
-            }
-        }
+        public Vector2Int offset;
 
-        public int cellSampleBorderThickness;
-        [Range(0.0f, 1.0f)]
+        [Range(0.0f, 2.0f)]
         public float cellSpread;
         public float power;
+        public float amplitude;
 
         [Range(0, 2109876543)]
         public int seed;
@@ -41,71 +36,21 @@ namespace LooCast.Noise
             MapDisplay display = GetComponent<MapDisplay>();
             if (drawMode == DrawMode.Distance)
             {
-                display.DrawTexture(TextureGenerator.TextureFromColorMap(GetDistanceColorMap(), mapWidth, mapHeight));
+                display.DrawTexture(TextureUtil.TextureFromColorMap(GetDistanceColorMap(), mapWidth, mapHeight));
             }
 
             else if (drawMode == DrawMode.Cell)
             {
-                display.DrawTexture(TextureGenerator.TextureFromColorMap(GetCellColorMap(), mapWidth, mapHeight));
+                display.DrawTexture(TextureUtil.TextureFromColorMap(GetCellColorMap(), mapWidth, mapHeight));
             }
-        }
-
-        private Vector2Int[] GetCentroids()
-        {
-            SeededRandom prng = new SeededRandom(seed);
-            Vector2Int[] centroids = new Vector2Int[borderedSampleCellAmount.x * borderedSampleCellAmount.y];
-            for (int y = 0; y < borderedSampleCellAmount.y; y++)
-            {
-                for (int x = 0; x < borderedSampleCellAmount.x; x++)
-                {
-                    int centroidIndex = y * borderedSampleCellAmount.x + x;
-                    Vector2 centroidDimensions = new Vector2
-                    (
-                        mapWidth / sampleCellAmount.x,
-                        mapHeight / sampleCellAmount.y
-                    );
-                    Vector2 halfCentroidDimensions = centroidDimensions / 2;
-                    Vector2 centroidPositionOffset = Vector2.zero;
-                    if (cellSpread > 0.0f)
-                    {
-                        centroidPositionOffset = new Vector2
-                        (
-                            prng.Range
-                            (
-                                -(halfCentroidDimensions.x * cellSpread),
-                                (halfCentroidDimensions.x * cellSpread)
-                            ),
-                            prng.Range
-                            (
-                                -(halfCentroidDimensions.y * cellSpread),
-                                (halfCentroidDimensions.y * cellSpread)
-                            )
-                        ); 
-                    }
-
-                    centroids[centroidIndex] = new Vector2Int
-                    (
-                        (int)
-                        (
-                            (((x + sampleCellOffset.x + 0.5f - cellSampleBorderThickness) * centroidDimensions.x) + centroidPositionOffset.x)
-                        ),
-                        (int)
-                        (
-                            (((y + sampleCellOffset.y + 0.5f - cellSampleBorderThickness) * centroidDimensions.y) + centroidPositionOffset.y)
-                        )
-                    );
-
-                }
-            }
-            return centroids;
         }
 
         private Color[] GetCellColorMap()
         {
             SeededRandom prng = new SeededRandom(seed);
-            Vector2Int[] centroids = GetCentroids();
+            Vector2Int[] centroids = VoronoiNoise.GetCentroids(seed, mapWidth, mapHeight, sampleCellAmount, cellSpread);
 
-            Color[] centroidColors = new Color[borderedSampleCellAmount.x * borderedSampleCellAmount.y];
+            Color[] centroidColors = new Color[sampleCellAmount.x * sampleCellAmount.y];
             for (int i = 0; i < centroidColors.Length; i++)
             {
                 centroidColors[i] = prng.Color();
@@ -117,7 +62,7 @@ namespace LooCast.Noise
                 for (int x = 0; x < mapWidth; x++)
                 {
                     int currentPixelIndex = y * mapWidth + x;
-                    Vector2Int currentPixelPosition = new Vector2Int(x, y);
+                    Vector2Int currentPixelPosition = new Vector2Int(x + offset.x, y + offset.y);
                     int closestCentroidIndex = GetClosestCentroidIndex(currentPixelPosition, centroids);
                     Vector2Int closestCentroid = centroids[closestCentroidIndex];
                     if (closestCentroid == currentPixelPosition)
@@ -136,7 +81,7 @@ namespace LooCast.Noise
 
         private Color[] GetDistanceColorMap()
         {
-            Vector2Int[] centroids = GetCentroids();
+            Vector2Int[] centroids = VoronoiNoise.GetCentroids(seed, mapWidth, mapHeight, sampleCellAmount, cellSpread);
             float[] distances = new float[mapWidth * mapHeight];
             for (int y = 0; y < mapHeight; y++)
             {
@@ -150,7 +95,9 @@ namespace LooCast.Noise
             float maxDistance = GetMaxDistance(distances);
             for (int i = 0; i < distances.Length; i++)
             {
-                float colorValue = Mathf.Pow(distances[i] / maxDistance, power);
+                float colorValue = distances[i] / maxDistance;
+                colorValue = Mathf.Pow(colorValue, (1 - colorValue) * power);
+                colorValue *= amplitude;
                 colorMap[i] = new Color(colorValue, colorValue, colorValue, 1.0f);
             }
 

@@ -11,6 +11,7 @@ namespace LooCast.World
         [Serializable]
         public struct GenerationSettings
         {
+            //Perlin
             public int seed;
             public float scale;
             public float amplitude;
@@ -20,11 +21,28 @@ namespace LooCast.World
         }
         #endregion
 
+        #region Voids
+        private Vector2Int[] voids;
+        #endregion
+
+        #region Universe
+        //How many Filament Chunks fit into the Universe (Per Axis)
+        [SerializeField] private int universeChunkSize;
+        #endregion
+
+        #region Filament Chunks
+        //How many Chunks fit into a Filament Chunk (Per Axis)
+        [SerializeField] private int filamentChunkSize;
+        [SerializeField] private Vector2Int filamentChunkAmount;
+        #endregion
+
+        #region Chunks
+        //How big a Chunk is in Units (Per Axis)
         [SerializeField] private int chunkSize;
         [SerializeField] private GameObject chunkPrefab;
         [SerializeField] private GenerationSettings generationSettings;
+        #endregion
 
-        [Header("DEVELOPMENT")]
         #region DEVELOPMENT
         [SerializeField] private Vector2Int[] chunkCoordinates;
         #endregion
@@ -33,7 +51,7 @@ namespace LooCast.World
 
         private void Start()
         {
-            
+
         }
 
         public void DEV_GenerateChunks()
@@ -76,6 +94,11 @@ namespace LooCast.World
             }
         }
 
+        #region Filament Chunks
+
+        #endregion
+
+        #region Chunks
         public Chunk GetChunk(Vector2Int chunkPosition)
         {
             if (!IsChunkLoaded(chunkPosition))
@@ -167,6 +190,7 @@ namespace LooCast.World
         {
             GetChunk(chunkPosition).Despawn();
         }
+        #endregion
         #endregion
     }
 }

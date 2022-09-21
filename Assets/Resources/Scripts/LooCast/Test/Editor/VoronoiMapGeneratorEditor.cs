@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 
-namespace LooCast.Noise.Editor
+namespace LooCast.Test.Editor
 {
     [CustomEditor(typeof(VoronoiMapGenerator))]
     public class VoronoiMapGeneratorEditor : UnityEditor.Editor

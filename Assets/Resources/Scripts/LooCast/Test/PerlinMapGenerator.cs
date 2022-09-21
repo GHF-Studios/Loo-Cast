@@ -1,7 +1,10 @@
 using UnityEngine;
 
-namespace LooCast.Noise
+namespace LooCast.Test
 {
+    using Noise;
+    using Util;
+
     public class PerlinMapGenerator : MonoBehaviour
     {
         public enum DrawMode
@@ -53,12 +56,12 @@ namespace LooCast.Noise
             MapDisplay display = GetComponent<MapDisplay>();
             if (drawMode == DrawMode.NoiseMap)
             {
-                display.DrawTexture(TextureGenerator.TextureFromHeightMap(noiseMap));
+                display.DrawTexture(TextureUtil.TextureFromHeightMap(noiseMap));
             }
 
             else if (drawMode == DrawMode.ColorMap)
             {
-                display.DrawTexture(TextureGenerator.TextureFromColorMap(colorMap, mapWidth, mapHeight));
+                display.DrawTexture(TextureUtil.TextureFromColorMap(colorMap, mapWidth, mapHeight));
             }
         }
 
