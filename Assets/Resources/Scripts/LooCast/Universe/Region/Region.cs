@@ -1,8 +1,9 @@
 using UnityEngine;
 using System;
 
-namespace LooCast.Universe
+namespace LooCast.Region
 {
+    using LooCast.Universe;
     using LooCast.Noise;
     using LooCast.Util;
     using LooCast.Test;
@@ -50,14 +51,6 @@ namespace LooCast.Universe
         }
         #endregion
 
-        #region Enums
-        public enum State
-        {
-            Loaded,
-            Spawned
-        }
-        #endregion
-
         public Vector2 WorldPosition => worldPosition;
         public Vector2Int RegionPosition => regionPosition;
 
@@ -67,7 +60,7 @@ namespace LooCast.Universe
 
         [SerializeField] private NoiseMap noiseMap;
 
-        private GameObject chunkObject;
+        private GameObject regionObject;
 
         public Region(Vector2Int regionPosition, int size, Universe.GenerationSettings generationSettings)
         {
@@ -76,8 +69,6 @@ namespace LooCast.Universe
             worldPosition = regionPosition * size;
 
             //Any world generation happens here
-            System.Random prng = new System.Random(generationSettings.seed);
-
             noiseMap = new NoiseMap(PerlinNoise.GenerateNoiseMap
             (
                 size, 
@@ -92,24 +83,19 @@ namespace LooCast.Universe
             ));
         }
 
-        public void GenerateCentroids()
-        {
-
-        }
-
         public void Spawn(GameObject prefab)
         {
-            chunkObject = GameObject.Instantiate(prefab);
-            chunkObject.name = $"Chunk ({regionPosition.x}, {regionPosition.y})";
-            chunkObject.transform.position = worldPosition * 10.0f;
+            regionObject = GameObject.Instantiate(prefab);
+            regionObject.name = $"Region ({regionPosition.x}, {regionPosition.y})";
+            regionObject.transform.position = worldPosition * 10.0f;
 
-            MapDisplay mapDisplay = chunkObject.GetComponentInChildren<MapDisplay>();
+            MapDisplay mapDisplay = regionObject.GetComponentInChildren<MapDisplay>();
             mapDisplay.DrawTexture(TextureUtil.TextureFromHeightMap(noiseMap.DataPointArray2D));
         }
 
         public void Despawn()
         {
-            GameObject.DestroyImmediate(chunkObject);
+            GameObject.DestroyImmediate(regionObject);
         }
     }
 }

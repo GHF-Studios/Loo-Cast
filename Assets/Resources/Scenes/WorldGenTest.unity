@@ -134,6 +134,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Universe
       objectReference: {fileID: 0}
+    - target: {fileID: 4694644655831026918, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: regionSize
+      value: 100
+      objectReference: {fileID: 0}
     - target: {fileID: 4694644655831026919, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: m_RootOrder
       value: 1

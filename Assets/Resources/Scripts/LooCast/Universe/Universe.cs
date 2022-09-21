@@ -5,6 +5,10 @@ using System;
 
 namespace LooCast.Universe
 {
+    using LooCast.Filament;
+    using LooCast.Sector;
+    using LooCast.Region;
+
     public class Universe : MonoBehaviour
     {
         #region Structs
@@ -22,7 +26,7 @@ namespace LooCast.Universe
         #endregion
 
         #region Universe
-        //How many Filament Chunks fit into the Universe (Per Axis)
+        //How many Filaments fit into the Universe (Per Axis)
         [SerializeField] private int universeSize;
 
         //A list of all voids. These define the most basic structure of the universe and are all generated at once
@@ -30,13 +34,17 @@ namespace LooCast.Universe
         #endregion
 
         #region Filaments
-        //How many Chunks fit into a Filament Chunk (Per Axis)
+        //How many Sectors fit into a Filament (Per Axis)
         [SerializeField] private int filamentSize;
+
+        [SerializeField] private GameObject filamentPrefab;
         #endregion
 
         #region Sectors
         //How many Regions fit into a Sector (Per Axis)
         [SerializeField] private int sectorSize;
+
+        [SerializeField] private GameObject sectorPrefab;
         #endregion
 
         #region Regions
@@ -51,6 +59,8 @@ namespace LooCast.Universe
         [SerializeField] private Vector2Int[] chunkCoordinates;
         #endregion
 
+        private Dictionary<Vector2Int, Filament> loadedFilaments = new Dictionary<Vector2Int, Filament>();
+        private Dictionary<Vector2Int, Sector> loadedSectors = new Dictionary<Vector2Int, Sector>();
         private Dictionary<Vector2Int, Region> loadedRegions = new Dictionary<Vector2Int, Region>();
 
         private void Start()
@@ -58,51 +68,203 @@ namespace LooCast.Universe
 
         }
 
-        public void DEV_GenerateChunks()
+        #region Filaments
+
+        #region Utility
+        public Filament GetFilament(Vector2Int filamentPosition)
         {
-            foreach (Vector2Int chunkCoordinate in chunkCoordinates)
+            if (!IsFilamentLoaded(filamentPosition))
             {
-                GenerateRegion(chunkCoordinate);
+                throw new Exception("Filament is not loaded!");
             }
+
+            if (!IsFilamentGenerated(filamentPosition))
+            {
+                throw new Exception("Filament is not generated!");
+            }
+
+            return loadedFilaments[filamentPosition];
+        }
+        #endregion
+
+        #region Generation
+        private bool IsFilamentGenerated(Vector2Int filamentPosition)
+        {
+            string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}.json";
+            return File.Exists(path);
         }
 
-        public void DEV_LoadChunks()
+        private void GenerateFilament(Vector2Int filamentPosition)
         {
-            foreach (Vector2Int chunkCoordinate in chunkCoordinates)
+            if (IsFilamentGenerated(filamentPosition))
             {
-                LoadRegion(chunkCoordinate);
+                throw new Exception("Filament is already generated!");
             }
+            Filament filament = new Filament(filamentPosition, filamentSize);
+            SaveFilament(filament);
+        }
+        #endregion
+
+        #region Saving
+        private void SaveFilament(Filament filament)
+        {
+            string path = $"{Application.dataPath}/Data/Universe/Filaments/{filament.FilamentPosition.x}.{filament.FilamentPosition.y}.json";
+            string json = JsonUtility.ToJson(filament, true);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using StreamWriter writer = new StreamWriter(path);
+            writer.Write(json);
+        }
+        #endregion
+
+        #region Loading
+        private bool IsFilamentLoaded(Vector2Int filamentPosition)
+        {
+            return loadedFilaments.ContainsKey(filamentPosition);
         }
 
-        public void DEV_UnloadChunks()
+        private void LoadFilament(Vector2Int filamentPosition)
         {
-            foreach (Vector2Int chunkCoordinate in chunkCoordinates)
+            if (IsFilamentLoaded(filamentPosition))
             {
-                UnloadRegion(chunkCoordinate);
+                throw new Exception("Filament is already loaded!");
             }
+
+            if (!IsFilamentGenerated(filamentPosition))
+            {
+                throw new Exception($"Filament has not been generated yet!");
+            }
+
+            string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}.json";
+            using StreamReader reader = new StreamReader(path);
+            string json = reader.ReadToEnd();
+            loadedFilaments.Add(filamentPosition, JsonUtility.FromJson<Filament>(json));
         }
 
-        public void DEV_SpawnChunks()
+        private void UnloadFilament(Vector2Int filamentPosition)
         {
-            foreach (Vector2Int chunkCoordinate in chunkCoordinates)
+            if (!IsFilamentLoaded(filamentPosition))
             {
-                SpawnRegion(chunkCoordinate);
+                throw new Exception("Filament is already unloaded!");
             }
+
+            loadedFilaments.Remove(filamentPosition);
+        }
+        #endregion
+
+        #region Spawning
+        private void SpawnFilament(Vector2Int filamentPosition)
+        {
+            GetFilament(filamentPosition).Spawn(filamentPrefab);
         }
 
-        public void DEV_DespawnChunks()
+        private void DespawnFilament(Vector2Int filamentPosition)
         {
-            foreach (Vector2Int chunkCoordinate in chunkCoordinates)
+            GetFilament(filamentPosition).Despawn();
+        }
+        #endregion
+
+        #endregion
+
+        #region Sectors
+
+        #region Utility
+        public Sector GetSector(Vector2Int sectorPosition)
+        {
+            if (!IsSectorLoaded(sectorPosition))
             {
-                DespawnRegion(chunkCoordinate);
+                throw new Exception("Sector is not loaded!");
             }
+
+            if (!IsSectorGenerated(sectorPosition))
+            {
+                throw new Exception("Sector is not generated!");
+            }
+
+            return loadedSectors[sectorPosition];
+        }
+        #endregion
+
+        #region Generation
+        private bool IsSectorGenerated(Vector2Int sectorPosition)
+        {
+            string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorPosition.x}.{sectorPosition.y}.json";
+            return File.Exists(path);
         }
 
-        #region Filament Chunks
+        private void GenerateSector(Vector2Int sectorPosition)
+        {
+            if (IsSectorGenerated(sectorPosition))
+            {
+                throw new Exception("Sector is already generated!");
+            }
+            Sector sector = new Sector(sectorPosition, sectorSize);
+            SaveSector(sector);
+        }
+        #endregion
+
+        #region Saving
+        private void SaveSector(Sector sector)
+        {
+            string path = $"{Application.dataPath}/Data/Universe/Sectors/{sector.SectorPosition.x}.{sector.SectorPosition.y}.json";
+            string json = JsonUtility.ToJson(sector, true);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using StreamWriter writer = new StreamWriter(path);
+            writer.Write(json);
+        }
+        #endregion
+
+        #region Loading
+        private bool IsSectorLoaded(Vector2Int sectorPosition)
+        {
+            return loadedSectors.ContainsKey(sectorPosition);
+        }
+
+        private void LoadSector(Vector2Int sectorPosition)
+        {
+            if (IsSectorLoaded(sectorPosition))
+            {
+                throw new Exception("Sector is already loaded!");
+            }
+
+            if (!IsSectorGenerated(sectorPosition))
+            {
+                throw new Exception($"Sector has not been generated yet!");
+            }
+
+            string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorPosition.x}.{sectorPosition.y}.json";
+            using StreamReader reader = new StreamReader(path);
+            string json = reader.ReadToEnd();
+            loadedSectors.Add(sectorPosition, JsonUtility.FromJson<Sector>(json));
+        }
+
+        private void UnloadSector(Vector2Int sectorPosition)
+        {
+            if (!IsSectorLoaded(sectorPosition))
+            {
+                throw new Exception("Sector is already unloaded!");
+            }
+
+            loadedSectors.Remove(sectorPosition);
+        }
+        #endregion
+
+        #region Spawning
+        private void SpawnSector(Vector2Int sectorPosition)
+        {
+            GetSector(sectorPosition).Spawn(sectorPrefab);
+        }
+
+        private void DespawnSector(Vector2Int sectorPosition)
+        {
+            GetSector(sectorPosition).Despawn();
+        }
+        #endregion
 
         #endregion
 
         #region Regions
+
+        #region Utility
         public Region GetRegion(Vector2Int regionPosition)
         {
             if (!IsRegionLoaded(regionPosition))
@@ -117,11 +279,12 @@ namespace LooCast.Universe
 
             return loadedRegions[regionPosition];
         }
+        #endregion
 
-        #region Region Generation
+        #region Generation
         private bool IsRegionGenerated(Vector2Int regionPosition)
         {
-            string path = $"{Application.dataPath}/Data/World/Regions/{regionPosition.x}.{regionPosition.y}.json";
+            string path = $"{Application.dataPath}/Data/Universe/Regions/{regionPosition.x}.{regionPosition.y}.json";
             return File.Exists(path);
         }
 
@@ -136,10 +299,10 @@ namespace LooCast.Universe
         }
         #endregion
 
-        #region Region Saving
+        #region Saving
         private void SaveRegion(Region region)
         {
-            string path = $"{Application.dataPath}/Data/World/Regions/{region.RegionPosition.x}.{region.RegionPosition.y}.json";
+            string path = $"{Application.dataPath}/Data/Universe/Regions/{region.RegionPosition.x}.{region.RegionPosition.y}.json";
             string json = JsonUtility.ToJson(region, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -147,7 +310,7 @@ namespace LooCast.Universe
         }
         #endregion
 
-        #region Region Loading
+        #region Loading
         private bool IsRegionLoaded(Vector2Int regionPosition)
         {
             return loadedRegions.ContainsKey(regionPosition);
@@ -165,7 +328,7 @@ namespace LooCast.Universe
                 throw new Exception($"Region has not been generated yet!");
             }
 
-            string path = $"{Application.dataPath}/Data/World/Regions/{regionPosition.x}.{regionPosition.y}.json";
+            string path = $"{Application.dataPath}/Data/Universe/Regions/{regionPosition.x}.{regionPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             loadedRegions.Add(regionPosition, JsonUtility.FromJson<Region>(json));
@@ -182,19 +345,18 @@ namespace LooCast.Universe
         }
         #endregion
 
-        #region Region Spawning
+        #region Spawning
         private void SpawnRegion(Vector2Int regionPosition)
         {
             GetRegion(regionPosition).Spawn(regionPrefab);
         }
-        #endregion
 
-        #region Region Despawning
         private void DespawnRegion(Vector2Int regionPosition)
         {
             GetRegion(regionPosition).Despawn();
         }
         #endregion
+
         #endregion
     }
 }
