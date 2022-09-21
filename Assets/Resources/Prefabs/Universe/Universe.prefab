@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4694644655831026919}
-  - component: {fileID: 4694644655831026918}
   m_Layer: 0
   m_Name: Universe
   m_TagString: Untagged
@@ -32,37 +31,3 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4694644655831026918
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4694644655831026913}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: aab0554f8ee2f46438e2620cdfe7e09f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  universeSize: 100
-  filamentSize: 100
-  sectorSize: 100
-  regionSize: 100
-  regionPrefab: {fileID: 3918568864914981115, guid: 668a2465b9473cc4ebeba51458152e80, type: 3}
-  generationSettings:
-    seed: 0
-    scale: 50
-    amplitude: 2
-    octaves: 5
-    persistence: 0.5
-    lacunarity: 2
-  chunkCoordinates:
-  - {x: 0, y: 0}
-  - {x: 1, y: 0}
-  - {x: -1, y: 0}
-  - {x: 1, y: 1}
-  - {x: -1, y: 1}
-  - {x: 1, y: -1}
-  - {x: -1, y: -1}
-  - {x: 0, y: 1}
-  - {x: 0, y: -1}

@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 
-namespace LooCast.Sector
+namespace LooCast.Universe.Sector
 {
     using LooCast.Test;
     using LooCast.Util;
@@ -17,7 +17,7 @@ namespace LooCast.Sector
 
         private GameObject sectorObject;
 
-        public Sector(Vector2Int sectorPosition, int size)
+        public Sector(Vector2Int sectorPosition, int size, Universe.GenerationSettings generationSettings)
         {
             this.size = size;
             this.sectorPosition = sectorPosition;

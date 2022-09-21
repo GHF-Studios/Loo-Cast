@@ -2,9 +2,11 @@ using UnityEngine;
 
 namespace LooCast.Noise
 {
+    using LooCast.Math.Map;
+    
     public static class PerlinNoise
     {
-        public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, int octaves, float persistence, float lacunarity, float amplitude, Vector2 offset)
+        public static FloatMap2D GenerateNoiseMap(int mapWidth, int mapHeight, int seed, float scale, int octaves, float persistence, float lacunarity, float amplitude, Vector2 offset)
         {
             float[,] noiseMap = new float[mapWidth, mapHeight];
 
@@ -66,7 +68,7 @@ namespace LooCast.Noise
                 }
             }
 
-            return noiseMap;
+            return new FloatMap2D(noiseMap);
         }
     } 
 }

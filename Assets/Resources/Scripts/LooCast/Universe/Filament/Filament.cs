@@ -1,7 +1,7 @@
 using UnityEngine;
 using System;
 
-namespace LooCast.Filament
+namespace LooCast.Universe.Filament
 {
     using LooCast.Test;
     using LooCast.Util;
@@ -17,7 +17,7 @@ namespace LooCast.Filament
 
         private GameObject filamentObject;
 
-        public Filament(Vector2Int filamentPosition, int size)
+        public Filament(Vector2Int filamentPosition, int size, Universe.GenerationSettings generationSettings)
         {
             this.size = size;
             this.filamentPosition = filamentPosition;
