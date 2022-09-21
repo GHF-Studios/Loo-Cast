@@ -1,13 +1,13 @@
 using UnityEngine;
 using System;
 
-namespace LooCast.World
+namespace LooCast.Universe
 {
     using LooCast.Noise;
     using LooCast.Util;
     using LooCast.Test;
 
-    public class Chunk
+    public class Region
     {
         #region Structs
         [Serializable]
@@ -59,26 +59,24 @@ namespace LooCast.World
         #endregion
 
         public Vector2 WorldPosition => worldPosition;
-        public Vector2Int ChunkPosition => chunkPosition;
+        public Vector2Int RegionPosition => regionPosition;
 
         [SerializeField] private int size;
-        [SerializeField] private Vector2Int chunkPosition;
+        [SerializeField] private Vector2Int regionPosition;
         [SerializeField] private Vector2 worldPosition;
 
-        [SerializeField] private Vector2Int centroid;
         [SerializeField] private NoiseMap noiseMap;
 
         private GameObject chunkObject;
 
-        public Chunk(Vector2Int chunkPosition, int size, World.GenerationSettings generationSettings)
+        public Region(Vector2Int regionPosition, int size, Universe.GenerationSettings generationSettings)
         {
             this.size = size;
-            this.chunkPosition = chunkPosition;
-            worldPosition = chunkPosition * size;
+            this.regionPosition = regionPosition;
+            worldPosition = regionPosition * size;
 
             //Any world generation happens here
             System.Random prng = new System.Random(generationSettings.seed);
-            centroid = new Vector2Int(prng.Next(-size / 2, size / 2), prng.Next(-size / 2, size / 2));
 
             noiseMap = new NoiseMap(PerlinNoise.GenerateNoiseMap
             (
@@ -102,7 +100,7 @@ namespace LooCast.World
         public void Spawn(GameObject prefab)
         {
             chunkObject = GameObject.Instantiate(prefab);
-            chunkObject.name = $"Chunk ({chunkPosition.x}, {chunkPosition.y})";
+            chunkObject.name = $"Chunk ({regionPosition.x}, {regionPosition.y})";
             chunkObject.transform.position = worldPosition * 10.0f;
 
             MapDisplay mapDisplay = chunkObject.GetComponentInChildren<MapDisplay>();

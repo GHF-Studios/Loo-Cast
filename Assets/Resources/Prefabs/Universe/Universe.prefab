@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4694644655831026919}
   - component: {fileID: 4694644655831026918}
   m_Layer: 0
-  m_Name: World
+  m_Name: Universe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -44,8 +44,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aab0554f8ee2f46438e2620cdfe7e09f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  chunkSize: 64
-  chunkPrefab: {fileID: 3918568864914981115, guid: 668a2465b9473cc4ebeba51458152e80, type: 3}
+  universeSize: 100
+  filamentSize: 100
+  sectorSize: 100
+  regionSize: 100
+  regionPrefab: {fileID: 3918568864914981115, guid: 668a2465b9473cc4ebeba51458152e80, type: 3}
   generationSettings:
     seed: 0
     scale: 50
