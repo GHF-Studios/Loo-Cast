@@ -22,23 +22,29 @@ namespace LooCast.World
         #endregion
 
         #region Voids
+        //A list of all voids. These define the most basic structure of the universe
         private Vector2Int[] voids;
         #endregion
 
         #region Universe
         //How many Filament Chunks fit into the Universe (Per Axis)
-        [SerializeField] private int universeChunkSize;
+        [SerializeField] private int universeSize;
         #endregion
 
-        #region Filament Chunks
+        #region Filaments
         //How many Chunks fit into a Filament Chunk (Per Axis)
-        [SerializeField] private int filamentChunkSize;
-        [SerializeField] private Vector2Int filamentChunkAmount;
+        [SerializeField] private int filamentSize;
         #endregion
 
-        #region Chunks
-        //How big a Chunk is in Units (Per Axis)
+        #region Sectors
+        //How many Regions fit into a Sector (Per Axis)
+        [SerializeField] private int sectorSize;
+        #endregion
+
+        #region Regions
+        //How many Units fit into a Region (Per Axis)
         [SerializeField] private int chunkSize;
+
         [SerializeField] private GameObject chunkPrefab;
         [SerializeField] private GenerationSettings generationSettings;
         #endregion

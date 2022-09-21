@@ -10,8 +10,7 @@ namespace LooCast.World.Editor
         private bool showFilamentChunksSection = false;
         private bool showChunksSection = false;
 
-        private SerializedProperty filamentChunkSize;
-        private SerializedProperty filamentChunkAmount;
+        private SerializedProperty filamentSize;
 
         private SerializedProperty chunkSize;
         private SerializedProperty chunkPrefab;
@@ -19,8 +18,7 @@ namespace LooCast.World.Editor
 
         private void OnEnable()
         {
-            filamentChunkSize = serializedObject.FindProperty("filamentChunkSize");
-            filamentChunkAmount = serializedObject.FindProperty("filamentChunkAmount");
+            filamentSize = serializedObject.FindProperty("filamentSize");
             chunkSize = serializedObject.FindProperty("chunkSize");
             chunkPrefab = serializedObject.FindProperty("chunkPrefab");
             generationSettings = serializedObject.FindProperty("generationSettings");
@@ -33,8 +31,7 @@ namespace LooCast.World.Editor
             showFilamentChunksSection = EditorGUILayout.Foldout(showFilamentChunksSection, "Filament Chunk Section");
             if (showFilamentChunksSection)
             {
-                EditorGUILayout.PropertyField(filamentChunkSize);
-                EditorGUILayout.PropertyField(filamentChunkAmount);
+                EditorGUILayout.PropertyField(filamentSize);
 
                 if (GUILayout.Button("Generate Filament Chunks"))
                 {
