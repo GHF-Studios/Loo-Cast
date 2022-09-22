@@ -29,8 +29,6 @@ namespace LooCast.Universe.Region
         public Vector2Int WorldPosition => worldPosition;
         public Vector2Int RegionPosition => regionPosition;
 
-        [SerializeField] private Universe.GenerationSettings universeGenerationSettings;
-        [SerializeField] private GenerationSettings generationSettings;
         [SerializeField] private Vector2Int sectorPosition;
         [SerializeField] private Vector2Int regionPosition;
         [SerializeField] private Vector2Int worldPosition;
@@ -39,32 +37,30 @@ namespace LooCast.Universe.Region
 
         private GameObject regionObject;
 
-        public Region(Universe.GenerationSettings universeGenerationSettings, Vector2Int sectorPosition, Vector2Int regionPosition)
+        public Region(Vector2Int sectorPosition, Vector2Int regionPosition)
         {
-            this.universeGenerationSettings = universeGenerationSettings;
-            generationSettings = universeGenerationSettings.regionGenerationSettings;
             this.sectorPosition = sectorPosition;
             this.regionPosition = regionPosition;
-            worldPosition = regionPosition * generationSettings.size;
+            worldPosition = regionPosition * Universe.Instance.RegionGenerationSettings.size;
 
             //Any world generation happens here
             noiseMap = PerlinNoise.GenerateNoiseMap
             (
-                generationSettings.size, 
-                generationSettings.size, 
-                universeGenerationSettings.seed,
-                generationSettings.scale, 
-                generationSettings.octaves, 
-                generationSettings.persistence, 
-                generationSettings.lacunarity, 
-                generationSettings.amplitude, 
+                Universe.Instance.RegionGenerationSettings.size, 
+                Universe.Instance.RegionGenerationSettings.size, 
+                Universe.Instance.UniverseGenerationSettings.seed,
+                Universe.Instance.RegionGenerationSettings.scale, 
+                Universe.Instance.RegionGenerationSettings.octaves, 
+                Universe.Instance.RegionGenerationSettings.persistence, 
+                Universe.Instance.RegionGenerationSettings.lacunarity, 
+                Universe.Instance.RegionGenerationSettings.amplitude, 
                 -worldPosition
             );
         }
 
         public void Spawn()
         {
-            regionObject = GameObject.Instantiate(generationSettings.prefab);
+            regionObject = GameObject.Instantiate(Universe.Instance.RegionGenerationSettings.prefab);
             regionObject.name = $"Region ({regionPosition.x}, {regionPosition.y})";
             regionObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 

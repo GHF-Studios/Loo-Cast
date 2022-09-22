@@ -12,33 +12,29 @@ namespace LooCast.Universe.Filament
         [Serializable]
         public struct GenerationSettings
         {
+            public GameObject prefab;
             // How many Sectors fit into a Filament (Per Axis)
             public int size;
-            public GameObject prefab;
         }
         #endregion
 
         public Vector2Int WorldPosition => worldPosition;
         public Vector2Int FilamentPosition => filamentPosition;
 
-        [SerializeField] private Universe.GenerationSettings universeGenerationSettings;
-        [SerializeField] private GenerationSettings generationSettings;
         [SerializeField] private Vector2Int filamentPosition;
         [SerializeField] private Vector2Int worldPosition;
 
         private GameObject filamentObject;
 
-        public Filament(Universe.GenerationSettings universeGenerationSettings, Vector2Int filamentPosition)
+        public Filament(Vector2Int filamentPosition)
         {
-            this.universeGenerationSettings = universeGenerationSettings;
-            generationSettings = universeGenerationSettings.filamentGenerationSettings;
             this.filamentPosition = filamentPosition;
-            worldPosition = filamentPosition * generationSettings.size;
+            worldPosition = filamentPosition * Universe.Instance.FilamentGenerationSettings.size;
         }
 
         public void Spawn()
         {
-            filamentObject = GameObject.Instantiate(generationSettings.prefab);
+            filamentObject = GameObject.Instantiate(Universe.Instance.FilamentGenerationSettings.prefab);
             filamentObject.name = $"Filament ({filamentPosition.x}, {filamentPosition.y})";
             filamentObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 
