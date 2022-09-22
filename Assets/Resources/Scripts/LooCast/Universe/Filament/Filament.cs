@@ -8,27 +8,39 @@ namespace LooCast.Universe.Filament
 
     public class Filament
     {
-        public Vector2 WorldPosition => worldPosition;
+        #region Structs
+        [Serializable]
+        public struct GenerationSettings
+        {
+            // How many Sectors fit into a Filament (Per Axis)
+            public int size;
+            public GameObject prefab;
+        }
+        #endregion
+
+        public Vector2Int WorldPosition => worldPosition;
         public Vector2Int FilamentPosition => filamentPosition;
 
-        [SerializeField] private int size;
+        [SerializeField] private Universe.GenerationSettings universeGenerationSettings;
+        [SerializeField] private GenerationSettings generationSettings;
         [SerializeField] private Vector2Int filamentPosition;
-        [SerializeField] private Vector2 worldPosition;
+        [SerializeField] private Vector2Int worldPosition;
 
         private GameObject filamentObject;
 
-        public Filament(Vector2Int filamentPosition, int size, Universe.GenerationSettings generationSettings)
+        public Filament(Universe.GenerationSettings universeGenerationSettings, Vector2Int filamentPosition)
         {
-            this.size = size;
+            this.universeGenerationSettings = universeGenerationSettings;
+            generationSettings = universeGenerationSettings.filamentGenerationSettings;
             this.filamentPosition = filamentPosition;
-            worldPosition = filamentPosition * size;
+            worldPosition = filamentPosition * generationSettings.size;
         }
 
-        public void Spawn(GameObject prefab)
+        public void Spawn()
         {
-            filamentObject = GameObject.Instantiate(prefab);
+            filamentObject = GameObject.Instantiate(generationSettings.prefab);
             filamentObject.name = $"Filament ({filamentPosition.x}, {filamentPosition.y})";
-            filamentObject.transform.position = worldPosition * 10.0f;
+            filamentObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 
             MapDisplay mapDisplay = filamentObject.GetComponentInChildren<MapDisplay>();
             //mapDisplay.DrawTexture(TextureUtil.TextureFromHeightMap(noiseMap.DataPointArray2D));

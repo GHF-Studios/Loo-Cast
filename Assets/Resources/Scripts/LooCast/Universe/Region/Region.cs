@@ -3,6 +3,7 @@ using System;
 
 namespace LooCast.Universe.Region
 {
+    using Filament;
     using LooCast.Noise;
     using LooCast.Util;
     using LooCast.Test;
@@ -10,29 +11,48 @@ namespace LooCast.Universe.Region
 
     public class Region
     {
-        public Vector2 WorldPosition => worldPosition;
+        #region Structs
+        [Serializable]
+        public struct GenerationSettings
+        {
+            public GameObject prefab;
+            // How many Units fit into a Region (Per Axis)
+            public int size;
+            public float scale;
+            public float amplitude;
+            public int octaves;
+            public float persistence;
+            public float lacunarity;
+        }
+        #endregion
+
+        public Vector2Int WorldPosition => worldPosition;
         public Vector2Int RegionPosition => regionPosition;
 
-        [SerializeField] private int size;
+        [SerializeField] private Universe.GenerationSettings universeGenerationSettings;
+        [SerializeField] private GenerationSettings generationSettings;
+        [SerializeField] private Vector2Int sectorPosition;
         [SerializeField] private Vector2Int regionPosition;
-        [SerializeField] private Vector2 worldPosition;
+        [SerializeField] private Vector2Int worldPosition;
 
         [SerializeField] private FloatMap2D noiseMap;
 
         private GameObject regionObject;
 
-        public Region(Vector2Int regionPosition, int size, Universe.GenerationSettings generationSettings)
+        public Region(Universe.GenerationSettings universeGenerationSettings, Vector2Int sectorPosition, Vector2Int regionPosition)
         {
-            this.size = size;
+            this.universeGenerationSettings = universeGenerationSettings;
+            generationSettings = universeGenerationSettings.regionGenerationSettings;
+            this.sectorPosition = sectorPosition;
             this.regionPosition = regionPosition;
-            worldPosition = regionPosition * size;
+            worldPosition = regionPosition * generationSettings.size;
 
             //Any world generation happens here
             noiseMap = PerlinNoise.GenerateNoiseMap
             (
-                size, 
-                size, 
-                generationSettings.seed,
+                generationSettings.size, 
+                generationSettings.size, 
+                universeGenerationSettings.seed,
                 generationSettings.scale, 
                 generationSettings.octaves, 
                 generationSettings.persistence, 
@@ -42,11 +62,11 @@ namespace LooCast.Universe.Region
             );
         }
 
-        public void Spawn(GameObject prefab)
+        public void Spawn()
         {
-            regionObject = GameObject.Instantiate(prefab);
+            regionObject = GameObject.Instantiate(generationSettings.prefab);
             regionObject.name = $"Region ({regionPosition.x}, {regionPosition.y})";
-            regionObject.transform.position = worldPosition * 10.0f;
+            regionObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 
             MapDisplay mapDisplay = regionObject.GetComponentInChildren<MapDisplay>();
             mapDisplay.DrawTexture(TextureUtil.TextureFromHeightMap(noiseMap.Array2D));
