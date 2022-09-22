@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4694644655831026919}
+  - component: {fileID: 807784907}
   m_Layer: 0
   m_Name: Universe
   m_TagString: Untagged
@@ -31,3 +32,55 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &807784907
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4694644655831026913}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a862b45609a7e68439f7535be0421830, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DEV_UNIVERSE_universeGenerationSettings:
+    seed: 0
+    size: 10
+    voidGenerationSettings:
+      amount: 25
+    filamentGenerationSettings:
+      prefab: {fileID: 0}
+      size: 10
+    sectorGenerationSettings:
+      prefab: {fileID: 0}
+      size: 10
+    regionGenerationSettings:
+      prefab: {fileID: 0}
+      size: 10
+      scale: 50
+      amplitude: 2
+      octaves: 5
+      persistence: 0.5
+      lacunarity: 2
+  DEV_FILAMENT_filamentPosition: {x: 0, y: 0}
+  DEV_FILAMENT_filamentPositions:
+  - {x: -1, y: -1}
+  - {x: 0, y: -1}
+  - {x: 1, y: -1}
+  - {x: -1, y: 0}
+  - {x: 0, y: 0}
+  - {x: 1, y: 0}
+  - {x: -1, y: 1}
+  - {x: 0, y: 1}
+  - {x: 1, y: 1}
+  DEV_SECTOR_filamentPosition: {x: 0, y: 0}
+  DEV_SECTOR_sectorPosition: {x: 0, y: 0}
+  DEV_SECTOR_sectorPositions: []
+  DEV_REGION_sectorPosition: {x: 0, y: 0}
+  DEV_REGION_regionPosition: {x: 0, y: 0}
+  DEV_REGION_regionPositions: []
+  DEV_UNIVERSE_showSection: 0
+  DEV_FILAMENT_showSection: 1
+  DEV_SECTOR_showSection: 0
+  DEV_REGION_showSection: 0

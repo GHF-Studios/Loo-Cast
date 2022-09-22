@@ -12,6 +12,7 @@ namespace LooCast.Universe
     using Region;
     using LooCast.Random;
 
+    [Serializable]
     public class Universe
     {
         #region Structs
@@ -29,7 +30,27 @@ namespace LooCast.Universe
         }
         #endregion
 
-        public static Universe Instance => instance;
+        public static Universe Instance
+        {
+            get
+            {
+                return instance;
+            }
+
+            private set
+            {
+                if (value != null)
+                {
+                    instance = value;
+                    instance.Initialize();
+                }
+                else
+                {
+                    instance.Terminate();
+                    instance = value;
+                }
+            }
+        }
         private static Universe instance;
 
         public GenerationSettings UniverseGenerationSettings => generationSettings;
@@ -40,14 +61,27 @@ namespace LooCast.Universe
 
         [SerializeField] GenerationSettings generationSettings;
 
-        private Dictionary<Vector2Int, Void.Void> loadedVoids = new Dictionary<Vector2Int, Void.Void>();
-        private Dictionary<Vector2Int, Filament.Filament> loadedFilaments = new Dictionary<Vector2Int, Filament.Filament>();
-        private Dictionary<Vector2Int, Sector.Sector> loadedSectors = new Dictionary<Vector2Int, Sector.Sector>();
-        private Dictionary<Vector2Int, Region.Region> loadedRegions = new Dictionary<Vector2Int, Region.Region>();
+        private Dictionary<Vector2Int, Void.Void> loadedVoids;
+        private Dictionary<Vector2Int, Filament.Filament> loadedFilaments;
+        private Dictionary<Vector2Int, Sector.Sector> loadedSectors;
+        private Dictionary<Vector2Int, Region.Region> loadedRegions;
 
         private Universe(GenerationSettings generationSettings)
         {
             this.generationSettings = generationSettings;
+        }
+
+        private void Initialize()
+        {
+            loadedVoids = new Dictionary<Vector2Int, Void.Void>();
+            loadedFilaments = new Dictionary<Vector2Int, Filament.Filament>();
+            loadedSectors = new Dictionary<Vector2Int, Sector.Sector>();
+            loadedRegions = new Dictionary<Vector2Int, Region.Region>();
+        }
+
+        private void Terminate()
+        {
+
         }
 
         #region Universe
@@ -72,6 +106,7 @@ namespace LooCast.Universe
             }
 
             Universe universe = new Universe(generationSettings);
+            Instance = universe;
 
             SeededRandom prng = new SeededRandom(universe.generationSettings.seed);
             for (int x = 0; x < universe.generationSettings.voidGenerationSettings.amount; x++)
@@ -81,11 +116,9 @@ namespace LooCast.Universe
                     Vector2Int voidPosition = new Vector2Int(x, y);
                     Vector2 normalizedVoidPositionOffset = new Vector2(prng.Range(-0.5f, 0.5f), prng.Range(-0.5f, 0.5f));
                     universe.GenerateVoid(voidPosition, normalizedVoidPositionOffset);
-                    universe.LoadVoid(voidPosition);
                 }
             }
 
-            instance = universe;
             SaveUniverse();
         }
         #endregion
@@ -113,7 +146,7 @@ namespace LooCast.Universe
         #region Loading
         public static bool IsUniverseLoaded()
         {
-            return instance != null;
+            return Instance != null;
         }
 
         public static void LoadUniverse()
@@ -131,7 +164,7 @@ namespace LooCast.Universe
             string path = $"{Application.dataPath}/Data/Universe/Universe.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
-            instance = JsonUtility.FromJson<Universe>(json);
+            Instance = JsonUtility.FromJson<Universe>(json);
         }
 
         public static void UnloadUniverse()
@@ -141,7 +174,7 @@ namespace LooCast.Universe
                 throw new Exception("Universe is already unloaded!");
             }
 
-            instance = null;
+            Instance = null;
         }
         #endregion
 
@@ -212,12 +245,30 @@ namespace LooCast.Universe
                 throw new Exception("Void is already generated!");
             }
 
-            loadedVoids.Add(voidPosition, new Void.Void(voidPosition, normalizedVoidPositionOffset));
-            SaveVoid(voidPosition);
+    	    Void.Void @void = new Void.Void(voidPosition, normalizedVoidPositionOffset);
+            loadedVoids.Add(voidPosition, @void);
+            SaveVoid(@void);
         }
         #endregion
         
         #region Saving
+        private void SaveVoid(Void.Void @void)
+        {
+            string path = $"{Application.dataPath}/Data/Universe/Voids/{@void.VoidPosition.x}.{@void.VoidPosition.y}.json";
+            string json = JsonUtility.ToJson(@void, true);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using StreamWriter writer = new StreamWriter(path);
+            writer.Write(json);
+        }
+
+        private void SaveVoids(Void.Void[] voids)
+        {
+            foreach (Void.Void @void in voids)
+            {
+                SaveVoid(@void);
+            }
+        }
+
         private void SaveVoid(Vector2Int voidPosition)
         {
             if (!IsVoidLoaded(voidPosition))
@@ -226,11 +277,23 @@ namespace LooCast.Universe
             }
 
             Void.Void @void = GetVoid(voidPosition);
-            string path = $"{Application.dataPath}/Data/Universe/Voids/{voidPosition.x}.{voidPosition.y}.json";
-            string json = JsonUtility.ToJson(@void, true);
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            using StreamWriter writer = new StreamWriter(path);
-            writer.Write(json);
+            SaveVoid(@void);
+        }
+
+        private void SaveVoids(Vector2Int[] voidPositions)
+        {
+            foreach (Vector2Int voidPosition in voidPositions)
+            {
+                SaveVoid(voidPosition);
+            }
+        }
+
+        private void SaveVoids()
+        {
+            foreach (Vector2Int voidPosition in loadedVoids.Keys.ToArray())
+            {
+                SaveFilament(voidPosition);
+            }
         }
         #endregion
 
@@ -272,7 +335,7 @@ namespace LooCast.Universe
         #region Deletion
         private void DeleteVoids()
         {
-            foreach (Void.Void @void in loadedVoids.Values)
+            foreach (Void.Void @void in loadedVoids.Values.ToArray())
             {
                 UnloadVoid(@void.VoidPosition);
             }
@@ -348,8 +411,9 @@ namespace LooCast.Universe
                 throw new Exception("Filament is already generated!");
             }
 
-            loadedFilaments.Add(filamentPosition, new Filament.Filament(filamentPosition));
-            SaveFilament(filamentPosition);
+            Filament.Filament filament = new Filament.Filament(filamentPosition);
+            loadedFilaments.Add(filamentPosition, filament);
+            SaveFilament(filament);
         }
         
         public void GenerateFilaments(Vector2Int[] filamentPositions)
@@ -362,6 +426,23 @@ namespace LooCast.Universe
         #endregion
 
         #region Saving
+        public void SaveFilament(Filament.Filament filament)
+        {
+            string path = $"{Application.dataPath}/Data/Universe/Filaments/{filament.FilamentPosition.x}.{filament.FilamentPosition.y}.json";
+            string json = JsonUtility.ToJson(filament, true);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using StreamWriter writer = new StreamWriter(path);
+            writer.Write(json);
+        }
+
+        public void SaveFilaments(Filament.Filament[] filaments)
+        {
+            foreach (Filament.Filament filament in filaments)
+            {
+                SaveFilament(filament);
+            }
+        }
+
         public void SaveFilament(Vector2Int filamentPosition)
         {
             if (!IsFilamentLoaded(filamentPosition))
@@ -370,11 +451,7 @@ namespace LooCast.Universe
             }
 
             Filament.Filament filament = GetFilament(filamentPosition);
-            string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}.json";
-            string json = JsonUtility.ToJson(filament, true);
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            using StreamWriter writer = new StreamWriter(path);
-            writer.Write(json);
+            SaveFilament(filament);
         }
         
         public void SaveFilaments(Vector2Int[] filamentPositions)
@@ -387,7 +464,7 @@ namespace LooCast.Universe
 
         public void SaveFilaments()
         {
-            foreach (Vector2Int filamentPosition in loadedFilaments.Keys)
+            foreach (Vector2Int filamentPosition in loadedFilaments.Keys.ToArray())
             {
                 SaveFilament(filamentPosition);
             }
@@ -458,7 +535,7 @@ namespace LooCast.Universe
         
         public void UnloadFilaments()
         {
-            foreach (Vector2Int filamentPosition in loadedFilaments.Keys)
+            foreach (Vector2Int filamentPosition in loadedFilaments.Keys.ToArray())
             {
                 UnloadFilament(filamentPosition);
             }
@@ -494,7 +571,7 @@ namespace LooCast.Universe
         
         public void DespawnFilaments()
         {
-            foreach (Vector2Int filamentPosition in loadedFilaments.Keys)
+            foreach (Vector2Int filamentPosition in loadedFilaments.Keys.ToArray())
             {
                 DespawnFilament(filamentPosition);
             }
@@ -526,7 +603,7 @@ namespace LooCast.Universe
         
         public void DeleteFilaments()
         {
-            foreach (Vector2Int filamentPosition in loadedFilaments.Keys)
+            foreach (Vector2Int filamentPosition in loadedFilaments.Keys.ToArray())
             {
                 DeleteFilament(filamentPosition);
             }
@@ -599,8 +676,9 @@ namespace LooCast.Universe
                 throw new Exception("Sector is already generated!");
             }
 
-            loadedSectors.Add(sectorPosition, new Sector.Sector(filamentPosition, sectorPosition));
-            SaveSector(sectorPosition);
+            Sector.Sector sector = new Sector.Sector(filamentPosition, sectorPosition);
+            loadedSectors.Add(sectorPosition, sector);
+            SaveSector(sector);
         }
         
         public void GenerateSectors(Vector2Int filamentPosition, Vector2Int[] sectorPositions)
@@ -613,6 +691,23 @@ namespace LooCast.Universe
         #endregion
 
         #region Saving
+        public void SaveSector(Sector.Sector sector)
+        {
+            string path = $"{Application.dataPath}/Data/Universe/Sectors/{sector.SectorPosition.x}.{sector.SectorPosition.y}.json";
+            string json = JsonUtility.ToJson(sector, true);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using StreamWriter writer = new StreamWriter(path);
+            writer.Write(json);
+        }
+
+        public void SaveSector(Sector.Sector[] sectors)
+        {
+            foreach (Sector.Sector sector in sectors)
+            {
+                SaveSector(sector);
+            }
+        }
+        
         public void SaveSector(Vector2Int sectorPosition)
         {
             if (!IsSectorLoaded(sectorPosition))
@@ -621,11 +716,7 @@ namespace LooCast.Universe
             }
 
             Sector.Sector sector = GetSector(sectorPosition);
-            string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorPosition.x}.{sectorPosition.y}.json";
-            string json = JsonUtility.ToJson(sector, true);
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            using StreamWriter writer = new StreamWriter(path);
-            writer.Write(json);
+            SaveSector(sector);
         }
         
         public void SaveSectors(Vector2Int[] sectorPositions)
@@ -638,7 +729,7 @@ namespace LooCast.Universe
 
         public void SaveSectors()
         {
-            foreach (Vector2Int sectorPosition in loadedSectors.Keys)
+            foreach (Vector2Int sectorPosition in loadedSectors.Keys.ToArray())
             {
                 SaveSector(sectorPosition);
             }
@@ -709,7 +800,7 @@ namespace LooCast.Universe
         
         public void UnloadSectors()
         {
-            foreach (Vector2Int sectorPosition in loadedSectors.Keys)
+            foreach (Vector2Int sectorPosition in loadedSectors.Keys.ToArray())
             {
                 UnloadSector(sectorPosition);
             }
@@ -745,7 +836,7 @@ namespace LooCast.Universe
         
         public void DespawnSectors()
         {
-            foreach (Vector2Int sectorPosition in loadedSectors.Keys)
+            foreach (Vector2Int sectorPosition in loadedSectors.Keys.ToArray())
             {
                 DespawnSector(sectorPosition);
             }
@@ -777,7 +868,7 @@ namespace LooCast.Universe
         
         public void DeleteSectors()
         {
-            foreach (Vector2Int sectorPosition in loadedSectors.Keys)
+            foreach (Vector2Int sectorPosition in loadedSectors.Keys.ToArray())
             {
                 DeleteSector(sectorPosition);
             }
@@ -850,8 +941,9 @@ namespace LooCast.Universe
                 throw new Exception("Region is already generated!");
             }
 
-            loadedRegions.Add(regionPosition, new Region.Region(sectorPosition, regionPosition));
-            SaveRegion(regionPosition);
+            Region.Region region = new Region.Region(sectorPosition, regionPosition);
+            loadedRegions.Add(regionPosition, region);
+            SaveRegion(region);
         }
         
         public void GenerateRegions(Vector2Int sectorPosition, Vector2Int[] regionPositions)
@@ -864,6 +956,23 @@ namespace LooCast.Universe
         #endregion
 
         #region Saving
+        public void SaveRegion(Region.Region region)
+        {
+            string path = $"{Application.dataPath}/Data/Universe/Regions/{region.RegionPosition.x}.{region.RegionPosition.y}.json";
+            string json = JsonUtility.ToJson(region, true);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using StreamWriter writer = new StreamWriter(path);
+            writer.Write(json);
+        }
+
+        public void SaveRegions(Region.Region[] regions)
+        {
+            foreach (Region.Region region in regions)
+            {
+                SaveRegion(region);
+            }
+        }
+        
         public void SaveRegion(Vector2Int regionPosition)
         {
             if (!IsRegionLoaded(regionPosition))
@@ -872,11 +981,7 @@ namespace LooCast.Universe
             }
 
             Region.Region region = GetRegion(regionPosition);
-            string path = $"{Application.dataPath}/Data/Universe/Regions/{regionPosition.x}.{regionPosition.y}.json";
-            string json = JsonUtility.ToJson(region, true);
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            using StreamWriter writer = new StreamWriter(path);
-            writer.Write(json);
+            SaveRegion(region);
         }
         
         public void SaveRegions(Vector2Int[] regionPositions)
@@ -889,7 +994,7 @@ namespace LooCast.Universe
 
         public void SaveRegions()
         {
-            foreach (Vector2Int regionPosition in loadedRegions.Keys)
+            foreach (Vector2Int regionPosition in loadedRegions.Keys.ToArray())
             {
                 SaveRegion(regionPosition);
             }
@@ -960,7 +1065,7 @@ namespace LooCast.Universe
         
         public void UnloadRegions()
         {
-            foreach (Vector2Int regionPosition in loadedRegions.Keys)
+            foreach (Vector2Int regionPosition in loadedRegions.Keys.ToArray())
             {
                 UnloadRegion(regionPosition);
             }
@@ -996,7 +1101,7 @@ namespace LooCast.Universe
         
         public void DespawnRegions()
         {
-            foreach (Vector2Int regionPosition in loadedRegions.Keys)
+            foreach (Vector2Int regionPosition in loadedRegions.Keys.ToArray())
             {
                 DespawnRegion(regionPosition);
             }
@@ -1028,7 +1133,7 @@ namespace LooCast.Universe
         
         public void DeleteRegions()
         {
-            foreach (Vector2Int regionPosition in loadedRegions.Keys)
+            foreach (Vector2Int regionPosition in loadedRegions.Keys.ToArray())
             {
                 DeleteRegion(regionPosition);
             }

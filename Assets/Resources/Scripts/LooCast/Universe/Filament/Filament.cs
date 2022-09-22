@@ -6,6 +6,7 @@ namespace LooCast.Universe.Filament
     using LooCast.Test;
     using LooCast.Util;
 
+    [Serializable]
     public class Filament
     {
         #region Structs

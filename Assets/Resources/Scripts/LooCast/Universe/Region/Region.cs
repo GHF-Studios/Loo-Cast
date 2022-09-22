@@ -9,6 +9,7 @@ namespace LooCast.Universe.Region
     using LooCast.Test;
     using LooCast.Math.Map;
 
+    [Serializable]
     public class Region
     {
         #region Structs

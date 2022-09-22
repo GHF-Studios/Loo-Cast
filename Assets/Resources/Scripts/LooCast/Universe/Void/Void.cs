@@ -3,6 +3,7 @@ using System;
 
 namespace LooCast.Universe.Void
 {
+    [Serializable]
     public class Void
     {
         #region Structs

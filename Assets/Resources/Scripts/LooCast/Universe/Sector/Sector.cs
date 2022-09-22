@@ -6,6 +6,7 @@ namespace LooCast.Universe.Sector
     using LooCast.Test;
     using LooCast.Util;
 
+    [Serializable]
     public class Sector
     {
         #region Structs
