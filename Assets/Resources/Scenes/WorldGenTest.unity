@@ -201,21 +201,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a862b45609a7e68439f7535be0421830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  generationSettings:
+  DEV_UNIVERSE_universeGenerationSettings:
     seed: 0
-    scale: 100
-    amplitude: 2
-    octaves: 5
-    persistence: 0.5
-    lacunarity: 2
-  voidAmount: 100
-  universeSize: 100
-  filamentSize: 100
-  sectorSize: 100
-  regionSize: 100
-  filamentPrefab: {fileID: 0}
-  sectorPrefab: {fileID: 0}
-  regionPrefab: {fileID: 0}
+    size: 0
+    voidGenerationSettings:
+      amount: 0
+    filamentGenerationSettings:
+      prefab: {fileID: 0}
+      size: 0
+    sectorGenerationSettings:
+      prefab: {fileID: 0}
+      size: 0
+    regionGenerationSettings:
+      prefab: {fileID: 0}
+      size: 0
+      scale: 0
+      amplitude: 0
+      octaves: 0
+      persistence: 0
+      lacunarity: 0
+  DEV_FILAMENT_filamentPosition: {x: 0, y: 0}
+  DEV_FILAMENT_filamentPositions: []
+  DEV_SECTOR_filamentPosition: {x: 0, y: 0}
+  DEV_SECTOR_sectorPosition: {x: 0, y: 0}
+  DEV_SECTOR_sectorPositions: []
+  DEV_REGION_sectorPosition: {x: 0, y: 0}
+  DEV_REGION_regionPosition: {x: 0, y: 0}
+  DEV_REGION_regionPositions: []
+  DEV_UNIVERSE_showSection: 0
+  DEV_FILAMENT_showSection: 0
+  DEV_SECTOR_showSection: 0
+  DEV_REGION_showSection: 0
 --- !u!1 &1711838337
 GameObject:
   m_ObjectHideFlags: 0
