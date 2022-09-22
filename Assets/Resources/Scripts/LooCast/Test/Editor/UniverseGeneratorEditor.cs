@@ -35,6 +35,7 @@ namespace LooCast.Test.Editor
             DEV_REGION_regionPositions = serializedObject.FindProperty("DEV_REGION_regionPositions");
         }
 
+        //Add Left Padding to Foldout Contents and Try GUILayout
         public override void OnInspectorGUI()
         {
             UniverseGenerator universeGenerator = (UniverseGenerator)target;
