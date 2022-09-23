@@ -9,6 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3927037810705037539}
+  - component: {fileID: 4356831905976523277}
+  - component: {fileID: 2298979627552393568}
   m_Layer: 0
   m_Name: Voronoi Test
   m_TagString: Untagged
@@ -28,11 +30,47 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 3927037812155073652}
   - {fileID: 3927037811578056146}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4356831905976523277
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3927037810705037538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc1bbe512b8eab54c9950fd50088d1f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  drawMode: 0
+  mapWidth: 2048
+  mapHeight: 2048
+  sampleCellAmount: {x: 4, y: 4}
+  offset: {x: 0, y: 0}
+  cellSpread: 1
+  power: 3
+  amplitude: 1
+  seed: 0
+  autoUpdate: 0
+--- !u!114 &2298979627552393568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3927037810705037538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a8cc3d3d6a63994eadfdd417bc972e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseMaterial: {fileID: 2100000, guid: 9040fd1a09ffd0740aa4709686586942, type: 2}
+  textureRenderer: {fileID: 3927037811578056147}
+  scalePlane: 1
 --- !u!1 &3927037811578056145
 GameObject:
   m_ObjectHideFlags: 0
@@ -60,11 +98,11 @@ Transform:
   m_GameObject: {fileID: 3927037811578056145}
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 128, y: 1, z: 128}
+  m_LocalScale: {x: 2048, y: 1, z: 2048}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3927037810705037539}
-  m_RootOrder: 1
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!33 &3927037811578065452
 MeshFilter:
@@ -116,73 +154,3 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &3927037812155073657
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3927037812155073652}
-  - component: {fileID: 3927037812155073659}
-  - component: {fileID: 3927037812155073658}
-  m_Layer: 0
-  m_Name: Voronoi Map Generator
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3927037812155073652
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3927037812155073657}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 1
-  m_Children: []
-  m_Father: {fileID: 3927037810705037539}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3927037812155073659
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3927037812155073657}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dc1bbe512b8eab54c9950fd50088d1f2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  drawMode: 0
-  mapWidth: 128
-  mapHeight: 128
-  sampleCellAmount: {x: 4, y: 4}
-  offset: {x: 0, y: 0}
-  cellSpread: 1
-  power: 3
-  amplitude: 1
-  seed: 0
-  autoUpdate: 1
---- !u!114 &3927037812155073658
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3927037812155073657}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5a8cc3d3d6a63994eadfdd417bc972e4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  baseMaterial: {fileID: 2100000, guid: 9040fd1a09ffd0740aa4709686586942, type: 2}
-  textureRenderer: {fileID: 3927037811578056147}
-  scalePlane: 1
