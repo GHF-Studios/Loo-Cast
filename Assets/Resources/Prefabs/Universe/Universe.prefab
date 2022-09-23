@@ -41,39 +41,30 @@ MonoBehaviour:
   m_GameObject: {fileID: 4694644655831026913}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a862b45609a7e68439f7535be0421830, type: 3}
+  m_Script: {fileID: 11500000, guid: 223956a7bec62774f82a8b33ef799b87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   DEV_UNIVERSE_universeGenerationSettings:
     seed: 0
-    size: 10
+    size: 0
     voidGenerationSettings:
-      amount: 25
+      amount: 0
     filamentGenerationSettings:
       prefab: {fileID: 0}
-      size: 10
+      size: 0
     sectorGenerationSettings:
       prefab: {fileID: 0}
-      size: 10
+      size: 0
     regionGenerationSettings:
       prefab: {fileID: 0}
-      size: 10
-      scale: 50
-      amplitude: 2
-      octaves: 5
-      persistence: 0.5
-      lacunarity: 2
+      size: 0
+      scale: 0
+      amplitude: 0
+      octaves: 0
+      persistence: 0
+      lacunarity: 0
   DEV_FILAMENT_filamentPosition: {x: 0, y: 0}
-  DEV_FILAMENT_filamentPositions:
-  - {x: -1, y: -1}
-  - {x: 0, y: -1}
-  - {x: 1, y: -1}
-  - {x: -1, y: 0}
-  - {x: 0, y: 0}
-  - {x: 1, y: 0}
-  - {x: -1, y: 1}
-  - {x: 0, y: 1}
-  - {x: 1, y: 1}
+  DEV_FILAMENT_filamentPositions: []
   DEV_SECTOR_filamentPosition: {x: 0, y: 0}
   DEV_SECTOR_sectorPosition: {x: 0, y: 0}
   DEV_SECTOR_sectorPositions: []
@@ -81,6 +72,6 @@ MonoBehaviour:
   DEV_REGION_regionPosition: {x: 0, y: 0}
   DEV_REGION_regionPositions: []
   DEV_UNIVERSE_showSection: 0
-  DEV_FILAMENT_showSection: 1
+  DEV_FILAMENT_showSection: 0
   DEV_SECTOR_showSection: 0
   DEV_REGION_showSection: 0
