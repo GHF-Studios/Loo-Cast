@@ -5,13 +5,9 @@ namespace LooCast.Test
     using Noise;
     using Util;
 
-    public class PerlinMapGenerator : MonoBehaviour
+    public class PerlinMapGeneratorGPU : MonoBehaviour
     {
-        public enum DrawMode
-        {
-            NoiseMap,
-            ColorMap
-        }
+        public ComputeShader ComputeShader;
         public DrawMode CurrentDrawMode;
 
         public int MapWidth;
@@ -22,107 +18,93 @@ namespace LooCast.Test
         [Range(0.0f, 1.0f)]
         public float Persistence;
         public float Lacunarity;
-
         [Range(0, 2109876543)]
         public int Seed;
         public Vector2 Offset;
         public bool AutoUpdate;
-        public TerrainType[] regions;
+        public TerrainType[] Regions;
 
-        public ComputeShader ComputeShader;
+        private const int maxOctaves = 16;
 
         public void GenerateMap()
         {
-            #region OLD DUSTY ASS CPU ALGORITHM
-            float[,] noiseMap = PerlinNoise.GenerateNoiseMap(MapWidth, MapHeight, Seed, NoiseScale, Octaves, Persistence, Lacunarity, NoiseAmplitude, Offset).Array2D;
-
-            Color[] colorMap = new Color[MapWidth * MapHeight];
+            #region Perlin Pixel Compute Buffer Creation
+            PerlinPixel[] perlinPixelsData = new PerlinPixel[MapWidth * MapHeight];
             for (int y = 0; y < MapHeight; y++)
             {
                 for (int x = 0; x < MapWidth; x++)
                 {
-                    float currentHeight = noiseMap[x, y];
-                    for (int i = 0; i < regions.Length; i++)
-                    {
-                        if (currentHeight <= regions[i].height)
-                        {
-                            colorMap[y * MapWidth + x] = regions[i].color;
-                            break;
-                        }
-                    }
+                    perlinPixelsData[y * MapWidth + x] = new PerlinPixel(x, y);
                 }
             }
 
-            MapDisplay display = GetComponent<MapDisplay>();
-            if (CurrentDrawMode == DrawMode.NoiseMap)
+            System.Random prng = new System.Random(Seed);
+            OctaveOffset[] octaveOffsetsData = new OctaveOffset[perlinPixelsData.Length];
+            for (int i = 0; i < octaveOffsetsData.Length; i++)
             {
-                display.DrawTexture(TextureUtil.TextureFromHeightMap(noiseMap));
+                float offsetX = prng.Next(-100000, 100000) + Offset.x;
+                float offsetY = prng.Next(-100000, 100000) + Offset.y;
+                octaveOffsetsData[i] = new OctaveOffset(offsetX, offsetY);
             }
 
-            else if (CurrentDrawMode == DrawMode.ColorMap)
-            {
-                display.DrawTexture(TextureUtil.TextureFromColorMap(colorMap, MapWidth, MapHeight));
-            }
-            #endregion
-
-            #region Voronoi Cell Compute Buffer Creation
-            Vector2Int[] voronoiCells = VoronoiNoise.GetCentroids(Seed, MapWidth, MapHeight, SampleCellAmount, CellSpread);
-            VoronoiCell[] voronoiCellsData = new VoronoiCell[voronoiCells.Length];
-            for (int i = 0; i < voronoiCellsData.Length; i++)
-            {
-                voronoiCellsData[i] = new VoronoiCell(i, voronoiCells[i].x, voronoiCells[i].y);
-            }
-
-            ComputeBuffer voronoiCellsBuffer = new ComputeBuffer(voronoiCellsData.Length, VoronoiCell.ByteSize);
-            voronoiCellsBuffer.SetData(voronoiCellsData);
-            #endregion
-
-            #region Voronoi Pixel Compute Buffer Creation
-            VoronoiPixel[] voronoiPixelsData = new VoronoiPixel[MapWidth * MapHeight];
-            for (int y = 0; y < MapHeight; y++)
-            {
-                for (int x = 0; x < MapWidth; x++)
-                {
-                    voronoiPixelsData[y * MapWidth + x] = new VoronoiPixel(x, y);
-                }
-            }
-
-            ComputeBuffer voronoiPixelsBuffer = new ComputeBuffer(voronoiPixelsData.Length, VoronoiPixel.ByteSize);
-            voronoiPixelsBuffer.SetData(voronoiPixelsData);
+            ComputeBuffer perlinPixelsBuffer = new ComputeBuffer(perlinPixelsData.Length, PerlinPixel.ByteSize);
+            ComputeBuffer octaveOffsetsBuffer = new ComputeBuffer(octaveOffsetsData.Length, OctaveOffset.ByteSize * octaveOffsetsData.Length);
+            perlinPixelsBuffer.SetData(perlinPixelsData);
+            octaveOffsetsBuffer.SetData(octaveOffsetsData);
             #endregion
 
             #region Compute Shader Creation and Execution
-            ComputeShader.SetBuffer(0, "voronoiCells", voronoiCellsBuffer);
-            ComputeShader.SetBuffer(0, "voronoiPixels", voronoiPixelsBuffer);
+            ComputeShader.SetBuffer(0, "perlinPixels", perlinPixelsBuffer);
             ComputeShader.SetInts("textureDimensions", MapWidth, MapHeight);
-            ComputeShader.SetInts("voronoiCellArrayDimensions", SampleCellAmount.x, SampleCellAmount.y);
-            ComputeShader.Dispatch(0, MapWidth / 32, MapHeight / 32, 1);
-            voronoiPixelsBuffer.GetData(voronoiPixelsData);
-            voronoiCellsBuffer.Dispose();
-            voronoiPixelsBuffer.Dispose();
+            ComputeShader.SetInt("seed", Seed);
+            ComputeShader.SetFloat("scale", NoiseScale);
+            ComputeShader.SetInt("octaves", Octaves);
+            ComputeShader.SetFloat("persistence", Persistence);
+            ComputeShader.SetFloat("lacunarity", Lacunarity);
+            ComputeShader.SetFloat("amplitude", NoiseAmplitude);
+            ComputeShader.Dispatch(0, 1, 1, 1);
+            ComputeShader.Dispatch(1, MapWidth / 32, MapHeight / 32, 1);
+            perlinPixelsBuffer.GetData(perlinPixelsData);
+            perlinPixelsBuffer.Dispose();
             #endregion
 
-            #region Computed Pixel Data Evaluation
-            float[] distances = new float[voronoiPixelsData.Length];
-            for (int i = 0; i < distances.Length; i++)
-            {
-                distances[i] = voronoiPixelsData[i].DistanceToVoronoiCell;
-            }
-
-            Color[] colorMap = new Color[voronoiPixelsData.Length];
-            float maxDistance = GetMaxDistance(distances);
-            for (int i = 0; i < distances.Length; i++)
-            {
-                float colorValue = distances[i] / maxDistance;
-                colorValue = Mathf.Pow(colorValue, (1 - colorValue) * Power);
-                colorValue *= Amplitude;
-                colorMap[i] = new Color(colorValue, colorValue, colorValue, 1.0f);
-            }
-            #endregion
-
-            #region Pixel Data Display
+            #region Pixel Data Evaluation & Display
             MapDisplay display = GetComponent<MapDisplay>();
-            display.DrawTexture(TextureUtil.TextureFromColorMap(colorMap, MapWidth, MapHeight));
+            if (CurrentDrawMode == DrawMode.NoiseMap)
+            {
+                Color[] noiseMap = new Color[perlinPixelsData.Length];
+                for (int y = 0; y < MapHeight; y++)
+                {
+                    for (int x = 0; x < MapWidth; x++)
+                    {
+                        float perlinValue = perlinPixelsData[y * MapWidth + x].PerlinValue;
+                        noiseMap[y * MapWidth + x] = new Color(perlinValue, perlinValue, perlinValue, 1.0f);
+                    }
+                }
+
+                display.DrawTexture(TextureUtil.TextureFromColorMap(noiseMap, MapWidth, MapHeight));
+            }
+            else if (CurrentDrawMode == DrawMode.ColorMap)
+            {
+                Color[] colorMap = new Color[perlinPixelsData.Length];
+                for (int y = 0; y < MapHeight; y++)
+                {
+                    for (int x = 0; x < MapWidth; x++)
+                    {
+                        float currentHeight = perlinPixelsData[y * MapWidth + x].PerlinValue;
+                        for (int i = 0; i < Regions.Length; i++)
+                        {
+                            if (currentHeight <= Regions[i].height)
+                            {
+                                colorMap[y * MapWidth + x] = Regions[i].color;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                display.DrawTexture(TextureUtil.TextureFromColorMap(colorMap, MapWidth, MapHeight));
+            }
             #endregion
         }
 
@@ -159,46 +141,83 @@ namespace LooCast.Test
             {
                 MapHeight = 1;
             }
-            if (Lacunarity < 1)
+            if (Lacunarity < 1.0f)
             {
-                Lacunarity = 1;
+                Lacunarity = 1.0f;
             }
             if (Octaves < 0)
             {
                 Octaves = 0;
             }
-        }
-    } 
-
-    #region Structs
-    [System.Serializable]
-    public struct TerrainType
-    {
-        public string name;
-        public float height;
-        public Color color;
-    }
-
-    private struct PerlinPixel
-    {
-        private int positionX;
-        private int positionY;
-        private float perlinValue;
-
-        public VoronoiPixel(int positionX, int positionY)
-        {
-            this.positionX = positionX;
-            this.positionY = positionY;
-            perlinValue = 0.0f;
-        }
-
-        public static int ByteSize
-        {
-            get
+            if (Octaves > maxOctaves)
             {
-                return (sizeof(int) * 2) + (sizeof(float));
+                Octaves = maxOctaves;
             }
         }
+
+        #region Enums
+        public enum DrawMode
+        {
+            NoiseMap,
+            ColorMap
+        }
+        #endregion
+
+        #region Structs
+        [System.Serializable]
+        public struct TerrainType
+        {
+            public string name;
+            public float height;
+            public Color color;
+        }
+
+        private struct PerlinPixel
+        {
+            public float PerlinValue => perlinValue;
+
+            private int positionX;
+            private int positionY;
+            private float perlinValue;
+
+            public PerlinPixel(int positionX, int positionY)
+            {
+                this.positionX = positionX;
+                this.positionY = positionY;
+                perlinValue = 0.0f;
+            }
+
+            public static int ByteSize
+            {
+                get
+                {
+                    return (sizeof(int) * 2) + (sizeof(float));
+                }
+            }
+        }
+        
+        private struct OctaveOffset
+        {
+            public float X => X;
+            public float Y => y;
+
+            private float x;
+            private float y;
+
+            public OctaveOffset(float x, float y)
+            {
+                this.x = x;
+                this.y = y;
+            }
+
+            public static int ByteSize
+            {
+                get
+                {
+                    return (sizeof(float) * 2);
+                }
+            }
+        }
+        #endregion
     }
-    #endregion
 }
