@@ -10,12 +10,6 @@ struct PerlinPixel
     float perlinValue;
 };
 
-struct OctaveOffset
-{
-    float x;
-    float y;
-};
-
 int2 textureDimensions;
 int seed;
 float scale;
@@ -23,10 +17,12 @@ int octaves;
 float persistence;
 float lacunarity;
 float amplitude;
+float2 offset;
+
+static const int maxOctaves = 5;
 
 float maxNoiseAmplitude;
 
-StructuredBuffer<OctaveOffset> octaveOffsets;
 RWStructuredBuffer<PerlinPixel> perlinPixels;
 
 static const int permutation[] = 
@@ -44,6 +40,66 @@ static const int permutation[] =
 };
 
 static int p[512];
+
+uint PCG_Hash(uint input)
+{
+    uint state = input * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+uint MapUInt(uint value, uint fromMin, uint fromMax, uint toMin, uint toMax)
+{
+    return (value - fromMin) / (fromMax - fromMin) * (toMax - toMin) + toMin;
+}
+
+int MapInt(int value, int fromMin, int fromMax, int toMin, int toMax)
+{
+    return (value - fromMin) / (fromMax - fromMin) * (toMax - toMin) + toMin;
+}
+
+int MapToInt(uint value)
+{
+    int intValue;
+    if (value > 2147483647)
+    {
+        value -= 2147483648;
+        intValue = -int(value) - 1;
+    }
+    else
+    {
+        intValue = int(value);
+    }
+    return intValue;
+}
+
+uint MapToUInt(int value)
+{
+    uint uintValue;
+    if (value == 0)
+    {
+        uintValue = 0;
+    }
+    else if (value > 0)
+    {
+        uintValue = uint(value);
+    }
+    else
+    {
+        uintValue = abs(value) + 2147483647;
+    }
+    return uintValue;
+}
+
+uint RandomInUIntRange(uint min, uint max, uint uintSeed)
+{
+    return MapUInt(PCG_Hash(uintSeed), 0, 4294967295, min, max);
+}
+
+int RandomInIntRange(int min, int max, uint uintSeed)
+{
+    return MapInt(MapToInt(PCG_Hash(uintSeed)), -2147483648, 2147483647, min, max);
+}
 
 double Lerp(double a, double b, double x) 
 {
@@ -125,15 +181,31 @@ double SamplePerlin(double x, double y, double z)
 
 double SampleProcessedPerlin(double x, double y, int perlinPixelIndex)
 {
+    int subSeed = seed + x + y;
+
     double value = 0.0;
     double frequency = 1;
     double amplitude = 1;
     double maxValue = 0;
 
+    float2 octaveOffsets[maxOctaves];
+    for (int i = 0; i < octaves; i++)
+    {
+        float offsetX = RandomInIntRange(-100000, 100000, subSeed) + offset.x;
+        subSeed++;
+        float offsetY = RandomInIntRange(-100000, 100000, subSeed) + offset.y;
+        subSeed++;
+        offsetX = 0;
+        offsetY = 0;
+        octaveOffsets[i] = float2(offsetX, offsetY);
+    }
+
     for (int i = 0; i < octaves; i++)
     {
         double sampleX = ((x - (textureDimensions.x/2) + octaveOffsets[perlinPixelIndex].x) / scale) * frequency;
         double sampleY = ((y - (textureDimensions.y/2) + octaveOffsets[perlinPixelIndex].y) / scale) * frequency;
+        sampleX = octaveOffsets[perlinPixelIndex].x;
+        sampleY = octaveOffsets[perlinPixelIndex].y;
         value += SamplePerlin(sampleX, sampleY, seed) * amplitude;
 
         maxValue += amplitude;

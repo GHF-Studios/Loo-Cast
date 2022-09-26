@@ -1,7 +1,64 @@
+Overview
+
+- The Universe is split into Chunks, called Filaments
+- A Filament is split into Chunks, called Sectors				=>		(Matter-Abundant): Galactic Space		(Matter-Sparse): Intergalactic Space
+- A Sector is split into Chunks, called Regions					=>		(Matter-Abundant): Stellar Space		(Matter-Sparse): Interstellar Space
+- A Region is what constitutes, what the player experiences		=>		(Matter-Abundant): Planetary Space		(Matter-Sparse): Interplanetary Space
+
+Continuous Phenomena Categories:
+- Galactic
+- Intergalactic
+- Stellar
+- Interstellar
+- Planetary
+- Interplanetary
+
+There are 2 Types of Phenomena that can be found in the Universe:
+1. Discrete Phenomena, like Stars, Planets, Space Stations, Enemy Ships, Black Holes, etc.
+2. Continuous Phenomena, like Nebulae, Asteroid Fields, etc.
+
+These Phenomena can be of three Scales:
+1. Planetary (The order of magnitude found inside Star Systems)
+2. Stellar (The order of magnitude found inside Galaxies, but not in a single Star System)
+3. Galactic (The order of magnitude found inside Galaxy Clusters, but not in a single Galaxy)
+
+
+
+
+
+Continuous Phenomena
+=> Plasma
+	- Plasma Cloud
+	- Ionized Plasma Cloud
+	- Plasma Storm
+	- Ionized Plasma Storm
+=> Molecular
+	- Dust Cloud
+	- Gas Cloud
+	- Molecular Cloud (Dust & Gas Cloud)
+	- Planetary Ring System
+=> Asteroid
+	- Stellar Asteroid Belt
+	- Asteroid Field
+	- P-Type Asteroid
+	- M-Type Asteroid
+	- E-Type Asteroid
+=> Planetoid
+
+
+
+
+
+
+
+
+
+
 Regions
-	- Intergalactic Space
-	- Interstellar Space
-	- Interplanetary Space
+	- Intergalactic Space	= Filament Map 	(Contained in a Universe)
+	- Interstellar Space	= Sector Map 	(Contained in a Filament)
+	- Interplanetary Space	= Region Map 	(Contained in a Sector)
+	- Planetary Space		= Object Map 	(Contained in a Region)
 
 Region Parameters
 	- Light Matter Concentration

@@ -24,7 +24,7 @@ namespace LooCast.Test
         public bool AutoUpdate;
         public TerrainType[] Regions;
 
-        private const int maxOctaves = 16;
+        private const int maxOctaves = 5;
 
         public void GenerateMap()
         {
@@ -38,23 +38,12 @@ namespace LooCast.Test
                 }
             }
 
-            System.Random prng = new System.Random(Seed);
-            OctaveOffset[] octaveOffsetsData = new OctaveOffset[perlinPixelsData.Length];
-            for (int i = 0; i < octaveOffsetsData.Length; i++)
-            {
-                float offsetX = prng.Next(-100000, 100000) + Offset.x;
-                float offsetY = prng.Next(-100000, 100000) + Offset.y;
-                octaveOffsetsData[i] = new OctaveOffset(offsetX, offsetY);
-            }
-
             ComputeBuffer perlinPixelsBuffer = new ComputeBuffer(perlinPixelsData.Length, PerlinPixel.ByteSize);
-            ComputeBuffer octaveOffsetsBuffer = new ComputeBuffer(octaveOffsetsData.Length, OctaveOffset.ByteSize * octaveOffsetsData.Length);
             perlinPixelsBuffer.SetData(perlinPixelsData);
-            octaveOffsetsBuffer.SetData(octaveOffsetsData);
             #endregion
 
             #region Compute Shader Creation and Execution
-            ComputeShader.SetBuffer(0, "perlinPixels", perlinPixelsBuffer);
+            ComputeShader.SetBuffer(1, "perlinPixels", perlinPixelsBuffer);
             ComputeShader.SetInts("textureDimensions", MapWidth, MapHeight);
             ComputeShader.SetInt("seed", Seed);
             ComputeShader.SetFloat("scale", NoiseScale);
@@ -192,29 +181,6 @@ namespace LooCast.Test
                 get
                 {
                     return (sizeof(int) * 2) + (sizeof(float));
-                }
-            }
-        }
-        
-        private struct OctaveOffset
-        {
-            public float X => X;
-            public float Y => y;
-
-            private float x;
-            private float y;
-
-            public OctaveOffset(float x, float y)
-            {
-                this.x = x;
-                this.y = y;
-            }
-
-            public static int ByteSize
-            {
-                get
-                {
-                    return (sizeof(float) * 2);
                 }
             }
         }
