@@ -249,12 +249,104 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_showSection
-      value: 1
+      propertyPath: DEV_SECTOR_showSection
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.size
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.size
-      value: 2048
+      value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[0].x
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[0].y
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[1].x
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[1].y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[2].x
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[2].y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[3].x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[3].y
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[4].x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[4].y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[5].x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[5].y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[6].x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[6].y
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[7].x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[7].y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[8].x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[8].y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.size
+      value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.sectorGenerationSettings.size
+      value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.size
+      value: 512
       objectReference: {fileID: 0}
     - target: {fileID: 4694644655831026913, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: m_Name

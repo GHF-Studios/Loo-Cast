@@ -59,19 +59,65 @@ namespace LooCast.Universe
         public Filament.Filament.GenerationSettings FilamentGenerationSettings => generationSettings.filamentGenerationSettings;
         public Sector.Sector.GenerationSettings SectorGenerationSettings => generationSettings.sectorGenerationSettings;
         public Region.Region.GenerationSettings RegionGenerationSettings => generationSettings.regionGenerationSettings;
+        public Texture2D Map => map;
 
         [SerializeField] private GenerationSettings generationSettings;
-        private Texture2D map;
 
         private Dictionary<Vector2Int, Void.Void> loadedVoids;
         private Dictionary<Vector2Int, Filament.Filament> loadedFilaments;
         private Dictionary<Vector2Int, Sector.Sector> loadedSectors;
         private Dictionary<Vector2Int, Region.Region> loadedRegions;
+        private Texture2D map;
 
 
         private Universe(GenerationSettings generationSettings)
         {
             this.generationSettings = generationSettings;
+
+            #region Main Generation
+            SeededRandom prng = new SeededRandom(generationSettings.seed);
+            for (int x = 0; x < generationSettings.voidGenerationSettings.amount; x++)
+            {
+                for (int y = 0; y < generationSettings.voidGenerationSettings.amount; y++)
+                {
+                    Vector2Int voidPosition = new Vector2Int(x, y);
+                    Vector2 normalizedVoidPositionOffset = new Vector2(prng.Range(-0.5f, 0.5f), prng.Range(-0.5f, 0.5f));
+                    GenerateVoid(voidPosition, normalizedVoidPositionOffset);
+                }
+            }
+
+            FastNoiseLite fastNoiseLite = new FastNoiseLite();
+
+            //General
+            fastNoiseLite.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+            fastNoiseLite.SetSeed(generationSettings.seed);
+            fastNoiseLite.SetFrequency(0.04f);
+
+            //Fractal
+            fastNoiseLite.SetFractalType(FastNoiseLite.FractalType.FBm);
+            fastNoiseLite.SetFractalOctaves(5);
+            fastNoiseLite.SetFractalLacunarity(2.0f);
+            fastNoiseLite.SetFractalGain(0.5f);
+            fastNoiseLite.SetFractalWeightedStrength(0.5f);
+
+            //Cellular
+            fastNoiseLite.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
+            fastNoiseLite.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
+            fastNoiseLite.SetCellularJitter(1.0f);
+
+            Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
+            for (int y = 0; y < generationSettings.size; y++)
+            {
+                for (int x = 0; x < generationSettings.size; x++)
+                {
+                    float noiseValue = (fastNoiseLite.GetNoise(x, y) + 1) / 2;
+                    noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
+                }
+            }
+
+            map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
+
+            #endregion
         }
 
         private void Initialize()
@@ -88,6 +134,18 @@ namespace LooCast.Universe
         }
 
         #region Universe
+
+        #region Utility
+        public static float GetMapPixelValue(Vector2Int pixelPosition)
+        {
+            if (!IsUniverseLoaded())
+            {
+                throw new Exception("Universe is not loaded!");
+            }
+
+            return Instance.map.GetPixel(pixelPosition.x, pixelPosition.y).grayscale;
+        }
+        #endregion
 
         #region Generation
         public static bool IsUniverseGenerated()
@@ -110,52 +168,6 @@ namespace LooCast.Universe
 
             Universe universe = new Universe(generationSettings);
             Instance = universe;
-
-            #region Main Generation
-            SeededRandom prng = new SeededRandom(universe.generationSettings.seed);
-            for (int x = 0; x < universe.generationSettings.voidGenerationSettings.amount; x++)
-            {
-                for (int y = 0; y < universe.generationSettings.voidGenerationSettings.amount; y++)
-                {
-                    Vector2Int voidPosition = new Vector2Int(x, y);
-                    Vector2 normalizedVoidPositionOffset = new Vector2(prng.Range(-0.5f, 0.5f), prng.Range(-0.5f, 0.5f));
-                    universe.GenerateVoid(voidPosition, normalizedVoidPositionOffset);
-                }
-            }
-
-            FastNoiseLite fastNoiseLite = new FastNoiseLite();
-
-            //General
-            fastNoiseLite.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
-            fastNoiseLite.SetSeed(generationSettings.seed);
-            fastNoiseLite.SetFrequency(0.04f);
-
-            //Fractal
-            fastNoiseLite.SetFractalType(FastNoiseLite.FractalType.FBm);
-            fastNoiseLite.SetFractalOctaves(5);
-            fastNoiseLite.SetFractalLacunarity(2.0f);
-            fastNoiseLite.SetFractalGain(0.5f);
-            fastNoiseLite.SetFractalWeightedStrength(0.3f);
-
-            //Cellular
-            fastNoiseLite.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
-            fastNoiseLite.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
-            fastNoiseLite.SetCellularJitter(1.0f);
-
-            Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
-            for (int y = 0; y < generationSettings.size; y++)
-            {
-                for (int x = 0; x < generationSettings.size; x++)
-                {
-                    float noiseValue = (fastNoiseLite.GetNoise(x, y) + 1) / 2;
-                    noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
-                }
-            }
-
-            Instance.map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
-
-            #endregion
-
             SaveUniverse();
         }
         #endregion
@@ -479,6 +491,11 @@ namespace LooCast.Universe
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
             writer.Write(json);
+
+            path = $"{Application.dataPath}/Data/Universe/Filaments/{filament.FilamentPosition.x}.{filament.FilamentPosition.y}_Map.png";
+            byte[] mapData = ImageConversion.EncodeToPNG(filament.Map);
+            using BinaryWriter binaryWriter = new BinaryWriter(File.OpenWrite(path));
+            binaryWriter.Write(mapData);
         }
 
         public void SaveFilaments(Filament.Filament[] filaments)
@@ -550,7 +567,12 @@ namespace LooCast.Universe
             string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
-            loadedFilaments.Add(filamentPosition, JsonUtility.FromJson<Filament.Filament>(json));
+            Filament.Filament filament = JsonUtility.FromJson<Filament.Filament>(json);
+            loadedFilaments.Add(filamentPosition, filament);
+
+            path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}_Map.png";
+            byte[] mapData = File.ReadAllBytes(path);
+            ImageConversion.LoadImage(filament.Map, mapData);
         }
 
         public void LoadFilaments(Vector2Int[] filamentPositions)
@@ -635,6 +657,9 @@ namespace LooCast.Universe
             if (IsFilamentGenerated(filamentPosition))
             {
                 string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}.json";
+                File.Delete(path);
+
+                path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}_Map.png";
                 File.Delete(path);
             }
         }
