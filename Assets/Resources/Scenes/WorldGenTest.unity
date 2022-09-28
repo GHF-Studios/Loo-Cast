@@ -249,172 +249,120 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_REGION_showSection
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_SECTOR_showSection
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_showSection
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.size
+      propertyPath: DEV_REGION_regionPositions.Array.size
       value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.size
-      value: 2048
+      propertyPath: DEV_SECTOR_sectorPositions.Array.size
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[0].x
+      propertyPath: DEV_REGION_regionPositions.Array.data[0].x
       value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[0].y
+      propertyPath: DEV_REGION_regionPositions.Array.data[0].y
       value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[1].x
+      propertyPath: DEV_REGION_regionPositions.Array.data[1].x
       value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[1].y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[2].x
+      propertyPath: DEV_REGION_regionPositions.Array.data[2].x
       value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[2].y
+      propertyPath: DEV_REGION_regionPositions.Array.data[2].y
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[3].x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[3].y
+      propertyPath: DEV_REGION_regionPositions.Array.data[3].y
       value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[4].x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[4].y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[5].x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[5].y
+      propertyPath: DEV_REGION_regionPositions.Array.data[5].y
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[6].x
+      propertyPath: DEV_REGION_regionPositions.Array.data[6].x
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[6].y
+      propertyPath: DEV_REGION_regionPositions.Array.data[6].y
       value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[7].x
+      propertyPath: DEV_REGION_regionPositions.Array.data[7].x
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[7].y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[8].x
+      propertyPath: DEV_REGION_regionPositions.Array.data[8].x
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[8].y
+      propertyPath: DEV_REGION_regionPositions.Array.data[8].y
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.noiseAmplitude
-      value: 0.75
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.noiseAmplitudeLow
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.noiseAmplitudeHigh
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.noiseMappingLowerBound
-      value: 0.6
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.noiseMappingUpperBound
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.size
-      value: 512
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.sectorGenerationSettings.size
-      value: 512
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.size
-      value: 512
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.size
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].time
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[0].value
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[0].x
       value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].value
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[0].y
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[1].x
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[2].x
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[2].y
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[0].inSlope
-      value: 5936.5254
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[3].y
+      value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].inSlope
-      value: 275.491
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[5].y
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[0].outSlope
-      value: 5936.5254
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[6].x
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].inWeight
-      value: 0.0072648525
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[6].y
+      value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].outSlope
-      value: 275.491
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[7].x
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[0].outWeight
-      value: 0.00033673854
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[8].x
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[0].weightedMode
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].weightedMode
-      value: 3
+      propertyPath: DEV_SECTOR_sectorPositions.Array.data[8].y
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4694644655831026913, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: m_Name

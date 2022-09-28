@@ -47,8 +47,6 @@ MonoBehaviour:
   DEV_UNIVERSE_universeGenerationSettings:
     seed: 0
     size: 2048
-    voidGenerationSettings:
-      amount: 0
     filamentGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 77d6d03686b6ef845beef5135fbab1b5, type: 3}
       size: 2048
@@ -58,13 +56,17 @@ MonoBehaviour:
     regionGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 668a2465b9473cc4ebeba51458152e80, type: 3}
       size: 2048
-      scale: 0
-      amplitude: 0
-      octaves: 0
-      persistence: 0
-      lacunarity: 0
   DEV_FILAMENT_filamentPosition: {x: 0, y: 0}
-  DEV_FILAMENT_filamentPositions: []
+  DEV_FILAMENT_filamentPositions:
+  - {x: -1, y: -1}
+  - {x: -1, y: 0}
+  - {x: -1, y: 1}
+  - {x: 0, y: -1}
+  - {x: 0, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: -1}
+  - {x: 1, y: 0}
+  - {x: 1, y: 1}
   DEV_SECTOR_filamentPosition: {x: 0, y: 0}
   DEV_SECTOR_sectorPosition: {x: 0, y: 0}
   DEV_SECTOR_sectorPositions: []

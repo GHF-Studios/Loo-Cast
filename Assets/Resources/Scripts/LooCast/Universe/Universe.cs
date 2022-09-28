@@ -26,7 +26,6 @@ namespace LooCast.Universe
             }
             #endregion
 
-            public Vector2Int WorldPosition => worldPosition;
             public Vector2Int FilamentPosition => filamentPosition;
             public Texture2D Map
             {
@@ -42,23 +41,41 @@ namespace LooCast.Universe
             }
 
             [SerializeField] private Vector2Int filamentPosition;
-            [SerializeField] private Vector2Int worldPosition;
 
             private GameObject filamentObject;
             private Texture2D map;
 
             public Filament(Vector2Int filamentPosition)
             {
-                Universe.GenerationSettings universeGenerationSettings = Universe.Instance.UniverseGenerationSettings;
-                Filament.GenerationSettings filamentGenerationSettings = Universe.Instance.FilamentGenerationSettings;
+                GenerationSettings generationSettings = Instance.FilamentGenerationSettings;
                 this.filamentPosition = filamentPosition;
-                worldPosition = filamentPosition * filamentGenerationSettings.size;
+
+                #region Filament Map Generation
+                Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
+                for (int y = 0; y < generationSettings.size; y++)
+                {
+                    for (int x = 0; x < generationSettings.size; x++)
+                    {
+                        float offsetX = - (filamentPosition.x * Instance.FilamentGenerationSettings.size);
+                        float offsetY = - (filamentPosition.y * Instance.FilamentGenerationSettings.size);
+                        float sampleX = x + offsetX;
+                        float sampleY = y + offsetY;
+                        Instance.FilamentDomainWarper.DomainWarp(ref sampleX, ref sampleY);
+                        float noiseValue = Instance.FilamentNoiseGenerator.GetNoise(sampleX, sampleY);
+                        noiseValue = noiseValue.Map(-1, 1, 0, 1);
+                        noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
+                    }
+                }
+
+                map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
+                #endregion
             }
 
             public void Spawn()
             {
-                filamentObject = GameObject.Instantiate(Universe.Instance.FilamentGenerationSettings.prefab);
+                filamentObject = GameObject.Instantiate(Instance.FilamentGenerationSettings.prefab);
                 filamentObject.name = $"Filament ({filamentPosition.x}, {filamentPosition.y})";
+                Vector2Int worldPosition = filamentPosition * Instance.FilamentGenerationSettings.size;
                 filamentObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 
                 MapDisplay mapDisplay = filamentObject.GetComponentInChildren<MapDisplay>();
@@ -83,7 +100,7 @@ namespace LooCast.Universe
             }
             #endregion
 
-            public Vector2Int WorldPosition => worldPosition;
+            public Vector2Int FilamentPosition => filamentPosition;
             public Vector2Int SectorPosition => sectorPosition;
             public Texture2D Map
             {
@@ -100,22 +117,42 @@ namespace LooCast.Universe
 
             [SerializeField] private Vector2Int filamentPosition;
             [SerializeField] private Vector2Int sectorPosition;
-            [SerializeField] private Vector2Int worldPosition;
 
             private GameObject sectorObject;
             private Texture2D map;
 
             public Sector(Vector2Int filamentPosition, Vector2Int sectorPosition)
             {
+                GenerationSettings generationSettings = Instance.SectorGenerationSettings;
                 this.filamentPosition = filamentPosition;
                 this.sectorPosition = sectorPosition;
-                worldPosition = sectorPosition * Universe.Instance.SectorGenerationSettings.size;
+
+                #region Sector Map Generation
+                Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
+                for (int y = 0; y < generationSettings.size; y++)
+                {
+                    for (int x = 0; x < generationSettings.size; x++)
+                    {
+                        float offsetX = - (sectorPosition.x * Instance.SectorGenerationSettings.size);
+                        float offsetY = - (sectorPosition.y * Instance.SectorGenerationSettings.size);
+                        float sampleX = x + offsetX;
+                        float sampleY = y + offsetY;
+                        Instance.SectorDomainWarper.DomainWarp(ref sampleX, ref sampleY);
+                        float noiseValue = Instance.SectorNoiseGenerator.GetNoise(sampleX, sampleY);
+                        noiseValue = noiseValue.Map(-1, 1, 0, 1);
+                        noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
+                    }
+                }
+
+                map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
+                #endregion
             }
 
             public void Spawn()
             {
-                sectorObject = GameObject.Instantiate(Universe.Instance.SectorGenerationSettings.prefab);
+                sectorObject = GameObject.Instantiate(Instance.SectorGenerationSettings.prefab);
                 sectorObject.name = $"Sector ({sectorPosition.x}, {sectorPosition.y})";
+                Vector2Int worldPosition = sectorPosition * Instance.SectorGenerationSettings.size;
                 sectorObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 
                 MapDisplay mapDisplay = sectorObject.GetComponentInChildren<MapDisplay>();
@@ -140,7 +177,8 @@ namespace LooCast.Universe
             }
             #endregion
 
-            public Vector2Int WorldPosition => worldPosition;
+            public Vector2Int FilamentPosition => Instance.GetSector(sectorPosition).FilamentPosition;
+            public Vector2Int SectorPosition => sectorPosition;
             public Vector2Int RegionPosition => regionPosition;
             public Texture2D Map
             {
@@ -157,22 +195,42 @@ namespace LooCast.Universe
 
             [SerializeField] private Vector2Int sectorPosition;
             [SerializeField] private Vector2Int regionPosition;
-            [SerializeField] private Vector2Int worldPosition;
 
             private GameObject regionObject;
             private Texture2D map;
 
             public Region(Vector2Int sectorPosition, Vector2Int regionPosition)
             {
+                GenerationSettings generationSettings = Instance.RegionGenerationSettings;
                 this.sectorPosition = sectorPosition;
                 this.regionPosition = regionPosition;
-                worldPosition = regionPosition * Universe.Instance.RegionGenerationSettings.size;
+
+                #region Region Map Generation
+                Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
+                for (int y = 0; y < generationSettings.size; y++)
+                {
+                    for (int x = 0; x < generationSettings.size; x++)
+                    {
+                        float offsetX = - (regionPosition.x * Instance.RegionGenerationSettings.size);
+                        float offsetY = - (regionPosition.y * Instance.RegionGenerationSettings.size);
+                        float sampleX = x + offsetX;
+                        float sampleY = y + offsetY;
+                        Instance.RegionDomainWarper.DomainWarp(ref sampleX, ref sampleY);
+                        float noiseValue = Instance.RegionNoiseGenerator.GetNoise(sampleX, sampleY);
+                        noiseValue = noiseValue.Map(-1, 1, -0.375f, 1.375f);
+                        noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
+                    }
+                }
+
+                map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
+                #endregion
             }
 
             public void Spawn()
             {
-                regionObject = GameObject.Instantiate(Universe.Instance.RegionGenerationSettings.prefab);
+                regionObject = GameObject.Instantiate(Instance.RegionGenerationSettings.prefab);
                 regionObject.name = $"Region ({regionPosition.x}, {regionPosition.y})";
+                Vector2Int worldPosition = regionPosition * Instance.RegionGenerationSettings.size;
                 regionObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 
                 MapDisplay mapDisplay = regionObject.GetComponentInChildren<MapDisplay>();
@@ -229,6 +287,14 @@ namespace LooCast.Universe
         public Filament.GenerationSettings FilamentGenerationSettings => generationSettings.filamentGenerationSettings;
         public Sector.GenerationSettings SectorGenerationSettings => generationSettings.sectorGenerationSettings;
         public Region.GenerationSettings RegionGenerationSettings => generationSettings.regionGenerationSettings;
+        public FastNoiseLite UniverseNoiseGenerator => universeNoiseGenerator;
+        public FastNoiseLite UniverseDomainWarper => universeDomainWarper;
+        public FastNoiseLite FilamentNoiseGenerator => filamentNoiseGenerator;
+        public FastNoiseLite FilamentDomainWarper => filamentDomainWarper;
+        public FastNoiseLite SectorNoiseGenerator => sectorNoiseGenerator;
+        public FastNoiseLite SectorDomainWarper => sectorDomainWarper;
+        public FastNoiseLite RegionNoiseGenerator => regionNoiseGenerator;
+        public FastNoiseLite RegionDomainWarper => regionDomainWarper;
         public Texture2D Map
         {
             get
@@ -294,7 +360,7 @@ namespace LooCast.Universe
             //General
             universeDomainWarper.SetSeed(generationSettings.seed);
             universeDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
-            universeDomainWarper.SetDomainWarpAmp(30.0f);
+            universeDomainWarper.SetDomainWarpAmp(20.0f);
             universeDomainWarper.SetFrequency(0.01f);
 
             //Fractal
@@ -314,14 +380,14 @@ namespace LooCast.Universe
             //General
             filamentNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
             filamentNoiseGenerator.SetSeed(generationSettings.seed);
-            filamentNoiseGenerator.SetFrequency(0.04f);
+            filamentNoiseGenerator.SetFrequency(0.02f);
 
             //Fractal
             filamentNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
-            filamentNoiseGenerator.SetFractalOctaves(3);
+            filamentNoiseGenerator.SetFractalOctaves(5);
             filamentNoiseGenerator.SetFractalLacunarity(2.0f);
             filamentNoiseGenerator.SetFractalGain(0.5f);
-            filamentNoiseGenerator.SetFractalWeightedStrength(1.0f);
+            filamentNoiseGenerator.SetFractalWeightedStrength(0.0f);
 
             //Cellular
             filamentNoiseGenerator.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
@@ -335,8 +401,8 @@ namespace LooCast.Universe
             //General
             filamentDomainWarper.SetSeed(generationSettings.seed);
             filamentDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
-            filamentDomainWarper.SetDomainWarpAmp(30.0f);
-            filamentDomainWarper.SetFrequency(0.01f);
+            filamentDomainWarper.SetDomainWarpAmp(20.0f);
+            filamentDomainWarper.SetFrequency(0.005f);
 
             //Fractal
             filamentDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
@@ -353,21 +419,16 @@ namespace LooCast.Universe
             sectorNoiseGenerator = new FastNoiseLite();
 
             //General
-            sectorNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+            sectorNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
             sectorNoiseGenerator.SetSeed(generationSettings.seed);
-            sectorNoiseGenerator.SetFrequency(0.04f);
+            sectorNoiseGenerator.SetFrequency(0.01f);
 
             //Fractal
             sectorNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
-            sectorNoiseGenerator.SetFractalOctaves(3);
+            sectorNoiseGenerator.SetFractalOctaves(5);
             sectorNoiseGenerator.SetFractalLacunarity(2.0f);
             sectorNoiseGenerator.SetFractalGain(0.5f);
-            sectorNoiseGenerator.SetFractalWeightedStrength(1.0f);
-
-            //Cellular
-            sectorNoiseGenerator.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
-            sectorNoiseGenerator.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
-            sectorNoiseGenerator.SetCellularJitter(1.0f);
+            sectorNoiseGenerator.SetFractalWeightedStrength(0.0f);
             #endregion
 
             #region Domain Warper Creation
@@ -376,8 +437,8 @@ namespace LooCast.Universe
             //General
             sectorDomainWarper.SetSeed(generationSettings.seed);
             sectorDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
-            sectorDomainWarper.SetDomainWarpAmp(30.0f);
-            sectorDomainWarper.SetFrequency(0.01f);
+            sectorDomainWarper.SetDomainWarpAmp(20.0f);
+            sectorDomainWarper.SetFrequency(0.005f);
 
             //Fractal
             sectorDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
@@ -394,21 +455,16 @@ namespace LooCast.Universe
             regionNoiseGenerator = new FastNoiseLite();
 
             //General
-            regionNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+            regionNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
             regionNoiseGenerator.SetSeed(generationSettings.seed);
-            regionNoiseGenerator.SetFrequency(0.04f);
+            regionNoiseGenerator.SetFrequency(0.005f);
 
             //Fractal
             regionNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
-            regionNoiseGenerator.SetFractalOctaves(3);
+            regionNoiseGenerator.SetFractalOctaves(5);
             regionNoiseGenerator.SetFractalLacunarity(2.0f);
             regionNoiseGenerator.SetFractalGain(0.5f);
-            regionNoiseGenerator.SetFractalWeightedStrength(1.0f);
-
-            //Cellular
-            regionNoiseGenerator.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
-            regionNoiseGenerator.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
-            regionNoiseGenerator.SetCellularJitter(1.0f);
+            regionNoiseGenerator.SetFractalWeightedStrength(0.0f);
             #endregion
 
             #region Domain Warper Creation
@@ -417,8 +473,8 @@ namespace LooCast.Universe
             //General
             regionDomainWarper.SetSeed(generationSettings.seed);
             regionDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
-            regionDomainWarper.SetDomainWarpAmp(30.0f);
-            regionDomainWarper.SetFrequency(0.01f);
+            regionDomainWarper.SetDomainWarpAmp(20.0f);
+            regionDomainWarper.SetFrequency(0.005f);
 
             //Fractal
             regionDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
@@ -432,21 +488,21 @@ namespace LooCast.Universe
             #endregion
 
             #region Universe Map Generation
-            Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
-            for (int y = 0; y < generationSettings.size; y++)
+            Color[] noiseColorMap = new Color[UniverseGenerationSettings.size * UniverseGenerationSettings.size];
+            for (int y = 0; y < UniverseGenerationSettings.size; y++)
             {
-                for (int x = 0; x < generationSettings.size; x++)
+                for (int x = 0; x < UniverseGenerationSettings.size; x++)
                 {
                     float sampleX = x;
                     float sampleY = y;
                     universeDomainWarper.DomainWarp(ref sampleX, ref sampleY);
                     float noiseValue = universeNoiseGenerator.GetNoise(sampleX, sampleY);
                     noiseValue = noiseValue.Map(-1, 1, -0.375f, 1.375f);
-                    noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
+                    noiseColorMap[y * UniverseGenerationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
                 }
             }
 
-            map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
+            map = TextureUtil.TextureFromColorMap(noiseColorMap, UniverseGenerationSettings.size, UniverseGenerationSettings.size);
             #endregion
         }
 
@@ -557,7 +613,10 @@ namespace LooCast.Universe
 
             path = $"{Application.dataPath}/Data/Universe/Map.png";
             byte[] mapData = File.ReadAllBytes(path);
-            ImageConversion.LoadImage(Instance.map, mapData);
+            Instance.Map = new Texture2D(Instance.UniverseGenerationSettings.size, Instance.UniverseGenerationSettings.size);
+            Instance.Map.filterMode = FilterMode.Point;
+            Instance.Map.wrapMode = TextureWrapMode.Clamp;
+            ImageConversion.LoadImage(Instance.Map, mapData);
         }
 
         public static void UnloadUniverse()
@@ -753,6 +812,9 @@ namespace LooCast.Universe
 
             path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}_Map.png";
             byte[] mapData = File.ReadAllBytes(path);
+            filament.Map = new Texture2D(Instance.FilamentGenerationSettings.size, Instance.FilamentGenerationSettings.size);
+            filament.Map.filterMode = FilterMode.Point;
+            filament.Map.wrapMode = TextureWrapMode.Clamp;
             ImageConversion.LoadImage(filament.Map, mapData);
         }
 
@@ -1026,7 +1088,15 @@ namespace LooCast.Universe
             string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorPosition.x}.{sectorPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
-            loadedSectors.Add(sectorPosition, JsonUtility.FromJson<Sector>(json));
+            Sector sector = JsonUtility.FromJson<Sector>(json);
+            loadedSectors.Add(sectorPosition, sector);
+
+            path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorPosition.x}.{sectorPosition.y}_Map.png";
+            byte[] mapData = File.ReadAllBytes(path);
+            sector.Map = new Texture2D(Instance.SectorGenerationSettings.size, Instance.SectorGenerationSettings.size);
+            sector.Map.filterMode = FilterMode.Point;
+            sector.Map.wrapMode = TextureWrapMode.Clamp;
+            ImageConversion.LoadImage(sector.Map, mapData);
         }
 
         public void LoadSectors(Vector2Int[] sectorPositions)
@@ -1296,7 +1366,15 @@ namespace LooCast.Universe
             string path = $"{Application.dataPath}/Data/Universe/Regions/{regionPosition.x}.{regionPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
-            loadedRegions.Add(regionPosition, JsonUtility.FromJson<Region>(json));
+            Region region = JsonUtility.FromJson<Region>(json);
+            loadedRegions.Add(regionPosition, region);
+
+            path = $"{Application.dataPath}/Data/Universe/Sectors/{regionPosition.x}.{regionPosition.y}_Map.png";
+            byte[] mapData = File.ReadAllBytes(path);
+            region.Map = new Texture2D(Instance.RegionGenerationSettings.size, Instance.RegionGenerationSettings.size);
+            region.Map.filterMode = FilterMode.Point;
+            region.Map.wrapMode = TextureWrapMode.Clamp;
+            ImageConversion.LoadImage(region.Map, mapData);
         }
 
         public void LoadRegions(Vector2Int[] regionPositions)
