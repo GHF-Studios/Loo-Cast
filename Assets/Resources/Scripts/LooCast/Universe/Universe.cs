@@ -12,16 +12,20 @@ namespace LooCast.Universe
     using Region;
     using LooCast.Random;
     using LooCast.Util;
+    using LooCast.Test;
 
     [Serializable]
     public class Universe
     {
+        #region Classes
+
+        #endregion
+
         #region Structs
         [Serializable]
         public struct GenerationSettings
         {
             public int seed;
-            //How many Filaments fit into the Universe (Per Axis)
             public int size;
             
             public Void.Void.GenerationSettings voidGenerationSettings;
@@ -43,7 +47,10 @@ namespace LooCast.Universe
                 if (value != null)
                 {
                     instance = value;
-                    instance.Initialize();
+                    if (!instance.initialized)
+                    {
+                        instance.Initialize();
+                    }
                 }
                 else
                 {
@@ -59,9 +66,30 @@ namespace LooCast.Universe
         public Filament.Filament.GenerationSettings FilamentGenerationSettings => generationSettings.filamentGenerationSettings;
         public Sector.Sector.GenerationSettings SectorGenerationSettings => generationSettings.sectorGenerationSettings;
         public Region.Region.GenerationSettings RegionGenerationSettings => generationSettings.regionGenerationSettings;
-        public Texture2D Map => map;
+        public Texture2D Map
+        {
+            get
+            {
+                return map;
+            }
+
+            set
+            {
+                map = value;
+            }
+        }
 
         [SerializeField] private GenerationSettings generationSettings;
+        [SerializeField] private FastNoiseLite universeNoiseGenerator;
+        [SerializeField] private FastNoiseLite universeDomainWarper;
+        [SerializeField] private FastNoiseLite filamentNoiseGenerator;
+        [SerializeField] private FastNoiseLite filamentDomainWarper;
+        [SerializeField] private FastNoiseLite sectorNoiseGenerator;
+        [SerializeField] private FastNoiseLite sectorDomainWarper;
+        [SerializeField] private FastNoiseLite regionNoiseGenerator;
+        [SerializeField] private FastNoiseLite regionDomainWarper;
+
+        private bool initialized = false;
 
         private Dictionary<Vector2Int, Void.Void> loadedVoids;
         private Dictionary<Vector2Int, Filament.Filament> loadedFilaments;
@@ -69,10 +97,177 @@ namespace LooCast.Universe
         private Dictionary<Vector2Int, Region.Region> loadedRegions;
         private Texture2D map;
 
-
         private Universe(GenerationSettings generationSettings)
         {
             this.generationSettings = generationSettings;
+
+            #region Noise Generator & Domain Warper Creation
+
+            #region Universe
+
+            #region Noise Generator Creation
+            universeNoiseGenerator = new FastNoiseLite();
+
+            //General
+            universeNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+            universeNoiseGenerator.SetSeed(generationSettings.seed);
+            universeNoiseGenerator.SetFrequency(0.04f);
+
+            //Fractal
+            universeNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
+            universeNoiseGenerator.SetFractalOctaves(3);
+            universeNoiseGenerator.SetFractalLacunarity(2.0f);
+            universeNoiseGenerator.SetFractalGain(0.5f);
+            universeNoiseGenerator.SetFractalWeightedStrength(1.0f);
+
+            //Cellular
+            universeNoiseGenerator.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
+            universeNoiseGenerator.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
+            universeNoiseGenerator.SetCellularJitter(1.0f);
+            #endregion
+
+            #region Domain Warper Creation
+            universeDomainWarper = new FastNoiseLite();
+
+            //General
+            universeDomainWarper.SetSeed(generationSettings.seed);
+            universeDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
+            universeDomainWarper.SetDomainWarpAmp(30.0f);
+            universeDomainWarper.SetFrequency(0.01f);
+
+            //Fractal
+            universeDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
+            universeDomainWarper.SetFractalOctaves(5);
+            universeDomainWarper.SetFractalLacunarity(2.0f);
+            universeDomainWarper.SetFractalGain(0.5f);
+            #endregion
+
+            #endregion
+
+            #region Filament
+
+            #region Noise Generator Creation
+            filamentNoiseGenerator = new FastNoiseLite();
+
+            //General
+            filamentNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+            filamentNoiseGenerator.SetSeed(generationSettings.seed);
+            filamentNoiseGenerator.SetFrequency(0.04f);
+
+            //Fractal
+            filamentNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
+            filamentNoiseGenerator.SetFractalOctaves(3);
+            filamentNoiseGenerator.SetFractalLacunarity(2.0f);
+            filamentNoiseGenerator.SetFractalGain(0.5f);
+            filamentNoiseGenerator.SetFractalWeightedStrength(1.0f);
+
+            //Cellular
+            filamentNoiseGenerator.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
+            filamentNoiseGenerator.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
+            filamentNoiseGenerator.SetCellularJitter(1.0f);
+            #endregion
+
+            #region Domain Warper Creation
+            filamentDomainWarper = new FastNoiseLite();
+
+            //General
+            filamentDomainWarper.SetSeed(generationSettings.seed);
+            filamentDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
+            filamentDomainWarper.SetDomainWarpAmp(30.0f);
+            filamentDomainWarper.SetFrequency(0.01f);
+
+            //Fractal
+            filamentDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
+            filamentDomainWarper.SetFractalOctaves(5);
+            filamentDomainWarper.SetFractalLacunarity(2.0f);
+            filamentDomainWarper.SetFractalGain(0.5f);
+            #endregion
+
+            #endregion
+
+            #region Sector
+
+            #region Noise Generator Creation
+            sectorNoiseGenerator = new FastNoiseLite();
+
+            //General
+            sectorNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+            sectorNoiseGenerator.SetSeed(generationSettings.seed);
+            sectorNoiseGenerator.SetFrequency(0.04f);
+
+            //Fractal
+            sectorNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
+            sectorNoiseGenerator.SetFractalOctaves(3);
+            sectorNoiseGenerator.SetFractalLacunarity(2.0f);
+            sectorNoiseGenerator.SetFractalGain(0.5f);
+            sectorNoiseGenerator.SetFractalWeightedStrength(1.0f);
+
+            //Cellular
+            sectorNoiseGenerator.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
+            sectorNoiseGenerator.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
+            sectorNoiseGenerator.SetCellularJitter(1.0f);
+            #endregion
+
+            #region Domain Warper Creation
+            sectorDomainWarper = new FastNoiseLite();
+
+            //General
+            sectorDomainWarper.SetSeed(generationSettings.seed);
+            sectorDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
+            sectorDomainWarper.SetDomainWarpAmp(30.0f);
+            sectorDomainWarper.SetFrequency(0.01f);
+
+            //Fractal
+            sectorDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
+            sectorDomainWarper.SetFractalOctaves(5);
+            sectorDomainWarper.SetFractalLacunarity(2.0f);
+            sectorDomainWarper.SetFractalGain(0.5f);
+            #endregion
+
+            #endregion
+
+            #region Region
+
+            #region Noise Generator Creation
+            regionNoiseGenerator = new FastNoiseLite();
+
+            //General
+            regionNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
+            regionNoiseGenerator.SetSeed(generationSettings.seed);
+            regionNoiseGenerator.SetFrequency(0.04f);
+
+            //Fractal
+            regionNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
+            regionNoiseGenerator.SetFractalOctaves(3);
+            regionNoiseGenerator.SetFractalLacunarity(2.0f);
+            regionNoiseGenerator.SetFractalGain(0.5f);
+            regionNoiseGenerator.SetFractalWeightedStrength(1.0f);
+
+            //Cellular
+            regionNoiseGenerator.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
+            regionNoiseGenerator.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
+            regionNoiseGenerator.SetCellularJitter(1.0f);
+            #endregion
+
+            #region Domain Warper Creation
+            regionDomainWarper = new FastNoiseLite();
+
+            //General
+            regionDomainWarper.SetSeed(generationSettings.seed);
+            regionDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
+            regionDomainWarper.SetDomainWarpAmp(30.0f);
+            regionDomainWarper.SetFrequency(0.01f);
+
+            //Fractal
+            regionDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
+            regionDomainWarper.SetFractalOctaves(5);
+            regionDomainWarper.SetFractalLacunarity(2.0f);
+            regionDomainWarper.SetFractalGain(0.5f);
+            #endregion
+
+            #endregion
+
+            #endregion
 
             #region Main Generation
             SeededRandom prng = new SeededRandom(generationSettings.seed);
@@ -86,54 +281,44 @@ namespace LooCast.Universe
                 }
             }
 
-            FastNoiseLite fastNoiseLite = new FastNoiseLite();
-
-            //General
-            fastNoiseLite.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
-            fastNoiseLite.SetSeed(generationSettings.seed);
-            fastNoiseLite.SetFrequency(0.04f);
-
-            //Fractal
-            fastNoiseLite.SetFractalType(FastNoiseLite.FractalType.FBm);
-            fastNoiseLite.SetFractalOctaves(5);
-            fastNoiseLite.SetFractalLacunarity(2.0f);
-            fastNoiseLite.SetFractalGain(0.5f);
-            fastNoiseLite.SetFractalWeightedStrength(0.5f);
-
-            //Cellular
-            fastNoiseLite.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
-            fastNoiseLite.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
-            fastNoiseLite.SetCellularJitter(1.0f);
-
             Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
             for (int y = 0; y < generationSettings.size; y++)
             {
                 for (int x = 0; x < generationSettings.size; x++)
                 {
-                    float noiseValue = (fastNoiseLite.GetNoise(x, y) + 1) / 2;
+                    float sampleX = x;
+                    float sampleY = y;
+                    domainWarper.DomainWarp(ref sampleX, ref sampleY);
+                    float noiseValue = noiseGenerator.GetNoise(sampleX, sampleY);
+                    noiseValue = noiseValue.Map(-1, 1, -0.375f, 1.375f);
                     noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
                 }
             }
 
             map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
-
             #endregion
         }
 
+        #region Universe
+
+        #region Initialization
         private void Initialize()
         {
             loadedVoids = new Dictionary<Vector2Int, Void.Void>();
             loadedFilaments = new Dictionary<Vector2Int, Filament.Filament>();
             loadedSectors = new Dictionary<Vector2Int, Sector.Sector>();
             loadedRegions = new Dictionary<Vector2Int, Region.Region>();
-        }
 
+            initialized = true;
+        }
+        #endregion
+
+        #region Termination
         private void Terminate()
         {
 
         }
-
-        #region Universe
+        #endregion
 
         #region Utility
         public static float GetMapPixelValue(Vector2Int pixelPosition)

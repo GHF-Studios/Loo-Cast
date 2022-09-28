@@ -262,7 +262,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.size
-      value: 512
+      value: 2048
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_FILAMENT_filamentPositions.Array.data[0].x
@@ -337,6 +337,26 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.noiseAmplitude
+      value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.noiseAmplitudeLow
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.noiseAmplitudeHigh
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.noiseMappingLowerBound
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.noiseMappingUpperBound
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.size
       value: 512
       objectReference: {fileID: 0}
@@ -347,6 +367,54 @@ PrefabInstance:
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.size
       value: 512
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].time
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[0].value
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].value
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[0].inSlope
+      value: 5936.5254
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].inSlope
+      value: 275.491
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[0].outSlope
+      value: 5936.5254
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].inWeight
+      value: 0.0072648525
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].outSlope
+      value: 275.491
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[0].outWeight
+      value: 0.00033673854
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[0].weightedMode
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitudeGradient.m_Curve.Array.data[1].weightedMode
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 4694644655831026913, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: m_Name

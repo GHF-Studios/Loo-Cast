@@ -46,18 +46,22 @@
 //
 // VERSION: 1.0.1
 // https://github.com/Auburn/FastNoise
+//
+// Modified by Leslie-John Richardson
 
 using System;
 using System.Runtime.CompilerServices;
+using UnityEngine;
 
 // Switch between using floats or doubles for input position
 using FNLfloat = System.Single;
 //using FNLfloat = System.Double;
 
+[Serializable]
 public class FastNoiseLite
 {
-    private const short INLINE = 256; // MethodImplOptions.AggressiveInlining;
-    private const short OPTIMISE = 512; // MethodImplOptions.AggressiveOptimization;
+    [SerializeField] private const short INLINE = 256; // MethodImplOptions.AggressiveInlining;
+    [SerializeField] private const short OPTIMISE = 512; // MethodImplOptions.AggressiveOptimization;
 
     public enum NoiseType 
     { 
@@ -120,28 +124,28 @@ public class FastNoiseLite
         DefaultOpenSimplex2 
     };
 
-    private int mSeed = 1337;
-    private float mFrequency = 0.01f;
-    private NoiseType mNoiseType = NoiseType.OpenSimplex2;
-    private RotationType3D mRotationType3D = RotationType3D.None;
-    private TransformType3D mTransformType3D = TransformType3D.DefaultOpenSimplex2;
+    [SerializeField] private int mSeed = 1337;
+    [SerializeField] private float mFrequency = 0.01f;
+    [SerializeField] private NoiseType mNoiseType = NoiseType.OpenSimplex2;
+    [SerializeField] private RotationType3D mRotationType3D = RotationType3D.None;
+    [SerializeField] private TransformType3D mTransformType3D = TransformType3D.DefaultOpenSimplex2;
 
-    private FractalType mFractalType = FractalType.None;
-    private int mOctaves = 3;
-    private float mLacunarity = 2.0f;
-    private float mGain = 0.5f;
-    private float mWeightedStrength = 0.0f;
-    private float mPingPongStrength = 2.0f;
+    [SerializeField] private FractalType mFractalType = FractalType.None;
+    [SerializeField] private int mOctaves = 3;
+    [SerializeField] private float mLacunarity = 2.0f;
+    [SerializeField] private float mGain = 0.5f;
+    [SerializeField] private float mWeightedStrength = 0.0f;
+    [SerializeField] private float mPingPongStrength = 2.0f;
 
-    private float mFractalBounding = 1 / 1.75f;
+    [SerializeField] private float mFractalBounding = 1 / 1.75f;
 
-    private CellularDistanceFunction mCellularDistanceFunction = CellularDistanceFunction.EuclideanSq;
-    private CellularReturnType mCellularReturnType = CellularReturnType.Distance;
-    private float mCellularJitterModifier = 1.0f;
+    [SerializeField] private CellularDistanceFunction mCellularDistanceFunction = CellularDistanceFunction.EuclideanSq;
+    [SerializeField] private CellularReturnType mCellularReturnType = CellularReturnType.Distance;
+    [SerializeField] private float mCellularJitterModifier = 1.0f;
 
-    private DomainWarpType mDomainWarpType = DomainWarpType.OpenSimplex2;
-    private TransformType3D mWarpTransformType3D = TransformType3D.DefaultOpenSimplex2;
-    private float mDomainWarpAmp = 1.0f;
+    [SerializeField] private DomainWarpType mDomainWarpType = DomainWarpType.OpenSimplex2;
+    [SerializeField] private TransformType3D mWarpTransformType3D = TransformType3D.DefaultOpenSimplex2;
+    [SerializeField] private float mDomainWarpAmp = 1.0f;
 
     /// <summary>
     /// Create new FastNoise object with optional seed

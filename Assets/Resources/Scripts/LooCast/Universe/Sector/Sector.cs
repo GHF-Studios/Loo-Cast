@@ -14,19 +14,31 @@ namespace LooCast.Universe.Sector
         public struct GenerationSettings
         {
             public GameObject prefab;
-            // How many Regions fit into a Sector (Per Axis)
             public int size;
         }
         #endregion
 
         public Vector2Int WorldPosition => worldPosition;
         public Vector2Int SectorPosition => sectorPosition;
+        public Texture2D Map
+        {
+            get
+            {
+                return map;
+            }
+
+            set
+            {
+                map = value;
+            }
+        }
 
         [SerializeField] private Vector2Int filamentPosition;
         [SerializeField] private Vector2Int sectorPosition;
         [SerializeField] private Vector2Int worldPosition;
 
         private GameObject sectorObject;
+        private Texture2D map;
 
         public Sector(Vector2Int filamentPosition, Vector2Int sectorPosition)
         {
@@ -42,7 +54,7 @@ namespace LooCast.Universe.Sector
             sectorObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 
             MapDisplay mapDisplay = sectorObject.GetComponentInChildren<MapDisplay>();
-            //mapDisplay.DrawTexture(TextureUtil.TextureFromHeightMap(noiseMap.DataPointArray2D));
+            mapDisplay.DrawTexture(map);
         }
 
         public void Despawn()
