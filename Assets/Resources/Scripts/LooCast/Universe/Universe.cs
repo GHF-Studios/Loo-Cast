@@ -140,6 +140,7 @@ namespace LooCast.Universe
                         Instance.SectorDomainWarper.DomainWarp(ref sampleX, ref sampleY);
                         float noiseValue = Instance.SectorNoiseGenerator.GetNoise(sampleX, sampleY);
                         noiseValue = noiseValue.Map(-1, 1, 0, 1);
+                        noiseValue = Mathf.Pow(noiseValue, 2);
                         noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
                     }
                 }
@@ -218,6 +219,7 @@ namespace LooCast.Universe
                         Instance.RegionDomainWarper.DomainWarp(ref sampleX, ref sampleY);
                         float noiseValue = Instance.RegionNoiseGenerator.GetNoise(sampleX, sampleY);
                         noiseValue = noiseValue.Map(-1, 1, -0.375f, 1.375f);
+                        noiseValue = Mathf.Pow(noiseValue, 2);
                         noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
                     }
                 }

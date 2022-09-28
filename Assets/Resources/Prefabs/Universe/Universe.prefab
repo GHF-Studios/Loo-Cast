@@ -46,16 +46,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DEV_UNIVERSE_universeGenerationSettings:
     seed: 0
-    size: 2048
+    size: 512
     filamentGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 77d6d03686b6ef845beef5135fbab1b5, type: 3}
-      size: 2048
+      size: 512
     sectorGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 776cc2037f69c7c4e800fcbb3b29e4cc, type: 3}
-      size: 2048
+      size: 512
     regionGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 668a2465b9473cc4ebeba51458152e80, type: 3}
-      size: 2048
+      size: 512
   DEV_FILAMENT_filamentPosition: {x: 0, y: 0}
   DEV_FILAMENT_filamentPositions:
   - {x: -1, y: -1}
@@ -69,11 +69,29 @@ MonoBehaviour:
   - {x: 1, y: 1}
   DEV_SECTOR_filamentPosition: {x: 0, y: 0}
   DEV_SECTOR_sectorPosition: {x: 0, y: 0}
-  DEV_SECTOR_sectorPositions: []
+  DEV_SECTOR_sectorPositions:
+  - {x: -1, y: -1}
+  - {x: -1, y: 0}
+  - {x: -1, y: 1}
+  - {x: 0, y: -1}
+  - {x: 0, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: -1}
+  - {x: 1, y: 0}
+  - {x: 1, y: 1}
   DEV_REGION_sectorPosition: {x: 0, y: 0}
   DEV_REGION_regionPosition: {x: 0, y: 0}
-  DEV_REGION_regionPositions: []
+  DEV_REGION_regionPositions:
+  - {x: -1, y: -1}
+  - {x: -1, y: 0}
+  - {x: -1, y: 1}
+  - {x: 0, y: -1}
+  - {x: 0, y: 0}
+  - {x: 0, y: 1}
+  - {x: 1, y: -1}
+  - {x: 1, y: 0}
+  - {x: 1, y: 1}
   DEV_UNIVERSE_showSection: 1
   DEV_FILAMENT_showSection: 1
-  DEV_SECTOR_showSection: 0
-  DEV_REGION_showSection: 0
+  DEV_SECTOR_showSection: 1
+  DEV_REGION_showSection: 1
