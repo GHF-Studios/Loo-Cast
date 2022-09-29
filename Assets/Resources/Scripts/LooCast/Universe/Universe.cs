@@ -29,6 +29,33 @@ namespace LooCast.Universe
                 public float mapToMax;
                 public float universeNoiseInfluence;
                 public float power;
+
+                [Header("FNL Noise General Settings")]
+                public FastNoiseLite.NoiseType noiseType;
+                public float frequency;
+
+                [Header("FNL Noise Fractal Settings")]
+                public FastNoiseLite.FractalType fractalType;
+                public int fractalOctaves;
+                public float fractalLacunarity;
+                public float fractalGain;
+                public float fractalWeightedStrength;
+
+                [Header("FNL Noise Cellular Settings")]
+                public FastNoiseLite.CellularDistanceFunction cellularDistanceFunction;
+                public FastNoiseLite.CellularReturnType cellularReturnType;
+                public float cellularJitter;
+
+                [Header("FNL Domain Warp General Settings")]
+                public FastNoiseLite.DomainWarpType domainWarpType;
+                public float domainWarpAmplitude;
+                public float domainWarpFrequency;
+
+                [Header("FNL Domain Warp Fractal Settings")]
+                public FastNoiseLite.FractalType domainWarpFractalType;
+                public int domainWarpFractalOctaves;
+                public float domainWarpFractalLacunarity;
+                public float domainWarpFractalGain;
             }
             #endregion
 
@@ -143,6 +170,28 @@ namespace LooCast.Universe
                 public float mapToMax;
                 public float filamentNoiseInfluence;
                 public float power;
+
+                [Header("FNL Noise General Settings")]
+                public FastNoiseLite.NoiseType noiseType;
+                public float frequency;
+
+                [Header("FNL Noise Fractal Settings")]
+                public FastNoiseLite.FractalType fractalType;
+                public int fractalOctaves;
+                public float fractalLacunarity;
+                public float fractalGain;
+                public float fractalWeightedStrength;
+
+                [Header("FNL Domain Warp General Settings")]
+                public FastNoiseLite.DomainWarpType domainWarpType;
+                public float domainWarpAmplitude;
+                public float domainWarpFrequency;
+
+                [Header("FNL Domain Warp Fractal Settings")]
+                public FastNoiseLite.FractalType domainWarpFractalType;
+                public int domainWarpFractalOctaves;
+                public float domainWarpFractalLacunarity;
+                public float domainWarpFractalGain;
             }
             #endregion
 
@@ -260,6 +309,28 @@ namespace LooCast.Universe
                 public float mapToMax;
                 public float sectorNoiseInfluence;
                 public float power;
+
+                [Header("FNL Noise General Settings")]
+                public FastNoiseLite.NoiseType noiseType;
+                public float frequency;
+
+                [Header("FNL Noise Fractal Settings")]
+                public FastNoiseLite.FractalType fractalType;
+                public int fractalOctaves;
+                public float fractalLacunarity;
+                public float fractalGain;
+                public float fractalWeightedStrength;
+
+                [Header("FNL Domain Warp General Settings")]
+                public FastNoiseLite.DomainWarpType domainWarpType;
+                public float domainWarpAmplitude;
+                public float domainWarpFrequency;
+
+                [Header("FNL Domain Warp Fractal Settings")]
+                public FastNoiseLite.FractalType domainWarpFractalType;
+                public int domainWarpFractalOctaves;
+                public float domainWarpFractalLacunarity;
+                public float domainWarpFractalGain;
             }
             #endregion
 
@@ -368,6 +439,7 @@ namespace LooCast.Universe
         [Serializable]
         public struct GenerationSettings
         {
+            [Header("Main Settings")]
             public int seed;
             public int size;
             public float mapFromMin;
@@ -375,6 +447,33 @@ namespace LooCast.Universe
             public float mapToMin;
             public float mapToMax;
             public float power;
+
+            [Header("FNL Noise General Settings")]
+            public FastNoiseLite.NoiseType noiseType;
+            public float frequency;
+
+            [Header("FNL Noise Fractal Settings")]
+            public FastNoiseLite.FractalType fractalType;
+            public int fractalOctaves;
+            public float fractalLacunarity;
+            public float fractalGain;
+            public float fractalWeightedStrength;
+
+            [Header("FNL Noise Cellular Settings")]
+            public FastNoiseLite.CellularDistanceFunction cellularDistanceFunction;
+            public FastNoiseLite.CellularReturnType cellularReturnType;
+            public float cellularJitter;
+
+            [Header("FNL Domain Warp General Settings")]
+            public FastNoiseLite.DomainWarpType domainWarpType;
+            public float domainWarpAmplitude;
+            public float domainWarpFrequency;
+
+            [Header("FNL Domain Warp Fractal Settings")]
+            public FastNoiseLite.FractalType domainWarpFractalType;
+            public int domainWarpFractalOctaves;
+            public float domainWarpFractalLacunarity;
+            public float domainWarpFractalGain;
 
             public Filament.GenerationSettings filamentGenerationSettings;
             public Sector.GenerationSettings sectorGenerationSettings;
