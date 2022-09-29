@@ -21,9 +21,9 @@ namespace LooCast.Generator
         {
             asteroidCount = UnityEngine.Random.Range(minAsteroidCount, maxAsteroidCount);
 
-            if (enabled)
+            if (gameObject.activeInHierarchy)
             {
-                Generate(); 
+                Generate();
             }
         }
 

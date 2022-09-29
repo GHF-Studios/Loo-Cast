@@ -8,14 +8,8 @@ namespace LooCast.Generator
 
     public abstract class Generator : ExtendedMonoBehaviour
     {
-        public virtual void Initialize()
-        {
+        public abstract void Initialize();
 
-        }
-
-        public virtual void Generate()
-        {
-
-        }
+        public abstract void Generate();
     } 
 }

@@ -46,7 +46,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DEV_UNIVERSE_universeGenerationSettings:
     seed: 0
-    size: 64
+    size: 2048
     mapFromMin: -1
     mapFromMax: 1
     mapToMin: -0.5
@@ -71,7 +71,7 @@ MonoBehaviour:
     domainWarpFractalGain: 0.5
     filamentGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 77d6d03686b6ef845beef5135fbab1b5, type: 3}
-      size: 64
+      size: 2048
       mapFromMin: -1
       mapFromMax: 1
       mapToMin: 0
@@ -97,7 +97,7 @@ MonoBehaviour:
       domainWarpFractalGain: 0.5
     sectorGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 776cc2037f69c7c4e800fcbb3b29e4cc, type: 3}
-      size: 64
+      size: 2048
       mapFromMin: -1
       mapFromMax: 1
       mapToMin: 0
@@ -120,7 +120,7 @@ MonoBehaviour:
       domainWarpFractalGain: 0.5
     regionGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 668a2465b9473cc4ebeba51458152e80, type: 3}
-      size: 64
+      size: 2048
       mapFromMin: -1
       mapFromMax: 1
       mapToMin: -0.375
@@ -176,6 +176,6 @@ MonoBehaviour:
   DEV_REGION_regionPositionRangeMin: {x: 0, y: 0}
   DEV_REGION_regionPositionRangeMax: {x: 0, y: 0}
   DEV_UNIVERSE_showSection: 1
-  DEV_FILAMENT_showSection: 0
-  DEV_SECTOR_showSection: 0
-  DEV_REGION_showSection: 0
+  DEV_FILAMENT_showSection: 1
+  DEV_SECTOR_showSection: 1
+  DEV_REGION_showSection: 1

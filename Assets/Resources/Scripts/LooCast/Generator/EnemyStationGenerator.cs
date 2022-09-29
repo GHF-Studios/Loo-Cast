@@ -10,14 +10,18 @@ namespace LooCast.Generator
 
     public class EnemyStationGenerator : Generator
     {
-        public int StationCount { get; protected set; }
-
         [SerializeField] private GameObject enemyStationPrefab;
+        [SerializeField] private int minStationCount;
+        [SerializeField] private int maxStationCount;
+        [SerializeField] private int spawnRange;
+
+        private int stationCount;
 
         public override void Initialize()
         {
-            StationCount = 3;
-            if (enabled)
+            stationCount = UnityEngine.Random.Range(minStationCount, maxStationCount);
+
+            if (gameObject.activeInHierarchy)
             {
                 Generate();
             }
@@ -25,11 +29,10 @@ namespace LooCast.Generator
 
         public override void Generate()
         {
-            for (int i = 0; i < StationCount; i++)
+            for (int i = 0; i < stationCount; i++)
             {
-                Vector2 potentialSpawnPosition = Random.InsideUnitCircle() * 500.0f;
-                GameObject stationObject = Instantiate(enemyStationPrefab, potentialSpawnPosition, Quaternion.identity, null);
-                EnemyStation station = stationObject.GetComponent<EnemyStation>();
+                Vector2 spawnPosition = Random.InsideUnitCircle() * spawnRange;
+                GameObject stationObject = Instantiate(enemyStationPrefab, spawnPosition, Quaternion.identity, null);
             }
         }
     } 

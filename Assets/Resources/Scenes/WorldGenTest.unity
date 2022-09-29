@@ -254,155 +254,35 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_SECTOR_showSection
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositionRangeMax.x
-      value: 63
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositionRangeMax.y
-      value: 63
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositionRangeMin.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositionRangeMin.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.size
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.size
-      value: 64
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositionRange.Array.size
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.power
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[0].x
+      propertyPath: DEV_FILAMENT_showSection
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[0].y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[1].x
+      propertyPath: DEV_SECTOR_filamentPosition.x
       value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_FILAMENT_filamentPositions.Array.data[1].y
+      propertyPath: DEV_SECTOR_filamentPosition.y
       value: 16
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.mapToMax
-      value: 1.5
+      propertyPath: DEV_FILAMENT_filamentPosition.x
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.mapToMin
-      value: -0.5
+      propertyPath: DEV_FILAMENT_filamentPosition.y
+      value: 16
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.mapFromMax
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.mapFromMin
-      value: -1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.size
-      value: 64
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.sectorGenerationSettings.size
-      value: 64
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.power
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.sectorGenerationSettings.power
-      value: 1
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.size
+      value: 2048
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.size
-      value: 64
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.power
-      value: 0.1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.mapToMax
-      value: 1.375
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.mapToMin
-      value: -0.375
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.sectorGenerationSettings.mapToMax
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.mapToMax
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.mapToMin
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.mapFromMax
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.mapFromMin
-      value: -1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.sectorGenerationSettings.mapFromMax
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.sectorGenerationSettings.mapFromMin
-      value: -1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.mapFromMax
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.mapFromMin
-      value: -1
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.sectorNoiseInfluence
-      value: 0.15
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.universeNoiseOffset
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.sectorGenerationSettings.filamentNoiseInfluence
-      value: 0.15
-      objectReference: {fileID: 0}
-    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
-      propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.universeNoiseInfluence
-      value: 0.75
+      value: 2048
       objectReference: {fileID: 0}
     - target: {fileID: 4694644655831026913, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: m_Name
