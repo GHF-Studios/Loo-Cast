@@ -10,14 +10,20 @@ namespace LooCast.Test.Editor
 
         private SerializedProperty DEV_FILAMENT_filamentPosition;
         private SerializedProperty DEV_FILAMENT_filamentPositions;
+        private SerializedProperty DEV_FILAMENT_filamentPositionRangeMin;
+        private SerializedProperty DEV_FILAMENT_filamentPositionRangeMax;
 
         private SerializedProperty DEV_SECTOR_filamentPosition;
         private SerializedProperty DEV_SECTOR_sectorPosition;
         private SerializedProperty DEV_SECTOR_sectorPositions;
+        private SerializedProperty DEV_SECTOR_sectorPositionRangeMin;
+        private SerializedProperty DEV_SECTOR_sectorPositionRangeMax;
 
         private SerializedProperty DEV_REGION_sectorPosition;
         private SerializedProperty DEV_REGION_regionPosition;
         private SerializedProperty DEV_REGION_regionPositions;
+        private SerializedProperty DEV_REGION_regionPositionRangeMin;
+        private SerializedProperty DEV_REGION_regionPositionRangeMax;
 
         private void OnEnable()
         {
@@ -25,14 +31,20 @@ namespace LooCast.Test.Editor
 
             DEV_FILAMENT_filamentPosition = serializedObject.FindProperty("DEV_FILAMENT_filamentPosition");
             DEV_FILAMENT_filamentPositions = serializedObject.FindProperty("DEV_FILAMENT_filamentPositions");
+            DEV_FILAMENT_filamentPositionRangeMin = serializedObject.FindProperty("DEV_FILAMENT_filamentPositionRangeMin");
+            DEV_FILAMENT_filamentPositionRangeMax = serializedObject.FindProperty("DEV_FILAMENT_filamentPositionRangeMax");
 
             DEV_SECTOR_filamentPosition = serializedObject.FindProperty("DEV_SECTOR_filamentPosition");
             DEV_SECTOR_sectorPosition = serializedObject.FindProperty("DEV_SECTOR_sectorPosition");
             DEV_SECTOR_sectorPositions = serializedObject.FindProperty("DEV_SECTOR_sectorPositions");
+            DEV_SECTOR_sectorPositionRangeMin = serializedObject.FindProperty("DEV_SECTOR_sectorPositionRangeMin");
+            DEV_SECTOR_sectorPositionRangeMax = serializedObject.FindProperty("DEV_SECTOR_sectorPositionRangeMax");
 
             DEV_REGION_sectorPosition = serializedObject.FindProperty("DEV_REGION_sectorPosition");
             DEV_REGION_regionPosition = serializedObject.FindProperty("DEV_REGION_regionPosition");
             DEV_REGION_regionPositions = serializedObject.FindProperty("DEV_REGION_regionPositions");
+            DEV_REGION_regionPositionRangeMin = serializedObject.FindProperty("DEV_REGION_regionPositionRangeMin");
+            DEV_REGION_regionPositionRangeMax = serializedObject.FindProperty("DEV_REGION_regionPositionRangeMax");
         }
 
         //Add Left Padding to Foldout Contents and Try GUILayout
@@ -92,6 +104,8 @@ namespace LooCast.Test.Editor
 
                 EditorGUILayout.PropertyField(DEV_FILAMENT_filamentPosition, new GUIContent("Filament Position"));
                 EditorGUILayout.PropertyField(DEV_FILAMENT_filamentPositions, new GUIContent("Filament Positions"));
+                EditorGUILayout.PropertyField(DEV_FILAMENT_filamentPositionRangeMin, new GUIContent("Filament Position Range Min"));
+                EditorGUILayout.PropertyField(DEV_FILAMENT_filamentPositionRangeMax, new GUIContent("Filament Position Range Max"));
 
                 #region Generation
                 EditorGUILayout.BeginHorizontal();
@@ -106,6 +120,11 @@ namespace LooCast.Test.Editor
                     universeGenerator.GenerateFilaments();
                 }
 
+                if (GUILayout.Button("Generate Filament Range"))
+                {
+                    universeGenerator.GenerateFilamentRange();
+                }
+
                 EditorGUILayout.EndHorizontal();
                 #endregion
 
@@ -114,6 +133,7 @@ namespace LooCast.Test.Editor
                 #region Saving
                 EditorGUILayout.BeginHorizontal();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Save Filament"))
                 {
                     universeGenerator.SaveFilament();
@@ -123,11 +143,19 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.SaveFilaments();
                 }
+                EditorGUILayout.EndVertical();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Save All Filaments"))
                 {
                     universeGenerator.SaveAllFilaments();
                 }
+
+                if (GUILayout.Button("Save Filament Range"))
+                {
+                    universeGenerator.SaveFilamentRange();
+                }
+                EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
                 #endregion
@@ -147,6 +175,11 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.LoadFilaments();
                 }
+
+                if (GUILayout.Button("Load Filament Range"))
+                {
+                    universeGenerator.LoadFilamentRange();
+                }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.BeginVertical();
@@ -164,6 +197,11 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.UnloadAllFilaments();
                 }
+
+                if (GUILayout.Button("Unload Filament Range"))
+                {
+                    universeGenerator.UnloadFilamentRange();
+                }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
@@ -174,6 +212,7 @@ namespace LooCast.Test.Editor
                 #region Deletion
                 EditorGUILayout.BeginHorizontal();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Delete Filament"))
                 {
                     universeGenerator.DeleteFilament();
@@ -183,11 +222,19 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.DeleteFilaments();
                 }
+                EditorGUILayout.EndVertical();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Delete All Filaments"))
                 {
                     universeGenerator.DeleteAllFilaments();
                 }
+
+                if (GUILayout.Button("Delete Filament Range"))
+                {
+                    universeGenerator.DeleteFilamentRange();
+                }
+                EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
                 #endregion
@@ -207,6 +254,11 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.SpawnFilaments();
                 }
+
+                if (GUILayout.Button("Spawn Filament Range"))
+                {
+                    universeGenerator.SpawnFilamentRange();
+                }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.BeginVertical();
@@ -218,6 +270,11 @@ namespace LooCast.Test.Editor
                 if (GUILayout.Button("Despawn Filaments"))
                 {
                     universeGenerator.DespawnFilaments();
+                }
+
+                if (GUILayout.Button("Despawn Filament Range"))
+                {
+                    universeGenerator.DespawnFilamentRange();
                 }
                 EditorGUILayout.EndVertical();
 
@@ -241,6 +298,8 @@ namespace LooCast.Test.Editor
                 EditorGUILayout.PropertyField(DEV_SECTOR_filamentPosition, new GUIContent("Filament Position"));
                 EditorGUILayout.PropertyField(DEV_SECTOR_sectorPosition, new GUIContent("Sector Position"));
                 EditorGUILayout.PropertyField(DEV_SECTOR_sectorPositions, new GUIContent("Sector Positions"));
+                EditorGUILayout.PropertyField(DEV_SECTOR_sectorPositionRangeMin, new GUIContent("Sector Position Range Min"));
+                EditorGUILayout.PropertyField(DEV_SECTOR_sectorPositionRangeMax, new GUIContent("Sector Position Range Max"));
 
                 #region Generation
                 EditorGUILayout.BeginHorizontal();
@@ -255,6 +314,11 @@ namespace LooCast.Test.Editor
                     universeGenerator.GenerateSectors();
                 }
 
+                if (GUILayout.Button("Generate Sector Range"))
+                {
+                    universeGenerator.GenerateSectorRange();
+                }
+
                 EditorGUILayout.EndHorizontal();
                 #endregion
 
@@ -263,6 +327,7 @@ namespace LooCast.Test.Editor
                 #region Saving
                 EditorGUILayout.BeginHorizontal();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Save Sector"))
                 {
                     universeGenerator.SaveSector();
@@ -272,11 +337,19 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.SaveSectors();
                 }
+                EditorGUILayout.EndVertical();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Save All Sectors"))
                 {
                     universeGenerator.SaveAllSectors();
                 }
+
+                if (GUILayout.Button("Save Sector Range"))
+                {
+                    universeGenerator.SaveSectorRange();
+                }
+                EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
                 #endregion
@@ -296,6 +369,11 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.LoadSectors();
                 }
+
+                if (GUILayout.Button("Load Sector Range"))
+                {
+                    universeGenerator.LoadSectorRange();
+                }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.BeginVertical();
@@ -313,6 +391,11 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.UnloadAllSectors();
                 }
+
+                if (GUILayout.Button("Unload Sector Range"))
+                {
+                    universeGenerator.UnloadSectorRange();
+                }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
@@ -323,6 +406,7 @@ namespace LooCast.Test.Editor
                 #region Deletion
                 EditorGUILayout.BeginHorizontal();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Delete Sector"))
                 {
                     universeGenerator.DeleteSector();
@@ -332,11 +416,19 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.DeleteSectors();
                 }
+                EditorGUILayout.EndVertical();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Delete All Sectors"))
                 {
                     universeGenerator.DeleteAllSectors();
                 }
+
+                if (GUILayout.Button("Delete Sector Range"))
+                {
+                    universeGenerator.DeleteSectorRange();
+                }
+                EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
                 #endregion
@@ -356,6 +448,11 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.SpawnSectors();
                 }
+
+                if (GUILayout.Button("Spawn Sector Range"))
+                {
+                    universeGenerator.SpawnSectorRange();
+                }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.BeginVertical();
@@ -367,6 +464,11 @@ namespace LooCast.Test.Editor
                 if (GUILayout.Button("Despawn Sectors"))
                 {
                     universeGenerator.DespawnSectors();
+                }
+
+                if (GUILayout.Button("Despawn Sector Range"))
+                {
+                    universeGenerator.DespawnSectorRange();
                 }
                 EditorGUILayout.EndVertical();
 
@@ -390,6 +492,8 @@ namespace LooCast.Test.Editor
                 EditorGUILayout.PropertyField(DEV_REGION_sectorPosition, new GUIContent("Sector Position"));
                 EditorGUILayout.PropertyField(DEV_REGION_regionPosition, new GUIContent("Region Position"));
                 EditorGUILayout.PropertyField(DEV_REGION_regionPositions, new GUIContent("Region Positions"));
+                EditorGUILayout.PropertyField(DEV_REGION_regionPositionRangeMin, new GUIContent("Region Position Range Min"));
+                EditorGUILayout.PropertyField(DEV_REGION_regionPositionRangeMax, new GUIContent("Region Position Range Max"));
 
                 #region Generation
                 EditorGUILayout.BeginHorizontal();
@@ -404,6 +508,11 @@ namespace LooCast.Test.Editor
                     universeGenerator.GenerateRegions();
                 }
 
+                if (GUILayout.Button("Generate Region Range"))
+                {
+                    universeGenerator.GenerateRegionRange();
+                }
+
                 EditorGUILayout.EndHorizontal();
                 #endregion
 
@@ -412,6 +521,7 @@ namespace LooCast.Test.Editor
                 #region Saving
                 EditorGUILayout.BeginHorizontal();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Save Region"))
                 {
                     universeGenerator.SaveRegion();
@@ -421,11 +531,19 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.SaveRegions();
                 }
+                EditorGUILayout.EndVertical();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Save All Regions"))
                 {
                     universeGenerator.SaveAllRegions();
                 }
+
+                if (GUILayout.Button("Save Region Range"))
+                {
+                    universeGenerator.SaveRegionRange();
+                }
+                EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
                 #endregion
@@ -445,6 +563,11 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.LoadRegions();
                 }
+
+                if (GUILayout.Button("Load Region Range"))
+                {
+                    universeGenerator.LoadRegionRange();
+                }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.BeginVertical();
@@ -462,6 +585,11 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.UnloadAllRegions();
                 }
+
+                if (GUILayout.Button("Unload Region Range"))
+                {
+                    universeGenerator.UnloadRegionRange();
+                }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
@@ -472,6 +600,7 @@ namespace LooCast.Test.Editor
                 #region Deletion
                 EditorGUILayout.BeginHorizontal();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Delete Region"))
                 {
                     universeGenerator.DeleteRegion();
@@ -481,11 +610,19 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.DeleteRegions();
                 }
+                EditorGUILayout.EndVertical();
 
+                EditorGUILayout.BeginVertical();
                 if (GUILayout.Button("Delete All Regions"))
                 {
                     universeGenerator.DeleteAllRegions();
                 }
+
+                if (GUILayout.Button("Delete Region Range"))
+                {
+                    universeGenerator.DeleteRegionRange();
+                }
+                EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
                 #endregion
@@ -505,6 +642,11 @@ namespace LooCast.Test.Editor
                 {
                     universeGenerator.SpawnRegions();
                 }
+
+                if (GUILayout.Button("Spawn Region Range"))
+                {
+                    universeGenerator.SpawnRegionRange();
+                }
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.BeginVertical();
@@ -516,6 +658,11 @@ namespace LooCast.Test.Editor
                 if (GUILayout.Button("Despawn Regions"))
                 {
                     universeGenerator.DespawnRegions();
+                }
+
+                if (GUILayout.Button("Despawn Region Range"))
+                {
+                    universeGenerator.DespawnRegionRange();
                 }
                 EditorGUILayout.EndVertical();
 

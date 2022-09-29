@@ -28,7 +28,6 @@ namespace LooCast.Universe
                 public float mapToMin;
                 public float mapToMax;
                 public float universeNoiseInfluence;
-                public float universeNoiseOffset;
                 public float power;
             }
             #endregion
@@ -81,7 +80,7 @@ namespace LooCast.Universe
                         float universeSampleX = filamentPosition.x + universeOffsetX;
                         float universeSampleY = filamentPosition.y + universeOffsetY;
 
-                        float universeNoiseValue = Instance.SampleNoise(universeSampleX, universeSampleY) + generationSettings.universeNoiseOffset;
+                        float universeNoiseValue = Instance.SampleNoise(universeSampleX, universeSampleY);
                         #endregion
 
                         #region Total Noise Evaluation
@@ -143,7 +142,6 @@ namespace LooCast.Universe
                 public float mapToMin;
                 public float mapToMax;
                 public float filamentNoiseInfluence;
-                public float filamentNoiseOffset;
                 public float power;
             }
             #endregion
@@ -199,7 +197,7 @@ namespace LooCast.Universe
                         float filamentSampleX = filamentPosition.x + filamentOffsetX;
                         float filamentSampleY = filamentPosition.y + filamentOffsetY;
 
-                        float filamentNoiseValue = filament.SampleNoise(filamentSampleX, filamentSampleY) + generationSettings.filamentNoiseOffset;
+                        float filamentNoiseValue = filament.SampleNoise(filamentSampleX, filamentSampleY);
                         #endregion
 
                         #region Total Noise Evaluation
@@ -261,7 +259,6 @@ namespace LooCast.Universe
                 public float mapToMin;
                 public float mapToMax;
                 public float sectorNoiseInfluence;
-                public float sectorNoiseOffset;
                 public float power;
             }
             #endregion
@@ -318,7 +315,7 @@ namespace LooCast.Universe
                         float sectorSampleX = sectorPosition.x + sectorOffsetX;
                         float sectorSampleY = sectorPosition.y + sectorOffsetY;
 
-                        float sectorNoiseValue = sector.SampleNoise(sectorSampleX, sectorSampleY) + generationSettings.sectorNoiseOffset;
+                        float sectorNoiseValue = sector.SampleNoise(sectorSampleX, sectorSampleY);
                         #endregion
 
                         #region Total Noise Evaluation

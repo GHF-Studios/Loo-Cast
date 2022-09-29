@@ -249,12 +249,40 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_REGION_showSection
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_SECTOR_showSection
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositionRangeMax.x
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositionRangeMax.y
+      value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositionRangeMin.x
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositionRangeMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_FILAMENT_filamentPositions.Array.size
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.size
-      value: 512
+      value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_FILAMENT_filamentPositionRange.Array.size
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.power
@@ -293,6 +321,14 @@ PrefabInstance:
       value: -1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.size
+      value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.sectorGenerationSettings.size
+      value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.power
       value: 1
       objectReference: {fileID: 0}
@@ -301,8 +337,12 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.size
+      value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.power
-      value: 1
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.regionGenerationSettings.mapToMax
@@ -362,7 +402,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.universeNoiseInfluence
-      value: 0.15
+      value: 0.75
       objectReference: {fileID: 0}
     - target: {fileID: 4694644655831026913, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: m_Name
