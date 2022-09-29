@@ -23,6 +23,13 @@ namespace LooCast.Universe
             {
                 public GameObject prefab;
                 public int size;
+                public float mapFromMin;
+                public float mapFromMax;
+                public float mapToMin;
+                public float mapToMax;
+                public float universeNoiseInfluence;
+                public float universeNoiseOffset;
+                public float power;
             }
             #endregion
 
@@ -52,23 +59,57 @@ namespace LooCast.Universe
 
                 #region Filament Map Generation
                 Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
+
                 for (int y = 0; y < generationSettings.size; y++)
                 {
                     for (int x = 0; x < generationSettings.size; x++)
                     {
-                        float offsetX = - (filamentPosition.x * Instance.FilamentGenerationSettings.size);
-                        float offsetY = - (filamentPosition.y * Instance.FilamentGenerationSettings.size);
-                        float sampleX = x + offsetX;
-                        float sampleY = y + offsetY;
-                        Instance.FilamentDomainWarper.DomainWarp(ref sampleX, ref sampleY);
-                        float noiseValue = Instance.FilamentNoiseGenerator.GetNoise(sampleX, sampleY);
-                        noiseValue = noiseValue.Map(-1, 1, 0, 1);
-                        noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
+                        #region Filament Noise Sampling
+                        float filamentOffsetX = - (filamentPosition.x * generationSettings.size);
+                        float filamentOffsetY = - (filamentPosition.y * generationSettings.size);
+
+                        float filamentSampleX = x + filamentOffsetX;
+                        float filamentSampleY = y + filamentOffsetY;
+
+                        float filamentNoiseValue = SampleNoise(filamentSampleX, filamentSampleY);
+                        #endregion
+
+                        #region Universe Noise Sampling
+                        float universeOffsetX = - (1 / generationSettings.size * x);
+                        float universeOffsetY = - (1 / generationSettings.size * y);
+
+                        float universeSampleX = filamentPosition.x + universeOffsetX;
+                        float universeSampleY = filamentPosition.y + universeOffsetY;
+
+                        float universeNoiseValue = Instance.SampleNoise(universeSampleX, universeSampleY) + generationSettings.universeNoiseOffset;
+                        #endregion
+
+                        #region Total Noise Evaluation
+                        float totalNoiseValue = filamentNoiseValue - (generationSettings.universeNoiseInfluence * (1 - universeNoiseValue));
+                        #endregion
+
+                        noiseColorMap[y * generationSettings.size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
                     }
                 }
 
                 map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
                 #endregion
+            }
+
+            public float SampleNoise(float sampleX, float sampleY)
+            {
+                #region Sampling
+                Instance.FilamentDomainWarper.DomainWarp(ref sampleX, ref sampleY);
+                float noiseValue = Instance.FilamentNoiseGenerator.GetNoise(sampleX, sampleY);
+                #endregion
+
+                #region Processing
+                GenerationSettings generationSettings = Instance.FilamentGenerationSettings;
+                noiseValue = noiseValue.Map(generationSettings.mapFromMin, generationSettings.mapFromMax, generationSettings.mapToMin, generationSettings.mapToMax);
+                noiseValue = Mathf.Pow(noiseValue, generationSettings.power);
+                #endregion
+
+                return noiseValue;
             }
 
             public void Spawn()
@@ -97,6 +138,13 @@ namespace LooCast.Universe
             {
                 public GameObject prefab;
                 public int size;
+                public float mapFromMin;
+                public float mapFromMax;
+                public float mapToMin;
+                public float mapToMax;
+                public float filamentNoiseInfluence;
+                public float filamentNoiseOffset;
+                public float power;
             }
             #endregion
 
@@ -129,24 +177,57 @@ namespace LooCast.Universe
 
                 #region Sector Map Generation
                 Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
+                Filament filament = Instance.GetFilament(filamentPosition);
                 for (int y = 0; y < generationSettings.size; y++)
                 {
                     for (int x = 0; x < generationSettings.size; x++)
                     {
-                        float offsetX = - (sectorPosition.x * Instance.SectorGenerationSettings.size);
-                        float offsetY = - (sectorPosition.y * Instance.SectorGenerationSettings.size);
-                        float sampleX = x + offsetX;
-                        float sampleY = y + offsetY;
-                        Instance.SectorDomainWarper.DomainWarp(ref sampleX, ref sampleY);
-                        float noiseValue = Instance.SectorNoiseGenerator.GetNoise(sampleX, sampleY);
-                        noiseValue = noiseValue.Map(-1, 1, 0, 1);
-                        noiseValue = Mathf.Pow(noiseValue, 2);
-                        noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
+                        #region Sector Noise Sampling
+                        float sectorOffsetX = -(sectorPosition.x * generationSettings.size);
+                        float sectorOffsetY = -(sectorPosition.y * generationSettings.size);
+
+                        float sectorSampleX = x + sectorOffsetX;
+                        float sectorSampleY = y + sectorOffsetY;
+
+                        float sectorNoiseValue = SampleNoise(sectorSampleX, sectorSampleY);
+                        #endregion
+
+                        #region Filament Noise Sampling
+                        float filamentOffsetX = -(1 / generationSettings.size * x);
+                        float filamentOffsetY = -(1 / generationSettings.size * y);
+
+                        float filamentSampleX = filamentPosition.x + filamentOffsetX;
+                        float filamentSampleY = filamentPosition.y + filamentOffsetY;
+
+                        float filamentNoiseValue = filament.SampleNoise(filamentSampleX, filamentSampleY) + generationSettings.filamentNoiseOffset;
+                        #endregion
+
+                        #region Total Noise Evaluation
+                        float totalNoiseValue = sectorNoiseValue - (generationSettings.filamentNoiseInfluence * (1 - filamentNoiseValue));
+                        #endregion
+
+                        noiseColorMap[y * generationSettings.size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
                     }
                 }
 
                 map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
                 #endregion
+            }
+
+            public float SampleNoise(float sampleX, float sampleY)
+            {
+                #region Sampling
+                Instance.SectorDomainWarper.DomainWarp(ref sampleX, ref sampleY);
+                float noiseValue = Instance.SectorNoiseGenerator.GetNoise(sampleX, sampleY);
+                #endregion
+
+                #region Processing
+                GenerationSettings generationSettings = Instance.SectorGenerationSettings;
+                noiseValue = noiseValue.Map(generationSettings.mapFromMin, generationSettings.mapFromMax, generationSettings.mapToMin, generationSettings.mapToMax);
+                noiseValue = Mathf.Pow(noiseValue, generationSettings.power);
+                #endregion
+
+                return noiseValue;
             }
 
             public void Spawn()
@@ -175,6 +256,13 @@ namespace LooCast.Universe
             {
                 public GameObject prefab;
                 public int size;
+                public float mapFromMin;
+                public float mapFromMax;
+                public float mapToMin;
+                public float mapToMax;
+                public float sectorNoiseInfluence;
+                public float sectorNoiseOffset;
+                public float power;
             }
             #endregion
 
@@ -208,24 +296,57 @@ namespace LooCast.Universe
 
                 #region Region Map Generation
                 Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
+                Sector sector = Instance.GetSector(sectorPosition);
                 for (int y = 0; y < generationSettings.size; y++)
                 {
                     for (int x = 0; x < generationSettings.size; x++)
                     {
-                        float offsetX = - (regionPosition.x * Instance.RegionGenerationSettings.size);
-                        float offsetY = - (regionPosition.y * Instance.RegionGenerationSettings.size);
-                        float sampleX = x + offsetX;
-                        float sampleY = y + offsetY;
-                        Instance.RegionDomainWarper.DomainWarp(ref sampleX, ref sampleY);
-                        float noiseValue = Instance.RegionNoiseGenerator.GetNoise(sampleX, sampleY);
-                        noiseValue = noiseValue.Map(-1, 1, -0.375f, 1.375f);
-                        noiseValue = Mathf.Pow(noiseValue, 2);
-                        noiseColorMap[y * generationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
+                        #region Region Noise Sampling
+                        float regionOffsetX = -(regionPosition.x * generationSettings.size);
+                        float regionOffsetY = -(regionPosition.y * generationSettings.size);
+
+                        float regionSampleX = x + regionOffsetX;
+                        float regionSampleY = y + regionOffsetY;
+
+                        float regionNoiseValue = SampleNoise(regionSampleX, regionSampleY);
+                        #endregion
+
+                        #region Sector Noise Sampling
+                        float sectorOffsetX = -(1 / generationSettings.size * x);
+                        float sectorOffsetY = -(1 / generationSettings.size * y);
+
+                        float sectorSampleX = sectorPosition.x + sectorOffsetX;
+                        float sectorSampleY = sectorPosition.y + sectorOffsetY;
+
+                        float sectorNoiseValue = sector.SampleNoise(sectorSampleX, sectorSampleY) + generationSettings.sectorNoiseOffset;
+                        #endregion
+
+                        #region Total Noise Evaluation
+                        float totalNoiseValue = regionNoiseValue - (generationSettings.sectorNoiseInfluence * (1 - sectorNoiseValue));
+                        #endregion
+
+                        noiseColorMap[y * generationSettings.size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
                     }
                 }
 
                 map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
                 #endregion
+            }
+
+            public float SampleNoise(float sampleX, float sampleY)
+            {
+                #region Sampling
+                Instance.RegionDomainWarper.DomainWarp(ref sampleX, ref sampleY);
+                float noiseValue = Instance.RegionNoiseGenerator.GetNoise(sampleX, sampleY);
+                #endregion
+
+                #region Processing
+                GenerationSettings generationSettings = Instance.RegionGenerationSettings;
+                noiseValue = noiseValue.Map(generationSettings.mapFromMin, generationSettings.mapFromMax, generationSettings.mapToMin, generationSettings.mapToMax);
+                noiseValue = Mathf.Pow(noiseValue, generationSettings.power);
+                #endregion
+
+                return noiseValue;
             }
 
             public void Spawn()
@@ -252,7 +373,12 @@ namespace LooCast.Universe
         {
             public int seed;
             public int size;
-            
+            public float mapFromMin;
+            public float mapFromMax;
+            public float mapToMin;
+            public float mapToMax;
+            public float power;
+
             public Filament.GenerationSettings filamentGenerationSettings;
             public Sector.GenerationSettings sectorGenerationSettings;
             public Region.GenerationSettings regionGenerationSettings;
@@ -497,15 +623,30 @@ namespace LooCast.Universe
                 {
                     float sampleX = x;
                     float sampleY = y;
-                    universeDomainWarper.DomainWarp(ref sampleX, ref sampleY);
-                    float noiseValue = universeNoiseGenerator.GetNoise(sampleX, sampleY);
-                    noiseValue = noiseValue.Map(-1, 1, -0.375f, 1.375f);
+
+                    float noiseValue = SampleNoise(sampleX, sampleY);
+
                     noiseColorMap[y * UniverseGenerationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
                 }
             }
 
             map = TextureUtil.TextureFromColorMap(noiseColorMap, UniverseGenerationSettings.size, UniverseGenerationSettings.size);
             #endregion
+        }
+
+        public float SampleNoise(float sampleX, float sampleY)
+        {
+            #region Sampling
+            UniverseDomainWarper.DomainWarp(ref sampleX, ref sampleY);
+            float universeNoiseValue = UniverseNoiseGenerator.GetNoise(sampleX, sampleY);
+            #endregion
+
+            #region Processing
+            universeNoiseValue = universeNoiseValue.Map(UniverseGenerationSettings.mapFromMin, UniverseGenerationSettings.mapFromMax, UniverseGenerationSettings.mapToMin, UniverseGenerationSettings.mapToMax);
+            universeNoiseValue = Mathf.Pow(universeNoiseValue, UniverseGenerationSettings.power);
+            #endregion
+
+            return universeNoiseValue;
         }
 
         #region Universe
@@ -525,18 +666,6 @@ namespace LooCast.Universe
         private void Terminate()
         {
 
-        }
-        #endregion
-
-        #region Utility
-        public static float GetMapPixelValue(Vector2Int pixelPosition)
-        {
-            if (!IsUniverseLoaded())
-            {
-                throw new Exception("Universe is not loaded!");
-            }
-
-            return Instance.map.GetPixel(pixelPosition.x, pixelPosition.y).grayscale;
         }
         #endregion
 

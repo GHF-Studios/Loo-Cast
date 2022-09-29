@@ -217,7 +217,7 @@ double SampleProcessedPerlin(double x, double y, int perlinPixelIndex)
     return value/maxValue;
 }
 
-PerlinPixel CalculatePerlinPixel(PerlinPixel perlinPixel) //TODO: Implement
+PerlinPixel CalculatePerlinPixel(PerlinPixel perlinPixel)
 {
     perlinPixel.perlinValue = SampleProcessedPerlin(perlinPixel.positionX, perlinPixel.positionY, perlinPixel.positionY * textureDimensions.x + perlinPixel.positionX);
     perlinPixel.perlinValue = InverseLerp(-maxNoiseAmplitude, maxNoiseAmplitude, perlinPixel.perlinValue);
