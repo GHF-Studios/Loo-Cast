@@ -46,27 +46,107 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DEV_UNIVERSE_universeGenerationSettings:
     seed: 0
-    size: 512
+    size: 64
+    mapFromMin: -1
+    mapFromMax: 1
+    mapToMin: -0.5
+    mapToMax: 1.5
+    power: 1
+    noiseType: 2
+    frequency: 0.04
+    fractalType: 1
+    fractalOctaves: 3
+    fractalLacunarity: 2
+    fractalGain: 0.5
+    fractalWeightedStrength: 1
+    cellularDistanceFunction: 1
+    cellularReturnType: 1
+    cellularJitter: 1
+    domainWarpType: 0
+    domainWarpAmplitude: 20
+    domainWarpFrequency: 0.01
+    domainWarpFractalType: 4
+    domainWarpFractalOctaves: 5
+    domainWarpFractalLacunarity: 2
+    domainWarpFractalGain: 0.5
     filamentGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 77d6d03686b6ef845beef5135fbab1b5, type: 3}
-      size: 512
+      size: 64
+      mapFromMin: -1
+      mapFromMax: 1
+      mapToMin: 0
+      mapToMax: 1
+      universeNoiseInfluence: 0.75
+      power: 0.1
+      noiseType: 2
+      frequency: 0.02
+      fractalType: 1
+      fractalOctaves: 5
+      fractalLacunarity: 2
+      fractalGain: 0.5
+      fractalWeightedStrength: 0
+      cellularDistanceFunction: 1
+      cellularReturnType: 1
+      cellularJitter: 1
+      domainWarpType: 0
+      domainWarpAmplitude: 20
+      domainWarpFrequency: 0.005
+      domainWarpFractalType: 4
+      domainWarpFractalOctaves: 5
+      domainWarpFractalLacunarity: 2
+      domainWarpFractalGain: 0.5
     sectorGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 776cc2037f69c7c4e800fcbb3b29e4cc, type: 3}
-      size: 512
+      size: 64
+      mapFromMin: -1
+      mapFromMax: 1
+      mapToMin: 0
+      mapToMax: 1
+      filamentNoiseInfluence: 0.15
+      power: 1
+      noiseType: 0
+      frequency: 0.01
+      fractalType: 1
+      fractalOctaves: 5
+      fractalLacunarity: 2
+      fractalGain: 0.5
+      fractalWeightedStrength: 0
+      domainWarpType: 0
+      domainWarpAmplitude: 20
+      domainWarpFrequency: 0.005
+      domainWarpFractalType: 4
+      domainWarpFractalOctaves: 5
+      domainWarpFractalLacunarity: 2
+      domainWarpFractalGain: 0.5
     regionGenerationSettings:
       prefab: {fileID: 3918568864914981115, guid: 668a2465b9473cc4ebeba51458152e80, type: 3}
-      size: 512
+      size: 64
+      mapFromMin: -1
+      mapFromMax: 1
+      mapToMin: -0.375
+      mapToMax: 1.375
+      sectorNoiseInfluence: 0.15
+      power: 1
+      noiseType: 0
+      frequency: 0.005
+      fractalType: 1
+      fractalOctaves: 5
+      fractalLacunarity: 2
+      fractalGain: 0.5
+      fractalWeightedStrength: 0
+      domainWarpType: 0
+      domainWarpAmplitude: 20
+      domainWarpFrequency: 0.005
+      domainWarpFractalType: 4
+      domainWarpFractalOctaves: 5
+      domainWarpFractalLacunarity: 2
+      domainWarpFractalGain: 0.5
   DEV_FILAMENT_filamentPosition: {x: 0, y: 0}
   DEV_FILAMENT_filamentPositions:
-  - {x: -1, y: -1}
-  - {x: -1, y: 0}
-  - {x: -1, y: 1}
-  - {x: 0, y: -1}
   - {x: 0, y: 0}
-  - {x: 0, y: 1}
-  - {x: 1, y: -1}
-  - {x: 1, y: 0}
-  - {x: 1, y: 1}
+  - {x: 10, y: 16}
+  DEV_FILAMENT_filamentPositionRangeMin: {x: 0, y: 0}
+  DEV_FILAMENT_filamentPositionRangeMax: {x: 63, y: 63}
   DEV_SECTOR_filamentPosition: {x: 0, y: 0}
   DEV_SECTOR_sectorPosition: {x: 0, y: 0}
   DEV_SECTOR_sectorPositions:
@@ -79,6 +159,8 @@ MonoBehaviour:
   - {x: 1, y: -1}
   - {x: 1, y: 0}
   - {x: 1, y: 1}
+  DEV_SECTOR_sectorPositionRangeMin: {x: 0, y: 0}
+  DEV_SECTOR_sectorPositionRangeMax: {x: 0, y: 0}
   DEV_REGION_sectorPosition: {x: 0, y: 0}
   DEV_REGION_regionPosition: {x: 0, y: 0}
   DEV_REGION_regionPositions:
@@ -91,7 +173,9 @@ MonoBehaviour:
   - {x: 1, y: -1}
   - {x: 1, y: 0}
   - {x: 1, y: 1}
+  DEV_REGION_regionPositionRangeMin: {x: 0, y: 0}
+  DEV_REGION_regionPositionRangeMax: {x: 0, y: 0}
   DEV_UNIVERSE_showSection: 1
-  DEV_FILAMENT_showSection: 1
-  DEV_SECTOR_showSection: 1
-  DEV_REGION_showSection: 1
+  DEV_FILAMENT_showSection: 0
+  DEV_SECTOR_showSection: 0
+  DEV_REGION_showSection: 0
