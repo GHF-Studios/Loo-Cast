@@ -112,7 +112,9 @@ namespace LooCast.Universe
                         #endregion
 
                         #region Total Noise Evaluation
-                        float totalNoiseValue = filamentNoiseValue - (generationSettings.universeNoiseInfluence * (1 - universeNoiseValue));
+                        //TODO: Change, Map is being called twice, in Universe and here, somehow fix this performance issue!
+                        universeNoiseValue = universeNoiseValue.Map(0, 1, -1, 1);
+                        float totalNoiseValue = filamentNoiseValue * (1 + (generationSettings.universeNoiseInfluence * universeNoiseValue));
                         #endregion
 
                         noiseColorMap[y * generationSettings.size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
@@ -253,7 +255,9 @@ namespace LooCast.Universe
                         #endregion
 
                         #region Total Noise Evaluation
-                        float totalNoiseValue = sectorNoiseValue - (generationSettings.filamentNoiseInfluence * (1 - filamentNoiseValue));
+                        //TODO: Change, Map is being called twice, in Filament and here, somehow fix this performance issue!
+                        filamentNoiseValue = filamentNoiseValue.Map(0, 1, -1, 1);
+                        float totalNoiseValue = sectorNoiseValue * (1 + (generationSettings.filamentNoiseInfluence * filamentNoiseValue));
                         #endregion
 
                         noiseColorMap[y * generationSettings.size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
@@ -395,7 +399,9 @@ namespace LooCast.Universe
                         #endregion
 
                         #region Total Noise Evaluation
-                        float totalNoiseValue = regionNoiseValue - (generationSettings.sectorNoiseInfluence * (1 - sectorNoiseValue));
+                        //TODO: Change, Map is being called twice, in Sector and here, somehow fix this performance issue!
+                        sectorNoiseValue = sectorNoiseValue.Map(0, 1, -1, 1);
+                        float totalNoiseValue = regionNoiseValue * (1 + (generationSettings.sectorNoiseInfluence * sectorNoiseValue));
                         #endregion
 
                         noiseColorMap[y * generationSettings.size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
