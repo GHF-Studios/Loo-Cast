@@ -27,7 +27,7 @@ Transform:
   m_GameObject: {fileID: 1051570961942048181}
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2048, y: 1, z: 2048}
+  m_LocalScale: {x: 256, y: 1, z: 256}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1051570962238774099}
@@ -129,14 +129,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8ed31873ba7e5f4ab99be15bba2e29c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MapWidth: 2048
-  MapHeight: 2048
-  SampleCellAmount: {x: 256, y: 256}
+  MapWidth: 256
+  MapHeight: 256
+  SampleCellAmount: {x: 16, y: 16}
   CellSpread: 1
   Power: 3
-  Amplitude: 1
+  Amplitude: 2
   Seed: 0
-  AutoUpdate: 0
+  AutoUpdate: 1
   ComputeShader: {fileID: 7200000, guid: 38649df2d2559e040b51b458cd9964f3, type: 3}
 --- !u!114 &1845572289835086886
 MonoBehaviour:

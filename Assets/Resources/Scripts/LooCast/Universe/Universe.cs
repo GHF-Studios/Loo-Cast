@@ -29,6 +29,7 @@ namespace LooCast.Universe
                 public float mapToMax;
                 public float universeNoiseInfluence;
                 public float power;
+                public float amplitude;
 
                 [Header("FNL Noise General Settings")]
                 public FastNoiseLite.NoiseType noiseType;
@@ -133,6 +134,7 @@ namespace LooCast.Universe
                 GenerationSettings generationSettings = Instance.FilamentGenerationSettings;
                 noiseValue = noiseValue.Map(generationSettings.mapFromMin, generationSettings.mapFromMax, generationSettings.mapToMin, generationSettings.mapToMax);
                 noiseValue = Mathf.Pow(noiseValue, generationSettings.power);
+                noiseValue *= generationSettings.amplitude;
                 #endregion
 
                 return noiseValue;
@@ -170,6 +172,7 @@ namespace LooCast.Universe
                 public float mapToMax;
                 public float filamentNoiseInfluence;
                 public float power;
+                public float amplitude;
 
                 [Header("FNL Noise General Settings")]
                 public FastNoiseLite.NoiseType noiseType;
@@ -272,6 +275,7 @@ namespace LooCast.Universe
                 GenerationSettings generationSettings = Instance.SectorGenerationSettings;
                 noiseValue = noiseValue.Map(generationSettings.mapFromMin, generationSettings.mapFromMax, generationSettings.mapToMin, generationSettings.mapToMax);
                 noiseValue = Mathf.Pow(noiseValue, generationSettings.power);
+                noiseValue *= generationSettings.amplitude;
                 #endregion
 
                 return noiseValue;
@@ -309,6 +313,7 @@ namespace LooCast.Universe
                 public float mapToMax;
                 public float sectorNoiseInfluence;
                 public float power;
+                public float amplitude;
 
                 [Header("FNL Noise General Settings")]
                 public FastNoiseLite.NoiseType noiseType;
@@ -412,6 +417,7 @@ namespace LooCast.Universe
                 GenerationSettings generationSettings = Instance.RegionGenerationSettings;
                 noiseValue = noiseValue.Map(generationSettings.mapFromMin, generationSettings.mapFromMax, generationSettings.mapToMin, generationSettings.mapToMax);
                 noiseValue = Mathf.Pow(noiseValue, generationSettings.power);
+                noiseValue *= generationSettings.amplitude;
                 #endregion
 
                 return noiseValue;
@@ -447,6 +453,7 @@ namespace LooCast.Universe
             public float mapToMin;
             public float mapToMax;
             public float power;
+            public float amplitude;
 
             [Header("FNL Noise General Settings")]
             public FastNoiseLite.NoiseType noiseType;
@@ -734,15 +741,16 @@ namespace LooCast.Universe
         {
             #region Sampling
             UniverseDomainWarper.DomainWarp(ref sampleX, ref sampleY);
-            float universeNoiseValue = UniverseNoiseGenerator.GetNoise(sampleX, sampleY);
+            float noiseValue = UniverseNoiseGenerator.GetNoise(sampleX, sampleY);
             #endregion
 
             #region Processing
-            universeNoiseValue = universeNoiseValue.Map(UniverseGenerationSettings.mapFromMin, UniverseGenerationSettings.mapFromMax, UniverseGenerationSettings.mapToMin, UniverseGenerationSettings.mapToMax);
-            universeNoiseValue = Mathf.Pow(universeNoiseValue, UniverseGenerationSettings.power);
+            noiseValue = noiseValue.Map(UniverseGenerationSettings.mapFromMin, UniverseGenerationSettings.mapFromMax, UniverseGenerationSettings.mapToMin, UniverseGenerationSettings.mapToMax);
+            noiseValue = Mathf.Pow(noiseValue, UniverseGenerationSettings.power);
+            noiseValue *= UniverseGenerationSettings.amplitude;
             #endregion
 
-            return universeNoiseValue;
+            return noiseValue;
         }
 
         #region Universe

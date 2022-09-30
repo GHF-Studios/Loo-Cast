@@ -281,6 +281,26 @@ PrefabInstance:
       value: 2048
       objectReference: {fileID: 0}
     - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.power
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.mapToMax
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.mapToMin
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.amplitude
+      value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
+      propertyPath: DEV_UNIVERSE_universeGenerationSettings.minStructureDensity
+      value: 0.0001
+      objectReference: {fileID: 0}
+    - target: {fileID: 807784907, guid: a2000197ee5ced24ca723ace95a6432e, type: 3}
       propertyPath: DEV_UNIVERSE_universeGenerationSettings.filamentGenerationSettings.size
       value: 2048
       objectReference: {fileID: 0}

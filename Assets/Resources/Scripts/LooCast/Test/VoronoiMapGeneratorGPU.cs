@@ -72,7 +72,7 @@ namespace LooCast.Test
             for (int i = 0; i < distances.Length; i++)
             {
                 float colorValue = distances[i] / maxDistance;
-                colorValue = Mathf.Pow(colorValue, (1 - colorValue) * Power);
+                colorValue = Mathf.Pow(colorValue, Power);
                 colorValue *= Amplitude;
                 colorMap[i] = new Color(colorValue, colorValue, colorValue, 1.0f);
             }
