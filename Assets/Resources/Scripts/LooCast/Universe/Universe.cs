@@ -21,42 +21,42 @@ namespace LooCast.Universe
             [Serializable]
             public struct GenerationSettings
             {
-                public GameObject prefab;
-                public int size;
-                public float mapFromMin;
-                public float mapFromMax;
-                public float mapToMin;
-                public float mapToMax;
-                public float universeNoiseInfluence;
-                public float power;
-                public float amplitude;
+                public GameObject Prefab;
+                public int Size;
+                public float MapFromMin;
+                public float MapFromMax;
+                public float MapToMin;
+                public float MapToMax;
+                public float UniverseNoiseInfluence;
+                public float Power;
+                public float Amplitude;
 
                 [Header("FNL Noise General Settings")]
-                public FastNoiseLite.NoiseType noiseType;
-                public float frequency;
+                public FastNoiseLite.NoiseType NoiseType;
+                public float Frequency;
 
                 [Header("FNL Noise Fractal Settings")]
-                public FastNoiseLite.FractalType fractalType;
-                public int fractalOctaves;
-                public float fractalLacunarity;
-                public float fractalGain;
-                public float fractalWeightedStrength;
+                public FastNoiseLite.FractalType FractalType;
+                public int FractalOctaves;
+                public float FractalLacunarity;
+                public float FractalGain;
+                public float FractalWeightedStrength;
 
                 [Header("FNL Noise Cellular Settings")]
-                public FastNoiseLite.CellularDistanceFunction cellularDistanceFunction;
-                public FastNoiseLite.CellularReturnType cellularReturnType;
-                public float cellularJitter;
+                public FastNoiseLite.CellularDistanceFunction CellularDistanceFunction;
+                public FastNoiseLite.CellularReturnType CellularReturnType;
+                public float CellularJitter;
 
                 [Header("FNL Domain Warp General Settings")]
-                public FastNoiseLite.DomainWarpType domainWarpType;
-                public float domainWarpAmplitude;
-                public float domainWarpFrequency;
+                public FastNoiseLite.DomainWarpType DomainWarpType;
+                public float DomainWarpAmplitude;
+                public float DomainWarpFrequency;
 
                 [Header("FNL Domain Warp Fractal Settings")]
-                public FastNoiseLite.FractalType domainWarpFractalType;
-                public int domainWarpFractalOctaves;
-                public float domainWarpFractalLacunarity;
-                public float domainWarpFractalGain;
+                public FastNoiseLite.FractalType DomainWarpFractalType;
+                public int DomainWarpFractalOctaves;
+                public float DomainWarpFractalLacunarity;
+                public float DomainWarpFractalGain;
             }
             #endregion
 
@@ -85,15 +85,15 @@ namespace LooCast.Universe
                 this.filamentPosition = filamentPosition;
 
                 #region Filament Map Generation
-                Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
+                Color[] noiseColorMap = new Color[generationSettings.Size * generationSettings.Size];
 
-                for (int y = 0; y < generationSettings.size; y++)
+                for (int y = 0; y < generationSettings.Size; y++)
                 {
-                    for (int x = 0; x < generationSettings.size; x++)
+                    for (int x = 0; x < generationSettings.Size; x++)
                     {
                         #region Filament Noise Sampling
-                        float filamentOffsetX = - (filamentPosition.x * generationSettings.size);
-                        float filamentOffsetY = - (filamentPosition.y * generationSettings.size);
+                        float filamentOffsetX = - (filamentPosition.x * generationSettings.Size);
+                        float filamentOffsetY = - (filamentPosition.y * generationSettings.Size);
 
                         float filamentSampleX = x + filamentOffsetX;
                         float filamentSampleY = y + filamentOffsetY;
@@ -102,8 +102,8 @@ namespace LooCast.Universe
                         #endregion
 
                         #region Universe Noise Sampling
-                        float universeOffsetX = - (1 / generationSettings.size * x);
-                        float universeOffsetY = - (1 / generationSettings.size * y);
+                        float universeOffsetX = - (1 / generationSettings.Size * x);
+                        float universeOffsetY = - (1 / generationSettings.Size * y);
 
                         float universeSampleX = filamentPosition.x + universeOffsetX;
                         float universeSampleY = filamentPosition.y + universeOffsetY;
@@ -114,14 +114,14 @@ namespace LooCast.Universe
                         #region Total Noise Evaluation
                         //TODO: Change, Map is being called twice, in Universe and here, somehow fix this performance issue!
                         universeNoiseValue = universeNoiseValue.Map(0, 1, -1, 1);
-                        float totalNoiseValue = filamentNoiseValue * (1 + (generationSettings.universeNoiseInfluence * universeNoiseValue));
+                        float totalNoiseValue = filamentNoiseValue * (1 + (generationSettings.UniverseNoiseInfluence * universeNoiseValue));
                         #endregion
 
-                        noiseColorMap[y * generationSettings.size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
+                        noiseColorMap[y * generationSettings.Size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
                     }
                 }
 
-                map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
+                map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.Size, generationSettings.Size);
                 #endregion
             }
 
@@ -134,9 +134,9 @@ namespace LooCast.Universe
 
                 #region Processing
                 GenerationSettings generationSettings = Instance.FilamentGenerationSettings;
-                noiseValue = noiseValue.Map(generationSettings.mapFromMin, generationSettings.mapFromMax, generationSettings.mapToMin, generationSettings.mapToMax);
-                noiseValue = Mathf.Pow(noiseValue, generationSettings.power);
-                noiseValue *= generationSettings.amplitude;
+                noiseValue = noiseValue.Map(generationSettings.MapFromMin, generationSettings.MapFromMax, generationSettings.MapToMin, generationSettings.MapToMax);
+                noiseValue = Mathf.Pow(noiseValue, generationSettings.Power);
+                noiseValue *= generationSettings.Amplitude;
                 #endregion
 
                 return noiseValue;
@@ -144,9 +144,9 @@ namespace LooCast.Universe
 
             public void Spawn()
             {
-                filamentObject = GameObject.Instantiate(Instance.FilamentGenerationSettings.prefab);
+                filamentObject = GameObject.Instantiate(Instance.FilamentGenerationSettings.Prefab);
                 filamentObject.name = $"Filament ({filamentPosition.x}, {filamentPosition.y})";
-                Vector2Int worldPosition = filamentPosition * Instance.FilamentGenerationSettings.size;
+                Vector2Int worldPosition = filamentPosition * Instance.FilamentGenerationSettings.Size;
                 filamentObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 
                 MapDisplay mapDisplay = filamentObject.GetComponentInChildren<MapDisplay>();
@@ -166,37 +166,37 @@ namespace LooCast.Universe
             [Serializable]
             public struct GenerationSettings
             {
-                public GameObject prefab;
-                public int size;
-                public float mapFromMin;
-                public float mapFromMax;
-                public float mapToMin;
-                public float mapToMax;
-                public float filamentNoiseInfluence;
-                public float power;
-                public float amplitude;
+                public GameObject Prefab;
+                public int Size;
+                public float MapFromMin;
+                public float MapFromMax;
+                public float MapToMin;
+                public float MapToMax;
+                public float FilamentNoiseInfluence;
+                public float Power;
+                public float Amplitude;
 
                 [Header("FNL Noise General Settings")]
-                public FastNoiseLite.NoiseType noiseType;
-                public float frequency;
+                public FastNoiseLite.NoiseType NoiseType;
+                public float Frequency;
 
                 [Header("FNL Noise Fractal Settings")]
-                public FastNoiseLite.FractalType fractalType;
-                public int fractalOctaves;
-                public float fractalLacunarity;
-                public float fractalGain;
-                public float fractalWeightedStrength;
+                public FastNoiseLite.FractalType FractalType;
+                public int FractalOctaves;
+                public float FractalLacunarity;
+                public float FractalGain;
+                public float FractalWeightedStrength;
 
                 [Header("FNL Domain Warp General Settings")]
-                public FastNoiseLite.DomainWarpType domainWarpType;
-                public float domainWarpAmplitude;
-                public float domainWarpFrequency;
+                public FastNoiseLite.DomainWarpType DomainWarpType;
+                public float DomainWarpAmplitude;
+                public float DomainWarpFrequency;
 
                 [Header("FNL Domain Warp Fractal Settings")]
-                public FastNoiseLite.FractalType domainWarpFractalType;
-                public int domainWarpFractalOctaves;
-                public float domainWarpFractalLacunarity;
-                public float domainWarpFractalGain;
+                public FastNoiseLite.FractalType DomainWarpFractalType;
+                public int DomainWarpFractalOctaves;
+                public float DomainWarpFractalLacunarity;
+                public float DomainWarpFractalGain;
             }
             #endregion
 
@@ -228,15 +228,15 @@ namespace LooCast.Universe
                 this.sectorPosition = sectorPosition;
 
                 #region Sector Map Generation
-                Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
+                Color[] noiseColorMap = new Color[generationSettings.Size * generationSettings.Size];
                 Filament filament = Instance.GetFilament(filamentPosition);
-                for (int y = 0; y < generationSettings.size; y++)
+                for (int y = 0; y < generationSettings.Size; y++)
                 {
-                    for (int x = 0; x < generationSettings.size; x++)
+                    for (int x = 0; x < generationSettings.Size; x++)
                     {
                         #region Sector Noise Sampling
-                        float sectorOffsetX = -(sectorPosition.x * generationSettings.size);
-                        float sectorOffsetY = -(sectorPosition.y * generationSettings.size);
+                        float sectorOffsetX = -(sectorPosition.x * generationSettings.Size);
+                        float sectorOffsetY = -(sectorPosition.y * generationSettings.Size);
 
                         float sectorSampleX = x + sectorOffsetX;
                         float sectorSampleY = y + sectorOffsetY;
@@ -245,8 +245,8 @@ namespace LooCast.Universe
                         #endregion
 
                         #region Filament Noise Sampling
-                        float filamentOffsetX = -(1 / generationSettings.size * x);
-                        float filamentOffsetY = -(1 / generationSettings.size * y);
+                        float filamentOffsetX = -(1 / generationSettings.Size * x);
+                        float filamentOffsetY = -(1 / generationSettings.Size * y);
 
                         float filamentSampleX = filamentPosition.x + filamentOffsetX;
                         float filamentSampleY = filamentPosition.y + filamentOffsetY;
@@ -257,14 +257,14 @@ namespace LooCast.Universe
                         #region Total Noise Evaluation
                         //TODO: Change, Map is being called twice, in Filament and here, somehow fix this performance issue!
                         filamentNoiseValue = filamentNoiseValue.Map(0, 1, -1, 1);
-                        float totalNoiseValue = sectorNoiseValue * (1 + (generationSettings.filamentNoiseInfluence * filamentNoiseValue));
+                        float totalNoiseValue = sectorNoiseValue * (1 + (generationSettings.FilamentNoiseInfluence * filamentNoiseValue));
                         #endregion
 
-                        noiseColorMap[y * generationSettings.size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
+                        noiseColorMap[y * generationSettings.Size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
                     }
                 }
 
-                map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
+                map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.Size, generationSettings.Size);
                 #endregion
             }
 
@@ -277,9 +277,9 @@ namespace LooCast.Universe
 
                 #region Processing
                 GenerationSettings generationSettings = Instance.SectorGenerationSettings;
-                noiseValue = noiseValue.Map(generationSettings.mapFromMin, generationSettings.mapFromMax, generationSettings.mapToMin, generationSettings.mapToMax);
-                noiseValue = Mathf.Pow(noiseValue, generationSettings.power);
-                noiseValue *= generationSettings.amplitude;
+                noiseValue = noiseValue.Map(generationSettings.MapFromMin, generationSettings.MapFromMax, generationSettings.MapToMin, generationSettings.MapToMax);
+                noiseValue = Mathf.Pow(noiseValue, generationSettings.Power);
+                noiseValue *= generationSettings.Amplitude;
                 #endregion
 
                 return noiseValue;
@@ -287,9 +287,9 @@ namespace LooCast.Universe
 
             public void Spawn()
             {
-                sectorObject = GameObject.Instantiate(Instance.SectorGenerationSettings.prefab);
+                sectorObject = GameObject.Instantiate(Instance.SectorGenerationSettings.Prefab);
                 sectorObject.name = $"Sector ({sectorPosition.x}, {sectorPosition.y})";
-                Vector2Int worldPosition = sectorPosition * Instance.SectorGenerationSettings.size;
+                Vector2Int worldPosition = sectorPosition * Instance.SectorGenerationSettings.Size;
                 sectorObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 
                 MapDisplay mapDisplay = sectorObject.GetComponentInChildren<MapDisplay>();
@@ -309,37 +309,37 @@ namespace LooCast.Universe
             [Serializable]
             public struct GenerationSettings
             {
-                public GameObject prefab;
-                public int size;
-                public float mapFromMin;
-                public float mapFromMax;
-                public float mapToMin;
-                public float mapToMax;
-                public float sectorNoiseInfluence;
-                public float power;
-                public float amplitude;
+                public GameObject Prefab;
+                public int Size;
+                public float MapFromMin;
+                public float MapFromMax;
+                public float MapToMin;
+                public float MapToMax;
+                public float SectorNoiseInfluence;
+                public float Power;
+                public float Amplitude;
 
                 [Header("FNL Noise General Settings")]
-                public FastNoiseLite.NoiseType noiseType;
-                public float frequency;
+                public FastNoiseLite.NoiseType NoiseType;
+                public float Frequency;
 
                 [Header("FNL Noise Fractal Settings")]
-                public FastNoiseLite.FractalType fractalType;
-                public int fractalOctaves;
-                public float fractalLacunarity;
-                public float fractalGain;
-                public float fractalWeightedStrength;
+                public FastNoiseLite.FractalType FractalType;
+                public int FractalOctaves;
+                public float FractalLacunarity;
+                public float FractalGain;
+                public float FractalWeightedStrength;
 
                 [Header("FNL Domain Warp General Settings")]
-                public FastNoiseLite.DomainWarpType domainWarpType;
-                public float domainWarpAmplitude;
-                public float domainWarpFrequency;
+                public FastNoiseLite.DomainWarpType DomainWarpType;
+                public float DomainWarpAmplitude;
+                public float DomainWarpFrequency;
 
                 [Header("FNL Domain Warp Fractal Settings")]
-                public FastNoiseLite.FractalType domainWarpFractalType;
-                public int domainWarpFractalOctaves;
-                public float domainWarpFractalLacunarity;
-                public float domainWarpFractalGain;
+                public FastNoiseLite.FractalType DomainWarpFractalType;
+                public int DomainWarpFractalOctaves;
+                public float DomainWarpFractalLacunarity;
+                public float DomainWarpFractalGain;
             }
             #endregion
 
@@ -372,15 +372,15 @@ namespace LooCast.Universe
                 this.regionPosition = regionPosition;
 
                 #region Region Map Generation
-                Color[] noiseColorMap = new Color[generationSettings.size * generationSettings.size];
+                Color[] noiseColorMap = new Color[generationSettings.Size * generationSettings.Size];
                 Sector sector = Instance.GetSector(sectorPosition);
-                for (int y = 0; y < generationSettings.size; y++)
+                for (int y = 0; y < generationSettings.Size; y++)
                 {
-                    for (int x = 0; x < generationSettings.size; x++)
+                    for (int x = 0; x < generationSettings.Size; x++)
                     {
                         #region Region Noise Sampling
-                        float regionOffsetX = -(regionPosition.x * generationSettings.size);
-                        float regionOffsetY = -(regionPosition.y * generationSettings.size);
+                        float regionOffsetX = -(regionPosition.x * generationSettings.Size);
+                        float regionOffsetY = -(regionPosition.y * generationSettings.Size);
 
                         float regionSampleX = x + regionOffsetX;
                         float regionSampleY = y + regionOffsetY;
@@ -389,8 +389,8 @@ namespace LooCast.Universe
                         #endregion
 
                         #region Sector Noise Sampling
-                        float sectorOffsetX = -(1 / generationSettings.size * x);
-                        float sectorOffsetY = -(1 / generationSettings.size * y);
+                        float sectorOffsetX = -(1 / generationSettings.Size * x);
+                        float sectorOffsetY = -(1 / generationSettings.Size * y);
 
                         float sectorSampleX = sectorPosition.x + sectorOffsetX;
                         float sectorSampleY = sectorPosition.y + sectorOffsetY;
@@ -401,14 +401,14 @@ namespace LooCast.Universe
                         #region Total Noise Evaluation
                         //TODO: Change, Map is being called twice, in Sector and here, somehow fix this performance issue!
                         sectorNoiseValue = sectorNoiseValue.Map(0, 1, -1, 1);
-                        float totalNoiseValue = regionNoiseValue * (1 + (generationSettings.sectorNoiseInfluence * sectorNoiseValue));
+                        float totalNoiseValue = regionNoiseValue * (1 + (generationSettings.SectorNoiseInfluence * sectorNoiseValue));
                         #endregion
 
-                        noiseColorMap[y * generationSettings.size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
+                        noiseColorMap[y * generationSettings.Size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
                     }
                 }
 
-                map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.size, generationSettings.size);
+                map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.Size, generationSettings.Size);
                 #endregion
             }
 
@@ -421,9 +421,9 @@ namespace LooCast.Universe
 
                 #region Processing
                 GenerationSettings generationSettings = Instance.RegionGenerationSettings;
-                noiseValue = noiseValue.Map(generationSettings.mapFromMin, generationSettings.mapFromMax, generationSettings.mapToMin, generationSettings.mapToMax);
-                noiseValue = Mathf.Pow(noiseValue, generationSettings.power);
-                noiseValue *= generationSettings.amplitude;
+                noiseValue = noiseValue.Map(generationSettings.MapFromMin, generationSettings.MapFromMax, generationSettings.MapToMin, generationSettings.MapToMax);
+                noiseValue = Mathf.Pow(noiseValue, generationSettings.Power);
+                noiseValue *= generationSettings.Amplitude;
                 #endregion
 
                 return noiseValue;
@@ -431,9 +431,9 @@ namespace LooCast.Universe
 
             public void Spawn()
             {
-                regionObject = GameObject.Instantiate(Instance.RegionGenerationSettings.prefab);
+                regionObject = GameObject.Instantiate(Instance.RegionGenerationSettings.Prefab);
                 regionObject.name = $"Region ({regionPosition.x}, {regionPosition.y})";
-                Vector2Int worldPosition = regionPosition * Instance.RegionGenerationSettings.size;
+                Vector2Int worldPosition = regionPosition * Instance.RegionGenerationSettings.Size;
                 regionObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
 
                 MapDisplay mapDisplay = regionObject.GetComponentInChildren<MapDisplay>();
@@ -452,45 +452,45 @@ namespace LooCast.Universe
         public struct GenerationSettings
         {
             [Header("Main Settings")]
-            public int seed;
-            public int size;
-            public float mapFromMin;
-            public float mapFromMax;
-            public float mapToMin;
-            public float mapToMax;
-            public float power;
-            public float amplitude;
+            public int Seed;
+            public int Size;
+            public float MapFromMin;
+            public float MapFromMax;
+            public float MapToMin;
+            public float MapToMax;
+            public float Power;
+            public float Amplitude;
 
             [Header("FNL Noise General Settings")]
-            public FastNoiseLite.NoiseType noiseType;
-            public float frequency;
+            public FastNoiseLite.NoiseType NoiseType;
+            public float Frequency;
 
             [Header("FNL Noise Fractal Settings")]
-            public FastNoiseLite.FractalType fractalType;
-            public int fractalOctaves;
-            public float fractalLacunarity;
-            public float fractalGain;
-            public float fractalWeightedStrength;
+            public FastNoiseLite.FractalType FractalType;
+            public int FractalOctaves;
+            public float FractalLacunarity;
+            public float FractalGain;
+            public float FractalWeightedStrength;
 
             [Header("FNL Noise Cellular Settings")]
-            public FastNoiseLite.CellularDistanceFunction cellularDistanceFunction;
-            public FastNoiseLite.CellularReturnType cellularReturnType;
-            public float cellularJitter;
+            public FastNoiseLite.CellularDistanceFunction CellularDistanceFunction;
+            public FastNoiseLite.CellularReturnType CellularReturnType;
+            public float CellularJitter;
 
             [Header("FNL Domain Warp General Settings")]
-            public FastNoiseLite.DomainWarpType domainWarpType;
-            public float domainWarpAmplitude;
-            public float domainWarpFrequency;
+            public FastNoiseLite.DomainWarpType DomainWarpType;
+            public float DomainWarpAmplitude;
+            public float DomainWarpFrequency;
 
             [Header("FNL Domain Warp Fractal Settings")]
-            public FastNoiseLite.FractalType domainWarpFractalType;
-            public int domainWarpFractalOctaves;
-            public float domainWarpFractalLacunarity;
-            public float domainWarpFractalGain;
+            public FastNoiseLite.FractalType DomainWarpFractalType;
+            public int DomainWarpFractalOctaves;
+            public float DomainWarpFractalLacunarity;
+            public float DomainWarpFractalGain;
 
-            public Filament.GenerationSettings filamentGenerationSettings;
-            public Sector.GenerationSettings sectorGenerationSettings;
-            public Region.GenerationSettings regionGenerationSettings;
+            public Filament.GenerationSettings FilamentGenerationSettings;
+            public Sector.GenerationSettings SectorGenerationSettings;
+            public Region.GenerationSettings RegionGenerationSettings;
         }
         #endregion
 
@@ -521,9 +521,9 @@ namespace LooCast.Universe
         private static Universe instance;
 
         public GenerationSettings UniverseGenerationSettings => generationSettings;
-        public Filament.GenerationSettings FilamentGenerationSettings => generationSettings.filamentGenerationSettings;
-        public Sector.GenerationSettings SectorGenerationSettings => generationSettings.sectorGenerationSettings;
-        public Region.GenerationSettings RegionGenerationSettings => generationSettings.regionGenerationSettings;
+        public Filament.GenerationSettings FilamentGenerationSettings => generationSettings.FilamentGenerationSettings;
+        public Sector.GenerationSettings SectorGenerationSettings => generationSettings.SectorGenerationSettings;
+        public Region.GenerationSettings RegionGenerationSettings => generationSettings.RegionGenerationSettings;
         public FastNoiseLite UniverseNoiseGenerator => universeNoiseGenerator;
         public FastNoiseLite UniverseDomainWarper => universeDomainWarper;
         public FastNoiseLite FilamentNoiseGenerator => filamentNoiseGenerator;
@@ -575,7 +575,7 @@ namespace LooCast.Universe
 
             //General
             universeNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
-            universeNoiseGenerator.SetSeed(generationSettings.seed);
+            universeNoiseGenerator.SetSeed(generationSettings.Seed);
             universeNoiseGenerator.SetFrequency(0.04f);
 
             //Fractal
@@ -595,7 +595,7 @@ namespace LooCast.Universe
             universeDomainWarper = new FastNoiseLite();
 
             //General
-            universeDomainWarper.SetSeed(generationSettings.seed);
+            universeDomainWarper.SetSeed(generationSettings.Seed);
             universeDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
             universeDomainWarper.SetDomainWarpAmp(20.0f);
             universeDomainWarper.SetFrequency(0.01f);
@@ -616,7 +616,7 @@ namespace LooCast.Universe
 
             //General
             filamentNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
-            filamentNoiseGenerator.SetSeed(generationSettings.seed);
+            filamentNoiseGenerator.SetSeed(generationSettings.Seed);
             filamentNoiseGenerator.SetFrequency(0.02f);
 
             //Fractal
@@ -636,7 +636,7 @@ namespace LooCast.Universe
             filamentDomainWarper = new FastNoiseLite();
 
             //General
-            filamentDomainWarper.SetSeed(generationSettings.seed);
+            filamentDomainWarper.SetSeed(generationSettings.Seed);
             filamentDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
             filamentDomainWarper.SetDomainWarpAmp(20.0f);
             filamentDomainWarper.SetFrequency(0.005f);
@@ -657,7 +657,7 @@ namespace LooCast.Universe
 
             //General
             sectorNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-            sectorNoiseGenerator.SetSeed(generationSettings.seed);
+            sectorNoiseGenerator.SetSeed(generationSettings.Seed);
             sectorNoiseGenerator.SetFrequency(0.01f);
 
             //Fractal
@@ -672,7 +672,7 @@ namespace LooCast.Universe
             sectorDomainWarper = new FastNoiseLite();
 
             //General
-            sectorDomainWarper.SetSeed(generationSettings.seed);
+            sectorDomainWarper.SetSeed(generationSettings.Seed);
             sectorDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
             sectorDomainWarper.SetDomainWarpAmp(20.0f);
             sectorDomainWarper.SetFrequency(0.005f);
@@ -693,7 +693,7 @@ namespace LooCast.Universe
 
             //General
             regionNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-            regionNoiseGenerator.SetSeed(generationSettings.seed);
+            regionNoiseGenerator.SetSeed(generationSettings.Seed);
             regionNoiseGenerator.SetFrequency(0.005f);
 
             //Fractal
@@ -708,7 +708,7 @@ namespace LooCast.Universe
             regionDomainWarper = new FastNoiseLite();
 
             //General
-            regionDomainWarper.SetSeed(generationSettings.seed);
+            regionDomainWarper.SetSeed(generationSettings.Seed);
             regionDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
             regionDomainWarper.SetDomainWarpAmp(20.0f);
             regionDomainWarper.SetFrequency(0.005f);
@@ -725,21 +725,21 @@ namespace LooCast.Universe
             #endregion
 
             #region Universe Map Generation
-            Color[] noiseColorMap = new Color[UniverseGenerationSettings.size * UniverseGenerationSettings.size];
-            for (int y = 0; y < UniverseGenerationSettings.size; y++)
+            Color[] noiseColorMap = new Color[UniverseGenerationSettings.Size * UniverseGenerationSettings.Size];
+            for (int y = 0; y < UniverseGenerationSettings.Size; y++)
             {
-                for (int x = 0; x < UniverseGenerationSettings.size; x++)
+                for (int x = 0; x < UniverseGenerationSettings.Size; x++)
                 {
                     float sampleX = x;
                     float sampleY = y;
 
                     float noiseValue = SampleNoise(sampleX, sampleY);
 
-                    noiseColorMap[y * UniverseGenerationSettings.size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
+                    noiseColorMap[y * UniverseGenerationSettings.Size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
                 }
             }
 
-            map = TextureUtil.TextureFromColorMap(noiseColorMap, UniverseGenerationSettings.size, UniverseGenerationSettings.size);
+            map = TextureUtil.TextureFromColorMap(noiseColorMap, UniverseGenerationSettings.Size, UniverseGenerationSettings.Size);
             #endregion
         }
 
@@ -751,9 +751,9 @@ namespace LooCast.Universe
             #endregion
 
             #region Processing
-            noiseValue = noiseValue.Map(UniverseGenerationSettings.mapFromMin, UniverseGenerationSettings.mapFromMax, UniverseGenerationSettings.mapToMin, UniverseGenerationSettings.mapToMax);
-            noiseValue = Mathf.Pow(noiseValue, UniverseGenerationSettings.power);
-            noiseValue *= UniverseGenerationSettings.amplitude;
+            noiseValue = noiseValue.Map(UniverseGenerationSettings.MapFromMin, UniverseGenerationSettings.MapFromMax, UniverseGenerationSettings.MapToMin, UniverseGenerationSettings.MapToMax);
+            noiseValue = Mathf.Pow(noiseValue, UniverseGenerationSettings.Power);
+            noiseValue *= UniverseGenerationSettings.Amplitude;
             #endregion
 
             return noiseValue;
@@ -854,7 +854,7 @@ namespace LooCast.Universe
 
             path = $"{Application.dataPath}/Data/Universe/Map.png";
             byte[] mapData = File.ReadAllBytes(path);
-            Instance.Map = new Texture2D(Instance.UniverseGenerationSettings.size, Instance.UniverseGenerationSettings.size);
+            Instance.Map = new Texture2D(Instance.UniverseGenerationSettings.Size, Instance.UniverseGenerationSettings.Size);
             Instance.Map.filterMode = FilterMode.Point;
             Instance.Map.wrapMode = TextureWrapMode.Clamp;
             ImageConversion.LoadImage(Instance.Map, mapData);
@@ -1053,7 +1053,7 @@ namespace LooCast.Universe
 
             path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}_Map.png";
             byte[] mapData = File.ReadAllBytes(path);
-            filament.Map = new Texture2D(Instance.FilamentGenerationSettings.size, Instance.FilamentGenerationSettings.size);
+            filament.Map = new Texture2D(Instance.FilamentGenerationSettings.Size, Instance.FilamentGenerationSettings.Size);
             filament.Map.filterMode = FilterMode.Point;
             filament.Map.wrapMode = TextureWrapMode.Clamp;
             ImageConversion.LoadImage(filament.Map, mapData);
@@ -1334,7 +1334,7 @@ namespace LooCast.Universe
 
             path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorPosition.x}.{sectorPosition.y}_Map.png";
             byte[] mapData = File.ReadAllBytes(path);
-            sector.Map = new Texture2D(Instance.SectorGenerationSettings.size, Instance.SectorGenerationSettings.size);
+            sector.Map = new Texture2D(Instance.SectorGenerationSettings.Size, Instance.SectorGenerationSettings.Size);
             sector.Map.filterMode = FilterMode.Point;
             sector.Map.wrapMode = TextureWrapMode.Clamp;
             ImageConversion.LoadImage(sector.Map, mapData);
@@ -1612,7 +1612,7 @@ namespace LooCast.Universe
 
             path = $"{Application.dataPath}/Data/Universe/Sectors/{regionPosition.x}.{regionPosition.y}_Map.png";
             byte[] mapData = File.ReadAllBytes(path);
-            region.Map = new Texture2D(Instance.RegionGenerationSettings.size, Instance.RegionGenerationSettings.size);
+            region.Map = new Texture2D(Instance.RegionGenerationSettings.Size, Instance.RegionGenerationSettings.Size);
             region.Map.filterMode = FilterMode.Point;
             region.Map.wrapMode = TextureWrapMode.Clamp;
             ImageConversion.LoadImage(region.Map, mapData);
