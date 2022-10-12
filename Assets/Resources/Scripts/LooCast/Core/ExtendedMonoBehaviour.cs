@@ -9,7 +9,7 @@ namespace LooCast.Core
         public static int nextID = 0;
         [HideInInspector] public int ID;
         public bool IsPaused { get; private set; }
-        [HideInInspector]public bool IsVisible;
+        [HideInInspector] public bool IsVisible;
 
         private void Awake()
         {
@@ -27,7 +27,7 @@ namespace LooCast.Core
 
         private void Update()
         {
-            if (!IsPaused)
+            if (!IsPaused && enabled && gameObject.activeInHierarchy)
             {
                 OnPauseableUpdate();
             }
@@ -35,7 +35,7 @@ namespace LooCast.Core
 
         private void FixedUpdate()
         {
-            if (!IsPaused)
+            if (!IsPaused && enabled && gameObject.activeInHierarchy)
             {
                 OnPauseableFixedUpdate();
             }

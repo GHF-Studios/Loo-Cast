@@ -8,6 +8,5 @@ namespace LooCast.Movement.Data
     public class EnemyMovementData : ScriptableObject
     {
         public FloatDataReference BaseSpeed;
-        public BoolDataReference IsMovementEnabled;
     } 
 }

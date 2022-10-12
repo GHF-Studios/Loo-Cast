@@ -63,5 +63,10 @@ namespace LooCast.Random
         {
             return new Color(UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f), 1.0f);
         }
+
+        public static Vector3 Direction()
+        {
+            return new Vector3(UnityEngine.Random.Range(-1.0f, 1.0f), UnityEngine.Random.Range(-1.0f, 1.0f)).normalized;
+        }
     } 
 }

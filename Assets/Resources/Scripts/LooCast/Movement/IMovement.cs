@@ -14,7 +14,11 @@ namespace LooCast.Movement
         #endregion
 
         #region Methods
-        void Accelerate();
+        void AccelerateInDirection(Vector3 targetDirection);
+        void LookInDirection(Vector3 targetDirection);
+
+        void AccelerateToPosition(Vector3 targetPosition);
+        void LookAtPosition(Vector3 targetPosition);
         #endregion
     }
 }

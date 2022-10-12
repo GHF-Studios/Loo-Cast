@@ -66,11 +66,41 @@ namespace LooCast.Movement
 
         protected override void OnPauseableFixedUpdate()
         {
-            Accelerate();
+            RuntimeData.IsUsingEnergy.Value = false;
+
+            float[] inputAxis = new float[2];
+            inputAxis[0] = Input.GetAxis("Horizontal");
+            inputAxis[1] = Input.GetAxis("Vertical");
+
+            #region Acceleration Event Invocation Logic
+            if ((inputAxis[0] == 0 && inputAxis[1] == 0) || RuntimeData.IsEnergyDepleted.Value)
+            {
+                OnStopAccelerating.Invoke();
+            }
+            else
+            {
+                OnStartAccelerating.Invoke();
+                if (!RuntimeData.IsEnergyDepleted.Value)
+                {
+                    RuntimeData.IsUsingEnergy.Value = true;
+                }
+            }
+            #endregion
+
+            if (!RuntimeData.IsEnergyDepleted.Value)
+            {
+                Vector3 targetPosition = new Vector3(inputAxis[0], inputAxis[1]).normalized;
+                Vector3 targetDirection = (targetPosition - transform.position).normalized;
+                AccelerateInDirection(targetDirection);
+                LookInDirection(targetDirection); 
+            }
         }
 
         protected override void OnPauseableUpdate()
         {
+            #region Energy Logic
+
+            #region Generation
             if (!RuntimeData.IsUsingEnergy.Value)
             {
                 if (RuntimeData.CurrentEnergy.Value + RuntimeData.EnergyGeneration.Value >= RuntimeData.MaxEnergy.Value)
@@ -83,6 +113,9 @@ namespace LooCast.Movement
                     RuntimeData.CurrentEnergy.Value += RuntimeData.EnergyGeneration.Value;
                 }
             }
+            #endregion
+            
+            #region Consumption
             if (RuntimeData.IsUsingEnergy.Value && !RuntimeData.IsEnergyDepleted.Value)
             {
                 if (RuntimeData.CurrentEnergy.Value - RuntimeData.EnergyConsumption.Value <= 0.0f)
@@ -96,32 +129,32 @@ namespace LooCast.Movement
                     RuntimeData.CurrentEnergy.Value -= RuntimeData.EnergyConsumption.Value;
                 }
             }
+            #endregion
+
+            #endregion
         }
 
-        public void Accelerate()
+        public void AccelerateInDirection(Vector3 targetDirection)
         {
-            RuntimeData.IsUsingEnergy.Value = false;
-            float[] axis = new float[2];
-            axis[0] = Input.GetAxis("Horizontal");
-            axis[1] = Input.GetAxis("Vertical");
+            Rigidbody.AddForce(targetDirection * RuntimeData.Speed.Value);
+        }
 
-            if ((axis[0] == 0 && axis[1] == 0) || RuntimeData.IsEnergyDepleted.Value)
-            {
-                OnStopAccelerating.Invoke();
-            }
-            else
-            {
-                OnStartAccelerating.Invoke();
-                if (!RuntimeData.IsEnergyDepleted.Value)
-                {
-                    RuntimeData.IsUsingEnergy.Value = true;
-                }
-            }
+        public void LookInDirection(Vector3 targetDirection)
+        {
+            float angle = Mathf.Atan2(targetDirection.y, targetDirection.x) * Mathf.Rad2Deg - 90.0f;
+            transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y, angle);
+        }
 
-            if (!RuntimeData.IsEnergyDepleted.Value)
-            {
-                Rigidbody.AddForce(new Vector2(axis[0], axis[1]).normalized * RuntimeData.Speed.Value); 
-            }
+        public void AccelerateToPosition(Vector3 targetPosition)
+        {
+            Vector3 targetDirection = (targetPosition - transform.position).normalized;
+            AccelerateInDirection(targetDirection);
+        }
+
+        public void LookAtPosition(Vector3 targetPosition)
+        {
+            Vector3 targetDirection = (targetPosition - transform.position).normalized;
+            LookInDirection(targetDirection);
         }
         #endregion
     } 

@@ -11,7 +11,7 @@ namespace LooCast.Movement
     using LooCast.Variable;
     using LooCast.Util;
 
-    public class EnemyMovement : ExtendedMonoBehaviour, ITargetedMovement
+    public class EnemyMovement : ExtendedMonoBehaviour, IMovement
     {
         #region Data
         public EnemyMovementData Data;
@@ -66,7 +66,6 @@ namespace LooCast.Movement
 
         #region Fields
         private Vector3 PAUSE_currentVelocity;
-        private bool isMovementEnabled;
         private GameObject playerObject;
         private CircleCollider2D playerCollider;
         private Target target;
@@ -81,15 +80,9 @@ namespace LooCast.Movement
             Rigidbody = GetComponent<Rigidbody2D>();
             Collider = GetComponent<Collider2D>();
 
-            isMovementEnabled = Data.IsMovementEnabled.Value;
             playerObject = GameObject.FindGameObjectWithTag("Player");
             playerCollider = playerObject.GetComponent<CircleCollider2D>();
             Target = new Target(playerCollider);
-        }
-
-        protected override void OnPauseableFixedUpdate()
-        {
-            Accelerate();
         }
 
         protected override void OnPause()
@@ -104,16 +97,34 @@ namespace LooCast.Movement
             PAUSE_currentVelocity = Vector3.zero;
         }
 
-        public void Accelerate()
+        protected override void OnPauseableFixedUpdate()
         {
-            if (isMovementEnabled)
-            {
-                Rigidbody.AddForce((target.transform.position - transform.position).normalized * Speed.Value);
+            Vector3 targetDirection = (target.transform.position - transform.position).normalized;
+            AccelerateInDirection(targetDirection);
+            LookInDirection(targetDirection);
+        }
 
-                Vector2 lookDir = target.transform.position - transform.position;
-                float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90.0f;
-                transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y, angle);
-            }
+        public void AccelerateInDirection(Vector3 targetDirection)
+        {
+            Rigidbody.AddForce(targetDirection * Speed.Value);
+        }
+
+        public void LookInDirection(Vector3 targetDirection)
+        {
+            float angle = Mathf.Atan2(targetDirection.y, targetDirection.x) * Mathf.Rad2Deg - 90.0f;
+            transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x, transform.rotation.eulerAngles.y, angle);
+        }
+
+        public void AccelerateToPosition(Vector3 targetPosition)
+        {
+            Vector3 targetDirection = (targetPosition - transform.position).normalized;
+            AccelerateInDirection(targetDirection);
+        }
+
+        public void LookAtPosition(Vector3 targetPosition)
+        {
+            Vector3 targetDirection = (targetPosition - transform.position).normalized;
+            LookInDirection(targetDirection);
         }
         #endregion
     }
