@@ -8,26 +8,84 @@ namespace LooCast.AI
     using Random;
     using Movement;
     using Player;
+    using StateMachine;
 
     public class EnemyAI : ExtendedMonoBehaviour
     {
-        #region Enums
-        private enum State
+        public enum State
         {
             Roaming,
             ChaseTarget
         }
-        #endregion
 
-        private const float roamingPositionMinDistance = 5.0f;
-        private const float detectionRange = 50.0f;
+        public class Roaming : State<State>
+        {
+            private EnemyAI enemyAI;
+            private Variable.Multiplier speedMultiplier;
+            private Vector3 startingPosition;
+            private Vector3 roamingPosition;
 
+            public Roaming(EnemyAI enemyAI) : base(State.Roaming)
+            {
+                this.enemyAI = enemyAI;
+            }
+
+            public override void Enter()
+            {
+                speedMultiplier = enemyAI.movement.Speed.AddPermanentMultiplier(0.15f);
+                startingPosition = enemyAI.transform.position;
+                roamingPosition = GetRoamingPosition();
+            }
+
+            public override void Exit()
+            {
+                enemyAI.movement.Speed.RemovePermanentMultiplier(speedMultiplier);
+            }
+
+            public override void PauseableUpdate()
+            {
+                enemyAI.movement.AccelerateToPosition(roamingPosition);
+                if (Vector3.Distance(enemyAI.transform.position, roamingPosition) < enemyAI.roamingReachedDestinationDistance)
+                {
+                    roamingPosition = GetRoamingPosition();
+                }
+
+                if (Vector3.Distance(enemyAI.transform.position, enemyAI.player.transform.position) < enemyAI.detectionRange)
+                {
+                    enemyAI.finiteStateMachine.SetCurrentState(State.ChaseTarget);
+                }
+            }
+
+            private Vector3 GetRoamingPosition()
+            {
+                return startingPosition + Random.Direction() * Random.Range(enemyAI.minRoamingDistance, enemyAI.maxRoamingDistance);
+            }
+        }
+
+        public class ChaseTarget : State<State>
+        {
+            private EnemyAI enemyAI;
+
+            public ChaseTarget(EnemyAI enemyAI) : base(State.ChaseTarget)
+            {
+                this.enemyAI = enemyAI;
+            }
+
+            public override void Update()
+            {
+                enemyAI.movement.AccelerateToPosition(enemyAI.player.transform.position);
+            }
+        }
+
+        [SerializeField] private float minRoamingDistance;
+        [SerializeField] private float maxRoamingDistance;
+        [SerializeField] private float roamingReachedDestinationDistance;
+        [SerializeField] private float detectionRange;
+        [SerializeField] private LayerMask enemyLayerMask;
+
+        private FiniteStateMachine<State> finiteStateMachine = new FiniteStateMachine<State>();
         private IMovement movement;
-        private Vector3 startingPosition;
-        private Vector3 roamingPosition;
         private Player player;
-        private State state;
-        private Variable.Multiplier currentSpeedMultiplier;
 
         private void Awake()
         {
@@ -37,43 +95,30 @@ namespace LooCast.AI
 
         private void Start()
         {
-            startingPosition = transform.position;
-            roamingPosition = GetRoamingPosition();
-            state = State.Roaming;
-            currentSpeedMultiplier = movement.Speed.AddPermanentMultiplier(0.15f);
+            finiteStateMachine.Add(new Roaming(this));
+            finiteStateMachine.Add(new ChaseTarget(this));
+
+            finiteStateMachine.SetCurrentState(State.Roaming);
+        }
+
+        private void Update()
+        {
+            finiteStateMachine.Update();
+        }
+
+        private void FixedUpdate()
+        {
+            finiteStateMachine.FixedUpdate();
         }
 
         protected override void PauseableUpdate()
         {
-            switch (state)
-            {
-                case State.Roaming:
-                    movement.AccelerateToPosition(roamingPosition);
-                    if (Vector3.Distance(transform.position, roamingPosition) < roamingPositionMinDistance)
-                    {
-                        roamingPosition = GetRoamingPosition();
-                    }
-
-                    FindTarget();
-                    break;
-                case State.ChaseTarget:
-                    movement.AccelerateToPosition(player.transform.position);
-                    break;
-            }
+            finiteStateMachine.PauseableUpdate();
         }
 
-        private Vector3 GetRoamingPosition()
+        protected override void PauseableFixedUpdate()
         {
-            return startingPosition + Random.Direction() * Random.Range(10.0f, 25.0f);
-        }
-
-        private void FindTarget()
-        {
-            if (Vector3.Distance(transform.position, player.transform.position) < detectionRange)
-            {
-                state = State.ChaseTarget;
-                movement.Speed.RemovePermanentMultiplier(currentSpeedMultiplier);
-            }
+            finiteStateMachine.PauseableFixedUpdate();
         }
     } 
 }

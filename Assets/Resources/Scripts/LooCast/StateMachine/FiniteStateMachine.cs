@@ -2,9 +2,7 @@ using System.Collections.Generic;
 
 namespace LooCast.StateMachine
 {
-    using Core;
-
-    public class FiniteStateMachine<T> : ExtendedMonoBehaviour
+    public class FiniteStateMachine<T>
     {
         protected Dictionary<T, State<T>> states;
         protected State<T> currentState;
@@ -15,22 +13,22 @@ namespace LooCast.StateMachine
         }
 
         #region Current State Callbacks
-        private void Update()
+        public void Update()
         {
             currentState?.Update();
         }
 
-        private void FixedUpdate()
+        public void FixedUpdate()
         {
             currentState?.FixedUpdate();
         }
 
-        protected override void PauseableUpdate()
+        public void PauseableUpdate()
         {
             currentState?.PauseableUpdate();
         }
 
-        protected override void PauseableFixedUpdate()
+        public void PauseableFixedUpdate()
         {
             currentState?.PauseableFixedUpdate();
         }
@@ -53,6 +51,17 @@ namespace LooCast.StateMachine
                 return states[stateID];
             }
             return null;
+        }
+
+        public void SetCurrentState(T stateID)
+        {
+            State<T> state = states[stateID];
+            SetCurrentState(state);
+        }
+
+        public State<T> GetCurrentState()
+        {
+            return currentState;
         }
 
         public void SetCurrentState(State<T> state)

@@ -7,32 +7,104 @@ namespace LooCast.AI
     using Core;
     using Random;
     using Movement;
+    using StateMachine;
 
     public class AllyAI : ExtendedMonoBehaviour
     {
-        #region Classes
-        
-        #endregion
-
-        #region Enums
-        private enum State
+        public enum State
         {
             Roaming,
             Evade
         }
-        #endregion
 
-        private const float roamingPositionMinDistance = 5.0f;
-        private const float detectionRange = 50.0f;
+        public class Roaming : State<State>
+        {
+            private AllyAI allyAI;
+            private Variable.Multiplier speedMultiplier;
+            private Vector3 startingPosition;
+            private Vector3 roamingPosition;
 
+            public Roaming(AllyAI allyAI) : base(State.Roaming)
+            {
+                this.allyAI = allyAI;
+            }
+
+            public override void Enter()
+            {
+                speedMultiplier = allyAI.movement.Speed.AddPermanentMultiplier(0.15f);
+                startingPosition = allyAI.transform.position;
+                roamingPosition = GetRoamingPosition();
+            }
+
+            public override void Exit()
+            {
+                allyAI.movement.Speed.RemovePermanentMultiplier(speedMultiplier);
+            }
+
+            public override void PauseableUpdate()
+            {
+                allyAI.movement.AccelerateToPosition(roamingPosition);
+
+                if (Vector3.Distance(allyAI.transform.position, roamingPosition) < allyAI.roamingReachedDestinationDistance)
+                {
+                    roamingPosition = GetRoamingPosition();
+                }
+
+                if (Physics2D.OverlapCircle(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask))
+                {
+                    allyAI.finiteStateMachine.SetCurrentState(State.Evade);
+                }
+            }
+
+            private Vector3 GetRoamingPosition()
+            {
+                return startingPosition + Random.Direction() * Random.Range(allyAI.minRoamingDistance, allyAI.maxRoamingDistance);
+            }
+        }
+
+        public class Evade : State<State>
+        {
+            private AllyAI allyAI;
+
+            public Evade(AllyAI allyAI) : base(State.Evade)
+            {
+                this.allyAI = allyAI;
+            }
+
+            public override void PauseableUpdate()
+            {
+                Collider2D[] enemyColliders = Physics2D.OverlapCircleAll(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask);
+                if (enemyColliders.Length > 0)
+                {
+                    allyAI.movement.AccelerateInDirection(GetEvadeDirection(enemyColliders));
+                }
+                else
+                {
+                    allyAI.finiteStateMachine.SetCurrentState(State.Roaming);
+                }
+            }
+
+            private Vector3 GetEvadeDirection(Collider2D[] enemyColliders)
+            {
+                List<Vector3> evadeDirectionList = new List<Vector3>();
+                foreach (Collider2D enemyCollider in enemyColliders)
+                {
+                    float evadeDirectionWeight = Mathf.Pow(allyAI.detectionRange / Vector2.Distance(allyAI.transform.position, enemyCollider.transform.position), 2);
+                    Vector3 weightedEvadeDirection = (allyAI.transform.position - enemyCollider.transform.position).normalized * evadeDirectionWeight;
+                    evadeDirectionList.Add(weightedEvadeDirection);
+                }
+                return evadeDirectionList.Aggregate(new Vector3(0, 0, 0), (sumVector, currentVector) => sumVector + currentVector) / evadeDirectionList.Count;
+            }
+        }
+
+        [SerializeField] private float minRoamingDistance;
+        [SerializeField] private float maxRoamingDistance;
+        [SerializeField] private float roamingReachedDestinationDistance;
+        [SerializeField] private float detectionRange;
         [SerializeField] private LayerMask enemyLayerMask;
 
+        private FiniteStateMachine<State> finiteStateMachine = new FiniteStateMachine<State>();
         private IMovement movement;
-        private Vector3 startingPosition;
-        private Vector3 roamingPosition;
-        private Vector3 evadeDirection;
-        private State state;
-        private Variable.Multiplier currentSpeedMultiplier;
 
         private void Awake()
         {
@@ -41,60 +113,30 @@ namespace LooCast.AI
 
         private void Start()
         {
-            startingPosition = transform.position;
-            roamingPosition = GetRoamingPosition();
-            state = State.Roaming;
-            currentSpeedMultiplier = movement.Speed.AddPermanentMultiplier(0.15f);
+            finiteStateMachine.Add(new Roaming(this));
+            finiteStateMachine.Add(new Evade(this));
+
+            finiteStateMachine.SetCurrentState(State.Roaming);
+        }
+
+        private void Update()
+        {
+            finiteStateMachine.Update();
+        }
+
+        private void FixedUpdate()
+        {
+            finiteStateMachine.FixedUpdate();
         }
 
         protected override void PauseableUpdate()
         {
-            FindEnemies();
-
-            switch (state)
-            {
-                case State.Roaming:
-                    movement.AccelerateToPosition(roamingPosition);
-                    if (Vector3.Distance(transform.position, roamingPosition) < roamingPositionMinDistance)
-                    {
-                        roamingPosition = GetRoamingPosition();
-                    }
-                    break;
-                case State.Evade:
-                    movement.AccelerateInDirection(evadeDirection);
-                    break;
-            }
+            finiteStateMachine.PauseableUpdate();
         }
 
-        private Vector3 GetRoamingPosition()
+        protected override void PauseableFixedUpdate()
         {
-            return startingPosition + Random.Direction() * Random.Range(10.0f, 25.0f);
-        }
-
-        private void FindEnemies()
-        {
-            Collider2D[] enemyColliders = Physics2D.OverlapCircleAll(transform.position, detectionRange, enemyLayerMask);
-            if (enemyColliders.Length > 0)
-            {
-                List<Vector3> evadeDirectionList = new List<Vector3>();
-                foreach (Collider2D enemyCollider in enemyColliders)
-                {
-                    float evadeDirectionWeight = Mathf.Pow(detectionRange / Vector2.Distance(transform.position, enemyCollider.transform.position), 2);
-                    Vector3 weightedEvadeDirection = (transform.position - enemyCollider.transform.position).normalized * evadeDirectionWeight;
-                    evadeDirectionList.Add(weightedEvadeDirection);
-                }
-                evadeDirection = evadeDirectionList.Aggregate(new Vector3(0, 0, 0), (sumVector, currentVector) => sumVector + currentVector) / evadeDirectionList.Count;
-                state = State.Evade;
-                movement.Speed.RemovePermanentMultiplier(currentSpeedMultiplier);
-            }
-            else
-            {
-                state = State.Roaming;
-                currentSpeedMultiplier = movement.Speed.AddPermanentMultiplier(0.15f);
-
-                startingPosition = transform.position;
-                roamingPosition = GetRoamingPosition();
-            }
+            finiteStateMachine.PauseableFixedUpdate();
         }
     } 
 }
