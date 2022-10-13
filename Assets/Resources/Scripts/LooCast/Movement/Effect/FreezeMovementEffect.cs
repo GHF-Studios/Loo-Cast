@@ -10,7 +10,7 @@ namespace LooCast.Movement.Effect
         {
             base.Initialize();
 
-            TemporaryMultiplier multiplier = Movement.Speed.AddTimedMultiplier(speedMultiplier, duration);
+            TemporaryMultiplier multiplier = Movement.Speed.AddTemporaryMultiplier(speedMultiplier, duration);
             multiplier.OnTimerElapsed.AddListener(() => { Destroy(this); });
         }
     }

@@ -13,7 +13,7 @@ namespace LooCast.Variable
             {
                 if (IsInitialized)
                 {
-                    return ValueEvaluator.Invoke(PermanentMultipliers, PermanentIncreases, ActiveMultipliers, ActiveIncreases, BaseValue);
+                    return ValueEvaluator.Invoke(PermanentMultipliers, PermanentIncreases, TemporaryMultipliers, TemporaryIncreases, BaseValue);
                 }
                 return default(T);
             }
@@ -38,8 +38,8 @@ namespace LooCast.Variable
         public Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, T, T> ValueEvaluator { get; protected set; }
         public List<Multiplier> PermanentMultipliers { get; protected set; }
         public List<Increase> PermanentIncreases { get; protected set; }
-        public List<TemporaryMultiplier> ActiveMultipliers { get; protected set; }
-        public List<TemporaryIncrease> ActiveIncreases { get; protected set; }
+        public List<TemporaryMultiplier> TemporaryMultipliers { get; protected set; }
+        public List<TemporaryIncrease> TemporaryIncreases { get; protected set; }
         public UnityEvent OnValueChanged { get; protected set; }
         public readonly bool IsInitialized = false;
 
@@ -50,8 +50,8 @@ namespace LooCast.Variable
             ValueEvaluator = valueEvaluator;
             PermanentMultipliers = new List<Multiplier>();
             PermanentIncreases = new List<Increase>();
-            ActiveMultipliers = new List<TemporaryMultiplier>();
-            ActiveIncreases = new List<TemporaryIncrease>();
+            TemporaryMultipliers = new List<TemporaryMultiplier>();
+            TemporaryIncreases = new List<TemporaryIncrease>();
             IsInitialized = true;
         }
 
@@ -65,21 +65,21 @@ namespace LooCast.Variable
             return evaluatedValues;
         }
 
-        public TemporaryMultiplier AddTimedMultiplier(float multiplier, float duration)
+        public TemporaryMultiplier AddTemporaryMultiplier(float multiplier, float duration)
         {
             TemporaryMultiplier newMultiplier = new TemporaryMultiplier(multiplier, duration);
-            ActiveMultipliers.Add(newMultiplier);
+            TemporaryMultipliers.Add(newMultiplier);
             OnValueChanged.Invoke();
-            newMultiplier.OnTimerElapsed.AddListener(() => { ActiveMultipliers.Remove(newMultiplier); OnValueChanged.Invoke(); });
+            newMultiplier.OnTimerElapsed.AddListener(() => { TemporaryMultipliers.Remove(newMultiplier); OnValueChanged.Invoke(); });
             return newMultiplier;
         }
 
-        public TemporaryIncrease AddTimedIncrease(int increase, float duration)
+        public TemporaryIncrease AddTemporaryIncrease(int increase, float duration)
         {
             TemporaryIncrease newIncrease = new TemporaryIncrease(increase, duration);
-            ActiveIncreases.Add(newIncrease);
+            TemporaryIncreases.Add(newIncrease);
             OnValueChanged.Invoke();
-            newIncrease.OnTimerElapsed.AddListener(() => { ActiveIncreases.Remove(newIncrease); OnValueChanged.Invoke(); });
+            newIncrease.OnTimerElapsed.AddListener(() => { TemporaryIncreases.Remove(newIncrease); OnValueChanged.Invoke(); });
             return newIncrease;
         }
 
@@ -95,6 +95,26 @@ namespace LooCast.Variable
             Increase newIncrease = new Increase(increase);
             PermanentIncreases.Add(newIncrease);
             return newIncrease;
+        }
+
+        public void RemoveTemporaryMultiplier(TemporaryMultiplier temporaryMultiplier)
+        {
+            TemporaryMultipliers.Remove(temporaryMultiplier); OnValueChanged.Invoke();
+        }
+
+        public void RemoveTemporaryIncrease(TemporaryIncrease temporaryIncrease)
+        {
+            TemporaryIncreases.Remove(temporaryIncrease); OnValueChanged.Invoke();
+        }
+
+        public void RemovePermanentMultiplier(Multiplier multiplier)
+        {
+            PermanentMultipliers.Remove(multiplier); OnValueChanged.Invoke();
+        }
+
+        public void RemovePermanentIncrease(Increase increase)
+        {
+            PermanentIncreases.Remove(increase); OnValueChanged.Invoke();
         }
     }
 }
