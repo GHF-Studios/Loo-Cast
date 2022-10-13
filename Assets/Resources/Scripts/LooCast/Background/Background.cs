@@ -7,13 +7,10 @@ namespace LooCast.Background
     public class Background : MonoBehaviour
     {
         [SerializeField] private Sprite backgroundSprite;
-        private Vector2 cameraPos;
         private SpriteRenderer[,] backgroundSprites = new SpriteRenderer[3, 3];
 
         private void Start()
         {
-            cameraPos = Camera.main.transform.position;
-
             for (int x = -1; x < 2; x++)
             {
                 for (int y = -1; y < 2; y++)
@@ -31,7 +28,7 @@ namespace LooCast.Background
 
         private void Update()
         {
-            cameraPos = Camera.main.transform.position;
+            Vector3 cameraPos = Camera.main.transform.position;
             Vector2 shift = Vector2.zero;
             if (cameraPos.x > backgroundSprites[1, 1].transform.position.x + 64)
             {

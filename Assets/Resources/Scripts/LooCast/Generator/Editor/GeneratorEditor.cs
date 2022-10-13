@@ -12,9 +12,9 @@ namespace LooCast.Generator.Editor
         {
             base.OnInspectorGUI();
 
-            if (GUILayout.Button("Generate"))
+            if (GUILayout.Button("Initialize"))
             {
-                ((Generator)target).Generate();
+                ((Generator)target).Initialize();
             }
         }
     } 

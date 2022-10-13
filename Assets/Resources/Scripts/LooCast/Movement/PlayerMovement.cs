@@ -89,8 +89,7 @@ namespace LooCast.Movement
 
             if (!RuntimeData.IsEnergyDepleted.Value)
             {
-                Vector3 targetPosition = new Vector3(inputAxis[0], inputAxis[1]).normalized;
-                Vector3 targetDirection = (targetPosition - transform.position).normalized;
+                Vector3 targetDirection = new Vector3(inputAxis[0], inputAxis[1]).normalized;
                 AccelerateInDirection(targetDirection);
                 LookInDirection(targetDirection); 
             }
