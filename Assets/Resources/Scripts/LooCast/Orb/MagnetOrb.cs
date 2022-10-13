@@ -28,7 +28,7 @@ namespace LooCast.Orb
             pickupRangeMultiplier = Stats.RangeMultiplier;
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             if (playerObject.transform != null)
             {

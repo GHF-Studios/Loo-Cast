@@ -116,7 +116,7 @@ namespace LooCast.Health
             deathScreen = FindObjectOfType<DeathScreen>();
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             Heal(RuntimeData.RegenerationAmount.Value * Time.deltaTime);
         }

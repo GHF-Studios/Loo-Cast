@@ -51,7 +51,7 @@ namespace LooCast.UI.Inventory
             }
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {

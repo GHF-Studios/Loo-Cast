@@ -42,7 +42,7 @@ namespace LooCast.Player
             ParticleSystem = GetComponentInChildren<ParticleSystem>();
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             if (Input.GetKeyDown(KeyCode.F1))
             {

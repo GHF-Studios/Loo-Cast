@@ -71,7 +71,7 @@ namespace LooCast.Projectile
             onLostTarget.AddListener(OnLostTarget);
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             lifetime -= Time.deltaTime;
             if (lifetime <= 0)

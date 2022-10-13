@@ -64,7 +64,7 @@ namespace LooCast.Movement
             PAUSE_currentVelocity = Vector3.zero;
         }
 
-        protected override void OnPauseableFixedUpdate()
+        protected override void PauseableFixedUpdate()
         {
             RuntimeData.IsUsingEnergy.Value = false;
 
@@ -95,7 +95,7 @@ namespace LooCast.Movement
             }
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             #region Energy Logic
 

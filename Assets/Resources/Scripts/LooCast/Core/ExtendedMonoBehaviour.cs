@@ -29,7 +29,7 @@ namespace LooCast.Core
         {
             if (!IsPaused && enabled && gameObject.activeInHierarchy)
             {
-                OnPauseableUpdate();
+                PauseableUpdate();
             }
         }
 
@@ -37,30 +37,35 @@ namespace LooCast.Core
         {
             if (!IsPaused && enabled && gameObject.activeInHierarchy)
             {
-                OnPauseableFixedUpdate();
+                PauseableFixedUpdate();
             }
         }
+
         private void OnBecameInvisible()
         {
             IsVisible = false;
         }
+
         private void OnBecameVisible()
         {
             IsVisible = true;
         }
 
-        protected virtual void OnPauseableUpdate()
+        protected virtual void PauseableUpdate()
         {
 
         }
-        protected virtual void OnPauseableFixedUpdate()
+
+        protected virtual void PauseableFixedUpdate()
         {
 
         }
+
         protected virtual void OnPause()
         {
 
         }
+
         protected virtual void OnResume()
         {
 
@@ -71,6 +76,7 @@ namespace LooCast.Core
             OnPause();
             IsPaused = true;
         }
+        
         public void Resume()
         {
             OnResume();

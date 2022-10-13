@@ -50,7 +50,7 @@ namespace LooCast.AOE
             transform.localScale = baseScale * 0.1f; 
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             if (isMovingToTarget)
             {

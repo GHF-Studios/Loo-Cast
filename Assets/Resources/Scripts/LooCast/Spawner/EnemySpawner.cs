@@ -28,7 +28,7 @@ namespace LooCast.Spawner
             SpawnedEnemies = new List<Enemy>();
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             SpawnTimer += Time.deltaTime;
 

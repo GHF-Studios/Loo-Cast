@@ -50,9 +50,9 @@ namespace LooCast.Projectile
             lineRenderer.SetPosition(1, Vector3.zero);
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
-            base.OnPauseableUpdate();
+            base.PauseableUpdate();
 
             if (isDeploying)
             {

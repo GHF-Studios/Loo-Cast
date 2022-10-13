@@ -23,7 +23,7 @@ namespace LooCast.Util
         private bool isFadingIn;
         private bool isFadingOut;
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             if (Input.GetKeyDown(KeyCode.K))
             {

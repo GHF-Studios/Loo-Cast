@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1112918004771588744}
   - component: {fileID: 705598665404207660}
   - component: {fileID: 5012907717823076440}
-  m_Layer: 8
+  m_Layer: 16
   m_Name: ParticleSystem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4840,12 +4840,12 @@ GameObject:
   - component: {fileID: 1986793567025058493}
   - component: {fileID: 1986793567025058492}
   - component: {fileID: 7689063019205122669}
-  - component: {fileID: 7267735445609176238}
+  - component: {fileID: 6111928990650734250}
   - component: {fileID: 4758033360817606206}
   - component: {fileID: 1913491358346200415}
-  m_Layer: 8
-  m_Name: SmolEnemy
-  m_TagString: Enemy
+  m_Layer: 16
+  m_Name: SmolAlly
+  m_TagString: Ally
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -4974,7 +4974,7 @@ MonoBehaviour:
   onKilled:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &7267735445609176238
+--- !u!114 &6111928990650734250
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4983,11 +4983,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 1986793567025058489}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfd8d1d51925db44394c189b7a813c85, type: 3}
+  m_Script: {fileID: 11500000, guid: d691a5e5f6f9776429e83f8ecb5e8cb7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
+  enemyLayerMask:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!114 &4758033360817606206
 MonoBehaviour:
   m_ObjectHideFlags: 0

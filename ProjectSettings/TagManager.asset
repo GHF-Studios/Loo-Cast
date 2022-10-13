@@ -9,6 +9,7 @@ TagManager:
   - ExperienceOrb
   - EnemyStation
   - PlayerStation
+  - Ally
   layers:
   - Default
   - TransparentFX
@@ -26,7 +27,7 @@ TagManager:
   - Indicator
   - Asteroid
   - Item
-  - 
+  - Ally
   - 
   - 
   - 

@@ -15,7 +15,6 @@ namespace LooCast.Arc
         [HideInInspector] public List<ArcSegment> arcSegments;
         [HideInInspector] public ArcSegment arcSegment;
         private Arc nextArc;
-        private Arc nextBranch;
         private List<Arc> arcs;
 
 
@@ -170,7 +169,7 @@ namespace LooCast.Arc
             }
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             lifetime += Time.deltaTime;
             if (lifetime > maxLifetime)

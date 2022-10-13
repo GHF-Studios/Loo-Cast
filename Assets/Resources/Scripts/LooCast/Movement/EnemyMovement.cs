@@ -72,17 +72,22 @@ namespace LooCast.Movement
         #endregion
 
         #region Methods
-        private void Start()
+        private void Awake()
         {
             Speed = new FloatComputedVariable(Data.BaseSpeed.Value);
-            Speed.AddPermanentMultiplier(Constants.INERTIAL_COEFFICIENT);
-            Speed.AddPermanentMultiplier(UnityEngine.Random.Range(0.9f, 1.1f));
+
             Rigidbody = GetComponent<Rigidbody2D>();
             Collider = GetComponent<Collider2D>();
 
             playerObject = GameObject.FindGameObjectWithTag("Player");
             playerCollider = playerObject.GetComponent<CircleCollider2D>();
             Target = new Target(playerCollider);
+        }
+
+        private void Start()
+        {
+            Speed.AddPermanentMultiplier(Constants.INERTIAL_COEFFICIENT);
+            Speed.AddPermanentMultiplier(UnityEngine.Random.Range(0.9f, 1.1f));
         }
 
         protected override void OnPause()
@@ -97,11 +102,11 @@ namespace LooCast.Movement
             PAUSE_currentVelocity = Vector3.zero;
         }
 
-        protected override void OnPauseableFixedUpdate()
+        protected override void PauseableFixedUpdate()
         {
-            Vector3 targetDirection = (target.transform.position - transform.position).normalized;
-            AccelerateInDirection(targetDirection);
-            LookInDirection(targetDirection);
+            //Vector3 targetDirection = (target.transform.position - transform.position).normalized;
+            //AccelerateInDirection(targetDirection);
+            //LookInDirection(targetDirection);
         }
 
         public void AccelerateInDirection(Vector3 targetDirection)

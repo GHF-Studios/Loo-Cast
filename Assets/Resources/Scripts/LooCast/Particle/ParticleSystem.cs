@@ -20,7 +20,7 @@ namespace LooCast.Particle
             destructionScheduled = false;
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             if (destructionScheduled)
             {

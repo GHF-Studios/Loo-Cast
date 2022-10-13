@@ -19,7 +19,7 @@ namespace LooCast.UI.Timer
             text = GetComponent<Text>();
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             timer += Time.deltaTime;
 

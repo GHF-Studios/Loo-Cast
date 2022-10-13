@@ -86,7 +86,7 @@ namespace LooCast.Health
             canvas = FindObjectOfType<WorldSpaceCanvas>();
         }
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             Heal(RegenerationAmount.Value * Time.deltaTime);
         }

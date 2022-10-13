@@ -12,7 +12,7 @@ namespace LooCast.Util
 
         public float speed = 1.0f;
 
-        protected override void OnPauseableUpdate()
+        protected override void PauseableUpdate()
         {
             float interpolation = speed * Time.deltaTime * (target.transform.position - transform.position).magnitude;
 
