@@ -4776,7 +4776,7 @@ ParticleSystemRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 63de21476084bb34b9eba0291ccc776b, type: 2}
+  - {fileID: 2100000, guid: 6f18dc738cf62a643a4416d3411c8f4a, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4840,7 +4840,7 @@ GameObject:
   - component: {fileID: 1986793567025058493}
   - component: {fileID: 1986793567025058492}
   - component: {fileID: 7689063019205122669}
-  - component: {fileID: 6111928990650734250}
+  - component: {fileID: -4327424601732545481}
   - component: {fileID: 4758033360817606206}
   - component: {fileID: 1913491358346200415}
   m_Layer: 16
@@ -4886,7 +4886,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 2d58689606de5f24c8d07f0480a7f9cd, type: 2}
+  - {fileID: 2100000, guid: c055aa6b9f002424dab60d86be601e02, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4974,7 +4974,7 @@ MonoBehaviour:
   onKilled:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &6111928990650734250
+--- !u!114 &-4327424601732545481
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4991,7 +4991,8 @@ MonoBehaviour:
   minRoamingDistance: 10
   maxRoamingDistance: 50
   roamingReachedDestinationDistance: 5
-  detectionRange: 50
+  roamingSpeedMultiplier: 0.25
+  detectionRange: 75
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 256

@@ -14,7 +14,7 @@ namespace LooCast.AI
         public enum State
         {
             Roaming,
-            Evade
+            Evading
         }
 
         public class Roaming : State<State>
@@ -31,7 +31,7 @@ namespace LooCast.AI
 
             public override void Enter()
             {
-                speedMultiplier = allyAI.movement.Speed.AddPermanentMultiplier(0.15f);
+                speedMultiplier = allyAI.movement.Speed.AddPermanentMultiplier(allyAI.roamingSpeedMultiplier);
                 startingPosition = allyAI.transform.position;
                 roamingPosition = GetRoamingPosition();
             }
@@ -41,18 +41,18 @@ namespace LooCast.AI
                 allyAI.movement.Speed.RemovePermanentMultiplier(speedMultiplier);
             }
 
-            public override void PauseableUpdate()
+            public override void Update()
             {
                 allyAI.movement.AccelerateToPosition(roamingPosition);
 
-                if (Vector3.Distance(allyAI.transform.position, roamingPosition) < allyAI.roamingReachedDestinationDistance)
+                if (Vector3.Distance(allyAI.transform.position, roamingPosition) <= allyAI.roamingReachedDestinationDistance)
                 {
                     roamingPosition = GetRoamingPosition();
                 }
 
                 if (Physics2D.OverlapCircle(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask))
                 {
-                    allyAI.finiteStateMachine.SetCurrentState(State.Evade);
+                    allyAI.finiteStateMachine.SetCurrentState(State.Evading);
                 }
             }
 
@@ -62,16 +62,16 @@ namespace LooCast.AI
             }
         }
 
-        public class Evade : State<State>
+        public class Evading : State<State>
         {
             private AllyAI allyAI;
 
-            public Evade(AllyAI allyAI) : base(State.Evade)
+            public Evading(AllyAI allyAI) : base(State.Evading)
             {
                 this.allyAI = allyAI;
             }
 
-            public override void PauseableUpdate()
+            public override void Update()
             {
                 Collider2D[] enemyColliders = Physics2D.OverlapCircleAll(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask);
                 if (enemyColliders.Length > 0)
@@ -100,6 +100,7 @@ namespace LooCast.AI
         [SerializeField] private float minRoamingDistance;
         [SerializeField] private float maxRoamingDistance;
         [SerializeField] private float roamingReachedDestinationDistance;
+        [SerializeField] private float roamingSpeedMultiplier;
         [SerializeField] private float detectionRange;
         [SerializeField] private LayerMask enemyLayerMask;
 
@@ -114,29 +115,19 @@ namespace LooCast.AI
         private void Start()
         {
             finiteStateMachine.Add(new Roaming(this));
-            finiteStateMachine.Add(new Evade(this));
+            finiteStateMachine.Add(new Evading(this));
 
             finiteStateMachine.SetCurrentState(State.Roaming);
         }
 
-        private void Update()
+        protected override void PauseableUpdate()
         {
             finiteStateMachine.Update();
         }
 
-        private void FixedUpdate()
-        {
-            finiteStateMachine.FixedUpdate();
-        }
-
-        protected override void PauseableUpdate()
-        {
-            finiteStateMachine.PauseableUpdate();
-        }
-
         protected override void PauseableFixedUpdate()
         {
-            finiteStateMachine.PauseableFixedUpdate();
+            finiteStateMachine.FixedUpdate();
         }
     } 
 }

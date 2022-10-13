@@ -15,7 +15,7 @@ namespace LooCast.AI
         public enum State
         {
             Roaming,
-            ChaseTarget
+            Chasing
         }
 
         public class Roaming : State<State>
@@ -32,7 +32,7 @@ namespace LooCast.AI
 
             public override void Enter()
             {
-                speedMultiplier = enemyAI.movement.Speed.AddPermanentMultiplier(0.15f);
+                speedMultiplier = enemyAI.movement.Speed.AddPermanentMultiplier(enemyAI.roamingSpeedMultiplier);
                 startingPosition = enemyAI.transform.position;
                 roamingPosition = GetRoamingPosition();
             }
@@ -42,17 +42,17 @@ namespace LooCast.AI
                 enemyAI.movement.Speed.RemovePermanentMultiplier(speedMultiplier);
             }
 
-            public override void PauseableUpdate()
+            public override void Update()
             {
                 enemyAI.movement.AccelerateToPosition(roamingPosition);
-                if (Vector3.Distance(enemyAI.transform.position, roamingPosition) < enemyAI.roamingReachedDestinationDistance)
+                if (Vector3.Distance(enemyAI.transform.position, roamingPosition) <= enemyAI.roamingReachedDestinationDistance)
                 {
                     roamingPosition = GetRoamingPosition();
                 }
 
-                if (Vector3.Distance(enemyAI.transform.position, enemyAI.player.transform.position) < enemyAI.detectionRange)
+                if (Vector3.Distance(enemyAI.transform.position, enemyAI.player.transform.position) <= enemyAI.detectionRange)
                 {
-                    enemyAI.finiteStateMachine.SetCurrentState(State.ChaseTarget);
+                    enemyAI.finiteStateMachine.SetCurrentState(State.Chasing);
                 }
             }
 
@@ -62,11 +62,11 @@ namespace LooCast.AI
             }
         }
 
-        public class ChaseTarget : State<State>
+        public class Chasing : State<State>
         {
             private EnemyAI enemyAI;
 
-            public ChaseTarget(EnemyAI enemyAI) : base(State.ChaseTarget)
+            public Chasing(EnemyAI enemyAI) : base(State.Chasing)
             {
                 this.enemyAI = enemyAI;
             }
@@ -74,12 +74,18 @@ namespace LooCast.AI
             public override void Update()
             {
                 enemyAI.movement.AccelerateToPosition(enemyAI.player.transform.position);
+
+                if (Vector3.Distance(enemyAI.transform.position, enemyAI.player.transform.position) > enemyAI.detectionRange)
+                {
+                    enemyAI.finiteStateMachine.SetCurrentState(State.Roaming);
+                }
             }
         }
 
         [SerializeField] private float minRoamingDistance;
         [SerializeField] private float maxRoamingDistance;
         [SerializeField] private float roamingReachedDestinationDistance;
+        [SerializeField] private float roamingSpeedMultiplier;
         [SerializeField] private float detectionRange;
         [SerializeField] private LayerMask enemyLayerMask;
 
@@ -96,29 +102,19 @@ namespace LooCast.AI
         private void Start()
         {
             finiteStateMachine.Add(new Roaming(this));
-            finiteStateMachine.Add(new ChaseTarget(this));
+            finiteStateMachine.Add(new Chasing(this));
 
             finiteStateMachine.SetCurrentState(State.Roaming);
         }
 
-        private void Update()
+        protected override void PauseableUpdate()
         {
             finiteStateMachine.Update();
         }
 
-        private void FixedUpdate()
-        {
-            finiteStateMachine.FixedUpdate();
-        }
-
-        protected override void PauseableUpdate()
-        {
-            finiteStateMachine.PauseableUpdate();
-        }
-
         protected override void PauseableFixedUpdate()
         {
-            finiteStateMachine.PauseableFixedUpdate();
+            finiteStateMachine.FixedUpdate();
         }
     } 
 }

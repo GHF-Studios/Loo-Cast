@@ -4840,7 +4840,7 @@ GameObject:
   - component: {fileID: 1986793567025058493}
   - component: {fileID: 1986793567025058492}
   - component: {fileID: 7689063019205122669}
-  - component: {fileID: 7267735445609176238}
+  - component: {fileID: -1184699805437975790}
   - component: {fileID: 4758033360817606206}
   - component: {fileID: 1913491358346200415}
   m_Layer: 8
@@ -4974,7 +4974,7 @@ MonoBehaviour:
   onKilled:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &7267735445609176238
+--- !u!114 &-1184699805437975790
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4991,7 +4991,8 @@ MonoBehaviour:
   minRoamingDistance: 10
   maxRoamingDistance: 50
   roamingReachedDestinationDistance: 5
-  detectionRange: 50
+  roamingSpeedMultiplier: 0.25
+  detectionRange: 100
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 65664

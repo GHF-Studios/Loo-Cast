@@ -12,7 +12,6 @@ namespace LooCast.StateMachine
             states = new Dictionary<T, State<T>>();
         }
 
-        #region Current State Callbacks
         public void Update()
         {
             currentState?.Update();
@@ -22,17 +21,6 @@ namespace LooCast.StateMachine
         {
             currentState?.FixedUpdate();
         }
-
-        public void PauseableUpdate()
-        {
-            currentState?.PauseableUpdate();
-        }
-
-        public void PauseableFixedUpdate()
-        {
-            currentState?.PauseableFixedUpdate();
-        }
-        #endregion
 
         public void Add(State<T> state)
         {

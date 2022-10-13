@@ -10,8 +10,6 @@ namespace LooCast.StateMachine
         public DelegateNoArg OnExit;
         public DelegateNoArg OnUpdate;
         public DelegateNoArg OnFixedUpdate;
-        public DelegateNoArg OnPauseableUpdate;
-        public DelegateNoArg OnPauseableFixedUpdate;
 
         public State(T id)
         {
@@ -29,17 +27,13 @@ namespace LooCast.StateMachine
             DelegateNoArg onEnter, 
             DelegateNoArg onExit = null, 
             DelegateNoArg onUpdate = null, 
-            DelegateNoArg onFixedUpdate = null, 
-            DelegateNoArg onPauseableUpdate = null, 
-            DelegateNoArg onPauseableFixedUpdate = null
+            DelegateNoArg onFixedUpdate = null 
         ) : this(id)
         {
             OnEnter = onEnter;
             OnExit = onExit;
             OnUpdate = onUpdate;
             OnFixedUpdate = onFixedUpdate;
-            OnPauseableUpdate = onPauseableUpdate;
-            OnPauseableFixedUpdate = onPauseableFixedUpdate;
         }
 
         public State
@@ -49,17 +43,13 @@ namespace LooCast.StateMachine
             DelegateNoArg onEnter, 
             DelegateNoArg onExit = null, 
             DelegateNoArg onUpdate = null, 
-            DelegateNoArg onFixedUpdate = null, 
-            DelegateNoArg onPauseableUpdate = null, 
-            DelegateNoArg onPauseableFixedUpdate = null
+            DelegateNoArg onFixedUpdate = null
         ) : this(id, name)
         {
             OnEnter = onEnter;
             OnExit = onExit;
             OnUpdate = onUpdate;
             OnFixedUpdate = onFixedUpdate;
-            OnPauseableUpdate = onPauseableUpdate;
-            OnPauseableFixedUpdate = onPauseableFixedUpdate;
         }
 
         public virtual void Enter()
@@ -80,16 +70,6 @@ namespace LooCast.StateMachine
         public virtual void FixedUpdate()
         {
             OnFixedUpdate?.Invoke();
-        }
-
-        public virtual void PauseableUpdate()
-        {
-            OnPauseableUpdate?.Invoke();
-        }
-
-        public virtual void PauseableFixedUpdate()
-        {
-            OnPauseableFixedUpdate?.Invoke();
         }
     }
 }
