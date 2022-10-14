@@ -93,7 +93,7 @@ namespace LooCast.AI
                     Vector3 weightedEvadeDirection = (allyAI.transform.position - enemyCollider.transform.position).normalized * evadeDirectionWeight;
                     evadeDirectionList.Add(weightedEvadeDirection);
                 }
-                return evadeDirectionList.Aggregate(new Vector3(0, 0, 0), (sumVector, currentVector) => sumVector + currentVector) / evadeDirectionList.Count;
+                return (evadeDirectionList.Aggregate(new Vector3(0, 0, 0), (sumVector, currentVector) => sumVector + currentVector) / evadeDirectionList.Count).normalized;
             }
         }
 

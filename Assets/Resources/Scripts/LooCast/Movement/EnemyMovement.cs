@@ -102,13 +102,6 @@ namespace LooCast.Movement
             PAUSE_currentVelocity = Vector3.zero;
         }
 
-        protected override void PauseableFixedUpdate()
-        {
-            //Vector3 targetDirection = (target.transform.position - transform.position).normalized;
-            //AccelerateInDirection(targetDirection);
-            //LookInDirection(targetDirection);
-        }
-
         public void AccelerateInDirection(Vector3 targetDirection)
         {
             Rigidbody.AddForce(targetDirection * Speed.Value);
