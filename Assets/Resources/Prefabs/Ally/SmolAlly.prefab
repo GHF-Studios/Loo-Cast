@@ -4988,11 +4988,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
-  minRoamingDistance: 10
-  maxRoamingDistance: 50
+  roamingRootPosition: {x: 0, y: 0, z: 0}
+  minRoamingDistance: 20
+  maxRoamingDistance: 200
   roamingReachedDestinationDistance: 5
   roamingSpeedMultiplier: 0.25
-  detectionRange: 75
+  detectionRange: 80
   enemyLayerMask:
     serializedVersion: 2
     m_Bits: 256

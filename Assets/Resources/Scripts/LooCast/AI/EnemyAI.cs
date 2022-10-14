@@ -14,7 +14,8 @@ namespace LooCast.AI
         public enum State
         {
             Roaming,
-            Chasing
+            Chasing,
+            Retreating
         }
 
         public class Roaming : State<State>
@@ -106,6 +107,27 @@ namespace LooCast.AI
             }
         }
 
+        public class Retreating : State<State>
+        {
+            private EnemyAI enemyAI;
+
+            public Retreating(EnemyAI enemyAI) : base(State.Retreating)
+            {
+                this.enemyAI = enemyAI;
+            }
+
+            public override void Update()
+            {
+                enemyAI.movement.AccelerateToPosition(enemyAI.roamingRootPosition);
+
+                if (Vector3.Distance(enemyAI.transform.position, enemyAI.roamingRootPosition) <= enemyAI.roamingReachedDestinationDistance)
+                {
+                    enemyAI.finiteStateMachine.SetCurrentState(State.Roaming);
+                }
+            }
+        }
+
+        [SerializeField] private Vector3 roamingRootPosition;
         [SerializeField] private float minRoamingDistance;
         [SerializeField] private float maxRoamingDistance;
         [SerializeField] private float roamingReachedDestinationDistance;
@@ -123,6 +145,8 @@ namespace LooCast.AI
 
         private void Start()
         {
+            roamingRootPosition = transform.position;
+
             finiteStateMachine.Add(new Roaming(this));
             finiteStateMachine.Add(new Chasing(this));
 

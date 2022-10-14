@@ -16,7 +16,8 @@ namespace LooCast.AI
         public enum State
         {
             Roaming,
-            Evading
+            Evading,
+            Retreating
         }
 
         public class Roaming : State<State>
@@ -82,7 +83,7 @@ namespace LooCast.AI
                 }
                 else
                 {
-                    allyAI.finiteStateMachine.SetCurrentState(State.Roaming);
+                    allyAI.finiteStateMachine.SetCurrentState(State.Retreating);
                 }
             }
 
@@ -99,6 +100,27 @@ namespace LooCast.AI
             }
         }
 
+        public class Retreating : State<State>
+        {
+            private AllyAI allyAI;
+
+            public Retreating(AllyAI allyAI) : base(State.Retreating)
+            {
+                this.allyAI = allyAI;
+            }
+
+            public override void Update()
+            {
+                allyAI.movement.AccelerateToPosition(allyAI.roamingRootPosition);
+
+                if (Vector3.Distance(allyAI.transform.position, allyAI.roamingRootPosition) <= allyAI.roamingReachedDestinationDistance)
+                {
+                    allyAI.finiteStateMachine.SetCurrentState(State.Roaming);
+                }
+            }
+        }
+
+        [SerializeField] private Vector3 roamingRootPosition;
         [SerializeField] private float minRoamingDistance;
         [SerializeField] private float maxRoamingDistance;
         [SerializeField] private float roamingReachedDestinationDistance;
@@ -116,8 +138,11 @@ namespace LooCast.AI
 
         private void Start()
         {
+            roamingRootPosition = transform.position;
+
             finiteStateMachine.Add(new Roaming(this));
             finiteStateMachine.Add(new Evading(this));
+            finiteStateMachine.Add(new Retreating(this));
 
             finiteStateMachine.SetCurrentState(State.Roaming);
         }

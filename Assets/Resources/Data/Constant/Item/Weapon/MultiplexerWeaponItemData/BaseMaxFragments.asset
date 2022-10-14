@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6b7bcb13af436247aa9e5e0d755e078, type: 3}
   m_Name: BaseMaxFragments
   m_EditorClassIdentifier: 
-  value: 3
+  value: 5
   OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
