@@ -1,14 +1,13 @@
 using UnityEngine;
+using System.Linq;
 
 namespace LooCast.AI
 {
     using Core;
     using Random;
     using Movement;
-    using Player;
     using StateMachine;
     using Util;
-    using System.Linq;
 
     public class EnemyAI : ExtendedMonoBehaviour
     {

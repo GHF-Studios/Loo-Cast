@@ -8,6 +8,8 @@ namespace LooCast.AI
     using Random;
     using Movement;
     using StateMachine;
+    using Util;
+    using LooCast.Enemy;
 
     public class AllyAI : ExtendedMonoBehaviour
     {
@@ -50,7 +52,7 @@ namespace LooCast.AI
                     roamingPosition = GetRoamingPosition();
                 }
 
-                if (Physics2D.OverlapCircle(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask))
+                if (TargetingUtil.GetTarget(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask))
                 {
                     allyAI.finiteStateMachine.SetCurrentState(State.Evading);
                 }
