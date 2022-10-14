@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace LooCast.AI
@@ -9,6 +7,8 @@ namespace LooCast.AI
     using Movement;
     using Player;
     using StateMachine;
+    using Util;
+    using System.Linq;
 
     public class EnemyAI : ExtendedMonoBehaviour
     {
@@ -50,7 +50,7 @@ namespace LooCast.AI
                     roamingPosition = GetRoamingPosition();
                 }
 
-                if (Vector3.Distance(enemyAI.transform.position, enemyAI.player.transform.position) <= enemyAI.detectionRange)
+                if (TargetingUtil.GetTarget(enemyAI.transform.position, enemyAI.detectionRange, enemyAI.enemyLayerMask))
                 {
                     enemyAI.finiteStateMachine.SetCurrentState(State.Chasing);
                 }
@@ -65,20 +65,45 @@ namespace LooCast.AI
         public class Chasing : State<State>
         {
             private EnemyAI enemyAI;
+            private Collider2D lockedTarget;
 
             public Chasing(EnemyAI enemyAI) : base(State.Chasing)
             {
                 this.enemyAI = enemyAI;
             }
 
+            public override void Enter()
+            {
+                lockedTarget = GetClosestTarget(GetTargets());
+            }
+
             public override void Update()
             {
-                enemyAI.movement.AccelerateToPosition(enemyAI.player.transform.position);
+                enemyAI.movement.AccelerateToPosition(lockedTarget.transform.position);
 
-                if (Vector3.Distance(enemyAI.transform.position, enemyAI.player.transform.position) > enemyAI.detectionRange)
+                Collider2D[] targets = GetTargets();
+                if (targets.Length > 0)
+                {
+                    if (!targets.Contains(lockedTarget))
+                    {
+                        lockedTarget = GetClosestTarget(targets);
+                    }
+                }
+                else
                 {
                     enemyAI.finiteStateMachine.SetCurrentState(State.Roaming);
                 }
+            }
+
+            private Collider2D[] GetTargets()
+            {
+                return TargetingUtil.GetTargets(enemyAI.transform.position, enemyAI.detectionRange, enemyAI.enemyLayerMask);
+            }
+
+            private Collider2D GetClosestTarget(Collider2D[] targets)
+            {
+                targets = TargetingUtil.SortTargets(targets, enemyAI.transform.position, TargetingUtil.SortingType.Closest);
+                return targets[0];
             }
         }
 
@@ -91,12 +116,10 @@ namespace LooCast.AI
 
         private FiniteStateMachine<State> finiteStateMachine = new FiniteStateMachine<State>();
         private IMovement movement;
-        private Player player;
 
         private void Awake()
         {
             movement = GetComponent<IMovement>();
-            player = FindObjectOfType<Player>();
         }
 
         private void Start()
