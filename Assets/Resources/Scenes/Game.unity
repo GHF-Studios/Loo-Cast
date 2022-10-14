@@ -15213,8 +15213,8 @@ MonoBehaviour:
   ID: 0
   IsVisible: 0
   enemyStationPrefab: {fileID: 3016905653400388266, guid: 58d4f76317bcfeb428392876ea364587, type: 3}
-  minStationCount: 4
-  maxStationCount: 8
+  minStationCount: 12
+  maxStationCount: 24
   spawnRange: 1000
 --- !u!1 &1474175993
 GameObject:
