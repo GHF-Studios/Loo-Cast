@@ -61,7 +61,7 @@ namespace LooCast.Projectile
 
         [SerializeField] private GameObject arcObjectPrefab;
 
-        public virtual void Initialize(NewTarget target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int armorPenetration, float arcLifetime, float initialWidth, float widthMultiplier, float minWidth, int branchTries, float minSpreadDistance, float minSpreadDistanceMultiplier, float maxSpreadDistance, float maxSpreadDistanceMultiplier, float minSpreadAngle, float minSpreadAngleMultiplier, float maxSpreadAngle, float maxSpreadAngleMultiplier, float spreadChance, float spreadChanceMultiplier, float minBranchDistance, float minBranchDistanceMultiplier, float maxBranchDistance, float maxBranchDistanceMultiplier, float minBranchAngle, float minBranchAngleMultiplier, float maxBranchAngle, float maxBranchAngleMultiplier, float branchChance, float branchChanceMultiplier, int maxRecursion)
+        public virtual void Initialize(Target target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int armorPenetration, float arcLifetime, float initialWidth, float widthMultiplier, float minWidth, int branchTries, float minSpreadDistance, float minSpreadDistanceMultiplier, float maxSpreadDistance, float maxSpreadDistanceMultiplier, float minSpreadAngle, float minSpreadAngleMultiplier, float maxSpreadAngle, float maxSpreadAngleMultiplier, float spreadChance, float spreadChanceMultiplier, float minBranchDistance, float minBranchDistanceMultiplier, float maxBranchDistance, float maxBranchDistanceMultiplier, float minBranchAngle, float minBranchAngleMultiplier, float maxBranchAngle, float maxBranchAngleMultiplier, float branchChance, float branchChanceMultiplier, int maxRecursion)
         {
             base.Initialize(target, origin, team, damage, critChance, critDamage, knockback, speed, size, lifetime, 0, armorPenetration);
 
@@ -146,7 +146,7 @@ namespace LooCast.Projectile
             if (CheckTags(TeamUtil.GetEnemyTags(Team)))
             {
                 Arc arc = Instantiate(arcObjectPrefab, collision.transform.position, Quaternion.identity).GetComponent<Arc>();
-                Target collisionTarget = new Target(collision);
+                Target collisionTarget = new Target(collision.GetComponent<IHealth>(), collision);
                 ignoredTargets.Add(collisionTarget);
                 arc.Initialize(
                     arcLifetime, initialWidth, widthMultiplier, minWidth, branchTries,
@@ -176,14 +176,14 @@ namespace LooCast.Projectile
 
                         foreach (Target target in nextArc.targets)
                         {
-                            IHealth targetHealth = target.gameObject.GetComponentInParent<IHealth>();
+                            IHealth targetHealth = target.GameObject.GetComponentInParent<IHealth>();
                             targetHealth.Damage(new DamageInfo(Origin, nextArc.gameObject, Damage * Random.Range(2.5f, 5.0f), Knockback, ArmorPenetration, CritChance, CritDamage));
                         }
                     }
 
                     if (arcs.Count == 0)
                     {
-                        IHealth collisionTargetHealth = collisionTarget.gameObject.GetComponentInParent<IHealth>();
+                        IHealth collisionTargetHealth = collisionTarget.GameObject.GetComponentInParent<IHealth>();
                         collisionTargetHealth.Damage(new DamageInfo(Origin, gameObject, Damage * Random.Range(2.5f, 5.0f), Knockback, ArmorPenetration, CritChance, CritDamage));
                     }
                 }

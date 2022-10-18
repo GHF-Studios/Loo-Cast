@@ -5,11 +5,10 @@ TagManager:
   serializedVersion: 2
   tags:
   - Enemy
-  - PlayerBullet
-  - ExperienceOrb
-  - EnemyStation
-  - PlayerStation
   - Ally
+  - ExperienceOrb
+  - Undefined
+  - Projectile
   layers:
   - Default
   - TransparentFX
@@ -19,15 +18,15 @@ TagManager:
   - UI
   - 
   - Player
+  - Ally
   - Enemy
-  - PlayerBullet
-  - EnemyBullet
-  - PlayerStation
-  - EnemyStation
+  - Projectile
+  - 
+  - 
   - Indicator
   - Asteroid
   - Item
-  - Ally
+  - 
   - 
   - 
   - 

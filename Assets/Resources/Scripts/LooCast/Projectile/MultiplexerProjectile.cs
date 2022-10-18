@@ -18,7 +18,7 @@ namespace LooCast.Projectile
         protected GameObject fragmentPrefab;
         protected GameSoundHandler soundHandler;
 
-        public virtual void Initialize(NewTarget target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration, int fragments, int fragmentArmorPenetration, bool followTarget, GameObject fragmentPrefab)
+        public virtual void Initialize(Target target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration, int fragments, int fragmentArmorPenetration, bool followTarget, GameObject fragmentPrefab)
         {
             base.Initialize(target, origin, team, damage, critChance, critDamage, knockback, speed, size, lifetime, piercing, armorPenetration);
             this.fragmentPrefab = fragmentPrefab;

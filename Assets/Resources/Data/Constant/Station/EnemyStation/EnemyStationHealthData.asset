@@ -56,3 +56,4 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
   ExperienceOrbPrefab: {fileID: 8036678909911672808, guid: 4b1459495291ffe4cb0c9150eff61965, type: 3}
+  Team: 1

@@ -7,7 +7,6 @@ using UnityEngine.Events;
 namespace LooCast.Station
 {
     using Data;
-    using LooCast.Targeting;
     using LooCast.Health;
     using LooCast.Inventory;
     using LooCast.Mission;

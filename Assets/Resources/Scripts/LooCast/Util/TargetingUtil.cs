@@ -16,76 +16,75 @@ namespace LooCast.Util
         }
 
         #region Get Single Target
-        public static NewTarget GetTargetInRadius(Vector2 samplePosition, float sampleRadius)
+        public static Target GetTargetInRadius(Vector2 samplePosition, float sampleRadius)
         {
             return Physics2D.OverlapCircle(samplePosition, sampleRadius).GetTarget();
         }
 
-        public static NewTarget GetTargetInRadius(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
+        public static Target GetTargetInRadius(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
         {
             return Physics2D.OverlapCircle(samplePosition, sampleRadius, layerMask).GetTarget();
         }
 
-        public static NewTarget GetTargetInArea(Vector2 samplePositionA, Vector2 samplePositionB)
+        public static Target GetTargetInArea(Vector2 samplePositionA, Vector2 samplePositionB)
         {
             return Physics2D.OverlapArea(samplePositionA, samplePositionB).GetTarget();
         }
 
-        public static NewTarget GetTargetInArea(Vector2 samplePositionA, Vector2 samplePositionB, LayerMask layerMask)
+        public static Target GetTargetInArea(Vector2 samplePositionA, Vector2 samplePositionB, LayerMask layerMask)
         {
             return Physics2D.OverlapArea(samplePositionA, samplePositionB, layerMask).GetTarget();
         }
 
-        public static NewTarget GetTargetInPoint(Vector2 samplePoint)
+        public static Target GetTargetInPoint(Vector2 samplePoint)
         {
             return Physics2D.OverlapPoint(samplePoint).GetTarget();
         }
 
-        public static NewTarget GetTargetInPoint(Vector2 samplePoint, LayerMask layerMask)
+        public static Target GetTargetInPoint(Vector2 samplePoint, LayerMask layerMask)
         {
             return Physics2D.OverlapPoint(samplePoint, layerMask).GetTarget();
         }
         #endregion
 
         #region Get Multiple Targets
-        public static NewTarget[] GetTargetsInRadius(Vector2 samplePosition, float sampleRadius)
+        public static Target[] GetTargetsInRadius(Vector2 samplePosition, float sampleRadius)
         {
             return Physics2D.OverlapCircleAll(samplePosition, sampleRadius).GetTargets();
         }
 
-        public static NewTarget[] GetTargetsInRadius(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
+        public static Target[] GetTargetsInRadius(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
         {
             return Physics2D.OverlapCircleAll(samplePosition, sampleRadius, layerMask).GetTargets();
         }
 
-        public static NewTarget[] GetTargetsInArea(Vector2 samplePositionA, Vector2 samplePositionB)
+        public static Target[] GetTargetsInArea(Vector2 samplePositionA, Vector2 samplePositionB)
         {
             return Physics2D.OverlapAreaAll(samplePositionA, samplePositionB).GetTargets();
         }
 
-        public static NewTarget[] GetTargetsInArea(Vector2 samplePositionA, Vector2 samplePositionB, LayerMask layerMask)
+        public static Target[] GetTargetsInArea(Vector2 samplePositionA, Vector2 samplePositionB, LayerMask layerMask)
         {
             return Physics2D.OverlapAreaAll(samplePositionA, samplePositionB, layerMask).GetTargets();
         }
 
-        public static NewTarget[] GetTargetsInPoint(Vector2 samplePoint)
+        public static Target[] GetTargetsInPoint(Vector2 samplePoint)
         {
             return Physics2D.OverlapPointAll(samplePoint).GetTargets();
         }
 
-        public static NewTarget[] GetTargetsInPoint(Vector2 samplePoint, LayerMask layerMask)
+        public static Target[] GetTargetsInPoint(Vector2 samplePoint, LayerMask layerMask)
         {
             return Physics2D.OverlapPointAll(samplePoint, layerMask).GetTargets();
         }
         #endregion
 
         #region Filter & Sort Targets
-        public static NewTarget[] FilterTargets(NewTarget[] targets, string filterTag)
+        public static Target[] FilterTargets(Target[] targets, string filterTag)
         {
             return targets.Where((target) => target.GameObject.CompareTag(filterTag)).ToArray();
         }
-
-        public static NewTarget[] FilterTargets(NewTarget[] targets, string[] filterTags)
+        public static Target[] FilterTargets(Target[] targets, string[] filterTags)
         {
             return targets.Where((target) =>
             {
@@ -99,16 +98,14 @@ namespace LooCast.Util
                 return false;
             }).ToArray();
         }
-
-        public static NewTarget[] FilterTargets(NewTarget[] targets, Type filterComponentType)
+        public static Target[] FilterTargets(Target[] targets, Type filterComponentType)
         {
             return targets.Where((target) =>
             {
                 return target.GameObject.TryGetComponent(filterComponentType, out _);
             }).ToArray();
         }
-
-        public static NewTarget[] FilterTargets(NewTarget[] targets, Type[] filterComponentTypes)
+        public static Target[] FilterTargets(Target[] targets, Type[] filterComponentTypes)
         {
             return targets.Where((target) =>
             {
@@ -122,17 +119,15 @@ namespace LooCast.Util
                 return false;
             }).ToArray();
         }
-
-        public static NewTarget[] FilterTargets(NewTarget[] targets, NewTarget ignoredTarget)
+        public static Target[] FilterTargets(Target[] targets, Target ignoredTarget)
         {
             return targets.Where(target => !target.Equals(ignoredTarget)).ToArray();
         }
-
-        public static NewTarget[] FilterTargets(NewTarget[] targets, NewTarget[] ignoredTargets)
+        public static Target[] FilterTargets(Target[] targets, Target[] ignoredTargets)
         {
             return targets.Where((target) =>
             {
-                foreach (NewTarget ignoredTarget in ignoredTargets)
+                foreach (Target ignoredTarget in ignoredTargets)
                 {
                     if (target.Equals(ignoredTarget))
                     {
@@ -143,7 +138,7 @@ namespace LooCast.Util
             }).ToArray();
         }
 
-        public static NewTarget[] SortTargets(NewTarget[] targets, Vector2 measurementOrigin, SortingType sortingType)
+        public static Target[] SortTargets(Target[] targets, Vector2 measurementOrigin, SortingType sortingType)
         {
             switch (sortingType)
             {
@@ -157,52 +152,240 @@ namespace LooCast.Util
         }
         #endregion
 
-        #region Common Use Cases
-        public static NewTarget[] GetClosestTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags)
+        #region Common Use Case Abstractions
+        public static Target[] GetClosestTargets(Vector3 samplePosition, float sampleRadius)
         {
-            NewTarget[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = SortTargets(targets, samplePosition, SortingType.Closest);
+            return targets;
+        }
+        public static Target[] GetClosestTargets(Vector3 samplePosition, float sampleRadius, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            targets = SortTargets(targets, samplePosition, SortingType.Closest);
+            return targets;
+        }
+        public static Target[] GetClosestTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
             targets = FilterTargets(targets, filterTags);
             targets = SortTargets(targets, samplePosition, SortingType.Closest);
             return targets;
         }
-
-        public static NewTarget[] GetFurthestTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags)
+        public static Target[] GetClosestTargets(Vector3 samplePosition, float sampleRadius, Target[] ignoredTargets)
         {
-            NewTarget[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = FilterTargets(targets, ignoredTargets);
+            targets = SortTargets(targets, samplePosition, SortingType.Closest);
+            return targets;
+        }
+        public static Target[] GetClosestTargets(Vector3 samplePosition, float sampleRadius, Type[] filterComponentTypes)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = FilterTargets(targets, filterComponentTypes);
+            targets = SortTargets(targets, samplePosition, SortingType.Closest);
+            return targets;
+        }
+        public static Target[] GetClosestTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            targets = FilterTargets(targets, filterTags);
+            targets = SortTargets(targets, samplePosition, SortingType.Closest);
+            return targets;
+        }
+        public static Target[] GetClosestTargets(Vector3 samplePosition, float sampleRadius, Target[] ignoredTargets, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            targets = FilterTargets(targets, ignoredTargets);
+            targets = SortTargets(targets, samplePosition, SortingType.Closest);
+            return targets;
+        }
+        public static Target[] GetClosestTargets(Vector3 samplePosition, float sampleRadius, Type[] filterComponentTypes, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            targets = FilterTargets(targets, filterComponentTypes);
+            targets = SortTargets(targets, samplePosition, SortingType.Closest);
+            return targets;
+        }
+
+        public static Target[] GetFurthestTargets(Vector3 samplePosition, float sampleRadius)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = SortTargets(targets, samplePosition, SortingType.Furthest);
+            return targets;
+        }
+        public static Target[] GetFurthestTargets(Vector3 samplePosition, float sampleRadius, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            targets = SortTargets(targets, samplePosition, SortingType.Furthest);
+            return targets;
+        }
+        public static Target[] GetFurthestTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
             targets = FilterTargets(targets, filterTags);
             targets = SortTargets(targets, samplePosition, SortingType.Furthest);
             return targets;
         }
-
-        public static NewTarget[] GetRandomOnscreenTargets(string[] filterTags)
+        public static Target[] GetFurthestTargets(Vector3 samplePosition, float sampleRadius, Target[] ignoredTargets)
         {
-            Vector2 samplePositionA = Camera.main.ScreenToWorldPoint(new Vector3(0, 0));
-            Vector2 samplePositionB = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height));
-            NewTarget[] targets = GetTargetsInArea(samplePositionA, samplePositionB);
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = FilterTargets(targets, ignoredTargets);
+            targets = SortTargets(targets, samplePosition, SortingType.Furthest);
+            return targets;
+        }
+        public static Target[] GetFurthestTargets(Vector3 samplePosition, float sampleRadius, Type[] filterComponentTypes)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = FilterTargets(targets, filterComponentTypes);
+            targets = SortTargets(targets, samplePosition, SortingType.Furthest);
+            return targets;
+        }
+        public static Target[] GetFurthestTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
             targets = FilterTargets(targets, filterTags);
+            targets = SortTargets(targets, samplePosition, SortingType.Furthest);
+            return targets;
+        }
+        public static Target[] GetFurthestTargets(Vector3 samplePosition, float sampleRadius, Target[] ignoredTargets, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            targets = FilterTargets(targets, ignoredTargets);
+            targets = SortTargets(targets, samplePosition, SortingType.Furthest);
+            return targets;
+        }
+        public static Target[] GetFurthestTargets(Vector3 samplePosition, float sampleRadius, Type[] filterComponentTypes, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            targets = FilterTargets(targets, filterComponentTypes);
+            targets = SortTargets(targets, samplePosition, SortingType.Furthest);
             return targets;
         }
 
-        public static NewTarget[] GetRandomProximityTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags)
+        public static Target[] GetRandomOnscreenTargets()
         {
-            NewTarget[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            Vector2 samplePositionA = Camera.main.ScreenToWorldPoint(new Vector3(0, 0));
+            Vector2 samplePositionB = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height));
+            Target[] targets = GetTargetsInArea(samplePositionA, samplePositionB);
+            return targets;
+        }
+        public static Target[] GetRandomOnscreenTargets(LayerMask layerMask)
+        {
+            Vector2 samplePositionA = Camera.main.ScreenToWorldPoint(new Vector3(0, 0));
+            Vector2 samplePositionB = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height));
+            Target[] targets = GetTargetsInArea(samplePositionA, samplePositionB, layerMask);
+            return targets;
+        }
+        public static Target[] GetRandomOnscreenTargets(string[] filterTags)
+        {
+            Vector2 samplePositionA = Camera.main.ScreenToWorldPoint(new Vector3(0, 0));
+            Vector2 samplePositionB = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height));
+            Target[] targets = GetTargetsInArea(samplePositionA, samplePositionB);
             targets = FilterTargets(targets, filterTags);
+            return targets;
+        }
+        public static Target[] GetRandomOnscreenTargets(Target[] ignoredTargets)
+        {
+            Vector2 samplePositionA = Camera.main.ScreenToWorldPoint(new Vector3(0, 0));
+            Vector2 samplePositionB = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height));
+            Target[] targets = GetTargetsInArea(samplePositionA, samplePositionB);
+            targets = FilterTargets(targets, ignoredTargets);
+            return targets;
+        }
+        public static Target[] GetRandomOnscreenTargets(Type[] filterComponentTypes)
+        {
+            Vector2 samplePositionA = Camera.main.ScreenToWorldPoint(new Vector3(0, 0));
+            Vector2 samplePositionB = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height));
+            Target[] targets = GetTargetsInArea(samplePositionA, samplePositionB);
+            targets = FilterTargets(targets, filterComponentTypes);
+            return targets;
+        }
+        public static Target[] GetRandomOnscreenTargets(string[] filterTags, LayerMask layerMask)
+        {
+            Vector2 samplePositionA = Camera.main.ScreenToWorldPoint(new Vector3(0, 0));
+            Vector2 samplePositionB = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height));
+            Target[] targets = GetTargetsInArea(samplePositionA, samplePositionB, layerMask);
+            targets = FilterTargets(targets, filterTags);
+            return targets;
+        }
+        public static Target[] GetRandomOnscreenTargets(Target[] ignoredTargets, LayerMask layerMask)
+        {
+            Vector2 samplePositionA = Camera.main.ScreenToWorldPoint(new Vector3(0, 0));
+            Vector2 samplePositionB = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height));
+            Target[] targets = GetTargetsInArea(samplePositionA, samplePositionB, layerMask);
+            targets = FilterTargets(targets, ignoredTargets);
+            return targets;
+        }
+        public static Target[] GetRandomOnscreenTargets(Type[] filterComponentTypes, LayerMask layerMask)
+        {
+            Vector2 samplePositionA = Camera.main.ScreenToWorldPoint(new Vector3(0, 0));
+            Vector2 samplePositionB = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height));
+            Target[] targets = GetTargetsInArea(samplePositionA, samplePositionB, layerMask);
+            targets = FilterTargets(targets, filterComponentTypes);
+            return targets;
+        }
+
+        public static Target[] GetRandomProximityTargets(Vector3 samplePosition, float sampleRadius)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            return targets;
+        }
+        public static Target[] GetRandomProximityTargets(Vector3 samplePosition, float sampleRadius, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            return targets;
+        }
+        public static Target[] GetRandomProximityTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = FilterTargets(targets, filterTags);
+            return targets;
+        }
+        public static Target[] GetRandomProximityTargets(Vector3 samplePosition, float sampleRadius, Target[] ignoredTargets)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = FilterTargets(targets, ignoredTargets);
+            return targets;
+        }
+        public static Target[] GetRandomProximityTargets(Vector3 samplePosition, float sampleRadius, Type[] filterComponentTypes)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = FilterTargets(targets, filterComponentTypes);
+            return targets;
+        }
+        public static Target[] GetRandomProximityTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            targets = FilterTargets(targets, filterTags);
+            return targets;
+        }
+        public static Target[] GetRandomProximityTargets(Vector3 samplePosition, float sampleRadius, Target[] ignoredTargets, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            targets = FilterTargets(targets, ignoredTargets);
+            return targets;
+        }
+        public static Target[] GetRandomProximityTargets(Vector3 samplePosition, float sampleRadius, Type[] filterComponentTypes, LayerMask layerMask)
+        {
+            Target[] targets = GetTargetsInRadius(samplePosition, sampleRadius, layerMask);
+            targets = FilterTargets(targets, filterComponentTypes);
             return targets;
         }
         #endregion
 
         #region Private Utility Methods
-        private static NewTarget GetTarget(this Collider2D targetCollider)
+        private static Target GetTarget(this Collider2D targetCollider)
         {
             IHealth targetHealth = targetCollider.gameObject.GetComponent<IHealth>();
             if (targetHealth == null)
             {
                 throw new Exception("Target must contain an IHealth Component!");
             }
-            return new NewTarget(targetHealth, targetCollider);
+            return new Target(targetHealth, targetCollider);
         }
 
-        private static NewTarget[] GetTargets(this Collider2D[] targetColliders)
+        private static Target[] GetTargets(this Collider2D[] targetColliders)
         {
             return targetColliders.Select(targetCollider => targetCollider.GetTarget()).ToArray();
         }

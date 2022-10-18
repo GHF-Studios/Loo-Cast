@@ -64,3 +64,4 @@ MonoBehaviour:
         m_Calls: []
   ExperienceOrbPrefab: {fileID: 8036678909911672808, guid: 4b1459495291ffe4cb0c9150eff61965, type: 3}
   MagnetOrbPrefab: {fileID: 8036678909911672808, guid: 8b2d3a18c7804f24c94e1e4a15e3cf68, type: 3}
+  Team: 1

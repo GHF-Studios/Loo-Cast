@@ -5,7 +5,6 @@ namespace LooCast.Item
 {
     using Data;
     using LooCast.Attribute.Stat;
-    using LooCast.Targeting;
     using LooCast.Target;
     using LooCast.Projectile;
     using LooCast.Util;
@@ -33,12 +32,12 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
-            NewTarget[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject));
+            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject));
             if (targets == null || targets.Length == 0)
             {
                 return;
             }
-            NewTarget target = targets[0];
+            Target target = targets[0];
 
             GameObject bulletObject = GameObject.Instantiate(ProjectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             bulletObject.transform.position += new Vector3(0, 0, 0.1f);

@@ -8,6 +8,7 @@ namespace LooCast.AI
     using Movement;
     using StateMachine;
     using Util;
+    using Target;
 
     public class EnemyAI : ExtendedMonoBehaviour
     {
@@ -50,7 +51,8 @@ namespace LooCast.AI
                     roamingPosition = GetRoamingPosition();
                 }
 
-                if (TargetingUtil.GetTargetInRadius(enemyAI.transform.position, enemyAI.detectionRange, enemyAI.enemyLayerMask))
+                Target target = TargetingUtil.GetTargetInRadius(enemyAI.transform.position, enemyAI.detectionRange, enemyAI.enemyLayerMask);
+                if (target != null)
                 {
                     enemyAI.finiteStateMachine.SetCurrentState(State.Chasing);
                 }
@@ -65,7 +67,7 @@ namespace LooCast.AI
         public class Chasing : State<State>
         {
             private EnemyAI enemyAI;
-            private Collider2D lockedTarget;
+            private Target lockedTarget;
 
             public Chasing(EnemyAI enemyAI) : base(State.Chasing)
             {
@@ -79,9 +81,9 @@ namespace LooCast.AI
 
             public override void Update()
             {
-                enemyAI.movement.AccelerateToPosition(lockedTarget.transform.position);
+                enemyAI.movement.AccelerateToPosition(lockedTarget.Transform.position);
 
-                Collider2D[] targets = GetTargets();
+                Target[] targets = GetTargets();
                 if (targets.Length > 0)
                 {
                     if (!targets.Contains(lockedTarget))
@@ -95,12 +97,12 @@ namespace LooCast.AI
                 }
             }
 
-            private Collider2D[] GetTargets()
+            private Target[] GetTargets()
             {
                 return TargetingUtil.GetTargetsInRadius(enemyAI.transform.position, enemyAI.detectionRange, enemyAI.enemyLayerMask);
             }
 
-            private Collider2D GetClosestTarget(Collider2D[] targets)
+            private Target GetClosestTarget(Target[] targets)
             {
                 targets = TargetingUtil.SortTargets(targets, enemyAI.transform.position, TargetingUtil.SortingType.Closest);
                 return targets[0];

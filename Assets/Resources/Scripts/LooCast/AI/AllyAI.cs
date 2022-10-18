@@ -9,7 +9,8 @@ namespace LooCast.AI
     using Movement;
     using StateMachine;
     using Util;
-    using LooCast.Enemy;
+    using Enemy;
+    using Target;
 
     public class AllyAI : ExtendedMonoBehaviour
     {
@@ -53,7 +54,8 @@ namespace LooCast.AI
                     roamingPosition = GetRoamingPosition();
                 }
 
-                if (TargetingUtil.GetTargetInRadius(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask))
+                Target target = TargetingUtil.GetTargetInRadius(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask);
+                if (target != null)
                 {
                     allyAI.finiteStateMachine.SetCurrentState(State.Evading);
                 }
@@ -76,10 +78,10 @@ namespace LooCast.AI
 
             public override void Update()
             {
-                Collider2D[] enemyColliders = Physics2D.OverlapCircleAll(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask);
-                if (enemyColliders.Length > 0)
+                Target[] enemies = TargetingUtil.GetRandomProximityTargets(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask);
+                if (enemies.Length > 0)
                 {
-                    allyAI.movement.AccelerateInDirection(GetEvadeDirection(enemyColliders));
+                    allyAI.movement.AccelerateInDirection(GetEvadeDirection(enemies));
                 }
                 else
                 {
@@ -87,13 +89,13 @@ namespace LooCast.AI
                 }
             }
 
-            private Vector3 GetEvadeDirection(Collider2D[] enemyColliders)
+            private Vector3 GetEvadeDirection(Target[] enemies)
             {
                 List<Vector3> evadeDirectionList = new List<Vector3>();
-                foreach (Collider2D enemyCollider in enemyColliders)
+                foreach (Target enemy in enemies)
                 {
-                    float evadeDirectionWeight = Mathf.Pow(allyAI.detectionRange / Vector2.Distance(allyAI.transform.position, enemyCollider.transform.position), 2);
-                    Vector3 weightedEvadeDirection = (allyAI.transform.position - enemyCollider.transform.position).normalized * evadeDirectionWeight;
+                    float evadeDirectionWeight = Mathf.Pow(allyAI.detectionRange / Vector2.Distance(allyAI.transform.position, enemy.Transform.position), 2);
+                    Vector3 weightedEvadeDirection = (allyAI.transform.position - enemy.Transform.position).normalized * evadeDirectionWeight;
                     evadeDirectionList.Add(weightedEvadeDirection);
                 }
                 return (evadeDirectionList.Aggregate(new Vector3(0, 0, 0), (sumVector, currentVector) => sumVector + currentVector) / evadeDirectionList.Count).normalized;

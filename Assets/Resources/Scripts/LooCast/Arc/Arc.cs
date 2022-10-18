@@ -4,13 +4,12 @@ using UnityEngine;
 namespace LooCast.Arc
 {
     using Core;
-    using Targeting;
     using Target;
+    using Util;
 
     public class Arc : ExtendedMonoBehaviour
     {
         #region Fields
-        [SerializeField] private Targeting targeting;
         public List<Target> targets;
         [HideInInspector] public List<ArcSegment> arcSegments;
         [HideInInspector] public ArcSegment arcSegment;
@@ -62,6 +61,8 @@ namespace LooCast.Arc
         private float branchChance;
         private float branchChanceMultiplier;
 
+        private List<Target> ignoredTargets;
+
         public bool isMainArc { get; protected set; }
 
         public int recursion { get; protected set; }
@@ -102,8 +103,7 @@ namespace LooCast.Arc
             this.branchChance = branchChance;
             this.branchChanceMultiplier = branchChanceMultiplier;
 
-            targeting.radius = maxSpreadDistance;
-            targeting.IgnoredTargets = ignoredTargets;
+            this.ignoredTargets = ignoredTargets;
 
             targets = new List<Target>();
             arcSegments = new List<ArcSegment>();
@@ -203,7 +203,7 @@ namespace LooCast.Arc
             }
 
             ArcSegment newSegment = newSegmentObject.AddComponent<ArcSegment>();
-            newSegment.Initialize(newSegment.transform.position, target.transform.position, width);
+            newSegment.Initialize(newSegment.transform.position, target.Transform.position, width);
             arcSegments.Add(newSegment);
 
             nextArc = newSegmentObject.AddComponent<Arc>();
@@ -219,7 +219,7 @@ namespace LooCast.Arc
                 minBranchAngle * minBranchAngleMultiplier, minBranchAngleMultiplier,
                 maxBranchAngle * maxBranchAngleMultiplier, maxBranchAngleMultiplier,
                 branchChance * branchChanceMultiplier, branchChanceMultiplier,
-                ref targeting.IgnoredTargets, out List<Arc> nextArcSubArcs, newSegment, isMainSegment);
+                ref ignoredTargets, out List<Arc> nextArcSubArcs, newSegment, isMainSegment);
             if (nextArcSubArcs != null)
             {
                 subArcs.AddRange(nextArcSubArcs);
@@ -228,8 +228,8 @@ namespace LooCast.Arc
 
         protected Target GetSpreadTarget()
         {
-            List<Target> closestTargets = targeting.ClosestTargets;
-            if (closestTargets != null && closestTargets.Count > 0)
+            Target[] closestTargets = TargetingUtil.GetClosestTargets(transform.position, maxSpreadDistance, ignoredTargets.ToArray());
+            if (closestTargets != null && closestTargets.Length > 0)
             {
                 foreach (Target target in closestTargets)
                 {
@@ -244,8 +244,8 @@ namespace LooCast.Arc
 
         protected Target GetBranchtarget()
         {
-            List<Target> closestTargets = targeting.ClosestTargets;
-            if (closestTargets != null && closestTargets.Count > 0)
+            Target[] closestTargets = TargetingUtil.GetClosestTargets(transform.position, maxSpreadDistance, ignoredTargets.ToArray());
+            if (closestTargets != null && closestTargets.Length > 0)
             {
                 foreach (Target target in closestTargets)
                 {
@@ -264,11 +264,11 @@ namespace LooCast.Arc
             {
                 return true;
             }
-            if (Vector2.Distance(target.transform.position, transform.position) >= minBranchDistance)
+            if (Vector2.Distance(target.Transform.position, transform.position) >= minBranchDistance)
             {
-                if (Vector2.Distance(target.transform.position, transform.position) <= maxBranchDistance)
+                if (Vector2.Distance(target.Transform.position, transform.position) <= maxBranchDistance)
                 {
-                    float angle = Vector2.Angle((arcSegment.endPos - arcSegment.startPos).normalized, (target.transform.position - arcSegment.endPos).normalized);
+                    float angle = Vector2.Angle((arcSegment.endPos - arcSegment.startPos).normalized, (target.Transform.position - arcSegment.endPos).normalized);
                     if (angle >= minBranchAngle && angle <= maxBranchAngle)
                     {
                         return true;
@@ -284,11 +284,11 @@ namespace LooCast.Arc
             {
                 return true;
             }
-            if (Vector2.Distance(target.transform.position, transform.position) >= minSpreadDistance)
+            if (Vector2.Distance(target.Transform.position, transform.position) >= minSpreadDistance)
             {
-                if (Vector2.Distance(target.transform.position, transform.position) <= maxSpreadDistance)
+                if (Vector2.Distance(target.Transform.position, transform.position) <= maxSpreadDistance)
                 {
-                    float angle = Vector2.Angle((arcSegment.endPos - arcSegment.startPos).normalized, (target.transform.position - arcSegment.endPos).normalized);
+                    float angle = Vector2.Angle((arcSegment.endPos - arcSegment.startPos).normalized, (target.Transform.position - arcSegment.endPos).normalized);
                     if (angle >= minSpreadAngle && angle <= maxSpreadAngle)
                     {
                         return true;

@@ -21,18 +21,6 @@ namespace LooCast.Movement
         public FloatComputedVariable Speed { get; private set; }
         public Rigidbody2D Rigidbody { get; private set; }
         public Collider2D Collider { get; private set; }
-        public Target Target
-        {
-            get
-            {
-                return target;
-            }
-
-            set
-            {
-                target = value;
-            }
-        }
         #endregion
 
         #region Events
@@ -68,7 +56,6 @@ namespace LooCast.Movement
         private Vector3 PAUSE_currentVelocity;
         private GameObject playerObject;
         private CircleCollider2D playerCollider;
-        private Target target;
         #endregion
 
         #region Methods
@@ -81,7 +68,6 @@ namespace LooCast.Movement
 
             playerObject = GameObject.FindGameObjectWithTag("Player");
             playerCollider = playerObject.GetComponent<CircleCollider2D>();
-            Target = new Target(playerCollider);
         }
 
         private void Start()

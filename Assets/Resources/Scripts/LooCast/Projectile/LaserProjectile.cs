@@ -20,7 +20,7 @@ namespace LooCast.Projectile
         private bool isRetracting = false;
         private Vector3 velocity;
 
-        public virtual void Initialize(NewTarget target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration, float laserLength)
+        public virtual void Initialize(Target target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration, float laserLength)
         {
             base.Initialize(target, origin, team, damage, critChance, critDamage, knockback, speed, size, lifetime, piercing, armorPenetration);
             lineRenderer = GetComponent<LineRenderer>();

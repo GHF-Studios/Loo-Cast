@@ -15,7 +15,7 @@ namespace LooCast.Projectile
         public readonly static List<Projectile> projectiles = new List<Projectile>();
 
         protected Rigidbody2D rb;
-        protected NewTarget target;
+        protected Target target;
         public GameObject Origin { get; protected set; }
         public IHealth.TeamType Team { get; protected set; }
 
@@ -34,7 +34,7 @@ namespace LooCast.Projectile
 
         private Vector3 PAUSE_currentVelocity;
 
-        protected virtual void Initialize(NewTarget target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration)
+        protected virtual void Initialize(Target target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration)
         {
             projectiles.Add(this);
 

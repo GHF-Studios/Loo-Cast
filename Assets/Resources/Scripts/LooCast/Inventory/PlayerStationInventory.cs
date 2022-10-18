@@ -7,7 +7,6 @@ namespace LooCast.Inventory
     using Data;
     using LooCast.Item;
     using LooCast.Item.Data;
-    using LooCast.Targeting;
     using LooCast.Station;
     using LooCast.Attribute.Stat;
 
