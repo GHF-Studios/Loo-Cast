@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace LooCast.Util
 {
+    using LooCast.Health;
+    using Target;
+
     public static class TargetingUtil
     {
         public enum SortingType
@@ -13,82 +16,82 @@ namespace LooCast.Util
         }
 
         #region Get Single Target
-        public static Collider2D GetTarget(Vector2 samplePosition, float sampleRadius)
+        public static NewTarget GetTarget(Vector2 samplePosition, float sampleRadius)
         {
-            return Physics2D.OverlapCircle(samplePosition, sampleRadius);
+            return Physics2D.OverlapCircle(samplePosition, sampleRadius).GetTarget();
         }
 
-        public static Collider2D GetTarget(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
+        public static NewTarget GetTarget(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
         {
-            return Physics2D.OverlapCircle(samplePosition, sampleRadius, layerMask);
+            return Physics2D.OverlapCircle(samplePosition, sampleRadius, layerMask).GetTarget();
         }
 
-        public static Collider2D GetTarget(Bounds sampleBounds)
+        public static NewTarget GetTarget(Bounds sampleBounds)
         {
-            return Physics2D.OverlapArea(sampleBounds.min, sampleBounds.max);
+            return Physics2D.OverlapArea(sampleBounds.min, sampleBounds.max).GetTarget();
         }
 
-        public static Collider2D GetTarget(Bounds sampleBounds, LayerMask layerMask)
+        public static NewTarget GetTarget(Bounds sampleBounds, LayerMask layerMask)
         {
-            return Physics2D.OverlapArea(sampleBounds.min, sampleBounds.max, layerMask);
+            return Physics2D.OverlapArea(sampleBounds.min, sampleBounds.max, layerMask).GetTarget();
         }
 
-        public static Collider2D GetTarget(Vector2 samplePoint)
+        public static NewTarget GetTarget(Vector2 samplePoint)
         {
-            return Physics2D.OverlapPoint(samplePoint);
+            return Physics2D.OverlapPoint(samplePoint).GetTarget();
         }
 
-        public static Collider2D GetTarget(Vector2 samplePoint, LayerMask layerMask)
+        public static NewTarget GetTarget(Vector2 samplePoint, LayerMask layerMask)
         {
-            return Physics2D.OverlapPoint(samplePoint, layerMask);
+            return Physics2D.OverlapPoint(samplePoint, layerMask).GetTarget();
         }
         #endregion
 
         #region Get Multiple Targets
-        public static Collider2D[] GetTargets(Vector2 samplePosition, float sampleRadius)
+        public static NewTarget[] GetTargets(Vector2 samplePosition, float sampleRadius)
         {
-            return Physics2D.OverlapCircleAll(samplePosition, sampleRadius);
+            return Physics2D.OverlapCircleAll(samplePosition, sampleRadius).GetTargets();
         }
 
-        public static Collider2D[] GetTargets(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
+        public static NewTarget[] GetTargets(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
         {
-            return Physics2D.OverlapCircleAll(samplePosition, sampleRadius, layerMask);
+            return Physics2D.OverlapCircleAll(samplePosition, sampleRadius, layerMask).GetTargets();
         }
 
-        public static Collider2D[] GetTargets(Bounds sampleBounds)
+        public static NewTarget[] GetTargets(Bounds sampleBounds)
         {
-            return Physics2D.OverlapAreaAll(sampleBounds.min, sampleBounds.max);
+            return Physics2D.OverlapAreaAll(sampleBounds.min, sampleBounds.max).GetTargets();
         }
 
-        public static Collider2D[] GetTargets(Bounds sampleBounds, LayerMask layerMask)
+        public static NewTarget[] GetTargets(Bounds sampleBounds, LayerMask layerMask)
         {
-            return Physics2D.OverlapAreaAll(sampleBounds.min, sampleBounds.max, layerMask);
+            return Physics2D.OverlapAreaAll(sampleBounds.min, sampleBounds.max, layerMask).GetTargets();
         }
 
-        public static Collider2D[] GetTargets(Vector2 samplePoint)
+        public static NewTarget[] GetTargets(Vector2 samplePoint)
         {
-            return Physics2D.OverlapPointAll(samplePoint);
+            return Physics2D.OverlapPointAll(samplePoint).GetTargets();
         }
 
-        public static Collider2D[] GetTargets(Vector2 samplePoint, LayerMask layerMask)
+        public static NewTarget[] GetTargets(Vector2 samplePoint, LayerMask layerMask)
         {
-            return Physics2D.OverlapPointAll(samplePoint, layerMask);
+            return Physics2D.OverlapPointAll(samplePoint, layerMask).GetTargets();
         }
         #endregion
 
         #region Filter & Sort Targets
-        public static Collider2D[] FilterTargets(Collider2D[] targets, string filterTag)
+        public static NewTarget[] FilterTargets(NewTarget[] targets, string filterTag)
         {
-            return targets.Where((target) => target.gameObject.CompareTag(filterTag)).ToArray();
+            return targets.Where((target) => target.GameObject.CompareTag(filterTag)).ToArray();
         }
 
-        public static Collider2D[] FilterTargets(Collider2D[] targets, string[] filterTags)
+        public static NewTarget[] FilterTargets(NewTarget[] targets, string[] filterTags)
         {
             return targets.Where((target) =>
             {
                 foreach (string filterTag in filterTags)
                 {
-                    if (target.gameObject.CompareTag(filterTag))
+                    if (target.GameObject.CompareTag(filterTag))
                     {
                         return true;
                     }
@@ -97,21 +100,21 @@ namespace LooCast.Util
             }).ToArray();
         }
 
-        public static Collider2D[] FilterTargets(Collider2D[] targets, Type filterComponentType)
+        public static NewTarget[] FilterTargets(NewTarget[] targets, Type filterComponentType)
         {
             return targets.Where((target) =>
             {
-                return target.TryGetComponent(filterComponentType, out _);
+                return target.GameObject.TryGetComponent(filterComponentType, out _);
             }).ToArray();
         }
 
-        public static Collider2D[] FilterTargets(Collider2D[] targets, Type[] filterComponentTypes)
+        public static NewTarget[] FilterTargets(NewTarget[] targets, Type[] filterComponentTypes)
         {
             return targets.Where((target) =>
             {
                 foreach (Type filterComponentType in filterComponentTypes)
                 {
-                    if (target.TryGetComponent(filterComponentType, out _))
+                    if (target.GameObject.TryGetComponent(filterComponentType, out _))
                     {
                         return true;
                     }
@@ -120,16 +123,16 @@ namespace LooCast.Util
             }).ToArray();
         }
 
-        public static Collider2D[] FilterTargets(Collider2D[] targets, Collider2D ignoredTarget)
+        public static NewTarget[] FilterTargets(NewTarget[] targets, NewTarget ignoredTarget)
         {
             return targets.Where(target => !target.Equals(ignoredTarget)).ToArray();
         }
 
-        public static Collider2D[] FilterTargets(Collider2D[] targets, Collider2D[] ignoredTargets)
+        public static NewTarget[] FilterTargets(NewTarget[] targets, NewTarget[] ignoredTargets)
         {
             return targets.Where((target) =>
             {
-                foreach (Collider2D ignoredTarget in ignoredTargets)
+                foreach (NewTarget ignoredTarget in ignoredTargets)
                 {
                     if (target.Equals(ignoredTarget))
                     {
@@ -140,14 +143,14 @@ namespace LooCast.Util
             }).ToArray();
         }
 
-        public static Collider2D[] SortTargets(Collider2D[] targets, Vector2 measurementOrigin, SortingType sortingType)
+        public static NewTarget[] SortTargets(NewTarget[] targets, Vector2 measurementOrigin, SortingType sortingType)
         {
             switch (sortingType)
             {
                 case SortingType.Closest:
-                    return targets.OrderBy(target => Vector2.Distance(measurementOrigin, target.gameObject.transform.position)).ToArray();
+                    return targets.OrderBy(target => Vector2.Distance(measurementOrigin, target.Transform.position)).ToArray();
                 case SortingType.Furthest:
-                    return targets.OrderByDescending(target => Vector2.Distance(measurementOrigin, target.gameObject.transform.position)).ToArray();
+                    return targets.OrderByDescending(target => Vector2.Distance(measurementOrigin, target.Transform.position)).ToArray();
                 default:
                     return targets;
             }
@@ -155,14 +158,20 @@ namespace LooCast.Util
         #endregion
 
         #region Private Utility Methods
-        private static bool ValidateTargets(Collider2D[] targets)
+        private static NewTarget GetTarget(this Collider2D targetCollider)
         {
-            if (targets == null || targets.Length == 0)
+            IHealth targetHealth = targetCollider.gameObject.GetComponent<IHealth>();
+            if (targetHealth == null)
             {
-                return false;
+                throw new Exception("Target must contain an IHealth Component!");
             }
-            return true;
+            return new NewTarget(targetHealth, targetCollider);
+        }
+
+        private static NewTarget[] GetTargets(this Collider2D[] targetColliders)
+        {
+            return targetColliders.Select(targetCollider => targetCollider.GetTarget()).ToArray();
         }
         #endregion
-    } 
+    }
 }
