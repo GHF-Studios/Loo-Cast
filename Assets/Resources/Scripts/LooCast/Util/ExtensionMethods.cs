@@ -48,5 +48,15 @@ namespace LooCast.Util
                 list[n] = value;
             }
         }
+
+        public static T[] GetValues<T>(this Variable.Variable<T>[] valueVariables)
+        {
+            T[] evaluatedValues = new T[valueVariables.Length];
+            for (int i = 0; i < valueVariables.Length; i++)
+            {
+                evaluatedValues[i] = valueVariables[i].Value;
+            }
+            return evaluatedValues;
+        }
     }
 }

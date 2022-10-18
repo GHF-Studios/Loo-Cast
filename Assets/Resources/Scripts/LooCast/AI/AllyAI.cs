@@ -53,7 +53,7 @@ namespace LooCast.AI
                     roamingPosition = GetRoamingPosition();
                 }
 
-                if (TargetingUtil.GetTarget(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask))
+                if (TargetingUtil.GetTargetInRadius(allyAI.transform.position, allyAI.detectionRange, allyAI.enemyLayerMask))
                 {
                     allyAI.finiteStateMachine.SetCurrentState(State.Evading);
                 }

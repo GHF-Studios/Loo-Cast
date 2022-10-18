@@ -50,7 +50,7 @@ namespace LooCast.AI
                     roamingPosition = GetRoamingPosition();
                 }
 
-                if (TargetingUtil.GetTarget(enemyAI.transform.position, enemyAI.detectionRange, enemyAI.enemyLayerMask))
+                if (TargetingUtil.GetTargetInRadius(enemyAI.transform.position, enemyAI.detectionRange, enemyAI.enemyLayerMask))
                 {
                     enemyAI.finiteStateMachine.SetCurrentState(State.Chasing);
                 }
@@ -97,7 +97,7 @@ namespace LooCast.AI
 
             private Collider2D[] GetTargets()
             {
-                return TargetingUtil.GetTargets(enemyAI.transform.position, enemyAI.detectionRange, enemyAI.enemyLayerMask);
+                return TargetingUtil.GetTargetsInRadius(enemyAI.transform.position, enemyAI.detectionRange, enemyAI.enemyLayerMask);
             }
 
             private Collider2D GetClosestTarget(Collider2D[] targets)

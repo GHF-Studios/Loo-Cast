@@ -7,7 +7,6 @@ namespace LooCast.Inventory
     using Data;
     using Data.Runtime;
     using LooCast.Item;
-    using LooCast.Targeting;
     using LooCast.Player;
     using LooCast.Attribute.Stat;
 
@@ -24,7 +23,6 @@ namespace LooCast.Inventory
 
         #region Fields
         [SerializeField] private Player player;
-        [SerializeField] private ITargeting targeting;
         [SerializeField] private Stats stats;
         #endregion
 

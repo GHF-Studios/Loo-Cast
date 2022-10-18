@@ -23,7 +23,6 @@ namespace LooCast.Inventory
 
         #region Fields
         [SerializeField] private PlayerStation playerStation;
-        [SerializeField] private ITargeting targeting;
         [SerializeField] private Stats stats;
         [SerializeField] private MultiplexerWeaponItemData stationMultiplexerWeaponItemData;
         #endregion

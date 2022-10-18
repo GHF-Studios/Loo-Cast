@@ -35,15 +35,5 @@ namespace LooCast.Variable
             Value = value;
             IsInitialized = true;
         }
-
-        public static T[] Evaluate(Variable<T>[] valueVariables)
-        {
-            T[] evaluatedValues = new T[valueVariables.Length];
-            for (int i = 0; i < valueVariables.Length; i++)
-            {
-                evaluatedValues[i] = valueVariables[i].Value;
-            }
-            return evaluatedValues;
-        }
     }
 }

@@ -39,9 +39,9 @@ namespace LooCast.Item
             }
             Target target = targets[0];
 
-            GameObject bulletObject = GameObject.Instantiate(projectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
+            GameObject bulletObject = GameObject.Instantiate(ProjectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             bulletObject.transform.position += new Vector3(0, 0, 0.1f);
-            bulletObject.GetComponent<LaserProjectile>().Initialize(target, ItemContainer.OriginObject, damage, critChance, critDamage, knockback, projectileSpeed, projectileSize, projectileLifetime, piercing, armorPenetration, LaserLength);
+            bulletObject.GetComponent<LaserProjectile>().Initialize(target, ItemContainer.OriginObject, Damage, CritChance, CritDamage, Knockback, ProjectileSpeed, ProjectileSize, ProjectileLifetime, Piercing, ArmorPenetration, LaserLength);
             soundHandler.SoundShoot();
         }
         #endregion

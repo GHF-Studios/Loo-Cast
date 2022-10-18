@@ -7,10 +7,8 @@ using UnityEngine.Events;
 namespace LooCast.Item
 {
     using Data;
-    using LooCast.Targeting;
     using LooCast.Attribute.Stat;
     using LooCast.Sound;
-    using LooCast.Target;
 
     public abstract class WeaponItem : UniqueItem
     {
@@ -19,23 +17,23 @@ namespace LooCast.Item
         #endregion
 
         #region Properties
-        public float damage { get; protected set; }
-        public float critChance { get; protected set; }
-        public float critDamage { get; protected set; }
-        public float knockback { get; protected set; }
-        public float attackDelay { get; protected set; }
-        public float projectileSpeed { get; protected set; }
-        public float projectileSize { get; protected set; }
-        public float projectileLifetime { get; protected set; }
-        public int piercing { get; protected set; }
-        public int armorPenetration { get; protected set; }
-        public GameObject projectilePrefab { get; protected set; }
-        public bool autoFire { get; protected set; }
+        public float Damage { get; protected set; }
+        public float CritChance { get; protected set; }
+        public float CritDamage { get; protected set; }
+        public float Knockback { get; protected set; }
+        public float AttackDelay { get; protected set; }
+        public float ProjectileSpeed { get; protected set; }
+        public float ProjectileSize { get; protected set; }
+        public float ProjectileLifetime { get; protected set; }
+        public int Piercing { get; protected set; }
+        public int ArmorPenetration { get; protected set; }
+        public GameObject ProjectilePrefab { get; protected set; }
+        public bool AutoFire { get; protected set; }
+        public float Range { get; protected set; }
         #endregion
 
         #region Fields
         protected Stats stats;
-        protected ITargeting mainTargeting;
         protected GameSoundHandler soundHandler;
         protected Timer fireTimer;
         protected bool canFire;
@@ -47,7 +45,7 @@ namespace LooCast.Item
             WeaponItemData = data;
 
             this.stats = stats;
-            this.autoFire = autoFire;
+            this.AutoFire = autoFire;
             soundHandler = GameObject.FindObjectOfType<GameSoundHandler>();
             fireTimer = new Timer(data.BaseAttackDelay.Value * 1000);
             fireTimer.Elapsed += (sender, elapsedEventArgs) =>
@@ -69,39 +67,33 @@ namespace LooCast.Item
                         {
                             fireTimer.Start();
                             canFire = true;
-                            mainTargeting = ItemContainer.OriginObject.GetComponentInChildren<ITargeting>();
-                            if (mainTargeting == null)
-                            {
-                                throw new NullReferenceException("No Targeting found in origin!");
-                            }
                         }
                         break;
                     case ContainmentState.Dropped:
                         fireTimer.Stop();
                         canFire = false;
-                        mainTargeting = null;
                         break;
                     case ContainmentState.Standalone:
                         fireTimer.Stop();
                         canFire = false;
-                        mainTargeting = null;
                         break;
                     default:
                         break;
                 }
             });
 
-            damage = data.BaseDamage.Value * this.stats.DamageMultiplier;
-            critChance = data.BaseCritChance.Value * this.stats.RandomChanceMultiplier;
-            critDamage = data.BaseCritDamage.Value * this.stats.DamageMultiplier;
-            knockback = data.BaseKnockback.Value * this.stats.KnockbackMultiplier;
-            attackDelay = data.BaseAttackDelay.Value * this.stats.AttackDelayMultiplier;
-            projectileSpeed = data.BaseProjectileSpeed.Value * this.stats.ProjectileSpeedMultiplier;
-            projectileSize = data.BaseProjectileSize.Value * this.stats.ProjectileSizeMultiplier;
-            projectileLifetime = data.BaseProjectileLifetime.Value;
-            piercing = data.BasePiercing.Value + this.stats.PiercingIncrease;
-            armorPenetration = data.BaseArmorPenetration.Value + this.stats.ArmorPenetrationIncrease;
-            projectilePrefab = data.ProjectilePrefab;
+            Damage = data.BaseDamage.Value * stats.DamageMultiplier;
+            CritChance = data.BaseCritChance.Value * stats.RandomChanceMultiplier;
+            CritDamage = data.BaseCritDamage.Value * stats.DamageMultiplier;
+            Knockback = data.BaseKnockback.Value * stats.KnockbackMultiplier;
+            AttackDelay = data.BaseAttackDelay.Value * stats.AttackDelayMultiplier;
+            ProjectileSpeed = data.BaseProjectileSpeed.Value * stats.ProjectileSpeedMultiplier;
+            ProjectileSize = data.BaseProjectileSize.Value * stats.ProjectileSizeMultiplier;
+            ProjectileLifetime = data.BaseProjectileLifetime.Value;
+            Piercing = data.BasePiercing.Value + stats.PiercingIncrease;
+            ArmorPenetration = data.BaseArmorPenetration.Value + stats.ArmorPenetrationIncrease;
+            ProjectilePrefab = data.ProjectilePrefab;
+            Range = data.Range.Value;
         }
         #endregion
 
@@ -123,66 +115,6 @@ namespace LooCast.Item
         public override void Use()
         {
             TryFire();
-        }
-
-        protected virtual List<Target> AcquireTargets(int count, TargetingMode targetType)
-        {
-            List<Target> targetsFound;
-
-            switch (targetType)
-            {
-                case TargetingMode.Closest:
-                    targetsFound = mainTargeting.ClosestTargets;
-                    break;
-                case TargetingMode.Furthest:
-                    targetsFound = mainTargeting.FurthestTargets;
-                    break;
-                case TargetingMode.Random:
-                    targetsFound = mainTargeting.RandomTargets;
-                    break;
-                case TargetingMode.RandomOnscreen:
-                    targetsFound = mainTargeting.RandomOnscreenTargets;
-                    break;
-                case TargetingMode.RandomProximity:
-                    targetsFound = mainTargeting.RandomProximityTargets;
-                    break;
-                default:
-                    targetsFound = null;
-                    break;
-            }
-
-            if (targetsFound == null)
-            {
-                return null;
-            }
-
-            List<Target> targets = new List<Target>();
-
-            foreach (Target target in targetsFound)
-            {
-                if (targets.Count >= count)
-                {
-                    break;
-                }
-
-                if (target == null || !target.IsValid() || target.IsLocked())
-                {
-                    continue;
-                }
-
-                Target.EngageTargetLock(target, out bool targetLockSuccess);
-
-                if (targetLockSuccess)
-                {
-                    targets.Add(target);
-                }
-                else
-                {
-                    continue;
-                }
-            }
-
-            return targets;
         }
         #endregion
     }

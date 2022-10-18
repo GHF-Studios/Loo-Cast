@@ -26,13 +26,6 @@ namespace LooCast.Station
                 return health;
             }
         }
-        public Targeting Targeting
-        {
-            get
-            {
-                return targeting;
-            }
-        }
         public PlayerStationInventory PlayerStationInventory
         {
             get
@@ -51,7 +44,6 @@ namespace LooCast.Station
 
         #region Fields
         [SerializeField] private PlayerStationHealth health;
-        [SerializeField] private Targeting targeting;
         [SerializeField] private PlayerStationInventory playerStationInventory;
         [SerializeField] private MissionProvider missionProvider;
         #endregion

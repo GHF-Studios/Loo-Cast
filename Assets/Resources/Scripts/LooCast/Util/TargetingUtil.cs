@@ -16,64 +16,64 @@ namespace LooCast.Util
         }
 
         #region Get Single Target
-        public static NewTarget GetTarget(Vector2 samplePosition, float sampleRadius)
+        public static NewTarget GetTargetInRadius(Vector2 samplePosition, float sampleRadius)
         {
             return Physics2D.OverlapCircle(samplePosition, sampleRadius).GetTarget();
         }
 
-        public static NewTarget GetTarget(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
+        public static NewTarget GetTargetInRadius(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
         {
             return Physics2D.OverlapCircle(samplePosition, sampleRadius, layerMask).GetTarget();
         }
 
-        public static NewTarget GetTarget(Bounds sampleBounds)
+        public static NewTarget GetTargetInArea(Vector2 samplePositionA, Vector2 samplePositionB)
         {
-            return Physics2D.OverlapArea(sampleBounds.min, sampleBounds.max).GetTarget();
+            return Physics2D.OverlapArea(samplePositionA, samplePositionB).GetTarget();
         }
 
-        public static NewTarget GetTarget(Bounds sampleBounds, LayerMask layerMask)
+        public static NewTarget GetTargetInArea(Vector2 samplePositionA, Vector2 samplePositionB, LayerMask layerMask)
         {
-            return Physics2D.OverlapArea(sampleBounds.min, sampleBounds.max, layerMask).GetTarget();
+            return Physics2D.OverlapArea(samplePositionA, samplePositionB, layerMask).GetTarget();
         }
 
-        public static NewTarget GetTarget(Vector2 samplePoint)
+        public static NewTarget GetTargetInPoint(Vector2 samplePoint)
         {
             return Physics2D.OverlapPoint(samplePoint).GetTarget();
         }
 
-        public static NewTarget GetTarget(Vector2 samplePoint, LayerMask layerMask)
+        public static NewTarget GetTargetInPoint(Vector2 samplePoint, LayerMask layerMask)
         {
             return Physics2D.OverlapPoint(samplePoint, layerMask).GetTarget();
         }
         #endregion
 
         #region Get Multiple Targets
-        public static NewTarget[] GetTargets(Vector2 samplePosition, float sampleRadius)
+        public static NewTarget[] GetTargetsInRadius(Vector2 samplePosition, float sampleRadius)
         {
             return Physics2D.OverlapCircleAll(samplePosition, sampleRadius).GetTargets();
         }
 
-        public static NewTarget[] GetTargets(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
+        public static NewTarget[] GetTargetsInRadius(Vector2 samplePosition, float sampleRadius, LayerMask layerMask)
         {
             return Physics2D.OverlapCircleAll(samplePosition, sampleRadius, layerMask).GetTargets();
         }
 
-        public static NewTarget[] GetTargets(Bounds sampleBounds)
+        public static NewTarget[] GetTargetsInArea(Vector2 samplePositionA, Vector2 samplePositionB)
         {
-            return Physics2D.OverlapAreaAll(sampleBounds.min, sampleBounds.max).GetTargets();
+            return Physics2D.OverlapAreaAll(samplePositionA, samplePositionB).GetTargets();
         }
 
-        public static NewTarget[] GetTargets(Bounds sampleBounds, LayerMask layerMask)
+        public static NewTarget[] GetTargetsInArea(Vector2 samplePositionA, Vector2 samplePositionB, LayerMask layerMask)
         {
-            return Physics2D.OverlapAreaAll(sampleBounds.min, sampleBounds.max, layerMask).GetTargets();
+            return Physics2D.OverlapAreaAll(samplePositionA, samplePositionB, layerMask).GetTargets();
         }
 
-        public static NewTarget[] GetTargets(Vector2 samplePoint)
+        public static NewTarget[] GetTargetsInPoint(Vector2 samplePoint)
         {
             return Physics2D.OverlapPointAll(samplePoint).GetTargets();
         }
 
-        public static NewTarget[] GetTargets(Vector2 samplePoint, LayerMask layerMask)
+        public static NewTarget[] GetTargetsInPoint(Vector2 samplePoint, LayerMask layerMask)
         {
             return Physics2D.OverlapPointAll(samplePoint, layerMask).GetTargets();
         }
@@ -154,6 +154,40 @@ namespace LooCast.Util
                 default:
                     return targets;
             }
+        }
+        #endregion
+
+        #region Common Use Cases
+        public static NewTarget[] GetClosestTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags)
+        {
+            NewTarget[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = FilterTargets(targets, filterTags);
+            targets = SortTargets(targets, samplePosition, SortingType.Closest);
+            return targets;
+        }
+
+        public static NewTarget[] GetFurthestTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags)
+        {
+            NewTarget[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = FilterTargets(targets, filterTags);
+            targets = SortTargets(targets, samplePosition, SortingType.Furthest);
+            return targets;
+        }
+
+        public static NewTarget[] GetRandomOnscreenTargets(string[] filterTags)
+        {
+            Vector2 samplePositionA = Camera.main.ScreenToWorldPoint(new Vector3(0, 0));
+            Vector2 samplePositionB = Camera.main.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height));
+            NewTarget[] targets = GetTargetsInArea(samplePositionA, samplePositionB);
+            targets = FilterTargets(targets, filterTags);
+            return targets;
+        }
+
+        public static NewTarget[] GetRandomProximityTargets(Vector3 samplePosition, float sampleRadius, string[] filterTags)
+        {
+            NewTarget[] targets = GetTargetsInRadius(samplePosition, sampleRadius);
+            targets = FilterTargets(targets, filterTags);
+            return targets;
         }
         #endregion
 

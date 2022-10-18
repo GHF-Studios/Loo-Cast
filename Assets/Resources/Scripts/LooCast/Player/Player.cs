@@ -8,7 +8,6 @@ namespace LooCast.Player
     using Data;
     using Data.Runtime;
     using Health;
-    using Targeting;
     using Movement;
     using Particle;
     using Experience;
@@ -23,7 +22,6 @@ namespace LooCast.Player
         public PlayerRuntimeData RuntimeData;
 
         public PlayerHealth Health { get; private set; }
-        public PlayerTargeting Targeting { get; private set; }
         public PlayerExperience Experience { get; private set; }
         public PlayerMovement Movement { get; private set; }
         public ParticleSystem ParticleSystem { get; private set; }
@@ -36,7 +34,6 @@ namespace LooCast.Player
         private void Awake()
         {
             Health = GetComponent<PlayerHealth>();
-            Targeting = GetComponent<PlayerTargeting>();
             Experience = GetComponent<PlayerExperience>();
             Movement = GetComponent<PlayerMovement>();
             ParticleSystem = GetComponentInChildren<ParticleSystem>();

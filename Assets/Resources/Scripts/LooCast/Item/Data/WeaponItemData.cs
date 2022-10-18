@@ -20,5 +20,6 @@ namespace LooCast.Item.Data
         public GameObject ProjectilePrefab;
         public BoolDataReference AutoFire;
         public Stats Stats;
+        public FloatDataReference Range;
     }
 }

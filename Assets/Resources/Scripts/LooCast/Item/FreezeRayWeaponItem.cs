@@ -38,11 +38,11 @@ namespace LooCast.Item
             }
             Target target = targets[0];
 
-            GameObject freezeOrbObject = GameObject.Instantiate(projectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
+            GameObject freezeOrbObject = GameObject.Instantiate(ProjectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             freezeOrbObject.transform.position += new Vector3(0, 0, 0.1f);
             float freezeSpeedMultiplier = 0.5f;
-            float freezeRadiusMultiplier = projectileSize;
-            float freezeLifetime = projectileLifetime;
+            float freezeRadiusMultiplier = ProjectileSize;
+            float freezeLifetime = ProjectileLifetime;
             freezeOrbObject.GetComponent<FreezeZone>().Initialize(target.transform.position, freezeSpeedMultiplier, freezeRadiusMultiplier, freezeLifetime);
             soundHandler.SoundShoot();
         }
