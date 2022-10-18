@@ -8,6 +8,7 @@ namespace LooCast.Item
     using LooCast.Targeting;
     using LooCast.Target;
     using LooCast.AOE;
+    using LooCast.Util;
 
     public class FreezeRayWeaponItem : WeaponItem
     {
@@ -31,19 +32,19 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
-            List<Target> targets = AcquireTargets(1, TargetingMode.Closest);
-            if (targets == null || targets.Count == 0)
+            NewTarget[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TagUtil.GetEnemyTags(ItemContainer.OriginObject));
+            if (targets == null || targets.Length == 0)
             {
                 return;
             }
-            Target target = targets[0];
+            NewTarget target = targets[0];
 
             GameObject freezeOrbObject = GameObject.Instantiate(ProjectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             freezeOrbObject.transform.position += new Vector3(0, 0, 0.1f);
             float freezeSpeedMultiplier = 0.5f;
             float freezeRadiusMultiplier = ProjectileSize;
             float freezeLifetime = ProjectileLifetime;
-            freezeOrbObject.GetComponent<FreezeZone>().Initialize(target.transform.position, freezeSpeedMultiplier, freezeRadiusMultiplier, freezeLifetime);
+            freezeOrbObject.GetComponent<FreezeZone>().Initialize(target.Transform.position, freezeSpeedMultiplier, freezeRadiusMultiplier, freezeLifetime);
             soundHandler.SoundShoot();
         }
         #endregion

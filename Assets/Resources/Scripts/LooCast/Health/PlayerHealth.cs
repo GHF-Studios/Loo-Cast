@@ -14,6 +14,7 @@ namespace LooCast.Health
     using LooCast.Indicator;
     using LooCast.Variable;
     using LooCast.Attribute.Stat;
+    using static LooCast.Health.IHealth;
 
     [DisallowMultipleComponent]
     public class PlayerHealth : ExtendedMonoBehaviour, IHealth
@@ -78,6 +79,13 @@ namespace LooCast.Health
             get
             {
                 return RuntimeData.DamageIndicatorPrefab;
+            }
+        }
+        public TeamType Team
+        {
+            get
+            {
+                return RuntimeData.Team;
             }
         }
         #endregion

@@ -83,8 +83,8 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
-            NewTarget[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, );
-            if (targets == null || targets.Count == 0)
+            NewTarget[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TagUtil.GetEnemyTags(ItemContainer.OriginObject));
+            if (targets == null || targets.Length == 0)
             {
                 return;
             }

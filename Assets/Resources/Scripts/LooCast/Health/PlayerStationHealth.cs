@@ -12,6 +12,7 @@ namespace LooCast.Health
     using LooCast.UI.Canvas;
     using LooCast.Indicator;
     using LooCast.Random;
+    using static LooCast.Health.IHealth;
 
     public class PlayerStationHealth : ExtendedMonoBehaviour, IHealth
     {
@@ -28,6 +29,7 @@ namespace LooCast.Health
         public IntComputedVariable Defense { get; private set; }
         public BoolVariable IsAlive { get; private set; }
         public GameObject DamageIndicatorPrefab { get; private set; }
+        public TeamType Team { get; private set; }
         #endregion
 
         #region Events
@@ -61,6 +63,7 @@ namespace LooCast.Health
             RegenerationTimer = new FloatVariable(0.0f);
             Defense = new IntComputedVariable(Data.BaseDefense.Value);
             IsAlive = new BoolVariable(true);
+            Team = Data.Team;
 
             OnKilled = new UnityEvent();
 

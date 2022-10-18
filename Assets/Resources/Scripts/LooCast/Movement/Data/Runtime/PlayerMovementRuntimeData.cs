@@ -16,7 +16,7 @@ namespace LooCast.Movement.Data.Runtime
         public void Initialize(PlayerMovementData data)
         {
             Speed = new FloatComputedVariable(data.BaseSpeed.Value);
-            Speed.AddPermanentMultiplier(Constants.INERTIAL_COEFFICIENT);
+            Speed.AddPermanentMultiplier(Constants.InertialCoefficient);
             Speed.AddPermanentMultiplier(Stats.MovementSpeedMultiplier);
             MaxEnergy = new FloatComputedVariable(data.BaseMaxEnergy.Value);
             MaxEnergy.AddPermanentMultiplier(Stats.EnergyMultiplier);

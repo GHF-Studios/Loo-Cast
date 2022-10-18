@@ -19,5 +19,6 @@ namespace LooCast.Health.Data
         public FloatDataReference BaseExperienceDropAmount;
         public GameObject ExperienceOrbPrefab;
         public GameObject MagnetOrbPrefab;
+        public IHealth.TeamType Team;
     } 
 }

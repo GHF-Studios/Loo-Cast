@@ -8,6 +8,7 @@ namespace LooCast.Item
     using LooCast.Targeting;
     using LooCast.Target;
     using LooCast.Projectile;
+    using LooCast.Util;
 
     public class LaserEmitterWeaponItem : WeaponItem
     {
@@ -32,12 +33,12 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
-            List<Target> targets = AcquireTargets(1, TargetingMode.Closest);
-            if (targets == null || targets.Count == 0)
+            NewTarget[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TagUtil.GetEnemyTags(ItemContainer.OriginObject));
+            if (targets == null || targets.Length == 0)
             {
                 return;
             }
-            Target target = targets[0];
+            NewTarget target = targets[0];
 
             GameObject bulletObject = GameObject.Instantiate(ProjectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             bulletObject.transform.position += new Vector3(0, 0, 0.1f);

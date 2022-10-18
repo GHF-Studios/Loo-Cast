@@ -16,6 +16,7 @@ namespace LooCast.Health
     using LooCast.Attribute.Stat;
     using LooCast.Statistic;
     using LooCast.Enemy;
+    using static LooCast.Health.IHealth;
 
     public class EnemyHealth : ExtendedMonoBehaviour, IHealth
     {
@@ -37,6 +38,7 @@ namespace LooCast.Health
         public FloatComputedVariable ExperienceDropAmount { get; private set; }
         public GameObject ExperienceOrbPrefab { get; private set; }
         public GameObject MagnetOrbPrefab { get; private set; }
+        public TeamType Team { get; private set; }
         #endregion
 
         #region Events
@@ -81,6 +83,7 @@ namespace LooCast.Health
             ExperienceDropAmount = new FloatComputedVariable(Data.BaseExperienceDropAmount.Value);
             ExperienceOrbPrefab = Data.ExperienceOrbPrefab;
             MagnetOrbPrefab = Data.MagnetOrbPrefab;
+            Team = Data.Team;
 
             soundHandler = FindObjectOfType<GameSoundHandler>();
             canvas = FindObjectOfType<WorldSpaceCanvas>();

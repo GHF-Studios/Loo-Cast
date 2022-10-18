@@ -86,7 +86,7 @@ namespace LooCast.Movement
 
         private void Start()
         {
-            Speed.AddPermanentMultiplier(Constants.INERTIAL_COEFFICIENT);
+            Speed.AddPermanentMultiplier(Constants.InertialCoefficient);
             Speed.AddPermanentMultiplier(UnityEngine.Random.Range(0.9f, 1.1f));
         }
 

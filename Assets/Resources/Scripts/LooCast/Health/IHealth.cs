@@ -7,6 +7,14 @@ namespace LooCast.Health
 
     public interface IHealth
     {
+        #region Enums
+        public enum TeamType
+        {
+            PlayerAlly,
+            PlayerEnemy
+        }
+        #endregion
+
         #region Properties
         public FloatVariable Health { get; }
         public FloatComputedVariable MaxHealth { get; }
@@ -16,6 +24,7 @@ namespace LooCast.Health
         public IntComputedVariable Defense { get; }
         public BoolVariable IsAlive { get; }
         public GameObject DamageIndicatorPrefab { get; }
+        public TeamType Team { get; }
         #endregion
 
         #region Events

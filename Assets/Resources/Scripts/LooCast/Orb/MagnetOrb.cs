@@ -44,7 +44,7 @@ namespace LooCast.Orb
                         }
                         Kill();
                     }
-                    float speed = 1 / Mathf.Pow(dis / pickupRangeMultiplier, 2) * Constants.INERTIAL_COEFFICIENT * 7.5f;
+                    float speed = 1 / Mathf.Pow(dis / pickupRangeMultiplier, 2) * Constants.InertialCoefficient * 7.5f;
                     speed = speed * Time.deltaTime * .5f;
                     transform.position = Vector3.MoveTowards(transform.position, playerObject.transform.position, speed);
                 }

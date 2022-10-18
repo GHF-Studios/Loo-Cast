@@ -14,6 +14,7 @@ namespace LooCast.Health
     using LooCast.Random;
     using LooCast.Attribute.Stat;
     using LooCast.Orb;
+    using static LooCast.Health.IHealth;
 
     public sealed class EnemyStationHealth : ExtendedMonoBehaviour, IHealth
     {
@@ -33,6 +34,7 @@ namespace LooCast.Health
         public FloatComputedVariable ExperienceDropChance { get; private set; }
         public FloatComputedVariable ExperienceDropAmount { get; private set; }
         public GameObject ExperienceOrbPrefab { get; private set; }
+        public TeamType Team { get; private set; }
         #endregion
 
         #region Events
@@ -72,6 +74,7 @@ namespace LooCast.Health
             ExperienceDropChance = new FloatComputedVariable(Data.BaseExperienceDropChance.Value);
             ExperienceDropAmount = new FloatComputedVariable(Data.BaseExperienceDropAmount.Value);
             ExperienceOrbPrefab = Data.ExperienceOrbPrefab;
+            Team = Data.Team;
 
             OnKilled = new UnityEvent();
 
