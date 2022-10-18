@@ -6,6 +6,8 @@ namespace LooCast.Projectile
 {
     using Random;
     using Health;
+    using Target;
+    using Util;
 
     [RequireComponent(typeof(LineRenderer), typeof(BoxCollider2D))]
     public class LaserProjectile : Projectile
@@ -18,14 +20,14 @@ namespace LooCast.Projectile
         private bool isRetracting = false;
         private Vector3 velocity;
 
-        public virtual void Initialize(Target.Target target, GameObject origin, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration, float laserLength)
+        public virtual void Initialize(NewTarget target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration, float laserLength)
         {
-            base.Initialize(target, origin, damage, critChance, critDamage, knockback, speed, size, lifetime, piercing, armorPenetration);
+            base.Initialize(target, origin, team, damage, critChance, critDamage, knockback, speed, size, lifetime, piercing, armorPenetration);
             lineRenderer = GetComponent<LineRenderer>();
             collider = GetComponent<BoxCollider2D>();
             this.laserLength = laserLength;
 
-            if (target == null || target.transform == null)
+            if (target == null || target.Transform == null)
             {
                 float x = Random.Range(-1f, 1f);
                 float y = Random.Range(-1f, 1f);
@@ -34,10 +36,10 @@ namespace LooCast.Projectile
             }
             else
             {
-                float projectileArrivalTime = (target.transform.position - origin.transform.position).magnitude / speed;
-                Vector3 targetVelocity = target.gameObject.GetComponent<Rigidbody2D>().velocity;
+                float projectileArrivalTime = (target.Transform.position - origin.transform.position).magnitude / speed;
+                Vector3 targetVelocity = target.GameObject.GetComponent<Rigidbody2D>().velocity;
                 targetVelocity.z = 0;
-                Vector3 estimatedProjectileHitPos = target.transform.position + targetVelocity * projectileArrivalTime;
+                Vector3 estimatedProjectileHitPos = target.Transform.position + targetVelocity * projectileArrivalTime;
 
                 velocity = (estimatedProjectileHitPos - transform.position).normalized;
             }
@@ -101,28 +103,23 @@ namespace LooCast.Projectile
                 return false;
             }
 
-            if (CheckTags("Enemy", "EnemyStation"))
+            if (CheckTags(TeamUtil.GetEnemyTags(Team)))
             {
-                if (pierced > piercing)
+                if (Pierced > Piercing)
                 {
                     Kill();
                     return;
                 }
 
-                pierced += 1;
+                Pierced += 1;
                 IHealth collisionHealth = collision.gameObject.GetComponentInParent<IHealth>();
-                collisionHealth.Damage(new DamageInfo(origin, gameObject, damage * Random.Range(2.5f, 5.0f), knockback, armorPenetration, critChance, critDamage));
+                collisionHealth.Damage(new DamageInfo(Origin, gameObject, Damage * Random.Range(2.5f, 5.0f), Knockback, ArmorPenetration, CritChance, CritDamage));
 
-                if (pierced > piercing)
+                if (Pierced > Piercing)
                 {
                     isDeploying = false;
                     isRetracting = true;
                     rb.velocity = Vector3.zero;
-                }
-
-                if (CheckTags("EnemyStation"))
-                {
-                    Kill();
                 }
             }
         }

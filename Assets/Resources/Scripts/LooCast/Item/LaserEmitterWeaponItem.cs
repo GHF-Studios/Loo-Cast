@@ -33,7 +33,7 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
-            NewTarget[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TagUtil.GetEnemyTags(ItemContainer.OriginObject));
+            NewTarget[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject));
             if (targets == null || targets.Length == 0)
             {
                 return;
@@ -42,7 +42,7 @@ namespace LooCast.Item
 
             GameObject bulletObject = GameObject.Instantiate(ProjectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             bulletObject.transform.position += new Vector3(0, 0, 0.1f);
-            bulletObject.GetComponent<LaserProjectile>().Initialize(target, ItemContainer.OriginObject, Damage, CritChance, CritDamage, Knockback, ProjectileSpeed, ProjectileSize, ProjectileLifetime, Piercing, ArmorPenetration, LaserLength);
+            bulletObject.GetComponent<LaserProjectile>().Initialize(target, ItemContainer.OriginObject, TeamUtil.GetTeamFromTag(ItemContainer.OriginObject.tag), Damage, CritChance, CritDamage, Knockback, ProjectileSpeed, ProjectileSize, ProjectileLifetime, Piercing, ArmorPenetration, LaserLength);
             soundHandler.SoundShoot();
         }
         #endregion

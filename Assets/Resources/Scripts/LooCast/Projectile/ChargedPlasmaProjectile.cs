@@ -8,6 +8,7 @@ namespace LooCast.Projectile
     using Target;
     using Arc;
     using Random;
+    using LooCast.Util;
 
     public class ChargedPlasmaProjectile : Projectile
     {
@@ -60,14 +61,14 @@ namespace LooCast.Projectile
 
         [SerializeField] private GameObject arcObjectPrefab;
 
-        public virtual void Initialize(Target target, GameObject origin, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int armorPenetration, float arcLifetime, float initialWidth, float widthMultiplier, float minWidth, int branchTries, float minSpreadDistance, float minSpreadDistanceMultiplier, float maxSpreadDistance, float maxSpreadDistanceMultiplier, float minSpreadAngle, float minSpreadAngleMultiplier, float maxSpreadAngle, float maxSpreadAngleMultiplier, float spreadChance, float spreadChanceMultiplier, float minBranchDistance, float minBranchDistanceMultiplier, float maxBranchDistance, float maxBranchDistanceMultiplier, float minBranchAngle, float minBranchAngleMultiplier, float maxBranchAngle, float maxBranchAngleMultiplier, float branchChance, float branchChanceMultiplier, int maxRecursion)
+        public virtual void Initialize(NewTarget target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int armorPenetration, float arcLifetime, float initialWidth, float widthMultiplier, float minWidth, int branchTries, float minSpreadDistance, float minSpreadDistanceMultiplier, float maxSpreadDistance, float maxSpreadDistanceMultiplier, float minSpreadAngle, float minSpreadAngleMultiplier, float maxSpreadAngle, float maxSpreadAngleMultiplier, float spreadChance, float spreadChanceMultiplier, float minBranchDistance, float minBranchDistanceMultiplier, float maxBranchDistance, float maxBranchDistanceMultiplier, float minBranchAngle, float minBranchAngleMultiplier, float maxBranchAngle, float maxBranchAngleMultiplier, float branchChance, float branchChanceMultiplier, int maxRecursion)
         {
-            base.Initialize(target, origin, damage, critChance, critDamage, knockback, speed, size, lifetime, 0, armorPenetration);
+            base.Initialize(target, origin, team, damage, critChance, critDamage, knockback, speed, size, lifetime, 0, armorPenetration);
 
             arcs = new List<Arc>();
             ignoredTargets = new List<Target>();
 
-            if (target == null || target.transform == null)
+            if (target == null || target.Transform == null)
             {
                 float x = Random.Range(-1f, 1f);
                 float y = Random.Range(-1f, 1f);
@@ -76,10 +77,10 @@ namespace LooCast.Projectile
             }
             else
             {
-                float projectileArrivalTime = (target.transform.position - origin.transform.position).magnitude / speed;
-                Vector3 targetVelocity = target.gameObject.GetComponent<Rigidbody2D>().velocity;
+                float projectileArrivalTime = (target.Transform.position - origin.transform.position).magnitude / speed;
+                Vector3 targetVelocity = target.GameObject.GetComponent<Rigidbody2D>().velocity;
                 targetVelocity.z = 0;
-                Vector3 estimatedProjectileHitPos = target.transform.position + targetVelocity * projectileArrivalTime;
+                Vector3 estimatedProjectileHitPos = target.Transform.position + targetVelocity * projectileArrivalTime;
 
                 rb.velocity = (estimatedProjectileHitPos - transform.position).normalized;
             }
@@ -142,7 +143,7 @@ namespace LooCast.Projectile
                 return false;
             }
 
-            if (CheckTags("Enemy", "EnemyStation"))
+            if (CheckTags(TeamUtil.GetEnemyTags(Team)))
             {
                 Arc arc = Instantiate(arcObjectPrefab, collision.transform.position, Quaternion.identity).GetComponent<Arc>();
                 Target collisionTarget = new Target(collision);
@@ -176,23 +177,18 @@ namespace LooCast.Projectile
                         foreach (Target target in nextArc.targets)
                         {
                             IHealth targetHealth = target.gameObject.GetComponentInParent<IHealth>();
-                            targetHealth.Damage(new DamageInfo(origin, nextArc.gameObject, damage * Random.Range(2.5f, 5.0f), knockback, armorPenetration, critChance, critDamage));
+                            targetHealth.Damage(new DamageInfo(Origin, nextArc.gameObject, Damage * Random.Range(2.5f, 5.0f), Knockback, ArmorPenetration, CritChance, CritDamage));
                         }
                     }
 
                     if (arcs.Count == 0)
                     {
                         IHealth collisionTargetHealth = collisionTarget.gameObject.GetComponentInParent<IHealth>();
-                        collisionTargetHealth.Damage(new DamageInfo(origin, gameObject, damage * Random.Range(2.5f, 5.0f), knockback, armorPenetration, critChance, critDamage));
+                        collisionTargetHealth.Damage(new DamageInfo(Origin, gameObject, Damage * Random.Range(2.5f, 5.0f), Knockback, ArmorPenetration, CritChance, CritDamage));
                     }
                 }
                 Kill();
             }
-        }
-
-        protected override void OnLostTarget()
-        {
-            Kill();
         }
     } 
 }

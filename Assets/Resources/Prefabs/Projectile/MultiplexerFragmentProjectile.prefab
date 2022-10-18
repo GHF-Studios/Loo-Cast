@@ -13,9 +13,9 @@ GameObject:
   - component: {fileID: 5945390780475517516}
   - component: {fileID: 5945390780475517517}
   - component: {fileID: -1852698224766474743}
-  m_Layer: 9
+  m_Layer: 10
   m_Name: MultiplexerFragmentProjectile
-  m_TagString: PlayerBullet
+  m_TagString: Projectile
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

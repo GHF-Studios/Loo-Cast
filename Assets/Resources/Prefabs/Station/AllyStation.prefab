@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 763854816449900523}
   m_Layer: 11
   m_Name: Station Core
-  m_TagString: PlayerStation
+  m_TagString: Ally
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -43,7 +43,7 @@ GameObject:
   - component: {fileID: 763854816622763870}
   m_Layer: 11
   m_Name: Radius
-  m_TagString: PlayerStation
+  m_TagString: Ally
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -77,7 +77,7 @@ GameObject:
   - component: {fileID: 763854816772221048}
   m_Layer: 11
   m_Name: Sprite
-  m_TagString: PlayerStation
+  m_TagString: Ally
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -197,7 +197,7 @@ GameObject:
   - component: {fileID: 2664776043531002187}
   m_Layer: 11
   m_Name: Sprite
-  m_TagString: PlayerStation
+  m_TagString: Ally
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -312,8 +312,8 @@ GameObject:
   - component: {fileID: 8069749462028607627}
   - component: {fileID: 7338236622547215644}
   m_Layer: 11
-  m_Name: PlayerStation
-  m_TagString: PlayerStation
+  m_Name: AllyStation
+  m_TagString: Ally
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

@@ -5,13 +5,14 @@ using UnityEngine;
 namespace LooCast.Projectile
 {
     using Health;
+    using LooCast.Util;
     using Random;
 
     public class MultiplexerFragmentProjectile : Projectile
     {
-        public virtual void Initialize(GameObject origin, Collider2D ignoreCollider, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration)
+        public virtual void Initialize(GameObject origin, IHealth.TeamType team, Collider2D ignoreCollider, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration)
         {
-            base.Initialize(null, origin, damage, critChance, critDamage, knockback, speed, size, lifetime, piercing, armorPenetration);
+            base.Initialize(null, origin, team, damage, critChance, critDamage, knockback, speed, size, lifetime, piercing, armorPenetration);
 
             Physics2D.IgnoreCollision(GetComponent<Collider2D>(), ignoreCollider);
 
@@ -38,34 +39,24 @@ namespace LooCast.Projectile
                 return false;
             }
 
-            if (CheckTags("Enemy", "EnemyStation"))
+            if (CheckTags(TeamUtil.GetEnemyTags(Team)))
             {
-                if (pierced > piercing)
+                if (Pierced > Piercing)
                 {
                     Kill();
                     return;
                 }
 
-                pierced += 1;
+                Pierced += 1;
                 IHealth collisionHealth = collision.gameObject.GetComponentInParent<IHealth>();
-                collisionHealth.Damage(new DamageInfo(origin, gameObject, damage * Random.Range(2.5f, 5.0f), knockback, armorPenetration, critChance, critDamage));
+                collisionHealth.Damage(new DamageInfo(Origin, gameObject, Damage * Random.Range(2.5f, 5.0f), Knockback, ArmorPenetration, CritChance, CritDamage));
 
-                if (pierced > piercing)
+                if (Pierced > Piercing)
                 {
                     Kill();
                     return;
                 }
             }
-
-            if (CheckTags("EnemyStation"))
-            {
-                Kill();
-            }
-        }
-
-        protected override void OnLostTarget()
-        {
-            Kill();
         }
     } 
 }

@@ -8,6 +8,7 @@ namespace LooCast.Projectile
     using Sound;
     using Target;
     using Random;
+    using LooCast.Util;
 
     public class MultiplexerProjectile : Projectile
     {
@@ -17,16 +18,16 @@ namespace LooCast.Projectile
         protected GameObject fragmentPrefab;
         protected GameSoundHandler soundHandler;
 
-        public virtual void Initialize(Target target, GameObject origin, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration, int fragments, int fragmentArmorPenetration, bool followTarget, GameObject fragmentPrefab)
+        public virtual void Initialize(NewTarget target, GameObject origin, IHealth.TeamType team, float damage, float critChance, float critDamage, float knockback, float speed, float size, float lifetime, int piercing, int armorPenetration, int fragments, int fragmentArmorPenetration, bool followTarget, GameObject fragmentPrefab)
         {
-            base.Initialize(target, origin, damage, critChance, critDamage, knockback, speed, size, lifetime, piercing, armorPenetration);
+            base.Initialize(target, origin, team, damage, critChance, critDamage, knockback, speed, size, lifetime, piercing, armorPenetration);
             this.fragmentPrefab = fragmentPrefab;
             soundHandler = FindObjectOfType<GameSoundHandler>();
             this.fragments = fragments;
             this.fragmentArmorPenetration = fragmentArmorPenetration;
             this.followTarget = followTarget;
 
-            if (target == null || target.transform == null)
+            if (target == null || target.Transform == null)
             {
                 float x = Random.Range(-1f, 1f);
                 float y = Random.Range(-1f, 1f);
@@ -35,10 +36,10 @@ namespace LooCast.Projectile
             }
             else
             {
-                float projectileArrivalTime = (target.transform.position - origin.transform.position).magnitude / speed;
-                Vector3 targetVelocity = target.gameObject.GetComponent<Rigidbody2D>().velocity;
+                float projectileArrivalTime = (target.Transform.position - origin.transform.position).magnitude / speed;
+                Vector3 targetVelocity = target.GameObject.GetComponent<Rigidbody2D>().velocity;
                 targetVelocity.z = 0;
-                Vector3 estimatedProjectileHitPos = target.transform.position + targetVelocity * projectileArrivalTime;
+                Vector3 estimatedProjectileHitPos = target.Transform.position + targetVelocity * projectileArrivalTime;
 
                 rb.velocity = (estimatedProjectileHitPos - transform.position).normalized;
             }
@@ -56,26 +57,9 @@ namespace LooCast.Projectile
             {
                 GameObject bulletObject = Instantiate(fragmentPrefab, transform.position, Quaternion.identity);
                 bulletObject.transform.position += new Vector3(0, 0, 0.1f);
-                bulletObject.GetComponent<MultiplexerFragmentProjectile>().Initialize(origin, collision, damage, critChance, critDamage, knockback, speed * 5.0f, size * 0.5f, 0.5f, piercing, fragmentArmorPenetration);
+                bulletObject.GetComponent<MultiplexerFragmentProjectile>().Initialize(Origin, Team, collision, Damage, CritChance, CritDamage, Knockback, Speed * 5.0f, Size * 0.5f, 0.5f, Piercing, fragmentArmorPenetration);
             }
             soundHandler.SoundShoot();
-        }
-
-        private void Update()
-        {
-            //if (followTarget && target != null && target.IsValid())
-            //{
-            //    Vector3 estimatedProjectileHitPos = transform.position;
-            //    for (int i = 0; i < 3; i++)
-            //    {
-            //        float projectileArrivalTime = (target.transform.position - estimatedProjectileHitPos).magnitude / speed;
-            //        Vector3 targetVelocity = target.gameObject.GetComponent<Rigidbody2D>().velocity;
-            //        targetVelocity.y = 0;
-            //        estimatedProjectileHitPos = target.transform.position + targetVelocity * projectileArrivalTime; 
-            //    }
-            //
-            //    rb.velocity = (estimatedProjectileHitPos - transform.position).normalized * speed;
-            //}
         }
 
         private void OnTriggerEnter2D(Collider2D collision)
@@ -92,35 +76,25 @@ namespace LooCast.Projectile
                 return false;
             }
 
-            if (CheckTags("Enemy", "EnemyStation"))
+            if (CheckTags(TeamUtil.GetEnemyTags(Team)))
             {
-                if (pierced > piercing)
+                if (Pierced > Piercing)
                 {
                     Kill(collision);
                     return;
                 }
                 
-                pierced += 1;
+                Pierced += 1;
                 IHealth collisionHealth = collision.gameObject.GetComponentInParent<IHealth>();
-                collisionHealth.Damage(new DamageInfo(origin, gameObject, damage * Random.Range(2.5f, 5.0f), knockback, armorPenetration, critChance, critDamage));
+                collisionHealth.Damage(new DamageInfo(Origin, gameObject, Damage * Random.Range(2.5f, 5.0f), Knockback, ArmorPenetration, CritChance, CritDamage));
 
 
-                if (pierced > piercing)
+                if (Pierced > Piercing)
                 {
                     Kill(collision);
                     return;
                 }
-
-                if (CheckTags("EnemyStation"))
-                {
-                    Kill();
-                }
             }
-        }
-
-        protected override void OnLostTarget()
-        {
-            Kill();
         }
     } 
 }
