@@ -18,18 +18,18 @@ namespace LooCast.Station
         #endregion
 
         #region Properties
-        public PlayerStationHealth Health
+        public AllyStationHealth Health
         {
             get
             {
                 return health;
             }
         }
-        public PlayerStationInventory PlayerStationInventory
+        public AllyStationInventory Inventory
         {
             get
             {
-                return playerStationInventory;
+                return inventory;
             }
         }
         public MissionProvider MissionProvider
@@ -42,8 +42,8 @@ namespace LooCast.Station
         #endregion
 
         #region Fields
-        [SerializeField] private PlayerStationHealth health;
-        [SerializeField] private PlayerStationInventory playerStationInventory;
+        [SerializeField] private AllyStationHealth health;
+        [SerializeField] private AllyStationInventory inventory;
         [SerializeField] private MissionProvider missionProvider;
         #endregion
 

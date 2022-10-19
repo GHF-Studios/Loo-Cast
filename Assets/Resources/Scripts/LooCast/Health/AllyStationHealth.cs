@@ -14,10 +14,10 @@ namespace LooCast.Health
     using LooCast.Random;
     using static LooCast.Health.IHealth;
 
-    public class PlayerStationHealth : ExtendedMonoBehaviour, IHealth
+    public class AllyStationHealth : ExtendedMonoBehaviour, IHealth
     {
         #region Data
-        public PlayerStationHealthData Data;
+        public AllyStationHealthData Data;
         #endregion
 
         #region Properties

@@ -9,6 +9,7 @@ TagManager:
   - ExperienceOrb
   - Undefined
   - Projectile
+  - EnemyStation
   layers:
   - Default
   - TransparentFX
@@ -49,7 +50,7 @@ TagManager:
   - name: AreaEffect
     uniqueID: 3631144777
     locked: 0
-  - name: Enemy
+  - name: NPC
     uniqueID: 3533372387
     locked: 0
   - name: Pickup

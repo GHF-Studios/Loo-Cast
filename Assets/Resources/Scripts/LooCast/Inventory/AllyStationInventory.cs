@@ -10,10 +10,10 @@ namespace LooCast.Inventory
     using LooCast.Station;
     using LooCast.Attribute.Stat;
 
-    public sealed class PlayerStationInventory : MonoBehaviour
+    public sealed class AllyStationInventory : MonoBehaviour
     {
         #region Data
-        public PlayerStationInventoryData Data;
+        public AllyStationInventoryData Data;
         #endregion
 
         #region Properties

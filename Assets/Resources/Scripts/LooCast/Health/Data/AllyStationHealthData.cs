@@ -4,8 +4,8 @@ namespace LooCast.Health.Data
 {
     using LooCast.Data;
 
-    [CreateAssetMenu(fileName = "PlayerStationHealthData", menuName = "Data/Health/PlayerStationHealthData", order = 0)]
-    public class PlayerStationHealthData : ScriptableObject
+    [CreateAssetMenu(fileName = "AllyStationHealthData", menuName = "Data/Health/AllyStationHealthData", order = 0)]
+    public class AllyStationHealthData : ScriptableObject
     {
         public FloatDataReference BaseMaxHealth;
         public FloatDataReference BaseRegenerationAmount;
