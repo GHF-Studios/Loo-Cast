@@ -2,19 +2,18 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!21 &2100000
 Material:
-  serializedVersion: 8
+  serializedVersion: 6
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Player
+  m_Name: Enemy
   m_Shader: {fileID: -6465566751694194690, guid: 7daf9eaed7f18094498a8962e3534ced, type: 3}
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
+  m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2000
+  m_CustomRenderQueue: -1
   stringTagMap:
     RenderType: Opaque
   disabledShaderPasses: []
@@ -40,22 +39,26 @@ Material:
     m_Ints: []
     m_Floats:
     - _AlphaClip: 0
-    - _Bits: 4
+    - _Bits: 8
     - _Blend: 0
+    - _BorderThickness: 0.1
     - _CastShadows: 1
     - _Cull: 2
     - _DstBlend: 0
+    - _Fade: 0.55
     - _QueueControl: 0
     - _QueueOffset: 0
+    - _Scale: 15
     - _SrcBlend: 1
     - _Surface: 0
     - _ZTest: 4
     - _ZWrite: 1
     - _ZWriteControl: 0
     m_Colors:
-    - _Color: {r: 0, g: 48.188236, b: 766.9961, a: 0}
+    - _BorderColor: {r: 2.996078, g: 0.09411765, b: 0, a: 0}
+    - _Color: {r: 766.9961, g: 8.031373, b: 0, a: 0}
   m_BuildTextureStacks: []
---- !u!114 &3328887668402016146
+--- !u!114 &4728905767808379380
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}

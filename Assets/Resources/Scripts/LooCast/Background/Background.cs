@@ -4,7 +4,9 @@ using UnityEngine;
 
 namespace LooCast.Background
 {
-    public class Background : MonoBehaviour
+    using Core;
+
+    public class Background : ExtendedMonoBehaviour
     {
         [SerializeField] private Sprite backgroundSprite;
         private SpriteRenderer[,] backgroundSprites = new SpriteRenderer[3, 3];
@@ -26,7 +28,7 @@ namespace LooCast.Background
             }
         }
 
-        private void Update()
+        protected override void PauseableUpdate()
         {
             Vector3 cameraPos = Camera.main.transform.position;
             Vector2 shift = Vector2.zero;

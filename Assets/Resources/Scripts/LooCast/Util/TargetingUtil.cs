@@ -382,7 +382,7 @@ namespace LooCast.Util
             {
                 return null;
             }
-            IHealth targetHealth = targetCollider.gameObject.GetComponent<IHealth>();
+            IHealth targetHealth = targetCollider.gameObject.GetComponentInParent<IHealth>();
             if (targetHealth == null)
             {
                 throw new Exception("Target must contain an IHealth Component!");
