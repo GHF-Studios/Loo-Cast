@@ -23,19 +23,19 @@ namespace LooCast.Background
         {
             Vector3 cameraPos = Camera.main.transform.position;
             Vector2 shift = Vector2.zero;
-            if (cameraPos.x > transform.position.x + 64)
+            if (cameraPos.x > transform.position.x + (backgroundSprite.bounds.size.x/2))
             {
                 shift.x = 1;
             }
-            else if (cameraPos.x < transform.position.x - 64)
+            else if (cameraPos.x < transform.position.x - (backgroundSprite.bounds.size.x / 2))
             {
                 shift.x = -1;
             }
-            if (cameraPos.y > transform.position.y + 36)
+            if (cameraPos.y > transform.position.y + (backgroundSprite.bounds.size.y / 2))
             {
                 shift.y = 1;
             }
-            else if (cameraPos.y < transform.position.y - 36)
+            else if (cameraPos.y < transform.position.y - (backgroundSprite.bounds.size.y / 2))
             {
                 shift.y = -1;
             }
