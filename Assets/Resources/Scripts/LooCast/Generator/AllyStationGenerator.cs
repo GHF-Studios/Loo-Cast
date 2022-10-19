@@ -6,9 +6,9 @@ namespace LooCast.Generator
 {
     using Random;
 
-    public class EnemyStationGenerator : Generator
+    public class AllyStationGenerator : Generator
     {
-        [SerializeField] private GameObject enemyStationPrefab;
+        [SerializeField] private GameObject allyStationPrefab;
         [SerializeField] private int minStationCount;
         [SerializeField] private int maxStationCount;
         [SerializeField] private int spawnRange;
@@ -30,7 +30,7 @@ namespace LooCast.Generator
             for (int i = 0; i < stationCount; i++)
             {
                 Vector2 spawnPosition = Random.InsideUnitCircle() * spawnRange;
-                GameObject stationObject = Instantiate(enemyStationPrefab, spawnPosition, Quaternion.identity, null);
+                GameObject stationObject = Instantiate(allyStationPrefab, spawnPosition, Quaternion.identity, null);
             }
         }
     } 

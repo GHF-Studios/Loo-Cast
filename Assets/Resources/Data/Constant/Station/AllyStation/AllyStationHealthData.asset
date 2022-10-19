@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8badfdb0d9003d348b1bcec0b6fc939c, type: 3}
-  m_Name: PlayerStationHealthData
+  m_Name: AllyStationHealthData
   m_EditorClassIdentifier: 
   BaseMaxHealth:
     UseConstant: 0

@@ -11,10 +11,10 @@ namespace LooCast.Station
     using LooCast.Inventory;
     using LooCast.Mission;
 
-    public sealed class PlayerStation : Station
+    public sealed class AllyStation : Station
     {
         #region Data
-        public PlayerStationData Data;
+        public AllyStationData Data;
         #endregion
 
         #region Properties

@@ -9,16 +9,16 @@ namespace LooCast.UI.Screen
 
     public class StationScreen : Screen
     {
-        public PlayerStation CurrentPlayerStation
+        public AllyStation CurrentAllyStation
         {
             get
             {
-                return currentPlayerStation;
+                return currentAllyStation;
             }
 
             set
             {
-                currentPlayerStation = value;
+                currentAllyStation = value;
             }
         }
 
@@ -29,7 +29,7 @@ namespace LooCast.UI.Screen
         [SerializeField] private StationUpgradesPanel stationUpgradesPanel;
         [SerializeField] private StationBlackmarketPanel stationBlackmarketPanel;
 
-        private PlayerStation currentPlayerStation;
+        private AllyStation currentAllyStation;
 
         private void Start()
         {
@@ -49,7 +49,7 @@ namespace LooCast.UI.Screen
 
         public void ShowStationHUB()
         {
-            if (CurrentPlayerStation == null)
+            if (CurrentAllyStation == null)
             {
                 SetVisibility(false);
                 return;
@@ -69,7 +69,7 @@ namespace LooCast.UI.Screen
 
         public void ShowMarket()
         {
-            if (CurrentPlayerStation == null)
+            if (CurrentAllyStation == null)
             {
                 SetVisibility(false);
                 return;
@@ -89,7 +89,7 @@ namespace LooCast.UI.Screen
 
         public void ShowMissions()
         {
-            if (CurrentPlayerStation == null)
+            if (CurrentAllyStation == null)
             {
                 SetVisibility(false);
                 return;
@@ -97,7 +97,7 @@ namespace LooCast.UI.Screen
             if (enabled)
             {
                 //Refresh Missions
-                stationMissionPanel.MissionProvider = CurrentPlayerStation.MissionProvider;
+                stationMissionPanel.MissionProvider = CurrentAllyStation.MissionProvider;
             }
             
             stationHUBPanel.gameObject.SetActive(false);
@@ -110,7 +110,7 @@ namespace LooCast.UI.Screen
 
         public void ShowManufacturing()
         {
-            if (CurrentPlayerStation == null)
+            if (CurrentAllyStation == null)
             {
                 SetVisibility(false);
                 return;
@@ -130,7 +130,7 @@ namespace LooCast.UI.Screen
 
         public void ShowUpgrades()
         {
-            if (CurrentPlayerStation == null)
+            if (CurrentAllyStation == null)
             {
                 SetVisibility(false);
                 return;
@@ -150,7 +150,7 @@ namespace LooCast.UI.Screen
 
         public void ShowBlackmarket()
         {
-            if (CurrentPlayerStation == null)
+            if (CurrentAllyStation == null)
             {
                 SetVisibility(false);
                 return;

@@ -45,10 +45,10 @@ namespace LooCast.UI.HUD
                 bool stationRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, stationScreenLayerMask, QueryTriggerInteraction.Collide);
                 if (stationRaycastSuccess)
                 {
-                    PlayerStation playerStation = hit.transform.gameObject.GetComponentInParent<PlayerStation>();
-                    if (playerStation != null)
+                    AllyStation allyStation = hit.transform.gameObject.GetComponentInParent<AllyStation>();
+                    if (allyStation != null)
                     {
-                        stationScreen.CurrentPlayerStation = playerStation;
+                        stationScreen.CurrentAllyStation = allyStation;
                         stationScreen.SetVisibility(true);
                     }
                 }
