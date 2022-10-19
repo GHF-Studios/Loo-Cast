@@ -4,22 +4,20 @@ using UnityEngine;
 
 namespace LooCast.Generator
 {
-    using LooCast.Random;
-    using LooCast.Asteroid;
-    using LooCast.Chance;
+    using Data;
+    using Random;
+    using Asteroid;
+    using Chance;
 
     public class AsteroidGenerator : Generator
     {
-        [SerializeField] private GameObject asteroidPrefab;
-        [SerializeField] private int minAsteroidCount;
-        [SerializeField] private int maxAsteroidCount;
-        [SerializeField] private int spawnRange;
+        public AsteroidGeneratorData Data;
 
         private int asteroidCount;
 
         public override void Initialize()
         {
-            asteroidCount = UnityEngine.Random.Range(minAsteroidCount, maxAsteroidCount);
+            asteroidCount = UnityEngine.Random.Range(Data.MinAsteroidCount.Value, Data.MaxAsteroidCount.Value);
 
             if (gameObject.activeInHierarchy)
             {
@@ -31,8 +29,8 @@ namespace LooCast.Generator
         {
             for (int i = 0; i < asteroidCount; i++)
             {
-                Vector2 spawnPosition = Random.InsideUnitCircle() * spawnRange;
-                GameObject asteroidObject = Instantiate(asteroidPrefab, spawnPosition, Quaternion.identity, null);
+                Vector2 spawnPosition = Random.InsideUnitCircle() * Data.SpawnRange.Value;
+                GameObject asteroidObject = Instantiate(Data.AsteroidPrefab, spawnPosition, Quaternion.identity, null);
             }
         }
     } 

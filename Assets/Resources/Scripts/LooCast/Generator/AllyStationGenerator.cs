@@ -4,20 +4,18 @@ using UnityEngine;
 
 namespace LooCast.Generator
 {
+    using Data;
     using Random;
 
     public class AllyStationGenerator : Generator
     {
-        [SerializeField] private GameObject allyStationPrefab;
-        [SerializeField] private int minStationCount;
-        [SerializeField] private int maxStationCount;
-        [SerializeField] private int spawnRange;
+        public AllyStationGeneratorData Data;
 
         private int stationCount;
 
         public override void Initialize()
         {
-            stationCount = UnityEngine.Random.Range(minStationCount, maxStationCount);
+            stationCount = UnityEngine.Random.Range(Data.MinStationCount.Value, Data.MaxStationCount.Value);
 
             if (gameObject.activeInHierarchy)
             {
@@ -29,8 +27,8 @@ namespace LooCast.Generator
         {
             for (int i = 0; i < stationCount; i++)
             {
-                Vector2 spawnPosition = Random.InsideUnitCircle() * spawnRange;
-                GameObject stationObject = Instantiate(allyStationPrefab, spawnPosition, Quaternion.identity, null);
+                Vector2 spawnPosition = Random.InsideUnitCircle() * Data.SpawnRange.Value;
+                GameObject stationObject = Instantiate(Data.AllyStationPrefab, spawnPosition, Quaternion.identity, null);
             }
         }
     } 

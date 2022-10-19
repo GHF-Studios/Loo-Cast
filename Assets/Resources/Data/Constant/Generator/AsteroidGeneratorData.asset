@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf9cca2b79436d847b99dacae13d6858, type: 3}
+  m_Name: AsteroidGeneratorData
+  m_EditorClassIdentifier: 
+  AsteroidPrefab: {fileID: 8741796213071797658, guid: e91b02aa0513a2a4084c4cb38be38c2f, type: 3}
+  MinAsteroidCount:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 90f8571d4e12c3f43ad8233addbab0f7, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  MaxAsteroidCount:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 052205e6cba4e854282edf444c414b6e, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  SpawnRange:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: fcf4e0a3e93b59b4585f3c605f07885d, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []

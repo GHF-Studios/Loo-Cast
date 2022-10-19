@@ -817,56 +817,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 59711530}
   m_CullTransparentMesh: 1
---- !u!1 &59765269
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 59765271}
-  - component: {fileID: 59765270}
-  m_Layer: 0
-  m_Name: Generators
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &59765270
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 59765269}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: afc29f145838e8d4187a41b27bc37c1e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  generators:
-  - {fileID: 1462691213}
-  - {fileID: 1027258440}
---- !u!4 &59765271
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 59765269}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1462691212}
-  - {fileID: 266206357}
-  - {fileID: 1027258439}
-  m_Father: {fileID: 0}
-  m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &73615113
 GameObject:
   m_ObjectHideFlags: 0
@@ -2588,56 +2538,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 258609828}
   m_CullTransparentMesh: 1
---- !u!1 &266206356
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 266206357}
-  - component: {fileID: 266206358}
-  m_Layer: 0
-  m_Name: Ally Station Generator
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &266206357
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 266206356}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 59765271}
-  m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &266206358
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 266206356}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d377bd40b0bcc3e46aedbef90afac855, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ID: 0
-  IsVisible: 0
-  allyStationPrefab: {fileID: 763854818110676724, guid: 9b5ec77e8156bff48ba30071ee14fedf, type: 3}
-  minStationCount: 12
-  maxStationCount: 24
-  spawnRange: 1000
 --- !u!1 &271578491
 GameObject:
   m_ObjectHideFlags: 0
@@ -10889,56 +10789,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1024680435}
   m_CullTransparentMesh: 1
---- !u!1 &1027258438
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1027258439}
-  - component: {fileID: 1027258440}
-  m_Layer: 0
-  m_Name: Asteroid Generator
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &1027258439
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1027258438}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 59765271}
-  m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1027258440
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1027258438}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a34220dbe0a5754a9a809ce61ee5a35, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ID: 0
-  IsVisible: 0
-  asteroidPrefab: {fileID: 8741796213071797658, guid: e91b02aa0513a2a4084c4cb38be38c2f, type: 3}
-  minAsteroidCount: 250
-  maxAsteroidCount: 500
-  spawnRange: 1000
 --- !u!1 &1036028612
 GameObject:
   m_ObjectHideFlags: 0
@@ -15217,56 +15067,6 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: 2.5
   m_LayoutPriority: 1
---- !u!1 &1462691211
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1462691212}
-  - component: {fileID: 1462691213}
-  m_Layer: 0
-  m_Name: Enemy Station Generator
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1462691212
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1462691211}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 59765271}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1462691213
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1462691211}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 27b861a94d2ee754b83e3fe9adb79825, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ID: 0
-  IsVisible: 0
-  enemyStationPrefab: {fileID: 3016905653400388266, guid: 58d4f76317bcfeb428392876ea364587, type: 3}
-  minStationCount: 12
-  maxStationCount: 24
-  spawnRange: 1000
 --- !u!1 &1474175993
 GameObject:
   m_ObjectHideFlags: 0
@@ -22107,6 +21907,71 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1001 &2679324233703051820
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2679324233616452202, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417081, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_Name
+      value: Generators
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_RootOrder
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233644417083, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2679324233840635576, guid: 23f564afe7769d14d85c951d23899467, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 23f564afe7769d14d85c951d23899467, type: 3}
 --- !u!222 &5995754398045571204
 CanvasRenderer:
   m_ObjectHideFlags: 0
