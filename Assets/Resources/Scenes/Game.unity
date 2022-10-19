@@ -10673,6 +10673,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Slider: {fileID: 988438563}
   PlayerMovementRuntimeData: {fileID: 11400000, guid: 05a4787f9febc8642ac08c7712aabd31, type: 2}
+  sliderImage: {fileID: 768446432}
 --- !u!114 &988438563
 MonoBehaviour:
   m_ObjectHideFlags: 0
