@@ -373,8 +373,7 @@ MonoBehaviour:
   RuntimeSet: {fileID: 11400000, guid: c9d187e318d873e48a323f601526b924, type: 2}
   Data: {fileID: 11400000, guid: 81dbb1346ac019b46b33db3194cc7ae7, type: 2}
   health: {fileID: 513973484690270647}
-  targeting: {fileID: 0}
-  playerStationInventory: {fileID: 8069749462028607627}
+  inventory: {fileID: 8069749462028607627}
   missionProvider: {fileID: 7338236622547215644}
 --- !u!114 &513973484690270647
 MonoBehaviour:
@@ -419,7 +418,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Data: {fileID: 11400000, guid: e3c5cb17e10faef4ea9300ab198488e6, type: 2}
-  playerStation: {fileID: 763854818110676721}
+  allyStation: {fileID: 763854818110676721}
   stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
   stationMultiplexerWeaponItemData: {fileID: 11400000, guid: 07499e717c9f840439a9e319d0e3820a, type: 2}
 --- !u!114 &7338236622547215644

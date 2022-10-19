@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fae50acf576a0847adf09ec853db343, type: 3}
+  m_Name: AllyHealthData
+  m_EditorClassIdentifier: 
+  BaseMaxHealth:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 93192131dd17a804a8b4a589ca755e0b, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseRegenerationAmount:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: dc3c3f8397606494781bd4eeeff48643, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseRegenerationTime:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: ee93a39c009c9ae42bf03304f06107f4, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseDefense:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 8684b42cfeb0fab48a13aa0d1554ee29, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  DamageIndicatorPrefab: {fileID: 859752393602704814, guid: fcf4e81977de76e47adf35c8228d6f00, type: 3}
+  BaseExperienceDropChance:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 8dbacad9fa6310f4fbc2ac1fe06d38f7, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseMagnetDropChance:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 209ed25a323310f44bcc7b2b78727c5d, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  BaseExperienceDropAmount:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 93778203ef0ba7b42a2c658ae2206f4d, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
+  ExperienceOrbPrefab: {fileID: 8036678909911672808, guid: 4b1459495291ffe4cb0c9150eff61965, type: 3}
+  MagnetOrbPrefab: {fileID: 8036678909911672808, guid: 8b2d3a18c7804f24c94e1e4a15e3cf68, type: 3}
+  Team: 0

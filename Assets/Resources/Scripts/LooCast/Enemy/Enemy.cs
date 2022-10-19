@@ -8,10 +8,10 @@ namespace LooCast.Enemy
 {
     using Data;
     using Data.Runtime;
-    using LooCast.Core;
-    using LooCast.Particle;
-    using LooCast.Movement;
-    using LooCast.Health;
+    using Core;
+    using Particle;
+    using Movement;
+    using Health;
 
     [RequireComponent(typeof(EnemyMovement), typeof(EnemyHealth)), DisallowMultipleComponent]
     public abstract class Enemy : ExtendedMonoBehaviour
@@ -77,21 +77,6 @@ namespace LooCast.Enemy
             RuntimeSet.Remove(this);
             ParticleSystem.Kill();
             Destroy(gameObject);
-        }
-
-        private void OnCollisionStay2D(Collision2D collision)
-        {
-            if (collision.gameObject.CompareTag("Player"))
-            {
-                PlayerHealth PlayerHealth = collision.gameObject.GetComponent<PlayerHealth>();
-                float difficulty;
-                if (!PlayerPrefs.HasKey("Difficulty"))
-                {
-                    PlayerPrefs.SetFloat("Difficulty", 1.0f);
-                }
-                difficulty = PlayerPrefs.GetFloat("Difficulty");
-                PlayerHealth.Damage(new DamageInfo(collision.gameObject, collision.gameObject, Data.ContactDamage.Value * difficulty, 0, 0, 0, 0));
-            }
         }
         #endregion
     } 

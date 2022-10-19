@@ -8,7 +8,6 @@ namespace LooCast.Item
     using Target;
     using AOE;
     using Util;
-    using Player;
 
     public class FreezeRayWeaponItem : WeaponItem
     {
@@ -32,7 +31,7 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
-            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject));
+            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
             if (targets == null || targets.Length == 0)
             {
                 return;

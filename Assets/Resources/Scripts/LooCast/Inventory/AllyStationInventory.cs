@@ -21,14 +21,13 @@ namespace LooCast.Inventory
         #endregion
 
         #region Fields
-        [SerializeField] private AllyStation allyStation;
         [SerializeField] private Stats stats;
         [SerializeField] private MultiplexerWeaponItemData stationMultiplexerWeaponItemData;
         #endregion
 
         private void Start()
         {
-            WeaponItemContainer = new WeaponItemContainer(Data.SlotCount.Value, allyStation.gameObject);
+            WeaponItemContainer = new WeaponItemContainer(Data.SlotCount.Value, gameObject);
 
             MultiplexerWeaponItem multiplexerWeaponItem = (MultiplexerWeaponItem)stationMultiplexerWeaponItemData.CreateItem();
             WeaponItemContainer.SetItem(0, multiplexerWeaponItem);

@@ -54,8 +54,6 @@ namespace LooCast.Movement
 
         #region Fields
         private Vector3 PAUSE_currentVelocity;
-        private GameObject playerObject;
-        private CircleCollider2D playerCollider;
         #endregion
 
         #region Methods
@@ -65,9 +63,6 @@ namespace LooCast.Movement
 
             Rigidbody = GetComponent<Rigidbody2D>();
             Collider = GetComponent<Collider2D>();
-
-            playerObject = GameObject.FindGameObjectWithTag("Player");
-            playerCollider = playerObject.GetComponent<CircleCollider2D>();
         }
 
         private void Start()

@@ -4,10 +4,10 @@ using UnityEngine;
 namespace LooCast.Item
 {
     using Data;
-    using LooCast.Attribute.Stat;
-    using LooCast.Target;
-    using LooCast.Projectile;
-    using LooCast.Util;
+    using Attribute.Stat;
+    using Target;
+    using Projectile;
+    using Util;
 
     public class MultiplexerWeaponItem : WeaponItem
     {
@@ -40,7 +40,7 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
-            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject));
+            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
             if (targets == null || targets.Length == 0)
             {
                 return;
@@ -55,7 +55,7 @@ namespace LooCast.Item
                 {
                     finalFragments = UnityEngine.Random.Range(1, MaxFragments);
                 }
-                bulletObject.GetComponent<MultiplexerProjectile>().Initialize(target, ItemContainer.OriginObject, TeamUtil.GetTeamFromTag(ItemContainer.OriginObject.tag), Damage, CritChance, CritDamage, Knockback, ProjectileSpeed, ProjectileSize, ProjectileLifetime, Piercing, ArmorPenetration, finalFragments, FragmentArmorPenetration, IsTargetSeeking, FragmentPrefab);
+                bulletObject.GetComponent<MultiplexerProjectile>().Initialize(target, ItemContainer.OriginObject, TeamUtil.GetTeam(ItemContainer.OriginObject.tag), Damage, CritChance, CritDamage, Knockback, ProjectileSpeed, ProjectileSize, ProjectileLifetime, Piercing, ArmorPenetration, finalFragments, FragmentArmorPenetration, IsTargetSeeking, FragmentPrefab);
             }
             soundHandler.SoundShoot();
         }

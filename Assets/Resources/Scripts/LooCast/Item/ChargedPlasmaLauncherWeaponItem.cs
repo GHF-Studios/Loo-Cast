@@ -4,10 +4,10 @@ using UnityEngine;
 namespace LooCast.Item
 {
     using Data;
-    using LooCast.Attribute.Stat;
-    using LooCast.Target;
-    using LooCast.Projectile;
-    using LooCast.Util;
+    using Attribute.Stat;
+    using Target;
+    using Projectile;
+    using Util;
 
     public class ChargedPlasmaLauncherWeaponItem : WeaponItem
     {
@@ -82,7 +82,7 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
-            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject));
+            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
             if (targets == null || targets.Length == 0)
             {
                 return;
@@ -91,7 +91,7 @@ namespace LooCast.Item
 
             GameObject bulletObject = GameObject.Instantiate(ProjectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             bulletObject.transform.position += new Vector3(0, 0, 0.1f);
-            bulletObject.GetComponent<ChargedPlasmaProjectile>().Initialize(target, ItemContainer.OriginObject, TeamUtil.GetTeamFromTag(ItemContainer.OriginObject.tag), Damage, CritChance, CritDamage, Knockback, ProjectileSpeed, ProjectileSize, ProjectileLifetime, ArmorPenetration, ArcLifetime, ArcInitialWidth, ArcWidthMultiplier, ArcMinWidth, ArcBranchAttempts, MinSpreadDistance, MinSpreadDistanceMultiplier, MaxSpreadDistance, MaxSpreadDistanceMultiplier, MinSpreadAngle, MinSpreadAngleMultiplier, MaxSpreadAngle, MaxSpreadAngleMultiplier, SpreadChance, SpreadChanceMultiplier, MinBranchDistance, MinBranchDistanceMultiplier, MaxBranchDistance, MaxBranchDistanceMultiplier, MinBranchAngle, MinBranchAngleMultiplier, MaxBranchAngle, MaxBranchAngleMultiplier, BranchChance, BranchChanceMultiplier, MaxRecursionDepth);
+            bulletObject.GetComponent<ChargedPlasmaProjectile>().Initialize(target, ItemContainer.OriginObject, TeamUtil.GetTeam(ItemContainer.OriginObject.tag), Damage, CritChance, CritDamage, Knockback, ProjectileSpeed, ProjectileSize, ProjectileLifetime, ArmorPenetration, ArcLifetime, ArcInitialWidth, ArcWidthMultiplier, ArcMinWidth, ArcBranchAttempts, MinSpreadDistance, MinSpreadDistanceMultiplier, MaxSpreadDistance, MaxSpreadDistanceMultiplier, MinSpreadAngle, MinSpreadAngleMultiplier, MaxSpreadAngle, MaxSpreadAngleMultiplier, SpreadChance, SpreadChanceMultiplier, MinBranchDistance, MinBranchDistanceMultiplier, MaxBranchDistance, MaxBranchDistanceMultiplier, MinBranchAngle, MinBranchAngleMultiplier, MaxBranchAngle, MaxBranchAngleMultiplier, BranchChance, BranchChanceMultiplier, MaxRecursionDepth);
             soundHandler.SoundShoot();
         }
         #endregion

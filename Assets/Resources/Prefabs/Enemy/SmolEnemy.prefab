@@ -4996,7 +4996,7 @@ MonoBehaviour:
   detectionRange: 80
   enemyLayerMask:
     serializedVersion: 2
-    m_Bits: 65664
+    m_Bits: 65920
 --- !u!114 &4758033360817606206
 MonoBehaviour:
   m_ObjectHideFlags: 0

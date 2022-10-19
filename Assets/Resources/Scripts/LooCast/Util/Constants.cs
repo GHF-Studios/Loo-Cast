@@ -1,3 +1,4 @@
+using LooCast.Health;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,13 +8,10 @@ namespace LooCast.Util
     public static class Constants
     {
         public const float InertialCoefficient = 50.0f;
-        public static readonly Dictionary<string, string[]> EnemyTagsDictionary = new Dictionary<string, string[]>()
+        public static readonly Dictionary<IHealth.TeamType, string[]> EnemyTagsDictionary = new Dictionary<IHealth.TeamType, string[]>()
         {
-            {"Player", new string[] { "Enemy", "EnemyStation" } },
-            {"Ally", new string[] { "Enemy", "EnemyStation" } },
-            {"AllyStation", new string[] { "Enemy", "EnemyStation" } },
-            {"Enemy", new string[] { "Player", "Ally", "AllyStation" } },
-            {"EnemyStation", new string[] { "Player", "Ally", "AllyStation" } },
+            {IHealth.TeamType.PlayerAlly, new string[] { "Enemy" } },
+            {IHealth.TeamType.PlayerEnemy, new string[] { "Ally", "Player" } },
         };
     } 
 }

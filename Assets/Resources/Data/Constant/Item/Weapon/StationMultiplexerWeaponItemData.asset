@@ -98,6 +98,13 @@ MonoBehaviour:
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []
+  BaseRange:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 629436ec685e0d14091f6b632d4c7c74, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   ProjectilePrefab: {fileID: 5945390780475517518, guid: fe80e0587082084428fc1dbee2211116, type: 3}
   AutoFire:
     UseConstant: 0

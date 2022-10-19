@@ -17,9 +17,9 @@ namespace LooCast.Item.Data
         public FloatDataReference BaseProjectileLifetime;
         public IntDataReference BasePiercing;
         public IntDataReference BaseArmorPenetration;
+        public FloatDataReference BaseRange;
         public GameObject ProjectilePrefab;
         public BoolDataReference AutoFire;
         public Stats Stats;
-        public FloatDataReference Range;
     }
 }

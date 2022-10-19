@@ -93,7 +93,7 @@ namespace LooCast.Item
             Piercing = data.BasePiercing.Value + stats.PiercingIncrease;
             ArmorPenetration = data.BaseArmorPenetration.Value + stats.ArmorPenetrationIncrease;
             ProjectilePrefab = data.ProjectilePrefab;
-            Range = data.Range.Value;
+            Range = data.BaseRange.Value;
         }
         #endregion
 

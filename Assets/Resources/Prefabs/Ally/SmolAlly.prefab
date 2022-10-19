@@ -4839,10 +4839,10 @@ GameObject:
   - component: {fileID: 1986793567025058494}
   - component: {fileID: 1986793567025058493}
   - component: {fileID: 1986793567025058492}
-  - component: {fileID: 7689063019205122669}
+  - component: {fileID: 5805087904473719689}
   - component: {fileID: -4327424601732545481}
-  - component: {fileID: 4758033360817606206}
-  - component: {fileID: 1913491358346200415}
+  - component: {fileID: 4855156121415567368}
+  - component: {fileID: 4576006776825227814}
   m_Layer: 8
   m_Name: SmolAlly
   m_TagString: Ally
@@ -4955,7 +4955,7 @@ CircleCollider2D:
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
   m_Radius: 0.5
---- !u!114 &7689063019205122669
+--- !u!114 &5805087904473719689
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4964,13 +4964,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 1986793567025058489}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a83d3255907f797409b17b7777452ecc, type: 3}
+  m_Script: {fileID: 11500000, guid: dec84efa654482f4d9a9201636ad40c6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
-  Data: {fileID: 11400000, guid: 2192a1a9a1a021548b8c55984abbbb69, type: 2}
-  RuntimeSet: {fileID: 11400000, guid: c2f9d9ade6d7c214d97dbec5f2cbd8d0, type: 2}
+  Data: {fileID: 11400000, guid: 8a697e6d5eb2bb441ba16e464f824376, type: 2}
+  RuntimeSet: {fileID: 11400000, guid: 0abe1cb54329210419c928a3c5059257, type: 2}
   onKilled:
     m_PersistentCalls:
       m_Calls: []
@@ -4996,8 +4996,8 @@ MonoBehaviour:
   detectionRange: 80
   enemyLayerMask:
     serializedVersion: 2
-    m_Bits: 256
---- !u!114 &4758033360817606206
+    m_Bits: 512
+--- !u!114 &4855156121415567368
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5006,17 +5006,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 1986793567025058489}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 22fa8c4ebc6715d4db14a3d7eba6e31e, type: 3}
+  m_Script: {fileID: 11500000, guid: 578aa21785c4ea9408dcadd9e7e03722, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
-  Data: {fileID: 11400000, guid: ef70d6a6c91a525429f07e71cafa7b2d, type: 2}
+  Data: {fileID: 11400000, guid: b5ab00bb527320f48b4cca9a0849e8d3, type: 2}
   onKilled:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 7689063019205122669}
-        m_TargetAssemblyTypeName: LooCast.Enemy.Enemy, Assembly-CSharp
+      - m_Target: {fileID: 5805087904473719689}
+        m_TargetAssemblyTypeName: LooCast.Ally.Ally, Assembly-CSharp
         m_MethodName: Kill
         m_Mode: 1
         m_Arguments:
@@ -5028,7 +5028,7 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
---- !u!114 &1913491358346200415
+--- !u!114 &4576006776825227814
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5037,12 +5037,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1986793567025058489}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 157a0139485d3214f84fceadeb22d79f, type: 3}
+  m_Script: {fileID: 11500000, guid: f560243e443e62046aec20d01ead9c94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   ID: 0
   IsVisible: 0
-  Data: {fileID: 11400000, guid: 5a1bbdaa9a9d2044fa27824476d557b8, type: 2}
+  Data: {fileID: 11400000, guid: 9ea9f8fe8337dde4789cda7a8ea1d854, type: 2}
   onMovementEnabled:
     m_PersistentCalls:
       m_Calls:

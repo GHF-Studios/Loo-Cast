@@ -6,17 +6,16 @@ using UnityEngine.Events;
 namespace LooCast.Health
 {
     using Data;
-    using LooCast.Core;
-    using LooCast.Variable;
-    using LooCast.Sound;
-    using LooCast.UI.Canvas;
-    using LooCast.Indicator;
-    using LooCast.Random;
-    using LooCast.Orb;
-    using LooCast.Attribute.Stat;
-    using LooCast.Statistic;
-    using LooCast.Enemy;
-    using static LooCast.Health.IHealth;
+    using Core;
+    using Variable;
+    using Sound;
+    using UI.Canvas;
+    using Indicator;
+    using Random;
+    using Orb;
+    using Attribute.Stat;
+    using Statistic;
+    using Enemy;
 
     public class EnemyHealth : ExtendedMonoBehaviour, IHealth
     {
@@ -38,7 +37,7 @@ namespace LooCast.Health
         public FloatComputedVariable ExperienceDropAmount { get; private set; }
         public GameObject ExperienceOrbPrefab { get; private set; }
         public GameObject MagnetOrbPrefab { get; private set; }
-        public TeamType Team { get; private set; }
+        public IHealth.TeamType Team { get; private set; }
         #endregion
 
         #region Events

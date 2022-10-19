@@ -6,6 +6,7 @@ namespace LooCast.Util
 {
     using LooCast.Health;
     using Target;
+    using UnityEngine.UIElements;
 
     public static class TargetingUtil
     {
@@ -377,6 +378,10 @@ namespace LooCast.Util
         #region Private Utility Methods
         private static Target GetTarget(this Collider2D targetCollider)
         {
+            if (targetCollider == null)
+            {
+                return null;
+            }
             IHealth targetHealth = targetCollider.gameObject.GetComponent<IHealth>();
             if (targetHealth == null)
             {
