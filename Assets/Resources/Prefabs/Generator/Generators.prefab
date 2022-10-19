@@ -49,6 +49,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   generators:
   - {fileID: 2679324232912582561}
+  - {fileID: 2679324233840635578}
   - {fileID: 2679324233616452196}
 --- !u!1001 &3003669490193056303
 PrefabInstance:
@@ -178,6 +179,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Ally Station Generator
       objectReference: {fileID: 0}
+    - target: {fileID: 1989323404714516997, guid: ef06ab2e2ec8c3a43a2131fbd285f269, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ef06ab2e2ec8c3a43a2131fbd285f269, type: 3}
 --- !u!4 &2679324233840635577 stripped
@@ -185,6 +190,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1989323404714516996, guid: ef06ab2e2ec8c3a43a2131fbd285f269, type: 3}
   m_PrefabInstance: {fileID: 4518693899850190013}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2679324233840635578 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1989323404714516999, guid: ef06ab2e2ec8c3a43a2131fbd285f269, type: 3}
+  m_PrefabInstance: {fileID: 4518693899850190013}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d377bd40b0bcc3e46aedbef90afac855, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &7580811334086662113
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -239,6 +255,10 @@ PrefabInstance:
     - target: {fileID: 5483885228800900491, guid: de666e39cbc41a848a027a7cec10dc67, type: 3}
       propertyPath: m_Name
       value: Asteroid Generator
+      objectReference: {fileID: 0}
+    - target: {fileID: 5483885228800900491, guid: de666e39cbc41a848a027a7cec10dc67, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: de666e39cbc41a848a027a7cec10dc67, type: 3}

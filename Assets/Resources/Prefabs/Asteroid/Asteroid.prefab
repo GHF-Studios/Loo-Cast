@@ -101,7 +101,6 @@ MonoBehaviour:
   Data: {fileID: 11400000, guid: 37e02f15e976a974981ae87b884b6f2f, type: 2}
   RuntimeSet: {fileID: 11400000, guid: 920d8d62c4f845143be34101f9cbaab4, type: 2}
   itemDatas: {fileID: 11400000, guid: 4a0619d8d391336409d9f50b13e5d39c, type: 2}
-  itemObjectPrefabs: {fileID: 11400000, guid: 37225d37bb473a14faaeff39404f7fc0, type: 2}
 --- !u!64 &8951083109922076835
 MeshCollider:
   m_ObjectHideFlags: 0
