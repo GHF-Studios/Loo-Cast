@@ -9,10 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d6b7bcb13af436247aa9e5e0d755e078, type: 3}
-  m_Name: MaxStationCount
+  m_Script: {fileID: 11500000, guid: f0342d0486f65964f8a3c93e761278c0, type: 3}
+  m_Name: BaseSpawnDelay
   m_EditorClassIdentifier: 
-  value: 8
+  value: 1.5
   OnValueChanged:
     m_PersistentCalls:
       m_Calls: []

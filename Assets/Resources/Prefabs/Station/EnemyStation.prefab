@@ -30,7 +30,7 @@ Transform:
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 3016905653400388270}
-  m_RootOrder: 3
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &4351399128442859089
 SpriteRenderer:
@@ -137,7 +137,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: fca41f5640d74874d83040eeebb7e21b, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -235,8 +235,8 @@ Transform:
   m_Children:
   - {fileID: 3016905654466157007}
   - {fileID: 3016905654385909480}
-  - {fileID: 3016905653058249312}
   - {fileID: 8892687083221466306}
+  - {fileID: 3016905653058249312}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -464,7 +464,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 678286964352635352, guid: 6e2e7c3ca570acf4a89345af3619847d, type: 3}
       propertyPath: m_RootOrder
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 678286964352635352, guid: 6e2e7c3ca570acf4a89345af3619847d, type: 3}
       propertyPath: m_LocalPosition.x
