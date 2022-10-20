@@ -6,6 +6,6 @@ namespace LooCast.Item
 {
     public interface IItemUpgrader
     {
-        
+        UpgradeSet upgradeSet { get; }
     }
 }

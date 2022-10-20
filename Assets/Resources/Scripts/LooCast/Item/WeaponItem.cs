@@ -124,7 +124,7 @@ namespace LooCast.Item
         }
 
         #region IUpgradableItem
-        public void ApplyItemStatUpgradeSet(int upgradeSetID, Stats stats)
+        public void ApplyItemStatUpgradeSet(int upgradeSetID, UpgradeSet stats)
         {
             if (statUpgradeSetRemoveActionDictionary.ContainsKey(upgradeSetID))
             {
