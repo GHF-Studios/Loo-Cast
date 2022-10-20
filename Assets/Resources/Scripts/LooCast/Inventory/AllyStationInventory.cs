@@ -5,12 +5,12 @@ using UnityEngine;
 namespace LooCast.Inventory
 {
     using Data;
-    using LooCast.Item;
-    using LooCast.Item.Data;
-    using LooCast.Station;
-    using LooCast.Attribute.Stat;
+    using Item;
+    using Item.Data;
+    using Attribute.Stat;
+    using Core;
 
-    public sealed class AllyStationInventory : MonoBehaviour
+    public sealed class AllyStationInventory : ExtendedMonoBehaviour
     {
         #region Data
         public AllyStationInventoryData Data;

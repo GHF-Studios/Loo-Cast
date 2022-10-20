@@ -119,10 +119,8 @@ namespace LooCast.UI.Inventory
             {
                 if (CurrentInventorySlot.CurrentItem != null)
                 {
-                    CurrentInventorySlot.CurrentItem.Item.UncontainItem();
-                    CurrentInventorySlot.CurrentItem.Item.DropItem((Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition));
-                    CurrentInventorySlot.ItemContainer.SetItem(CurrentInventorySlot.SlotID, null);
-                    CurrentInventorySlot.CurrentItem.Destroy();
+                    Item removedItem = CurrentInventorySlot.ItemContainer.TryRemoveItem(currentSlotID);
+                    removedItem.DropItem((Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition));
                 }
             }
 
