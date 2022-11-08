@@ -9,6 +9,7 @@ namespace LooCast.Item
     using Data;
     using LooCast.Attribute.Stat;
     using LooCast.Sound;
+    using LooCast.Variable;
 
     public abstract class WeaponItem : UniqueItem
     {
@@ -17,19 +18,19 @@ namespace LooCast.Item
         #endregion
 
         #region Properties
-        public float Damage { get; protected set; }
-        public float CritChance { get; protected set; }
-        public float CritDamage { get; protected set; }
-        public float Knockback { get; protected set; }
-        public float AttackDelay { get; protected set; }
-        public float ProjectileSpeed { get; protected set; }
-        public float ProjectileSize { get; protected set; }
-        public float ProjectileLifetime { get; protected set; }
-        public int Piercing { get; protected set; }
-        public int ArmorPenetration { get; protected set; }
+        public FloatComputedVariable Damage { get; protected set; }
+        public FloatComputedVariable CritChance { get; protected set; }
+        public FloatComputedVariable CritDamage { get; protected set; }
+        public FloatComputedVariable Knockback { get; protected set; }
+        public FloatComputedVariable AttackDelay { get; protected set; }
+        public FloatComputedVariable ProjectileSpeed { get; protected set; }
+        public FloatComputedVariable ProjectileSize { get; protected set; }
+        public FloatComputedVariable ProjectileLifetime { get; protected set; }
+        public IntComputedVariable Piercing { get; protected set; }
+        public IntComputedVariable ArmorPenetration { get; protected set; }
         public GameObject ProjectilePrefab { get; protected set; }
         public bool AutoFire { get; protected set; }
-        public float Range { get; protected set; }
+        public FloatComputedVariable Range { get; protected set; }
         #endregion
 
         #region Fields
@@ -45,7 +46,7 @@ namespace LooCast.Item
             WeaponItemData = data;
 
             this.stats = stats;
-            this.AutoFire = autoFire;
+            AutoFire = autoFire;
             soundHandler = GameObject.FindObjectOfType<GameSoundHandler>();
             fireTimer = new Timer(data.BaseAttackDelay.Value * 1000);
             fireTimer.Elapsed += (sender, elapsedEventArgs) =>
@@ -82,18 +83,27 @@ namespace LooCast.Item
                 }
             });
 
-            Damage = data.BaseDamage.Value * stats.DamageMultiplier;
-            CritChance = data.BaseCritChance.Value * stats.RandomChanceMultiplier;
-            CritDamage = data.BaseCritDamage.Value * stats.DamageMultiplier;
-            Knockback = data.BaseKnockback.Value * stats.KnockbackMultiplier;
-            AttackDelay = data.BaseAttackDelay.Value * stats.AttackDelayMultiplier;
-            ProjectileSpeed = data.BaseProjectileSpeed.Value * stats.ProjectileSpeedMultiplier;
-            ProjectileSize = data.BaseProjectileSize.Value * stats.ProjectileSizeMultiplier;
-            ProjectileLifetime = data.BaseProjectileLifetime.Value;
-            Piercing = data.BasePiercing.Value + stats.PiercingIncrease;
-            ArmorPenetration = data.BaseArmorPenetration.Value + stats.ArmorPenetrationIncrease;
+            Damage = new FloatComputedVariable(data.BaseDamage.Value);
+            Damage.AddPermanentMultiplier(stats.DamageMultiplier);
+            CritChance = new FloatComputedVariable(data.BaseCritChance.Value);
+            CritChance.AddPermanentMultiplier(stats.RandomChanceMultiplier);
+            CritDamage = new FloatComputedVariable(data.BaseCritDamage.Value);
+            CritDamage.AddPermanentMultiplier(stats.DamageMultiplier);
+            Knockback = new FloatComputedVariable(data.BaseKnockback.Value);
+            Knockback.AddPermanentMultiplier(stats.KnockbackMultiplier);
+            AttackDelay = new FloatComputedVariable(data.BaseAttackDelay.Value);
+            AttackDelay.AddPermanentMultiplier(stats.AttackDelayMultiplier);
+            ProjectileSpeed = new FloatComputedVariable(data.BaseProjectileSpeed.Value);
+            ProjectileSpeed.AddPermanentMultiplier(stats.ProjectileSpeedMultiplier);
+            ProjectileSize = new FloatComputedVariable(data.BaseProjectileSize.Value);
+            ProjectileSize.AddPermanentMultiplier(stats.ProjectileSizeMultiplier);
+            ProjectileLifetime = new FloatComputedVariable(data.BaseProjectileLifetime.Value);
+            Piercing = new IntComputedVariable(data.BasePiercing.Value);
+            Piercing.AddPermanentIncrease(stats.PiercingIncrease);
+            ArmorPenetration = new IntComputedVariable(data.BaseArmorPenetration.Value);
+            ArmorPenetration.AddPermanentIncrease(stats.ArmorPenetrationIncrease);
             ProjectilePrefab = data.ProjectilePrefab;
-            Range = data.BaseRange.Value;
+            Range = new FloatComputedVariable(data.BaseRange.Value);
         }
         #endregion
 

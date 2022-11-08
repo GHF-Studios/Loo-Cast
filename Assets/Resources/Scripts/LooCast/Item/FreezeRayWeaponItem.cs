@@ -31,7 +31,7 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
-            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
+            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range.Value, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
             if (targets == null || targets.Length == 0)
             {
                 return;
@@ -41,8 +41,8 @@ namespace LooCast.Item
             GameObject freezeOrbObject = GameObject.Instantiate(ProjectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
             freezeOrbObject.transform.position += new Vector3(0, 0, 0.1f);
             float freezeSpeedMultiplier = 0.5f;
-            float freezeRadiusMultiplier = ProjectileSize;
-            float freezeLifetime = ProjectileLifetime;
+            float freezeRadiusMultiplier = ProjectileSize.Value;
+            float freezeLifetime = ProjectileLifetime.Value;
             freezeOrbObject.GetComponent<FreezeZone>().Initialize(target.Transform.position, freezeSpeedMultiplier, freezeRadiusMultiplier, freezeLifetime);
             soundHandler.SoundShoot();
         }
