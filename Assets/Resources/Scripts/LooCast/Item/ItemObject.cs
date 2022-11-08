@@ -50,7 +50,7 @@ namespace LooCast.Item
                 PlayerInventory playerInventory = collider.GetComponent<PlayerInventory>();
                 ItemContainer playerItemContainer = playerInventory.RuntimeData.Hotbar;
 
-                playerItemContainer.AddItem(Item, out Item remainingItem);
+                playerItemContainer.TryAddItem(Item, out Item remainingItem);
                 if (remainingItem != null)
                 {
                     Item = remainingItem;
