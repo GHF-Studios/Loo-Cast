@@ -20,11 +20,11 @@ namespace LooCast.UI.Inventory
                 return onDestroy;
             }
         }
-        public Item Item
+        public Item ItemContent
         {
             get
             {
-                return item;
+                return itemContent;
             }
 
             set
@@ -33,7 +33,7 @@ namespace LooCast.UI.Inventory
                 {
                     throw new NullReferenceException("Item cannot be null!");
                 }
-                item = value;
+                itemContent = value;
                 Refresh();
             }
         }
@@ -70,7 +70,7 @@ namespace LooCast.UI.Inventory
         [SerializeField] private RectTransform rectTransform;
 
         private UnityEvent onDestroy;
-        private Item item;
+        private Item itemContent;
         private InventorySlot currentInventorySlot;
         private bool revertToCurrentInventorySlot;
         private UnityEngine.Canvas canvas;
@@ -114,25 +114,25 @@ namespace LooCast.UI.Inventory
 
         public void Refresh()
         {
-            if (item is CountableItem)
+            if (itemContent is CountableItem)
             {
-                CountableItem countableItem = (CountableItem)item;
+                CountableItem countableItem = (CountableItem)itemContent;
                 image.enabled = true;
                 image.sprite = countableItem.Sprite;
                 quantityValue.enabled = true;
                 quantityValue.text = $"{countableItem.Count}";
             }
-            else if (item is AmountableItem)
+            else if (itemContent is AmountableItem)
             {
-                AmountableItem amountableItem = (AmountableItem)item;
+                AmountableItem amountableItem = (AmountableItem)itemContent;
                 image.enabled = true;
                 image.sprite = amountableItem.Sprite;
                 quantityValue.enabled = true;
                 quantityValue.text = string.Format("{0:n0}", amountableItem.Amount) + "t";
             }
-            else if (item is UniqueItem)
+            else if (itemContent is UniqueItem)
             {
-                UniqueItem uniqueItem = (UniqueItem)item;
+                UniqueItem uniqueItem = (UniqueItem)itemContent;
                 image.enabled = true;
                 image.sprite = uniqueItem.Sprite;
                 quantityValue.enabled = false;

@@ -115,8 +115,7 @@ namespace LooCast.Item
                     {
                         remainingCountableItem.UndropItem();
                     }
-                    remainingCountableItem.ContainItem(this);
-                    itemSlots[i].ItemContent = remainingCountableItem;
+                    SetItem_Internal(i, remainingCountableItem);
                     remainingCountableItem = null;
                     break;
                 }
@@ -140,7 +139,6 @@ namespace LooCast.Item
                     }
                 }
             }
-            OnChange.Invoke();
         }
 
         protected void TryAddItem(AmountableItem amountableItem, out AmountableItem remainingAmountableItem)
@@ -154,8 +152,7 @@ namespace LooCast.Item
                     {
                         remainingAmountableItem.UndropItem();
                     }
-                    remainingAmountableItem.ContainItem(this);
-                    itemSlots[i].ItemContent = remainingAmountableItem;
+                    SetItem_Internal(i, remainingAmountableItem);
                     remainingAmountableItem = null;
                     break;
                 }
@@ -179,7 +176,6 @@ namespace LooCast.Item
                     }
                 }
             }
-            OnChange.Invoke();
         }
 
         protected void TryAddItem(UniqueItem uniqueItem, out UniqueItem remainingUniqueItem)
@@ -193,13 +189,33 @@ namespace LooCast.Item
                     {
                         remainingUniqueItem.UndropItem();
                     }
-                    remainingUniqueItem.ContainItem(this);
-                    itemSlots[i].ItemContent = remainingUniqueItem;
+                    SetItem_Internal(i, remainingUniqueItem);
                     remainingUniqueItem = null;
-                    OnChange.Invoke();
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// Tries to remove an Item from the ItemContainer
+        /// </summary>
+        /// <param name="slotID">The ID of the slot to remove the Item from</param>
+        /// <returns>The removed Item. Null if there was no item to begin with.</returns>
+        public Item TryRemoveItem(int slotID)
+        {
+            if (!IsValidSlot(slotID))
+            {
+                throw new ArgumentOutOfRangeException($"Invalid slot! Slot must be between 0 {itemSlots.Count - 1}!");
+            }
+            Item removedItem = GetItem(slotID);
+            if (removedItem == null)
+            {
+                return null;
+            }
+            removedItem.UncontainItem();
+            SetItem_Internal(slotID, null);
+            OnChange.Invoke();
+            return removedItem;
         }
 
         public virtual void SetItem(int slotID, Item item)
@@ -208,7 +224,7 @@ namespace LooCast.Item
             OnChange.Invoke();
         }
 
-        // This method exists for the sole purpose of stopping the protected TryAddItem Methods from redundantly invoking the 'OnChange'-Event
+        // This method exists for the sole purpose of stopping other internal (private/protected) Methods from redundantly invoking the 'OnChange'-Event, potentially causing issues
         protected void SetItem_Internal(int slotID, Item item)
         {
             if (!IsValidSlot(slotID))
