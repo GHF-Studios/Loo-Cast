@@ -154,12 +154,12 @@ namespace LooCast.UI.Inventory
                         GameObject inventoryItemObject = Instantiate(inventoryItemPrefab, inventorySlot.transform);
                         InventoryItem inventoryItem = inventoryItemObject.GetComponent<InventoryItem>();
                         inventoryItem.Initialize(canvas);
-                        inventoryItem.Item = playerInventoryRuntimeData.Hotbar.GetItem(inventorySlot.SlotID);
+                        inventoryItem.Item = item;
                         inventoryItem.DropOntoSlot(inventorySlot);
                     }
                     else
                     {
-                        inventorySlot.CurrentItem.Item = playerInventoryRuntimeData.Hotbar.GetItem(inventorySlot.SlotID);
+                        inventorySlot.CurrentItem.Item = item;
                     }
                 }
             }

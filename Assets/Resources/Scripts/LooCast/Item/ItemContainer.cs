@@ -204,12 +204,18 @@ namespace LooCast.Item
 
         public virtual void SetItem(int slotID, Item item)
         {
+            SetItem_Internal(slotID, item);
+            OnChange.Invoke();
+        }
+
+        // This method exists for the sole purpose of stopping the protected TryAddItem Methods from redundantly invoking the 'OnChange'-Event
+        protected void SetItem_Internal(int slotID, Item item)
+        {
             if (!IsValidSlot(slotID))
             {
                 throw new ArgumentOutOfRangeException($"Invalid slot! Slot must be between 0 {itemSlots.Count - 1}!");
             }
             itemSlots[slotID].ItemContent = item;
-            OnChange.Invoke();
         }
 
         public Item GetItem(int slotID)
@@ -276,7 +282,7 @@ namespace LooCast.Item
             {
                 throw new ArgumentException("SlotID is already occupied!");
             }
-            itemSlots.Add(slotID, new ItemContainerSlot());
+            itemSlots.Add(slotID, new ItemContainerSlot(this));
         }
 
         public void RemoveSlot(int slotID)
