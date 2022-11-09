@@ -51,6 +51,8 @@ namespace LooCast.Item
         #region Constructors
         public ChargedPlasmaLauncherWeaponItem(ChargedPlasmaLauncherWeaponItemData data, Stats stats, bool autoFire) : base(data, stats, autoFire)
         {
+            ChargedPlasmaLauncherWeaponItemData = data;
+
             ArcLifetime = new FloatComputedVariable(data.ArcLifetime.Value);
             ArcInitialWidth = new FloatComputedVariable(data.ArcInitialWidth.Value);
             ArcWidthMultiplier = new FloatComputedVariable(data.ArcWidthMultiplier.Value);

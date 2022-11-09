@@ -26,6 +26,8 @@ namespace LooCast.Item
         #region Constructors
         public LaserEmitterWeaponItem(LaserEmitterWeaponItemData data, Stats stats, bool autoFire) : base(data, stats, autoFire)
         {
+            LaserEmitterWeaponItemData = data;
+
             LaserLength = new FloatComputedVariable(data.LaserLength.Value);
         }
         #endregion

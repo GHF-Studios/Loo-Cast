@@ -9,6 +9,10 @@ namespace LooCast.Item
 
     public abstract class Item
     {
+        #region Data
+        public ItemData ItemData { get; private set; }
+        #endregion
+
         public enum ContainmentState
         {
             Contained,
@@ -43,6 +47,8 @@ namespace LooCast.Item
 
         public Item(ItemData data)
         {
+            ItemData = data;
+
             OnFinalize = new UnityEvent();
             OnContainmentStateChange = new UnityEvent();
 

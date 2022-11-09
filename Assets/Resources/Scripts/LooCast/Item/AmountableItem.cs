@@ -7,6 +7,10 @@ namespace LooCast.Item
 
     public abstract class AmountableItem : Item
     {
+        #region Data
+        public AmountableItemData AmountableItemData { get; private set; }
+        #endregion
+
         public UnityEvent OnAmountChanged
         {
             get
@@ -48,6 +52,8 @@ namespace LooCast.Item
 
         public AmountableItem(AmountableItemData data) : base(data)
         {
+            AmountableItemData = data;
+
             onAmountChanged = new UnityEvent();
 
             MaxAmount = data.MaxAmount.Value;

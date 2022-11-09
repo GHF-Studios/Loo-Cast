@@ -31,6 +31,8 @@ namespace LooCast.Item
         #region Constructors
         public MultiplexerWeaponItem(MultiplexerWeaponItemData data, Stats stats, bool autoFire) : base(data, stats, autoFire)
         {
+            MultiplexerWeaponItemData = data;
+
             MaxTargets = new IntComputedVariable(data.BaseMaxTargets.Value);
             MaxFragments = new IntComputedVariable(data.BaseMaxFragments.Value);
             FragmentArmorPenetration = new IntComputedVariable(data.BaseFragmentArmorPenetration.Value);

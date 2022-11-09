@@ -24,7 +24,7 @@ namespace LooCast.Item
         #region Constructors
         public FreezeRayWeaponItem(FreezeRayWeaponItemData data, Stats stats, bool autoFire) : base(data, stats, autoFire)
         {
-            
+            FreezeRayWeaponItemData = data;
         }
         #endregion
 
