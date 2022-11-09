@@ -81,7 +81,7 @@ namespace LooCast.Item
             return item;
         }
 
-        public void DropItem(Vector3 spawnPosition)
+        public virtual void DropItem(Vector3 spawnPosition)
         {
             if (ItemContainmentState == ContainmentState.Dropped)
             {
@@ -92,12 +92,16 @@ namespace LooCast.Item
                 throw new Exception("Can not drop Item: Item is contained!");
             }
             ItemObject = GameObject.Instantiate(ItemObjectPrefab, spawnPosition, Quaternion.identity).GetComponent<ItemObject>();
+            if (ItemObject == null)
+            {
+                throw new Exception("ItemObjectPrefab must contain an ItemObject-component!");
+            }
             ItemObject.Item = this;
             ItemContainer = null;
             ItemContainmentState = ContainmentState.Dropped;
         }
 
-        public void UndropItem()
+        public virtual void UndropItem()
         {
             if (ItemContainmentState == ContainmentState.Standalone)
             {
@@ -112,7 +116,7 @@ namespace LooCast.Item
             ItemContainmentState = ContainmentState.Standalone;
         }
 
-        public void ContainItem(ItemContainer itemContainer)
+        public virtual void ContainItem(ItemContainer itemContainer)
         {
             if (ItemContainmentState == ContainmentState.Contained)
             {
@@ -126,7 +130,7 @@ namespace LooCast.Item
             ItemContainmentState = ContainmentState.Contained;
         }
 
-        public void UncontainItem()
+        public virtual void UncontainItem()
         {
             if (ItemContainmentState == ContainmentState.Standalone)
             {

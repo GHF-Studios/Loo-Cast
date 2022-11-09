@@ -9,8 +9,9 @@ namespace LooCast.Inventory
     using LooCast.Item.Data;
     using LooCast.Station;
     using LooCast.Attribute.Stat;
+    using LooCast.Core;
 
-    public sealed class AllyStationInventory : MonoBehaviour
+    public sealed class AllyStationInventory : ExtendedMonoBehaviour
     {
         #region Data
         public AllyStationInventoryData Data;

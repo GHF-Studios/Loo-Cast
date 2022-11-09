@@ -11,13 +11,14 @@ namespace LooCast.Item
     using LooCast.Sound;
     using LooCast.Variable;
 
-    public abstract class WeaponItem : UniqueItem
+    public abstract class WeaponItem : UpgradableItem
     {
         #region Data
         public WeaponItemData WeaponItemData { get; private set; }
         #endregion
 
         #region Properties
+        public WeaponItemObject WeaponItemObject { get; private set; }
         public FloatComputedVariable Damage { get; protected set; }
         public FloatComputedVariable CritChance { get; protected set; }
         public FloatComputedVariable CritDamage { get; protected set; }
@@ -125,6 +126,51 @@ namespace LooCast.Item
         public override void Use()
         {
             TryFire();
+        }
+
+        public override void DropItem(Vector3 spawnPosition)
+        {
+            base.DropItem(spawnPosition);
+            WeaponItemObject = (WeaponItemObject)ItemObject;
+            if (WeaponItemObject == null)
+            {
+                throw new Exception("ItemObjectPrefab must contain a WeaponItemObject-component!");
+            }
+        }
+
+        public override void ApplyItemStatUpgradeSet(int upgradeSetID, UpgradeSet upgradeSet)
+        {
+            if (upgradeSetRemovementActions.ContainsKey(upgradeSetID))
+            {
+                return;
+            }
+
+            Multiplier damageMultiplier = Damage.AddPermanentMultiplier(stats.DamageMultiplier);
+            Multiplier critChanceMultiplier = CritChance.AddPermanentMultiplier(stats.RandomChanceMultiplier);
+            Multiplier critDamageMultiplier = CritDamage.AddPermanentMultiplier(stats.DamageMultiplier);
+            Multiplier knockbackMultiplier = Knockback.AddPermanentMultiplier(stats.KnockbackMultiplier);
+            Multiplier attackDelayMultiplier = AttackDelay.AddPermanentMultiplier(stats.AttackDelayMultiplier);
+            Multiplier projectileSpeedMultiplier = ProjectileSpeed.AddPermanentMultiplier(stats.ProjectileSpeedMultiplier);
+            Multiplier projectileSizeMultiplier = ProjectileSize.AddPermanentMultiplier(stats.ProjectileSizeMultiplier);
+            Multiplier projectileLifetimeMultiplier = ProjectileLifetime.AddPermanentMultiplier(stats.DamageMultiplier);
+            Increase piercingIncrease = Piercing.AddPermanentIncrease(stats.PiercingIncrease);
+            Increase armorPenetrationIncrease = ArmorPenetration.AddPermanentIncrease(stats.ArmorPenetrationIncrease);
+            Multiplier rangeMultiplier = Range.AddPermanentMultiplier(stats.RangeMultiplier);
+
+            upgradeSetRemovementActions.Add(upgradeSetID, () =>
+            {
+                Damage.RemovePermanentMultiplier(damageMultiplier);
+                CritChance.RemovePermanentMultiplier(critChanceMultiplier);
+                CritDamage.RemovePermanentMultiplier(critDamageMultiplier);
+                Knockback.RemovePermanentMultiplier(knockbackMultiplier);
+                AttackDelay.RemovePermanentMultiplier(attackDelayMultiplier);
+                ProjectileSpeed.RemovePermanentMultiplier(projectileSpeedMultiplier);
+                ProjectileSize.RemovePermanentMultiplier(projectileSizeMultiplier);
+                ProjectileLifetime.RemovePermanentMultiplier(projectileLifetimeMultiplier);
+                Piercing.RemovePermanentIncrease(piercingIncrease);
+                ArmorPenetration.RemovePermanentIncrease(armorPenetrationIncrease);
+                Range.RemovePermanentMultiplier(rangeMultiplier);
+            });
         }
         #endregion
     }

@@ -9,8 +9,9 @@ namespace LooCast.Inventory
     using LooCast.Item;
     using LooCast.Player;
     using LooCast.Attribute.Stat;
+    using LooCast.Core;
 
-    public sealed class PlayerInventory : MonoBehaviour
+    public sealed class PlayerInventory : ExtendedMonoBehaviour
     {
         #region Data
         public PlayerInventoryData Data;
