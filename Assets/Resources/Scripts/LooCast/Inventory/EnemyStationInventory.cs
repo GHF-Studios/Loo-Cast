@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,10 +9,10 @@ namespace LooCast.Inventory
     using Item.Data;
     using Core;
 
-    public sealed class AllyStationInventory : ExtendedMonoBehaviour
+    public sealed class EnemyStationInventory : ExtendedMonoBehaviour
     {
         #region Data
-        public AllyStationInventoryData Data;
+        public EnemyStationInventoryData Data;
         #endregion
 
         #region Properties

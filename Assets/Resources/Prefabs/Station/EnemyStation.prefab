@@ -214,6 +214,7 @@ GameObject:
   - component: {fileID: -3853080843633908785}
   - component: {fileID: 3016905653400388265}
   - component: {fileID: 513302948714513589}
+  - component: {fileID: 7198654415521216465}
   m_Layer: 9
   m_Name: EnemyStation
   m_TagString: EnemyStation
@@ -308,6 +309,22 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
+--- !u!114 &7198654415521216465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3016905653400388266}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 669ef070b475aab4694497511198d94b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
+  Data: {fileID: 11400000, guid: 1ce84c453b4eaad468b5be887f0ceff4, type: 2}
+  stationMultiplexerWeaponItemData: {fileID: 11400000, guid: 07499e717c9f840439a9e319d0e3820a, type: 2}
 --- !u!1 &3016905654385909483
 GameObject:
   m_ObjectHideFlags: 0
