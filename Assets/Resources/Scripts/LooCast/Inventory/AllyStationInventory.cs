@@ -28,8 +28,8 @@ namespace LooCast.Inventory
         {
             WeaponItemContainer = new WeaponItemContainer(Data.SlotCount.Value, gameObject);
 
-            //MultiplexerWeaponItem multiplexerWeaponItem = (MultiplexerWeaponItem)stationMultiplexerWeaponItemData.CreateItem();
-            //WeaponItemContainer.SetItem(0, multiplexerWeaponItem);
+            MultiplexerWeaponItem multiplexerWeaponItem = (MultiplexerWeaponItem)stationMultiplexerWeaponItemData.CreateItem();
+            WeaponItemContainer.SetItem(0, multiplexerWeaponItem);
         }
         #endregion
     }

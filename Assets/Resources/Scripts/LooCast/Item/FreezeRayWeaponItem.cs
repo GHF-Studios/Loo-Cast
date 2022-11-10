@@ -29,12 +29,12 @@ namespace LooCast.Item
         #endregion
 
         #region Methods
-        public override void Fire()
+        public override bool Fire()
         {
             Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range.Value, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
             if (targets == null || targets.Length == 0)
             {
-                return;
+                return false;
             }
             Target target = targets[0];
 
@@ -45,6 +45,7 @@ namespace LooCast.Item
             float freezeLifetime = ProjectileLifetime.Value;
             freezeOrbObject.GetComponent<FreezeZone>().Initialize(target.Transform.position, freezeSpeedMultiplier, freezeRadiusMultiplier, freezeLifetime);
             soundHandler.SoundShoot();
+            return true;
         }
         #endregion
     }

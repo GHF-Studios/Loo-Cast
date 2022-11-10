@@ -1,16 +1,13 @@
 using System;
-using System.Timers;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace LooCast.Item
 {
     using Data;
-    using LooCast.Attribute.Stat;
-    using LooCast.Sound;
-    using LooCast.Util;
-    using LooCast.Variable;
+    using Attribute.Stat;
+    using Sound;
+    using Util;
+    using Variable;
 
     public abstract class WeaponItem : UpgradableItem
     {
@@ -38,8 +35,8 @@ namespace LooCast.Item
         #region Fields
         protected Stats stats;
         protected GameSoundHandler soundHandler;
-        protected Timer fireTimer;
-        protected bool canFire;
+        protected TimerUtil.Timer fireTimer;
+        protected bool canFire = false;
         #endregion
 
         #region Constructors
@@ -50,17 +47,16 @@ namespace LooCast.Item
             this.stats = stats;
             AutoFire = autoFire;
             soundHandler = GameObject.FindObjectOfType<GameSoundHandler>();
-            fireTimer = new Timer(data.BaseAttackDelay.Value * 1000);
-            fireTimer.Elapsed += (sender, elapsedEventArgs) =>
+
+            fireTimer = TimerUtil.CreateTimer(data.BaseAttackDelay.Value, false, autoFire);
+            fireTimer.AddElapsedAction(() =>
             {
                 canFire = true;
-                if (autoFire)
-                {
-                    TryFire();
-                }
-            };
+                TryFire();
+            });
             fireTimer.Start();
-            canFire = false;
+
+
 
             OnContainmentStateChange.AddListener(() =>
             {
@@ -113,16 +109,25 @@ namespace LooCast.Item
         #region Methods
         public bool TryFire()
         {
-            if (canFire)
+            if (!canFire)
+            {
+                return false;
+            }
+
+            bool fireSuccess = Fire();
+            if (!fireSuccess)
+            {
+                return false;
+            }
+            else
             {
                 canFire = false;
-                Fire();
+                fireTimer.Start();
                 return true;
             }
-            return false;
         }
 
-        public abstract void Fire();
+        public abstract bool Fire();
 
         public override void Use()
         {

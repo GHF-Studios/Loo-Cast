@@ -83,12 +83,12 @@ namespace LooCast.Item
         #endregion
 
         #region Methods
-        public override void Fire()
+        public override bool Fire()
         {
             Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range.Value, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
             if (targets == null || targets.Length == 0)
             {
-                return;
+                return false;
             }
             Target target = targets[0];
 
@@ -96,6 +96,7 @@ namespace LooCast.Item
             bulletObject.transform.position += new Vector3(0, 0, 0.1f);
             bulletObject.GetComponent<ChargedPlasmaProjectile>().Initialize(target, ItemContainer.OriginObject, TeamUtil.GetTeam(ItemContainer.OriginObject.tag), Damage.Value, CritChance.Value, CritDamage.Value, Knockback.Value, ProjectileSpeed.Value, ProjectileSize.Value, ProjectileLifetime.Value, ArmorPenetration.Value, ArcLifetime.Value, ArcInitialWidth.Value, ArcWidthMultiplier.Value, ArcMinWidth.Value, ArcBranchAttempts.Value, MinSpreadDistance.Value, MinSpreadDistanceMultiplier.Value, MaxSpreadDistance.Value, MaxSpreadDistanceMultiplier.Value, MinSpreadAngle.Value, MinSpreadAngleMultiplier.Value, MaxSpreadAngle.Value, MaxSpreadAngleMultiplier.Value, SpreadChance.Value, SpreadChanceMultiplier.Value, MinBranchDistance.Value, MinBranchDistanceMultiplier.Value, MaxBranchDistance.Value, MaxBranchDistanceMultiplier.Value, MinBranchAngle.Value, MinBranchAngleMultiplier.Value, MaxBranchAngle.Value, MaxBranchAngleMultiplier.Value, BranchChance.Value, BranchChanceMultiplier.Value, MaxRecursionDepth.Value);
             soundHandler.SoundShoot();
+            return true;
         }
         #endregion
     }

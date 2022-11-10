@@ -42,12 +42,12 @@ namespace LooCast.Item
         #endregion
 
         #region Methods
-        public override void Fire()
+        public override bool Fire()
         {
             Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range.Value, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
             if (targets == null || targets.Length == 0)
             {
-                return;
+                return false;
             }
 
             foreach (Target target in targets)
@@ -62,6 +62,7 @@ namespace LooCast.Item
                 bulletObject.GetComponent<MultiplexerProjectile>().Initialize(target, ItemContainer.OriginObject, TeamUtil.GetTeam(ItemContainer.OriginObject.tag), Damage.Value, CritChance.Value, CritDamage.Value, Knockback.Value, ProjectileSpeed.Value, ProjectileSize.Value, ProjectileLifetime.Value, Piercing.Value, ArmorPenetration.Value, fragments, FragmentArmorPenetration.Value, IsTargetSeeking, FragmentPrefab);
             }
             soundHandler.SoundShoot();
+            return true;
         }
         #endregion
     }
