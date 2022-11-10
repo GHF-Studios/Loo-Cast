@@ -9,6 +9,7 @@ namespace LooCast.Item
     using Data;
     using LooCast.Attribute.Stat;
     using LooCast.Sound;
+    using LooCast.Util;
     using LooCast.Variable;
 
     public abstract class WeaponItem : UpgradableItem
@@ -58,6 +59,7 @@ namespace LooCast.Item
                     TryFire();
                 }
             };
+            fireTimer.Start();
             canFire = false;
 
             OnContainmentStateChange.AddListener(() =>
@@ -115,7 +117,6 @@ namespace LooCast.Item
             {
                 canFire = false;
                 Fire();
-                fireTimer.Start();
                 return true;
             }
             return false;

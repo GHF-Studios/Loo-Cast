@@ -35,7 +35,22 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
-            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range.Value, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
+            Debug.Log("1.1");
+            GameObject originObject = ItemContainer.OriginObject;
+            Debug.Log("1.2");
+            Transform originTransform = originObject.transform;
+            //THE CODE, STARTING HERE, IS NEVER REACHED!
+            Debug.Log("1.3");
+            Vector3 samplePosition = originTransform.position;
+            Debug.Log("2");
+            float sampleRadius = Range.Value;
+            Debug.Log("3");
+            string[] enemyTags = TeamUtil.GetEnemyTags(ItemContainer.OriginObject);
+            Debug.Log("4");
+            LayerMask enemyLayerMask = TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject);
+            Debug.Log("5");
+            Target[] targets = TargetingUtil.GetClosestTargets(samplePosition, sampleRadius, enemyTags, enemyLayerMask);
+            Debug.Log("6");
             if (targets == null || targets.Length == 0)
             {
                 return;
