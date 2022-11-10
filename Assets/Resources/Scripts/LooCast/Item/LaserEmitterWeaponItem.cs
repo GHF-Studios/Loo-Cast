@@ -35,11 +35,15 @@ namespace LooCast.Item
         #region Methods
         public override void Fire()
         {
+            // This works perfectly fine when being manually triggered
+            // But when it is fired through autoFire, THROUGH A TIMER, THAT RUNS ASYNCHRONOUSLY TO UNITY UPDATES, IT FUCKS UP
+            // TODO: Investigate
+
             Debug.Log("1.1");
             GameObject originObject = ItemContainer.OriginObject;
             Debug.Log("1.2");
             Transform originTransform = originObject.transform;
-            //THE CODE, STARTING HERE, IS NEVER REACHED!
+            // THE CODE, STARTING HERE, IS NEVER REACHED!
             Debug.Log("1.3");
             Vector3 samplePosition = originTransform.position;
             Debug.Log("2");
