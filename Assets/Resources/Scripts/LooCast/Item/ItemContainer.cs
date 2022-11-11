@@ -229,14 +229,6 @@ namespace LooCast.Item
             {
                 throw new ArgumentOutOfRangeException($"Invalid slot! Slot must be between 0 {itemSlots.Count - 1}!");
             }
-            if (item.ItemContainmentState == Item.ContainmentState.Contained)
-            {
-                item.UncontainItem();
-            }
-            else if (item.ItemContainmentState == Item.ContainmentState.Dropped)
-            {
-                item.UndropItem();
-            }
             item.ContainItem(this);
             itemSlots[slotID].ItemContent = item;
         }
