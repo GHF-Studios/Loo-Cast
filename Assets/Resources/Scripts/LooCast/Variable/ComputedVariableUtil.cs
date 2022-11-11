@@ -6,7 +6,7 @@ namespace LooCast.Variable
     public static class ComputedVariableUtil
     {
         /// <summary>
-        /// Applies Permanent Increases, then Permanent Multipliers, then Temporary Increases and then Temporary Multipliers
+        /// Applies Increases, then Multipliers
         /// </summary>
         public static Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, float, float> DefaultFloatStatEvaluator = (permanentMultipliers, permanentIncreases, multipliers, increases, baseValue) =>
         {
@@ -36,7 +36,7 @@ namespace LooCast.Variable
         };
 
         /// <summary>
-        /// Applies Permanent Increases, then Permanent Multipliers, then Temporary Increases and then Temporary Multipliers
+        /// Applies Increases, then Multipliers
         /// </summary>
         public static Func<List<Multiplier>, List<Increase>, List<TemporaryMultiplier>, List<TemporaryIncrease>, int, int> DefaultIntStatEvaluator = (permanentMultipliers, permanentIncreases, multipliers, increases, baseValue) =>
         {

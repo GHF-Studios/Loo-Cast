@@ -78,7 +78,7 @@ namespace LooCast.Projectile
             else
             {
                 float projectileArrivalTime = (target.Transform.position - origin.transform.position).magnitude / speed;
-                Vector3 targetVelocity = target.GameObject.GetComponent<Rigidbody2D>().velocity;
+                Vector3 targetVelocity = target.GameObject.GetComponentInParent<Rigidbody2D>().velocity;
                 targetVelocity.z = 0;
                 Vector3 estimatedProjectileHitPos = target.Transform.position + targetVelocity * projectileArrivalTime;
 

@@ -119,9 +119,8 @@ namespace LooCast.UI.Inventory
             {
                 if (CurrentInventorySlot.CurrentItem != null)
                 {
-                    CurrentInventorySlot.CurrentItem.Item.UncontainItem();
-                    CurrentInventorySlot.CurrentItem.Item.DropItem((Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition));
-                    CurrentInventorySlot.ItemContainer.SetItem(CurrentInventorySlot.SlotID, null);
+                    Item removedItem = CurrentInventorySlot.ItemContainer.TryRemoveItem(currentSlotID);
+                    removedItem.DropItem((Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition));
                     CurrentInventorySlot.CurrentItem.Destroy();
                 }
             }
@@ -130,7 +129,7 @@ namespace LooCast.UI.Inventory
             {
                 if (CurrentInventorySlot.CurrentItem != null)
                 {
-                    CurrentInventorySlot.CurrentItem.Item.Use();
+                    CurrentInventorySlot.CurrentItem.ItemContent.Use();
                 }
             }
         }
@@ -154,12 +153,12 @@ namespace LooCast.UI.Inventory
                         GameObject inventoryItemObject = Instantiate(inventoryItemPrefab, inventorySlot.transform);
                         InventoryItem inventoryItem = inventoryItemObject.GetComponent<InventoryItem>();
                         inventoryItem.Initialize(canvas);
-                        inventoryItem.Item = playerInventoryRuntimeData.Hotbar.GetItem(inventorySlot.SlotID);
+                        inventoryItem.ItemContent = item;
                         inventoryItem.DropOntoSlot(inventorySlot);
                     }
                     else
                     {
-                        inventorySlot.CurrentItem.Item = playerInventoryRuntimeData.Hotbar.GetItem(inventorySlot.SlotID);
+                        inventorySlot.CurrentItem.ItemContent = item;
                     }
                 }
             }

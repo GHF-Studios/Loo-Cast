@@ -12,27 +12,23 @@ namespace LooCast.Util
 		public static string[] GetEnemyTags(GameObject allyObject)
 		{
             IHealth.TeamType team = GetTeam(allyObject.tag);
-            if (!Constants.EnemyTagsDictionary.TryGetValue(team, out string[] enemyTags))
-            {
-                throw new Exception("Invalid Team Type!");
-            }
-            return enemyTags;
+            return GetEnemyTags(team);
         }
 		public static string[] GetEnemyTags(IHealth health)
 		{
-            if (!Constants.EnemyTagsDictionary.TryGetValue(health.Team, out string[] enemyTags))
-            {
-                throw new Exception("Invalid Team Type!");
-            }
-            return enemyTags;
+            return GetEnemyTags(health.Team);
         }
         public static string[] GetEnemyTags(IHealth.TeamType team)
         {
-            if (!Constants.EnemyTagsDictionary.TryGetValue(team, out string[] enemyTags))
+            switch (team)
             {
-                throw new Exception("Invalid Team Type!");
+                case IHealth.TeamType.PlayerAlly:
+                    return new string[] { "Enemy", "EnemyStation" };
+                case IHealth.TeamType.PlayerEnemy:
+                    return new string[] { "Ally", "AllyStation", "Player" };
+                default:
+                    throw new ArgumentException($"Unhandled Team '{Enum.GetName(typeof(IHealth.TeamType), team)}'!");
             }
-            return enemyTags;
         }
 
 		public static IHealth.TeamType GetTeam(string tag)
@@ -43,28 +39,30 @@ namespace LooCast.Util
 					return IHealth.TeamType.PlayerAlly;
 				case "Ally":
 					return IHealth.TeamType.PlayerAlly;
-				case "Enemy":
+                case "AllyStation":
+                    return IHealth.TeamType.PlayerAlly;
+                case "Enemy":
 					return IHealth.TeamType.PlayerEnemy;
-				default:
-					throw new ArgumentException("Unhandled Tag!");
+                case "EnemyStation":
+                    return IHealth.TeamType.PlayerEnemy;
+                default:
+					throw new ArgumentException($"Unhandled Tag '{tag}'!");
 			}
 		}
 
 		public static LayerMask GetEnemyLayerMask(string tag)
         {
-            switch (tag)
-            {
-                case "Player":
-                    return LayerMask.GetMask("Enemy");
-                case "Ally":
-                    return LayerMask.GetMask("Enemy");
-                case "Enemy":
-                    return LayerMask.GetMask("Ally", "Player");
-                default:
-                    throw new ArgumentException("Unhandled Tag!");
-            }
+            IHealth.TeamType team = GetTeam(tag);
+            return GetEnemyLayerMask(team);
         }
-		public static LayerMask GetEnemyLayerMask(IHealth.TeamType team)
+
+        public static LayerMask GetEnemyLayerMask(GameObject allyObject)
+        {
+            IHealth.TeamType team = GetTeam(allyObject.tag);
+            return GetEnemyLayerMask(team);
+        }
+
+        public static LayerMask GetEnemyLayerMask(IHealth.TeamType team)
 		{
 			switch (team)
 			{
@@ -73,20 +71,7 @@ namespace LooCast.Util
 				case IHealth.TeamType.PlayerEnemy:
                     return LayerMask.GetMask("Ally", "Player");
 				default:
-                    throw new ArgumentException("Unhandled Team!");
-            }
-        }
-        public static LayerMask GetEnemyLayerMask(GameObject allyObject)
-        {
-            IHealth.TeamType team = GetTeam(allyObject.tag);
-            switch (team)
-            {
-                case IHealth.TeamType.PlayerAlly:
-                    return LayerMask.GetMask("Enemy");
-                case IHealth.TeamType.PlayerEnemy:
-                    return LayerMask.GetMask("Ally", "Player");
-                default:
-                    throw new ArgumentException("Unhandled Team!");
+                    throw new ArgumentException($"Unhandled Team '{Enum.GetName(typeof(IHealth.TeamType), team)}'!");
             }
         }
     } 

@@ -8,6 +8,8 @@ namespace LooCast.Item
     using Target;
     using Projectile;
     using Util;
+    using Variable;
+    using Random;
 
     public class MultiplexerWeaponItem : WeaponItem
     {
@@ -16,9 +18,9 @@ namespace LooCast.Item
         #endregion
 
         #region Properties
-        public int MaxTargets { get; private set; }
-        public int MaxFragments { get; private set; }
-        public int FragmentArmorPenetration { get; private set; }
+        public IntComputedVariable MaxTargets { get; private set; }
+        public IntComputedVariable MaxFragments { get; private set; }
+        public IntComputedVariable FragmentArmorPenetration { get; private set; }
         public bool IsTargetSeeking { get; private set; }
         public GameObject FragmentPrefab { get; private set; }
         #endregion
@@ -29,35 +31,38 @@ namespace LooCast.Item
         #region Constructors
         public MultiplexerWeaponItem(MultiplexerWeaponItemData data, Stats stats, bool autoFire) : base(data, stats, autoFire)
         {
-            MaxTargets = data.BaseMaxTargets.Value;
-            MaxFragments = data.BaseMaxFragments.Value;
-            FragmentArmorPenetration = data.BaseFragmentArmorPenetration.Value;
+            MultiplexerWeaponItemData = data;
+
+            MaxTargets = new IntComputedVariable(data.BaseMaxTargets.Value);
+            MaxFragments = new IntComputedVariable(data.BaseMaxFragments.Value);
+            FragmentArmorPenetration = new IntComputedVariable(data.BaseFragmentArmorPenetration.Value);
             IsTargetSeeking = data.IsTargetSeeking.Value;
             FragmentPrefab = data.FragmentPrefab;
         }
         #endregion
 
         #region Methods
-        public override void Fire()
+        public override bool Fire()
         {
-            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
+            Target[] targets = TargetingUtil.GetClosestTargets(ItemContainer.OriginObject.transform.position, Range.Value, TeamUtil.GetEnemyTags(ItemContainer.OriginObject), TeamUtil.GetEnemyLayerMask(ItemContainer.OriginObject));
             if (targets == null || targets.Length == 0)
             {
-                return;
+                return false;
             }
 
             foreach (Target target in targets)
             {
                 GameObject bulletObject = GameObject.Instantiate(ProjectilePrefab, ItemContainer.OriginObject.transform.position, Quaternion.identity);
                 bulletObject.transform.position += new Vector3(0, 0, 0.1f);
-                var finalFragments = MaxFragments;
-                if (MaxFragments >= 1)
+                int fragments = MaxFragments.Value;
+                if (MaxFragments.Value >= 1)
                 {
-                    finalFragments = UnityEngine.Random.Range(1, MaxFragments);
+                    fragments = Random.Range(1, MaxFragments.Value);
                 }
-                bulletObject.GetComponent<MultiplexerProjectile>().Initialize(target, ItemContainer.OriginObject, TeamUtil.GetTeam(ItemContainer.OriginObject.tag), Damage, CritChance, CritDamage, Knockback, ProjectileSpeed, ProjectileSize, ProjectileLifetime, Piercing, ArmorPenetration, finalFragments, FragmentArmorPenetration, IsTargetSeeking, FragmentPrefab);
+                bulletObject.GetComponent<MultiplexerProjectile>().Initialize(target, ItemContainer.OriginObject, TeamUtil.GetTeam(ItemContainer.OriginObject.tag), Damage.Value, CritChance.Value, CritDamage.Value, Knockback.Value, ProjectileSpeed.Value, ProjectileSize.Value, ProjectileLifetime.Value, Piercing.Value, ArmorPenetration.Value, fragments, FragmentArmorPenetration.Value, IsTargetSeeking, FragmentPrefab);
             }
             soundHandler.SoundShoot();
+            return true;
         }
         #endregion
     }

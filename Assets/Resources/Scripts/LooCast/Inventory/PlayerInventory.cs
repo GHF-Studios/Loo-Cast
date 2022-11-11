@@ -9,8 +9,9 @@ namespace LooCast.Inventory
     using LooCast.Item;
     using LooCast.Player;
     using LooCast.Attribute.Stat;
+    using LooCast.Core;
 
-    public sealed class PlayerInventory : MonoBehaviour
+    public sealed class PlayerInventory : ExtendedMonoBehaviour
     {
         #region Data
         public PlayerInventoryData Data;
@@ -40,7 +41,7 @@ namespace LooCast.Inventory
             //RuntimeData.Hotbar.AddItem(freezeRayWeaponItem, out Item remainingFreezeRayWeaponItem);
             
             LaserEmitterWeaponItem laserEmitterWeaponItem = (LaserEmitterWeaponItem)Data.LaserEmitterWeaponItemData.CreateItem();
-            RuntimeData.Hotbar.AddItem(laserEmitterWeaponItem, out Item remainingLaserEmitterWeaponItem);
+            RuntimeData.Hotbar.TryAddItem(laserEmitterWeaponItem, out Item remainingLaserEmitterWeaponItem);
             
             //MultiplexerWeaponItem multiplexerWeaponItem = (MultiplexerWeaponItem)Data.MultiplexerWeaponItemData.CreateItem();
             //RuntimeData.Hotbar.AddItem(multiplexerWeaponItem, out Item remainingMultiplexerWeaponItem);

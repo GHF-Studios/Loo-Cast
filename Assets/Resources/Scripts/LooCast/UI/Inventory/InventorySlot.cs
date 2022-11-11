@@ -26,7 +26,7 @@ namespace LooCast.UI.Inventory
                 }
                 else
                 {
-                    ItemContainer.SetItem(SlotID, currentItem.Item);
+                    ItemContainer.SetItem(SlotID, currentItem.ItemContent);
                     currentItem.CurrentInventorySlot = this;
 
                     currentItem.RectTransform.SetParent(RectTransform);

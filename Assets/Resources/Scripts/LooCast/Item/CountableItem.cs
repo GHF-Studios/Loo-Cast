@@ -7,6 +7,10 @@ namespace LooCast.Item
 
     public abstract class CountableItem : Item
     {
+        #region Data
+        public CountableItemData CountableItemData { get; private set; }
+        #endregion
+
         public UnityEvent OnCountChanged
         {
             get
@@ -48,6 +52,8 @@ namespace LooCast.Item
 
         public CountableItem(CountableItemData data) : base(data)
         {
+            CountableItemData = data;
+
             onCountChanged = new UnityEvent();
 
             MaxCount = data.MaxCount.Value;

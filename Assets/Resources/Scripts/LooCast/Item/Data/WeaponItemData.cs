@@ -5,7 +5,7 @@ namespace LooCast.Item.Data
     using LooCast.Data;
     using LooCast.Attribute.Stat;
 
-    public abstract class WeaponItemData : UniqueItemData
+    public abstract class WeaponItemData : UpgradableItemData
     {
         public FloatDataReference BaseDamage;
         public FloatDataReference BaseCritChance;
