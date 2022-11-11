@@ -387,8 +387,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 480648577e9491d4c9824c62e5bdd53c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
   Data: {fileID: 11400000, guid: e3c5cb17e10faef4ea9300ab198488e6, type: 2}
-  stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
   stationMultiplexerWeaponItemData: {fileID: 11400000, guid: 07499e717c9f840439a9e319d0e3820a, type: 2}
 --- !u!114 &7338236622547215644
 MonoBehaviour:
@@ -415,7 +416,7 @@ GameObject:
   - component: {fileID: 7770041484089473874}
   m_Layer: 21
   m_Name: Minimap Icon
-  m_TagString: Untagged
+  m_TagString: Ally
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -541,6 +542,14 @@ PrefabInstance:
     - target: {fileID: 678286964352635355, guid: a5e289e3d87cc4048ac6d0c87b3f0717, type: 3}
       propertyPath: m_Name
       value: AllySpawner
+      objectReference: {fileID: 0}
+    - target: {fileID: 678286964352635355, guid: a5e289e3d87cc4048ac6d0c87b3f0717, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 678286964352635355, guid: a5e289e3d87cc4048ac6d0c87b3f0717, type: 3}
+      propertyPath: m_TagString
+      value: Ally
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a5e289e3d87cc4048ac6d0c87b3f0717, type: 3}

@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 678286964352635352}
   - component: {fileID: 4014259652115445419}
-  m_Layer: 12
+  m_Layer: 8
   m_Name: AllySpawner
-  m_TagString: EnemyStation
+  m_TagString: Ally
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

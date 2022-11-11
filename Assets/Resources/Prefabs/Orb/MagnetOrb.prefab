@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 8036678909402907929}
   m_Layer: 0
   m_Name: Circle
-  m_TagString: Untagged
+  m_TagString: Orb
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -97,7 +97,7 @@ GameObject:
   - component: {fileID: 4655858305471068515}
   m_Layer: 0
   m_Name: MagnetOrb
-  m_TagString: ExperienceOrb
+  m_TagString: Orb
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

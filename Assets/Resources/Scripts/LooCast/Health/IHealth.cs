@@ -10,8 +10,9 @@ namespace LooCast.Health
         #region Enums
         public enum TeamType
         {
-            PlayerAlly,
-            PlayerEnemy
+            Ally,
+            Enemy,
+            Neutral
         }
         #endregion
 

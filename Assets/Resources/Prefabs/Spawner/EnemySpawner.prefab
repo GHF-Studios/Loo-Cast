@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 678286964352635352}
   - component: {fileID: 678286964352635353}
-  m_Layer: 12
+  m_Layer: 9
   m_Name: EnemySpawner
-  m_TagString: EnemyStation
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -44,4 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6f8a1ae3df7504448ef15a127ced26b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ID: 0
+  IsVisible: 0
   Data: {fileID: 11400000, guid: e86896baa0915574a9f9191437233294, type: 2}
