@@ -14,10 +14,9 @@ namespace LooCast.Player
     using Attribute;
     using Attribute.Stat;
     using Currency;
-    using Item;
 
     [DisallowMultipleComponent]
-    public class Player : ExtendedMonoBehaviour, IItemUpgrader
+    public class Player : ExtendedMonoBehaviour
     {
         public PlayerData Data;
         public PlayerRuntimeData RuntimeData;
@@ -26,8 +25,6 @@ namespace LooCast.Player
         public PlayerExperience Experience { get; private set; }
         public PlayerMovement Movement { get; private set; }
         public ParticleSystem ParticleSystem { get; private set; }
-
-        public UpgradeSet UpgradeSet { get; private set; }
 
         public Stats Stats;
         public Attributes Attributes;
@@ -40,8 +37,6 @@ namespace LooCast.Player
             Experience = GetComponent<PlayerExperience>();
             Movement = GetComponent<PlayerMovement>();
             ParticleSystem = GetComponentInChildren<ParticleSystem>();
-
-            UpgradeSet = new UpgradeSet(Stats);
         }
 
         protected override void PauseableUpdate()

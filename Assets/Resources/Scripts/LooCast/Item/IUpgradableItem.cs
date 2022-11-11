@@ -9,7 +9,7 @@ namespace LooCast.Item
 
     public interface IUpgradableItem
     {
-        void ApplyItemStatUpgradeSet(int upgradeSetID, UpgradeSet upgradeSet);
+        void ApplyItemStatUpgradeSet(int upgradeSetID, Stats stats);
         void RemoveItemStatUpgradeSet(int upgradeSetID);
     }
 }
