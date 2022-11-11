@@ -9,7 +9,9 @@ namespace LooCast.Item
 
     public interface IUpgradableItem
     {
-        void ApplyItemStatUpgradeSet(int upgradeSetID, Stats stats);
-        void RemoveItemStatUpgradeSet(int upgradeSetID);
+        Dictionary<Stat.Stat, Increase> activeStatIncreases { get; }
+        Dictionary<Stat.Stat, Multiplier> activeStatMultipliers { get; }
+        void ApplyItemUpgrade(Stat.Stat stat);
+        void RemoveItemUpgrade(Stat.Stat stat);
     }
 }
