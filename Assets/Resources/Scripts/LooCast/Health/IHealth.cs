@@ -23,6 +23,7 @@ namespace LooCast.Health
         public FloatComputedVariable RegenerationTime { get; }
         public FloatVariable RegenerationTimer { get; }
         public IntComputedVariable Defense { get; }
+        public FloatComputedVariable KnockbackResistance { get; }
         public BoolVariable IsAlive { get; }
         public GameObject DamageIndicatorPrefab { get; }
         public TeamType Team { get; }

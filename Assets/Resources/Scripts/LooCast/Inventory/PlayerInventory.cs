@@ -44,7 +44,7 @@ namespace LooCast.Inventory
             RuntimeData.Hotbar.TryAddItem(laserEmitterWeaponItem, out Item remainingLaserEmitterWeaponItem);
             
             //MultiplexerWeaponItem multiplexerWeaponItem = (MultiplexerWeaponItem)Data.MultiplexerWeaponItemData.CreateItem();
-            //RuntimeData.Hotbar.AddItem(multiplexerWeaponItem, out Item remainingMultiplexerWeaponItem);
+            //RuntimeData.Hotbar.TryAddItem(multiplexerWeaponItem, out Item remainingMultiplexerWeaponItem);
         }
         #endregion
 

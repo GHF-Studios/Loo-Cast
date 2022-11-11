@@ -14,6 +14,7 @@ namespace LooCast.Attribute.Stat
                 return "Brawn";
             }
         }
+
         public int ArmorPenetrationIncrease
         {
             get

@@ -67,6 +67,13 @@ namespace LooCast.Health
                 return RuntimeData.Defense;
             }
         }
+        public FloatComputedVariable KnockbackResistance
+        {
+            get
+            {
+                return RuntimeData.KnockbackResistance;
+            }
+        }
         public BoolVariable IsAlive
         {
             get
@@ -203,6 +210,14 @@ namespace LooCast.Health
         {
             if (damageInfo.knockback != 0.0f)
             {
+                if (KnockbackResistance.Value > 0.0f)
+                {
+                    damageInfo.knockback -= KnockbackResistance.Value;
+                    if (damageInfo.knockback <= 0.0f)
+                    {
+                        damageInfo.knockback = 0.0f;
+                    }
+                }
                 Vector3 knockbackDirection = damageInfo.origin.transform.position - transform.position;
                 Rigidbody2D rigidbody = GetComponent<Rigidbody2D>();
                 if (rigidbody != null)

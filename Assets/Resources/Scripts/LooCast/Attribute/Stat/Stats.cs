@@ -30,7 +30,7 @@ namespace LooCast.Attribute.Stat
         public float RangeMultiplier { get { return Mind.RangeMultiplier; } }
         public float ProjectileSpeedMultiplier { get { return Personality.ProjectileSpeedMultiplier; } }
         public float KnockbackMultiplier { get { return Power.KnockbackMultiplier; } }
-        //public float UNDEFINED { get { return Presence.UNDEFINED; } }
+        public float KnockbackResistanceMultiplier { get { return Presence.KnockbackResistanceMultiplier; } }
         //public float UNDEFINED { get { return Psyche.UNDEFINED; } }
         public float AttackDelayMultiplier { get { return Quickness.AttackDelayMultiplier; } }
         public float HealthRegenrationMultiplier { get { return Recovery.HealthRegenrationMultiplier; } }

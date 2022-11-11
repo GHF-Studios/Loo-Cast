@@ -325,6 +325,7 @@ MonoBehaviour:
   IsVisible: 0
   Data: {fileID: 11400000, guid: 1ce84c453b4eaad468b5be887f0ceff4, type: 2}
   stationMultiplexerWeaponItemData: {fileID: 11400000, guid: 07499e717c9f840439a9e319d0e3820a, type: 2}
+  stationLaserEmitterWeaponItemData: {fileID: 11400000, guid: 0dfd077a23ed7f045817bdcb8d209685, type: 2}
 --- !u!1 &3016905654385909483
 GameObject:
   m_ObjectHideFlags: 0

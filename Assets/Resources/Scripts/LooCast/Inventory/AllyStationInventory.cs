@@ -21,6 +21,7 @@ namespace LooCast.Inventory
 
         #region Fields
         [SerializeField] private MultiplexerWeaponItemData stationMultiplexerWeaponItemData;
+        [SerializeField] private LaserEmitterWeaponItemData stationLaserEmitterWeaponItemData;
         #endregion
 
         #region Methods
@@ -30,6 +31,9 @@ namespace LooCast.Inventory
 
             MultiplexerWeaponItem multiplexerWeaponItem = (MultiplexerWeaponItem)stationMultiplexerWeaponItemData.CreateItem();
             WeaponItemContainer.SetItem(0, multiplexerWeaponItem);
+
+            //LaserEmitterWeaponItem laserEmitterWeaponItem = (LaserEmitterWeaponItem)stationLaserEmitterWeaponItemData.CreateItem();
+            //WeaponItemContainer.SetItem(1, laserEmitterWeaponItem);
         }
         #endregion
     }

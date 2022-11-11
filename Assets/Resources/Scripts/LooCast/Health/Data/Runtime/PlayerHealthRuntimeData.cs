@@ -14,17 +14,26 @@ namespace LooCast.Health.Data.Runtime
         {
             MaxHealth = new FloatComputedVariable(data.BaseMaxHealth.Value);
             MaxHealth.AddPermanentMultiplier(Stats.HealthMultiplier);
+
             Health = new FloatVariable(MaxHealth.Value);
+
             RegenerationAmount = new FloatComputedVariable(data.BaseRegenerationAmount.Value);
             RegenerationAmount.AddPermanentMultiplier(Stats.HealthRegenrationMultiplier);
+
             RegenerationTime = new FloatComputedVariable(data.BaseRegenerationTime.Value);
             RegenerationTimer = new FloatVariable(0.0f);
+
             Defense = new IntComputedVariable(data.BaseDefense.Value);
             Defense.AddPermanentIncrease(Stats.DefenseIncrease);
-            IsAlive = new BoolVariable(true);
-            DamageIndicatorPrefab = data.DamageIndicatorPrefab;
-            Team = data.Team;
 
+            KnockbackResistance = new FloatComputedVariable(data.BaseKnockbackResistance.Value);
+            KnockbackResistance.AddPermanentMultiplier(Stats.KnockbackResistanceMultiplier);
+
+            IsAlive = new BoolVariable(true);
+
+            DamageIndicatorPrefab = data.DamageIndicatorPrefab;
+
+            Team = data.Team;
         }
 
         public FloatVariable Health;
@@ -33,6 +42,7 @@ namespace LooCast.Health.Data.Runtime
         public FloatComputedVariable RegenerationTime;
         public FloatVariable RegenerationTimer;
         public IntComputedVariable Defense;
+        public FloatComputedVariable KnockbackResistance;
         public BoolVariable IsAlive;
         public GameObject DamageIndicatorPrefab;
         public IHealth.TeamType Team;

@@ -13,6 +13,7 @@ namespace LooCast.Health.Data
         public FloatDataReference BaseRegenerationAmount;
         public FloatDataReference BaseRegenerationTime;
         public IntDataReference BaseDefense;
+        public FloatDataReference BaseKnockbackResistance;
         public GameObject DamageIndicatorPrefab;
         public FloatDataReference BaseExperienceDropChance;
         public FloatDataReference BaseMagnetDropChance;

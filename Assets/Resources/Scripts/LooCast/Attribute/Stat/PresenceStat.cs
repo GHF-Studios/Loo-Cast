@@ -14,6 +14,13 @@ namespace LooCast.Attribute.Stat
                 return "Presence";
             }
         }
-        
+
+        public float KnockbackResistanceMultiplier
+        {
+            get
+            {
+                return 1.0f + (Level.Value * 0.1f);
+            }
+        }
     }
 }

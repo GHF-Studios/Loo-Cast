@@ -30,6 +30,7 @@ namespace LooCast.Health
         public FloatComputedVariable RegenerationTime { get; private set; }
         public FloatVariable RegenerationTimer { get; private set; }
         public IntComputedVariable Defense { get; private set; }
+        public FloatComputedVariable KnockbackResistance { get; private set; }
         public BoolVariable IsAlive { get; private set; }
         public GameObject DamageIndicatorPrefab { get; private set; }
         public FloatComputedVariable MagnetDropChance { get; private set; }
@@ -171,6 +172,14 @@ namespace LooCast.Health
         {
             if (damageInfo.knockback != 0.0f)
             {
+                if (KnockbackResistance.Value > 0.0f)
+                {
+                    damageInfo.knockback -= KnockbackResistance.Value;
+                    if (damageInfo.knockback <= 0.0f)
+                    {
+                        damageInfo.knockback = 0.0f;
+                    }
+                }
                 Vector3 knockbackDirection = damageInfo.origin.transform.position - transform.position;
                 Rigidbody2D rigidbody = GetComponent<Rigidbody2D>();
                 if (rigidbody != null)

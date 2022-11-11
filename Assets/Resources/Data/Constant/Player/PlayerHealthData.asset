@@ -40,4 +40,12 @@ MonoBehaviour:
     OnValueChanged:
       m_PersistentCalls:
         m_Calls: []
+  BaseKnockbackResistance:
+    UseConstant: 0
+    ConstantValue: 0
+    Variable: {fileID: 11400000, guid: 846fd1fbe6ee3014fb0ad2fa81d10395, type: 2}
+    OnValueChanged:
+      m_PersistentCalls:
+        m_Calls: []
   DamageIndicatorPrefab: {fileID: 859752393602704814, guid: fcf4e81977de76e47adf35c8228d6f00, type: 3}
+  Team: 0
