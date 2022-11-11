@@ -67,7 +67,7 @@ namespace LooCast.UI.Screen
                     Canvas.screenStack.Pop();
                     if (Canvas.screenStack.Count == 0)
                     {
-                        GameManager.Instance.Resume();
+                        GameManager.Resume();
                     }
                 }
                 else
@@ -92,7 +92,7 @@ namespace LooCast.UI.Screen
                 }
                 Canvas.screenStack.Push(this);
                 transform.SetAsLastSibling();
-                GameManager.Instance.Pause();
+                GameManager.Pause();
             }
 
             IsVisible = show;

@@ -193,7 +193,7 @@ namespace LooCast.Health
             {
                 RuntimeData.IsAlive.Value = false;
                 OnKilled.Invoke();
-                GameManager.Instance.Pause();
+                GameManager.Pause();
                 soundHandler.SoundDeath();
                 deathScreen.SetVisibility(true);
             }

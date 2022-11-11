@@ -31,12 +31,20 @@ namespace LooCast.MainMenu
 
         public void Quit()
         {
+            if (Instance == null)
+            {
+                return;
+            }
             Application.Quit();
         }
 
         public void LoadScene(string sceneIndex)
         {
-            StartCoroutine(LoadingScreen.LoadSceneAsynchronously(sceneIndex));
+            if (Instance == null)
+            {
+                return;
+            }
+            Instance.StartCoroutine(Instance.LoadingScreen.LoadSceneAsynchronously(sceneIndex));
         }
         #endregion
     }

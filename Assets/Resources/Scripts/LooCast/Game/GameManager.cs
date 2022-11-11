@@ -47,11 +47,15 @@ namespace LooCast.Game
         #endregion
 
         #region Methods
-        public void Pause()
+        public static void Pause()
         {
-            if (!IsPaused)
+            if (Instance == null)
             {
-                IsPaused = true;
+                return;
+            }
+            if (!Instance.IsPaused)
+            {
+                Instance.IsPaused = true;
                 foreach (ExtendedMonoBehaviour extendedMonoBehaviour in ExtendedMonoBehaviour.Instances)
                 {
                     extendedMonoBehaviour.Pause();
@@ -59,11 +63,15 @@ namespace LooCast.Game
             }
         }
 
-        public void Resume()
+        public static void Resume()
         {
-            if (IsPaused)
+            if (Instance == null)
             {
-                IsPaused = false;
+                return;
+            }
+            if (Instance.IsPaused)
+            {
+                Instance.IsPaused = false;
                 foreach (ExtendedMonoBehaviour extendedMonoBehaviour in ExtendedMonoBehaviour.Instances)
                 {
                     extendedMonoBehaviour.Resume();
@@ -71,9 +79,13 @@ namespace LooCast.Game
             }
         }
 
-        public void TogglePause()
+        public static void TogglePause()
         {
-            if (IsPaused)
+            if (Instance == null)
+            {
+                return;
+            }
+            if (Instance.IsPaused)
             {
                 Resume();
             }
@@ -83,9 +95,13 @@ namespace LooCast.Game
             }
         }
 
-        public void LoadScene(string sceneIndex)
+        public static void LoadScene(string sceneIndex)
         {
-            StartCoroutine(loadingScreen.LoadSceneAsynchronously(sceneIndex));
+            if (Instance == null)
+            {
+                return;
+            }
+            Instance.StartCoroutine(Instance.loadingScreen.LoadSceneAsynchronously(sceneIndex));
         }
         #endregion
     }
