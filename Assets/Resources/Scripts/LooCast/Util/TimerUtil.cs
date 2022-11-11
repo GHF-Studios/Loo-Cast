@@ -9,7 +9,11 @@ namespace LooCast.Util
         #region Classes
         public class Timer
         {
+            #region Delegates
             public delegate void UpdateDelegate(float deltaTime);
+            #endregion
+
+            #region Properties
             public UpdateDelegate UpdateAction
             {
                 get
@@ -27,7 +31,9 @@ namespace LooCast.Util
             public Action ElapsedAction { get; private set; }
             public DateTime ActivationTime { get; private set; }
             public DateTime CurrentTime { get; private set; }
+            #endregion
 
+            #region Constructors
             public Timer(int id, float duration, bool autoActivated, bool autoReset)
             {
                 ID = id;
@@ -39,7 +45,9 @@ namespace LooCast.Util
                     Start();
                 }
             }
+            #endregion
 
+            #region Methods
             public void Start()
             {
                 ActivationTime = DateTime.Now;
@@ -84,6 +92,7 @@ namespace LooCast.Util
                     Start();
                 }
             }
+            #endregion
         }
         #endregion
 
