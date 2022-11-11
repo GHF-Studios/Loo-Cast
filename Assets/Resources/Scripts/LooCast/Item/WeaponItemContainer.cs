@@ -18,13 +18,13 @@ namespace LooCast.Item
             
         }
 
-        public override void TryAddItem(Item item, out Item remainingItem)
+        public override void AddItem(Item item, out Item remainingItem)
         {
             if (item is not WeaponItem)
             {
                 throw new ArgumentException("Invalid Item Type!");
             }
-            base.TryAddItem(item, out remainingItem);
+            base.AddItem(item, out remainingItem);
         }
 
         public override void SetItem(int slotID, Item item)

@@ -9,6 +9,11 @@ namespace LooCast.Item
 
     public struct UpgradeSet
     {
+        public UpgradeSet()
+        {
+            
+        }
+
         public UpgradeSet(Stats stats)
         {
             MovementSpeedMultiplier = stats.MovementSpeedMultiplier;

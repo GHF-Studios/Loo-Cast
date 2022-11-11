@@ -17,7 +17,7 @@ namespace LooCast.Mission.Reward
         public override void Reward()
         {
             Item rewardedItem = RewardedItemData.CreateItem();
-            ItemContainerRewardee.TryAddItem(rewardedItem, out Item remainingItem);
+            ItemContainerRewardee.AddItem(rewardedItem, out Item remainingItem);
             if (remainingItem != null)
             {
                 throw new System.Exception("Cannot Reward Item to Item Container!");

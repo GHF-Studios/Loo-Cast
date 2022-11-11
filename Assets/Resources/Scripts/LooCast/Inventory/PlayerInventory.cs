@@ -40,7 +40,7 @@ namespace LooCast.Inventory
             //RuntimeData.Hotbar.AddItem(freezeRayWeaponItem, out Item remainingFreezeRayWeaponItem);
             
             LaserEmitterWeaponItem laserEmitterWeaponItem = (LaserEmitterWeaponItem)Data.LaserEmitterWeaponItemData.CreateItem();
-            RuntimeData.Hotbar.TryAddItem(laserEmitterWeaponItem, out Item remainingLaserEmitterWeaponItem);
+            RuntimeData.Hotbar.AddItem(laserEmitterWeaponItem, out Item remainingLaserEmitterWeaponItem);
             
             //MultiplexerWeaponItem multiplexerWeaponItem = (MultiplexerWeaponItem)Data.MultiplexerWeaponItemData.CreateItem();
             //RuntimeData.Hotbar.AddItem(multiplexerWeaponItem, out Item remainingMultiplexerWeaponItem);

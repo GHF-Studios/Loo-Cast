@@ -61,7 +61,7 @@ namespace LooCast.Item
             Clear(itemSlots.Count);
             foreach (Item item in items)
             {
-                TryAddItem(item, out Item remainingItem);
+                AddItem(item, out Item remainingItem);
             }
 
             if (originObject != null)
@@ -70,10 +70,7 @@ namespace LooCast.Item
             }
         }
 
-        /// <summary>
-        /// Adds and Item to the ItemContainer and returns the remaining Item, if any part of the Item could not be added.
-        /// </summary>
-        public virtual void TryAddItem(Item item, out Item remainingItem)
+        public virtual void AddItem(Item item, out Item remainingItem)
         {
             if (item == null)
             {
@@ -82,21 +79,21 @@ namespace LooCast.Item
 
             if (item is CountableItem)
             {
-                TryAddItem((CountableItem)item, out CountableItem remainingCountableItem);
+                AddItem((CountableItem)item, out CountableItem remainingCountableItem);
                 remainingItem = remainingCountableItem;
                 OnChange.Invoke();
                 return;
             }
             else if (item is AmountableItem)
             {
-                TryAddItem((AmountableItem)item, out AmountableItem remainingAmountableItem);
+                AddItem((AmountableItem)item, out AmountableItem remainingAmountableItem);
                 remainingItem = remainingAmountableItem;
                 OnChange.Invoke();
                 return;
             }
             else if (item is UniqueItem)
             {
-                TryAddItem((UniqueItem)item, out UniqueItem remainingUniqueItem);
+                AddItem((UniqueItem)item, out UniqueItem remainingUniqueItem);
                 remainingItem = remainingUniqueItem;
                 OnChange.Invoke();
                 return;
@@ -107,7 +104,7 @@ namespace LooCast.Item
             }
         }
 
-        protected void TryAddItem(CountableItem countableItem, out CountableItem remainingCountableItem)
+        protected void AddItem(CountableItem countableItem, out CountableItem remainingCountableItem)
         {
             remainingCountableItem = countableItem;
             for (int i = 0; i < itemSlots.Count; i++)
@@ -118,7 +115,8 @@ namespace LooCast.Item
                     {
                         remainingCountableItem.UndropItem();
                     }
-                    SetItem_Internal(i, remainingCountableItem);
+                    remainingCountableItem.ContainItem(this);
+                    itemSlots[i].ItemContent = remainingCountableItem;
                     remainingCountableItem = null;
                     break;
                 }
@@ -142,9 +140,10 @@ namespace LooCast.Item
                     }
                 }
             }
+            OnChange.Invoke();
         }
 
-        protected void TryAddItem(AmountableItem amountableItem, out AmountableItem remainingAmountableItem)
+        protected void AddItem(AmountableItem amountableItem, out AmountableItem remainingAmountableItem)
         {
             remainingAmountableItem = amountableItem;
             for (int i = 0; i < itemSlots.Count; i++)
@@ -155,7 +154,8 @@ namespace LooCast.Item
                     {
                         remainingAmountableItem.UndropItem();
                     }
-                    SetItem_Internal(i, remainingAmountableItem);
+                    remainingAmountableItem.ContainItem(this);
+                    itemSlots[i].ItemContent = remainingAmountableItem;
                     remainingAmountableItem = null;
                     break;
                 }
@@ -179,9 +179,10 @@ namespace LooCast.Item
                     }
                 }
             }
+            OnChange.Invoke();
         }
 
-        protected void TryAddItem(UniqueItem uniqueItem, out UniqueItem remainingUniqueItem)
+        protected void AddItem(UniqueItem uniqueItem, out UniqueItem remainingUniqueItem)
         {
             remainingUniqueItem = uniqueItem;
             for (int i = 0; i < itemSlots.Count; i++)
@@ -192,45 +193,23 @@ namespace LooCast.Item
                     {
                         remainingUniqueItem.UndropItem();
                     }
-                    SetItem_Internal(i, remainingUniqueItem);
+                    remainingUniqueItem.ContainItem(this);
+                    itemSlots[i].ItemContent = remainingUniqueItem;
                     remainingUniqueItem = null;
+                    OnChange.Invoke();
                     return;
                 }
             }
         }
 
-        /// <summary>
-        /// Tries to remove an Item from the ItemContainer
-        /// </summary>
-        /// <param name="slotID">The ID of the slot to remove the Item from</param>
-        /// <returns>The removed Item. Null if there was no item to be removed to begin with.</returns>
-        public Item TryRemoveItem(int slotID)
-        {
-            if (!IsValidSlot(slotID))
-            {
-                throw new ArgumentOutOfRangeException($"Invalid slot! Slot must be between 0 {itemSlots.Count - 1}!");
-            }
-            Item removedItem = GetItem(slotID);
-            removedItem.UncontainItem();
-            SetItem(slotID, null);
-            return removedItem;
-        }
-
         public virtual void SetItem(int slotID, Item item)
         {
-            SetItem_Internal(slotID, item);
-            OnChange.Invoke();
-        }
-
-        // This method exists for the sole purpose of stopping the protected TryAddItem Methods from redundantly invoking the 'OnChange'-Event
-        protected void SetItem_Internal(int slotID, Item item)
-        {
             if (!IsValidSlot(slotID))
             {
                 throw new ArgumentOutOfRangeException($"Invalid slot! Slot must be between 0 {itemSlots.Count - 1}!");
             }
-            item.ContainItem(this);
             itemSlots[slotID].ItemContent = item;
+            OnChange.Invoke();
         }
 
         public Item GetItem(int slotID)
