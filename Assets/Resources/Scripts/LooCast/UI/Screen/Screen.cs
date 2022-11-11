@@ -92,6 +92,7 @@ namespace LooCast.UI.Screen
                 }
                 Canvas.screenStack.Push(this);
                 transform.SetAsLastSibling();
+                GameManager.Instance.Pause();
             }
 
             IsVisible = show;

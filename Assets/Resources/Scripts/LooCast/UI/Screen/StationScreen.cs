@@ -6,6 +6,7 @@ namespace LooCast.UI.Screen
 {
     using LooCast.UI.Panel;
     using LooCast.Station;
+    using LooCast.Game;
 
     public class StationScreen : Screen
     {
@@ -76,7 +77,7 @@ namespace LooCast.UI.Screen
             }
             if (enabled)
             {
-                //Refresh StationHUB
+                //Refresh Market
             }
 
             stationHUBPanel.gameObject.SetActive(false);

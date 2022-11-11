@@ -14,54 +14,33 @@ namespace LooCast.UI.HUD
     {
         #region Fields
         [SerializeField] private AsteroidInspectorRuntimeData asteroidInspectorRuntimeData;
-        [SerializeField] private LayerMask asteroidCursorLayerMask;
         [SerializeField] private AsteroidCursor asteroidCursor;
-
-        [SerializeField] private LayerMask stationScreenLayerMask;
         [SerializeField] private StationScreen stationScreen;
+        [SerializeField] private LayerMask worldLayerMask;
         #endregion
 
         #region Unity Callbacks
         private void Update()
         {
-            if (Input.GetMouseButtonDown(1))
+            #region LMB Input Handler
+            if (Input.GetMouseButtonDown(0))
             {
-                RaycastHit hit;
                 Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, worldLayerMask, QueryTriggerInteraction.Collide);
 
-                bool asteroidRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask);
-                if (asteroidRaycastSuccess)
+                #region Asteroid Destruction
+                if (hits != null && hits.Length > 0)
                 {
-                    Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
-                    asteroidInspectorRuntimeData.CurrentAsteroid = hitAsteroid;
-                    asteroidCursor.CurrentAsteroid = hitAsteroid;
-                }
-                else
-                {
-                    asteroidInspectorRuntimeData.CurrentAsteroid = null;
-                    asteroidCursor.CurrentAsteroid = null;
-                }
-
-                bool stationRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, stationScreenLayerMask, QueryTriggerInteraction.Collide);
-                if (stationRaycastSuccess)
-                {
-                    AllyStation allyStation = hit.transform.gameObject.GetComponentInParent<AllyStation>();
-                    if (allyStation != null)
+                    Asteroid hitAsteroid = null;
+                    foreach (RaycastHit hit in hits)
                     {
-                        stationScreen.CurrentAllyStation = allyStation;
-                        stationScreen.SetVisibility(true);
+                        hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
+                        if (hitAsteroid != null)
+                        {
+                            break;
+                        }
                     }
-                }
-            }
-            else if (Input.GetMouseButtonDown(0))
-            {
-                RaycastHit hit;
-                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                
-                bool asteroidRaycastSuccess = Physics.Raycast(ray, out hit, Mathf.Infinity, asteroidCursorLayerMask);
-                if (asteroidRaycastSuccess)
-                {
-                    Asteroid hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
+
                     if (hitAsteroid == asteroidCursor.CurrentAsteroid)
                     {
                         asteroidInspectorRuntimeData.CurrentAsteroid = null;
@@ -69,7 +48,64 @@ namespace LooCast.UI.HUD
                     }
                     hitAsteroid.Destroy();
                 }
+                #endregion
             }
+            #endregion
+
+            #region RMB Input Handler
+            else if (Input.GetMouseButtonDown(1))
+            {
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, worldLayerMask, QueryTriggerInteraction.Collide);
+
+                #region Asteroid Inspector
+                if (hits != null && hits.Length > 0)
+                {
+                    Asteroid hitAsteroid = null;
+                    foreach (RaycastHit hit in hits)
+                    {
+                        hitAsteroid = hit.transform.gameObject.GetComponent<Asteroid>();
+                        if (hitAsteroid != null)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (hitAsteroid != null)
+                    {
+                        asteroidInspectorRuntimeData.CurrentAsteroid = hitAsteroid;
+                        asteroidCursor.CurrentAsteroid = hitAsteroid;
+                    }
+                }
+                else
+                {
+                    asteroidInspectorRuntimeData.CurrentAsteroid = null;
+                    asteroidCursor.CurrentAsteroid = null;
+                }
+                #endregion
+
+                #region Station Screen
+                if (hits != null && hits.Length > 0)
+                {
+                    AllyStation hitAllyStation = null;
+                    foreach (RaycastHit hit in hits)
+                    {
+                        hitAllyStation = hit.transform.gameObject.GetComponentInParent<AllyStation>();
+                        if (hitAllyStation != null)
+                        {
+                            break;
+                        }
+                    }
+
+                    if (hitAllyStation != null)
+                    {
+                        stationScreen.CurrentAllyStation = hitAllyStation;
+                        stationScreen.SetVisibility(true);
+                    }
+                }
+                #endregion
+            }
+            #endregion
         }
         #endregion
     }

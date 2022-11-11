@@ -9,6 +9,7 @@ namespace LooCast.AI
     using StateMachine;
     using Util;
     using Target;
+    using LooCast.Game;
 
     public class EnemyAI : ExtendedMonoBehaviour
     {
@@ -140,17 +141,15 @@ namespace LooCast.AI
         private FiniteStateMachine<State> finiteStateMachine = new FiniteStateMachine<State>();
         private IMovement movement;
 
-        private void Awake()
-        {
-            movement = GetComponent<IMovement>();
-        }
-
         private void Start()
         {
+            movement = GetComponent<IMovement>();
+
             roamingRootPosition = transform.position;
 
             finiteStateMachine.Add(new Roaming(this));
             finiteStateMachine.Add(new Chasing(this));
+            finiteStateMachine.Add(new Retreating(this));
 
             finiteStateMachine.SetCurrentState(State.Roaming);
         }

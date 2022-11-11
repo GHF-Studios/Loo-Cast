@@ -133,13 +133,10 @@ namespace LooCast.AI
         private FiniteStateMachine<State> finiteStateMachine = new FiniteStateMachine<State>();
         private IMovement movement;
 
-        private void Awake()
-        {
-            movement = GetComponent<IMovement>();
-        }
-
         private void Start()
         {
+            movement = GetComponent<IMovement>();
+
             roamingRootPosition = transform.position;
 
             finiteStateMachine.Add(new Roaming(this));
