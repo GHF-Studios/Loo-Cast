@@ -52,7 +52,10 @@ namespace LooCast.Item
             fireTimer.AddElapsedAction(() =>
             {
                 canFire = true;
-                TryFire();
+                if (autoFire)
+                {
+                    TryFire();
+                }
             });
             fireTimer.Start();
 
