@@ -30,12 +30,12 @@ namespace LooCast.Attribute.Stat
         public float RangeMultiplier { get { return Mind.RangeMultiplier; } }
         public float ProjectileSpeedMultiplier { get { return Personality.ProjectileSpeedMultiplier; } }
         public float KnockbackMultiplier { get { return Power.KnockbackMultiplier; } }
-        public float KnockbackResistanceMultiplier { get { return Presence.KnockbackResistanceMultiplier; } }
+        //public float UNDEFINED { get { return Presence.UNDEFINED; } }
         //public float UNDEFINED { get { return Psyche.UNDEFINED; } }
         public float AttackDelayMultiplier { get { return Quickness.AttackDelayMultiplier; } }
         public float HealthRegenrationMultiplier { get { return Recovery.HealthRegenrationMultiplier; } }
         public float ConsecutiveProjectileDelayMultiplier { get { return Reflexes.ConsecutiveProjectileDelayMultiplier; } }
-        public int ShieldStrengthIncrease { get { return Resilience.ShieldStrengthIncrease; } }
+        public float KnockbackResistanceMultiplier { get { return Resilience.KnockbackResistanceMultiplier; } }
         public int DefenseIncrease { get { return Resistance.DefenseIncrease; } }
         public int PiercingIncrease { get { return Resolve.PiercingIncrease; } }
         public float ProjectileSizeMultiplier { get { return Sanity.ProjectileSizeMultiplier; } }

@@ -15,11 +15,12 @@ namespace LooCast.Attribute.Stat
                 return "Resilience";
             }
         }
-        public int ShieldStrengthIncrease
+
+        public float KnockbackResistanceMultiplier
         {
             get
             {
-                return Level.Value;
+                return 1.0f + (Level.Value * 0.1f);
             }
         }
     } 
