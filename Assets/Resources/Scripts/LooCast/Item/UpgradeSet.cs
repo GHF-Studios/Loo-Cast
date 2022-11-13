@@ -35,7 +35,7 @@ namespace LooCast.Item
             AttackDelayMultiplier = stats.AttackDelayMultiplier;
             HealthRegenrationMultiplier = stats.HealthRegenrationMultiplier;
             ConsecutiveProjectileDelayMultiplier = stats.ConsecutiveProjectileDelayMultiplier;
-            ShieldStrengthIncrease = stats.ShieldStrengthIncrease;
+            KnockbackResistanceMultiplier = stats.KnockbackResistanceMultiplier;
             DefenseIncrease = stats.DefenseIncrease;
             PiercingIncrease = stats.PiercingIncrease;
             ProjectileSizeMultiplier = stats.ProjectileSizeMultiplier;
@@ -71,7 +71,7 @@ namespace LooCast.Item
         public float AttackDelayMultiplier;
         public float HealthRegenrationMultiplier;
         public float ConsecutiveProjectileDelayMultiplier;
-        public int ShieldStrengthIncrease;
+        public float KnockbackResistanceMultiplier;
         public int DefenseIncrease;
         public int PiercingIncrease;
         public float ProjectileSizeMultiplier;
