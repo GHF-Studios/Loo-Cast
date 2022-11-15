@@ -17,7 +17,7 @@ namespace LooCast.MainMenu
         #endregion
 
         #region Methods
-        private void Awake()
+        public void Initialize()
         {
             if (Instance != null)
             {

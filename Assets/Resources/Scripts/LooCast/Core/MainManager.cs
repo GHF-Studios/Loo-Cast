@@ -8,6 +8,7 @@ namespace LooCast.Core
     using Game;
     using Universe;
     using System.Collections;
+    using static LooCast.Core.MainManager;
 
     public class MainManager : MonoBehaviour
     {
@@ -66,6 +67,10 @@ namespace LooCast.Core
             _ = SteamManager.Initialized;
             #endregion
 
+            #region Scene Initialization
+            InitializeScene(activeSceneName);
+            #endregion
+
             #endregion
 
             Debug.Log($"[MainManager] Finished Initialization in Scene '{activeSceneName}'.");
@@ -108,22 +113,33 @@ namespace LooCast.Core
             {
                 case SceneType.MainMenu:
                     Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName));
-                    MainMenuManager mainMenuManager = FindObjectOfType<MainMenuManager>();
-                    #region MainMenu Scene Post-Initialization
-
-                    #endregion
+                    InitializeScene("MainMenu");
                     break;
                 case SceneType.Game:
                     Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName));
-                    GameManager gameManager = FindObjectOfType<GameManager>();
-                    #region Game Scene Post-Initialization
-
-                    #endregion
+                    InitializeScene("Game");
                     break;
                 default:
                     throw new ArgumentException($"Scene Type '{sceneName}' not supported!");
             }
             Debug.Log($"[MainManager] Finished loading Scene '{sceneName}'.");
+        }
+
+        private static void InitializeScene(string sceneName)
+        {
+            switch (sceneName)
+            {
+                case "MainMenu":
+                    MainMenuManager mainMenuManager = FindObjectOfType<MainMenuManager>();
+                    mainMenuManager.Initialize();
+                    break;
+                case "Game":
+                    GameManager gameManager = FindObjectOfType<GameManager>();
+                    gameManager.Initialize();
+                    break;
+                default:
+                    throw new NotImplementedException($"Scene Initialization has not been implemented for Scene '{sceneName}'!");
+            }
         }
 
         public static void CreateNewGame()

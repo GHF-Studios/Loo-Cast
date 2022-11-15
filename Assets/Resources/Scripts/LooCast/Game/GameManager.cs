@@ -40,7 +40,14 @@ namespace LooCast.Game
         #endregion
 
         #region Unity Callbacks
-        private void Awake()
+        private void OnApplicationQuit()
+        {
+            runtimeSets.Initialize();
+        }
+        #endregion
+
+        #region Methods
+        public void Initialize()
         {
             if (Instance != null)
             {
@@ -56,11 +63,6 @@ namespace LooCast.Game
             #endregion
 
             Debug.Log($"[GameManager] Initialized.");
-        }
-
-        private void OnApplicationQuit()
-        {
-            runtimeSets.Initialize();
         }
         #endregion
 
