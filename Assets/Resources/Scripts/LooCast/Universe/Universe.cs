@@ -494,6 +494,7 @@ namespace LooCast.Universe
         }
         #endregion
 
+        #region Static Properties
         public static Universe Instance
         {
             get
@@ -518,8 +519,13 @@ namespace LooCast.Universe
                 }
             }
         }
-        private static Universe instance;
+        #endregion
 
+        #region Static Fields
+        private static Universe instance;
+        #endregion
+
+        #region Properties
         public GenerationSettings UniverseGenerationSettings => generationSettings;
         public Filament.GenerationSettings FilamentGenerationSettings => generationSettings.FilamentGenerationSettings;
         public Sector.GenerationSettings SectorGenerationSettings => generationSettings.SectorGenerationSettings;
@@ -544,7 +550,9 @@ namespace LooCast.Universe
                 map = value;
             }
         }
+        #endregion
 
+        #region Fields
         [SerializeField] private GenerationSettings generationSettings;
         [SerializeField] private FastNoiseLite universeNoiseGenerator;
         [SerializeField] private FastNoiseLite universeDomainWarper;
@@ -561,7 +569,9 @@ namespace LooCast.Universe
         private Dictionary<Vector2Int, Sector> loadedSectors;
         private Dictionary<Vector2Int, Region> loadedRegions;
         private Texture2D map;
+        #endregion
 
+        #region Constructors
         private Universe(GenerationSettings generationSettings)
         {
             this.generationSettings = generationSettings;
@@ -742,7 +752,9 @@ namespace LooCast.Universe
             map = TextureUtil.TextureFromColorMap(noiseColorMap, UniverseGenerationSettings.Size, UniverseGenerationSettings.Size);
             #endregion
         }
+        #endregion
 
+        #region Methods
         public float SampleNoise(float sampleX, float sampleY)
         {
             #region Sampling
@@ -758,6 +770,9 @@ namespace LooCast.Universe
 
             return noiseValue;
         }
+        #endregion
+
+        #region Universe API
 
         #region Universe
 
@@ -1719,6 +1734,8 @@ namespace LooCast.Universe
                 DeleteRegion(regionPosition);
             }
         }
+        #endregion
+
         #endregion
 
         #endregion

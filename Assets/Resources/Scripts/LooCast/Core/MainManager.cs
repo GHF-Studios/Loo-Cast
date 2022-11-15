@@ -26,7 +26,7 @@ namespace LooCast.Core
             {
                 if (instance == null)
                 {
-                    return new GameObject("[Main Manager]").AddComponent<MainManager>();
+                    return new GameObject("[MainManager]").AddComponent<MainManager>();
                 }
                 else
                 {
@@ -101,7 +101,7 @@ namespace LooCast.Core
         public static void CreateNewGame()
         {
             LoadScene(SceneType.Game);
-
+            /*
             Universe.GenerationSettings generationSettings = new Universe.GenerationSettings();
 
             #region Universe Generation Settings Default
@@ -231,11 +231,11 @@ namespace LooCast.Core
             Vector2Int filamentPosition = new Vector2Int(1024, 1024);
             Vector2Int sectorPosition = new Vector2Int(1024, 1024);
             Vector2Int regionPosition = new Vector2Int(1024, 1024);
-
             Universe.GenerateUniverse(generationSettings);
             Universe.Instance.GenerateFilament(filamentPosition);
             Universe.Instance.GenerateSector(filamentPosition, sectorPosition);
             Universe.Instance.GenerateRegion(sectorPosition, regionPosition);
+            */
         }
         #endregion
 

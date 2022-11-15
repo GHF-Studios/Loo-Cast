@@ -29,7 +29,7 @@ public class SteamManager : MonoBehaviour
 	protected static SteamManager Instance {
 		get {
 			if (s_instance == null) {
-				return new GameObject("SteamManager").AddComponent<SteamManager>();
+                return new GameObject("[SteamManager]").AddComponent<SteamManager>();
 			}
 			else {
 				return s_instance;
@@ -68,8 +68,9 @@ public class SteamManager : MonoBehaviour
 			return;
 		}
 		s_instance = this;
+        Debug.Log($"[SteamManager] Initialized.");
 
-		if(s_EverInitialized) {
+        if (s_EverInitialized) {
 			// This is almost always an error.
 			// The most common case where this happens is when SteamManager gets destroyed because of Application.Quit(),
 			// and then some Steamworks code in some other OnDestroy gets called afterwards, creating a new SteamManager.
@@ -81,11 +82,11 @@ public class SteamManager : MonoBehaviour
 		DontDestroyOnLoad(gameObject);
 
 		if (!Packsize.Test()) {
-			Debug.LogError("[Steamworks.NET] Packsize Test returned false, the wrong version of Steamworks.NET is being run in this platform.", this);
+			Debug.LogError("[SteamManager] Packsize Test returned false, the wrong version of Steamworks.NET is being run in this platform.", this);
 		}
 
 		if (!DllCheck.Test()) {
-			Debug.LogError("[Steamworks.NET] DllCheck Test returned false, One or more of the Steamworks binaries seems to be the wrong version.", this);
+			Debug.LogError("[SteamManager] DllCheck Test returned false, One or more of the Steamworks binaries seems to be the wrong version.", this);
 		}
 
 		try {
@@ -101,7 +102,7 @@ public class SteamManager : MonoBehaviour
 			}
 		}
 		catch (System.DllNotFoundException e) { // We catch this exception here, as it will be the first occurrence of it.
-			Debug.LogError("[Steamworks.NET] Could not load [lib]steam_api.dll/so/dylib. It's likely not in the correct location. Refer to the README for more details.\n" + e, this);
+			Debug.LogError("[SteamManager] Could not load [lib]steam_api.dll/so/dylib. It's likely not in the correct location. Refer to the README for more details.\n" + e, this);
 
 			Application.Quit();
 			return;
@@ -118,7 +119,7 @@ public class SteamManager : MonoBehaviour
 		// https://partner.steamgames.com/doc/sdk/api#initialization_and_shutdown
 		m_bInitialized = SteamAPI.Init();
 		if (!m_bInitialized) {
-			Debug.LogError("[Steamworks.NET] SteamAPI_Init() failed. Refer to Valve's documentation or the comment above this line for more information.", this);
+			Debug.LogError("[SteamManager] SteamAPI_Init() failed. Refer to Valve's documentation or the comment above this line for more information.", this);
 
 			return;
 		}
