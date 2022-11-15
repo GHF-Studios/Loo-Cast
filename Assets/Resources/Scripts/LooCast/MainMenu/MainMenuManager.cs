@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -19,14 +19,16 @@ namespace LooCast.MainMenu
         #region Methods
         private void Awake()
         {
-            if (Instance != null && Instance != this)
+            if (Instance != null)
             {
-                Destroy(gameObject);
+                throw new Exception("Cannot have multiple instances of MainMenuManager!");
             }
-            else
-            {
-                Instance = this;
-            }
+
+            #region Initialization
+            Instance = this;
+            #endregion
+
+            Debug.Log($"[MainMenuManager] Initialized.");
         }
 
         public void Quit()

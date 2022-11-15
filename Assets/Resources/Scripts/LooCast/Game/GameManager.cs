@@ -9,35 +9,53 @@ namespace LooCast.Game
     using LooCast.Sound;
     using LooCast.Core;
     using LooCast.Statistic;
+    using System;
 
     public class GameManager : MonoBehaviour
     {
-        #region Properties
+        #region Static Properties
         public static GameManager Instance { get; private set; }
+        #endregion
+
+        #region Static Fields
+        #endregion
+
+        #region Properties
         public bool IsPaused { get; private set; }
+        public Game CurrentGame
+        {
+            get
+            {
+                return currentGame;
+            }
+        }
         #endregion
 
         #region Fields
         public LoadingScreen loadingScreen;
         public RuntimeSets runtimeSets;
         public GameSoundHandler gameSoundHandler;
+
+        private Game currentGame;
         #endregion
 
         #region Unity Callbacks
         private void Awake()
         {
-            if (Instance != null && Instance != this)
+            if (Instance != null)
             {
-                Destroy(gameObject);
-            }
-            else
-            {
-                Instance = this;
+                throw new Exception("Cannot have multiple instances of GameManager!");
             }
 
+            #region Initialization
+            Instance = this;
             runtimeSets.Initialize();
             IsPaused = false;
             KillsStatistic.Kills = 0;
+            currentGame = null;
+            #endregion
+
+            Debug.Log($"[GameManager] Initialized.");
         }
 
         private void OnApplicationQuit()
@@ -46,7 +64,7 @@ namespace LooCast.Game
         }
         #endregion
 
-        #region Methods
+        #region Static Methods
         public static void Pause()
         {
             if (Instance == null)
@@ -102,6 +120,11 @@ namespace LooCast.Game
                 return;
             }
             Instance.StartCoroutine(Instance.loadingScreen.LoadSceneAsynchronously(sceneIndex));
+        }
+
+        public static void LoadGame()
+        {
+
         }
         #endregion
     }

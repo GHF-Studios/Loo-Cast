@@ -46,6 +46,12 @@ namespace LooCast.Core
         #region Unity Callbacks
         private void Awake()
         {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            Debug.Log($"[MainManager] Starting Initialization in Scene '{activeSceneName}'.");
+
+            #region Initialization
+
+            #region MainManager Initialization
             if (instance != null)
             {
                 Destroy(gameObject);
@@ -53,6 +59,16 @@ namespace LooCast.Core
             }
             instance = this;
             DontDestroyOnLoad(this);
+            Debug.Log($"[MainManager] Initialized.");
+            #endregion
+
+            #region SteamManager Initialization
+            _ = SteamManager.Initialized;
+            #endregion
+
+            #endregion
+
+            Debug.Log($"[MainManager] Finished Initialization in Scene '{activeSceneName}'.");
         }
         #endregion
 
@@ -60,22 +76,26 @@ namespace LooCast.Core
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void PreInitialize()
         {
-            _ = Instance;
-            _ = SteamManager.Initialized;
-
             string activeSceneName = SceneManager.GetActiveScene().name;
-
             Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
 
+            #region Pre-Initialization
+
+            #endregion
+
             Debug.Log($"[MainManager] Finished Pre-Initialization in Scene '{activeSceneName}'.");
+            _ = Instance;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void PostInitialize()
         {
             string activeSceneName = SceneManager.GetActiveScene().name;
-
             Debug.Log($"[MainManager] Starting Post-Initialization in Scene '{activeSceneName}'.");
+
+            #region Post-Initialization
+
+            #endregion
 
             Debug.Log($"[MainManager] Finished Post-Initialization in Scene '{activeSceneName}'.");
         }
@@ -88,9 +108,17 @@ namespace LooCast.Core
             {
                 case SceneType.MainMenu:
                     Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName));
+                    MainMenuManager mainMenuManager = FindObjectOfType<MainMenuManager>();
+                    #region MainMenu Scene Post-Initialization
+
+                    #endregion
                     break;
                 case SceneType.Game:
                     Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName));
+                    GameManager gameManager = FindObjectOfType<GameManager>();
+                    #region Game Scene Post-Initialization
+
+                    #endregion
                     break;
                 default:
                     throw new ArgumentException($"Scene Type '{sceneName}' not supported!");

@@ -68,7 +68,6 @@ public class SteamManager : MonoBehaviour
 			return;
 		}
 		s_instance = this;
-        Debug.Log($"[SteamManager] Initialized.");
 
         if (s_EverInitialized) {
 			// This is almost always an error.
@@ -124,7 +123,9 @@ public class SteamManager : MonoBehaviour
 			return;
 		}
 
-		s_EverInitialized = true;
+        Debug.Log($"[SteamManager] Initialized.");
+
+        s_EverInitialized = true;
 	}
 
 	// This should only ever get called on first load and after an Assembly reload, You should never Disable the Steamworks Manager yourself.
