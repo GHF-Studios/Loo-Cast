@@ -27,7 +27,7 @@
         "DomainWarpFractalGain": 0.5,
         "FilamentGenerationSettings": {
             "Prefab": {
-                "instanceID": 37372
+                "instanceID": 0
             },
             "Size": 2048,
             "MapFromMin": -1.0,
@@ -57,7 +57,7 @@
         },
         "SectorGenerationSettings": {
             "Prefab": {
-                "instanceID": 37384
+                "instanceID": 0
             },
             "Size": 2048,
             "MapFromMin": -1.0,
@@ -84,7 +84,7 @@
         },
         "RegionGenerationSettings": {
             "Prefab": {
-                "instanceID": 37396
+                "instanceID": 0
             },
             "Size": 2048,
             "MapFromMin": -1.0,
