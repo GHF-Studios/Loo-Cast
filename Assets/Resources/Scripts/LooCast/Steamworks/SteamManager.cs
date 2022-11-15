@@ -13,6 +13,7 @@ using UnityEngine;
 #if !DISABLESTEAMWORKS
 using System.Collections;
 using Steamworks;
+using LooCast.Core;
 #endif
 
 //
@@ -28,10 +29,15 @@ public class SteamManager : MonoBehaviour
 	protected static SteamManager s_instance;
 	protected static SteamManager Instance {
 		get {
-			if (s_instance == null) {
-                return new GameObject("[SteamManager]").AddComponent<SteamManager>();
-			}
-			else {
+			if (s_instance == null) 
+			{
+                GameObject instanceObject = new GameObject("[SteamManager]");
+                instanceObject.layer = 31;
+                instanceObject.tag = "INTERNAL";
+                return instanceObject.AddComponent<SteamManager>();
+            }
+			else 
+			{
 				return s_instance;
 			}
 		}

@@ -16624,9 +16624,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1488776025}
   - component: {fileID: 1488776024}
-  m_Layer: 0
+  m_Layer: 31
   m_Name: GameManager
-  m_TagString: Untagged
+  m_TagString: INTERNAL
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -16751,9 +16751,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1491533530}
   - component: {fileID: 1491533531}
-  m_Layer: 0
+  m_Layer: 31
   m_Name: MissionManager
-  m_TagString: Untagged
+  m_TagString: INTERNAL
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

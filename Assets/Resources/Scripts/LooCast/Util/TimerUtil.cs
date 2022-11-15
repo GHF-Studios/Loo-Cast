@@ -125,12 +125,18 @@ namespace LooCast.Util
             instance.timers.Remove(timer);
         }
 
-        private static void InitializeInstance()
+        public static void InitializeInstance()
         {
-            GameObject instanceObject = new GameObject("[Timer]");
+            if (instance != null)
+            {
+                throw new Exception("Cannot have multiple instances of TimerUtil!");
+            }
+            GameObject instanceObject = new GameObject("[TimerUtil]");
             instanceObject.layer = 31;
             instanceObject.tag = "INTERNAL";
             instance = instanceObject.AddComponent<TimerUtil>();
+            DontDestroyOnLoad(instance);
+            Debug.Log("[TimerUtil] Initialized.");
         }
         #endregion
 

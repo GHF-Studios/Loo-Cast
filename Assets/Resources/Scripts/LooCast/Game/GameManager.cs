@@ -15,6 +15,13 @@ namespace LooCast.Game
     {
         #region Static Properties
         public static GameManager Instance { get; private set; }
+        public static bool Initialized
+        {
+            get
+            {
+                return Instance != null;
+            }
+        }
         #endregion
 
         #region Static Fields
@@ -27,6 +34,11 @@ namespace LooCast.Game
             get
             {
                 return currentGame;
+            }
+
+            private set
+            {
+                currentGame = value;
             }
         }
         #endregion
@@ -67,7 +79,7 @@ namespace LooCast.Game
         #endregion
 
         #region Static Methods
-        public static void Pause()
+        public static void PauseGame()
         {
             if (Instance == null)
             {
@@ -83,7 +95,7 @@ namespace LooCast.Game
             }
         }
 
-        public static void Resume()
+        public static void ResumeGame()
         {
             if (Instance == null)
             {
@@ -99,34 +111,12 @@ namespace LooCast.Game
             }
         }
 
-        public static void TogglePause()
+        public static void InitializeGame()
         {
-            if (Instance == null)
+            if (Initialized)
             {
-                return;
-            }
-            if (Instance.IsPaused)
-            {
-                Resume();
-            }
-            else
-            {
-                Pause();
-            }
-        }
 
-        public static void LoadScene(string sceneIndex)
-        {
-            if (Instance == null)
-            {
-                return;
             }
-            Instance.StartCoroutine(Instance.loadingScreen.LoadSceneAsynchronously(sceneIndex));
-        }
-
-        public static void LoadGame()
-        {
-
         }
         #endregion
     }

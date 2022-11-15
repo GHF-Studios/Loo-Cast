@@ -6,9 +6,7 @@ namespace LooCast.Core
 {
     using MainMenu;
     using Game;
-    using Universe;
-    using System.Collections;
-    using static LooCast.Core.MainManager;
+    using Util;
 
     public class MainManager : MonoBehaviour
     {
@@ -27,7 +25,10 @@ namespace LooCast.Core
             {
                 if (instance == null)
                 {
-                    return new GameObject("[MainManager]").AddComponent<MainManager>();
+                    GameObject instanceObject = new GameObject("[MainManager]");
+                    instanceObject.layer = 31;
+                    instanceObject.tag = "INTERNAL";
+                    return instanceObject.AddComponent<MainManager>();
                 }
                 else
                 {
@@ -65,6 +66,10 @@ namespace LooCast.Core
 
             #region SteamManager Initialization
             _ = SteamManager.Initialized;
+            #endregion
+
+            #region TimerUtil Initialization
+            TimerUtil.InitializeInstance();
             #endregion
 
             #region Scene Initialization
@@ -112,34 +117,21 @@ namespace LooCast.Core
             switch (sceneType)
             {
                 case SceneType.MainMenu:
-                    Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName));
-                    InitializeScene("MainMenu");
+                    Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName, () =>
+                    {
+                        InitializeScene("MainMenu");
+                    }));
                     break;
                 case SceneType.Game:
-                    Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName));
-                    InitializeScene("Game");
+                    Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName, () =>
+                    {
+                        InitializeScene("Game");
+                    }));
                     break;
                 default:
                     throw new ArgumentException($"Scene Type '{sceneName}' not supported!");
             }
             Debug.Log($"[MainManager] Finished loading Scene '{sceneName}'.");
-        }
-
-        private static void InitializeScene(string sceneName)
-        {
-            switch (sceneName)
-            {
-                case "MainMenu":
-                    MainMenuManager mainMenuManager = FindObjectOfType<MainMenuManager>();
-                    mainMenuManager.Initialize();
-                    break;
-                case "Game":
-                    GameManager gameManager = FindObjectOfType<GameManager>();
-                    gameManager.Initialize();
-                    break;
-                default:
-                    throw new NotImplementedException($"Scene Initialization has not been implemented for Scene '{sceneName}'!");
-            }
         }
 
         public static void CreateNewGame()
@@ -280,6 +272,23 @@ namespace LooCast.Core
             Universe.Instance.GenerateSector(filamentPosition, sectorPosition);
             Universe.Instance.GenerateRegion(sectorPosition, regionPosition);
             */
+        }
+
+        private static void InitializeScene(string sceneName)
+        {
+            switch (sceneName)
+            {
+                case "MainMenu":
+                    MainMenuManager mainMenuManager = FindObjectOfType<MainMenuManager>();
+                    mainMenuManager.Initialize();
+                    break;
+                case "Game":
+                    GameManager gameManager = FindObjectOfType<GameManager>();
+                    gameManager.Initialize();
+                    break;
+                default:
+                    throw new NotImplementedException($"Scene Initialization has not been implemented for Scene '{sceneName}'!");
+            }
         }
         #endregion
 

@@ -46,7 +46,7 @@ namespace LooCast.MainMenu
             {
                 return;
             }
-            Instance.StartCoroutine(Instance.LoadingScreen.LoadSceneAsynchronously(sceneIndex));
+            Instance.StartCoroutine(Instance.LoadingScreen.LoadSceneAsynchronously(sceneIndex, null));
         }
         #endregion
     }

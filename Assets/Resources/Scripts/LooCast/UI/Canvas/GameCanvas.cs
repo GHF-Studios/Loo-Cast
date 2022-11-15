@@ -15,7 +15,7 @@ namespace LooCast.UI.Canvas
                 if (screenStack.Count == 0)
                 {
                     PauseScreen.SetVisibility(true);
-                    GameManager.Pause();
+                    GameManager.PauseGame();
                 }
                 else
                 {
