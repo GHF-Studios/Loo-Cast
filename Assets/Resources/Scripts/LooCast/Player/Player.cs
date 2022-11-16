@@ -15,10 +15,31 @@ namespace LooCast.Player
     using Attribute.Stat;
     using Currency;
     using Item;
+    using Game;
 
     [DisallowMultipleComponent]
-    public class Player : ExtendedMonoBehaviour, IItemUpgrader
+    public class Player : ExtendedMonoBehaviour, IItemUpgrader, IGameDataHandler
     {
+        #region Structs
+        public struct DataContainer
+        {
+            public Vector3 Position
+            {
+                get
+                {
+                    return position;
+                }
+            }
+
+            [SerializeField] private Vector3 position;
+
+            public DataContainer(Vector3 position)
+            {
+                this.position = position;
+            }
+        }
+        #endregion
+
         public PlayerData Data;
         public PlayerRuntimeData RuntimeData;
 
@@ -77,6 +98,20 @@ namespace LooCast.Player
                 Attributes.Uncheat();
                 Stats.Uncheat();
             }
+        }
+
+        public RuntimeData GetData()
+        {
+            DataContainer dataContainer = new DataContainer(transform.position);
+            string jsonData = JsonUtility.ToJson(dataContainer);
+            RuntimeData gameData = new RuntimeData(jsonData, "Player", "Player", "Prefabs/Player/Player");
+            return gameData;
+        }
+
+        public void SetData(RuntimeData data)
+        {
+            DataContainer dataContainer = JsonUtility.FromJson<DataContainer>(data.JsonData);
+            transform.position = dataContainer.Position;
         }
     } 
 }

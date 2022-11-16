@@ -6,22 +6,9 @@ namespace LooCast.Game
 {
     public class Game
     {
-        public string Name
-        {
-            get
-            {
-                return name;
-            }
+        public string Name { get; private set; }
 
-            private set
-            {
-                name = value;
-            }
-        }
-
-        private string name;
-
-        private Game(string name)
+        public Game(string name)
         {
             Name = name;
         }
@@ -46,11 +33,6 @@ namespace LooCast.Game
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             return JsonUtility.FromJson<Game>(json);
-        }
-
-        public static Game CreateGame(string name)
-        {
-            return new Game(name);
         }
     }
 }
