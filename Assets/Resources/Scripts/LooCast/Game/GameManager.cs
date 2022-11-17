@@ -111,6 +111,18 @@ namespace LooCast.Game
                 }
             }
         }
+
+        public static void LoadGame(Game game)
+        {
+            // Check if GameManager Instance is Initialized
+            // Load all objects inside game into Scene (foreach file in game.files => file.Load())
+        }
+
+        public static void SaveGame(Game game)
+        {
+            // Check if GameManager Instance is Initialized
+            // Save all Object into Game (foreach saveable in saveables => saveable.Save(game))
+        }
         #endregion
     }
 }

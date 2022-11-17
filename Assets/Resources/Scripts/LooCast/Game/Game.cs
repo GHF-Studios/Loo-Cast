@@ -5,13 +5,37 @@ using System.Collections.Generic;
 
 namespace LooCast.Game
 {
+    [Serializable]
     public class Game
     {
-        public string Name { get; private set; }
+        #region Data
+
+        #endregion
+
+        #region Properties
+        public string Name
+        {
+            get
+            {
+                return name;
+            }
+        }
+        public bool Initialized
+        {
+            get
+            {
+                return initialized;
+            }
+        }
+        #endregion
+
+        #region Fields
+        [SerializeField] private string name;
+        #endregion
 
         public Game(string name)
         {
-            Name = name;
+            this.name = name;
         }
 
         public static void SaveGame(Game game)

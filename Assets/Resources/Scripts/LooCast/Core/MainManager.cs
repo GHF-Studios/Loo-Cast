@@ -7,6 +7,7 @@ namespace LooCast.Core
     using MainMenu;
     using Game;
     using Util;
+    using System.Collections.Generic;
 
     public class MainManager : MonoBehaviour
     {
@@ -43,6 +44,8 @@ namespace LooCast.Core
         #endregion
 
         #region Properties
+        private Games games;
+        private Game selectedGame;
         #endregion
 
         #region Unity Callbacks
@@ -61,6 +64,9 @@ namespace LooCast.Core
             }
             instance = this;
             DontDestroyOnLoad(this);
+
+            games = Games.LoadGames();
+
             Debug.Log($"[MainManager] Initialized.");
             #endregion
 
@@ -110,7 +116,6 @@ namespace LooCast.Core
 
         public static void CreateNewGame()
         {
-            LoadScene(SceneType.Game);
             /*
             Universe.GenerationSettings generationSettings = new Universe.GenerationSettings();
 
@@ -246,6 +251,16 @@ namespace LooCast.Core
             Universe.Instance.GenerateSector(filamentPosition, sectorPosition);
             Universe.Instance.GenerateRegion(sectorPosition, regionPosition);
             */
+        }
+
+        public static void LoadGame()
+        {
+
+        }
+
+        public static void LoadMainMenu()
+        {
+
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]

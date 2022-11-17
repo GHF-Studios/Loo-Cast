@@ -12,7 +12,7 @@ namespace LooCast.Attribute
     [Serializable]
     public abstract class Attribute : ScriptableObject
     {
-        public class DataContainer
+        public struct DataContainer
         {
             [SerializeField] private string[] statNames;
             [SerializeField] private int level;

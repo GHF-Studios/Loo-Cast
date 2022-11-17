@@ -16,7 +16,7 @@ namespace LooCast.Core
             {
                 return Type.GetType(assemblyQualifiedName);
             }
-        }
+        }                  // Example: HugeBoss
         public string[] Namespaces
         {
             get
@@ -25,8 +25,8 @@ namespace LooCast.Core
                 namespaces = namespaces.Take(namespaces.Count() - 1).ToArray();
                 return namespaces;
             }
-        }
-        public string ID                // Example: Enemy_SmolEnemy
+        }       // Example: Enemy, Boss
+        public string ID
         {
             get
             {
@@ -38,7 +38,7 @@ namespace LooCast.Core
                 id += $"{Type.Name}";
                 return id;
             }
-        }
+        }                // Example: Enemy_Boss_HugeBoss
 
         [SerializeField] private string assemblyQualifiedName;
 
