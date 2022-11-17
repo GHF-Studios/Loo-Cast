@@ -7,7 +7,6 @@ namespace LooCast.Core
     using MainMenu;
     using Game;
     using Util;
-    using System.Collections.Generic;
 
     public class MainManager : MonoBehaviour
     {
@@ -84,32 +83,6 @@ namespace LooCast.Core
         #endregion
 
         #region Static Methods
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void PreInitialize()
-        {
-            string activeSceneName = SceneManager.GetActiveScene().name;
-            Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
-
-            #region Pre-Initialization
-
-            #endregion
-
-            Debug.Log($"[MainManager] Finished Pre-Initialization in Scene '{activeSceneName}'.");
-            _ = Instance;
-        }
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void PostInitialize()
-        {
-            string activeSceneName = SceneManager.GetActiveScene().name;
-            Debug.Log($"[MainManager] Starting Post-Initialization in Scene '{activeSceneName}'.");
-
-            #region Post-Initialization
-
-            #endregion
-
-            Debug.Log($"[MainManager] Finished Post-Initialization in Scene '{activeSceneName}'.");
-        }
 
         public static void LoadScene(SceneType sceneType)
         {
@@ -273,6 +246,33 @@ namespace LooCast.Core
             Universe.Instance.GenerateSector(filamentPosition, sectorPosition);
             Universe.Instance.GenerateRegion(sectorPosition, regionPosition);
             */
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void PreInitialize()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
+
+            #region Pre-Initialization
+
+            #endregion
+
+            Debug.Log($"[MainManager] Finished Pre-Initialization in Scene '{activeSceneName}'.");
+            _ = Instance;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void PostInitialize()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            Debug.Log($"[MainManager] Starting Post-Initialization in Scene '{activeSceneName}'.");
+
+            #region Post-Initialization
+
+            #endregion
+
+            Debug.Log($"[MainManager] Finished Post-Initialization in Scene '{activeSceneName}'.");
         }
 
         private static void InitializeScene(string sceneName)
