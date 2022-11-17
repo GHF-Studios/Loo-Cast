@@ -20,13 +20,6 @@ namespace LooCast.Game
                 return name;
             }
         }
-        public bool Initialized
-        {
-            get
-            {
-                return initialized;
-            }
-        }
         #endregion
 
         #region Fields
