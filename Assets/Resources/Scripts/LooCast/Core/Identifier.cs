@@ -10,7 +10,13 @@ namespace LooCast.Core
     [Serializable]
     public class Identifier
     {
-        public Type Type => type;
+        public Type Type
+        {
+            get
+            {
+                return Type.GetType(assemblyQualifiedName);
+            }
+        }
         public string[] Namespaces
         {
             get
@@ -29,18 +35,17 @@ namespace LooCast.Core
                 {
                     id += $"{Namespaces[i]}_";
                 }
-                id += $"{type.Name}";
+                id += $"{Type.Name}";
                 return id;
             }
         }
 
-        [SerializeField] protected Type type;
+        [SerializeField] private string assemblyQualifiedName;
 
         public Identifier(Type type)
         {
-            this.type = type;
+            assemblyQualifiedName = type.AssemblyQualifiedName;
         }
-
 
         public override string ToString()
         {

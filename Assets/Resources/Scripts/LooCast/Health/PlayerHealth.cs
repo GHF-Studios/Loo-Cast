@@ -50,7 +50,14 @@ namespace LooCast.Health
                 Health.Value = value.CurrentHealth;
             }
         }
-        
+        public Identifier Identifier
+        {
+            get
+            {
+                return new Identifier(typeof(PlayerHealth));
+            }
+        }
+
         public PlayerHealthData Data;
         public PlayerHealthRuntimeData RuntimeData;
         #endregion
@@ -258,11 +265,6 @@ namespace LooCast.Health
                     rigidbody.AddForce(knockbackDirection.normalized * -250f * damageInfo.knockback, ForceMode2D.Impulse);
                 }
             }
-        }
-
-        public Identifier GetIdentifier()
-        {
-            return new Identifier(typeof(PlayerHealth));
         }
         #endregion
     } 

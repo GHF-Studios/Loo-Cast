@@ -19,7 +19,7 @@ namespace LooCast.Player
 
     [DisallowMultipleComponent]
     [RequireComponent(typeof(PlayerHealth), typeof(PlayerExperience), typeof(PlayerMovement))]
-    public class Player : ExtendedMonoBehaviour, IItemUpgrader, IRuntimeDataSerializer, IRuntimeDataDeserializer, IInstanceIdentifierProvider
+    public class Player : ExtendedMonoBehaviour, IItemUpgrader, IRuntimeDataSerializer, IRuntimeDataDeserializer, IIdentifierProvider, IInstanceIdentifierProvider
     {
         #region Data
         public struct DataContainer
@@ -54,6 +54,32 @@ namespace LooCast.Player
             {
                 Health.SerializableData = value.HealthSerializableData;
                 transform.position = value.Position;
+            }
+        }
+        public RuntimeData SerializableRuntimeData
+        {
+            get
+            {
+                return new RuntimeData(JsonUtility.ToJson(SerializableData), InstanceIdentifier);
+            }
+
+            set
+            {
+                SerializableData = JsonUtility.FromJson<DataContainer>(value.JsonSerializedData);
+            }
+        }
+        public Identifier Identifier
+        {
+            get
+            {
+                return new Identifier(typeof(Player));
+            }
+        }
+        public InstanceIdentifier InstanceIdentifier
+        {
+            get
+            {
+                return new InstanceIdentifier(InstanceID, typeof(Player), "Prefabs/Player/Player");
             }
         }
 
@@ -116,21 +142,6 @@ namespace LooCast.Player
                 Attributes.Uncheat();
                 Stats.Uncheat();
             }
-        }
-
-        public RuntimeData GetRuntimeData()
-        {
-            return new RuntimeData(JsonUtility.ToJson(SerializableData), GetInstanceIdentifier());
-        }
-
-        public void SetRuntimeData(RuntimeData runtimeData)
-        {
-            SerializableData = JsonUtility.FromJson<DataContainer>(runtimeData.JsonSerializedData);
-        }
-
-        public InstanceIdentifier GetInstanceIdentifier()
-        {
-            return new InstanceIdentifier(InstanceID, typeof(Player), "Prefabs/Player/Player");
         }
     } 
 }

@@ -20,8 +20,8 @@ namespace LooCast.Core
             }
         }               // Example: Enemy_SmolEnemy_69
 
-        [SerializeField] protected int instanceID;
-        [SerializeField] protected string prefabPath;
+        [SerializeField] private int instanceID;
+        [SerializeField] private string prefabPath;
 
         public InstanceIdentifier(int instanceID, Type type, string prefabPath) : base(type)
         {

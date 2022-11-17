@@ -4,6 +4,6 @@ namespace LooCast.Core
 {
     public interface IInstanceIdentifierProvider
     {
-        InstanceIdentifier GetInstanceIdentifier();
+        InstanceIdentifier InstanceIdentifier { get; }
     }
 }
