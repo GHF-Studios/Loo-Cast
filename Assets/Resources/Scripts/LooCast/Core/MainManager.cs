@@ -7,6 +7,7 @@ namespace LooCast.Core
     using MainMenu;
     using Game;
     using Util;
+    using System.Collections.Generic;
 
     public class MainManager : MonoBehaviour
     {

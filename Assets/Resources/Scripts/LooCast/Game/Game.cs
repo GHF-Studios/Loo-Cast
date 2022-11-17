@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
 using System.IO;
+using System.Collections.Generic;
 
 namespace LooCast.Game
 {
@@ -8,9 +9,13 @@ namespace LooCast.Game
     {
         public string Name { get; private set; }
 
+        private List<string> persistentDataFileIdentifierList;
+
         public Game(string name)
         {
             Name = name;
+
+            persistentDataFileIdentifierList = new List<string>();
         }
 
         public static void SaveGame(Game game)

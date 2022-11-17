@@ -3,19 +3,45 @@ using UnityEngine;
 
 namespace LooCast.Game
 {
+    using Core;
+
     public struct RuntimeData
     {
-        public string JsonData { get; private set; }
-        public string Identifier { get; private set; }
-        public string DataPath { get; private set; }
-        public string ObjectPrefabPath { get; private set; }
-
-        public RuntimeData(string jsonData, string identifier, string dataPath, string objectPrefabPath)
+        public string JsonSerializedData
         {
-            JsonData = jsonData;
-            Identifier = identifier;
-            DataPath = dataPath;
-            ObjectPrefabPath = objectPrefabPath;
+            get 
+            {
+                return jsonSerializedData;
+            }
+        }
+        public InstanceIdentifier Identifier
+        {
+            get
+            {
+                return instanceIdentifier;
+            }
+        }
+        public string DataFilePath  // Example: Enemy/SmolEnemy/69.json
+        {
+            get
+            {
+                string dataFilePath = "";
+                for (int i = 0; i < Identifier.DirectoryNames.Length; i++)
+                {
+                    dataFilePath += $"{Identifier.DirectoryNames[i]}/";
+                }
+                dataFilePath += $"{Identifier.Type.Name}/{Identifier.InstanceID}.json";
+                return dataFilePath;
+            }
+        }
+
+        [SerializeField] private string jsonSerializedData;
+        [SerializeField] private InstanceIdentifier instanceIdentifier;
+
+        public RuntimeData(string jsonSerializedData, InstanceIdentifier instanceIdentifier)
+        {
+            this.jsonSerializedData = jsonSerializedData;
+            this.instanceIdentifier = instanceIdentifier;
         }
     }
 }

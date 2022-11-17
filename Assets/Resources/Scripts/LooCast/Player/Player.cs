@@ -104,14 +104,24 @@ namespace LooCast.Player
         {
             DataContainer dataContainer = new DataContainer(transform.position);
             string jsonData = JsonUtility.ToJson(dataContainer);
-            RuntimeData gameData = new RuntimeData(jsonData, "Player", "Player", "Prefabs/Player/Player");
+            RuntimeData gameData = new RuntimeData(jsonData, );
             return gameData;
         }
 
         public void SetData(RuntimeData data)
         {
-            DataContainer dataContainer = JsonUtility.FromJson<DataContainer>(data.JsonData);
+            DataContainer dataContainer = JsonUtility.FromJson<DataContainer>(data.JsonSerializedData);
             transform.position = dataContainer.Position;
+        }
+
+        public override Identifier GetIdentifier()
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override InstanceIdentifier GetInstanceIdentifier()
+        {
+            throw new System.NotImplementedException();
         }
     } 
 }
