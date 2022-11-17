@@ -4,6 +4,6 @@ namespace LooCast.Data.Runtime
 {
     public interface IRuntimeDataDeserializer
     {
-        RuntimeData SerializableRuntimeData { set; }
+        RuntimeData SerializedRuntimeData { set; }
     }
 }

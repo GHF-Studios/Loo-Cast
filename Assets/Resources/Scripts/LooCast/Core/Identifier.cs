@@ -21,7 +21,7 @@ namespace LooCast.Core
         {
             get
             {
-                string[] namespaces = type.FullName.Split("LooCast.")[0].Split('.');
+                string[] namespaces = Type.FullName.Split("LooCast.")[0].Split('.');
                 namespaces = namespaces.Take(namespaces.Count() - 1).ToArray();
                 return namespaces;
             }

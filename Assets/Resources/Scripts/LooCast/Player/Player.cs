@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -22,9 +23,10 @@ namespace LooCast.Player
     public class Player : ExtendedMonoBehaviour, IItemUpgrader, IRuntimeDataSerializer, IRuntimeDataDeserializer, IIdentifierProvider, IInstanceIdentifierProvider
     {
         #region Data
+        [Serializable]
         public struct DataContainer
         {
-            public PlayerHealth.DataContainer HealthSerializableData => healthSerializableData;
+            public PlayerHealth.DataContainer HealthSerializableRuntimeData => healthSerializableRuntimeData;
             public Vector3 Position
             {
                 get
@@ -33,39 +35,39 @@ namespace LooCast.Player
                 }
             }
 
-            [SerializeField] private PlayerHealth.DataContainer healthSerializableData;
+            [SerializeField] private PlayerHealth.DataContainer healthSerializableRuntimeData;
             [SerializeField] private Vector3 position;
 
             public DataContainer(PlayerHealth.DataContainer healthSerializableData, Vector3 position)
             {
-                this.healthSerializableData = healthSerializableData;
+                this.healthSerializableRuntimeData = healthSerializableData;
                 this.position = position;
             }
         }
 
-        public DataContainer SerializableData
+        public DataContainer SerializableRuntimeData
         {
             get
             {
-                return new DataContainer(Health.SerializableData, transform.position);
+                return new DataContainer(Health.SerializableRuntimeData, transform.position);
             }
 
             set
             {
-                Health.SerializableData = value.HealthSerializableData;
+                Health.SerializableRuntimeData = value.HealthSerializableRuntimeData;
                 transform.position = value.Position;
             }
         }
-        public RuntimeData SerializableRuntimeData
+        public RuntimeData SerializedRuntimeData
         {
             get
             {
-                return new RuntimeData(JsonUtility.ToJson(SerializableData), InstanceIdentifier);
+                return new RuntimeData(JsonUtility.ToJson(SerializableRuntimeData), InstanceIdentifier);
             }
 
             set
             {
-                SerializableData = JsonUtility.FromJson<DataContainer>(value.JsonSerializedData);
+                SerializableRuntimeData = JsonUtility.FromJson<DataContainer>(value.JsonSerializedData);
             }
         }
         public Identifier Identifier
@@ -141,6 +143,16 @@ namespace LooCast.Player
             {
                 Attributes.Uncheat();
                 Stats.Uncheat();
+            }
+
+            if (Input.GetKeyDown(KeyCode.F7))
+            {
+                Util.JSONUtil.SaveData(SerializedRuntimeData, SerializedRuntimeData.DataFilePath);
+            }
+
+            if (Input.GetKeyDown(KeyCode.F8))
+            {
+                SerializedRuntimeData = Util.JSONUtil.LoadData<RuntimeData>(SerializedRuntimeData.DataFilePath);
             }
         }
     } 

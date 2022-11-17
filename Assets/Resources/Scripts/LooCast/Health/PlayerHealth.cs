@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -20,6 +21,7 @@ namespace LooCast.Health
     public class PlayerHealth : ExtendedMonoBehaviour, IHealth, IIdentifierProvider
     {
         #region Data
+        [Serializable]
         public struct DataContainer
         {
             public float CurrentHealth
@@ -38,7 +40,7 @@ namespace LooCast.Health
             }
         }
 
-        public DataContainer SerializableData
+        public DataContainer SerializableRuntimeData
         {
             get
             {
