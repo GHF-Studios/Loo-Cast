@@ -111,14 +111,6 @@ namespace LooCast.Game
                 }
             }
         }
-
-        public static void InitializeGame()
-        {
-            if (Initialized)
-            {
-
-            }
-        }
         #endregion
     }
 }

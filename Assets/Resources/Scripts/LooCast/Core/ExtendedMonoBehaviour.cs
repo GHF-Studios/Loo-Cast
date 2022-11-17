@@ -84,9 +84,5 @@ namespace LooCast.Core
             OnResume();
             IsPaused = false;
         }
-
-        public abstract Identifier GetIdentifier();
-
-        public abstract InstanceIdentifier GetInstanceIdentifier();
     } 
 }

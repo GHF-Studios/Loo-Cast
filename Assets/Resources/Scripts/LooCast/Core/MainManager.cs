@@ -294,6 +294,7 @@ namespace LooCast.Core
         #endregion
 
         #region Methods
+
         #endregion
     }
 }

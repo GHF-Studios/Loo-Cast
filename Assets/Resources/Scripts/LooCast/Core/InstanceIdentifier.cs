@@ -10,21 +10,23 @@ namespace LooCast.Core
     public class InstanceIdentifier : Identifier
     {
         public int InstanceID => instanceID;
-        public string UUID          // Example: Enemy_SmolEnemy_69 
+        public string PrefabPath => prefabPath;
+        public string UUID
         {
             get
             {
                 string uuid = ID + $"_{instanceID}";
                 return uuid;
             }
-        }
-        
+        }               // Example: Enemy_SmolEnemy_69
 
         [SerializeField] protected int instanceID;
+        [SerializeField] protected string prefabPath;
 
-        public InstanceIdentifier(int instanceID, Type type, string prefabPath, params string[] directoryNames) : base(type, prefabPath, directoryNames)
+        public InstanceIdentifier(int instanceID, Type type, string prefabPath) : base(type)
         {
             this.instanceID = instanceID;
+            this.prefabPath = prefabPath;
         }
 
         public override string ToString()

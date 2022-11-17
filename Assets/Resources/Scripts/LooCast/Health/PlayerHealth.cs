@@ -5,21 +5,52 @@ namespace LooCast.Health
 {
     using Data;
     using Data.Runtime;
-    using LooCast.Core;
-    using LooCast.Sound;
-    using LooCast.UI.Canvas;
-    using LooCast.UI.Screen;
-    using LooCast.Game;
-    using LooCast.Random;
-    using LooCast.Indicator;
-    using LooCast.Variable;
-    using LooCast.Attribute.Stat;
+    using Core;
+    using Sound;
+    using UI.Canvas;
+    using UI.Screen;
+    using Game;
+    using Random;
+    using Indicator;
+    using Variable;
+    using Attribute.Stat;
     using static LooCast.Health.IHealth;
 
     [DisallowMultipleComponent]
-    public class PlayerHealth : ExtendedMonoBehaviour, IHealth
+    public class PlayerHealth : ExtendedMonoBehaviour, IHealth, IIdentifierProvider
     {
         #region Data
+        public struct DataContainer
+        {
+            public float CurrentHealth
+            {
+                get
+                {
+                    return currentHealth;
+                }
+            }
+
+            [SerializeField] private float currentHealth;
+
+            public DataContainer(float currentHealth)
+            {
+                this.currentHealth = currentHealth;
+            }
+        }
+
+        public DataContainer SerializableData
+        {
+            get
+            {
+                return new DataContainer(Health.Value);
+            }
+
+            set
+            {
+                Health.Value = value.CurrentHealth;
+            }
+        }
+        
         public PlayerHealthData Data;
         public PlayerHealthRuntimeData RuntimeData;
         #endregion
@@ -121,7 +152,7 @@ namespace LooCast.Health
         private DeathScreen deathScreen;
         #endregion
 
-        #region Methods
+        #region Unity Callbacks
         private void Start()
         {
             RuntimeData.Initialize(Data);
@@ -130,7 +161,9 @@ namespace LooCast.Health
             canvas = FindObjectOfType<WorldSpaceCanvas>();
             deathScreen = FindObjectOfType<DeathScreen>();
         }
+        #endregion
 
+        #region Methods
         protected override void PauseableUpdate()
         {
             Heal(RuntimeData.RegenerationAmount.Value * Time.deltaTime);
@@ -225,6 +258,11 @@ namespace LooCast.Health
                     rigidbody.AddForce(knockbackDirection.normalized * -250f * damageInfo.knockback, ForceMode2D.Impulse);
                 }
             }
+        }
+
+        public Identifier GetIdentifier()
+        {
+            return new Identifier(typeof(PlayerHealth));
         }
         #endregion
     } 

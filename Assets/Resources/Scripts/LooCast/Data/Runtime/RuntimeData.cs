@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace LooCast.Game
+namespace LooCast.Data.Runtime
 {
     using Core;
 
@@ -14,7 +14,7 @@ namespace LooCast.Game
                 return jsonSerializedData;
             }
         }
-        public InstanceIdentifier Identifier
+        public InstanceIdentifier InstanceIdentifier
         {
             get
             {
@@ -26,11 +26,11 @@ namespace LooCast.Game
             get
             {
                 string dataFilePath = "";
-                for (int i = 0; i < Identifier.DirectoryNames.Length; i++)
+                for (int i = 0; i < InstanceIdentifier.Namespaces.Length; i++)
                 {
-                    dataFilePath += $"{Identifier.DirectoryNames[i]}/";
+                    dataFilePath += $"{InstanceIdentifier.Namespaces[i]}/";
                 }
-                dataFilePath += $"{Identifier.Type.Name}/{Identifier.InstanceID}.json";
+                dataFilePath += $"{InstanceIdentifier.Type.Name}/{InstanceIdentifier.InstanceID}.json";
                 return dataFilePath;
             }
         }

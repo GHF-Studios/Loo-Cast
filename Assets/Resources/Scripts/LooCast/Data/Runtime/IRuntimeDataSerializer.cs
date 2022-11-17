@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LooCast.Core
+namespace LooCast.Data.Runtime
 {
     public interface IRuntimeDataSerializer
     {

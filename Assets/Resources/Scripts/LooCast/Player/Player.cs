@@ -5,6 +5,7 @@ using UnityEngine;
 namespace LooCast.Player
 {
     using Core;
+    using LooCast.Data.Runtime;
     using Data;
     using Data.Runtime;
     using Health;
@@ -15,14 +16,15 @@ namespace LooCast.Player
     using Attribute.Stat;
     using Currency;
     using Item;
-    using Game;
 
     [DisallowMultipleComponent]
-    public class Player : ExtendedMonoBehaviour, IItemUpgrader, IGameDataHandler
+    [RequireComponent(typeof(PlayerHealth), typeof(PlayerExperience), typeof(PlayerMovement))]
+    public class Player : ExtendedMonoBehaviour, IItemUpgrader, IRuntimeDataSerializer, IRuntimeDataDeserializer, IInstanceIdentifierProvider
     {
-        #region Structs
+        #region Data
         public struct DataContainer
         {
+            public PlayerHealth.DataContainer HealthSerializableData => healthSerializableData;
             public Vector3 Position
             {
                 get
@@ -31,17 +33,33 @@ namespace LooCast.Player
                 }
             }
 
+            [SerializeField] private PlayerHealth.DataContainer healthSerializableData;
             [SerializeField] private Vector3 position;
 
-            public DataContainer(Vector3 position)
+            public DataContainer(PlayerHealth.DataContainer healthSerializableData, Vector3 position)
             {
+                this.healthSerializableData = healthSerializableData;
                 this.position = position;
             }
         }
-        #endregion
+
+        public DataContainer SerializableData
+        {
+            get
+            {
+                return new DataContainer(Health.SerializableData, transform.position);
+            }
+
+            set
+            {
+                Health.SerializableData = value.HealthSerializableData;
+                transform.position = value.Position;
+            }
+        }
 
         public PlayerData Data;
         public PlayerRuntimeData RuntimeData;
+        #endregion
 
         public PlayerHealth Health { get; private set; }
         public PlayerExperience Experience { get; private set; }
@@ -100,28 +118,19 @@ namespace LooCast.Player
             }
         }
 
-        public RuntimeData GetData()
+        public RuntimeData GetRuntimeData()
         {
-            DataContainer dataContainer = new DataContainer(transform.position);
-            string jsonData = JsonUtility.ToJson(dataContainer);
-            RuntimeData gameData = new RuntimeData(jsonData, );
-            return gameData;
+            return new RuntimeData(JsonUtility.ToJson(SerializableData), GetInstanceIdentifier());
         }
 
-        public void SetData(RuntimeData data)
+        public void SetRuntimeData(RuntimeData runtimeData)
         {
-            DataContainer dataContainer = JsonUtility.FromJson<DataContainer>(data.JsonSerializedData);
-            transform.position = dataContainer.Position;
+            SerializableData = JsonUtility.FromJson<DataContainer>(runtimeData.JsonSerializedData);
         }
 
-        public override Identifier GetIdentifier()
+        public InstanceIdentifier GetInstanceIdentifier()
         {
-            throw new System.NotImplementedException();
-        }
-
-        public override InstanceIdentifier GetInstanceIdentifier()
-        {
-            throw new System.NotImplementedException();
+            return new InstanceIdentifier(InstanceID, typeof(Player), "Prefabs/Player/Player");
         }
     } 
 }
