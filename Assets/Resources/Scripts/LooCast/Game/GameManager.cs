@@ -114,14 +114,23 @@ namespace LooCast.Game
 
         public static void LoadGame(Game game)
         {
-            // Check if GameManager Instance is Initialized
-            // Load all objects inside game into Scene (foreach file in game.files => file.Load())
+            if (Instance == null)
+            {
+                return;
+            }
+            Instance.currentGame = game;
+
+            // Load all Chunks inside range at player position into Scene
+
         }
 
         public static void SaveGame(Game game)
         {
-            // Check if GameManager Instance is Initialized
-            // Save all Object into Game (foreach saveable in saveables => saveable.Save(game))
+            if (Instance == null)
+            {
+                return;
+            }
+            // Save all loaded Chunks
         }
         #endregion
     }

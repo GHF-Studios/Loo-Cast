@@ -20,7 +20,7 @@ namespace LooCast.UI.Screen
             Initialize();
         }
 
-        public void LoadScene(string sceneIndex, Action postLoadAction)
+        public void LoadScene(string sceneIndex, Action postLoadAction = null)
         {
             if (!loading)
             {
@@ -31,7 +31,7 @@ namespace LooCast.UI.Screen
             }
         }
 
-        public IEnumerator LoadSceneAsynchronously(string sceneIndex, Action postLoadAction)
+        public IEnumerator LoadSceneAsynchronously(string sceneIndex, Action postLoadAction = null)
         {
             if (!loading)
             {
@@ -42,7 +42,7 @@ namespace LooCast.UI.Screen
             }
         }
 
-        private IEnumerator LoadAsynchronously(string sceneIndex, Action postLoadAction)
+        private IEnumerator LoadAsynchronously(string sceneIndex, Action postLoadAction = null)
         {
             AsyncOperation operation = SceneManager.LoadSceneAsync(sceneIndex, LoadSceneMode.Single);
             while (!operation.isDone)
