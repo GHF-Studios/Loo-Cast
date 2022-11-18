@@ -61,9 +61,9 @@ Regions
 	- Planetary Space		= Object Map 	(Contained in a Region)
 
 Region Parameters
-	- Light Matter Concentration
-	- Medium Matter Concentration
-	- Heavy Matter Concentration
+	- Light Matter Density
+	- Medium Matter Density
+	- Heavy Matter Density
 
 - Events
 	- Gamma Ray Burst

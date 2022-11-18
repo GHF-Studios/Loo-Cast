@@ -17,6 +17,14 @@ namespace LooCast.Universe
         [Serializable]
         public class Filament
         {
+            #region Classes
+            [Serializable]
+            public class Chunk
+            {
+                [SerializeField] private float 
+            }
+            #endregion
+
             #region Structs
             [Serializable]
             public struct GenerationSettings
@@ -75,6 +83,7 @@ namespace LooCast.Universe
             }
 
             [SerializeField] private Vector2Int filamentPosition;
+            [SerializeField] private Chunk[,] chunkMap;
 
             private GameObject filamentObject;
             private Texture2D map;
