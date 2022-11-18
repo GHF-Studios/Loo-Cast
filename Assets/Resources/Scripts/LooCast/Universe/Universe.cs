@@ -7,8 +7,6 @@ using System.Linq;
 namespace LooCast.Universe
 {
     using Util;
-    using Test;
-    using Math.Map;
     using System.Collections.Generic;
 
     [Serializable]

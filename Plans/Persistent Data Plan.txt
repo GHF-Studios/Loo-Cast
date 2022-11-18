@@ -12,6 +12,9 @@
 				Pointers to all chunks are stored in the Game(.json)
 				No actual map of Filament* saved, only Property which constructs it from already generated chunks and their values, like an Electron Density Map
 				Universe API: Add Methods: IsFilamentChunkGenerated, IsSectorChunkGenerated, IsRegionChunkGenerated, GenerateFilamentChunk, GenerateSectorChunk, GenerateRegionChunk
+				Universe API: Remove Methods: Spawn/Despawn Filament/Sector/Region (Remove that functionality in general, it's not need anymore. 
+																					Further testing should only be done directly through 
+																					generating a new Universe in-game)
 				Universe has the following Maps	
 					Density: Quark, Anti-Quark, Gluon, Anti-Gluon, Dark Matter, Dark Energy
 				Filament has the following Maps		
