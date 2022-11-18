@@ -34,20 +34,27 @@ namespace LooCast.Test
 
         public void GenerateMap()
         {
-            float[,] noiseMap = PerlinNoise.GenerateNoiseMap(mapWidth, mapHeight, seed, noiseScale, octaves, persistence, lacunarity, noiseAmplitude, offset).Array2D;
+            float?[,] noiseMap = PerlinNoise.GenerateNoiseMap(mapWidth, mapHeight, seed, noiseScale, octaves, persistence, lacunarity, noiseAmplitude, offset).Array2D;
 
             Color[] colorMap = new Color[mapWidth * mapHeight];
             for (int y = 0; y < mapHeight; y++)
             {
                 for (int x = 0; x < mapWidth; x++)
                 {
-                    float currentHeight = noiseMap[x, y];
-                    for (int i = 0; i < regions.Length; i++)
+                    float? currentHeight = noiseMap[x, y];
+                    if (currentHeight == null)
                     {
-                        if (currentHeight <= regions[i].height)
+                        colorMap[y * mapWidth + x] = Color.black;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < regions.Length; i++)
                         {
-                            colorMap[y * mapWidth + x] = regions[i].color;
-                            break;
+                            if (currentHeight <= regions[i].height)
+                            {
+                                colorMap[y * mapWidth + x] = regions[i].color;
+                                break;
+                            }
                         }
                     }
                 }

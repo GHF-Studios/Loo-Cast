@@ -13,7 +13,7 @@ namespace LooCast.UI.Button
 
         public override void OnClick()
         {
-            MainManager.CreateNewGame();
+            MainManager.CreateNewGame("New Game");
         }
     }
 }

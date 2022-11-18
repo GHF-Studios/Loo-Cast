@@ -9,6 +9,7 @@
 					Statically Loaded: The Core Parameters are loaded into the runtime
 					Dynamically Loaded: The Core Parameters are loaded into the runtime & The ObjectInstances of the Filament* are instantiated into the world and are loaded into their respective RuntimeSets
 				Chunks are single Pixels of the Filament* Map, with different Values, like an Electron Density Map
+				Pointers to all chunks are stored in the Game(.json)
 				No actual map of Filament* saved, only Property which constructs it from already generated chunks and their values, like an Electron Density Map
 				Universe API: Add Methods: IsFilamentChunkGenerated, IsSectorChunkGenerated, IsRegionChunkGenerated, GenerateFilamentChunk, GenerateSectorChunk, GenerateRegionChunk
 				Universe has the following Maps	
@@ -55,7 +56,7 @@ Universe Generation Settings Code:
 
             #region Universe Generation Settings Default
             generationSettings.Seed = 0;
-            generationSettings.Size = 2048;
+            generationSettings.Size = 4096;
             generationSettings.MapFromMin = -1.0f;
             generationSettings.MapFromMax = 1.0f;
             generationSettings.MapToMin = 0.0f;
@@ -87,7 +88,8 @@ Universe Generation Settings Code:
             #endregion
 
             #region Filament Generation Settings Default
-            generationSettings.FilamentGenerationSettings.Size = 2048;
+            generationSettings.FilamentGenerationSettings.ChunkSize = 64;
+            generationSettings.FilamentGenerationSettings.ChunkAmount = 64;
             generationSettings.FilamentGenerationSettings.MapFromMin = -1.0f;
             generationSettings.FilamentGenerationSettings.MapFromMax = 1.0f;
             generationSettings.FilamentGenerationSettings.MapToMin = 0.0f;
@@ -120,7 +122,8 @@ Universe Generation Settings Code:
             #endregion
 
             #region Sectror Generation Settings Default
-            generationSettings.SectorGenerationSettings.Size = 2048;
+            generationSettings.SectorGenerationSettings.ChunkSize = 64;
+            generationSettings.SectorGenerationSettings.ChunkAmount = 64;
             generationSettings.SectorGenerationSettings.MapFromMin = -1.0f;
             generationSettings.SectorGenerationSettings.MapFromMax = 1.0f;
             generationSettings.SectorGenerationSettings.MapToMin = 0.0f;
@@ -149,7 +152,8 @@ Universe Generation Settings Code:
             #endregion
 
             #region Region Generation Settings Default
-            generationSettings.RegionGenerationSettings.Size = 2048;
+            generationSettings.RegionGenerationSettings.ChunkSize = 64;
+            generationSettings.RegionGenerationSettings.ChunkAmount = 64;
             generationSettings.RegionGenerationSettings.MapFromMin = -1.0f;
             generationSettings.RegionGenerationSettings.MapFromMax = 1.0f;
             generationSettings.RegionGenerationSettings.MapToMin = -0.375f;

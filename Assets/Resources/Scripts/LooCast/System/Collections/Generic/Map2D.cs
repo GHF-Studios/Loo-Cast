@@ -1,17 +1,17 @@
 using System;
-using UnityEditor.Localization.Plugins.XLIFF.V12;
 using UnityEngine;
 
-namespace LooCast.Math.Map
+namespace LooCast.System.Collections.Generic
 {
     [Serializable]
-    public struct FloatMap2D
+    // Note: Can only be correctly serialized, if T is Serializable, too
+    public struct Map2D<T>
     {
-        public float?[,] Array2D
+        public T[,] Array2D
         {
             get
             {
-                float?[,] array2D = new float?[arrayWidth, arrayHeight];
+                T[,] array2D = new T[arrayWidth, arrayHeight];
                 for (int y = 0; y < arrayHeight; y++)
                 {
                     for (int x = 0; x < arrayWidth; x++)
@@ -23,13 +23,13 @@ namespace LooCast.Math.Map
             }
         }
 
-        [SerializeField] private float?[] array1D;
+        [SerializeField] private T[] array1D;
         [SerializeField] private int arrayWidth;
         [SerializeField] private int arrayHeight;
 
-        public FloatMap2D(float[,] array2D)
+        public Map2D(T[,] array2D)
         {
-            array1D = new float?[array2D.Length];
+            array1D = new T[array2D.Length];
             arrayWidth = array2D.GetLength(0);
             arrayHeight = array2D.GetLength(1);
 
@@ -42,34 +42,19 @@ namespace LooCast.Math.Map
             }
         }
 
-        public FloatMap2D(float?[,] array2D)
+        public Map2D(int width, int height)
         {
-            array1D = new float?[array2D.Length];
-            arrayWidth = array2D.GetLength(0);
-            arrayHeight = array2D.GetLength(1);
-
-            for (int y = 0; y < arrayHeight; y++)
-            {
-                for (int x = 0; x < arrayWidth; x++)
-                {
-                    array1D[Get1DIndex(x, y)] = array2D[x, y];
-                }
-            }
-        }
-
-        public FloatMap2D(int width, int height)
-        {
-            array1D = new float?[width * height];
+            array1D = new T[width * height];
             arrayWidth = width;
             arrayHeight = height;
         }
 
-        public float? GetValue(int xIndex, int yIndex)
+        public T GetValue(int xIndex, int yIndex)
         {
             return array1D[Get1DIndex(xIndex, yIndex)];
         }
 
-        public void SetValue(int xIndex, int yIndex, float? value)
+        public void SetValue(int xIndex, int yIndex, T value)
         {
             array1D[Get1DIndex(xIndex, yIndex)] = value;
         }

@@ -14,7 +14,7 @@ namespace LooCast.Util
             return texture;
         }
 
-        public static Texture2D TextureFromHeightMap(float[,] heightMap)
+        public static Texture2D TextureFromHeightMap(float?[,] heightMap)
         {
             int width = heightMap.GetLength(0);
             int height = heightMap.GetLength(1);
@@ -24,7 +24,14 @@ namespace LooCast.Util
             {
                 for (int x = 0; x < width; x++)
                 {
-                    colorMap[y * width + x] = Color.Lerp(Color.black, Color.white, heightMap[x, y]);
+                    if (heightMap[x, y] == null)
+                    {
+                        colorMap[y * width + x] = Color.black;
+                    }
+                    else
+                    {
+                        colorMap[y * width + x] = Color.Lerp(Color.black, Color.white, (float)heightMap[x, y]);
+                    }
                 }
             }
 

@@ -26,7 +26,6 @@ namespace LooCast.Game
 
         #region Fields
         [SerializeField] private string name;
-        [SerializeField] private IInstanceIdentifierProvider[] objectInstances;
         #endregion
 
         public Game(string name)

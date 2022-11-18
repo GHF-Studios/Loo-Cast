@@ -6,9 +6,10 @@ using System.Linq;
 
 namespace LooCast.Universe
 {
-    using LooCast.Random;
-    using LooCast.Util;
-    using LooCast.Test;
+    using Util;
+    using Test;
+    using Math.Map;
+    using System.Collections.Generic;
 
     [Serializable]
     public class Universe
@@ -21,7 +22,71 @@ namespace LooCast.Universe
             [Serializable]
             public class Chunk
             {
-                [SerializeField] private float 
+                public int Size => size;
+                public Vector2Int ChunkPosition => chunkPosition;
+                public Map2D<float?> ElectronDensityMap => electronDensityMap;
+                public Map2D<float?> PositronDensityMap => positronDensityMap;
+                public Map2D<float?> ProtonDensityMap => protonDensityMap;
+                public Map2D<float?> AntiProtonDensityMap => antiProtonDensityMap;
+                public Map2D<float?> NeutronDensityMap => neutronDensityMap;
+                public Map2D<float?> AntiNeutronDensityMap => antiNeutronDensityMap;
+
+                public Chunk(Filament filament, Vector2Int chunkPosition)
+                {
+                    GenerationSettings generationSettings = Instance.FilamentGenerationSettings;
+                    size = generationSettings.ChunkSize;
+                    this.chunkPosition = chunkPosition;
+
+                    Vector2Int filamentPosition = filament.FilamentPosition;
+
+                    #region Electron Density Map Generation
+                    electronDensityMap = new Map2D<float?>(generationSettings.ChunkSize, generationSettings.ChunkSize);
+
+                    for (int y = 0; y < generationSettings.ChunkSize; y++)
+                    {
+                        for (int x = 0; x < generationSettings.ChunkSize; x++)
+                        {
+                            #region Filament Noise Sampling
+                            float filamentOffsetX = -((filamentPosition.x * generationSettings.Size) + chunkPosition.x * generationSettings.ChunkSize);
+                            float filamentOffsetY = -((filamentPosition.y * generationSettings.Size) + chunkPosition.y * generationSettings.ChunkSize);
+
+                            float filamentSampleX = x + filamentOffsetX;
+                            float filamentSampleY = y + filamentOffsetY;
+
+                            float electronDensity = filament.SampleNoise(filamentSampleX, filamentSampleY);
+                            // TODO: Sample all other density Maps, too
+                            #endregion
+
+                            #region Universe Noise Sampling
+                            float universeOffsetX = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * x);
+                            float universeOffsetY = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * y);
+
+                            float universeSampleX = filamentPosition.x + universeOffsetX;
+                            float universeSampleY = filamentPosition.y + universeOffsetY;
+
+                            float universeNoiseValue = Instance.SampleNoise(universeSampleX, universeSampleY);
+                            // TODO: Sample all other density Maps, too
+                            #endregion
+
+                            #region Total Density Evaluation
+                            universeNoiseValue = universeNoiseValue.Map(0, 1, -1, 1);
+                            float totalElectronDensity = electronDensity * (1 + (generationSettings.UniverseNoiseInfluence * universeNoiseValue));
+                            #endregion
+
+                            electronDensityMap.SetValue(x, y, totalElectronDensity);
+                        }
+                    }
+                    #endregion
+                }
+
+                [SerializeField] private int size;
+                [SerializeField] private Vector2Int chunkPosition;
+                [SerializeField] private Map2D<float?> electronDensityMap;
+                [SerializeField] private Map2D<float?> positronDensityMap;
+                [SerializeField] private Map2D<float?> protonDensityMap;
+                [SerializeField] private Map2D<float?> antiProtonDensityMap;
+                [SerializeField] private Map2D<float?> neutronDensityMap;
+                [SerializeField] private Map2D<float?> antiNeutronDensityMap;
             }
             #endregion
 
@@ -30,7 +95,15 @@ namespace LooCast.Universe
             public struct GenerationSettings
             {
                 public GameObject Prefab;
-                public int Size;
+                public int ChunkSize;
+                public int ChunkAmount;
+                public int Size
+                {
+                    get
+                    {
+                        return ChunkAmount * ChunkSize;
+                    }
+                }
                 public float MapFromMin;
                 public float MapFromMax;
                 public float MapToMin;
@@ -69,69 +142,14 @@ namespace LooCast.Universe
             #endregion
 
             public Vector2Int FilamentPosition => filamentPosition;
-            public Texture2D Map
-            {
-                get
-                {
-                    return map;
-                }
-
-                set
-                {
-                    map = value;
-                }
-            }
+            public Map2D<Chunk> ChunkMap => chunkMap;
 
             [SerializeField] private Vector2Int filamentPosition;
-            [SerializeField] private Chunk[,] chunkMap;
-
-            private GameObject filamentObject;
-            private Texture2D map;
+            [SerializeField] private Map2D<Chunk> chunkMap;
 
             public Filament(Vector2Int filamentPosition)
             {
-                GenerationSettings generationSettings = Instance.FilamentGenerationSettings;
                 this.filamentPosition = filamentPosition;
-
-                #region Filament Map Generation
-                Color[] noiseColorMap = new Color[generationSettings.Size * generationSettings.Size];
-
-                for (int y = 0; y < generationSettings.Size; y++)
-                {
-                    for (int x = 0; x < generationSettings.Size; x++)
-                    {
-                        #region Filament Noise Sampling
-                        float filamentOffsetX = - (filamentPosition.x * generationSettings.Size);
-                        float filamentOffsetY = - (filamentPosition.y * generationSettings.Size);
-
-                        float filamentSampleX = x + filamentOffsetX;
-                        float filamentSampleY = y + filamentOffsetY;
-
-                        float filamentNoiseValue = SampleNoise(filamentSampleX, filamentSampleY);
-                        #endregion
-
-                        #region Universe Noise Sampling
-                        float universeOffsetX = - (1 / generationSettings.Size * x);
-                        float universeOffsetY = - (1 / generationSettings.Size * y);
-
-                        float universeSampleX = filamentPosition.x + universeOffsetX;
-                        float universeSampleY = filamentPosition.y + universeOffsetY;
-
-                        float universeNoiseValue = Instance.SampleNoise(universeSampleX, universeSampleY);
-                        #endregion
-
-                        #region Total Noise Evaluation
-                        //TODO: Change, Map is being called twice, in Universe and here, somehow fix this performance issue!
-                        universeNoiseValue = universeNoiseValue.Map(0, 1, -1, 1);
-                        float totalNoiseValue = filamentNoiseValue * (1 + (generationSettings.UniverseNoiseInfluence * universeNoiseValue));
-                        #endregion
-
-                        noiseColorMap[y * generationSettings.Size + x] = new Color(totalNoiseValue, totalNoiseValue, totalNoiseValue, 1.0f);
-                    }
-                }
-
-                map = TextureUtil.TextureFromColorMap(noiseColorMap, generationSettings.Size, generationSettings.Size);
-                #endregion
             }
 
             public float SampleNoise(float sampleX, float sampleY)
@@ -150,22 +168,6 @@ namespace LooCast.Universe
 
                 return noiseValue;
             }
-
-            public void Spawn()
-            {
-                filamentObject = GameObject.Instantiate(Instance.FilamentGenerationSettings.Prefab);
-                filamentObject.name = $"Filament ({filamentPosition.x}, {filamentPosition.y})";
-                Vector2Int worldPosition = filamentPosition * Instance.FilamentGenerationSettings.Size;
-                filamentObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
-
-                MapDisplay mapDisplay = filamentObject.GetComponentInChildren<MapDisplay>();
-                mapDisplay.DrawTexture(map);
-            }
-
-            public void Despawn()
-            {
-                GameObject.DestroyImmediate(filamentObject);
-            }
         }
 
         [Serializable]
@@ -176,7 +178,15 @@ namespace LooCast.Universe
             public struct GenerationSettings
             {
                 public GameObject Prefab;
-                public int Size;
+                public int ChunkSize;
+                public int ChunkAmount;
+                public int Size
+                {
+                    get
+                    {
+                        return ChunkAmount * ChunkSize;
+                    }
+                }
                 public float MapFromMin;
                 public float MapFromMax;
                 public float MapToMin;
@@ -227,7 +237,6 @@ namespace LooCast.Universe
             [SerializeField] private Vector2Int filamentPosition;
             [SerializeField] private Vector2Int sectorPosition;
 
-            private GameObject sectorObject;
             private Texture2D map;
 
             public Sector(Vector2Int filamentPosition, Vector2Int sectorPosition)
@@ -293,22 +302,6 @@ namespace LooCast.Universe
 
                 return noiseValue;
             }
-
-            public void Spawn()
-            {
-                sectorObject = GameObject.Instantiate(Instance.SectorGenerationSettings.Prefab);
-                sectorObject.name = $"Sector ({sectorPosition.x}, {sectorPosition.y})";
-                Vector2Int worldPosition = sectorPosition * Instance.SectorGenerationSettings.Size;
-                sectorObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
-
-                MapDisplay mapDisplay = sectorObject.GetComponentInChildren<MapDisplay>();
-                mapDisplay.DrawTexture(map);
-            }
-
-            public void Despawn()
-            {
-                GameObject.DestroyImmediate(sectorObject);
-            }
         }
 
         [Serializable]
@@ -319,7 +312,15 @@ namespace LooCast.Universe
             public struct GenerationSettings
             {
                 public GameObject Prefab;
-                public int Size;
+                public int ChunkSize;
+                public int ChunkAmount;
+                public int Size
+                {
+                    get
+                    {
+                        return ChunkAmount * ChunkSize;
+                    }
+                }
                 public float MapFromMin;
                 public float MapFromMax;
                 public float MapToMin;
@@ -371,7 +372,6 @@ namespace LooCast.Universe
             [SerializeField] private Vector2Int sectorPosition;
             [SerializeField] private Vector2Int regionPosition;
 
-            private GameObject regionObject;
             private Texture2D map;
 
             public Region(Vector2Int sectorPosition, Vector2Int regionPosition)
@@ -436,22 +436,6 @@ namespace LooCast.Universe
                 #endregion
 
                 return noiseValue;
-            }
-
-            public void Spawn()
-            {
-                regionObject = GameObject.Instantiate(Instance.RegionGenerationSettings.Prefab);
-                regionObject.name = $"Region ({regionPosition.x}, {regionPosition.y})";
-                Vector2Int worldPosition = regionPosition * Instance.RegionGenerationSettings.Size;
-                regionObject.transform.position = new Vector3(worldPosition.x, worldPosition.y, 0.0f) * 10.0f;
-
-                MapDisplay mapDisplay = regionObject.GetComponentInChildren<MapDisplay>();
-                mapDisplay.DrawTexture(map);
-            }
-
-            public void Despawn()
-            {
-                GameObject.DestroyImmediate(regionObject);
             }
         }
         #endregion
