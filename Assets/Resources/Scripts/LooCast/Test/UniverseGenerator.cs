@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Test
 {
-    using LooCast.Universe;
+    using Universe;
     
     public class UniverseGenerator : MonoBehaviour
     {
@@ -173,38 +173,6 @@ namespace LooCast.Test
         }
         #endregion
 
-        #region Spawning
-        public void SpawnFilament()
-        {
-            Universe.Instance.SpawnFilament(DEV_FILAMENT_filamentPosition);
-        }
-
-        public void SpawnFilaments()
-        {
-            Universe.Instance.SpawnFilaments(DEV_FILAMENT_filamentPositions);
-        }
-
-        public void SpawnFilamentRange()
-        {
-            Universe.Instance.SpawnFilaments(GetPositionsFromRange(DEV_FILAMENT_filamentPositionRangeMin, DEV_FILAMENT_filamentPositionRangeMax));
-        }
-
-        public void DespawnFilament()
-        {
-            Universe.Instance.DespawnFilament(DEV_FILAMENT_filamentPosition);
-        }
-
-        public void DespawnFilaments()
-        {
-            Universe.Instance.DespawnFilaments(DEV_FILAMENT_filamentPositions);
-        }
-
-        public void DespawnFilamentRange()
-        {
-            Universe.Instance.DespawnFilaments(GetPositionsFromRange(DEV_FILAMENT_filamentPositionRangeMin, DEV_FILAMENT_filamentPositionRangeMax));
-        }
-        #endregion
-
         #endregion
 
         #region Sector
@@ -307,38 +275,6 @@ namespace LooCast.Test
         }
         #endregion
 
-        #region Spawning
-        public void SpawnSector()
-        {
-            Universe.Instance.SpawnSector(DEV_SECTOR_sectorPosition);
-        }
-
-        public void SpawnSectors()
-        {
-            Universe.Instance.SpawnSectors(DEV_SECTOR_sectorPositions);
-        }
-
-        public void SpawnSectorRange()
-        {
-            Universe.Instance.SpawnSectors(GetPositionsFromRange(DEV_SECTOR_sectorPositionRangeMin, DEV_SECTOR_sectorPositionRangeMax));
-        }
-
-        public void DespawnSector()
-        {
-            Universe.Instance.DespawnSector(DEV_SECTOR_sectorPosition);
-        }
-
-        public void DespawnSectors()
-        {
-            Universe.Instance.DespawnSectors(DEV_SECTOR_sectorPositions);
-        }
-
-        public void DespawnSectorRange()
-        {
-            Universe.Instance.DespawnSectors(GetPositionsFromRange(DEV_SECTOR_sectorPositionRangeMin, DEV_SECTOR_sectorPositionRangeMax));
-        }
-        #endregion
-
         #endregion
 
         #region Region
@@ -438,38 +374,6 @@ namespace LooCast.Test
         public void DeleteAllRegions()
         {
             Universe.Instance.DeleteRegions();
-        }
-        #endregion
-
-        #region Spawning
-        public void SpawnRegion()
-        {
-            Universe.Instance.SpawnRegion(DEV_REGION_regionPosition);
-        }
-
-        public void SpawnRegions()
-        {
-            Universe.Instance.SpawnRegions(DEV_REGION_regionPositions);
-        }
-
-        public void SpawnRegionRange()
-        {
-            Universe.Instance.SpawnRegions(GetPositionsFromRange(DEV_REGION_regionPositionRangeMin, DEV_REGION_regionPositionRangeMax));
-        }
-
-        public void DespawnRegion()
-        {
-            Universe.Instance.DespawnRegion(DEV_REGION_regionPosition);
-        }
-
-        public void DespawnRegions()
-        {
-            Universe.Instance.DespawnRegions(DEV_REGION_regionPositions);
-        }
-
-        public void DespawnRegionRange()
-        {
-            Universe.Instance.DespawnRegions(GetPositionsFromRange(DEV_REGION_regionPositionRangeMin, DEV_REGION_regionPositionRangeMax));
         }
         #endregion
 

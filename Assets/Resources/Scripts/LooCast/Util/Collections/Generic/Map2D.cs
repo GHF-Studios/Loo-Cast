@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace LooCast.System.Collections.Generic
+namespace LooCast.Util.Collections.Generic
 {
     [Serializable]
     // Note: Can only be correctly serialized, if T is Serializable, too

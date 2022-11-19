@@ -239,48 +239,6 @@ namespace LooCast.Test.Editor
                 EditorGUILayout.EndHorizontal();
                 #endregion
 
-                EditorGUILayout.Space();
-
-                #region Spawning
-                EditorGUILayout.BeginHorizontal();
-
-                EditorGUILayout.BeginVertical();
-                if (GUILayout.Button("Spawn Filament"))
-                {
-                    universeGenerator.SpawnFilament();
-                }
-
-                if (GUILayout.Button("Spawn Filaments"))
-                {
-                    universeGenerator.SpawnFilaments();
-                }
-
-                if (GUILayout.Button("Spawn Filament Range"))
-                {
-                    universeGenerator.SpawnFilamentRange();
-                }
-                EditorGUILayout.EndVertical();
-
-                EditorGUILayout.BeginVertical();
-                if (GUILayout.Button("Despawn Filament"))
-                {
-                    universeGenerator.DespawnFilament();
-                }
-
-                if (GUILayout.Button("Despawn Filaments"))
-                {
-                    universeGenerator.DespawnFilaments();
-                }
-
-                if (GUILayout.Button("Despawn Filament Range"))
-                {
-                    universeGenerator.DespawnFilamentRange();
-                }
-                EditorGUILayout.EndVertical();
-
-                EditorGUILayout.EndHorizontal();
-                #endregion
-
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
@@ -433,48 +391,6 @@ namespace LooCast.Test.Editor
                 EditorGUILayout.EndHorizontal();
                 #endregion
 
-                EditorGUILayout.Space();
-
-                #region Spawning
-                EditorGUILayout.BeginHorizontal();
-
-                EditorGUILayout.BeginVertical();
-                if (GUILayout.Button("Spawn Sector"))
-                {
-                    universeGenerator.SpawnSector();
-                }
-
-                if (GUILayout.Button("Spawn Sectors"))
-                {
-                    universeGenerator.SpawnSectors();
-                }
-
-                if (GUILayout.Button("Spawn Sector Range"))
-                {
-                    universeGenerator.SpawnSectorRange();
-                }
-                EditorGUILayout.EndVertical();
-
-                EditorGUILayout.BeginVertical();
-                if (GUILayout.Button("Despawn Sector"))
-                {
-                    universeGenerator.DespawnSector();
-                }
-
-                if (GUILayout.Button("Despawn Sectors"))
-                {
-                    universeGenerator.DespawnSectors();
-                }
-
-                if (GUILayout.Button("Despawn Sector Range"))
-                {
-                    universeGenerator.DespawnSectorRange();
-                }
-                EditorGUILayout.EndVertical();
-
-                EditorGUILayout.EndHorizontal();
-                #endregion
-
                 EditorGUILayout.EndVertical();
 
                 EditorGUILayout.EndHorizontal();
@@ -621,48 +537,6 @@ namespace LooCast.Test.Editor
                 if (GUILayout.Button("Delete Region Range"))
                 {
                     universeGenerator.DeleteRegionRange();
-                }
-                EditorGUILayout.EndVertical();
-
-                EditorGUILayout.EndHorizontal();
-                #endregion
-
-                EditorGUILayout.Space();
-
-                #region Spawning
-                EditorGUILayout.BeginHorizontal();
-
-                EditorGUILayout.BeginVertical();
-                if (GUILayout.Button("Spawn Region"))
-                {
-                    universeGenerator.SpawnRegion();
-                }
-
-                if (GUILayout.Button("Spawn Regions"))
-                {
-                    universeGenerator.SpawnRegions();
-                }
-
-                if (GUILayout.Button("Spawn Region Range"))
-                {
-                    universeGenerator.SpawnRegionRange();
-                }
-                EditorGUILayout.EndVertical();
-
-                EditorGUILayout.BeginVertical();
-                if (GUILayout.Button("Despawn Region"))
-                {
-                    universeGenerator.DespawnRegion();
-                }
-
-                if (GUILayout.Button("Despawn Regions"))
-                {
-                    universeGenerator.DespawnRegions();
-                }
-
-                if (GUILayout.Button("Despawn Region Range"))
-                {
-                    universeGenerator.DespawnRegionRange();
                 }
                 EditorGUILayout.EndVertical();
 
