@@ -7,6 +7,8 @@ using UnityEngine.UIElements;
 
 namespace LooCast.Game
 {
+    using Universe;
+
     [Serializable]
     public class Game
     {
@@ -22,15 +24,32 @@ namespace LooCast.Game
                 return name;
             }
         }
+        public Universe CurrentUniverse
+        {
+            get
+            {
+                return currentUniverse;
+            }
+        }
         #endregion
 
         #region Fields
         [SerializeField] private string name;
+        [SerializeField] private Universe currentUniverse;
         #endregion
 
         public Game(string name)
         {
             this.name = name;
+        }
+
+        public void GenerateUniverse(Universe.GenerationSettings generationSettings)
+        {
+            if (currentUniverse != null)
+            {
+                throw new Exception("Universe is already generated!");
+            }
+
         }
 
         public static void SaveGame(Game game)

@@ -511,37 +511,6 @@ namespace LooCast.Universe
         }
         #endregion
 
-        #region Static Properties
-        public static Universe Instance
-        {
-            get
-            {
-                return instance;
-            }
-
-            private set
-            {
-                if (value != null)
-                {
-                    instance = value;
-                    if (!instance.initialized)
-                    {
-                        instance.Initialize();
-                    }
-                }
-                else
-                {
-                    instance.Terminate();
-                    instance = value;
-                }
-            }
-        }
-        #endregion
-
-        #region Static Fields
-        private static Universe instance;
-        #endregion
-
         #region Properties
         public GenerationSettings UniverseGenerationSettings => generationSettings;
         public Filament.GenerationSettings FilamentGenerationSettings => generationSettings.FilamentGenerationSettings;
@@ -589,7 +558,7 @@ namespace LooCast.Universe
         #endregion
 
         #region Constructors
-        private Universe(GenerationSettings generationSettings)
+        public Universe(GenerationSettings generationSettings)
         {
             this.generationSettings = generationSettings;
 
@@ -768,6 +737,8 @@ namespace LooCast.Universe
 
             map = TextureUtil.TextureFromColorMap(noiseColorMap, UniverseGenerationSettings.Size, UniverseGenerationSettings.Size);
             #endregion
+
+            SaveUniverse();
         }
         #endregion
 
@@ -812,32 +783,14 @@ namespace LooCast.Universe
         #endregion
 
         #region Generation
-        public static bool IsUniverseGenerated()
+        public static Universe GenerateUniverse(GenerationSettings generationSettings)
         {
-            string path = $"{Application.dataPath}/Data/Universe/Universe.json";
-            return File.Exists(path);
-        }
-        
-        public static void GenerateUniverse(GenerationSettings generationSettings)
-        {
-            if (IsUniverseGenerated())
-            {
-                throw new Exception($"Universe has already been generated!");
-            }
-
-            if (IsUniverseLoaded())
-            {
-                throw new Exception("Universe is already loaded!");
-            }
-
-            Universe universe = new Universe(generationSettings);
-            Instance = universe;
-            SaveUniverse();
+            return new Universe(generationSettings);
         }
         #endregion
 
         #region Saving
-        public static void SaveUniverse()
+        public void SaveUniverse()
         {
             if (!IsUniverseLoaded())
             {
@@ -845,7 +798,7 @@ namespace LooCast.Universe
             }
 
             string path = $"{Application.dataPath}/Data/Universe/Universe.json";
-            string json = JsonUtility.ToJson(Instance, true);
+            string json = JsonUtility.ToJson(this, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter streamWriter = new StreamWriter(path);
             streamWriter.Write(json);
