@@ -14,11 +14,11 @@ namespace LooCast.Game
         #region Data
         private struct DataContainer
         {
-            public Game[] GamesArray => gamesArray;
+            public string[] GamesArray => gamesArray;
 
-            [SerializeField] private Game[] gamesArray;
+            [SerializeField] private string[] gamesArray;
 
-            public DataContainer(Game[] gamesArray)
+            public DataContainer(string[] gamesArray)
             {
                 this.gamesArray = gamesArray;
             }
@@ -28,28 +28,28 @@ namespace LooCast.Game
         {
             get
             {
-                return new DataContainer(gamesArray);
+                return new DataContainer(gameNamesArray);
             }
 
             set
             {
-                gamesArray = value.GamesArray;
+                gameNamesArray = value.GamesArray;
             }
         }
         #endregion
 
         #region Properties
-        public Game[] GamesArray
+        public string[] GameNamesArray
         {
             get
             {
-                return gamesArray;
+                return gameNamesArray;
             }
         }
         #endregion
 
         #region Fields
-        [SerializeField] private Game[] gamesArray;
+        [SerializeField] private string[] gameNamesArray;
         #endregion
 
         #region Methods
@@ -62,30 +62,36 @@ namespace LooCast.Game
 
         public Game GetGame(string gameName)
         {
-            foreach (Game game in gamesArray)
+            if (gameNamesArray.Contains(gameName))
             {
-                if (game.Name == gameName)
-                {
-                    return game;
-                }
+                return Game.LoadGame(gameName);
             }
             return null;
         }
 
-        public void AddGame(Game game)
+        public void AddGame(string gameName)
         {
-            List<Game> gamesList = gamesArray.ToList();
-            gamesList.Add(game);
-            gamesArray = gamesList.ToArray();
+            List<string> gameNamesList = gameNamesArray.ToList();
+            gameNamesList.Add(gameName);
+            gameNamesArray = gameNamesList.ToArray();
             Save();
         }
 
-        public void RemoveGame(Game game)
+        public void RemoveGame(string gameName)
         {
-            List<Game> gamesList = gamesArray.ToList();
-            gamesList.Remove(game);
-            gamesArray = gamesList.ToArray();
+            List<string> gameNamesList = gameNamesArray.ToList();
+            gameNamesList.Remove(gameName);
+            gameNamesArray = gameNamesList.ToArray();
             Save();
+        }
+
+        public bool Contains(string gameName)
+        {
+            if (gameNamesArray == null || gameNamesArray.Count() == 0)
+            {
+                return false;
+            }
+            return gameNamesArray.Contains(gameName);
         }
 
         private void Save()

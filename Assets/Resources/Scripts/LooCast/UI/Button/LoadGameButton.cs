@@ -1,12 +1,13 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace LooCast.UI.Button
 {
     using Core;
 
-    public class SceneLoadButton : Button
+    public class LoadGameButton : Button
     {
-        [SerializeField] private MainManager.SceneType sceneType;
+        [SerializeField] private Text gameNameText;
 
         private void Start()
         {
@@ -15,7 +16,7 @@ namespace LooCast.UI.Button
 
         public override void OnClick()
         {
-            MainManager.LoadScene(sceneType);
+            MainManager.LoadGame(gameNameText.text);
         }
     }
 }

@@ -1,13 +1,11 @@
 ﻿using UnityEngine;
 using System;
 using System.IO;
-using System.Collections.Generic;
-using LooCast.Core;
-using UnityEngine.UIElements;
 
 namespace LooCast.Game
 {
     using Universe;
+    using Core;
 
     [Serializable]
     public class Game
@@ -31,6 +29,13 @@ namespace LooCast.Game
                 return currentUniverse;
             }
         }
+        public string DataPath
+        {
+            get
+            {
+                return $"{Application.dataPath}/Data/{name}";
+            }
+        }
         #endregion
 
         #region Fields
@@ -50,6 +55,8 @@ namespace LooCast.Game
                 throw new Exception("Universe is already generated!");
             }
 
+            currentUniverse = Universe.GenerateUniverse(generationSettings);
+            currentUniverse.Initialize();
         }
 
         public static void SaveGame(Game game)
@@ -59,7 +66,7 @@ namespace LooCast.Game
                 throw new NullReferenceException("Game is null!");
             }
 
-            string path = $"{Application.dataPath}/Data/{game.name}/Game.json";
+            string path = $"{game.DataPath}/Game.json";
             string json = JsonUtility.ToJson(game, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter streamWriter = new StreamWriter(path);
@@ -68,6 +75,11 @@ namespace LooCast.Game
 
         public static Game LoadGame(string gameName)
         {
+            if (!GameExists(gameName))
+            {
+                throw new FileNotFoundException("Game does not exist!");
+            }
+
             string path = $"{Application.dataPath}/Data/{gameName}/Game.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
@@ -76,22 +88,34 @@ namespace LooCast.Game
 
         public static void DeleteGame(Game game)
         {
-            string path = $"{Application.dataPath}/Data/{game.name}/Game.json";
+            string path = $"{game.DataPath}/Game.json";
             if (File.Exists(path))
             {
                 File.Delete(path);
             }
-            MainManager.Games.RemoveGame(game);
+            MainManager.Games.RemoveGame(game.Name);
         }
 
         public static void Rename(Game game, string newName)
         {
-            string oldPath = $"{Application.dataPath}/Data/{game.name}/Game.json";
-            string newPath = $"{Application.dataPath}/Data/{newName}/Game.json";
-            MainManager.Games.RemoveGame(game);
+            if (!GameExists(game.Name))
+            {
+                throw new FileNotFoundException("Game does not exist!");
+            }
+
+            string oldPath = $"{game.DataPath}";
+            string newPath = $"{Application.dataPath}/Data/{newName}";
+            MainManager.Games.RemoveGame(game.Name);
             game.name = newName;
             Directory.Move(oldPath, newPath);
-            MainManager.Games.AddGame(game);
+            MainManager.Games.AddGame(game.Name);
+        }
+
+        public static bool GameExists(string gameName)
+        {
+            string directoryPath = $"{Application.dataPath}/Data/{gameName}";
+            string filePath = $"{Application.dataPath}/Data/{gameName}/Game.json";
+            return Directory.Exists(directoryPath) && File.Exists(filePath);
         }
     }
 }

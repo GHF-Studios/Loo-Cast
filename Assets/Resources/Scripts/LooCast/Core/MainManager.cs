@@ -7,8 +7,8 @@ namespace LooCast.Core
     using MainMenu;
     using Game;
     using Util;
-    using System.Collections.Generic;
-    using UnityEditor.Build.Content;
+    using Universe;
+    using System.Linq;
 
     public class MainManager : MonoBehaviour
     {
@@ -81,7 +81,24 @@ namespace LooCast.Core
             #endregion
 
             #region Scene Initialization
-            InitializeScene(activeSceneName);
+            switch (activeSceneName)
+            {
+                case "MainMenu":
+                    MainMenuManager mainMenuManager = FindObjectOfType<MainMenuManager>();
+                    mainMenuManager.Initialize();
+                    break;
+                case "Game":
+                    GameManager gameManager = FindObjectOfType<GameManager>();
+                    if (games.Contains("New Game"))
+                    {
+                        gameManager.Initialize(games.GetGame("New Game"));
+                    }
+                    else
+                    {
+                        gameManager.Initialize("New Game");
+                    }
+                    break;
+            }
             #endregion
 
             #endregion
@@ -91,8 +108,81 @@ namespace LooCast.Core
         #endregion
 
         #region Static Methods
+        public static void CreateNewGame(string gameName)
+        {
+            if (games.Contains(gameName))
+            {
+                throw new Exception("Cannot create new Game, because another Game with the same Name already exists!");
+            }
 
-        public static void LoadScene(SceneType sceneType, Action postLoadAction = null)
+            LoadScene(SceneType.Game, () =>
+            {
+                GameManager gameManager = FindObjectOfType<GameManager>();
+                gameManager.Initialize(gameName);
+            });
+        }
+
+        public static void CreateNewGame(string gameName, Universe.GenerationSettings generationSettings)
+        {
+            if (games.Contains(gameName))
+            {
+                throw new Exception("Cannot create new Game, because another Game with the same Name already exists!");
+            }
+
+            LoadScene(SceneType.Game, () =>
+            {
+                GameManager gameManager = FindObjectOfType<GameManager>();
+                gameManager.Initialize(gameName, generationSettings);
+            });
+        }
+
+        public static void LoadGame(string gameName)
+        {
+            if (!games.Contains(gameName))
+            {
+                throw new Exception("Cannot load Game, because it does not exist!");
+            }
+
+            LoadScene(SceneType.Game, () =>
+            {
+                Game game = games.GetGame(gameName);
+                GameManager gameManager = FindObjectOfType<GameManager>();
+                gameManager.Initialize(game);
+            });
+        }
+
+        public static void DeleteGame(string gameName)
+        {
+            if (GameManager.Initialized && GameManager.Instance.CurrentGame.Name == gameName)
+            {
+                throw new Exception("Cannot delete Game when it is loaded!");
+            }
+
+            Game game = games.GetGame(gameName);
+            Game.DeleteGame(game);
+        }
+
+        public static void RenameGame(string oldGameName, string newGameName)
+        {
+            if (GameManager.Initialized && GameManager.Instance.CurrentGame.Name == oldGameName)
+            {
+                throw new Exception("Cannot rename Game when it is loaded!");
+            }
+
+            Game game = games.GetGame(oldGameName);
+            Game.Rename(game, newGameName);
+        }
+
+        public static void LoadMainMenu()
+        {
+            LoadScene(SceneType.MainMenu, () =>
+            {
+                MainMenuManager mainMenuManager = FindObjectOfType<MainMenuManager>();
+                mainMenuManager.Initialize();
+            });
+        }
+
+        private static void LoadScene(SceneType sceneType, Action postLoadAction = null)
         {
             string sceneName = Enum.GetName(typeof(SceneType), sceneType);
             Debug.Log($"[MainManager] Loading Scene '{sceneName}'.");
@@ -101,14 +191,12 @@ namespace LooCast.Core
                 case SceneType.MainMenu:
                     Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName, () =>
                     {
-                        InitializeScene("MainMenu");
                         postLoadAction?.Invoke();
                     }));
                     break;
                 case SceneType.Game:
                     Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName, () =>
                     {
-                        InitializeScene("Game");
                         postLoadAction?.Invoke();
                     }));
                     break;
@@ -116,37 +204,6 @@ namespace LooCast.Core
                     throw new ArgumentException($"Scene Type '{sceneName}' not supported!");
             }
             Debug.Log($"[MainManager] Finished loading Scene '{sceneName}'.");
-        }
-
-        public static void CreateNewGame(string gameName)
-        {
-            Game newGame = new Game(gameName);
-            games.AddGame(newGame);
-        }
-
-        public static void LoadGame(string gameName)
-        {
-            LoadScene(SceneType.Game, () =>
-            {
-                GameManager.LoadGame(games.GetGame(gameName));
-            });
-        }
-
-        public static void DeleteGame(string gameName)
-        {
-            Game game = games.GetGame(gameName);
-            Game.DeleteGame(game);
-        }
-
-        public static void RenameGame(string oldGameName, string newGameName)
-        {
-            Game game = games.GetGame(oldGameName);
-            Game.Rename(game, newGameName);
-        }
-
-        public static void LoadMainMenu()
-        {
-            LoadScene(SceneType.MainMenu);
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -174,23 +231,6 @@ namespace LooCast.Core
             #endregion
 
             Debug.Log($"[MainManager] Finished Post-Initialization in Scene '{activeSceneName}'.");
-        }
-
-        private static void InitializeScene(string sceneName)
-        {
-            switch (sceneName)
-            {
-                case "MainMenu":
-                    MainMenuManager mainMenuManager = FindObjectOfType<MainMenuManager>();
-                    mainMenuManager.Initialize();
-                    break;
-                case "Game":
-                    GameManager gameManager = FindObjectOfType<GameManager>();
-                    gameManager.Initialize();
-                    break;
-                default:
-                    throw new NotImplementedException($"Scene Initialization has not been implemented for Scene '{sceneName}'!");
-            }
         }
         #endregion
 

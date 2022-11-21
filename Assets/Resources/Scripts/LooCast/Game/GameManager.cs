@@ -61,21 +61,8 @@ namespace LooCast.Game
         #endregion
 
         #region Methods
-        public void Initialize()
+        public void Initialize(string newGameName)
         {
-            if (Instance != null)
-            {
-                throw new Exception("Cannot have multiple instances of GameManager!");
-            }
-
-            #region Initialization
-            Instance = this;
-            runtimeSets.Initialize();
-            IsPaused = false;
-            KillsStatistic.Kills = 0;
-            currentGame = null;
-
-            #region Universe Pre-Generation
             Universe.GenerationSettings generationSettings = new Universe.GenerationSettings();
 
             #region Universe Generation Settings Default
@@ -205,9 +192,31 @@ namespace LooCast.Game
             generationSettings.RegionGenerationSettings.DomainWarpFractalGain = 0.5f;
             #endregion
 
-            currentGame.GenerateUniverse(generationSettings);
-            #endregion
+            Initialize(newGameName, generationSettings);
+        }
 
+        public void Initialize(string newGameName, Universe.GenerationSettings generationSettings)
+        {
+            Game game = new Game(newGameName);
+            MainManager.Games.AddGame(newGameName);
+            game.GenerateUniverse(generationSettings);
+            Initialize(game);
+        }
+
+        public void Initialize(Game game)
+        {
+            if (Instance != null)
+            {
+                throw new Exception("Cannot have multiple instances of GameManager!");
+            }
+
+            #region Initialization
+            Instance = this;
+            runtimeSets.Initialize();
+            IsPaused = false;
+            KillsStatistic.Kills = 0;
+            LoadGame(game);
+            SaveGame();
             #endregion
 
             Debug.Log($"[GameManager] Initialized.");
@@ -249,23 +258,38 @@ namespace LooCast.Game
 
         public static void LoadGame(Game game)
         {
-            if (Instance == null)
+            if (!Initialized)
             {
-                return;
+                throw new Exception("Cannot load Game when GameManager is not initialized!");
             }
-            Instance.currentGame = game;
+            if (Instance.CurrentGame != null)
+            {
+                if (Instance.CurrentGame == game)
+                {
+                    throw new Exception("Cannot load Game because it is already loaded!");
+                }
+                throw new Exception("Cannot load Game when another Game is already loaded!");
+            }
 
-            // Load all Chunks inside range at player position into Scene
+            Instance.CurrentGame = game;
 
+            // TODO: Load all Chunks inside range at player position into Scene
         }
 
-        public static void SaveGame(Game game)
+        public static void SaveGame()
         {
-            if (Instance == null)
+            if (!Initialized)
             {
-                return;
+                throw new Exception("Cannot save Game when GameManager is not initialized!");
             }
-            // Save all loaded Chunks
+            if (Instance.CurrentGame == null)
+            {
+                throw new Exception("Cannot save Game when no Game is loaded!");
+            }
+
+            Game.SaveGame(Instance.currentGame);
+
+            // TODO: Save all loaded Chunks
         }
         #endregion
     }

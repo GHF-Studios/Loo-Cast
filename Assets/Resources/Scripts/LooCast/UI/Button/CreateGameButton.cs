@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace LooCast.UI.Button
 {
@@ -6,6 +7,8 @@ namespace LooCast.UI.Button
 
     public class CreateGameButton : Button
     {
+        [SerializeField] private Text gameNameText;
+
         private void Start()
         {
             Initialize();
@@ -13,7 +16,14 @@ namespace LooCast.UI.Button
 
         public override void OnClick()
         {
-            MainManager.CreateNewGame("New Game");
+            if (gameNameText.text == "")
+            {
+                MainManager.CreateNewGame("New Game");
+            }
+            else
+            {
+                MainManager.CreateNewGame(gameNameText.text);
+            }
         }
     }
 }

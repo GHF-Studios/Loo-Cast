@@ -5,7 +5,7 @@ namespace LooCast.Util.Collections.Generic
 {
     [Serializable]
     // Note: Can only be correctly serialized, if T is Serializable, too
-    public struct Map2D<T>
+    public struct SerializableMap2D<T>
     {
         public T[,] Array2D
         {
@@ -27,7 +27,7 @@ namespace LooCast.Util.Collections.Generic
         [SerializeField] private int arrayWidth;
         [SerializeField] private int arrayHeight;
 
-        public Map2D(T[,] array2D)
+        public SerializableMap2D(T[,] array2D)
         {
             array1D = new T[array2D.Length];
             arrayWidth = array2D.GetLength(0);
@@ -42,7 +42,7 @@ namespace LooCast.Util.Collections.Generic
             }
         }
 
-        public Map2D(int width, int height)
+        public SerializableMap2D(int width, int height)
         {
             array1D = new T[width * height];
             arrayWidth = width;
