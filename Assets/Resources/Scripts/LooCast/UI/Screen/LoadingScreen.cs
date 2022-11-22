@@ -20,29 +20,29 @@ namespace LooCast.UI.Screen
             Initialize();
         }
 
-        public void LoadScene(string sceneIndex, Action postLoadAction = null)
+        public void LoadScene(string sceneIndex)
         {
             if (!loading)
             {
                 loading = true;
                 SetVisibility(true);
                 Canvas.screenStack.Clear();
-                StartCoroutine(LoadAsynchronously(sceneIndex, postLoadAction));
+                StartCoroutine(LoadAsynchronously(sceneIndex));
             }
         }
 
-        public IEnumerator LoadSceneAsynchronously(string sceneIndex, Action postLoadAction = null)
+        public IEnumerator LoadSceneAsynchronously(string sceneIndex)
         {
             if (!loading)
             {
                 loading = true;
                 SetVisibility(true);
                 Canvas.screenStack.Clear();
-                yield return StartCoroutine(LoadAsynchronously(sceneIndex, postLoadAction));
+                yield return StartCoroutine(LoadAsynchronously(sceneIndex));
             }
         }
 
-        private IEnumerator LoadAsynchronously(string sceneIndex, Action postLoadAction = null)
+        private IEnumerator LoadAsynchronously(string sceneIndex)
         {
             AsyncOperation operation = SceneManager.LoadSceneAsync(sceneIndex, LoadSceneMode.Single);
             while (!operation.isDone)
@@ -51,8 +51,6 @@ namespace LooCast.UI.Screen
                 loadingBar.value = progress;
                 yield return null;
             }
-            postLoadAction?.Invoke();
-            yield return null;
         }
     } 
 }

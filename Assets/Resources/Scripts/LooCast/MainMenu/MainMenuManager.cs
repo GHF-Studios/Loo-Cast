@@ -13,7 +13,6 @@ namespace LooCast.MainMenu
         #endregion
 
         #region Fields
-        [SerializeField] private LoadingScreen LoadingScreen;
         #endregion
 
         #region Methods
@@ -33,20 +32,7 @@ namespace LooCast.MainMenu
 
         public void Quit()
         {
-            if (Instance == null)
-            {
-                return;
-            }
             Application.Quit();
-        }
-
-        public void LoadScene(string sceneIndex)
-        {
-            if (Instance == null)
-            {
-                return;
-            }
-            Instance.StartCoroutine(Instance.LoadingScreen.LoadSceneAsynchronously(sceneIndex, null));
         }
         #endregion
     }

@@ -8,7 +8,8 @@ namespace LooCast.Core
     using Game;
     using Util;
     using Universe;
-    using System.Linq;
+    using UI.Screen;
+    using System.Collections;
 
     public class MainManager : MonoBehaviour
     {
@@ -39,6 +40,7 @@ namespace LooCast.Core
             }
         }
         public static Games Games => games;
+        public static Game GameToBeLoaded => gameToBeLoaded;    //TODO
         #endregion
 
         #region Static Fields
@@ -47,7 +49,7 @@ namespace LooCast.Core
 
         #region Properties
         private static Games games;
-        private static Game selectedGame;
+        private static Game gameToBeLoaded;
         #endregion
 
         #region Unity Callbacks
@@ -189,13 +191,13 @@ namespace LooCast.Core
             switch (sceneType)
             {
                 case SceneType.MainMenu:
-                    Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName, () =>
+                    Instance.StartCoroutine(Instance.LoadSceneAsynchronously(sceneName, () =>
                     {
                         postLoadAction?.Invoke();
                     }));
                     break;
                 case SceneType.Game:
-                    Instance.StartCoroutine(FindObjectOfType<UI.Screen.LoadingScreen>().LoadSceneAsynchronously(sceneName, () =>
+                    Instance.StartCoroutine(Instance.LoadSceneAsynchronously(sceneName, () =>
                     {
                         postLoadAction?.Invoke();
                     }));
@@ -235,7 +237,12 @@ namespace LooCast.Core
         #endregion
 
         #region Methods
-
+        public IEnumerator LoadSceneAsynchronously(string sceneIndex, Action postLoadAction = null)
+        {
+            LoadingScreen loadingScreen = FindObjectOfType<LoadingScreen>();
+            yield return loadingScreen.LoadSceneAsynchronously(sceneIndex);
+            postLoadAction?.Invoke();
+        }
         #endregion
     }
 }
