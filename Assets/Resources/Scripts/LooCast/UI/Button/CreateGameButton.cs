@@ -16,14 +16,17 @@ namespace LooCast.UI.Button
 
         public override void OnClick()
         {
+            string newGameName;
             if (gameNameText.text == "")
             {
-                MainManager.CreateNewGame("New Game");
+                newGameName = "New Game";
             }
             else
             {
-                MainManager.CreateNewGame(gameNameText.text);
+                newGameName = gameNameText.text;
             }
+
+            MainManager.CreateNewGame(newGameName);
         }
     }
 }

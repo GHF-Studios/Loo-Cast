@@ -2,67 +2,36 @@
 using LooCast.Data.Runtime;
 using LooCast.Util;
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using LooCast.Util.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace LooCast.Game
 {
     [Serializable]
     public class Games
     {
-        #region Data
-        private struct DataContainer
-        {
-            public string[] GamesArray => gamesArray;
-
-            [SerializeField] private string[] gamesArray;
-
-            public DataContainer(string[] gamesArray)
-            {
-                this.gamesArray = gamesArray;
-            }
-        }
-
-        private DataContainer serializableRuntimeData
-        {
-            get
-            {
-                return new DataContainer(gameNamesArray);
-            }
-
-            set
-            {
-                gameNamesArray = value.GamesArray;
-            }
-        }
-        #endregion
-
         #region Properties
-        public string[] GameNamesArray
-        {
-            get
-            {
-                return gameNamesArray;
-            }
-        }
         #endregion
 
         #region Fields
-        [SerializeField] private string[] gameNamesArray;
+        [SerializeField] private SerializableList<string> gameNames;
+        #endregion
+
+        #region Constructors
+        public Games()
+        {
+            gameNames = new SerializableList<string>();
+        }
         #endregion
 
         #region Methods
-        public static Games LoadGames()
-        {
-            Games games = new Games();
-            games.Load();
-            return games;
-        }
-
         public Game GetGame(string gameName)
         {
-            if (gameNamesArray.Contains(gameName))
+            if (gameNames.Contains(gameName))
             {
                 return Game.LoadGame(gameName);
             }
@@ -71,37 +40,46 @@ namespace LooCast.Game
 
         public void AddGame(string gameName)
         {
-            List<string> gameNamesList = gameNamesArray.ToList();
-            gameNamesList.Add(gameName);
-            gameNamesArray = gameNamesList.ToArray();
-            Save();
+            gameNames.Add(gameName);
+            Save(this);
         }
 
         public void RemoveGame(string gameName)
         {
-            List<string> gameNamesList = gameNamesArray.ToList();
-            gameNamesList.Remove(gameName);
-            gameNamesArray = gameNamesList.ToArray();
-            Save();
+            gameNames.Remove(gameName);
+            Save(this);
         }
 
         public bool Contains(string gameName)
         {
-            if (gameNamesArray == null || gameNamesArray.Count() == 0)
+            if (gameNames.Count == 0)
             {
                 return false;
             }
-            return gameNamesArray.Contains(gameName);
+            return gameNames.Contains(gameName);
         }
 
-        private void Save()
+        public static void Save(Games games)
         {
-            JSONUtil.SaveData(serializableRuntimeData, "Games/Games.json");
+            string relativeDataPath = $"Games/Games.json";
+            JSONUtil.SaveData(games, relativeDataPath);
         }
 
-        private void Load()
+        public static Games Load()
         {
-            serializableRuntimeData = JSONUtil.LoadData<DataContainer>("Games/Games.json");
+            string relativeDataPath = $"Games/Games.json";
+            string dataPath = $"{Application.dataPath}/Data/{relativeDataPath}";
+            Games games;
+            if (!File.Exists(dataPath))
+            {
+                games = new Games();
+                Save(games);
+            }
+            else
+            {
+                games = JSONUtil.LoadData<Games>(relativeDataPath);
+            }
+            return games;
         }
         #endregion
     }

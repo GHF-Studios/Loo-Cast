@@ -33,7 +33,7 @@ namespace LooCast.Game
         {
             get
             {
-                return $"{Application.dataPath}/Data/{name}";
+                return $"{Application.dataPath}/Data/Games/{name}";
             }
         }
         #endregion
@@ -57,6 +57,7 @@ namespace LooCast.Game
 
             currentUniverse = Universe.GenerateUniverse(generationSettings);
             currentUniverse.Initialize();
+            SaveGame(this);
         }
 
         public static void SaveGame(Game game)

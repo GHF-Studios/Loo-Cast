@@ -12,7 +12,28 @@ namespace LooCast.Util.Collections.Generic
         {
             get
             {
-                return values.ToList();
+                if (values == null)
+                {
+                    return new List<T>();
+                }
+                else
+                {
+                    return values.ToList();
+                }
+            }
+        }
+        public int Count
+        {
+            get
+            {
+                if (values == null)
+                {
+                    return 0;
+                }
+                else
+                {
+                    return values.Length;
+                }
             }
         }
 
@@ -34,7 +55,7 @@ namespace LooCast.Util.Collections.Generic
 
         public bool Contains(T value)
         {
-            return values.Contains(value);
+            return Values.Contains(value);
         }
     }
 }

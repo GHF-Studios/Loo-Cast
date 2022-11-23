@@ -27,6 +27,7 @@ namespace LooCast.Game
         #endregion
 
         #region Static Fields
+        private static Queue<Action> postInitializationActionQueue;
         #endregion
 
         #region Properties
@@ -54,156 +55,7 @@ namespace LooCast.Game
         #endregion
 
         #region Unity Callbacks
-        private void OnApplicationQuit()
-        {
-            runtimeSets.Initialize();
-        }
-        #endregion
-
-        #region Methods
-        public void Initialize(string newGameName)
-        {
-            Universe.GenerationSettings generationSettings = new Universe.GenerationSettings();
-
-            #region Universe Generation Settings Default
-            generationSettings.Seed = 0;
-            generationSettings.Size = 4096;
-            generationSettings.MapFromMin = -1.0f;
-            generationSettings.MapFromMax = 1.0f;
-            generationSettings.MapToMin = 0.0f;
-            generationSettings.MapToMax = 1.0f;
-            generationSettings.Power = 5.0f;
-            generationSettings.Amplitude = 64.0f;
-
-            generationSettings.NoiseType = FastNoiseLite.NoiseType.Cellular;
-            generationSettings.Frequency = 0.04f;
-
-            generationSettings.FractalType = FastNoiseLite.FractalType.FBm;
-            generationSettings.FractalOctaves = 3;
-            generationSettings.FractalLacunarity = 2.0f;
-            generationSettings.FractalGain = 0.5f;
-            generationSettings.FractalWeightedStrength = 1.0f;
-
-            generationSettings.CellularDistanceFunction = FastNoiseLite.CellularDistanceFunction.EuclideanSq;
-            generationSettings.CellularReturnType = FastNoiseLite.CellularReturnType.Distance;
-            generationSettings.CellularJitter = 1.0f;
-
-            generationSettings.DomainWarpType = FastNoiseLite.DomainWarpType.OpenSimplex2;
-            generationSettings.DomainWarpAmplitude = 20.0f;
-            generationSettings.DomainWarpFrequency = 0.01f;
-
-            generationSettings.DomainWarpFractalType = FastNoiseLite.FractalType.DomainWarpProgressive;
-            generationSettings.DomainWarpFractalOctaves = 5;
-            generationSettings.DomainWarpFractalLacunarity = 2.0f;
-            generationSettings.DomainWarpFractalGain = 0.5f;
-            #endregion
-
-            #region Filament Generation Settings Default
-            generationSettings.FilamentGenerationSettings.ChunkSize = 64;
-            generationSettings.FilamentGenerationSettings.ChunkAmount = 64;
-            generationSettings.FilamentGenerationSettings.MapFromMin = -1.0f;
-            generationSettings.FilamentGenerationSettings.MapFromMax = 1.0f;
-            generationSettings.FilamentGenerationSettings.MapToMin = 0.0f;
-            generationSettings.FilamentGenerationSettings.MapToMax = 1.0f;
-            generationSettings.FilamentGenerationSettings.UniverseNoiseInfluence = 1.0f;
-            generationSettings.FilamentGenerationSettings.Power = 1.0f;
-            generationSettings.FilamentGenerationSettings.Amplitude = 1.0f;
-
-            generationSettings.FilamentGenerationSettings.NoiseType = FastNoiseLite.NoiseType.Cellular;
-            generationSettings.FilamentGenerationSettings.Frequency = 0.02f;
-
-            generationSettings.FilamentGenerationSettings.FractalType = FastNoiseLite.FractalType.FBm;
-            generationSettings.FilamentGenerationSettings.FractalOctaves = 5;
-            generationSettings.FilamentGenerationSettings.FractalLacunarity = 2.0f;
-            generationSettings.FilamentGenerationSettings.FractalGain = 0.5f;
-            generationSettings.FilamentGenerationSettings.FractalWeightedStrength = 0.0f;
-
-            generationSettings.FilamentGenerationSettings.CellularDistanceFunction = FastNoiseLite.CellularDistanceFunction.EuclideanSq;
-            generationSettings.FilamentGenerationSettings.CellularReturnType = FastNoiseLite.CellularReturnType.Distance;
-            generationSettings.FilamentGenerationSettings.CellularJitter = 1.0f;
-
-            generationSettings.FilamentGenerationSettings.DomainWarpType = FastNoiseLite.DomainWarpType.OpenSimplex2;
-            generationSettings.FilamentGenerationSettings.DomainWarpAmplitude = 20.0f;
-            generationSettings.FilamentGenerationSettings.DomainWarpFrequency = 0.005f;
-
-            generationSettings.FilamentGenerationSettings.DomainWarpFractalType = FastNoiseLite.FractalType.DomainWarpProgressive;
-            generationSettings.FilamentGenerationSettings.DomainWarpFractalOctaves = 5;
-            generationSettings.FilamentGenerationSettings.DomainWarpFractalLacunarity = 2.0f;
-            generationSettings.FilamentGenerationSettings.DomainWarpFractalGain = 0.5f;
-            #endregion
-
-            #region Sectror Generation Settings Default
-            generationSettings.SectorGenerationSettings.ChunkSize = 64;
-            generationSettings.SectorGenerationSettings.ChunkAmount = 64;
-            generationSettings.SectorGenerationSettings.MapFromMin = -1.0f;
-            generationSettings.SectorGenerationSettings.MapFromMax = 1.0f;
-            generationSettings.SectorGenerationSettings.MapToMin = 0.0f;
-            generationSettings.SectorGenerationSettings.MapToMax = 1.0f;
-            generationSettings.SectorGenerationSettings.FilamentNoiseInfluence = 1.0f;
-            generationSettings.SectorGenerationSettings.Power = 1.0f;
-            generationSettings.SectorGenerationSettings.Amplitude = 1.0f;
-
-            generationSettings.SectorGenerationSettings.NoiseType = FastNoiseLite.NoiseType.OpenSimplex2;
-            generationSettings.SectorGenerationSettings.Frequency = 0.01f;
-
-            generationSettings.SectorGenerationSettings.FractalType = FastNoiseLite.FractalType.FBm;
-            generationSettings.SectorGenerationSettings.FractalOctaves = 5;
-            generationSettings.SectorGenerationSettings.FractalLacunarity = 2.0f;
-            generationSettings.SectorGenerationSettings.FractalGain = 0.5f;
-            generationSettings.SectorGenerationSettings.FractalWeightedStrength = 0.0f;
-
-            generationSettings.SectorGenerationSettings.DomainWarpType = FastNoiseLite.DomainWarpType.OpenSimplex2;
-            generationSettings.SectorGenerationSettings.DomainWarpAmplitude = 20.0f;
-            generationSettings.SectorGenerationSettings.DomainWarpFrequency = 0.005f;
-
-            generationSettings.SectorGenerationSettings.DomainWarpFractalType = FastNoiseLite.FractalType.DomainWarpProgressive;
-            generationSettings.SectorGenerationSettings.DomainWarpFractalOctaves = 5;
-            generationSettings.SectorGenerationSettings.DomainWarpFractalLacunarity = 2.0f;
-            generationSettings.SectorGenerationSettings.DomainWarpFractalGain = 0.5f;
-            #endregion
-
-            #region Region Generation Settings Default
-            generationSettings.RegionGenerationSettings.ChunkSize = 64;
-            generationSettings.RegionGenerationSettings.ChunkAmount = 64;
-            generationSettings.RegionGenerationSettings.MapFromMin = -1.0f;
-            generationSettings.RegionGenerationSettings.MapFromMax = 1.0f;
-            generationSettings.RegionGenerationSettings.MapToMin = -0.375f;
-            generationSettings.RegionGenerationSettings.MapToMax = 1.375f;
-            generationSettings.RegionGenerationSettings.SectorNoiseInfluence = 1.0f;
-            generationSettings.RegionGenerationSettings.Power = 1.0f;
-            generationSettings.RegionGenerationSettings.Amplitude = 1.0f;
-
-            generationSettings.RegionGenerationSettings.NoiseType = FastNoiseLite.NoiseType.OpenSimplex2;
-            generationSettings.RegionGenerationSettings.Frequency = 0.005f;
-
-            generationSettings.RegionGenerationSettings.FractalType = FastNoiseLite.FractalType.FBm;
-            generationSettings.RegionGenerationSettings.FractalOctaves = 5;
-            generationSettings.RegionGenerationSettings.FractalLacunarity = 2.0f;
-            generationSettings.RegionGenerationSettings.FractalGain = 0.5f;
-            generationSettings.RegionGenerationSettings.FractalWeightedStrength = 0.0f;
-
-            generationSettings.RegionGenerationSettings.DomainWarpType = FastNoiseLite.DomainWarpType.OpenSimplex2;
-            generationSettings.RegionGenerationSettings.DomainWarpAmplitude = 20.0f;
-            generationSettings.RegionGenerationSettings.DomainWarpFrequency = 0.005f;
-
-            generationSettings.RegionGenerationSettings.DomainWarpFractalType = FastNoiseLite.FractalType.DomainWarpProgressive;
-            generationSettings.RegionGenerationSettings.DomainWarpFractalOctaves = 5;
-            generationSettings.RegionGenerationSettings.DomainWarpFractalLacunarity = 2.0f;
-            generationSettings.RegionGenerationSettings.DomainWarpFractalGain = 0.5f;
-            #endregion
-
-            Initialize(newGameName, generationSettings);
-        }
-
-        public void Initialize(string newGameName, Universe.GenerationSettings generationSettings)
-        {
-            Game game = new Game(newGameName);
-            MainManager.Games.AddGame(newGameName);
-            game.GenerateUniverse(generationSettings);
-            Initialize(game);
-        }
-
-        public void Initialize(Game game)
+        private void Awake()
         {
             if (Instance != null)
             {
@@ -215,11 +67,25 @@ namespace LooCast.Game
             runtimeSets.Initialize();
             IsPaused = false;
             KillsStatistic.Kills = 0;
-            LoadGame(game);
-            SaveGame();
             #endregion
 
             Debug.Log($"[GameManager] Initialized.");
+
+            if (postInitializationActionQueue != null)
+            {
+                while (postInitializationActionQueue.Count > 0)
+                {
+                    Action postInitializationAction = postInitializationActionQueue.Dequeue();
+                    postInitializationAction.Invoke();
+                }
+            }
+
+            Debug.Log($"[GameManager] Post-Initialized.");
+        }
+
+        private void OnApplicationQuit()
+        {
+            runtimeSets.Initialize();
         }
         #endregion
 
@@ -290,6 +156,47 @@ namespace LooCast.Game
             Game.SaveGame(Instance.currentGame);
 
             // TODO: Save all loaded Chunks
+        }
+
+        public static void AddPostInitializationAction(Action postInitializationAction)
+        {
+            if (postInitializationAction == null)
+            {
+                return;
+            }
+
+            if (postInitializationActionQueue == null)
+            {
+                postInitializationActionQueue = new Queue<Action>();
+            }
+
+            postInitializationActionQueue.Enqueue(postInitializationAction);
+        }
+        #endregion
+
+        #region Methods
+
+        public void InitializeGame(string newGameName)
+        {
+            InitializeGame(newGameName, Universe.DefaultGenerationSettings);
+        }
+
+        public void InitializeGame(string newGameName, Universe.GenerationSettings generationSettings)
+        {
+            Game game = new Game(newGameName);
+            MainManager.Games.AddGame(newGameName);
+            LoadGame(game);
+            SaveGame();
+            game.GenerateUniverse(generationSettings);
+
+            Debug.Log($"[GameManager] Initialized Game.");
+        }
+
+        public void InitializeGame(Game game)
+        {
+            LoadGame(game);
+
+            Debug.Log($"[GameManager] Initialized Game.");
         }
         #endregion
     }

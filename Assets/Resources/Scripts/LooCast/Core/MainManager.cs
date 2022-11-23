@@ -69,7 +69,7 @@ namespace LooCast.Core
             instance = this;
             DontDestroyOnLoad(this);
 
-            games = Games.LoadGames();
+            games = Games.Load();
 
             Debug.Log($"[MainManager] Initialized.");
             #endregion
@@ -86,19 +86,20 @@ namespace LooCast.Core
             switch (activeSceneName)
             {
                 case "MainMenu":
-                    MainMenuManager mainMenuManager = FindObjectOfType<MainMenuManager>();
-                    mainMenuManager.Initialize();
                     break;
                 case "Game":
-                    GameManager gameManager = FindObjectOfType<GameManager>();
-                    if (games.Contains("New Game"))
+                    GameManager.AddPostInitializationAction(() =>
                     {
-                        gameManager.Initialize(games.GetGame("New Game"));
-                    }
-                    else
-                    {
-                        gameManager.Initialize("New Game");
-                    }
+                        GameManager gameManager = FindObjectOfType<GameManager>();
+                        if (games.Contains("New Game"))
+                        {
+                            gameManager.InitializeGame(games.GetGame("New Game"));
+                        }
+                        else
+                        {
+                            gameManager.InitializeGame("New Game");
+                        }
+                    });
                     break;
             }
             #endregion
@@ -120,7 +121,7 @@ namespace LooCast.Core
             LoadScene(SceneType.Game, () =>
             {
                 GameManager gameManager = FindObjectOfType<GameManager>();
-                gameManager.Initialize(gameName);
+                gameManager.InitializeGame(gameName);
             });
         }
 
@@ -134,7 +135,7 @@ namespace LooCast.Core
             LoadScene(SceneType.Game, () =>
             {
                 GameManager gameManager = FindObjectOfType<GameManager>();
-                gameManager.Initialize(gameName, generationSettings);
+                gameManager.InitializeGame(gameName, generationSettings);
             });
         }
 
@@ -149,7 +150,7 @@ namespace LooCast.Core
             {
                 Game game = games.GetGame(gameName);
                 GameManager gameManager = FindObjectOfType<GameManager>();
-                gameManager.Initialize(game);
+                gameManager.InitializeGame(game);
             });
         }
 
@@ -177,11 +178,7 @@ namespace LooCast.Core
 
         public static void LoadMainMenu()
         {
-            LoadScene(SceneType.MainMenu, () =>
-            {
-                MainMenuManager mainMenuManager = FindObjectOfType<MainMenuManager>();
-                mainMenuManager.Initialize();
-            });
+            LoadScene(SceneType.MainMenu);
         }
 
         private static void LoadScene(SceneType sceneType, Action postLoadAction = null)
@@ -191,16 +188,12 @@ namespace LooCast.Core
             switch (sceneType)
             {
                 case SceneType.MainMenu:
-                    Instance.StartCoroutine(Instance.LoadSceneAsynchronously(sceneName, () =>
-                    {
-                        postLoadAction?.Invoke();
-                    }));
+                    GameManager.AddPostInitializationAction(postLoadAction);
+                    Instance.StartCoroutine(Instance.LoadSceneAsynchronously(sceneName));
                     break;
                 case SceneType.Game:
-                    Instance.StartCoroutine(Instance.LoadSceneAsynchronously(sceneName, () =>
-                    {
-                        postLoadAction?.Invoke();
-                    }));
+                    GameManager.AddPostInitializationAction(postLoadAction);
+                    Instance.StartCoroutine(Instance.LoadSceneAsynchronously(sceneName));
                     break;
                 default:
                     throw new ArgumentException($"Scene Type '{sceneName}' not supported!");
@@ -237,11 +230,10 @@ namespace LooCast.Core
         #endregion
 
         #region Methods
-        public IEnumerator LoadSceneAsynchronously(string sceneIndex, Action postLoadAction = null)
+        public IEnumerator LoadSceneAsynchronously(string sceneIndex)
         {
             LoadingScreen loadingScreen = FindObjectOfType<LoadingScreen>();
             yield return loadingScreen.LoadSceneAsynchronously(sceneIndex);
-            postLoadAction?.Invoke();
         }
         #endregion
     }

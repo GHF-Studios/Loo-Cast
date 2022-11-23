@@ -4,10 +4,12 @@ using UnityEngine;
 
 namespace LooCast.MainMenu
 {
-    using LooCast.UI.Screen;
-    
     public class MainMenuManager : MonoBehaviour
     {
+        #region Static Fields
+        private static Queue<Action> postInitializationActionQueue;
+        #endregion
+
         #region Properties
         public static MainMenuManager Instance { get; private set; }
         #endregion
@@ -15,8 +17,8 @@ namespace LooCast.MainMenu
         #region Fields
         #endregion
 
-        #region Methods
-        public void Initialize()
+        #region Unity Callbacks
+        private void Awake()
         {
             if (Instance != null)
             {
@@ -28,8 +30,38 @@ namespace LooCast.MainMenu
             #endregion
 
             Debug.Log($"[MainMenuManager] Initialized.");
-        }
 
+            if (postInitializationActionQueue != null)
+            {
+                while (postInitializationActionQueue.Count > 0)
+                {
+                    Action postInitializationAction = postInitializationActionQueue.Dequeue();
+                    postInitializationAction.Invoke();
+                }
+            }
+
+            Debug.Log($"[MainMenuManager] Post-Initialized.");
+        }
+        #endregion
+
+        #region Static Methods
+        public static void AddPostInitializationAction(Action postInitializationAction)
+        {
+            if (postInitializationAction == null)
+            {
+                return;
+            }
+
+            if (postInitializationActionQueue == null)
+            {
+                postInitializationActionQueue = new Queue<Action>();
+            }
+
+            postInitializationActionQueue.Enqueue(postInitializationAction);
+        }
+        #endregion
+
+        #region Methods
         public void Quit()
         {
             Application.Quit();
