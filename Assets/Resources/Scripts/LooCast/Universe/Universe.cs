@@ -63,24 +63,24 @@ namespace LooCast.Universe
                 public int ChunkSeed => chunkSeed;
                 public int Size => size;
                 public Position ChunkPosition => chunkPosition;
-                public SerializableMap2D<float?> ElectronDensityMap => electronDensityMap;
-                public SerializableMap2D<float?> PositronDensityMap => positronDensityMap;
-                public SerializableMap2D<float?> ProtonDensityMap => protonDensityMap;
-                public SerializableMap2D<float?> AntiProtonDensityMap => antiProtonDensityMap;
-                public SerializableMap2D<float?> NeutronDensityMap => neutronDensityMap;
-                public SerializableMap2D<float?> AntiNeutronDensityMap => antiNeutronDensityMap;
+                public SerializableDictionary<Vector2Int, float?> ElectronDensityMap => electronDensityMap;
+                public SerializableDictionary<Vector2Int, float?> PositronDensityMap => positronDensityMap;
+                public SerializableDictionary<Vector2Int, float?> ProtonDensityMap => protonDensityMap;
+                public SerializableDictionary<Vector2Int, float?> AntiProtonDensityMap => antiProtonDensityMap;
+                public SerializableDictionary<Vector2Int, float?> NeutronDensityMap => neutronDensityMap;
+                public SerializableDictionary<Vector2Int, float?> AntiNeutronDensityMap => antiNeutronDensityMap;
                 #endregion
 
                 #region Fields
                 [SerializeField] private int chunkSeed;
                 [SerializeField] private int size;
                 [SerializeField] private Position chunkPosition;
-                [SerializeField] private SerializableMap2D<float?> electronDensityMap;
-                [SerializeField] private SerializableMap2D<float?> positronDensityMap;
-                [SerializeField] private SerializableMap2D<float?> protonDensityMap;
-                [SerializeField] private SerializableMap2D<float?> antiProtonDensityMap;
-                [SerializeField] private SerializableMap2D<float?> neutronDensityMap;
-                [SerializeField] private SerializableMap2D<float?> antiNeutronDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> electronDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> positronDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> protonDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> antiProtonDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> neutronDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> antiNeutronDensityMap;
                 #endregion
 
                 #region Constructors
@@ -94,7 +94,7 @@ namespace LooCast.Universe
                     Filament.Position filamentPosition = filament.FilamentPosition;
 
                     #region Electron Density Map Generation
-                    electronDensityMap = new SerializableMap2D<float?>(generationSettings.ChunkSize, generationSettings.ChunkSize);
+                    electronDensityMap = new SerializableDictionary<Vector2Int, float?>();
 
                     for (int y = 0; y < generationSettings.ChunkSize; y++)
                     {
@@ -127,7 +127,7 @@ namespace LooCast.Universe
                             float totalElectronDensity = electronDensity * (1 + (generationSettings.UniverseNoiseInfluence * universeNoiseValue));
                             #endregion
 
-                            electronDensityMap.SetValue(x, y, totalElectronDensity);
+                            electronDensityMap.Add(new Vector2Int(x, y), totalElectronDensity);
                         }
                     }
                     #endregion
@@ -233,19 +233,19 @@ namespace LooCast.Universe
 
             #region Properties
             public Position FilamentPosition => filamentPosition;
-            public SerializableMap2D<Chunk.Position?> ChunkPositionMap => chunkPositionMap;
+            public SerializableDictionary<Vector2Int, Chunk.Position?> ChunkPositionMap => chunkPositionMap;
             #endregion
 
             #region Fields
             [SerializeField] private Position filamentPosition;
-            [SerializeField] private SerializableMap2D<Chunk.Position?> chunkPositionMap;
+            [SerializeField] private SerializableDictionary<Vector2Int, Chunk.Position?> chunkPositionMap;
             #endregion
 
             #region Constructors
-            public Filament(Position filamentPosition)
+            public Filament(Universe universe, Position filamentPosition)
             {
                 this.filamentPosition = filamentPosition;
-                chunkPositionMap = new SerializableMap2D<Chunk.Position?>();
+                chunkPositionMap = new SerializableDictionary<Vector2Int, Chunk.Position?>();
             }
             #endregion
 
@@ -269,16 +269,17 @@ namespace LooCast.Universe
 
             public void RegisterChunkPosition(Chunk.Position chunkPosition)
             {
-                Chunk.Position? storedChunkPosition = chunkPositionMap.Array2D[chunkPosition.VectorIntPosition.x, chunkPosition.VectorIntPosition.y];
+                Chunk.Position? storedChunkPosition = chunkPositionMap.GetEntry(chunkPosition.VectorIntPosition).Value;
                 if (storedChunkPosition != null)
                 {
                     throw new Exception("Chunk.Position is already registered!");
                 }
+                chunkPositionMap.Add(chunkPosition.VectorIntPosition, chunkPosition);
             }
 
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
-                chunkPositionMap.Array2D[chunkPosition.VectorIntPosition.x, chunkPosition.VectorIntPosition.y] = null;
+                chunkPositionMap.Add(chunkPosition.VectorIntPosition, null);
             }
             #endregion
         }
@@ -331,20 +332,20 @@ namespace LooCast.Universe
                 public int ChunkSeed => chunkSeed;
                 public int Size => size;
                 public Position ChunkPosition => chunkPosition;
-                public SerializableMap2D<float?> SolidParticleDensityMap => solidParticleDensityMap;
-                public SerializableMap2D<float?> LiquidParticleDensityMap => liquidParticleDensityMap;
-                public SerializableMap2D<float?> GasParticleDensityMap => gasParticleDensityMap;
-                public SerializableMap2D<float?> PlasmaParticleDensityMap => plasmaParticleDensityMap;
+                public SerializableDictionary<Vector2Int, float?> SolidParticleDensityMap => solidParticleDensityMap;
+                public SerializableDictionary<Vector2Int, float?> LiquidParticleDensityMap => liquidParticleDensityMap;
+                public SerializableDictionary<Vector2Int, float?> GasParticleDensityMap => gasParticleDensityMap;
+                public SerializableDictionary<Vector2Int, float?> PlasmaParticleDensityMap => plasmaParticleDensityMap;
                 #endregion
 
                 #region Fields
                 [SerializeField] private int chunkSeed;
                 [SerializeField] private int size;
                 [SerializeField] private Position chunkPosition;
-                [SerializeField] private SerializableMap2D<float?> solidParticleDensityMap;
-                [SerializeField] private SerializableMap2D<float?> liquidParticleDensityMap;
-                [SerializeField] private SerializableMap2D<float?> gasParticleDensityMap;
-                [SerializeField] private SerializableMap2D<float?> plasmaParticleDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> solidParticleDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> liquidParticleDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> gasParticleDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> plasmaParticleDensityMap;
                 #endregion
 
                 #region Constructors
@@ -358,7 +359,7 @@ namespace LooCast.Universe
                     Sector.Position sectorPosition = sector.SectorPosition;
 
                     #region Solid Particle Density Map Generation
-                    solidParticleDensityMap = new SerializableMap2D<float?>(generationSettings.ChunkSize, generationSettings.ChunkSize);
+                    solidParticleDensityMap = new SerializableDictionary<Vector2Int, float?>();
 
                     for (int y = 0; y < generationSettings.ChunkSize; y++)
                     {
@@ -391,7 +392,7 @@ namespace LooCast.Universe
                             float totalSolidParticleDensity = solidParticleDensity * (1 + (generationSettings.FilamentNoiseInfluence * filamentNoiseValue));
                             #endregion
 
-                            solidParticleDensityMap.SetValue(x, y, totalSolidParticleDensity);
+                            solidParticleDensityMap.Add(new Vector2Int(x, y), totalSolidParticleDensity);
                         }
                     }
                     #endregion
@@ -492,19 +493,19 @@ namespace LooCast.Universe
 
             #region Properties
             public Position SectorPosition => sectorPosition;
-            public SerializableMap2D<Chunk.Position?> ChunkPositionMap => chunkPositionMap;
+            public SerializableDictionary<Vector2Int, Chunk.Position?> ChunkPositionMap => chunkPositionMap;
             #endregion
 
             #region Fields
             [SerializeField] private Position sectorPosition;
-            [SerializeField] private SerializableMap2D<Chunk.Position?> chunkPositionMap;
+            [SerializeField] private SerializableDictionary<Vector2Int, Chunk.Position?> chunkPositionMap;
             #endregion
 
             #region Constructors
-            public Sector(Position sectorPosition)
+            public Sector(Universe universe, Position sectorPosition)
             {
                 this.sectorPosition = sectorPosition;
-                chunkPositionMap = new SerializableMap2D<Chunk.Position?>();
+                chunkPositionMap = new SerializableDictionary<Vector2Int, Chunk.Position?>();
             }
             #endregion
 
@@ -528,16 +529,17 @@ namespace LooCast.Universe
 
             public void RegisterChunkPosition(Chunk.Position chunkPosition)
             {
-                Chunk.Position? storedChunkPosition = chunkPositionMap.Array2D[chunkPosition.VectorIntPosition.x, chunkPosition.VectorIntPosition.y];
+                Chunk.Position? storedChunkPosition = chunkPositionMap.GetEntry(chunkPosition.VectorIntPosition).Value;
                 if (storedChunkPosition != null)
                 {
                     throw new Exception("Chunk.Position is already registered!");
                 }
+                chunkPositionMap.Add(chunkPosition.VectorIntPosition, chunkPosition);
             }
 
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
-                chunkPositionMap.Array2D[chunkPosition.VectorIntPosition.x, chunkPosition.VectorIntPosition.y] = null;
+                chunkPositionMap.Add(chunkPosition.VectorIntPosition, null);
             }
             #endregion
         }
@@ -590,16 +592,16 @@ namespace LooCast.Universe
                 public int ChunkSeed => chunkSeed;
                 public int Size => size;
                 public Position ChunkPosition => chunkPosition;
-                public SerializableMap2D<float?> MatterDensityMap => matterDensityMap;
-                public SerializableMap2D<float?> AntiMatterDensityMap => antiMatterDensityMap;
+                public SerializableDictionary<Vector2Int, float?> MatterDensityMap => matterDensityMap;
+                public SerializableDictionary<Vector2Int, float?> AntiMatterDensityMap => antiMatterDensityMap;
                 #endregion
 
                 #region Fields
                 [SerializeField] private int chunkSeed;
                 [SerializeField] private int size;
                 [SerializeField] private Position chunkPosition;
-                [SerializeField] private SerializableMap2D<float?> matterDensityMap;
-                [SerializeField] private SerializableMap2D<float?> antiMatterDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> matterDensityMap;
+                [SerializeField] private SerializableDictionary<Vector2Int, float?> antiMatterDensityMap;
                 #endregion
 
                 #region Constructors
@@ -613,7 +615,7 @@ namespace LooCast.Universe
                     Region.Position regionPosition = region.RegionPosition;
 
                     #region Matter Density Map Generation
-                    matterDensityMap = new SerializableMap2D<float?>(generationSettings.ChunkSize, generationSettings.ChunkSize);
+                    matterDensityMap = new SerializableDictionary<Vector2Int, float?>();
 
                     for (int y = 0; y < generationSettings.ChunkSize; y++)
                     {
@@ -646,7 +648,7 @@ namespace LooCast.Universe
                             float totalMatterDensity = matterDensity * (1 + (generationSettings.SectorNoiseInfluence * sectorNoiseValue));
                             #endregion
 
-                            matterDensityMap.SetValue(x, y, totalMatterDensity);
+                            matterDensityMap.Add(new Vector2Int(x, y), totalMatterDensity);
                         }
                     }
                     #endregion
@@ -744,19 +746,19 @@ namespace LooCast.Universe
 
             #region Properties
             public Position RegionPosition => regionPosition;
-            public SerializableMap2D<Chunk.Position?> ChunkPositionMap => chunkPositionMap;
+            public SerializableDictionary<Vector2Int, Chunk.Position?> ChunkPositionMap => chunkPositionMap;
             #endregion
 
             #region Fields
             [SerializeField] private Position regionPosition;
-            [SerializeField] private SerializableMap2D<Chunk.Position?> chunkPositionMap;
+            [SerializeField] private SerializableDictionary<Vector2Int, Chunk.Position?> chunkPositionMap;
             #endregion
 
             #region Constructors
-            public Region(Position regionPosition)
+            public Region(Universe universe, Position regionPosition)
             {
                 this.regionPosition = regionPosition;
-                chunkPositionMap = new SerializableMap2D<Chunk.Position?>();
+                chunkPositionMap = new SerializableDictionary<Vector2Int, Chunk.Position?>();
             }
             #endregion
 
@@ -780,16 +782,17 @@ namespace LooCast.Universe
 
             public void RegisterChunkPosition(Chunk.Position chunkPosition)
             {
-                Chunk.Position? storedChunkPosition = chunkPositionMap.Array2D[chunkPosition.VectorIntPosition.x, chunkPosition.VectorIntPosition.y];
+                Chunk.Position? storedChunkPosition = chunkPositionMap.GetEntry(chunkPosition.VectorIntPosition).Value;
                 if (storedChunkPosition != null)
                 {
                     throw new Exception("Chunk.Position is already registered!");
                 }
+                chunkPositionMap.Add(chunkPosition.VectorIntPosition, chunkPosition);
             }
 
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
-                chunkPositionMap.Array2D[chunkPosition.VectorIntPosition.x, chunkPosition.VectorIntPosition.y] = null;
+                chunkPositionMap.Add(chunkPosition.VectorIntPosition, null);
             }
             #endregion
         }
@@ -870,7 +873,7 @@ namespace LooCast.Universe
 
                 #region Universe Generation Settings Default
                 generationSettings.Seed = 0;
-                generationSettings.Size = 4096;
+                generationSettings.Size = 1024;
                 generationSettings.MapFromMin = -1.0f;
                 generationSettings.MapFromMax = 1.0f;
                 generationSettings.MapToMin = 0.0f;
@@ -1377,7 +1380,7 @@ namespace LooCast.Universe
                 throw new Exception("Filament is already generated!");
             }
 
-            Filament filament = new Filament(filamentPosition);
+            Filament filament = new Filament(this, filamentPosition);
             loadedFilaments.Add(filamentPosition, filament);
             SaveFilament(filament);
         }
@@ -1671,7 +1674,7 @@ namespace LooCast.Universe
                 throw new Exception("Sector is already generated!");
             }
 
-            Sector sector = new Sector(sectorPosition);
+            Sector sector = new Sector(this, sectorPosition);
             loadedSectors.Add(sectorPosition, sector);
             SaveSector(sector);
         }
@@ -1965,7 +1968,7 @@ namespace LooCast.Universe
                 throw new Exception("Region is already generated!");
             }
 
-            Region region = new Region(regionPosition);
+            Region region = new Region(this, regionPosition);
             loadedRegions.Add(regionPosition, region);
             SaveRegion(region);
         }

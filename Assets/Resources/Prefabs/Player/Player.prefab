@@ -46,7 +46,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dff744b6e11544246be533c72b2d7cba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ID: 0
   IsVisible: 0
 --- !u!198 &1593778176925625175
 ParticleSystem:
@@ -4844,6 +4843,7 @@ GameObject:
   - component: {fileID: 1593778177651288809}
   - component: {fileID: 3138674986594994726}
   - component: {fileID: 4400491884998746100}
+  - component: {fileID: 115279049863879323}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -4888,7 +4888,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: cfc660672e62c9f4082082ae124612b8, type: 2}
+  - {fileID: 2100000, guid: 586122a216c8f41418d98e9f58cdf37b, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4969,7 +4969,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11cc1564dc4579243ba9fb396ed336df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ID: 0
   IsVisible: 0
   Data: {fileID: 11400000, guid: 1d075a340614ef54991d174e04cd5661, type: 2}
   RuntimeData: {fileID: 11400000, guid: f64ccd51b25956a4691ab4ed2cf368c5, type: 2}
@@ -4989,7 +4988,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c8a4dbd391ef034280f750fa3c76121, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ID: 0
   IsVisible: 0
   Data: {fileID: 11400000, guid: 27ed8463b7044cb46a2a2b5ee863b43a, type: 2}
   RuntimeData: {fileID: 11400000, guid: 7085b01394b10d04ba1702313f6e1e21, type: 2}
@@ -5009,7 +5007,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b7c7749e02c1b34ebf140cb65c9151e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ID: 0
   IsVisible: 0
   Data: {fileID: 11400000, guid: 6cca6b9c7ed3a074f8cb5a025ef0c5cf, type: 2}
   RuntimeData: {fileID: 11400000, guid: 05a4787f9febc8642ac08c7712aabd31, type: 2}
@@ -5085,6 +5082,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: feeec0980ffb4874691eb7e1d183809d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  IsVisible: 0
   Data: {fileID: 11400000, guid: 7baf7e09e1288474b943b5d20431f9bc, type: 2}
   RuntimeData: {fileID: 11400000, guid: bbe9ca0fd05a539469a48be6149f0345, type: 2}
   player: {fileID: 1593778177651288801}
@@ -5101,13 +5099,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a59ad9106fb42ae47ae7688c10814b45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ID: 0
   IsVisible: 0
   Data: {fileID: 11400000, guid: 69c8ce70530339344837b8f70a62f707, type: 2}
   RuntimeData: {fileID: 11400000, guid: fcdaad0b1bd019640818ff24e20e6f7c, type: 2}
   Stats: {fileID: 11400000, guid: 52bc695881be85447a20f5930ba1f33b, type: 2}
   Coins: {fileID: 11400000, guid: 9283a3a7e893a9e408b63cee721170e2, type: 2}
   Tokens: {fileID: 11400000, guid: a26f08852deda9b48ae1a544e0c6f8c5, type: 2}
+--- !u!114 &115279049863879323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1593778177651288796}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 615857307f86dec44a9696fa7740189e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1944961188984936895
 GameObject:
   m_ObjectHideFlags: 0

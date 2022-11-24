@@ -121,6 +121,18 @@ namespace LooCast.Observer
             regionPositions = new List<Universe.Region.Position>();
             sectorPositions = new List<Universe.Sector.Position>();
             filamentPositions = new List<Universe.Filament.Position>();
+
+            #region DEV
+            regionChunkPositions.Add(regionChunkCenterPosition);
+            sectorChunkPositions.Add(new Universe.Sector.Chunk.Position(currentUniverse, regionChunkCenterPosition.WorldPosition));
+            filamentChunkPositions.Add(new Universe.Filament.Chunk.Position(currentUniverse, regionChunkCenterPosition.WorldPosition));
+            regionPositions.Add(regionChunkCenterPosition.RegionPosition);
+            sectorPositions.Add(new Universe.Sector.Position(currentUniverse, regionChunkCenterPosition.WorldPosition));
+            filamentPositions.Add(new Universe.Filament.Position(currentUniverse, regionChunkCenterPosition.WorldPosition));
+
+            return;
+            #endregion
+
             Vector2Int regionChunkPositionMin = new Vector2Int(regionChunkCenterPosition.VectorIntPosition.x - regionChunkRadius, regionChunkCenterPosition.VectorIntPosition.y - regionChunkRadius);
             Vector2Int regionChunkPositionMax = new Vector2Int(regionChunkCenterPosition.VectorIntPosition.x + regionChunkRadius, regionChunkCenterPosition.VectorIntPosition.y + regionChunkRadius);
             for (int x = regionChunkPositionMin.x; x <= regionChunkPositionMax.x; x++)
