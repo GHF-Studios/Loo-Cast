@@ -269,8 +269,7 @@ namespace LooCast.Universe
 
             public void RegisterChunkPosition(Chunk.Position chunkPosition)
             {
-                Chunk.Position? storedChunkPosition = chunkPositionMap.GetEntry(chunkPosition.VectorIntPosition).Value;
-                if (storedChunkPosition != null)
+                if (chunkPositionMap.ContainsKey(chunkPosition.VectorIntPosition))
                 {
                     throw new Exception("Chunk.Position is already registered!");
                 }
@@ -279,7 +278,7 @@ namespace LooCast.Universe
 
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
-                chunkPositionMap.Add(chunkPosition.VectorIntPosition, null);
+                chunkPositionMap.Remove(chunkPosition.VectorIntPosition);
             }
             #endregion
         }
@@ -529,8 +528,7 @@ namespace LooCast.Universe
 
             public void RegisterChunkPosition(Chunk.Position chunkPosition)
             {
-                Chunk.Position? storedChunkPosition = chunkPositionMap.GetEntry(chunkPosition.VectorIntPosition).Value;
-                if (storedChunkPosition != null)
+                if (chunkPositionMap.ContainsKey(chunkPosition.VectorIntPosition))
                 {
                     throw new Exception("Chunk.Position is already registered!");
                 }
@@ -539,7 +537,7 @@ namespace LooCast.Universe
 
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
-                chunkPositionMap.Add(chunkPosition.VectorIntPosition, null);
+                chunkPositionMap.Remove(chunkPosition.VectorIntPosition);
             }
             #endregion
         }
@@ -782,8 +780,7 @@ namespace LooCast.Universe
 
             public void RegisterChunkPosition(Chunk.Position chunkPosition)
             {
-                Chunk.Position? storedChunkPosition = chunkPositionMap.GetEntry(chunkPosition.VectorIntPosition).Value;
-                if (storedChunkPosition != null)
+                if (chunkPositionMap.ContainsKey(chunkPosition.VectorIntPosition))
                 {
                     throw new Exception("Chunk.Position is already registered!");
                 }
@@ -792,7 +789,7 @@ namespace LooCast.Universe
 
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
-                chunkPositionMap.Add(chunkPosition.VectorIntPosition, null);
+                chunkPositionMap.Remove(chunkPosition.VectorIntPosition);
             }
             #endregion
         }

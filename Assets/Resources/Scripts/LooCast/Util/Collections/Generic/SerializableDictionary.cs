@@ -30,9 +30,54 @@ namespace LooCast.Util.Collections.Generic
         #endregion
 
         #region Properties
-        public Entry[] EntryArray => entryArray;
-        public KeyType[] KeyArray => keyArray;
-        public ValueType[] ValueArray => valueArray;
+        public Entry[] EntryArray
+        {
+            get
+            {
+                if (entryArray == null)
+                {
+                    entryArray = new Entry[0];
+                }
+                return entryArray;
+            }
+
+            set
+            {
+                entryArray = value;
+            }
+        }
+        public KeyType[] KeyArray
+        {
+            get
+            {
+                if (keyArray == null)
+                {
+                    keyArray = new KeyType[0];
+                }
+                return keyArray;
+            }
+
+            set
+            {
+                keyArray = value;
+            }
+        }
+        public ValueType[] ValueArray
+        {
+            get
+            {
+                if (valueArray == null)
+                {
+                    valueArray = new ValueType[0];
+                }
+                return valueArray;
+            }
+
+            set
+            {
+                valueArray = value;
+            }
+        }
         #endregion
 
         #region Fields
@@ -44,7 +89,7 @@ namespace LooCast.Util.Collections.Generic
         #region Methods
         public bool ContainsKey(KeyType key)
         {
-            foreach (KeyType otherKey in keyArray)
+            foreach (KeyType otherKey in KeyArray)
             {
                 if (otherKey.Equals(key))
                 {
@@ -56,7 +101,7 @@ namespace LooCast.Util.Collections.Generic
 
         public bool ContainsValue(ValueType value)
         {
-            foreach (ValueType otherValue in valueArray)
+            foreach (ValueType otherValue in ValueArray)
             {
                 if (otherValue.Equals(value))
                 {
@@ -68,7 +113,7 @@ namespace LooCast.Util.Collections.Generic
 
         public bool ContainsEntry(Entry entry)
         {
-            foreach (Entry otherEntry in entryArray)
+            foreach (Entry otherEntry in EntryArray)
             {
                 if (otherEntry.Equals(entry))
                 {
@@ -85,20 +130,15 @@ namespace LooCast.Util.Collections.Generic
                 throw new ArgumentException("Already contains key!");
             }
 
-            if (ContainsValue(value))
-            {
-                throw new ArgumentException("Already contains value!");
-            }
-
-            List<Entry> entryList = entryArray.ToList();
-            List<KeyType> keyList = keyArray.ToList();
-            List<ValueType> valueList = valueArray.ToList();
+            List<Entry> entryList = EntryArray.ToList();
+            List<KeyType> keyList = KeyArray.ToList();
+            List<ValueType> valueList = ValueArray.ToList();
             entryList.Add(new Entry(key, value));
             keyList.Add(key);
             valueList.Add(value);
-            entryArray = entryList.ToArray();
-            keyArray = keyList.ToArray();
-            valueArray = valueList.ToArray();
+            EntryArray = entryList.ToArray();
+            KeyArray = keyList.ToArray();
+            ValueArray = valueList.ToArray();
         }
 
         public void Remove(KeyType key)
@@ -108,16 +148,16 @@ namespace LooCast.Util.Collections.Generic
                 return;
             }
 
-            List<Entry> entryList = entryArray.ToList();
-            List<KeyType> keyList = keyArray.ToList();
-            List<ValueType> valueList = valueArray.ToList();
+            List<Entry> entryList = EntryArray.ToList();
+            List<KeyType> keyList = KeyArray.ToList();
+            List<ValueType> valueList = ValueArray.ToList();
             Entry entry = GetEntry(key);
             entryList.Remove(entry);
             keyList.Remove(entry.Key);
             valueList.Remove(entry.Value);
-            entryArray = entryList.ToArray();
-            keyArray = keyList.ToArray();
-            valueArray = valueList.ToArray();
+            EntryArray = entryList.ToArray();
+            KeyArray = keyList.ToArray();
+            ValueArray = valueList.ToArray();
         }
 
         public void Remove(ValueType value)
@@ -127,16 +167,16 @@ namespace LooCast.Util.Collections.Generic
                 return;
             }
 
-            List<Entry> entryList = entryArray.ToList();
-            List<KeyType> keyList = keyArray.ToList();
-            List<ValueType> valueList = valueArray.ToList();
+            List<Entry> entryList = EntryArray.ToList();
+            List<KeyType> keyList = KeyArray.ToList();
+            List<ValueType> valueList = ValueArray.ToList();
             Entry entry = GetEntry(value);
             entryList.Remove(entry);
             keyList.Remove(entry.Key);
             valueList.Remove(entry.Value);
-            entryArray = entryList.ToArray();
-            keyArray = keyList.ToArray();
-            valueArray = valueList.ToArray();
+            EntryArray = entryList.ToArray();
+            KeyArray = keyList.ToArray();
+            ValueArray = valueList.ToArray();
         }
 
         public void Remove(Entry entry)
@@ -146,15 +186,15 @@ namespace LooCast.Util.Collections.Generic
                 return;
             }
 
-            List<Entry> entryList = entryArray.ToList();
-            List<KeyType> keyList = keyArray.ToList();
-            List<ValueType> valueList = valueArray.ToList();
+            List<Entry> entryList = EntryArray.ToList();
+            List<KeyType> keyList = KeyArray.ToList();
+            List<ValueType> valueList = ValueArray.ToList();
             entryList.Remove(entry);
             keyList.Remove(entry.Key);
             valueList.Remove(entry.Value);
-            entryArray = entryList.ToArray();
-            keyArray = keyList.ToArray();
-            valueArray = valueList.ToArray();
+            EntryArray = entryList.ToArray();
+            KeyArray = keyList.ToArray();
+            ValueArray = valueList.ToArray();
         }
 
         public Entry GetEntry(KeyType key)
@@ -183,19 +223,19 @@ namespace LooCast.Util.Collections.Generic
             {
                 throw new ArgumentOutOfRangeException("Index cannot be smaller than 0!");
             }
-            if (index >= entryArray.Length)
+            if (index >= EntryArray.Length)
             {
                 throw new ArgumentOutOfRangeException("Index cannot be greater than or equal to the array!");
             }
 
-            return entryArray[index];
+            return EntryArray[index];
         }
         
         private int? GetIndex(KeyType key)
         {
-            for (int i = 0; i < entryArray.Length; i++)
+            for (int i = 0; i < EntryArray.Length; i++)
             {
-                if (entryArray[i].Key.Equals(key))
+                if (EntryArray[i].Key.Equals(key))
                 {
                     return i;
                 }
@@ -205,9 +245,9 @@ namespace LooCast.Util.Collections.Generic
 
         private int? GetIndex(ValueType value)
         {
-            for (int i = 0; i < entryArray.Length; i++)
+            for (int i = 0; i < EntryArray.Length; i++)
             {
-                if (entryArray[i].Value.Equals(value))
+                if (EntryArray[i].Value.Equals(value))
                 {
                     return i;
                 }
