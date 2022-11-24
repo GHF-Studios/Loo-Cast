@@ -30,6 +30,15 @@ namespace LooCast.Universe
                 public SerializableMap2D<float?> NeutronDensityMap => neutronDensityMap;
                 public SerializableMap2D<float?> AntiNeutronDensityMap => antiNeutronDensityMap;
 
+                [SerializeField] private int size;
+                [SerializeField] private Vector2Int chunkPosition;
+                [SerializeField] private SerializableMap2D<float?> electronDensityMap;
+                [SerializeField] private SerializableMap2D<float?> positronDensityMap;
+                [SerializeField] private SerializableMap2D<float?> protonDensityMap;
+                [SerializeField] private SerializableMap2D<float?> antiProtonDensityMap;
+                [SerializeField] private SerializableMap2D<float?> neutronDensityMap;
+                [SerializeField] private SerializableMap2D<float?> antiNeutronDensityMap;
+
                 public Chunk(Universe universe, Filament filament, Vector2Int chunkPosition)
                 {
                     GenerationSettings generationSettings = universe.FilamentGenerationSettings;
@@ -78,14 +87,37 @@ namespace LooCast.Universe
                     #endregion
                 }
 
-                [SerializeField] private int size;
-                [SerializeField] private Vector2Int chunkPosition;
-                [SerializeField] private SerializableMap2D<float?> electronDensityMap;
-                [SerializeField] private SerializableMap2D<float?> positronDensityMap;
-                [SerializeField] private SerializableMap2D<float?> protonDensityMap;
-                [SerializeField] private SerializableMap2D<float?> antiProtonDensityMap;
-                [SerializeField] private SerializableMap2D<float?> neutronDensityMap;
-                [SerializeField] private SerializableMap2D<float?> antiNeutronDensityMap;
+                public static Vector2Int GetChunkPosition(Universe universe, Vector2 worldPosition)
+                {
+                    int chunkAmount = universe.generationSettings.FilamentGenerationSettings.ChunkAmount;
+                    Vector2Int filamentPosition = GetFilamentPosition(universe, worldPosition);
+                    return new Vector2Int(Mathf.RoundToInt(filamentPosition.x / chunkAmount), Mathf.RoundToInt(filamentPosition.y / chunkAmount));
+                }
+
+                public static Vector2 GetWorldPosition(Universe universe, Vector2 chunkPosition)
+                {
+                    int chunkAmount = universe.generationSettings.FilamentGenerationSettings.ChunkAmount;
+                    Vector2 filamentWorldPos = 
+                    return chunkPosition * chunkAmount;
+                }
+
+                public static Vector2 GetWorldPosition(Universe universe, Vector2Int chunkPosition)
+                {
+                    return GetWorldPosition(universe, (Vector2)chunkPosition);
+                }
+            }
+
+            [Serializable]
+            public struct Position
+            {
+                public Vector2Int VectorIntPosition => vectorIntPosition;
+
+                public Position(Vector2Int vectorIntPosition)
+                {
+                    this.vectorIntPosition = vectorIntPosition;
+                }
+
+                [SerializeField] private Vector2Int vectorIntPosition;
             }
             #endregion
 
@@ -151,6 +183,28 @@ namespace LooCast.Universe
                 this.filamentPosition = filamentPosition;
             }
 
+            public static Vector2Int GetFilamentPosition(Universe universe, Vector2 worldPosition)
+            {
+                int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
+                Vector2 floatFilamentPosition = worldPosition / regionSize / sectorSize / filamentSize;
+                return new Vector2Int(Mathf.RoundToInt(floatFilamentPosition.x), Mathf.RoundToInt(floatFilamentPosition.y));
+            }
+
+            public static Vector2 GetWorldPosition(Universe universe, Vector2 filamentPosition)
+            {
+                int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
+                return filamentPosition * filamentSize * sectorSize * regionSize;
+            }
+
+            public static Vector2 GetWorldPosition(Universe universe, Vector2Int filamentPosition)
+            {
+                return GetWorldPosition(universe, (Vector2)filamentPosition);
+            }
+
             public float SampleNoise(Universe universe, float sampleX, float sampleY)
             {
                 #region Sampling
@@ -182,6 +236,13 @@ namespace LooCast.Universe
                 public SerializableMap2D<float?> LiquidParticleDensityMap => liquidParticleDensityMap;
                 public SerializableMap2D<float?> GasParticleDensityMap => gasParticleDensityMap;
                 public SerializableMap2D<float?> PlasmaParticleDensityMap => plasmaParticleDensityMap;
+
+                [SerializeField] private int size;
+                [SerializeField] private Vector2Int chunkPosition;
+                [SerializeField] private SerializableMap2D<float?> solidParticleDensityMap;
+                [SerializeField] private SerializableMap2D<float?> liquidParticleDensityMap;
+                [SerializeField] private SerializableMap2D<float?> gasParticleDensityMap;
+                [SerializeField] private SerializableMap2D<float?> plasmaParticleDensityMap;
 
                 public Chunk(Universe universe, Sector sector, Vector2Int chunkPosition)
                 {
@@ -231,12 +292,12 @@ namespace LooCast.Universe
                     #endregion
                 }
 
-                [SerializeField] private int size;
-                [SerializeField] private Vector2Int chunkPosition;
-                [SerializeField] private SerializableMap2D<float?> solidParticleDensityMap;
-                [SerializeField] private SerializableMap2D<float?> liquidParticleDensityMap;
-                [SerializeField] private SerializableMap2D<float?> gasParticleDensityMap;
-                [SerializeField] private SerializableMap2D<float?> plasmaParticleDensityMap;
+                public static Vector2Int GetChunkPosition(Universe universe, Vector2 worldPosition)
+                {
+                    int chunkAmount = universe.generationSettings.SectorGenerationSettings.ChunkAmount;
+                    Vector2Int sectorPosition = GetSectorPosition(universe, worldPosition);
+                    return new Vector2Int(Mathf.RoundToInt(sectorPosition.x / chunkAmount), Mathf.RoundToInt(sectorPosition.y / chunkAmount));
+                }
             }
             #endregion
 
@@ -300,6 +361,12 @@ namespace LooCast.Universe
                 this.sectorPosition = sectorPosition;
             }
 
+            public static Vector2Int GetSectorPosition(Universe universe, Vector2 worldPosition)
+            {
+                Vector2 floatSectorPosition = worldPosition / universe.generationSettings.RegionGenerationSettings.Size / universe.generationSettings.SectorGenerationSettings.Size;
+                return new Vector2Int(Mathf.RoundToInt(floatSectorPosition.x), Mathf.RoundToInt(floatSectorPosition.y));
+            }
+
             public float SampleNoise(Universe universe, float sampleX, float sampleY)
             {
                 #region Sampling
@@ -329,6 +396,11 @@ namespace LooCast.Universe
                 public Vector2Int ChunkPosition => chunkPosition;
                 public SerializableMap2D<float?> MatterDensityMap => matterDensityMap;
                 public SerializableMap2D<float?> AntiMatterDensityMap => antiMatterDensityMap;
+
+                [SerializeField] private int size;
+                [SerializeField] private Vector2Int chunkPosition;
+                [SerializeField] private SerializableMap2D<float?> matterDensityMap;
+                [SerializeField] private SerializableMap2D<float?> antiMatterDensityMap;
 
                 public Chunk(Universe universe, Region region, Vector2Int chunkPosition)
                 {
@@ -378,10 +450,12 @@ namespace LooCast.Universe
                     #endregion
                 }
 
-                [SerializeField] private int size;
-                [SerializeField] private Vector2Int chunkPosition;
-                [SerializeField] private SerializableMap2D<float?> matterDensityMap;
-                [SerializeField] private SerializableMap2D<float?> antiMatterDensityMap;
+                public static Vector2Int GetChunkPosition(Universe universe, Vector2 worldPosition)
+                {
+                    int chunkAmount = universe.generationSettings.RegionGenerationSettings.ChunkAmount;
+                    Vector2Int regionPosition = GetRegionPosition(universe, worldPosition);
+                    return new Vector2Int(Mathf.RoundToInt(regionPosition.x / chunkAmount), Mathf.RoundToInt(regionPosition.y / chunkAmount));
+                }
             }
             #endregion
 
@@ -445,6 +519,12 @@ namespace LooCast.Universe
                 this.regionPosition = regionPosition;
             }
 
+            public static Vector2Int GetRegionPosition(Universe universe, Vector2 worldPosition)
+            {
+                Vector2 floatRegionPosition = worldPosition / universe.generationSettings.RegionGenerationSettings.Size;
+                return new Vector2Int(Mathf.RoundToInt(floatRegionPosition.x), Mathf.RoundToInt(floatRegionPosition.y));
+            }
+
             public float SampleNoise(Universe universe, float sampleX, float sampleY)
             {
                 #region Sampling
@@ -460,11 +540,6 @@ namespace LooCast.Universe
                 #endregion
 
                 return noiseValue;
-            }
-
-            public Vector2Int GetFilamentPosition(Universe universe, Vector2Int sectorPosition)
-            {
-                return universe.GetSector(sectorPosition).FilamentPosition;
             }
         }
         #endregion
