@@ -9,6 +9,7 @@ namespace LooCast.Universe
     using Game;
     using Util;
     using Util.Collections.Generic;
+    using Random;
 
     [Serializable]
     public class Universe
@@ -59,6 +60,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Properties
+                public int ChunkSeed => chunkSeed;
                 public int Size => size;
                 public Position ChunkPosition => chunkPosition;
                 public SerializableMap2D<float?> ElectronDensityMap => electronDensityMap;
@@ -70,6 +72,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Fields
+                [SerializeField] private int chunkSeed;
                 [SerializeField] private int size;
                 [SerializeField] private Position chunkPosition;
                 [SerializeField] private SerializableMap2D<float?> electronDensityMap;
@@ -86,6 +89,7 @@ namespace LooCast.Universe
                     GenerationSettings generationSettings = universe.FilamentGenerationSettings;
                     size = generationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
+                    chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + filament.filamentPosition.VectorIntPosition.magnitude + chunkPosition.VectorIntPosition.magnitude)).Range(int.MinValue, int.MaxValue);
 
                     Filament.Position filamentPosition = filament.FilamentPosition;
 
@@ -309,6 +313,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Properties
+                public int ChunkSeed => chunkSeed;
                 public int Size => size;
                 public Position ChunkPosition => chunkPosition;
                 public SerializableMap2D<float?> SolidParticleDensityMap => solidParticleDensityMap;
@@ -318,6 +323,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Fields
+                [SerializeField] private int chunkSeed;
                 [SerializeField] private int size;
                 [SerializeField] private Position chunkPosition;
                 [SerializeField] private SerializableMap2D<float?> solidParticleDensityMap;
@@ -332,6 +338,7 @@ namespace LooCast.Universe
                     GenerationSettings generationSettings = universe.SectorGenerationSettings;
                     size = generationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
+                    chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + sector.sectorPosition.VectorIntPosition.magnitude + chunkPosition.VectorIntPosition.magnitude)).Range(int.MinValue, int.MaxValue);
 
                     Sector.Position sectorPosition = sector.SectorPosition;
 
@@ -480,7 +487,7 @@ namespace LooCast.Universe
             [SerializeField] private SerializableMap2D<Chunk> chunkMap;
             #endregion
 
-            #region Methods
+            #region Constructors
             public Sector(Filament.Position filamentPosition, Position sectorPosition)
             {
                 this.filamentPosition = filamentPosition;
@@ -553,6 +560,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Properties
+                public int ChunkSeed => chunkSeed;
                 public int Size => size;
                 public Position ChunkPosition => chunkPosition;
                 public SerializableMap2D<float?> MatterDensityMap => matterDensityMap;
@@ -560,6 +568,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Fields
+                [SerializeField] private int chunkSeed;
                 [SerializeField] private int size;
                 [SerializeField] private Position chunkPosition;
                 [SerializeField] private SerializableMap2D<float?> matterDensityMap;
@@ -572,6 +581,7 @@ namespace LooCast.Universe
                     GenerationSettings generationSettings = universe.RegionGenerationSettings;
                     size = generationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
+                    chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + region.regionPosition.VectorIntPosition.magnitude + chunkPosition.VectorIntPosition.magnitude)).Range(int.MinValue, int.MaxValue);
 
                     Region.Position regionPosition = region.RegionPosition;
 
@@ -1396,6 +1406,30 @@ namespace LooCast.Universe
 
         #endregion
 
+        #region Filament Chunks
+
+        #region Utility
+
+        #endregion
+
+        #region Generation
+
+        #endregion
+
+        #region Saving
+
+        #endregion
+
+        #region Loading
+
+        #endregion
+
+        #region Deletion
+
+        #endregion
+
+        #endregion
+
         #region Sectors
 
         #region Utility
@@ -1530,6 +1564,30 @@ namespace LooCast.Universe
 
         #endregion
 
+        #region Sector Chunks
+
+        #region Utility
+
+        #endregion
+
+        #region Generation
+
+        #endregion
+
+        #region Saving
+
+        #endregion
+
+        #region Loading
+
+        #endregion
+
+        #region Deletion
+
+        #endregion
+
+        #endregion
+
         #region Regions
 
         #region Utility
@@ -1660,6 +1718,30 @@ namespace LooCast.Universe
                 File.Delete(path);
             }
         }
+        #endregion
+
+        #endregion
+
+        #region Region Chunks
+
+        #region Utility
+
+        #endregion
+
+        #region Generation
+
+        #endregion
+
+        #region Saving
+
+        #endregion
+
+        #region Loading
+
+        #endregion
+
+        #region Deletion
+
         #endregion
 
         #endregion
