@@ -1022,6 +1022,27 @@ namespace LooCast.Universe
                 return loadedRegions.Values.ToArray();
             }
         }
+        public Filament.Chunk[] LoadedFilamentChunks
+        {
+            get
+            {
+                return loadedFilamentChunks.Values.ToArray();
+            }
+        }
+        public Sector.Chunk[] LoadedSectorChunks
+        {
+            get
+            {
+                return loadedSectorChunks.Values.ToArray();
+            }
+        }
+        public Region.Chunk[] LoadedRegionChunks
+        {
+            get
+            {
+                return loadedRegionChunks.Values.ToArray();
+            }
+        }
         #endregion
 
         #region Fields
@@ -1040,6 +1061,9 @@ namespace LooCast.Universe
         private Dictionary<Filament.Position, Filament> loadedFilaments;
         private Dictionary<Sector.Position, Sector> loadedSectors;
         private Dictionary<Region.Position, Region> loadedRegions;
+        private Dictionary<Filament.Chunk.Position, Filament.Chunk> loadedFilamentChunks;
+        private Dictionary<Sector.Chunk.Position, Sector.Chunk> loadedSectorChunks;
+        private Dictionary<Region.Chunk.Position, Region.Chunk> loadedRegionChunks;
         #endregion
 
         #region Constructors
@@ -1250,6 +1274,9 @@ namespace LooCast.Universe
             loadedFilaments = new Dictionary<Filament.Position, Filament>();
             loadedSectors = new Dictionary<Sector.Position, Sector>();
             loadedRegions = new Dictionary<Region.Position, Region>();
+            loadedFilamentChunks = new Dictionary<Filament.Chunk.Position, Filament.Chunk>();
+            loadedSectorChunks = new Dictionary<Sector.Chunk.Position, Sector.Chunk>();
+            loadedRegionChunks = new Dictionary<Region.Chunk.Position, Region.Chunk>();
 
             initialized = true;
         }
@@ -1397,9 +1424,6 @@ namespace LooCast.Universe
             {
                 string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.VectorIntPosition.x}.{filamentPosition.VectorIntPosition.y}.json";
                 File.Delete(path);
-
-                path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.VectorIntPosition.x}.{filamentPosition.VectorIntPosition.y}_Map.png";
-                File.Delete(path);
             }
         }
         #endregion
@@ -1409,23 +1433,133 @@ namespace LooCast.Universe
         #region Filament Chunks
 
         #region Utility
+        public Filament.Chunk GetFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
+        {
+            if (!IsFilamentChunkLoaded(filamentChunkPosition))
+            {
+                throw new Exception("Filament.Chunk is not loaded!");
+            }
 
+            if (!IsFilamentChunkGenerated(filamentChunkPosition))
+            {
+                throw new Exception("Filament.Chunk is not generated!");
+            }
+
+            return loadedFilamentChunks[filamentChunkPosition];
+        }
+
+        public Filament.Chunk[] GetLoadedFilamentChunks()
+        {
+            return loadedFilamentChunks.Values.ToArray();
+        }
         #endregion
 
         #region Generation
+        public bool IsFilamentChunkGenerated(Filament.Chunk.Position filamentChunkPosition)
+        {
+            string path = $"{DataPath}/Filaments/{filamentChunkPosition.FilamentPosition.VectorIntPosition.x}.{filamentChunkPosition.FilamentPosition.VectorIntPosition.y}/Chunks/{filamentChunkPosition.VectorIntPosition.x}.{filamentChunkPosition.VectorIntPosition.y}.json";
+            return File.Exists(path);
+        }
 
+        public void GenerateFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
+        {
+            if (IsFilamentChunkGenerated(filamentChunkPosition))
+            {
+                throw new Exception("Filament Chunk is already generated!");
+            }
+
+            Filament filament = GetFilament(filamentChunkPosition.FilamentPosition);
+            Filament.Chunk filamentChunk = new Filament.Chunk(this, filament, filamentChunkPosition);
+            loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
+            SaveFilamentChunk(filamentChunk);
+        }
         #endregion
 
         #region Saving
+        public void SaveFilamentChunk(Filament.Chunk filamentChunk)
+        {
+            string path = $"{DataPath}/Filaments/{filamentChunk.ChunkPosition.FilamentPosition.VectorIntPosition.x}.{filamentChunk.ChunkPosition.FilamentPosition.VectorIntPosition.y}/Chunks/{filamentChunk.ChunkPosition.VectorIntPosition.x}.{filamentChunk.ChunkPosition.VectorIntPosition.y}.json";
+            string json = JsonUtility.ToJson(filamentChunk, true);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using StreamWriter writer = new StreamWriter(path);
+            writer.Write(json);
+        }
 
+        public void SaveFilamentChunks(Filament.Chunk[] filamentChunks)
+        {
+            foreach (Filament.Chunk filamentChunk in filamentChunks)
+            {
+                SaveFilamentChunk(filamentChunk);
+            }
+        }
+
+        public void SaveFilamentChunks()
+        {
+            SaveFilamentChunks(loadedFilamentChunks.Values.ToArray());
+        }
         #endregion
 
         #region Loading
+        public bool IsFilamentChunkLoaded(Filament.Chunk.Position filamentChunkPosition)
+        {
+            return loadedFilamentChunks.ContainsKey(filamentChunkPosition);
+        }
 
+        public void LoadFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
+        {
+            if (IsFilamentChunkLoaded(filamentChunkPosition))
+            {
+                throw new Exception("Filament.Chunk is already loaded!");
+            }
+
+            if (!IsFilamentChunkGenerated(filamentChunkPosition))
+            {
+                throw new Exception($"Filament.Chunk has not been generated yet!");
+            }
+
+            string path = $"{DataPath}/Filaments/{filamentChunkPosition.FilamentPosition.VectorIntPosition.x}.{filamentChunkPosition.FilamentPosition.VectorIntPosition.y}/Chunks/{filamentChunkPosition.VectorIntPosition.x}.{filamentChunkPosition.VectorIntPosition.y}.json";
+            using StreamReader reader = new StreamReader(path);
+            string json = reader.ReadToEnd();
+            Filament.Chunk filamentChunk = JsonUtility.FromJson<Filament.Chunk>(json);
+            loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
+        }
+
+        public void UnloadFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
+        {
+            if (!IsFilamentChunkLoaded(filamentChunkPosition))
+            {
+                throw new Exception("Filament.Chunk is already unloaded!");
+            }
+
+            loadedFilamentChunks.Remove(filamentChunkPosition);
+        }
+
+        public void UnloadAllFilamentChunks()
+        {
+            foreach (Filament.Chunk.Position filamentChunkPosition in loadedFilamentChunks.Keys.ToArray())
+            {
+                UnloadFilamentChunk(filamentChunkPosition);
+            }
+        }
         #endregion
 
         #region Deletion
+        public void DeleteFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
+        {
+            if (IsFilamentChunkLoaded(filamentChunkPosition))
+            {
+                UnloadFilamentChunk(filamentChunkPosition);
+            }
 
+            if (IsFilamentChunkGenerated(filamentChunkPosition))
+            {
+                string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentChunkPosition.VectorIntPosition.x}.{filamentChunkPosition.VectorIntPosition.y}/Chunks/{filamentChunkPosition.VectorIntPosition.x}.{filamentChunkPosition.VectorIntPosition.y}.json";
+                File.Delete(path);
+
+                path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentChunkPosition.VectorIntPosition.x}.{filamentChunkPosition.VectorIntPosition.y}/Chunks/{filamentChunkPosition.VectorIntPosition.x}.{filamentChunkPosition.VectorIntPosition.y}_Map.png";
+                File.Delete(path);
+            }
+        }
         #endregion
 
         #endregion
@@ -1567,23 +1701,133 @@ namespace LooCast.Universe
         #region Sector Chunks
 
         #region Utility
+        public Sector.Chunk GetSectorChunk(Sector.Chunk.Position sectorChunkPosition)
+        {
+            if (!IsSectorChunkLoaded(sectorChunkPosition))
+            {
+                throw new Exception("Sector.Chunk is not loaded!");
+            }
 
+            if (!IsSectorChunkGenerated(sectorChunkPosition))
+            {
+                throw new Exception("Sector.Chunk is not generated!");
+            }
+
+            return loadedSectorChunks[sectorChunkPosition];
+        }
+
+        public Sector.Chunk[] GetLoadedSectorChunks()
+        {
+            return loadedSectorChunks.Values.ToArray();
+        }
         #endregion
 
         #region Generation
+        public bool IsSectorChunkGenerated(Sector.Chunk.Position sectorChunkPosition)
+        {
+            string path = $"{DataPath}/Sectors/{sectorChunkPosition.SectorPosition.VectorIntPosition.x}.{sectorChunkPosition.SectorPosition.VectorIntPosition.y}/Chunks/{sectorChunkPosition.VectorIntPosition.x}.{sectorChunkPosition.VectorIntPosition.y}.json";
+            return File.Exists(path);
+        }
 
+        public void GenerateSectorChunk(Sector.Chunk.Position sectorChunkPosition)
+        {
+            if (IsSectorChunkGenerated(sectorChunkPosition))
+            {
+                throw new Exception("Sector Chunk is already generated!");
+            }
+
+            Sector sector = GetSector(sectorChunkPosition.SectorPosition);
+            Sector.Chunk sectorChunk = new Sector.Chunk(this, sector, sectorChunkPosition);
+            loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
+            SaveSectorChunk(sectorChunk);
+        }
         #endregion
 
         #region Saving
+        public void SaveSectorChunk(Sector.Chunk sectorChunk)
+        {
+            string path = $"{DataPath}/Sectors/{sectorChunk.ChunkPosition.SectorPosition.VectorIntPosition.x}.{sectorChunk.ChunkPosition.SectorPosition.VectorIntPosition.y}/Chunks/{sectorChunk.ChunkPosition.VectorIntPosition.x}.{sectorChunk.ChunkPosition.VectorIntPosition.y}.json";
+            string json = JsonUtility.ToJson(sectorChunk, true);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using StreamWriter writer = new StreamWriter(path);
+            writer.Write(json);
+        }
 
+        public void SaveSectorChunks(Sector.Chunk[] sectorChunks)
+        {
+            foreach (Sector.Chunk sectorChunk in sectorChunks)
+            {
+                SaveSectorChunk(sectorChunk);
+            }
+        }
+
+        public void SaveSectorChunks()
+        {
+            SaveSectorChunks(loadedSectorChunks.Values.ToArray());
+        }
         #endregion
 
         #region Loading
+        public bool IsSectorChunkLoaded(Sector.Chunk.Position sectorChunkPosition)
+        {
+            return loadedSectorChunks.ContainsKey(sectorChunkPosition);
+        }
 
+        public void LoadSectorChunk(Sector.Chunk.Position sectorChunkPosition)
+        {
+            if (IsSectorChunkLoaded(sectorChunkPosition))
+            {
+                throw new Exception("Sector.Chunk is already loaded!");
+            }
+
+            if (!IsSectorChunkGenerated(sectorChunkPosition))
+            {
+                throw new Exception($"Sector.Chunk has not been generated yet!");
+            }
+
+            string path = $"{DataPath}/Sectors/{sectorChunkPosition.SectorPosition.VectorIntPosition.x}.{sectorChunkPosition.SectorPosition.VectorIntPosition.y}/Chunks/{sectorChunkPosition.VectorIntPosition.x}.{sectorChunkPosition.VectorIntPosition.y}.json";
+            using StreamReader reader = new StreamReader(path);
+            string json = reader.ReadToEnd();
+            Sector.Chunk sectorChunk = JsonUtility.FromJson<Sector.Chunk>(json);
+            loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
+        }
+
+        public void UnloadSectorChunk(Sector.Chunk.Position sectorChunkPosition)
+        {
+            if (!IsSectorChunkLoaded(sectorChunkPosition))
+            {
+                throw new Exception("Sector.Chunk is already unloaded!");
+            }
+
+            loadedSectorChunks.Remove(sectorChunkPosition);
+        }
+
+        public void UnloadAllSectorChunks()
+        {
+            foreach (Sector.Chunk.Position sectorChunkPosition in loadedSectorChunks.Keys.ToArray())
+            {
+                UnloadSectorChunk(sectorChunkPosition);
+            }
+        }
         #endregion
 
         #region Deletion
+        public void DeleteSectorChunk(Sector.Chunk.Position sectorChunkPosition)
+        {
+            if (IsSectorChunkLoaded(sectorChunkPosition))
+            {
+                UnloadSectorChunk(sectorChunkPosition);
+            }
 
+            if (IsSectorChunkGenerated(sectorChunkPosition))
+            {
+                string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorChunkPosition.VectorIntPosition.x}.{sectorChunkPosition.VectorIntPosition.y}/Chunks/{sectorChunkPosition.VectorIntPosition.x}.{sectorChunkPosition.VectorIntPosition.y}.json";
+                File.Delete(path);
+
+                path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorChunkPosition.VectorIntPosition.x}.{sectorChunkPosition.VectorIntPosition.y}/Chunks/{sectorChunkPosition.VectorIntPosition.x}.{sectorChunkPosition.VectorIntPosition.y}_Map.png";
+                File.Delete(path);
+            }
+        }
         #endregion
 
         #endregion
@@ -1725,23 +1969,133 @@ namespace LooCast.Universe
         #region Region Chunks
 
         #region Utility
+        public Region.Chunk GetRegionChunk(Region.Chunk.Position regionChunkPosition)
+        {
+            if (!IsRegionChunkLoaded(regionChunkPosition))
+            {
+                throw new Exception("Region.Chunk is not loaded!");
+            }
 
+            if (!IsRegionChunkGenerated(regionChunkPosition))
+            {
+                throw new Exception("Region.Chunk is not generated!");
+            }
+
+            return loadedRegionChunks[regionChunkPosition];
+        }
+
+        public Region.Chunk[] GetLoadedRegionChunks()
+        {
+            return loadedRegionChunks.Values.ToArray();
+        }
         #endregion
 
         #region Generation
+        public bool IsRegionChunkGenerated(Region.Chunk.Position regionChunkPosition)
+        {
+            string path = $"{DataPath}/Regions/{regionChunkPosition.RegionPosition.VectorIntPosition.x}.{regionChunkPosition.RegionPosition.VectorIntPosition.y}/Chunks/{regionChunkPosition.VectorIntPosition.x}.{regionChunkPosition.VectorIntPosition.y}.json";
+            return File.Exists(path);
+        }
 
+        public void GenerateRegionChunk(Region.Chunk.Position regionChunkPosition)
+        {
+            if (IsRegionChunkGenerated(regionChunkPosition))
+            {
+                throw new Exception("Region Chunk is already generated!");
+            }
+
+            Region region = GetRegion(regionChunkPosition.RegionPosition);
+            Region.Chunk regionChunk = new Region.Chunk(this, region, regionChunkPosition);
+            loadedRegionChunks.Add(regionChunkPosition, regionChunk);
+            SaveRegionChunk(regionChunk);
+        }
         #endregion
 
         #region Saving
+        public void SaveRegionChunk(Region.Chunk regionChunk)
+        {
+            string path = $"{DataPath}/Regions/{regionChunk.ChunkPosition.RegionPosition.VectorIntPosition.x}.{regionChunk.ChunkPosition.RegionPosition.VectorIntPosition.y}/Chunks/{regionChunk.ChunkPosition.VectorIntPosition.x}.{regionChunk.ChunkPosition.VectorIntPosition.y}.json";
+            string json = JsonUtility.ToJson(regionChunk, true);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            using StreamWriter writer = new StreamWriter(path);
+            writer.Write(json);
+        }
 
+        public void SaveRegionChunks(Region.Chunk[] regionChunks)
+        {
+            foreach (Region.Chunk regionChunk in regionChunks)
+            {
+                SaveRegionChunk(regionChunk);
+            }
+        }
+
+        public void SaveRegionChunks()
+        {
+            SaveRegionChunks(loadedRegionChunks.Values.ToArray());
+        }
         #endregion
 
         #region Loading
+        public bool IsRegionChunkLoaded(Region.Chunk.Position regionChunkPosition)
+        {
+            return loadedRegionChunks.ContainsKey(regionChunkPosition);
+        }
 
+        public void LoadRegionChunk(Region.Chunk.Position regionChunkPosition)
+        {
+            if (IsRegionChunkLoaded(regionChunkPosition))
+            {
+                throw new Exception("Region.Chunk is already loaded!");
+            }
+
+            if (!IsRegionChunkGenerated(regionChunkPosition))
+            {
+                throw new Exception($"Region.Chunk has not been generated yet!");
+            }
+
+            string path = $"{DataPath}/Regions/{regionChunkPosition.RegionPosition.VectorIntPosition.x}.{regionChunkPosition.RegionPosition.VectorIntPosition.y}/Chunks/{regionChunkPosition.VectorIntPosition.x}.{regionChunkPosition.VectorIntPosition.y}.json";
+            using StreamReader reader = new StreamReader(path);
+            string json = reader.ReadToEnd();
+            Region.Chunk regionChunk = JsonUtility.FromJson<Region.Chunk>(json);
+            loadedRegionChunks.Add(regionChunkPosition, regionChunk);
+        }
+
+        public void UnloadRegionChunk(Region.Chunk.Position regionChunkPosition)
+        {
+            if (!IsRegionChunkLoaded(regionChunkPosition))
+            {
+                throw new Exception("Region.Chunk is already unloaded!");
+            }
+
+            loadedRegionChunks.Remove(regionChunkPosition);
+        }
+
+        public void UnloadAllRegionChunks()
+        {
+            foreach (Region.Chunk.Position regionChunkPosition in loadedRegionChunks.Keys.ToArray())
+            {
+                UnloadRegionChunk(regionChunkPosition);
+            }
+        }
         #endregion
 
         #region Deletion
+        public void DeleteRegionChunk(Region.Chunk.Position regionChunkPosition)
+        {
+            if (IsRegionChunkLoaded(regionChunkPosition))
+            {
+                UnloadRegionChunk(regionChunkPosition);
+            }
 
+            if (IsRegionChunkGenerated(regionChunkPosition))
+            {
+                string path = $"{Application.dataPath}/Data/Universe/Regions/{regionChunkPosition.VectorIntPosition.x}.{regionChunkPosition.VectorIntPosition.y}/Chunks/{regionChunkPosition.VectorIntPosition.x}.{regionChunkPosition.VectorIntPosition.y}.json";
+                File.Delete(path);
+
+                path = $"{Application.dataPath}/Data/Universe/Regions/{regionChunkPosition.VectorIntPosition.x}.{regionChunkPosition.VectorIntPosition.y}/Chunks/{regionChunkPosition.VectorIntPosition.x}.{regionChunkPosition.VectorIntPosition.y}_Map.png";
+                File.Delete(path);
+            }
+        }
         #endregion
 
         #endregion
