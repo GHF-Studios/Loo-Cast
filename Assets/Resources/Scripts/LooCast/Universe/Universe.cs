@@ -21,6 +21,34 @@ namespace LooCast.Universe
             [Serializable]
             public class Chunk
             {
+                #region Structs
+                [Serializable]
+                public struct Position
+                {
+                    public Vector2Int VectorIntPosition => vectorIntPosition;
+                    public Filament.Position FilamentPosition => filamentPosition;
+                    public Vector2 WorldPosition => worldPosition;
+
+                    [SerializeField] private Vector2Int vectorIntPosition;
+                    [SerializeField] private Filament.Position filamentPosition;
+                    [SerializeField] private Vector2 worldPosition;
+
+                    public Position(Vector2Int vectorIntPosition, Filament.Position filamentPosition)
+                    {
+                        this.vectorIntPosition = vectorIntPosition;
+                        this.filamentPosition = filamentPosition;
+                    }
+
+                    public Position(Universe universe, Vector2 worldPosition)
+                    {
+                        int chunkAmount = universe.generationSettings.FilamentGenerationSettings.ChunkAmount;
+                        filamentPosition = new Filament.Position(universe, worldPosition);
+                        vectorIntPosition = new Vector2Int(Mathf.RoundToInt(filamentPosition.VectorIntPosition.x / chunkAmount), Mathf.RoundToInt(filamentPosition.VectorIntPosition.y / chunkAmount));
+                        this.worldPosition = worldPosition;
+                    }
+                }
+                #endregion
+
                 public int Size => size;
                 public Vector2Int ChunkPosition => chunkPosition;
                 public SerializableMap2D<float?> ElectronDensityMap => electronDensityMap;
@@ -86,42 +114,34 @@ namespace LooCast.Universe
                     }
                     #endregion
                 }
-
-                public static Vector2Int GetChunkPosition(Universe universe, Vector2 worldPosition)
-                {
-                    int chunkAmount = universe.generationSettings.FilamentGenerationSettings.ChunkAmount;
-                    Vector2Int filamentPosition = GetFilamentPosition(universe, worldPosition);
-                    return new Vector2Int(Mathf.RoundToInt(filamentPosition.x / chunkAmount), Mathf.RoundToInt(filamentPosition.y / chunkAmount));
-                }
-
-                public static Vector2 GetWorldPosition(Universe universe, Vector2 chunkPosition)
-                {
-                    int chunkAmount = universe.generationSettings.FilamentGenerationSettings.ChunkAmount;
-                    Vector2 filamentWorldPos = 
-                    return chunkPosition * chunkAmount;
-                }
-
-                public static Vector2 GetWorldPosition(Universe universe, Vector2Int chunkPosition)
-                {
-                    return GetWorldPosition(universe, (Vector2)chunkPosition);
-                }
             }
+            #endregion
 
+            #region Structs
             [Serializable]
             public struct Position
             {
                 public Vector2Int VectorIntPosition => vectorIntPosition;
+                public Vector2 WorldPosition => worldPosition;
+
+                [SerializeField] private Vector2Int vectorIntPosition;
+                [SerializeField] private Vector2 worldPosition;
 
                 public Position(Vector2Int vectorIntPosition)
                 {
                     this.vectorIntPosition = vectorIntPosition;
                 }
 
-                [SerializeField] private Vector2Int vectorIntPosition;
+                public Position(Universe universe, Vector2 worldPosition)
+                {
+                    int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                    int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                    int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
+                    Vector2 floatFilamentPosition = worldPosition / regionSize / sectorSize / filamentSize;
+                    vectorIntPosition = new Vector2Int(Mathf.RoundToInt(floatFilamentPosition.x), Mathf.RoundToInt(floatFilamentPosition.y));
+                }
             }
-            #endregion
 
-            #region Structs
             [Serializable]
             public struct GenerationSettings
             {
@@ -183,26 +203,12 @@ namespace LooCast.Universe
                 this.filamentPosition = filamentPosition;
             }
 
-            public static Vector2Int GetFilamentPosition(Universe universe, Vector2 worldPosition)
-            {
-                int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
-                int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
-                int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
-                Vector2 floatFilamentPosition = worldPosition / regionSize / sectorSize / filamentSize;
-                return new Vector2Int(Mathf.RoundToInt(floatFilamentPosition.x), Mathf.RoundToInt(floatFilamentPosition.y));
-            }
-
             public static Vector2 GetWorldPosition(Universe universe, Vector2 filamentPosition)
             {
                 int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                 int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                 int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
                 return filamentPosition * filamentSize * sectorSize * regionSize;
-            }
-
-            public static Vector2 GetWorldPosition(Universe universe, Vector2Int filamentPosition)
-            {
-                return GetWorldPosition(universe, (Vector2)filamentPosition);
             }
 
             public float SampleNoise(Universe universe, float sampleX, float sampleY)
@@ -230,6 +236,33 @@ namespace LooCast.Universe
             [Serializable]
             public class Chunk
             {
+                #region Structs
+                [Serializable]
+                public struct Position
+                {
+                    public Vector2Int VectorIntPosition => vectorIntPosition;
+                    public Sector.Position SectorPosition => sectorPosition;
+                    public Vector2 WorldPosition => worldPosition;
+
+                    [SerializeField] private Vector2Int vectorIntPosition;
+                    [SerializeField] private Sector.Position sectorPosition;
+                    [SerializeField] private Vector2 worldPosition;
+
+                    public Position(Vector2Int vectorIntPosition, Sector.Position sectorPosition)
+                    {
+                        this.vectorIntPosition = vectorIntPosition;
+                        this.sectorPosition = sectorPosition;
+                    }
+
+                    public Position(Universe universe, Vector2 worldPosition)
+                    {
+                        int chunkAmount = universe.generationSettings.SectorGenerationSettings.ChunkAmount;
+                        sectorPosition = new Sector.Position(universe, worldPosition);
+                        vectorIntPosition = new Vector2Int(Mathf.RoundToInt(sectorPosition.VectorIntPosition.x / chunkAmount), Mathf.RoundToInt(sectorPosition.v.y / chunkAmount));
+                    }
+                }
+                #endregion
+
                 public int Size => size;
                 public Vector2Int ChunkPosition => chunkPosition;
                 public SerializableMap2D<float?> SolidParticleDensityMap => solidParticleDensityMap;
@@ -291,17 +324,35 @@ namespace LooCast.Universe
                     }
                     #endregion
                 }
-
-                public static Vector2Int GetChunkPosition(Universe universe, Vector2 worldPosition)
-                {
-                    int chunkAmount = universe.generationSettings.SectorGenerationSettings.ChunkAmount;
-                    Vector2Int sectorPosition = GetSectorPosition(universe, worldPosition);
-                    return new Vector2Int(Mathf.RoundToInt(sectorPosition.x / chunkAmount), Mathf.RoundToInt(sectorPosition.y / chunkAmount));
-                }
             }
             #endregion
 
             #region Structs
+            [Serializable]
+            public struct Position
+            {
+                public Vector2Int VectorIntPosition => vectorIntPosition;
+                public Filament.Position FilamentPosition => filamentPosition;
+                public Vector2 WorldPosition => worldPosition;
+
+                [SerializeField] private Vector2Int vectorIntPosition;
+                [SerializeField] private Filament.Position filamentPosition;
+                [SerializeField] private Vector2 worldPosition;
+
+                public Position(Vector2Int vectorIntPosition, Filament.Position filamentPosition)
+                {
+                    this.vectorIntPosition = vectorIntPosition;
+                    this.filamentPosition = filamentPosition;
+                }
+
+                public Position(Universe universe, Vector2 worldPosition)
+                {
+                    Vector2 floatSectorPosition = worldPosition / universe.generationSettings.RegionGenerationSettings.Size / universe.generationSettings.SectorGenerationSettings.Size;
+                    vectorIntPosition = new Vector2Int(Mathf.RoundToInt(floatSectorPosition.x), Mathf.RoundToInt(floatSectorPosition.y));
+                    filamentPosition = new Filament.Position(universe, worldPosition);
+                }
+            }
+
             [Serializable]
             public struct GenerationSettings
             {
@@ -361,12 +412,6 @@ namespace LooCast.Universe
                 this.sectorPosition = sectorPosition;
             }
 
-            public static Vector2Int GetSectorPosition(Universe universe, Vector2 worldPosition)
-            {
-                Vector2 floatSectorPosition = worldPosition / universe.generationSettings.RegionGenerationSettings.Size / universe.generationSettings.SectorGenerationSettings.Size;
-                return new Vector2Int(Mathf.RoundToInt(floatSectorPosition.x), Mathf.RoundToInt(floatSectorPosition.y));
-            }
-
             public float SampleNoise(Universe universe, float sampleX, float sampleY)
             {
                 #region Sampling
@@ -392,6 +437,36 @@ namespace LooCast.Universe
             [Serializable]
             public class Chunk
             {
+                #region Structs
+                [Serializable]
+                public struct Position
+                {
+                    public Vector2Int VectorIntPosition => vectorIntPosition;
+                    public Region.Position RegionPosition => regionPosition;
+                    public Vector2 WorldPosition => worldPosition;
+
+                    [SerializeField] private Vector2Int vectorIntPosition;
+                    [SerializeField] private Region.Position regionPosition;
+                    [SerializeField] private Vector2 worldPosition;
+
+                    public Position(Universe universe, Vector2Int vectorIntPosition, Region.Position regionPosition)
+                    {
+                        int chunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
+                        this.vectorIntPosition = vectorIntPosition;
+                        this.regionPosition = regionPosition;
+                        worldPosition = (vectorIntPosition / chunkSize) + new Vector2(chunkSize / 2.0f, chunkSize / 2.0f);
+                    }
+
+                    public Position(Universe universe, Vector2 worldPosition)
+                    {
+                        int chunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
+                        vectorIntPosition = Vector2Int.FloorToInt(new Region.Position(universe, worldPosition).VectorIntPosition * chunkSize);
+                        regionPosition = new Region.Position(universe, worldPosition);
+                        this.worldPosition = worldPosition;
+                    }
+                }
+                #endregion
+
                 public int Size => size;
                 public Vector2Int ChunkPosition => chunkPosition;
                 public SerializableMap2D<float?> MatterDensityMap => matterDensityMap;
@@ -449,17 +524,38 @@ namespace LooCast.Universe
                     }
                     #endregion
                 }
-
-                public static Vector2Int GetChunkPosition(Universe universe, Vector2 worldPosition)
-                {
-                    int chunkAmount = universe.generationSettings.RegionGenerationSettings.ChunkAmount;
-                    Vector2Int regionPosition = GetRegionPosition(universe, worldPosition);
-                    return new Vector2Int(Mathf.RoundToInt(regionPosition.x / chunkAmount), Mathf.RoundToInt(regionPosition.y / chunkAmount));
-                }
             }
             #endregion
 
             #region Structs
+            [Serializable]
+            public struct Position
+            {
+                public Vector2Int VectorIntPosition => vectorIntPosition;
+                public Sector.Position SectorPosition => sectorPosition;
+                public Vector2 WorldPosition => worldPosition;
+
+                [SerializeField] private Vector2Int vectorIntPosition;
+                [SerializeField] private Sector.Position sectorPosition;
+                [SerializeField] private Vector2 worldPosition;
+
+                public Position(Universe universe, Vector2Int vectorIntPosition, Sector.Position sectorPosition)
+                {
+                    int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                    this.vectorIntPosition = vectorIntPosition;
+                    this.sectorPosition = sectorPosition;
+                    worldPosition = (vectorIntPosition * regionSize) + new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                }
+
+                public Position(Universe universe, Vector2 worldPosition)
+                {
+                    int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                    vectorIntPosition = Vector2Int.FloorToInt(worldPosition / regionSize);
+                    sectorPosition = new Sector.Position(universe, worldPosition);
+                    this.worldPosition = worldPosition;
+                }
+            }
+
             [Serializable]
             public struct GenerationSettings
             {
@@ -517,12 +613,6 @@ namespace LooCast.Universe
             {
                 this.sectorPosition = sectorPosition;
                 this.regionPosition = regionPosition;
-            }
-
-            public static Vector2Int GetRegionPosition(Universe universe, Vector2 worldPosition)
-            {
-                Vector2 floatRegionPosition = worldPosition / universe.generationSettings.RegionGenerationSettings.Size;
-                return new Vector2Int(Mathf.RoundToInt(floatRegionPosition.x), Mathf.RoundToInt(floatRegionPosition.y));
             }
 
             public float SampleNoise(Universe universe, float sampleX, float sampleY)
