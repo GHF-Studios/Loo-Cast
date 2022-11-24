@@ -87,7 +87,7 @@ namespace LooCast.Universe
                     size = generationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
 
-                    Vector2Int filamentPosition = filament.FilamentPosition;
+                    Filament.Position filamentPosition = filament.FilamentPosition;
 
                     #region Electron Density Map Generation
                     electronDensityMap = new SerializableMap2D<float?>(generationSettings.ChunkSize, generationSettings.ChunkSize);
@@ -97,8 +97,8 @@ namespace LooCast.Universe
                         for (int x = 0; x < generationSettings.ChunkSize; x++)
                         {
                             #region Filament Noise Sampling
-                            float filamentOffsetX = -((filamentPosition.x * generationSettings.Size) + chunkPosition.x * generationSettings.ChunkSize);
-                            float filamentOffsetY = -((filamentPosition.y * generationSettings.Size) + chunkPosition.y * generationSettings.ChunkSize);
+                            float filamentOffsetX = -((filamentPosition.VectorIntPosition.x * generationSettings.Size) + chunkPosition.VectorIntPosition.x * generationSettings.ChunkSize);
+                            float filamentOffsetY = -((filamentPosition.VectorIntPosition.y * generationSettings.Size) + chunkPosition.VectorIntPosition.y * generationSettings.ChunkSize);
 
                             float filamentSampleX = x + filamentOffsetX;
                             float filamentSampleY = y + filamentOffsetY;
@@ -111,8 +111,8 @@ namespace LooCast.Universe
                             float universeOffsetX = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * x);
                             float universeOffsetY = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * y);
 
-                            float universeSampleX = filamentPosition.x + universeOffsetX;
-                            float universeSampleY = filamentPosition.y + universeOffsetY;
+                            float universeSampleX = filamentPosition.VectorIntPosition.x + universeOffsetX;
+                            float universeSampleY = filamentPosition.VectorIntPosition.y + universeOffsetY;
 
                             float universeNoiseValue = universe.SampleNoise(universeSampleX, universeSampleY);
                             // TODO: Sample all other density Maps, too
@@ -326,14 +326,14 @@ namespace LooCast.Universe
                 [SerializeField] private SerializableMap2D<float?> plasmaParticleDensityMap;
                 #endregion
 
-                #region Methods
+                #region Constructors
                 public Chunk(Universe universe, Sector sector, Position chunkPosition)
                 {
                     GenerationSettings generationSettings = universe.SectorGenerationSettings;
                     size = generationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
 
-                    Vector2Int sectorPosition = sector.SectorPosition;
+                    Sector.Position sectorPosition = sector.SectorPosition;
 
                     #region Solid Particle Density Map Generation
                     solidParticleDensityMap = new SerializableMap2D<float?>(generationSettings.ChunkSize, generationSettings.ChunkSize);
@@ -343,8 +343,8 @@ namespace LooCast.Universe
                         for (int x = 0; x < generationSettings.ChunkSize; x++)
                         {
                             #region Sector Noise Sampling
-                            float sectorOffsetX = -((sectorPosition.x * generationSettings.Size) + chunkPosition.x * generationSettings.ChunkSize);
-                            float sectorOffsetY = -((sectorPosition.y * generationSettings.Size) + chunkPosition.y * generationSettings.ChunkSize);
+                            float sectorOffsetX = -((sectorPosition.VectorIntPosition.x * generationSettings.Size) + chunkPosition.VectorIntPosition.x * generationSettings.ChunkSize);
+                            float sectorOffsetY = -((sectorPosition.VectorIntPosition.y * generationSettings.Size) + chunkPosition.VectorIntPosition.y * generationSettings.ChunkSize);
 
                             float sectorSampleX = x + sectorOffsetX;
                             float sectorSampleY = y + sectorOffsetY;
@@ -357,8 +357,8 @@ namespace LooCast.Universe
                             float filamentOffsetX = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * x);
                             float filamentOffsetY = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * y);
 
-                            float filamentSampleX = sectorPosition.x + filamentOffsetX;
-                            float filamentSampleY = sectorPosition.y + filamentOffsetY;
+                            float filamentSampleX = sectorPosition.VectorIntPosition.x + filamentOffsetX;
+                            float filamentSampleY = sectorPosition.VectorIntPosition.y + filamentOffsetY;
 
                             float filamentNoiseValue = universe.SampleNoise(filamentSampleX, filamentSampleY);
                             // TODO: Sample all other density Maps, too
@@ -573,7 +573,7 @@ namespace LooCast.Universe
                     size = generationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
 
-                    Vector2Int regionPosition = region.RegionPosition;
+                    Region.Position regionPosition = region.RegionPosition;
 
                     #region Matter Density Map Generation
                     matterDensityMap = new SerializableMap2D<float?>(generationSettings.ChunkSize, generationSettings.ChunkSize);
@@ -583,8 +583,8 @@ namespace LooCast.Universe
                         for (int x = 0; x < generationSettings.ChunkSize; x++)
                         {
                             #region Region Noise Sampling
-                            float regionOffsetX = -((regionPosition.x * generationSettings.Size) + chunkPosition.x * generationSettings.ChunkSize);
-                            float regionOffsetY = -((regionPosition.y * generationSettings.Size) + chunkPosition.y * generationSettings.ChunkSize);
+                            float regionOffsetX = -((regionPosition.VectorIntPosition.x * generationSettings.Size) + chunkPosition.VectorIntPosition.x * generationSettings.ChunkSize);
+                            float regionOffsetY = -((regionPosition.VectorIntPosition.y * generationSettings.Size) + chunkPosition.VectorIntPosition.y * generationSettings.ChunkSize);
 
                             float regionSampleX = x + regionOffsetX;
                             float regionSampleY = y + regionOffsetY;
@@ -597,8 +597,8 @@ namespace LooCast.Universe
                             float sectorOffsetX = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * x);
                             float sectorOffsetY = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * y);
 
-                            float sectorSampleX = regionPosition.x + sectorOffsetX;
-                            float sectorSampleY = regionPosition.y + sectorOffsetY;
+                            float sectorSampleX = regionPosition.VectorIntPosition.x + sectorOffsetX;
+                            float sectorSampleY = regionPosition.VectorIntPosition.y + sectorOffsetY;
 
                             float sectorNoiseValue = universe.SampleNoise(sectorSampleX, sectorSampleY);
                             // TODO: Sample all other density Maps, too
