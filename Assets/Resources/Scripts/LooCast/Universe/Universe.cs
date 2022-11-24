@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace LooCast.Universe
 {
-    using LooCast.Game;
+    using Game;
     using Util;
     using Util.Collections.Generic;
 
@@ -25,14 +25,19 @@ namespace LooCast.Universe
                 [Serializable]
                 public struct Position
                 {
+                    #region Properties
                     public Vector2Int VectorIntPosition => vectorIntPosition;
                     public Filament.Position FilamentPosition => filamentPosition;
                     public Vector2 WorldPosition => worldPosition;
+                    #endregion
 
+                    #region Fields
                     [SerializeField] private Vector2Int vectorIntPosition;
                     [SerializeField] private Filament.Position filamentPosition;
                     [SerializeField] private Vector2 worldPosition;
+                    #endregion
 
+                    #region Constructors
                     public Position(Universe universe, Vector2Int vectorIntPosition, Filament.Position filamentPosition)
                     {
                         int chunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
@@ -49,28 +54,34 @@ namespace LooCast.Universe
                         vectorIntPosition = new Vector2Int(Mathf.RoundToInt(filamentPosition.VectorIntPosition.x / chunkAmount), Mathf.RoundToInt(filamentPosition.VectorIntPosition.y / chunkAmount));
                         this.worldPosition = worldPosition;
                     }
+                    #endregion
                 }
                 #endregion
 
+                #region Properties
                 public int Size => size;
-                public Vector2Int ChunkPosition => chunkPosition;
+                public Position ChunkPosition => chunkPosition;
                 public SerializableMap2D<float?> ElectronDensityMap => electronDensityMap;
                 public SerializableMap2D<float?> PositronDensityMap => positronDensityMap;
                 public SerializableMap2D<float?> ProtonDensityMap => protonDensityMap;
                 public SerializableMap2D<float?> AntiProtonDensityMap => antiProtonDensityMap;
                 public SerializableMap2D<float?> NeutronDensityMap => neutronDensityMap;
                 public SerializableMap2D<float?> AntiNeutronDensityMap => antiNeutronDensityMap;
+                #endregion
 
+                #region Fields
                 [SerializeField] private int size;
-                [SerializeField] private Vector2Int chunkPosition;
+                [SerializeField] private Position chunkPosition;
                 [SerializeField] private SerializableMap2D<float?> electronDensityMap;
                 [SerializeField] private SerializableMap2D<float?> positronDensityMap;
                 [SerializeField] private SerializableMap2D<float?> protonDensityMap;
                 [SerializeField] private SerializableMap2D<float?> antiProtonDensityMap;
                 [SerializeField] private SerializableMap2D<float?> neutronDensityMap;
                 [SerializeField] private SerializableMap2D<float?> antiNeutronDensityMap;
+                #endregion
 
-                public Chunk(Universe universe, Filament filament, Vector2Int chunkPosition)
+                #region Constructors
+                public Chunk(Universe universe, Filament filament, Position chunkPosition)
                 {
                     GenerationSettings generationSettings = universe.FilamentGenerationSettings;
                     size = generationSettings.ChunkSize;
@@ -117,6 +128,7 @@ namespace LooCast.Universe
                     }
                     #endregion
                 }
+                #endregion
             }
             #endregion
 
@@ -124,12 +136,17 @@ namespace LooCast.Universe
             [Serializable]
             public struct Position
             {
+                #region Properties
                 public Vector2Int VectorIntPosition => vectorIntPosition;
                 public Vector2 WorldPosition => worldPosition;
+                #endregion
 
+                #region Fields
                 [SerializeField] private Vector2Int vectorIntPosition;
                 [SerializeField] private Vector2 worldPosition;
+                #endregion
 
+                #region Constructor
                 public Position(Universe universe, Vector2Int vectorIntPosition)
                 {
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
@@ -151,14 +168,13 @@ namespace LooCast.Universe
                     vectorIntPosition = new Vector2Int(Mathf.RoundToInt(floatFilamentPosition.x), Mathf.RoundToInt(floatFilamentPosition.y));
                     this.worldPosition = worldPosition;
                 }
+                #endregion
             }
 
             [Serializable]
             public struct GenerationSettings
             {
-                public GameObject Prefab;
-                public int ChunkSize;
-                public int ChunkAmount;
+                #region Properties
                 public int Size
                 {
                     get
@@ -166,6 +182,13 @@ namespace LooCast.Universe
                         return ChunkAmount * ChunkSize;
                     }
                 }
+                #endregion
+
+                #region Fields
+                [Header("Main Settings")]
+                public GameObject Prefab;
+                public int ChunkSize;
+                public int ChunkAmount;
                 public float MapFromMin;
                 public float MapFromMax;
                 public float MapToMin;
@@ -200,20 +223,28 @@ namespace LooCast.Universe
                 public int DomainWarpFractalOctaves;
                 public float DomainWarpFractalLacunarity;
                 public float DomainWarpFractalGain;
+                #endregion
             }
             #endregion
 
-            public Vector2Int FilamentPosition => filamentPosition;
+            #region Properties
+            public Position FilamentPosition => filamentPosition;
             public SerializableMap2D<Chunk> ChunkMap => chunkMap;
+            #endregion
 
-            [SerializeField] private Vector2Int filamentPosition;
+            #region Fields
+            [SerializeField] private Position filamentPosition;
             [SerializeField] private SerializableMap2D<Chunk> chunkMap;
+            #endregion
 
-            public Filament(Vector2Int filamentPosition)
+            #region Constructors
+            public Filament(Position filamentPosition)
             {
                 this.filamentPosition = filamentPosition;
             }
+            #endregion
 
+            #region Methods
             public float SampleNoise(Universe universe, float sampleX, float sampleY)
             {
                 #region Sampling
@@ -230,6 +261,7 @@ namespace LooCast.Universe
 
                 return noiseValue;
             }
+            #endregion
         }
 
         [Serializable]
@@ -243,14 +275,19 @@ namespace LooCast.Universe
                 [Serializable]
                 public struct Position
                 {
+                    #region Properties
                     public Vector2Int VectorIntPosition => vectorIntPosition;
                     public Sector.Position SectorPosition => sectorPosition;
                     public Vector2 WorldPosition => worldPosition;
+                    #endregion
 
+                    #region Fields
                     [SerializeField] private Vector2Int vectorIntPosition;
                     [SerializeField] private Sector.Position sectorPosition;
                     [SerializeField] private Vector2 worldPosition;
+                    #endregion
 
+                    #region Constructors
                     public Position(Universe universe, Vector2Int vectorIntPosition, Sector.Position sectorPosition)
                     {
                         int chunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
@@ -267,24 +304,30 @@ namespace LooCast.Universe
                         vectorIntPosition = new Vector2Int(Mathf.RoundToInt(sectorPosition.VectorIntPosition.x / chunkAmount), Mathf.RoundToInt(sectorPosition.VectorIntPosition.y / chunkAmount));
                         this.worldPosition = worldPosition;
                     }
+                    #endregion
                 }
                 #endregion
 
+                #region Properties
                 public int Size => size;
-                public Vector2Int ChunkPosition => chunkPosition;
+                public Position ChunkPosition => chunkPosition;
                 public SerializableMap2D<float?> SolidParticleDensityMap => solidParticleDensityMap;
                 public SerializableMap2D<float?> LiquidParticleDensityMap => liquidParticleDensityMap;
                 public SerializableMap2D<float?> GasParticleDensityMap => gasParticleDensityMap;
                 public SerializableMap2D<float?> PlasmaParticleDensityMap => plasmaParticleDensityMap;
+                #endregion
 
+                #region Fields
                 [SerializeField] private int size;
-                [SerializeField] private Vector2Int chunkPosition;
+                [SerializeField] private Position chunkPosition;
                 [SerializeField] private SerializableMap2D<float?> solidParticleDensityMap;
                 [SerializeField] private SerializableMap2D<float?> liquidParticleDensityMap;
                 [SerializeField] private SerializableMap2D<float?> gasParticleDensityMap;
                 [SerializeField] private SerializableMap2D<float?> plasmaParticleDensityMap;
+                #endregion
 
-                public Chunk(Universe universe, Sector sector, Vector2Int chunkPosition)
+                #region Methods
+                public Chunk(Universe universe, Sector sector, Position chunkPosition)
                 {
                     GenerationSettings generationSettings = universe.SectorGenerationSettings;
                     size = generationSettings.ChunkSize;
@@ -331,6 +374,7 @@ namespace LooCast.Universe
                     }
                     #endregion
                 }
+                #endregion
             }
             #endregion
 
@@ -338,14 +382,19 @@ namespace LooCast.Universe
             [Serializable]
             public struct Position
             {
+                #region Properties
                 public Vector2Int VectorIntPosition => vectorIntPosition;
                 public Filament.Position FilamentPosition => filamentPosition;
                 public Vector2 WorldPosition => worldPosition;
+                #endregion
 
+                #region Fields
                 [SerializeField] private Vector2Int vectorIntPosition;
                 [SerializeField] private Filament.Position filamentPosition;
                 [SerializeField] private Vector2 worldPosition;
+                #endregion
 
+                #region Constructors
                 public Position(Universe universe, Vector2Int vectorIntPosition, Filament.Position filamentPosition)
                 {
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
@@ -365,14 +414,13 @@ namespace LooCast.Universe
                     filamentPosition = new Filament.Position(universe, worldPosition);
                     this.worldPosition = worldPosition;
                 }
+                #endregion
             }
 
             [Serializable]
             public struct GenerationSettings
             {
-                public GameObject Prefab;
-                public int ChunkSize;
-                public int ChunkAmount;
+                #region Properties
                 public int Size
                 {
                     get
@@ -380,6 +428,13 @@ namespace LooCast.Universe
                         return ChunkAmount * ChunkSize;
                     }
                 }
+                #endregion
+
+                #region Fields
+                [Header("Main Settings")]
+                public GameObject Prefab;
+                public int ChunkSize;
+                public int ChunkAmount;
                 public float MapFromMin;
                 public float MapFromMax;
                 public float MapToMin;
@@ -409,23 +464,31 @@ namespace LooCast.Universe
                 public int DomainWarpFractalOctaves;
                 public float DomainWarpFractalLacunarity;
                 public float DomainWarpFractalGain;
+                #endregion
             }
             #endregion
 
-            public Vector2Int FilamentPosition => filamentPosition;
-            public Vector2Int SectorPosition => sectorPosition;
+            #region Properties
+            public Filament.Position FilamentPosition => filamentPosition;
+            public Position SectorPosition => sectorPosition;
             public SerializableMap2D<Chunk> ChunkMap => chunkMap;
+            #endregion
 
-            [SerializeField] private Vector2Int filamentPosition;
-            [SerializeField] private Vector2Int sectorPosition;
+            #region Fields
+            [SerializeField] private Filament.Position filamentPosition;
+            [SerializeField] private Position sectorPosition;
             [SerializeField] private SerializableMap2D<Chunk> chunkMap;
+            #endregion
 
-            public Sector(Vector2Int filamentPosition, Vector2Int sectorPosition)
+            #region Methods
+            public Sector(Filament.Position filamentPosition, Position sectorPosition)
             {
                 this.filamentPosition = filamentPosition;
                 this.sectorPosition = sectorPosition;
             }
+            #endregion
 
+            #region Methods
             public float SampleNoise(Universe universe, float sampleX, float sampleY)
             {
                 #region Sampling
@@ -442,6 +505,7 @@ namespace LooCast.Universe
 
                 return noiseValue;
             }
+            #endregion
         }
 
         [Serializable]
@@ -455,14 +519,19 @@ namespace LooCast.Universe
                 [Serializable]
                 public struct Position
                 {
+                    #region Properties
                     public Vector2Int VectorIntPosition => vectorIntPosition;
                     public Region.Position RegionPosition => regionPosition;
                     public Vector2 WorldPosition => worldPosition;
+                    #endregion
 
+                    #region Fields
                     [SerializeField] private Vector2Int vectorIntPosition;
                     [SerializeField] private Region.Position regionPosition;
                     [SerializeField] private Vector2 worldPosition;
+                    #endregion
 
+                    #region Constructors
                     public Position(Universe universe, Vector2Int vectorIntPosition, Region.Position regionPosition)
                     {
                         int chunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
@@ -479,20 +548,26 @@ namespace LooCast.Universe
                         regionPosition = new Region.Position(universe, worldPosition);
                         this.worldPosition = worldPosition;
                     }
+                    #endregion
                 }
                 #endregion
 
+                #region Properties
                 public int Size => size;
-                public Vector2Int ChunkPosition => chunkPosition;
+                public Position ChunkPosition => chunkPosition;
                 public SerializableMap2D<float?> MatterDensityMap => matterDensityMap;
                 public SerializableMap2D<float?> AntiMatterDensityMap => antiMatterDensityMap;
+                #endregion
 
+                #region Fields
                 [SerializeField] private int size;
-                [SerializeField] private Vector2Int chunkPosition;
+                [SerializeField] private Position chunkPosition;
                 [SerializeField] private SerializableMap2D<float?> matterDensityMap;
                 [SerializeField] private SerializableMap2D<float?> antiMatterDensityMap;
+                #endregion
 
-                public Chunk(Universe universe, Region region, Vector2Int chunkPosition)
+                #region Constructors
+                public Chunk(Universe universe, Region region, Position chunkPosition)
                 {
                     GenerationSettings generationSettings = universe.RegionGenerationSettings;
                     size = generationSettings.ChunkSize;
@@ -539,6 +614,7 @@ namespace LooCast.Universe
                     }
                     #endregion
                 }
+                #endregion
             }
             #endregion
 
@@ -546,14 +622,19 @@ namespace LooCast.Universe
             [Serializable]
             public struct Position
             {
+                #region Properties
                 public Vector2Int VectorIntPosition => vectorIntPosition;
                 public Sector.Position SectorPosition => sectorPosition;
                 public Vector2 WorldPosition => worldPosition;
+                #endregion
 
+                #region Fields
                 [SerializeField] private Vector2Int vectorIntPosition;
                 [SerializeField] private Sector.Position sectorPosition;
                 [SerializeField] private Vector2 worldPosition;
+                #endregion
 
+                #region Constructors
                 public Position(Universe universe, Vector2Int vectorIntPosition, Sector.Position sectorPosition)
                 {
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
@@ -570,14 +651,13 @@ namespace LooCast.Universe
                     sectorPosition = new Sector.Position(universe, worldPosition);
                     this.worldPosition = worldPosition;
                 }
+                #endregion
             }
 
             [Serializable]
             public struct GenerationSettings
             {
-                public GameObject Prefab;
-                public int ChunkSize;
-                public int ChunkAmount;
+                #region Properties
                 public int Size
                 {
                     get
@@ -585,6 +665,13 @@ namespace LooCast.Universe
                         return ChunkAmount * ChunkSize;
                     }
                 }
+                #endregion
+
+                #region Fields
+                [Header("Main Settings")]
+                public GameObject Prefab;
+                public int ChunkSize;
+                public int ChunkAmount;
                 public float MapFromMin;
                 public float MapFromMax;
                 public float MapToMin;
@@ -614,23 +701,31 @@ namespace LooCast.Universe
                 public int DomainWarpFractalOctaves;
                 public float DomainWarpFractalLacunarity;
                 public float DomainWarpFractalGain;
+                #endregion
             }
             #endregion
 
-            public Vector2Int SectorPosition => sectorPosition;
-            public Vector2Int RegionPosition => regionPosition;
+            #region Properties
+            public Sector.Position SectorPosition => sectorPosition;
+            public Position RegionPosition => regionPosition;
             public SerializableMap2D<Chunk> ChunkMap => chunkMap;
+            #endregion
 
-            [SerializeField] private Vector2Int sectorPosition;
-            [SerializeField] private Vector2Int regionPosition;
+            #region Fields
+            [SerializeField] private Sector.Position sectorPosition;
+            [SerializeField] private Position regionPosition;
             [SerializeField] private SerializableMap2D<Chunk> chunkMap;
+            #endregion
 
-            public Region(Vector2Int sectorPosition, Vector2Int regionPosition)
+            #region Constructors
+            public Region(Sector.Position sectorPosition, Position regionPosition)
             {
                 this.sectorPosition = sectorPosition;
                 this.regionPosition = regionPosition;
             }
+            #endregion
 
+            #region Methods
             public float SampleNoise(Universe universe, float sampleX, float sampleY)
             {
                 #region Sampling
@@ -647,6 +742,7 @@ namespace LooCast.Universe
 
                 return noiseValue;
             }
+            #endregion
         }
         #endregion
 
@@ -654,6 +750,7 @@ namespace LooCast.Universe
         [Serializable]
         public struct GenerationSettings
         {
+            #region Fields
             [Header("Main Settings")]
             public int Seed;
             public int Size;
@@ -691,9 +788,11 @@ namespace LooCast.Universe
             public float DomainWarpFractalLacunarity;
             public float DomainWarpFractalGain;
 
+            [Header("Sub Settings")]
             public Filament.GenerationSettings FilamentGenerationSettings;
             public Sector.GenerationSettings SectorGenerationSettings;
             public Region.GenerationSettings RegionGenerationSettings;
+            #endregion
         }
         #endregion
 
@@ -702,7 +801,16 @@ namespace LooCast.Universe
         {
             get
             {
-                return GetDataPath();
+                if (!GameManager.Initialized)
+                {
+                    throw new Exception("Cannot get DataPath when GameManager is not initialized!");
+                }
+                if (GameManager.Instance.CurrentGame == null)
+                {
+                    throw new Exception("Cannot get DataPath when no Game is loaded!");
+                }
+
+                return $"{GameManager.Instance.CurrentGame.DataPath}/Universe";
             }
         }
         public static GenerationSettings DefaultGenerationSettings
@@ -919,9 +1027,9 @@ namespace LooCast.Universe
 
         private bool initialized = false;
         private Texture2D map;
-        private Dictionary<Vector2Int, Filament> loadedFilaments;
-        private Dictionary<Vector2Int, Sector> loadedSectors;
-        private Dictionary<Vector2Int, Region> loadedRegions;
+        private Dictionary<Filament.Position, Filament> loadedFilaments;
+        private Dictionary<Sector.Position, Sector> loadedSectors;
+        private Dictionary<Region.Position, Region> loadedRegions;
         #endregion
 
         #region Constructors
@@ -1124,28 +1232,14 @@ namespace LooCast.Universe
             Universe universe = new Universe(generationSettings);
             return universe;
         }
-
-        private static string GetDataPath()
-        {
-            if (!GameManager.Initialized)
-            {
-                throw new Exception("Cannot get DataPath when GameManager is not initialized!");
-            }
-            if (GameManager.Instance.CurrentGame == null)
-            {
-                throw new Exception("Cannot get DataPath when no Game is loaded!");
-            }
-
-            return $"{GameManager.Instance.CurrentGame.DataPath}/Universe";
-        }
         #endregion
 
         #region Methods
         public void Initialize()
         {
-            loadedFilaments = new Dictionary<Vector2Int, Filament>();
-            loadedSectors = new Dictionary<Vector2Int, Sector>();
-            loadedRegions = new Dictionary<Vector2Int, Region>();
+            loadedFilaments = new Dictionary<Filament.Position, Filament>();
+            loadedSectors = new Dictionary<Sector.Position, Sector>();
+            loadedRegions = new Dictionary<Region.Position, Region>();
 
             initialized = true;
         }
@@ -1172,7 +1266,7 @@ namespace LooCast.Universe
         #region Filaments
 
         #region Utility
-        public Filament GetFilament(Vector2Int filamentPosition)
+        public Filament GetFilament(Filament.Position filamentPosition)
         {
             if (!IsFilamentLoaded(filamentPosition))
             {
@@ -1194,13 +1288,13 @@ namespace LooCast.Universe
         #endregion
 
         #region Generation
-        public bool IsFilamentGenerated(Vector2Int filamentPosition)
+        public bool IsFilamentGenerated(Filament.Position filamentPosition)
         {
-            string path = $"{DataPath}/Filaments/{filamentPosition.x}.{filamentPosition.y}.json";
+            string path = $"{DataPath}/Filaments/{filamentPosition.VectorIntPosition.x}.{filamentPosition.VectorIntPosition.y}.json";
             return File.Exists(path);
         }
 
-        public void GenerateFilament(Vector2Int filamentPosition)
+        public void GenerateFilament(Filament.Position filamentPosition)
         {
             if (IsFilamentGenerated(filamentPosition))
             {
@@ -1216,7 +1310,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveFilament(Filament filament)
         {
-            string path = $"{DataPath}/Filaments/{filament.FilamentPosition.x}.{filament.FilamentPosition.y}.json";
+            string path = $"{DataPath}/Filaments/{filament.FilamentPosition.VectorIntPosition.x}.{filament.FilamentPosition.VectorIntPosition.y}.json";
             string json = JsonUtility.ToJson(filament, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -1238,12 +1332,12 @@ namespace LooCast.Universe
         #endregion
 
         #region Loading
-        public bool IsFilamentLoaded(Vector2Int filamentPosition)
+        public bool IsFilamentLoaded(Filament.Position filamentPosition)
         {
             return loadedFilaments.ContainsKey(filamentPosition);
         }
 
-        public void LoadFilament(Vector2Int filamentPosition)
+        public void LoadFilament(Filament.Position filamentPosition)
         {
             if (IsFilamentLoaded(filamentPosition))
             {
@@ -1255,14 +1349,14 @@ namespace LooCast.Universe
                 throw new Exception($"Filament has not been generated yet!");
             }
 
-            string path = $"{DataPath}/Filaments/{filamentPosition.x}.{filamentPosition.y}.json";
+            string path = $"{DataPath}/Filaments/{filamentPosition.VectorIntPosition.x}.{filamentPosition.VectorIntPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Filament filament = JsonUtility.FromJson<Filament>(json);
             loadedFilaments.Add(filamentPosition, filament);
         }
 
-        public void UnloadFilament(Vector2Int filamentPosition)
+        public void UnloadFilament(Filament.Position filamentPosition)
         {
             if (!IsFilamentLoaded(filamentPosition))
             {
@@ -1274,7 +1368,7 @@ namespace LooCast.Universe
         
         public void UnloadAllFilaments()
         {
-            foreach (Vector2Int filamentPosition in loadedFilaments.Keys.ToArray())
+            foreach (Filament.Position filamentPosition in loadedFilaments.Keys.ToArray())
             {
                 UnloadFilament(filamentPosition);
             }
@@ -1282,7 +1376,7 @@ namespace LooCast.Universe
         #endregion
 
         #region Deletion
-        public void DeleteFilament(Vector2Int filamentPosition)
+        public void DeleteFilament(Filament.Position filamentPosition)
         {
             if (IsFilamentLoaded(filamentPosition))
             {
@@ -1291,10 +1385,10 @@ namespace LooCast.Universe
 
             if (IsFilamentGenerated(filamentPosition))
             {
-                string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}.json";
+                string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.VectorIntPosition.x}.{filamentPosition.VectorIntPosition.y}.json";
                 File.Delete(path);
 
-                path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.x}.{filamentPosition.y}_Map.png";
+                path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.VectorIntPosition.x}.{filamentPosition.VectorIntPosition.y}_Map.png";
                 File.Delete(path);
             }
         }
@@ -1305,7 +1399,7 @@ namespace LooCast.Universe
         #region Sectors
 
         #region Utility
-        public Sector GetSector(Vector2Int sectorPosition)
+        public Sector GetSector(Sector.Position sectorPosition)
         {
             if (!IsSectorLoaded(sectorPosition))
             {
@@ -1327,13 +1421,13 @@ namespace LooCast.Universe
         #endregion
 
         #region Generation
-        public bool IsSectorGenerated(Vector2Int sectorPosition)
+        public bool IsSectorGenerated(Sector.Position sectorPosition)
         {
-            string path = $"{DataPath}/Sectors/{sectorPosition.x}.{sectorPosition.y}.json";
+            string path = $"{DataPath}/Sectors/{sectorPosition.VectorIntPosition.x}.{sectorPosition.VectorIntPosition.y}.json";
             return File.Exists(path);
         }
 
-        public void GenerateSector(Vector2Int filamentPosition, Vector2Int sectorPosition)
+        public void GenerateSector(Filament.Position filamentPosition, Sector.Position sectorPosition)
         {
             if (!IsFilamentGenerated(filamentPosition))
             {
@@ -1353,7 +1447,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveSector(Sector sector)
         {
-            string path = $"{DataPath}/Sectors/{sector.SectorPosition.x}.{sector.SectorPosition.y}.json";
+            string path = $"{DataPath}/Sectors/{sector.SectorPosition.VectorIntPosition.x}.{sector.SectorPosition.VectorIntPosition.y}.json";
             string json = JsonUtility.ToJson(sector, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -1375,12 +1469,12 @@ namespace LooCast.Universe
         #endregion
 
         #region Loading
-        public bool IsSectorLoaded(Vector2Int sectorPosition)
+        public bool IsSectorLoaded(Sector.Position sectorPosition)
         {
             return loadedSectors.ContainsKey(sectorPosition);
         }
 
-        public void LoadSector(Vector2Int sectorPosition)
+        public void LoadSector(Sector.Position sectorPosition)
         {
             if (IsSectorLoaded(sectorPosition))
             {
@@ -1392,14 +1486,14 @@ namespace LooCast.Universe
                 throw new Exception($"Sector has not been generated yet!");
             }
 
-            string path = $"{DataPath}/Sectors/{sectorPosition.x}.{sectorPosition.y}.json";
+            string path = $"{DataPath}/Sectors/{sectorPosition.VectorIntPosition.x}.{sectorPosition.VectorIntPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Sector sector = JsonUtility.FromJson<Sector>(json);
             loadedSectors.Add(sectorPosition, sector);
         }
 
-        public void UnloadSector(Vector2Int sectorPosition)
+        public void UnloadSector(Sector.Position sectorPosition)
         {
             if (!IsSectorLoaded(sectorPosition))
             {
@@ -1411,7 +1505,7 @@ namespace LooCast.Universe
         
         public void UnloadAllSectors()
         {
-            foreach (Vector2Int sectorPosition in loadedSectors.Keys.ToArray())
+            foreach (Sector.Position sectorPosition in loadedSectors.Keys.ToArray())
             {
                 UnloadSector(sectorPosition);
             }
@@ -1419,7 +1513,7 @@ namespace LooCast.Universe
         #endregion
 
         #region Deletion
-        public void DeleteSector(Vector2Int sectorPosition)
+        public void DeleteSector(Sector.Position sectorPosition)
         {
             if (IsSectorLoaded(sectorPosition))
             {
@@ -1428,7 +1522,7 @@ namespace LooCast.Universe
 
             if (IsSectorGenerated(sectorPosition))
             {
-                string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorPosition.x}.{sectorPosition.y}.json";
+                string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorPosition.VectorIntPosition.x}.{sectorPosition.VectorIntPosition.y}.json";
                 File.Delete(path);
             }
         }
@@ -1439,7 +1533,7 @@ namespace LooCast.Universe
         #region Regions
 
         #region Utility
-        public Region GetRegion(Vector2Int regionPosition)
+        public Region GetRegion(Region.Position regionPosition)
         {
             if (!IsRegionLoaded(regionPosition))
             {
@@ -1461,13 +1555,13 @@ namespace LooCast.Universe
         #endregion
 
         #region Generation
-        public bool IsRegionGenerated(Vector2Int regionPosition)
+        public bool IsRegionGenerated(Region.Position regionPosition)
         {
-            string path = $"{DataPath}/Regions/{regionPosition.x}.{regionPosition.y}.json";
+            string path = $"{DataPath}/Regions/{regionPosition.VectorIntPosition.x}.{regionPosition.VectorIntPosition.y}.json";
             return File.Exists(path);
         }
 
-        public void GenerateRegion(Vector2Int sectorPosition, Vector2Int regionPosition)
+        public void GenerateRegion(Sector.Position sectorPosition, Region.Position regionPosition)
         {
             if (!IsSectorGenerated(sectorPosition))
             {
@@ -1487,7 +1581,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveRegion(Region region)
         {
-            string path = $"{DataPath}/Regions/{region.RegionPosition.x}.{region.RegionPosition.y}.json";
+            string path = $"{DataPath}/Regions/{region.RegionPosition.VectorIntPosition.x}.{region.RegionPosition.VectorIntPosition.y}.json";
             string json = JsonUtility.ToJson(region, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -1509,12 +1603,12 @@ namespace LooCast.Universe
         #endregion
 
         #region Loading
-        public bool IsRegionLoaded(Vector2Int regionPosition)
+        public bool IsRegionLoaded(Region.Position regionPosition)
         {
             return loadedRegions.ContainsKey(regionPosition);
         }
 
-        public void LoadRegion(Vector2Int regionPosition)
+        public void LoadRegion(Region.Position regionPosition)
         {
             if (IsRegionLoaded(regionPosition))
             {
@@ -1526,14 +1620,14 @@ namespace LooCast.Universe
                 throw new Exception($"Region has not been generated yet!");
             }
 
-            string path = $"{DataPath}/Regions/{regionPosition.x}.{regionPosition.y}.json";
+            string path = $"{DataPath}/Regions/{regionPosition.VectorIntPosition.x}.{regionPosition.VectorIntPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Region region = JsonUtility.FromJson<Region>(json);
             loadedRegions.Add(regionPosition, region);
         }
 
-        public void UnloadRegion(Vector2Int regionPosition)
+        public void UnloadRegion(Region.Position regionPosition)
         {
             if (!IsRegionLoaded(regionPosition))
             {
@@ -1545,7 +1639,7 @@ namespace LooCast.Universe
         
         public void UnloadAllRegions()
         {
-            foreach (Vector2Int regionPosition in loadedRegions.Keys.ToArray())
+            foreach (Region.Position regionPosition in loadedRegions.Keys.ToArray())
             {
                 UnloadRegion(regionPosition);
             }
@@ -1553,7 +1647,7 @@ namespace LooCast.Universe
         #endregion
 
         #region Deletion
-        public void DeleteRegion(Vector2Int regionPosition)
+        public void DeleteRegion(Region.Position regionPosition)
         {
             if (IsRegionLoaded(regionPosition))
             {
@@ -1562,7 +1656,7 @@ namespace LooCast.Universe
 
             if (IsRegionGenerated(regionPosition))
             {
-                string path = $"{DataPath}/Regions/{regionPosition.x}.{regionPosition.y}.json";
+                string path = $"{DataPath}/Regions/{regionPosition.VectorIntPosition.x}.{regionPosition.VectorIntPosition.y}.json";
                 File.Delete(path);
             }
         }
