@@ -39,13 +39,13 @@ namespace LooCast.Universe
                     #endregion
 
                     #region Constructors
-                    public Position(Universe universe, Vector2Int vectorIntPosition, Filament.Position filamentPosition)
+                    public Position(Universe universe, Vector2Int vectorIntPosition)
                     {
                         int chunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
                         Vector2 chunkOffset = new Vector2(chunkSize / 2.0f, chunkSize / 2.0f);
                         this.vectorIntPosition = vectorIntPosition;
-                        this.filamentPosition = filamentPosition;
                         worldPosition = vectorIntPosition / chunkSize + chunkOffset;
+                        filamentPosition = new Filament.Position(universe, worldPosition);
                     }
 
                     public Position(Universe universe, Vector2 worldPosition)
@@ -292,13 +292,13 @@ namespace LooCast.Universe
                     #endregion
 
                     #region Constructors
-                    public Position(Universe universe, Vector2Int vectorIntPosition, Sector.Position sectorPosition)
+                    public Position(Universe universe, Vector2Int vectorIntPosition)
                     {
                         int chunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
                         Vector2 chunkOffset = new Vector2(chunkSize / 2.0f, chunkSize / 2.0f);
                         this.vectorIntPosition = vectorIntPosition;
-                        this.sectorPosition = sectorPosition;
                         worldPosition = vectorIntPosition / chunkSize + chunkOffset;
+                        sectorPosition = new Sector.Position(universe, worldPosition);
                     }
 
                     public Position(Universe universe, Vector2 worldPosition)
@@ -488,9 +488,9 @@ namespace LooCast.Universe
             #endregion
 
             #region Constructors
-            public Sector(Filament.Position filamentPosition, Position sectorPosition)
+            public Sector(Position sectorPosition)
             {
-                this.filamentPosition = filamentPosition;
+                filamentPosition = sectorPosition.FilamentPosition;
                 this.sectorPosition = sectorPosition;
             }
             #endregion
@@ -539,13 +539,13 @@ namespace LooCast.Universe
                     #endregion
 
                     #region Constructors
-                    public Position(Universe universe, Vector2Int vectorIntPosition, Region.Position regionPosition)
+                    public Position(Universe universe, Vector2Int vectorIntPosition)
                     {
                         int chunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
                         Vector2 chunkOffset = new Vector2(chunkSize / 2.0f, chunkSize / 2.0f);
                         this.vectorIntPosition = vectorIntPosition;
-                        this.regionPosition = regionPosition;
                         worldPosition = vectorIntPosition / chunkSize + chunkOffset;
+                        regionPosition = new Region.Position(universe, worldPosition);
                     }
 
                     public Position(Universe universe, Vector2 worldPosition)
@@ -728,9 +728,9 @@ namespace LooCast.Universe
             #endregion
 
             #region Constructors
-            public Region(Sector.Position sectorPosition, Position regionPosition)
+            public Region(Position regionPosition)
             {
-                this.sectorPosition = sectorPosition;
+                sectorPosition = regionPosition.SectorPosition;
                 this.regionPosition = regionPosition;
             }
             #endregion
@@ -1465,7 +1465,17 @@ namespace LooCast.Universe
         {
             if (IsFilamentChunkGenerated(filamentChunkPosition))
             {
-                throw new Exception("Filament Chunk is already generated!");
+                throw new Exception("Filament.Chunk is already generated!");
+            }
+
+            if (!IsFilamentGenerated(filamentChunkPosition.FilamentPosition))
+            {
+                throw new Exception("Containing Filament is not yet generated!");
+            }
+
+            if (!IsFilamentLoaded(filamentChunkPosition.FilamentPosition))
+            {
+                throw new Exception("Containing Filament is not yet loaded!");
             }
 
             Filament filament = GetFilament(filamentChunkPosition.FilamentPosition);
@@ -1515,6 +1525,16 @@ namespace LooCast.Universe
             if (!IsFilamentChunkGenerated(filamentChunkPosition))
             {
                 throw new Exception($"Filament.Chunk has not been generated yet!");
+            }
+
+            if (!IsFilamentGenerated(filamentChunkPosition.FilamentPosition))
+            {
+                throw new Exception("Containing Filament is not yet generated!");
+            }
+
+            if (!IsFilamentLoaded(filamentChunkPosition.FilamentPosition))
+            {
+                throw new Exception("Containing Filament is not yet loaded!");
             }
 
             string path = $"{DataPath}/Filaments/{filamentChunkPosition.FilamentPosition.VectorIntPosition.x}.{filamentChunkPosition.FilamentPosition.VectorIntPosition.y}/Chunks/{filamentChunkPosition.VectorIntPosition.x}.{filamentChunkPosition.VectorIntPosition.y}.json";
@@ -1595,9 +1615,9 @@ namespace LooCast.Universe
             return File.Exists(path);
         }
 
-        public void GenerateSector(Filament.Position filamentPosition, Sector.Position sectorPosition)
+        public void GenerateSector(Sector.Position sectorPosition)
         {
-            if (!IsFilamentGenerated(filamentPosition))
+            if (!IsFilamentGenerated(sectorPosition.FilamentPosition))
             {
                 throw new Exception("Containing Filament is not generated yet!");
             }
@@ -1606,7 +1626,7 @@ namespace LooCast.Universe
                 throw new Exception("Sector is already generated!");
             }
 
-            Sector sector = new Sector(filamentPosition, sectorPosition);
+            Sector sector = new Sector(sectorPosition);
             loadedSectors.Add(sectorPosition, sector);
             SaveSector(sector);
         }
@@ -1736,6 +1756,16 @@ namespace LooCast.Universe
                 throw new Exception("Sector Chunk is already generated!");
             }
 
+            if (!IsSectorGenerated(sectorChunkPosition.SectorPosition))
+            {
+                throw new Exception("Containing Sector is not yet generated!");
+            }
+
+            if (!IsSectorLoaded(sectorChunkPosition.SectorPosition))
+            {
+                throw new Exception("Containing Sector is not yet loaded!");
+            }
+
             Sector sector = GetSector(sectorChunkPosition.SectorPosition);
             Sector.Chunk sectorChunk = new Sector.Chunk(this, sector, sectorChunkPosition);
             loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
@@ -1783,6 +1813,16 @@ namespace LooCast.Universe
             if (!IsSectorChunkGenerated(sectorChunkPosition))
             {
                 throw new Exception($"Sector.Chunk has not been generated yet!");
+            }
+
+            if (!IsSectorGenerated(sectorChunkPosition.SectorPosition))
+            {
+                throw new Exception("Containing Sector is not yet generated!");
+            }
+
+            if (!IsSectorLoaded(sectorChunkPosition.SectorPosition))
+            {
+                throw new Exception("Containing Sector is not yet loaded!");
             }
 
             string path = $"{DataPath}/Sectors/{sectorChunkPosition.SectorPosition.VectorIntPosition.x}.{sectorChunkPosition.SectorPosition.VectorIntPosition.y}/Chunks/{sectorChunkPosition.VectorIntPosition.x}.{sectorChunkPosition.VectorIntPosition.y}.json";
@@ -1863,9 +1903,9 @@ namespace LooCast.Universe
             return File.Exists(path);
         }
 
-        public void GenerateRegion(Sector.Position sectorPosition, Region.Position regionPosition)
+        public void GenerateRegion(Region.Position regionPosition)
         {
-            if (!IsSectorGenerated(sectorPosition))
+            if (!IsSectorGenerated(regionPosition.SectorPosition))
             {
                 throw new Exception("Containing Sector is not generated yet!");
             }
@@ -1874,7 +1914,7 @@ namespace LooCast.Universe
                 throw new Exception("Region is already generated!");
             }
 
-            Region region = new Region(sectorPosition, regionPosition);
+            Region region = new Region(regionPosition);
             loadedRegions.Add(regionPosition, region);
             SaveRegion(region);
         }
@@ -2004,6 +2044,16 @@ namespace LooCast.Universe
                 throw new Exception("Region Chunk is already generated!");
             }
 
+            if (!IsRegionGenerated(regionChunkPosition.RegionPosition))
+            {
+                throw new Exception("Containing Region is not yet generated!");
+            }
+
+            if (!IsRegionLoaded(regionChunkPosition.RegionPosition))
+            {
+                throw new Exception("Containing Region is not yet loaded!");
+            }
+
             Region region = GetRegion(regionChunkPosition.RegionPosition);
             Region.Chunk regionChunk = new Region.Chunk(this, region, regionChunkPosition);
             loadedRegionChunks.Add(regionChunkPosition, regionChunk);
@@ -2051,6 +2101,16 @@ namespace LooCast.Universe
             if (!IsRegionChunkGenerated(regionChunkPosition))
             {
                 throw new Exception($"Region.Chunk has not been generated yet!");
+            }
+
+            if (!IsRegionGenerated(regionChunkPosition.RegionPosition))
+            {
+                throw new Exception("Containing Region is not yet generated!");
+            }
+
+            if (!IsRegionLoaded(regionChunkPosition.RegionPosition))
+            {
+                throw new Exception("Containing Region is not yet loaded!");
             }
 
             string path = $"{DataPath}/Regions/{regionChunkPosition.RegionPosition.VectorIntPosition.x}.{regionChunkPosition.RegionPosition.VectorIntPosition.y}/Chunks/{regionChunkPosition.VectorIntPosition.x}.{regionChunkPosition.VectorIntPosition.y}.json";
