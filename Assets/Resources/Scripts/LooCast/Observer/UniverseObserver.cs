@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 
 namespace LooCast.Observer
 {
     using Game;
-    using System.Linq;
     using Universe;
 
     public class UniverseObserver : MonoBehaviour
@@ -26,6 +26,9 @@ namespace LooCast.Observer
         private void Start()
         {
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
+
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
 
             regionChunkScreenRadius = (int)Vector3.Distance(transform.position, Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
             Universe.Region.Chunk.Position currentRegionChunkPosition = new Universe.Region.Chunk.Position(currentUniverse, transform.position);
@@ -108,6 +111,9 @@ namespace LooCast.Observer
                 }
             }
             #endregion
+
+            stopwatch.Stop();
+            UnityEngine.Debug.Log($"[UniverseObserver] Took {stopwatch.ElapsedMilliseconds}ms to Load Universe!");
         }
 
         private void Update()
