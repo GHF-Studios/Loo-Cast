@@ -17,10 +17,9 @@ namespace LooCast.Observer
                 return regionChunkLoadRadius + regionChunkScreenRadius;
             }
         }
+
         private int regionChunkScreenRadius;
         private int regionChunkLoadRadius = 32;
-        private int sectorChunkLoadRadius = 1;
-        private int filamentChunkLoadRadius = 1;
         private Universe currentUniverse;
 
         private void Start()
@@ -28,12 +27,12 @@ namespace LooCast.Observer
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
 
             Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
 
             regionChunkScreenRadius = (int)Vector3.Distance(transform.position, Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
             Universe.Region.Chunk.Position currentRegionChunkPosition = new Universe.Region.Chunk.Position(currentUniverse, transform.position);
             GetProximalPositions(currentRegionChunkPosition, totalRegionChunkLoadRadius, out List<Universe.Region.Chunk.Position> regionChunkPositions, out List<Universe.Sector.Chunk.Position> sectorChunkPositions, out List<Universe.Filament.Chunk.Position> filamentChunkPositions, out List<Universe.Region.Position> regionPositions, out List<Universe.Sector.Position> sectorPositions, out List<Universe.Filament.Position> filamentPositions);
 
+            stopwatch.Start();
             #region Filament Loading
             foreach (Universe.Filament.Position filamentPosition in filamentPositions)
             {
@@ -59,7 +58,10 @@ namespace LooCast.Observer
                 }
             }
             #endregion
+            stopwatch.Stop();
+            UnityEngine.Debug.Log($"[UniverseObserver] Took {stopwatch.ElapsedMilliseconds}ms to Load Filaments!");
 
+            stopwatch.Restart();
             #region Sector Loading
             foreach (Universe.Sector.Position sectorPosition in sectorPositions)
             {
@@ -85,7 +87,10 @@ namespace LooCast.Observer
                 }
             }
             #endregion
+            stopwatch.Stop();
+            UnityEngine.Debug.Log($"[UniverseObserver] Took {stopwatch.ElapsedMilliseconds}ms to Load Sectors!");
 
+            stopwatch.Restart();
             #region Region Loading
             foreach (Universe.Region.Position regionPosition in regionPositions)
             {
@@ -111,14 +116,31 @@ namespace LooCast.Observer
                 }
             }
             #endregion
-
             stopwatch.Stop();
-            UnityEngine.Debug.Log($"[UniverseObserver] Took {stopwatch.ElapsedMilliseconds}ms to Load Universe!");
+            UnityEngine.Debug.Log($"[UniverseObserver] Took {stopwatch.ElapsedMilliseconds}ms to Load Regions!");
+
+            
         }
 
         private void Update()
         {
-            
+
+        }
+
+        private void OnDrawGizmos()
+        {
+            Universe.Region.Chunk.Position currentRegionChunkPosition = new Universe.Region.Chunk.Position(currentUniverse, transform.position);
+            int regionChunkSize = currentUniverse.RegionGenerationSettings.ChunkSize;
+            Vector2 cubePos = new Vector2(currentRegionChunkPosition.VectorIntPosition.x, currentRegionChunkPosition.VectorIntPosition.y);
+
+            UnityEngine.Debug.Log($"Region Pos: {currentRegionChunkPosition.RegionPosition.VectorIntPosition}");
+            UnityEngine.Debug.Log($"Region World Pos: {currentRegionChunkPosition.RegionPosition.WorldPosition}");
+            UnityEngine.Debug.Log($"Region Chunk Pos: {currentRegionChunkPosition.VectorIntPosition}");
+            UnityEngine.Debug.Log($"Region Chunk World Pos: {currentRegionChunkPosition.WorldPosition}");
+            UnityEngine.Debug.Log($"Debug Cube Pos: {cubePos}");
+
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireCube(cubePos, new Vector2(regionChunkSize, regionChunkSize));
         }
 
         private void GetProximalPositions(Universe.Region.Chunk.Position regionChunkCenterPosition, int regionChunkRadius, out List<Universe.Region.Chunk.Position> regionChunkPositions, out List<Universe.Sector.Chunk.Position> sectorChunkPositions, out List<Universe.Filament.Chunk.Position> filamentChunkPositions, out List<Universe.Region.Position> regionPositions, out List<Universe.Sector.Position> sectorPositions, out List<Universe.Filament.Position> filamentPositions)
