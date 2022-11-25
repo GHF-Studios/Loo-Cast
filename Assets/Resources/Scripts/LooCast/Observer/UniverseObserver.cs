@@ -130,12 +130,12 @@ namespace LooCast.Observer
         private void OnDrawGizmos()
         {
             Universe.Region.Chunk.Position currentRegionChunkPosition = new Universe.Region.Chunk.Position(currentUniverse, transform.position);
-            int regionChunkSize = currentUniverse.RegionGenerationSettings.ChunkSize;
-            Vector2 cubePos = new Vector2(currentRegionChunkPosition.VectorIntPosition.x, currentRegionChunkPosition.VectorIntPosition.y);
+            int regionChunkSize = currentUniverse.RegionGenerationSettings.ChunkSize;                                   // Should be 16
+            Vector2 cubePos = new Vector2(currentRegionChunkPosition.WorldPosition.x, currentRegionChunkPosition.WorldPosition.y);
 
-            UnityEngine.Debug.Log($"Region Pos: {currentRegionChunkPosition.RegionPosition.VectorIntPosition}");
-            UnityEngine.Debug.Log($"Region World Pos: {currentRegionChunkPosition.RegionPosition.WorldPosition}");
-            UnityEngine.Debug.Log($"Region Chunk Pos: {currentRegionChunkPosition.VectorIntPosition}");
+            UnityEngine.Debug.Log($"Region Pos: {currentRegionChunkPosition.RegionPosition.VectorIntPosition}");        // Should be 1[10/(16/2)], 1
+            UnityEngine.Debug.Log($"Region World Pos: {currentRegionChunkPosition.RegionPosition.WorldPosition}");      // Should be 10.0, 10.0
+            UnityEngine.Debug.Log($"Region Chunk Pos: {currentRegionChunkPosition.VectorIntPosition}");                 // Should be 
             UnityEngine.Debug.Log($"Region Chunk World Pos: {currentRegionChunkPosition.WorldPosition}");
             UnityEngine.Debug.Log($"Debug Cube Pos: {cubePos}");
 

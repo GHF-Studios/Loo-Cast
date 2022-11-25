@@ -569,18 +569,17 @@ namespace LooCast.Universe
                     public Position(Universe universe, Vector2Int vectorIntPosition)
                     {
                         int chunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
-                        Vector2 chunkOffset = new Vector2(chunkSize / 2.0f, chunkSize / 2.0f);
                         this.vectorIntPosition = vectorIntPosition;
-                        worldPosition = vectorIntPosition / chunkSize + chunkOffset;
+                        worldPosition = (vectorIntPosition * chunkSize) + new Vector2Int(chunkSize / 2, chunkSize / 2);
                         regionPosition = new Region.Position(universe, worldPosition);
                     }
 
                     public Position(Universe universe, Vector2 worldPosition)
                     {
                         int chunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
-                        vectorIntPosition = Vector2Int.FloorToInt(new Region.Position(universe, worldPosition).VectorIntPosition * chunkSize);
+                        vectorIntPosition = Vector2Int.FloorToInt((worldPosition + new Vector2(chunkSize / 2, chunkSize / 2)) / chunkSize);
+                        this.worldPosition = vectorIntPosition * chunkSize;
                         regionPosition = new Region.Position(universe, worldPosition);
-                        this.worldPosition = worldPosition;
                     }
                     #endregion
                 }
