@@ -41,19 +41,22 @@ namespace LooCast.Universe
                     #region Constructors
                     public Position(Universe universe, Vector2Int vectorIntPosition)
                     {
-                        int chunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
-                        Vector2 chunkOffset = new Vector2(chunkSize / 2.0f, chunkSize / 2.0f);
+                        int chunkSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        chunkSize *= universe.generationSettings.SectorGenerationSettings.Size;
+                        chunkSize *= universe.generationSettings.FilamentGenerationSettings.ChunkSize;
                         this.vectorIntPosition = vectorIntPosition;
-                        worldPosition = vectorIntPosition / chunkSize + chunkOffset;
+                        worldPosition = (vectorIntPosition * chunkSize) + new Vector2Int(chunkSize / 2, chunkSize / 2);
                         filamentPosition = new Filament.Position(universe, worldPosition);
                     }
 
                     public Position(Universe universe, Vector2 worldPosition)
                     {
-                        int chunkAmount = universe.generationSettings.FilamentGenerationSettings.ChunkAmount;
-                        filamentPosition = new Filament.Position(universe, worldPosition);
-                        vectorIntPosition = new Vector2Int(Mathf.RoundToInt(filamentPosition.VectorIntPosition.x / chunkAmount), Mathf.RoundToInt(filamentPosition.VectorIntPosition.y / chunkAmount));
+                        int chunkSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        chunkSize *= universe.generationSettings.SectorGenerationSettings.Size;
+                        chunkSize *= universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                        vectorIntPosition = Vector2Int.FloorToInt((worldPosition + new Vector2(chunkSize / 2, chunkSize / 2)) / chunkSize);
                         this.worldPosition = worldPosition;
+                        filamentPosition = new Filament.Position(universe, worldPosition);
                     }
                     #endregion
                 }
@@ -309,19 +312,20 @@ namespace LooCast.Universe
                     #region Constructors
                     public Position(Universe universe, Vector2Int vectorIntPosition)
                     {
-                        int chunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
-                        Vector2 chunkOffset = new Vector2(chunkSize / 2.0f, chunkSize / 2.0f);
+                        int chunkSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        chunkSize *= universe.generationSettings.SectorGenerationSettings.ChunkSize;
                         this.vectorIntPosition = vectorIntPosition;
-                        worldPosition = vectorIntPosition / chunkSize + chunkOffset;
+                        worldPosition = (vectorIntPosition * chunkSize) + new Vector2Int(chunkSize / 2, chunkSize / 2);
                         sectorPosition = new Sector.Position(universe, worldPosition);
                     }
 
                     public Position(Universe universe, Vector2 worldPosition)
                     {
-                        int chunkAmount = universe.generationSettings.SectorGenerationSettings.ChunkAmount;
-                        sectorPosition = new Sector.Position(universe, worldPosition);
-                        vectorIntPosition = new Vector2Int(Mathf.RoundToInt(sectorPosition.VectorIntPosition.x / chunkAmount), Mathf.RoundToInt(sectorPosition.VectorIntPosition.y / chunkAmount));
+                        int chunkSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        chunkSize *= universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                        vectorIntPosition = Vector2Int.FloorToInt((worldPosition + new Vector2(chunkSize / 2, chunkSize / 2)) / chunkSize);
                         this.worldPosition = worldPosition;
+                        sectorPosition = new Sector.Position(universe, worldPosition);
                     }
                     #endregion
                 }
