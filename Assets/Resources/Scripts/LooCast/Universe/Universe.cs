@@ -675,21 +675,20 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Constructors
-                public Position(Universe universe, Vector2Int vectorIntPosition, Sector.Position sectorPosition)
+                public Position(Universe universe, Vector2Int vectorIntPosition)
                 {
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
-                    Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                     this.vectorIntPosition = vectorIntPosition;
-                    this.sectorPosition = sectorPosition;
-                    worldPosition = vectorIntPosition * regionSize + regionOffset;
+                    worldPosition = (vectorIntPosition * regionSize) + new Vector2Int(regionSize / 2, regionSize / 2);
+                    sectorPosition = new Sector.Position(universe, worldPosition);
                 }
 
                 public Position(Universe universe, Vector2 worldPosition)
                 {
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
-                    vectorIntPosition = Vector2Int.FloorToInt(worldPosition / regionSize);
+                    vectorIntPosition = Vector2Int.FloorToInt((worldPosition + new Vector2(regionSize / 2, regionSize / 2)) / regionSize);
+                    this.worldPosition = vectorIntPosition * regionSize;
                     sectorPosition = new Sector.Position(universe, worldPosition);
-                    this.worldPosition = worldPosition;
                 }
                 #endregion
             }
