@@ -132,7 +132,7 @@ namespace LooCast.Observer
         private void Update()
         {
             currentRegionPosition = new Universe.Region.Position(currentUniverse, transform.position);
-            TranslateRegions(currentRegionPosition.VectorIntPosition);
+            // TranslateRegions(currentRegionPosition.VectorIntPosition);
         }
 
         private void OnDrawGizmos()
@@ -152,11 +152,16 @@ namespace LooCast.Observer
             Gizmos.DrawWireCube(currentRegionChunkPosition.WorldPosition, new Vector2(regionChunkSize, regionChunkSize));
         }
 
-        private void TranslateRegions(Vector2Int regionPositionOffsetIncrease)
+        private void TranslateRegions(Vector2Int currentRegionPosition)
         {
-            currentRegionPositionOffset = new Universe.Region.Position(currentUniverse, currentRegionPositionOffset.VectorIntPosition + regionPositionOffsetIncrease);
-            int regionSize = currentUniverse.RegionGenerationSettings.Size;
-            transform.Translate(-new Vector3(regionPositionOffsetIncrease.x * regionSize, regionPositionOffsetIncrease.y * regionSize));
+            Vector2Int currentRegionPositionDifference = currentRegionPosition - currentRegionPositionOffset.VectorIntPosition;
+            int threshold = 1;
+            if (Mathf.Abs(currentRegionPositionDifference.x) > threshold || Mathf.Abs(currentRegionPositionDifference.y) > threshold)
+            {
+                int regionSize = currentUniverse.RegionGenerationSettings.Size;
+                currentRegionPositionOffset = new Universe.Region.Position(currentUniverse, currentRegionPositionOffset.VectorIntPosition + currentRegionPositionDifference);
+                transform.Translate(-new Vector3(currentRegionPositionDifference.x * regionSize, currentRegionPositionDifference.y * regionSize));
+            }
         }
 
         private void GetProximalPositions(Universe.Region.Chunk.Position regionChunkCenterPosition, int regionChunkRadius, out List<Universe.Region.Chunk.Position> regionChunkPositions, out List<Universe.Sector.Chunk.Position> sectorChunkPositions, out List<Universe.Filament.Chunk.Position> filamentChunkPositions, out List<Universe.Region.Position> regionPositions, out List<Universe.Sector.Position> sectorPositions, out List<Universe.Filament.Position> filamentPositions)
