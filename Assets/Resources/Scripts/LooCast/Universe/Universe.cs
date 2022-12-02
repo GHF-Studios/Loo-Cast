@@ -41,21 +41,23 @@ namespace LooCast.Universe
                     #region Constructors
                     public Position(Universe universe, Vector2Int vectorIntPosition)
                     {
-                        int chunkSize = universe.generationSettings.RegionGenerationSettings.Size;
-                        chunkSize *= universe.generationSettings.SectorGenerationSettings.Size;
-                        chunkSize *= universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                        int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                        Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                         this.vectorIntPosition = vectorIntPosition;
-                        worldPosition = (vectorIntPosition * chunkSize) + new Vector2Int(chunkSize / 2, chunkSize / 2);
+                        worldPosition = ((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorSize * filamentChunkSize;
                         filamentPosition = new Filament.Position(universe, worldPosition);
                     }
 
                     public Position(Universe universe, Vector2 worldPosition)
                     {
-                        int chunkSize = universe.generationSettings.RegionGenerationSettings.Size;
-                        chunkSize *= universe.generationSettings.SectorGenerationSettings.Size;
-                        chunkSize *= universe.generationSettings.FilamentGenerationSettings.ChunkSize;
-                        vectorIntPosition = Vector2Int.FloorToInt((worldPosition + new Vector2(chunkSize / 2, chunkSize / 2)) / chunkSize);
-                        this.worldPosition = worldPosition;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                        int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                        Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                        vectorIntPosition = (worldPosition / regionSize / sectorSize / filamentChunkSize).FloorToVector2Int();
+                        this.worldPosition = ((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorSize * filamentChunkSize;
                         filamentPosition = new Filament.Position(universe, worldPosition);
                     }
                     #endregion
@@ -171,9 +173,9 @@ namespace LooCast.Universe
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                     int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                     int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
-                    Vector2 floatFilamentPosition = worldPosition / regionSize / sectorSize / filamentSize;
-                    vectorIntPosition = new Vector2Int(Mathf.RoundToInt(floatFilamentPosition.x), Mathf.RoundToInt(floatFilamentPosition.y));
-                    this.worldPosition = worldPosition;
+                    Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                    vectorIntPosition = (worldPosition / regionSize / sectorSize / filamentSize).FloorToVector2Int();
+                    this.worldPosition = ((vectorIntPosition * regionSize) + regionOffset) * sectorSize * filamentSize;
                 }
                 #endregion
             }
@@ -428,9 +430,8 @@ namespace LooCast.Universe
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                     int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                     Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
-                    Vector2 sectorOffset = new Vector2(sectorSize / 2.0f, sectorSize / 2.0f);
                     this.vectorIntPosition = vectorIntPosition;
-                    worldPosition = (((vectorIntPosition * regionSize) + regionOffset) * sectorSize) + sectorOffset;
+                    worldPosition = (((vectorIntPosition * regionSize) + regionOffset) * sectorSize);
                     filamentPosition = new Filament.Position(universe, worldPosition);
                 }
 
@@ -439,9 +440,8 @@ namespace LooCast.Universe
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                     int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                     Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
-                    Vector2 sectorOffset = new Vector2(sectorSize / 2.0f, sectorSize / 2.0f);
                     vectorIntPosition = (worldPosition / regionSize / sectorSize).FloorToVector2Int();
-                    this.worldPosition = (((vectorIntPosition * regionSize) + regionOffset) * sectorSize);
+                    this.worldPosition = ((vectorIntPosition * regionSize) + regionOffset) * sectorSize;
                     filamentPosition = new Filament.Position(universe, worldPosition);
                 }
                 #endregion
@@ -577,8 +577,9 @@ namespace LooCast.Universe
                     public Position(Universe universe, Vector2Int vectorIntPosition)
                     {
                         int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
+                        Vector2 regionChunkOffset = new Vector2(regionChunkSize / 2.0f, regionChunkSize / 2.0f);
                         this.vectorIntPosition = vectorIntPosition;
-                        worldPosition = vectorIntPosition * regionChunkSize;
+                        worldPosition = (vectorIntPosition.ToVector2() * regionChunkSize) + regionChunkOffset;
                         regionPosition = new Region.Position(universe, worldPosition);
                     }
 

@@ -141,15 +141,21 @@ namespace LooCast.Observer
             Universe.Region.Position currentRegionPosition = currentRegionChunkPosition.RegionPosition;
             Universe.Sector.Chunk.Position currentSectorChunkPosition = new Universe.Sector.Chunk.Position(currentUniverse, transform.position);
             Universe.Sector.Position currentSectorPosition = currentSectorChunkPosition.SectorPosition;
+            Universe.Filament.Chunk.Position currentFilamentChunkPosition = new Universe.Filament.Chunk.Position(currentUniverse, transform.position);
+            Universe.Filament.Position currentFilamentPosition = currentFilamentChunkPosition.FilamentPosition;
             int regionSize = currentUniverse.RegionGenerationSettings.Size;
             int regionChunkSize = currentUniverse.RegionGenerationSettings.ChunkSize;
             int sectorSize = currentUniverse.SectorGenerationSettings.Size;
             int sectorChunkSize = currentUniverse.SectorGenerationSettings.ChunkSize;
+            int filamentSize = currentUniverse.FilamentGenerationSettings.Size;
+            int filamentChunkSize = currentUniverse.FilamentGenerationSettings.ChunkSize;
 
             UnityEngine.Debug.Log($"Region Chunk Pos: {currentRegionChunkPosition.VectorIntPosition}");
-            UnityEngine.Debug.Log($"Region Pos: {currentRegionChunkPosition.RegionPosition.VectorIntPosition}");
+            UnityEngine.Debug.Log($"Region Pos: {currentRegionPosition.VectorIntPosition}");
             UnityEngine.Debug.Log($"Sector Chunk Pos: {currentSectorChunkPosition.VectorIntPosition}");
-            UnityEngine.Debug.Log($"Sector Pos: {currentSectorChunkPosition.SectorPosition.VectorIntPosition}");
+            UnityEngine.Debug.Log($"Sector Pos: {currentSectorPosition.VectorIntPosition}");
+            UnityEngine.Debug.Log($"Filament Chunk Pos: {currentFilamentChunkPosition.VectorIntPosition}");
+            UnityEngine.Debug.Log($"Filament Pos: {currentFilamentPosition.VectorIntPosition}");
 
             // Region Chunk
             Gizmos.color = Color.green;
@@ -166,6 +172,14 @@ namespace LooCast.Observer
             // Sector
             Gizmos.color = Color.blue;
             Gizmos.DrawWireCube(currentSectorPosition.WorldPosition, new Vector2(regionSize * sectorSize, regionSize * sectorSize));
+
+            // Filament Chunk
+            Gizmos.color = new Color(1.0f, 0.0f, 1.0f);
+            Gizmos.DrawWireCube(currentFilamentChunkPosition.WorldPosition, new Vector2(regionSize * sectorSize * filamentChunkSize, regionSize * sectorSize * filamentChunkSize));
+
+            // Filament
+            Gizmos.color = new Color(1.0f, 0.5f, 0.0f);
+            Gizmos.DrawWireCube(currentFilamentPosition.WorldPosition, new Vector2(regionSize * sectorSize * filamentSize, regionSize * sectorSize * filamentSize));
         }
 
         private void TranslateRegions(Vector2Int currentRegionPosition)
