@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace LooCast.Util
 {
@@ -57,6 +58,26 @@ namespace LooCast.Util
                 evaluatedValues[i] = valueVariables[i].Value;
             }
             return evaluatedValues;
+        }
+
+        public static Vector2 ToVector2(this Vector2Int vector2Int)
+        {
+            return new Vector2(vector2Int.x, vector2Int.y);
+        }
+
+        public static Vector2Int FloorToVector2Int(this Vector2 vector2)
+        {
+            return new Vector2Int(Mathf.FloorToInt(vector2.x), Mathf.FloorToInt(vector2.y));
+        }
+
+        public static Vector2Int CeilToVector2Int(this Vector2 vector2)
+        {
+            return new Vector2Int(Mathf.CeilToInt(vector2.x), Mathf.CeilToInt(vector2.y));
+        }
+
+        public static Vector2Int RoundToVector2Int(this Vector2 vector2)
+        {
+            return new Vector2Int(Mathf.RoundToInt(vector2.x), Mathf.RoundToInt(vector2.y));
         }
     }
 }

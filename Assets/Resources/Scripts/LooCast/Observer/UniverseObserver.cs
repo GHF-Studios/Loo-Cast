@@ -139,17 +139,33 @@ namespace LooCast.Observer
         {
             Universe.Region.Chunk.Position currentRegionChunkPosition = new Universe.Region.Chunk.Position(currentUniverse, transform.position);
             Universe.Region.Position currentRegionPosition = currentRegionChunkPosition.RegionPosition;
+            Universe.Sector.Chunk.Position currentSectorChunkPosition = new Universe.Sector.Chunk.Position(currentUniverse, transform.position);
+            Universe.Sector.Position currentSectorPosition = currentSectorChunkPosition.SectorPosition;
             int regionSize = currentUniverse.RegionGenerationSettings.Size;
             int regionChunkSize = currentUniverse.RegionGenerationSettings.ChunkSize;
+            int sectorSize = currentUniverse.SectorGenerationSettings.Size;
+            int sectorChunkSize = currentUniverse.SectorGenerationSettings.ChunkSize;
 
-            UnityEngine.Debug.Log($"Region Pos: {currentRegionChunkPosition.RegionPosition.VectorIntPosition}");
             UnityEngine.Debug.Log($"Region Chunk Pos: {currentRegionChunkPosition.VectorIntPosition}");
-            UnityEngine.Debug.Log($"Region Pos Offset: {currentRegionPositionOffset.VectorIntPosition}");
+            UnityEngine.Debug.Log($"Region Pos: {currentRegionChunkPosition.RegionPosition.VectorIntPosition}");
+            UnityEngine.Debug.Log($"Sector Chunk Pos: {currentSectorChunkPosition.VectorIntPosition}");
+            UnityEngine.Debug.Log($"Sector Pos: {currentSectorChunkPosition.SectorPosition.VectorIntPosition}");
 
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireCube(currentRegionPosition.WorldPosition, new Vector2(regionSize, regionSize));
+            // Region Chunk
             Gizmos.color = Color.green;
             Gizmos.DrawWireCube(currentRegionChunkPosition.WorldPosition, new Vector2(regionChunkSize, regionChunkSize));
+
+            // Region
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireCube(currentRegionPosition.WorldPosition, new Vector2(regionSize, regionSize));
+
+            // Sector Chunk
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireCube(currentSectorChunkPosition.WorldPosition, new Vector2(regionSize * sectorChunkSize, regionSize * sectorChunkSize));
+
+            // Sector
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireCube(currentSectorPosition.WorldPosition, new Vector2(regionSize * sectorSize, regionSize * sectorSize));
         }
 
         private void TranslateRegions(Vector2Int currentRegionPosition)
