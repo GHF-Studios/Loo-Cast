@@ -11,15 +11,6 @@ namespace LooCast.Observer
 
     public class UniverseObserver : ExtendedMonoBehaviour
     {
-        private int totalRegionChunkLoadRadius
-        {
-            get
-            {
-                return regionChunkLoadRadius + regionChunkScreenRadius;
-            }
-        }
-
-        private int regionChunkScreenRadius;
         private int regionChunkLoadRadius = 0;
         private Universe currentUniverse;
 
@@ -144,8 +135,6 @@ namespace LooCast.Observer
         private void UpdateProximalPositions()
         {
             currentRegionPosition = new Universe.Region.Position(currentUniverse, transform.position);
-            float regionChunkScreenRadiusFloat = Vector3.Distance(Camera.main.ScreenToWorldPoint(new Vector2(Screen.width / 2, Screen.height / 2)), Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
-            regionChunkScreenRadius = new Universe.Region.Chunk.Position(currentUniverse, new Vector2(regionChunkScreenRadiusFloat, regionChunkScreenRadiusFloat)).VectorIntPosition.x;
             GetProximalPositions(out proximalRegionChunkPositions, out proximalSectorChunkPositions, out proximalFilamentChunkPositions, out proximalRegionPositions, out proximalSectorPositions, out proximalFilamentPositions);
         }
         
@@ -185,14 +174,20 @@ namespace LooCast.Observer
             */
             #endregion
 
-            Vector2Int regionChunkPositionMin = new Vector2Int(currentRegionChunkPosition.VectorIntPosition.x - totalRegionChunkLoadRadius, currentRegionChunkPosition.VectorIntPosition.y - totalRegionChunkLoadRadius);
-            Vector2Int regionChunkPositionMax = new Vector2Int(currentRegionChunkPosition.VectorIntPosition.x + totalRegionChunkLoadRadius, currentRegionChunkPosition.VectorIntPosition.y + totalRegionChunkLoadRadius);
-            for (int x = regionChunkPositionMin.x; x <= regionChunkPositionMax.x; x++)
+            Universe.Region.Chunk.Position screenRegionChunkPosMin = new Universe.Region.Chunk.Position(currentUniverse, (Vector2)Camera.main.ScreenToWorldPoint(new Vector2(0, 0)));
+            screenRegionChunkPosMin = new Universe.Region.Chunk.Position(currentUniverse, screenRegionChunkPosMin.VectorIntPosition - (Vector2Int.one * regionChunkLoadRadius));
+            Universe.Region.Chunk.Position screenRegionChunkPosMax = new Universe.Region.Chunk.Position(currentUniverse, (Vector2)Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
+            screenRegionChunkPosMax = new Universe.Region.Chunk.Position(currentUniverse, screenRegionChunkPosMax.VectorIntPosition + (Vector2Int.one * regionChunkLoadRadius));
+            Universe.Region.Chunk.Position screenRegionChunkPosCenter = new Universe.Region.Chunk.Position(currentUniverse, (Vector2)Camera.main.ScreenToWorldPoint(new Vector2(Screen.width / 2, Screen.height / 2)));
+            int totalRegionChunkLoadRadius = (int)(regionChunkLoadRadius + (Vector2Int.Distance(screenRegionChunkPosMin.VectorIntPosition, screenRegionChunkPosMax.VectorIntPosition) / 2));
+
+            for (int x = screenRegionChunkPosMin.VectorIntPosition.x; x <= screenRegionChunkPosMax.VectorIntPosition.x; x++)
             {
-                for (int y = regionChunkPositionMin.y; y < regionChunkPositionMax.y; y++)
+                for (int y = screenRegionChunkPosMin.VectorIntPosition.y; y <= screenRegionChunkPosMax.VectorIntPosition.y; y++)
                 {
-                    Universe.Region.Chunk.Position regionChunkPosition = new Universe.Region.Chunk.Position(currentUniverse, new Vector2(x, y));
-                    if (Vector2Int.Distance(currentRegionChunkPosition.VectorIntPosition, regionChunkPosition.VectorIntPosition) <= totalRegionChunkLoadRadius)
+                    Universe.Region.Chunk.Position regionChunkPosition = new Universe.Region.Chunk.Position(currentUniverse, new Vector2Int(x, y));
+                    float distance = Vector2Int.Distance(currentRegionChunkPosition.VectorIntPosition, regionChunkPosition.VectorIntPosition);
+                    if (distance <= totalRegionChunkLoadRadius)
                     {
                         if (!regionChunkPositions.Contains(regionChunkPosition))
                         {
