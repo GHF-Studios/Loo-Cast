@@ -14,7 +14,6 @@ namespace LooCast.Observer
         private int regionChunkLoadRadius = 0;
         private Universe currentUniverse;
 
-        private Universe.Region.Position currentRegionPosition;
         private Universe.Region.Position currentRegionPositionOffset;
         private List<Universe.Region.Chunk.Position> proximalRegionChunkPositions = new List<Universe.Region.Chunk.Position>();
         private List<Universe.Sector.Chunk.Position> proximalSectorChunkPositions = new List<Universe.Sector.Chunk.Position>();
@@ -26,7 +25,6 @@ namespace LooCast.Observer
         private void Start()
         {
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
-            currentRegionPosition = new Universe.Region.Position(currentUniverse, transform.position);
             currentRegionPositionOffset = new Universe.Region.Position(currentUniverse, Vector2Int.zero);
             Stopwatch stopwatch = new Stopwatch();
 
@@ -134,7 +132,6 @@ namespace LooCast.Observer
 
         private void UpdateProximalPositions()
         {
-            currentRegionPosition = new Universe.Region.Position(currentUniverse, transform.position);
             GetProximalPositions(out proximalRegionChunkPositions, out proximalSectorChunkPositions, out proximalFilamentChunkPositions, out proximalRegionPositions, out proximalSectorPositions, out proximalFilamentPositions);
         }
         
@@ -178,51 +175,45 @@ namespace LooCast.Observer
             screenRegionChunkPosMin = new Universe.Region.Chunk.Position(currentUniverse, screenRegionChunkPosMin.VectorIntPosition - (Vector2Int.one * regionChunkLoadRadius));
             Universe.Region.Chunk.Position screenRegionChunkPosMax = new Universe.Region.Chunk.Position(currentUniverse, (Vector2)Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
             screenRegionChunkPosMax = new Universe.Region.Chunk.Position(currentUniverse, screenRegionChunkPosMax.VectorIntPosition + (Vector2Int.one * regionChunkLoadRadius));
-            Universe.Region.Chunk.Position screenRegionChunkPosCenter = new Universe.Region.Chunk.Position(currentUniverse, (Vector2)Camera.main.ScreenToWorldPoint(new Vector2(Screen.width / 2, Screen.height / 2)));
-            int totalRegionChunkLoadRadius = (int)(regionChunkLoadRadius + (Vector2Int.Distance(screenRegionChunkPosMin.VectorIntPosition, screenRegionChunkPosMax.VectorIntPosition) / 2));
 
             for (int x = screenRegionChunkPosMin.VectorIntPosition.x; x <= screenRegionChunkPosMax.VectorIntPosition.x; x++)
             {
                 for (int y = screenRegionChunkPosMin.VectorIntPosition.y; y <= screenRegionChunkPosMax.VectorIntPosition.y; y++)
                 {
                     Universe.Region.Chunk.Position regionChunkPosition = new Universe.Region.Chunk.Position(currentUniverse, new Vector2Int(x, y));
-                    float distance = Vector2Int.Distance(currentRegionChunkPosition.VectorIntPosition, regionChunkPosition.VectorIntPosition);
-                    if (distance <= totalRegionChunkLoadRadius)
+                    if (!regionChunkPositions.Contains(regionChunkPosition))
                     {
-                        if (!regionChunkPositions.Contains(regionChunkPosition))
-                        {
-                            regionChunkPositions.Add(regionChunkPosition);
-                        }
+                        regionChunkPositions.Add(regionChunkPosition);
+                    }
 
-                        Universe.Sector.Chunk.Position sectorChunkPosition = new Universe.Sector.Chunk.Position(currentUniverse, transform.position);
-                        if (!sectorChunkPositions.Contains(sectorChunkPosition))
-                        {
-                            sectorChunkPositions.Add(sectorChunkPosition);
-                        }
+                    Universe.Sector.Chunk.Position sectorChunkPosition = new Universe.Sector.Chunk.Position(currentUniverse, transform.position);
+                    if (!sectorChunkPositions.Contains(sectorChunkPosition))
+                    {
+                        sectorChunkPositions.Add(sectorChunkPosition);
+                    }
 
-                        Universe.Filament.Chunk.Position filamentChunkPosition = new Universe.Filament.Chunk.Position(currentUniverse, transform.position);
-                        if (!filamentChunkPositions.Contains(filamentChunkPosition))
-                        {
-                            filamentChunkPositions.Add(filamentChunkPosition);
-                        }
+                    Universe.Filament.Chunk.Position filamentChunkPosition = new Universe.Filament.Chunk.Position(currentUniverse, transform.position);
+                    if (!filamentChunkPositions.Contains(filamentChunkPosition))
+                    {
+                        filamentChunkPositions.Add(filamentChunkPosition);
+                    }
 
-                        Universe.Region.Position regionPosition = new Universe.Region.Position(currentUniverse, transform.position);
-                        if (!regionPositions.Contains(regionPosition))
-                        {
-                            regionPositions.Add(regionPosition);
-                        }
+                    Universe.Region.Position regionPosition = new Universe.Region.Position(currentUniverse, transform.position);
+                    if (!regionPositions.Contains(regionPosition))
+                    {
+                        regionPositions.Add(regionPosition);
+                    }
 
-                        Universe.Sector.Position sectorPosition = new Universe.Sector.Position(currentUniverse, transform.position);
-                        if (!sectorPositions.Contains(sectorPosition))
-                        {
-                            sectorPositions.Add(sectorPosition);
-                        }
+                    Universe.Sector.Position sectorPosition = new Universe.Sector.Position(currentUniverse, transform.position);
+                    if (!sectorPositions.Contains(sectorPosition))
+                    {
+                        sectorPositions.Add(sectorPosition);
+                    }
 
-                        Universe.Filament.Position filamentPosition = new Universe.Filament.Position(currentUniverse, transform.position);
-                        if (!filamentPositions.Contains(filamentPosition))
-                        {
-                            filamentPositions.Add(filamentPosition);
-                        }
+                    Universe.Filament.Position filamentPosition = new Universe.Filament.Position(currentUniverse, transform.position);
+                    if (!filamentPositions.Contains(filamentPosition))
+                    {
+                        filamentPositions.Add(filamentPosition);
                     }
                 }
             }
