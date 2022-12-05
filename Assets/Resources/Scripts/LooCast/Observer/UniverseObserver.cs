@@ -138,16 +138,17 @@ namespace LooCast.Observer
 
         private void OnDrawGizmos()
         {
-            // DrawProximalPositionGizmos();
+            DrawProximalPositionGizmos();
         }
 
         private void UpdateProximalPositions()
         {
             currentRegionPosition = new Universe.Region.Position(currentUniverse, transform.position);
-            regionChunkScreenRadius = (int) Vector3.Distance(transform.position, Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
+            float regionChunkScreenRadiusFloat = Vector3.Distance(Camera.main.ScreenToWorldPoint(new Vector2(Screen.width / 2, Screen.height / 2)), Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
+            regionChunkScreenRadius = new Universe.Region.Chunk.Position(currentUniverse, new Vector2(regionChunkScreenRadiusFloat, regionChunkScreenRadiusFloat)).VectorIntPosition.x;
             GetProximalPositions(out proximalRegionChunkPositions, out proximalSectorChunkPositions, out proximalFilamentChunkPositions, out proximalRegionPositions, out proximalSectorPositions, out proximalFilamentPositions);
         }
-
+        
         private void TranslateRegions(Vector2Int currentRegionPosition)
         {
             Vector2Int currentRegionPositionDifference = currentRegionPosition - currentRegionPositionOffset.VectorIntPosition;
@@ -260,49 +261,43 @@ namespace LooCast.Observer
             // Region Chunk
             foreach (Universe.Region.Chunk.Position proximalRegionChunkPosition in proximalRegionChunkPositions)
             {
-                UnityEngine.Debug.Log($"Region Chunk Pos: {proximalRegionChunkPosition.VectorIntPosition}");
-                //Gizmos.color = Color.green;
-                //Gizmos.DrawWireCube(proximalRegionChunkPosition.WorldPosition, new Vector2(regionChunkSize, regionChunkSize));
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireCube(proximalRegionChunkPosition.WorldPosition, new Vector2(regionChunkSize, regionChunkSize));
             }
 
             // Region
             foreach (Universe.Region.Position proximalRegionPosition in proximalRegionPositions)
             {
-                UnityEngine.Debug.Log($"Region Pos: {proximalRegionPosition.VectorIntPosition}");
-                //Gizmos.color = Color.red;
-                //Gizmos.DrawWireCube(proximalRegionPosition.WorldPosition, new Vector2(regionSize, regionSize));
+                Gizmos.color = Color.red;
+                Gizmos.DrawWireCube(proximalRegionPosition.WorldPosition, new Vector2(regionSize, regionSize));
             }
 
             // Sector Chunk
             foreach (Universe.Sector.Chunk.Position proximalSectorChunkPosition in proximalSectorChunkPositions)
             {
-                UnityEngine.Debug.Log($"Sector Chunk Pos: {proximalSectorChunkPosition.VectorIntPosition}");
-                //Gizmos.color = Color.yellow;
-                //Gizmos.DrawWireCube(proximalSectorChunkPosition.WorldPosition, new Vector2(sectorChunkSize, sectorChunkSize));
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireCube(proximalSectorChunkPosition.WorldPosition, new Vector2(sectorChunkSize, sectorChunkSize));
             }
 
             // Sector
             foreach (Universe.Sector.Position proximalSectorPosition in proximalSectorPositions)
             {
-                UnityEngine.Debug.Log($"Sector Pos: {proximalSectorPosition.VectorIntPosition}");
-                //Gizmos.color = Color.blue;
-                //Gizmos.DrawWireCube(proximalSectorPosition.WorldPosition, new Vector2(sectorSize, sectorSize));
+                Gizmos.color = Color.blue;
+                Gizmos.DrawWireCube(proximalSectorPosition.WorldPosition, new Vector2(sectorSize, sectorSize));
             }
 
             // Filament Chunk
             foreach (Universe.Filament.Chunk.Position proximalFilamentChunkPosition in proximalFilamentChunkPositions)
             {
-                UnityEngine.Debug.Log($"Filament Chunk Pos: {proximalFilamentChunkPosition.VectorIntPosition}");
-                //Gizmos.color = new Color(1.0f, 0.0f, 1.0f);
-                //Gizmos.DrawWireCube(proximalFilamentChunkPosition.WorldPosition, new Vector2(filamentChunkSize, filamentChunkSize));
+                Gizmos.color = new Color(1.0f, 0.0f, 1.0f);
+                Gizmos.DrawWireCube(proximalFilamentChunkPosition.WorldPosition, new Vector2(filamentChunkSize, filamentChunkSize));
             }
 
             // Filament
             foreach (Universe.Filament.Position proximalFilamentPosition in proximalFilamentPositions)
             {
-                UnityEngine.Debug.Log($"Filament Pos: {proximalFilamentPosition.VectorIntPosition}");
-                //Gizmos.color = new Color(1.0f, 0.5f, 0.0f);
-                //Gizmos.DrawWireCube(proximalFilamentPosition.WorldPosition, new Vector2(filamentSize, filamentSize));
+                Gizmos.color = new Color(1.0f, 0.5f, 0.0f);
+                Gizmos.DrawWireCube(proximalFilamentPosition.WorldPosition, new Vector2(filamentSize, filamentSize));
             }
         }
     }
