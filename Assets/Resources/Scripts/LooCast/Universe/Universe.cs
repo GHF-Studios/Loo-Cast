@@ -6,6 +6,7 @@ using System.Linq;
 
 namespace LooCast.Universe
 {
+    using Core;
     using Game;
     using Util;
     using Util.Collections.Generic;
@@ -15,6 +16,124 @@ namespace LooCast.Universe
     public class Universe
     {
         #region Classes
+        [Serializable]
+        public class Object : ExtendedMonoBehaviour
+        {
+            #region Classes
+            [Serializable]
+            public class Transform
+            {
+                #region Structs
+                [Serializable]
+                public struct Position
+                {
+                    #region Properties
+                    public double X
+                    {
+                        get
+                        {
+                            return x;
+                        }
+
+                        private set
+                        {
+                            x = value;
+                        }
+                    }
+                    public double Y
+                    {
+                        get
+                        {
+                            return y;
+                        }
+
+                        private set
+                        {
+                            y = value;
+                        }
+                    }
+                    public double Z
+                    {
+                        get
+                        {
+                            return z;
+                        }
+
+                        private set
+                        {
+                            z = value;
+                        }
+                    }
+                    #endregion
+
+                    #region Fields
+                    [SerializeField] private double x;
+                    [SerializeField] private double y;
+                    [SerializeField] private double z;
+                    #endregion
+
+                    #region Constructors
+                    public Position(double x, double y, double z)
+                    {
+                        this.x = x;
+                        this.y = y;
+                        this.z = z;
+                    }
+                    #endregion
+                }
+                #endregion
+
+                #region Properties
+                public Position UniversePosition
+                {
+                    get
+                    {
+                        return universePosition;
+                    }
+
+                    private set
+                    {
+                        universePosition = value;
+                    }
+                }
+                #endregion
+
+                #region Fields
+                [SerializeField] private Position universePosition;
+                #endregion
+
+                #region Constructors
+                private Transform()
+                {
+
+                }
+                #endregion
+            }
+            #endregion
+            
+            #region Properties
+            public Transform UniverseTransform
+            {
+                get
+                {
+                    {
+                        return universeTransform;
+                    }
+                }
+
+                private set
+                {
+                    universeTransform = value;
+                }
+            }
+            #endregion
+
+            #region Fields
+            [SerializeField] private Transform universeTransform;
+            #endregion
+        }
+
+        // TODO: Add a Universe.Transform to this class maybe?
         [Serializable]
         public class Filament
         {
