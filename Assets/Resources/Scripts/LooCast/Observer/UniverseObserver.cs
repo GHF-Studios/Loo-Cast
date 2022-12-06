@@ -11,7 +11,7 @@ namespace LooCast.Observer
 
     public class UniverseObserver : ExtendedMonoBehaviour
     {
-        private int regionChunkLoadRadius = 0;
+        private int regionChunkLoadRadius = 2;
         private Universe currentUniverse;
 
         private Universe.Region.Position currentRegionPositionOffset;
@@ -186,31 +186,31 @@ namespace LooCast.Observer
                         regionChunkPositions.Add(regionChunkPosition);
                     }
 
-                    Universe.Sector.Chunk.Position sectorChunkPosition = new Universe.Sector.Chunk.Position(currentUniverse, transform.position);
+                    Universe.Sector.Chunk.Position sectorChunkPosition = new Universe.Sector.Chunk.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!sectorChunkPositions.Contains(sectorChunkPosition))
                     {
                         sectorChunkPositions.Add(sectorChunkPosition);
                     }
 
-                    Universe.Filament.Chunk.Position filamentChunkPosition = new Universe.Filament.Chunk.Position(currentUniverse, transform.position);
+                    Universe.Filament.Chunk.Position filamentChunkPosition = new Universe.Filament.Chunk.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!filamentChunkPositions.Contains(filamentChunkPosition))
                     {
                         filamentChunkPositions.Add(filamentChunkPosition);
                     }
 
-                    Universe.Region.Position regionPosition = new Universe.Region.Position(currentUniverse, transform.position);
+                    Universe.Region.Position regionPosition = new Universe.Region.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!regionPositions.Contains(regionPosition))
                     {
                         regionPositions.Add(regionPosition);
                     }
 
-                    Universe.Sector.Position sectorPosition = new Universe.Sector.Position(currentUniverse, transform.position);
+                    Universe.Sector.Position sectorPosition = new Universe.Sector.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!sectorPositions.Contains(sectorPosition))
                     {
                         sectorPositions.Add(sectorPosition);
                     }
 
-                    Universe.Filament.Position filamentPosition = new Universe.Filament.Position(currentUniverse, transform.position);
+                    Universe.Filament.Position filamentPosition = new Universe.Filament.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!filamentPositions.Contains(filamentPosition))
                     {
                         filamentPositions.Add(filamentPosition);
