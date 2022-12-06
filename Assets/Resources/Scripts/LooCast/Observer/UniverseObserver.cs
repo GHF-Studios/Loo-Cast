@@ -176,47 +176,96 @@ namespace LooCast.Observer
             Universe.Region.Chunk.Position screenRegionChunkPosMax = new Universe.Region.Chunk.Position(currentUniverse, (Vector2)Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
             screenRegionChunkPosMax = new Universe.Region.Chunk.Position(currentUniverse, screenRegionChunkPosMax.VectorIntPosition + (Vector2Int.one * regionChunkLoadRadius));
 
+            int calculatedRows = 0;
+            long rowCalculationTime = 0;
+            long regionChunkCalculationTime = 0;
+            long sectorChunkCalculationTime = 0;
+            long filamentChunkCalculationTime = 0;
+            long regionCalculationTime = 0;
+            long sectorCalculationTime = 0;
+            long filamentCalculationTime = 0;
+            long rowElementCalculationTime = 0;
+            Stopwatch totalRowStopwatch = new Stopwatch();
+            Stopwatch rowStopwatch = new Stopwatch();
+            Stopwatch utilityStopwatch = new Stopwatch();
+
+            totalRowStopwatch.Start();
             for (int x = screenRegionChunkPosMin.VectorIntPosition.x; x <= screenRegionChunkPosMax.VectorIntPosition.x; x++)
             {
+                rowStopwatch.Restart();
                 for (int y = screenRegionChunkPosMin.VectorIntPosition.y; y <= screenRegionChunkPosMax.VectorIntPosition.y; y++)
                 {
+                    utilityStopwatch.Restart();
                     Universe.Region.Chunk.Position regionChunkPosition = new Universe.Region.Chunk.Position(currentUniverse, new Vector2Int(x, y));
                     if (!regionChunkPositions.Contains(regionChunkPosition))
                     {
                         regionChunkPositions.Add(regionChunkPosition);
                     }
+                    utilityStopwatch.Stop();
+                    regionChunkCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
 
+                    utilityStopwatch.Restart();
                     Universe.Sector.Chunk.Position sectorChunkPosition = new Universe.Sector.Chunk.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!sectorChunkPositions.Contains(sectorChunkPosition))
                     {
                         sectorChunkPositions.Add(sectorChunkPosition);
                     }
+                    utilityStopwatch.Stop();
+                    sectorChunkCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
 
+                    utilityStopwatch.Restart();
                     Universe.Filament.Chunk.Position filamentChunkPosition = new Universe.Filament.Chunk.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!filamentChunkPositions.Contains(filamentChunkPosition))
                     {
                         filamentChunkPositions.Add(filamentChunkPosition);
                     }
+                    utilityStopwatch.Stop();
+                    filamentChunkCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
 
+                    utilityStopwatch.Restart();
                     Universe.Region.Position regionPosition = new Universe.Region.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!regionPositions.Contains(regionPosition))
                     {
                         regionPositions.Add(regionPosition);
                     }
+                    utilityStopwatch.Stop();
+                    regionCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
 
+                    utilityStopwatch.Restart();
                     Universe.Sector.Position sectorPosition = new Universe.Sector.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!sectorPositions.Contains(sectorPosition))
                     {
                         sectorPositions.Add(sectorPosition);
                     }
+                    utilityStopwatch.Stop();
+                    sectorCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
 
+                    utilityStopwatch.Restart();
                     Universe.Filament.Position filamentPosition = new Universe.Filament.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!filamentPositions.Contains(filamentPosition))
                     {
                         filamentPositions.Add(filamentPosition);
                     }
+                    utilityStopwatch.Stop();
+                    filamentCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+
+
                 }
+                rowStopwatch.Stop();
+                calculatedRows += 1;
+                rowCalculationTime += rowStopwatch.ElapsedMilliseconds;
             }
+            totalRowStopwatch.Stop();
+            UnityEngine.Debug.Log($"\t\t\t\tRegion: \t{regionCalculationTime}ms\t\tChunk: \t{regionChunkCalculationTime}ms");
+            UnityEngine.Debug.Log($"\t\t\t\tSector: \t{sectorCalculationTime}ms\t\tChunk: \t{sectorChunkCalculationTime}ms");
+            UnityEngine.Debug.Log($"\t\t\t\tFilament: {filamentCalculationTime}ms\t\tChunk: \t{filamentChunkCalculationTime}ms");
+            UnityEngine.Debug.Log($"\t\t\t\tElement: {rowElementCalculationTime}ms\t\tRow: \t{rowCalculationTime / calculatedRows}ms\t\t Total: \t{totalRowStopwatch.ElapsedMilliseconds}ms\t\t");
         }
         
         private void DrawProximalPositionGizmos()
