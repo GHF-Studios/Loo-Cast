@@ -315,10 +315,10 @@ namespace LooCast.Observer
             {
                 maxAverageRowCalculationTime = averageRowCalculationTime;
             }
-            UnityEngine.Debug.Log($"\t\t\t\tRegion: \t{maxRegionCalculationTime}({regionCalculationTime})ms\t\tChunk: \t{maxRegionChunkCalculationTime}({regionChunkCalculationTime})ms");
-            UnityEngine.Debug.Log($"\t\t\t\tSector: \t{maxSectorCalculationTime}({sectorCalculationTime})ms\t\tChunk: \t{maxSectorChunkCalculationTime}({sectorChunkCalculationTime})ms");
-            UnityEngine.Debug.Log($"\t\t\t\tFilament: {maxFilamentCalculationTime}({filamentCalculationTime})ms\tChunk: \t{maxFilamentChunkCalculationTime}({filamentChunkCalculationTime})ms");
-            UnityEngine.Debug.Log($"\t\t\t\tElement: {maxRowElementCalculationTime}({rowElementCalculationTime})ms\tRow: \t{maxAverageRowCalculationTime}({averageRowCalculationTime})ms\t Total: \t{maxTotalCalculationTime}({totalCalculationTime})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tRegion: \t{maxRegionCalculationTime}({regionCalculationTime})ms\t\t\tChunk: \t{maxRegionChunkCalculationTime}({regionChunkCalculationTime})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tSector: \t{maxSectorCalculationTime}({sectorCalculationTime})ms\t\t\tChunk: \t{maxSectorChunkCalculationTime}({sectorChunkCalculationTime})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tFilament: {maxFilamentCalculationTime}({filamentCalculationTime})ms\t\tChunk: \t{maxFilamentChunkCalculationTime}({filamentChunkCalculationTime})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tElement: {maxRowElementCalculationTime}({rowElementCalculationTime})ms\t\tRow: \t{maxAverageRowCalculationTime}({averageRowCalculationTime})ms\t\t Total: \t{maxTotalCalculationTime}({totalCalculationTime})ms");
         }
         
         private void DrawProximalPositionGizmos()
