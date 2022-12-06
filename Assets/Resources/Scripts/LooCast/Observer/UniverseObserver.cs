@@ -22,6 +22,16 @@ namespace LooCast.Observer
         private List<Universe.Sector.Position> proximalSectorPositions = new List<Universe.Sector.Position>();
         private List<Universe.Filament.Position> proximalFilamentPositions = new List<Universe.Filament.Position>();
 
+        private long maxTotalCalculationTime = 0;
+        private long maxAverageRowCalculationTime = 0;
+        private long maxRegionChunkCalculationTime = 0;
+        private long maxSectorChunkCalculationTime = 0;
+        private long maxFilamentChunkCalculationTime = 0;
+        private long maxRegionCalculationTime = 0;
+        private long maxSectorCalculationTime = 0;
+        private long maxFilamentCalculationTime = 0;
+        private long maxRowElementCalculationTime = 0;
+
         private void Start()
         {
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
@@ -177,7 +187,9 @@ namespace LooCast.Observer
             screenRegionChunkPosMax = new Universe.Region.Chunk.Position(currentUniverse, screenRegionChunkPosMax.VectorIntPosition + (Vector2Int.one * regionChunkLoadRadius));
 
             int calculatedRows = 0;
+            long totalCalculationTime = 0;
             long rowCalculationTime = 0;
+            long averageRowCalculationTime = 0;
             long regionChunkCalculationTime = 0;
             long sectorChunkCalculationTime = 0;
             long filamentChunkCalculationTime = 0;
@@ -255,17 +267,58 @@ namespace LooCast.Observer
                     filamentCalculationTime += utilityStopwatch.ElapsedMilliseconds;
                     rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
 
-
+                    if (maxAverageRowCalculationTime < rowCalculationTime)
+                    {
+                        maxAverageRowCalculationTime = rowCalculationTime;
+                    }
+                    if (maxRegionChunkCalculationTime < regionChunkCalculationTime)
+                    {
+                        maxRegionChunkCalculationTime = regionChunkCalculationTime;
+                    }
+                    if (maxSectorChunkCalculationTime < sectorChunkCalculationTime)
+                    {
+                        maxSectorChunkCalculationTime = sectorChunkCalculationTime;
+                    }
+                    if (maxFilamentChunkCalculationTime < filamentChunkCalculationTime)
+                    {
+                        maxFilamentChunkCalculationTime = filamentChunkCalculationTime;
+                    }
+                    if (maxRegionCalculationTime < regionCalculationTime)
+                    {
+                        maxRegionCalculationTime = regionCalculationTime;
+                    }
+                    if (maxSectorCalculationTime < sectorCalculationTime)
+                    {
+                        maxSectorCalculationTime = sectorCalculationTime;
+                    }
+                    if (maxFilamentCalculationTime < filamentCalculationTime)
+                    {
+                        maxFilamentCalculationTime = filamentCalculationTime;
+                    }
+                    if (maxRowElementCalculationTime < rowElementCalculationTime)
+                    {
+                        maxRowElementCalculationTime = rowElementCalculationTime;
+                    }
                 }
                 rowStopwatch.Stop();
                 calculatedRows += 1;
                 rowCalculationTime += rowStopwatch.ElapsedMilliseconds;
             }
             totalRowStopwatch.Stop();
-            UnityEngine.Debug.Log($"\t\t\t\tRegion: \t{regionCalculationTime}ms\t\tChunk: \t{regionChunkCalculationTime}ms");
-            UnityEngine.Debug.Log($"\t\t\t\tSector: \t{sectorCalculationTime}ms\t\tChunk: \t{sectorChunkCalculationTime}ms");
-            UnityEngine.Debug.Log($"\t\t\t\tFilament: {filamentCalculationTime}ms\t\tChunk: \t{filamentChunkCalculationTime}ms");
-            UnityEngine.Debug.Log($"\t\t\t\tElement: {rowElementCalculationTime}ms\t\tRow: \t{rowCalculationTime / calculatedRows}ms\t\t Total: \t{totalRowStopwatch.ElapsedMilliseconds}ms\t\t");
+            totalCalculationTime = totalRowStopwatch.ElapsedMilliseconds;
+            averageRowCalculationTime = rowCalculationTime / calculatedRows;
+            if (maxTotalCalculationTime < totalCalculationTime)
+            {
+                maxTotalCalculationTime = totalCalculationTime;
+            }
+            if (maxAverageRowCalculationTime < averageRowCalculationTime)
+            {
+                maxAverageRowCalculationTime = averageRowCalculationTime;
+            }
+            UnityEngine.Debug.Log($"\t\t\t\tRegion: \t{maxRegionCalculationTime}({regionCalculationTime})ms\t\tChunk: \t{maxRegionChunkCalculationTime}({regionChunkCalculationTime})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tSector: \t{maxSectorCalculationTime}({sectorCalculationTime})ms\t\tChunk: \t{maxSectorChunkCalculationTime}({sectorChunkCalculationTime})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tFilament: {maxFilamentCalculationTime}({filamentCalculationTime})ms\tChunk: \t{maxFilamentChunkCalculationTime}({filamentChunkCalculationTime})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tElement: {maxRowElementCalculationTime}({rowElementCalculationTime})ms\tRow: \t{maxAverageRowCalculationTime}({averageRowCalculationTime})ms\t Total: \t{maxTotalCalculationTime}({totalCalculationTime})ms");
         }
         
         private void DrawProximalPositionGizmos()
