@@ -53,6 +53,8 @@ namespace LooCast.Observer
         private void Update()
         {
             UpdateProximalPositions();
+            LoadProximalPositions();
+            PrintBenchmarks();
         }
 
         private void OnDrawGizmos()
@@ -143,11 +145,6 @@ namespace LooCast.Observer
                 Benchmark.Stop("UpdateRow");
             }
             Benchmark.Stop("UpdateTotal");
-            
-            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("UpdateRegion").Microseconds()}({Benchmark.MaxDuration("UpdateRegion").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("UpdateRegionChunk").Microseconds()}({Benchmark.MaxDuration("UpdateRegionChunk").Microseconds()})µs");
-            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tSector: \t\t{Benchmark.AverageDuration("UpdateSector").Microseconds()}({Benchmark.MaxDuration("UpdateSector").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("UpdateSectorChunk").Microseconds()}({Benchmark.MaxDuration("UpdateSectorChunk").Microseconds()})µs");
-            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tFilament: \t{Benchmark.AverageDuration("UpdateFilament").Microseconds()}({Benchmark.MaxDuration("UpdateFilament").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("UpdateFilamentChunk").Microseconds()}({Benchmark.MaxDuration("UpdateFilamentChunk").Microseconds()})µs");
-            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tElement: \t{Benchmark.AverageDuration("UpdateElement").Microseconds()}({Benchmark.MaxDuration("UpdateElement").Microseconds()})µs\t\t\tRow: \t{Benchmark.AverageDuration("UpdateRow").Microseconds()}({Benchmark.MaxDuration("UpdateRow").Microseconds()})µs\t\t\t Total: \t{Benchmark.AverageDuration("UpdateTotal").Microseconds()}({Benchmark.MaxDuration("UpdateTotal").Microseconds()})µs");
         }
         
         private void LoadProximalPositions()
@@ -239,10 +236,6 @@ namespace LooCast.Observer
             Benchmark.Stop("LoadRegionChunk");
 
             Benchmark.Stop("LoadTotal");
-
-            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("LoadRegion").Milliseconds}({Benchmark.MaxDuration("LoadRegion").Milliseconds})ms\t\t\tChunk: \t{Benchmark.AverageDuration("LoadRegionChunk").Milliseconds}({Benchmark.MaxDuration("LoadRegionChunk").Milliseconds})ms");
-            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tSector: \t\t{Benchmark.AverageDuration("LoadSector").Milliseconds}({Benchmark.MaxDuration("LoadSector").Milliseconds})ms\t\t\tChunk: \t{Benchmark.AverageDuration("LoadSectorChunk").Milliseconds}({Benchmark.MaxDuration("LoadSectorChunk").Milliseconds})ms");
-            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tFilament: \t{Benchmark.AverageDuration("LoadFilament").Milliseconds}({Benchmark.MaxDuration("LoadFilament").Milliseconds})ms\t\t\tChunk: \t{Benchmark.AverageDuration("LoadFilamentChunk").Milliseconds}({Benchmark.MaxDuration("LoadFilamentChunk").Milliseconds})ms");
         }
 
         private void DrawProximalPositionGizmos()
@@ -295,6 +288,17 @@ namespace LooCast.Observer
                 Gizmos.color = new Color(1.0f, 0.5f, 0.0f);
                 Gizmos.DrawWireCube(proximalFilamentPosition.WorldPosition, new Vector2(filamentSize, filamentSize));
             }
+        }
+
+        private void PrintBenchmarks()
+        {
+            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("UpdateRegion").Microseconds()}({Benchmark.MaxDuration("UpdateRegion").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("UpdateRegionChunk").Microseconds()}({Benchmark.MaxDuration("UpdateRegionChunk").Microseconds()})µs");
+            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tSector: \t\t{Benchmark.AverageDuration("UpdateSector").Microseconds()}({Benchmark.MaxDuration("UpdateSector").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("UpdateSectorChunk").Microseconds()}({Benchmark.MaxDuration("UpdateSectorChunk").Microseconds()})µs");
+            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tFilament: \t{Benchmark.AverageDuration("UpdateFilament").Microseconds()}({Benchmark.MaxDuration("UpdateFilament").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("UpdateFilamentChunk").Microseconds()}({Benchmark.MaxDuration("UpdateFilamentChunk").Microseconds()})µs");
+            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("LoadRegion").Milliseconds}({Benchmark.MaxDuration("LoadRegion").Milliseconds})ms\t\t\t\tChunk: \t{Benchmark.AverageDuration("LoadRegionChunk").Milliseconds}({Benchmark.MaxDuration("LoadRegionChunk").Milliseconds})ms");
+            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tSector: \t\t{Benchmark.AverageDuration("LoadSector").Milliseconds}({Benchmark.MaxDuration("LoadSector").Milliseconds})ms\t\t\t\tChunk: \t{Benchmark.AverageDuration("LoadSectorChunk").Milliseconds}({Benchmark.MaxDuration("LoadSectorChunk").Milliseconds})ms");
+            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tFilament: \t{Benchmark.AverageDuration("LoadFilament").Milliseconds}({Benchmark.MaxDuration("LoadFilament").Milliseconds})ms\t\t\t\tChunk: \t{Benchmark.AverageDuration("LoadFilamentChunk").Milliseconds}({Benchmark.MaxDuration("LoadFilamentChunk").Milliseconds})ms");
+            UnityEngine.Debug.Log($"UPDATE/LOAD:\t\t\t\tUpdate Element: \t{Benchmark.AverageDuration("UpdateElement").Milliseconds}({Benchmark.MaxDuration("UpdateElement").Milliseconds})ms\t\tUpdate Row: \t{Benchmark.AverageDuration("UpdateRow").Milliseconds}({Benchmark.MaxDuration("UpdateRow").Milliseconds})ms\t\t Update Total: \t{Benchmark.AverageDuration("UpdateTotal").Milliseconds}({Benchmark.MaxDuration("UpdateTotal").Milliseconds})ms\t\t Load Total: \t{Benchmark.AverageDuration("LoadTotal").Milliseconds}({Benchmark.MaxDuration("LoadTotal").Milliseconds})ms");
         }
     }
 }
