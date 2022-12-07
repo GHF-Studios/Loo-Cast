@@ -28,108 +28,25 @@ namespace LooCast.Observer
         {
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
             currentRegionPositionOffset = new Universe.Region.Position(Vector2Int.zero);
-            Stopwatch stopwatch = new Stopwatch();
             
-            Benchmark.Create("Total");
-            Benchmark.Create("Row");
-            Benchmark.Create("Element");
-            Benchmark.Create("Region");
-            Benchmark.Create("Sector");
-            Benchmark.Create("Filament");
-            Benchmark.Create("RegionChunk");
-            Benchmark.Create("SectorChunk");
-            Benchmark.Create("FilamentChunk");
+            Benchmark.Create("UpdateTotal");
+            Benchmark.Create("UpdateRow");
+            Benchmark.Create("UpdateElement");
+            Benchmark.Create("UpdateRegion");
+            Benchmark.Create("UpdateSector");
+            Benchmark.Create("UpdateFilament");
+            Benchmark.Create("UpdateRegionChunk");
+            Benchmark.Create("UpdateSectorChunk");
+            Benchmark.Create("UpdateFilamentChunk");
+            Benchmark.Create("LoadRegion");
+            Benchmark.Create("LoadSector");
+            Benchmark.Create("LoadFilament");
+            Benchmark.Create("LoadRegionChunk");
+            Benchmark.Create("LoadSectorChunk");
+            Benchmark.Create("LoadFilamentChunk");
 
             UpdateProximalPositions();
-
-            
-            stopwatch.Start();
-            #region Filament Loading
-            foreach (Universe.Filament.Position proximalFilamentPosition in proximalFilamentPositions)
-            {
-                if (!currentUniverse.IsFilamentGenerated(proximalFilamentPosition))
-                {
-                    currentUniverse.GenerateFilament(proximalFilamentPosition);
-                }
-                else if (!currentUniverse.IsFilamentLoaded(proximalFilamentPosition))
-                {
-                    currentUniverse.LoadFilament(proximalFilamentPosition);
-                }
-            }
-
-            foreach (Universe.Filament.Chunk.Position proximalFilamentChunkPosition in proximalFilamentChunkPositions)
-            {
-                if (!currentUniverse.IsFilamentChunkGenerated(proximalFilamentChunkPosition))
-                {
-                    currentUniverse.GenerateFilamentChunk(proximalFilamentChunkPosition);
-                }
-                else if (!currentUniverse.IsFilamentChunkLoaded(proximalFilamentChunkPosition))
-                {
-                    currentUniverse.LoadFilamentChunk(proximalFilamentChunkPosition);
-                }
-            }
-            #endregion
-            stopwatch.Stop();
-            UnityEngine.Debug.Log($"[UniverseObserver] Took {stopwatch.ElapsedMilliseconds}ms to Load Filaments!");
-
-            stopwatch.Restart();
-            #region Sector Loading
-            foreach (Universe.Sector.Position proximalSectorPosition in proximalSectorPositions)
-            {
-                if (!currentUniverse.IsSectorGenerated(proximalSectorPosition))
-                {
-                    currentUniverse.GenerateSector(proximalSectorPosition);
-                }
-                else if (!currentUniverse.IsSectorLoaded(proximalSectorPosition))
-                {
-                    currentUniverse.LoadSector(proximalSectorPosition);
-                }
-            }
-
-            foreach (Universe.Sector.Chunk.Position proximalSectorChunkPosition in proximalSectorChunkPositions)
-            {
-                if (!currentUniverse.IsSectorChunkGenerated(proximalSectorChunkPosition))
-                {
-                    currentUniverse.GenerateSectorChunk(proximalSectorChunkPosition);
-                }
-                else if (!currentUniverse.IsSectorChunkLoaded(proximalSectorChunkPosition))
-                {
-                    currentUniverse.LoadSectorChunk(proximalSectorChunkPosition);
-                }
-            }
-            #endregion
-            stopwatch.Stop();
-            UnityEngine.Debug.Log($"[UniverseObserver] Took {stopwatch.ElapsedMilliseconds}ms to Load Sectors!");
-
-            stopwatch.Restart();
-            #region Region Loading
-            foreach (Universe.Region.Position proximalRegionPosition in proximalRegionPositions)
-            {
-                if (!currentUniverse.IsRegionGenerated(proximalRegionPosition))
-                {
-                    currentUniverse.GenerateRegion(proximalRegionPosition);
-                }
-                else if (!currentUniverse.IsRegionLoaded(proximalRegionPosition))
-                {
-                    currentUniverse.LoadRegion(proximalRegionPosition);
-                }
-            }
-
-            foreach (Universe.Region.Chunk.Position proximalRegionChunkPosition in proximalRegionChunkPositions)
-            {
-                if (!currentUniverse.IsRegionChunkGenerated(proximalRegionChunkPosition))
-                {
-                    currentUniverse.GenerateRegionChunk(proximalRegionChunkPosition);
-                }
-                else if (!currentUniverse.IsRegionChunkLoaded(proximalRegionChunkPosition))
-                {
-                    currentUniverse.LoadRegionChunk(proximalRegionChunkPosition);
-                }
-            }
-            #endregion
-            stopwatch.Stop();
-            UnityEngine.Debug.Log($"[UniverseObserver] Took {stopwatch.ElapsedMilliseconds}ms to Load Regions!");
-            
+            LoadProximalPositions();
         }
 
         private void Update()
@@ -144,126 +61,189 @@ namespace LooCast.Observer
 
         private void UpdateProximalPositions()
         {
-            GetProximalPositions(out proximalRegionChunkPositions, out proximalSectorChunkPositions, out proximalFilamentChunkPositions, out proximalRegionPositions, out proximalSectorPositions, out proximalFilamentPositions);
-        }
-        
-        private void TranslateRegions(Vector2Int currentRegionPosition)
-        {
-            Vector2Int currentRegionPositionDifference = currentRegionPosition - currentRegionPositionOffset.VectorIntPosition;
-            int threshold = 1;
-            if (Mathf.Abs(currentRegionPositionDifference.x) > threshold || Mathf.Abs(currentRegionPositionDifference.y) > threshold)
-            {
-                int regionSize = currentUniverse.RegionGenerationSettings.Size;
-                currentRegionPositionOffset = new Universe.Region.Position(currentRegionPositionOffset.VectorIntPosition + currentRegionPositionDifference);
-                transform.Translate(-new Vector3(currentRegionPositionDifference.x * regionSize, currentRegionPositionDifference.y * regionSize));
-            }
-        }
-
-        private void GetProximalPositions(out List<Universe.Region.Chunk.Position> regionChunkPositions, out List<Universe.Sector.Chunk.Position> sectorChunkPositions, out List<Universe.Filament.Chunk.Position> filamentChunkPositions, out List<Universe.Region.Position> regionPositions, out List<Universe.Sector.Position> sectorPositions, out List<Universe.Filament.Position> filamentPositions)
-        {
-            Universe.Region.Chunk.Position currentRegionChunkPosition = new Universe.Region.Chunk.Position(transform.position);
-
-            regionChunkPositions = new List<Universe.Region.Chunk.Position>();
-            sectorChunkPositions = new List<Universe.Sector.Chunk.Position>();
-            filamentChunkPositions = new List<Universe.Filament.Chunk.Position>();
-            regionPositions = new List<Universe.Region.Position>();
-            sectorPositions = new List<Universe.Sector.Position>();
-            filamentPositions = new List<Universe.Filament.Position>();
-
-            #region DEV
-            /*
-            regionChunkPositions.Add(currentRegionChunkPosition);
-            sectorChunkPositions.Add(new Universe.Sector.Chunk.Position(currentUniverse, currentRegionChunkPosition.WorldPosition));
-            filamentChunkPositions.Add(new Universe.Filament.Chunk.Position(currentUniverse, currentRegionChunkPosition.WorldPosition));
-            regionPositions.Add(currentRegionChunkPosition.RegionPosition);
-            sectorPositions.Add(new Universe.Sector.Position(currentUniverse, currentRegionChunkPosition.WorldPosition));
-            filamentPositions.Add(new Universe.Filament.Position(currentUniverse, currentRegionChunkPosition.WorldPosition));
-
-            return;
-            */
-            #endregion
+            proximalRegionChunkPositions = new List<Universe.Region.Chunk.Position>();
+            proximalSectorChunkPositions = new List<Universe.Sector.Chunk.Position>();
+            proximalFilamentChunkPositions = new List<Universe.Filament.Chunk.Position>();
+            proximalRegionPositions = new List<Universe.Region.Position>();
+            proximalSectorPositions = new List<Universe.Sector.Position>();
+            proximalFilamentPositions = new List<Universe.Filament.Position>();
 
             Universe.Region.Chunk.Position screenRegionChunkPosMin = new Universe.Region.Chunk.Position((Vector2)Camera.main.ScreenToWorldPoint(new Vector2(0, 0)));
             screenRegionChunkPosMin = new Universe.Region.Chunk.Position(screenRegionChunkPosMin.VectorIntPosition - (Vector2Int.one * regionChunkLoadRadius));
             Universe.Region.Chunk.Position screenRegionChunkPosMax = new Universe.Region.Chunk.Position((Vector2)Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
             screenRegionChunkPosMax = new Universe.Region.Chunk.Position(screenRegionChunkPosMax.VectorIntPosition + (Vector2Int.one * regionChunkLoadRadius));
 
-            Benchmark.Start("Total");
+            Benchmark.Start("UpdateTotal");
             for (int x = screenRegionChunkPosMin.VectorIntPosition.x; x <= screenRegionChunkPosMax.VectorIntPosition.x; x++)
             {
-                Benchmark.Start("Row");
+                Benchmark.Start("UpdateRow");
                 for (int y = screenRegionChunkPosMin.VectorIntPosition.y; y <= screenRegionChunkPosMax.VectorIntPosition.y; y++)
                 {
-                    Benchmark.Start("Element");
-                    Benchmark.Start("RegionChunk");
+                    Benchmark.Start("UpdateElement");
+                    Benchmark.Start("UpdateRegionChunk");
                     Universe.Region.Chunk.Position regionChunkPosition = new Universe.Region.Chunk.Position(new Vector2Int(x, y));
-                    if (!regionChunkPositions.Contains(regionChunkPosition))
+                    if (!proximalRegionChunkPositions.Contains(regionChunkPosition))
                     {
-                        regionChunkPositions.Add(regionChunkPosition);
+                        proximalRegionChunkPositions.Add(regionChunkPosition);
                     }
-                    Benchmark.Stop("Element");
-                    Benchmark.Stop("RegionChunk");
+                    Benchmark.Stop("UpdateElement");
+                    Benchmark.Stop("UpdateRegionChunk");
 
-                    Benchmark.Start("Element");
-                    Benchmark.Start("SectorChunk");
+                    Benchmark.Start("UpdateElement");
+                    Benchmark.Start("UpdateSectorChunk");
                     Universe.Sector.Chunk.Position sectorChunkPosition = new Universe.Sector.Chunk.Position(regionChunkPosition.WorldPosition);
-                    if (!sectorChunkPositions.Contains(sectorChunkPosition))
+                    if (!proximalSectorChunkPositions.Contains(sectorChunkPosition))
                     {
-                        sectorChunkPositions.Add(sectorChunkPosition);
+                        proximalSectorChunkPositions.Add(sectorChunkPosition);
                     }
-                    Benchmark.Stop("Element");
-                    Benchmark.Stop("SectorChunk");
+                    Benchmark.Stop("UpdateElement");
+                    Benchmark.Stop("UpdateSectorChunk");
 
-                    Benchmark.Start("Element");
-                    Benchmark.Start("FilamentChunk");
+                    Benchmark.Start("UpdateElement");
+                    Benchmark.Start("UpdateFilamentChunk");
                     Universe.Filament.Chunk.Position filamentChunkPosition = new Universe.Filament.Chunk.Position(regionChunkPosition.WorldPosition);
-                    if (!filamentChunkPositions.Contains(filamentChunkPosition))
+                    if (!proximalFilamentChunkPositions.Contains(filamentChunkPosition))
                     {
-                        filamentChunkPositions.Add(filamentChunkPosition);
+                        proximalFilamentChunkPositions.Add(filamentChunkPosition);
                     }
-                    Benchmark.Stop("Element");
-                    Benchmark.Stop("FilamentChunk");
+                    Benchmark.Stop("UpdateElement");
+                    Benchmark.Stop("UpdateFilamentChunk");
 
-                    Benchmark.Start("Element");
-                    Benchmark.Start("Region");
+                    Benchmark.Start("UpdateElement");
+                    Benchmark.Start("UpdateRegion");
                     Universe.Region.Position regionPosition = new Universe.Region.Position(regionChunkPosition.WorldPosition);
-                    if (!regionPositions.Contains(regionPosition))
+                    if (!proximalRegionPositions.Contains(regionPosition))
                     {
-                        regionPositions.Add(regionPosition);
+                        proximalRegionPositions.Add(regionPosition);
                     }
-                    Benchmark.Stop("Element");
-                    Benchmark.Stop("Region");
+                    Benchmark.Stop("UpdateElement");
+                    Benchmark.Stop("UpdateRegion");
 
-                    Benchmark.Start("Element");
-                    Benchmark.Start("Sector");
+                    Benchmark.Start("UpdateElement");
+                    Benchmark.Start("UpdateSector");
                     Universe.Sector.Position sectorPosition = new Universe.Sector.Position(regionChunkPosition.WorldPosition);
-                    if (!sectorPositions.Contains(sectorPosition))
+                    if (!proximalSectorPositions.Contains(sectorPosition))
                     {
-                        sectorPositions.Add(sectorPosition);
+                        proximalSectorPositions.Add(sectorPosition);
                     }
-                    Benchmark.Stop("Element");
-                    Benchmark.Stop("Sector");
+                    Benchmark.Stop("UpdateElement");
+                    Benchmark.Stop("UpdateSector");
 
-                    Benchmark.Start("Element");
-                    Benchmark.Start("Filament");
+                    Benchmark.Start("UpdateElement");
+                    Benchmark.Start("UpdateFilament");
                     Universe.Filament.Position filamentPosition = new Universe.Filament.Position(regionChunkPosition.WorldPosition);
-                    if (!filamentPositions.Contains(filamentPosition))
+                    if (!proximalFilamentPositions.Contains(filamentPosition))
                     {
-                        filamentPositions.Add(filamentPosition);
+                        proximalFilamentPositions.Add(filamentPosition);
                     }
-                    Benchmark.Stop("Element");
-                    Benchmark.Stop("Filament");
+                    Benchmark.Stop("UpdateElement");
+                    Benchmark.Stop("UpdateFilament");
                 }
-                Benchmark.Stop("Row");
+                Benchmark.Stop("UpdateRow");
             }
-            Benchmark.Stop("Total");
+            Benchmark.Stop("UpdateTotal");
             
-            UnityEngine.Debug.Log($"\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("Region").Microseconds()}({Benchmark.MaxDuration("Region").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("RegionChunk").Microseconds()}({Benchmark.MaxDuration("RegionChunk").Microseconds()})µs");
-            UnityEngine.Debug.Log($"\t\t\t\tSector: \t\t{Benchmark.AverageDuration("Sector").Microseconds()}({Benchmark.MaxDuration("Sector").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("SectorChunk").Microseconds()}({Benchmark.MaxDuration("SectorChunk").Microseconds()})µs");
-            UnityEngine.Debug.Log($"\t\t\t\tFilament: \t{Benchmark.AverageDuration("Filament").Microseconds()}({Benchmark.MaxDuration("Filament").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("FilamentChunk").Microseconds()}({Benchmark.MaxDuration("FilamentChunk").Microseconds()})µs");
-            UnityEngine.Debug.Log($"\t\t\t\tElement: \t{Benchmark.AverageDuration("Element").Microseconds()}({Benchmark.MaxDuration("Element").Microseconds()})µs\t\t\tRow: \t{Benchmark.AverageDuration("Row").Microseconds()}({Benchmark.MaxDuration("Row").Microseconds()})µs\t\t\t Total: \t{Benchmark.AverageDuration("Total").Microseconds()}({Benchmark.MaxDuration("Total").Microseconds()})µs");
+            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("UpdateRegion").Microseconds()}({Benchmark.MaxDuration("UpdateRegion").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("UpdateRegionChunk").Microseconds()}({Benchmark.MaxDuration("UpdateRegionChunk").Microseconds()})µs");
+            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tSector: \t\t{Benchmark.AverageDuration("UpdateSector").Microseconds()}({Benchmark.MaxDuration("UpdateSector").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("UpdateSectorChunk").Microseconds()}({Benchmark.MaxDuration("UpdateSectorChunk").Microseconds()})µs");
+            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tFilament: \t{Benchmark.AverageDuration("UpdateFilament").Microseconds()}({Benchmark.MaxDuration("UpdateFilament").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("UpdateFilamentChunk").Microseconds()}({Benchmark.MaxDuration("UpdateFilamentChunk").Microseconds()})µs");
+            UnityEngine.Debug.Log($"POSITION UPDATE:\t\t\t\tElement: \t{Benchmark.AverageDuration("UpdateElement").Microseconds()}({Benchmark.MaxDuration("UpdateElement").Microseconds()})µs\t\t\tRow: \t{Benchmark.AverageDuration("UpdateRow").Microseconds()}({Benchmark.MaxDuration("UpdateRow").Microseconds()})µs\t\t\t Total: \t{Benchmark.AverageDuration("UpdateTotal").Microseconds()}({Benchmark.MaxDuration("UpdateTotal").Microseconds()})µs");
         }
         
+        private void LoadProximalPositions()
+        {
+            Benchmark.Start("LoadTotal");
+
+            Benchmark.Start("LoadFilament");
+            foreach (Universe.Filament.Position proximalFilamentPosition in proximalFilamentPositions)
+            {
+                if (!currentUniverse.IsFilamentGenerated(proximalFilamentPosition))
+                {
+                    currentUniverse.GenerateFilament(proximalFilamentPosition);
+                }
+                else if (!currentUniverse.IsFilamentLoaded(proximalFilamentPosition))
+                {
+                    currentUniverse.LoadFilament(proximalFilamentPosition);
+                }
+            }
+            Benchmark.Stop("LoadFilament");
+
+            Benchmark.Start("LoadFilamentChunk");
+            foreach (Universe.Filament.Chunk.Position proximalFilamentChunkPosition in proximalFilamentChunkPositions)
+            {
+                if (!currentUniverse.IsFilamentChunkGenerated(proximalFilamentChunkPosition))
+                {
+                    currentUniverse.GenerateFilamentChunk(proximalFilamentChunkPosition);
+                }
+                else if (!currentUniverse.IsFilamentChunkLoaded(proximalFilamentChunkPosition))
+                {
+                    currentUniverse.LoadFilamentChunk(proximalFilamentChunkPosition);
+                }
+            }
+            Benchmark.Stop("LoadFilamentChunk");
+
+            Benchmark.Start("LoadSector");
+            foreach (Universe.Sector.Position proximalSectorPosition in proximalSectorPositions)
+            {
+                if (!currentUniverse.IsSectorGenerated(proximalSectorPosition))
+                {
+                    currentUniverse.GenerateSector(proximalSectorPosition);
+                }
+                else if (!currentUniverse.IsSectorLoaded(proximalSectorPosition))
+                {
+                    currentUniverse.LoadSector(proximalSectorPosition);
+                }
+            }
+            Benchmark.Stop("LoadSector");
+
+            Benchmark.Start("LoadSectorChunk");
+            foreach (Universe.Sector.Chunk.Position proximalSectorChunkPosition in proximalSectorChunkPositions)
+            {
+                if (!currentUniverse.IsSectorChunkGenerated(proximalSectorChunkPosition))
+                {
+                    currentUniverse.GenerateSectorChunk(proximalSectorChunkPosition);
+                }
+                else if (!currentUniverse.IsSectorChunkLoaded(proximalSectorChunkPosition))
+                {
+                    currentUniverse.LoadSectorChunk(proximalSectorChunkPosition);
+                }
+            }
+            Benchmark.Stop("LoadSectorChunk");
+
+            Benchmark.Start("LoadRegion");
+            foreach (Universe.Region.Position proximalRegionPosition in proximalRegionPositions)
+            {
+                if (!currentUniverse.IsRegionGenerated(proximalRegionPosition))
+                {
+                    currentUniverse.GenerateRegion(proximalRegionPosition);
+                }
+                else if (!currentUniverse.IsRegionLoaded(proximalRegionPosition))
+                {
+                    currentUniverse.LoadRegion(proximalRegionPosition);
+                }
+            }
+            Benchmark.Stop("LoadRegion");
+
+            Benchmark.Start("LoadRegionChunk");
+            foreach (Universe.Region.Chunk.Position proximalRegionChunkPosition in proximalRegionChunkPositions)
+            {
+                if (!currentUniverse.IsRegionChunkGenerated(proximalRegionChunkPosition))
+                {
+                    currentUniverse.GenerateRegionChunk(proximalRegionChunkPosition);
+                }
+                else if (!currentUniverse.IsRegionChunkLoaded(proximalRegionChunkPosition))
+                {
+                    currentUniverse.LoadRegionChunk(proximalRegionChunkPosition);
+                }
+            }
+            Benchmark.Stop("LoadRegionChunk");
+
+            Benchmark.Stop("LoadTotal");
+
+            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("LoadRegion").Microseconds()}({Benchmark.MaxDuration("LoadRegion").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("LoadRegionChunk").Microseconds()}({Benchmark.MaxDuration("LoadRegionChunk").Microseconds()})µs");
+            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tSector: \t\t{Benchmark.AverageDuration("LoadSector").Microseconds()}({Benchmark.MaxDuration("LoadSector").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("LoadSectorChunk").Microseconds()}({Benchmark.MaxDuration("LoadSectorChunk").Microseconds()})µs");
+            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tFilament: \t{Benchmark.AverageDuration("LoadFilament").Microseconds()}({Benchmark.MaxDuration("LoadFilament").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("LoadFilamentChunk").Microseconds()}({Benchmark.MaxDuration("LoadFilamentChunk").Microseconds()})µs");
+        }
+
         private void DrawProximalPositionGizmos()
         {
             int regionSize = currentUniverse.RegionGenerationSettings.Size;
@@ -272,22 +252,6 @@ namespace LooCast.Observer
             int sectorChunkSize = currentUniverse.SectorGenerationSettings.ChunkSize;
             int filamentSize = currentUniverse.FilamentGenerationSettings.Size;
             int filamentChunkSize = currentUniverse.FilamentGenerationSettings.ChunkSize;
-
-            Universe.Region.Chunk.Position currentRegionChunkPosition = new Universe.Region.Chunk.Position(transform.position);
-            Universe.Region.Position currentRegionPosition = currentRegionChunkPosition.RegionPosition;
-            Universe.Sector.Chunk.Position currentSectorChunkPosition = new Universe.Sector.Chunk.Position(transform.position);
-            Universe.Sector.Position currentSectorPosition = currentSectorChunkPosition.SectorPosition;
-            Universe.Filament.Chunk.Position currentFilamentChunkPosition = new Universe.Filament.Chunk.Position(transform.position);
-            Universe.Filament.Position currentFilamentPosition = currentFilamentChunkPosition.FilamentPosition;
-
-            /*
-            UnityEngine.Debug.Log($"Region Chunk Pos: {currentRegionChunkPosition.VectorIntPosition}");
-            UnityEngine.Debug.Log($"Region Pos: {currentRegionPosition.VectorIntPosition}");
-            UnityEngine.Debug.Log($"Sector Chunk Pos: {currentSectorChunkPosition.VectorIntPosition}");
-            UnityEngine.Debug.Log($"Sector Pos: {currentSectorPosition.VectorIntPosition}");
-            UnityEngine.Debug.Log($"Filament Chunk Pos: {currentFilamentChunkPosition.VectorIntPosition}");
-            UnityEngine.Debug.Log($"Filament Pos: {currentFilamentPosition.VectorIntPosition}");
-            */
 
             // Region Chunk
             foreach (Universe.Region.Chunk.Position proximalRegionChunkPosition in proximalRegionChunkPositions)
