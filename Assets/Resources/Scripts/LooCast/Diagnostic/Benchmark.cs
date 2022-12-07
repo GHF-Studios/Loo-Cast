@@ -6,21 +6,11 @@ namespace LooCast.Diagnostic
 {
     public class Benchmark
     {
-        #region Properties
-        public string Name => name;
-        public TimeSpan LatestDuration => latestDuration;
-        public TimeSpan DurationSum => durationSum;
-        public TimeSpan AverageDuration => averageDuration;
-        public TimeSpan MaxDuration => maxDuration;
-        public TimeSpan MinDuration => minDuration;
-        #endregion
-
         #region Static Fields
         private static Dictionary<string, Benchmark> benchmarks = new Dictionary<string, Benchmark>();
         #endregion
 
         #region Fields
-        private string name;
         private int samples;
         private bool running;
         private DateTime startTime;
@@ -35,30 +25,38 @@ namespace LooCast.Diagnostic
         #region Constructors
         private Benchmark(string name)
         {
-            this.name = name;
             samples = 0;
             running = false;
         }
         #endregion
 
         #region Static Methods
-        public static Benchmark Create(string name)
+        public static void Create(string name)
         {
             if (benchmarks.ContainsKey(name))
             {
-                throw new Exception($"ID {name} already exists!");
+                throw new Exception($"Benchmark '{name}' already exists!");
             }
             
             Benchmark benchmark = new Benchmark(name);
             benchmarks.Add(name, benchmark);
-            return benchmark;
+        }
+
+        public static void Delete(string name)
+        {
+            if (!benchmarks.ContainsKey(name))
+            {
+                throw new Exception($"Benchmark '{name}' does not exist!");
+            }
+
+            benchmarks.Remove(name);
         }
 
         public static void Start(string name)
         {
             if (!benchmarks.ContainsKey(name))
             {
-                throw new Exception($"ID {name} does not exist!");
+                throw new Exception($"Benchmark '{name}' does not exist!");
             }
 
             benchmarks[name].Start();
@@ -68,10 +66,60 @@ namespace LooCast.Diagnostic
         {
             if (!benchmarks.ContainsKey(name))
             {
-                throw new Exception($"ID {name} does not exist!");
+                throw new Exception($"Benchmark '{name}' does not exist!");
             }
 
             benchmarks[name].Stop();
+        }
+
+        public static TimeSpan LatestDuration(string name)
+        {
+            if (!benchmarks.ContainsKey(name))
+            {
+                throw new Exception($"Benchmark '{name}' does not exist!");
+            }
+
+            return benchmarks[name].latestDuration;
+        }
+
+        public static TimeSpan DurationSum(string name)
+        {
+            if (!benchmarks.ContainsKey(name))
+            {
+                throw new Exception($"Benchmark '{name}' does not exist!");
+            }
+
+            return benchmarks[name].durationSum;
+        }
+
+        public static TimeSpan AverageDuration(string name)
+        {
+            if (!benchmarks.ContainsKey(name))
+            {
+                throw new Exception($"Benchmark '{name}' does not exist!");
+            }
+
+            return benchmarks[name].averageDuration;
+        }
+
+        public static TimeSpan MaxDuration(string name)
+        {
+            if (!benchmarks.ContainsKey(name))
+            {
+                throw new Exception($"Benchmark '{name}' does not exist!");
+            }
+
+            return benchmarks[name].maxDuration;
+        }
+
+        public static TimeSpan MinDuration(string name)
+        {
+            if (!benchmarks.ContainsKey(name))
+            {
+                throw new Exception($"Benchmark '{name}' does not exist!");
+            }
+
+            return benchmarks[name].minDuration;
         }
         #endregion
 
@@ -80,7 +128,7 @@ namespace LooCast.Diagnostic
         {
             if (running)
             {
-                throw new Exception("Benchmark is already started!");
+                throw new Exception($"Benchmark '{name}' is already started!");
             }
             
             running = true;
@@ -91,7 +139,7 @@ namespace LooCast.Diagnostic
         {
             if (!running)
             {
-                throw new Exception("Benchmark is already stopped!");
+                throw new Exception($"Benchmark '{name}' is already stopped!");
             }
 
             running = false;

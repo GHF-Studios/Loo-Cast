@@ -8,6 +8,7 @@ namespace LooCast.Observer
     using Core;
     using Game;
     using Universe;
+    using Diagnostic;
 
     public class UniverseObserver : ExtendedMonoBehaviour
     {
@@ -22,21 +23,21 @@ namespace LooCast.Observer
         private List<Universe.Sector.Position> proximalSectorPositions = new List<Universe.Sector.Position>();
         private List<Universe.Filament.Position> proximalFilamentPositions = new List<Universe.Filament.Position>();
 
-        private long maxTotalCalculationTime = 0;
-        private long maxAverageRowCalculationTime = 0;
-        private long maxRegionChunkCalculationTime = 0;
-        private long maxSectorChunkCalculationTime = 0;
-        private long maxFilamentChunkCalculationTime = 0;
-        private long maxRegionCalculationTime = 0;
-        private long maxSectorCalculationTime = 0;
-        private long maxFilamentCalculationTime = 0;
-        private long maxRowElementCalculationTime = 0;
-
         private void Start()
         {
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
             currentRegionPositionOffset = new Universe.Region.Position(currentUniverse, Vector2Int.zero);
             Stopwatch stopwatch = new Stopwatch();
+            
+            Benchmark.Create("Total");
+            Benchmark.Create("Row");
+            Benchmark.Create("Element");
+            Benchmark.Create("Region");
+            Benchmark.Create("Sector");
+            Benchmark.Create("Filament");
+            Benchmark.Create("RegionChunk");
+            Benchmark.Create("SectorChunk");
+            Benchmark.Create("FilamentChunk");
 
             UpdateProximalPositions();
 
@@ -186,139 +187,80 @@ namespace LooCast.Observer
             Universe.Region.Chunk.Position screenRegionChunkPosMax = new Universe.Region.Chunk.Position(currentUniverse, (Vector2)Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
             screenRegionChunkPosMax = new Universe.Region.Chunk.Position(currentUniverse, screenRegionChunkPosMax.VectorIntPosition + (Vector2Int.one * regionChunkLoadRadius));
 
-            int calculatedRows = 0;
-            long totalCalculationTime = 0;
-            long rowCalculationTime = 0;
-            long averageRowCalculationTime = 0;
-            long regionChunkCalculationTime = 0;
-            long sectorChunkCalculationTime = 0;
-            long filamentChunkCalculationTime = 0;
-            long regionCalculationTime = 0;
-            long sectorCalculationTime = 0;
-            long filamentCalculationTime = 0;
-            long rowElementCalculationTime = 0;
-            Stopwatch totalRowStopwatch = new Stopwatch();
-            Stopwatch rowStopwatch = new Stopwatch();
-            Stopwatch utilityStopwatch = new Stopwatch();
-
-            totalRowStopwatch.Start();
+            Benchmark.Start("Total");
             for (int x = screenRegionChunkPosMin.VectorIntPosition.x; x <= screenRegionChunkPosMax.VectorIntPosition.x; x++)
             {
-                rowStopwatch.Restart();
+                Benchmark.Start("Row");
                 for (int y = screenRegionChunkPosMin.VectorIntPosition.y; y <= screenRegionChunkPosMax.VectorIntPosition.y; y++)
                 {
-                    utilityStopwatch.Restart();
+                    Benchmark.Start("Element");
+                    Benchmark.Start("RegionChunk");
                     Universe.Region.Chunk.Position regionChunkPosition = new Universe.Region.Chunk.Position(currentUniverse, new Vector2Int(x, y));
                     if (!regionChunkPositions.Contains(regionChunkPosition))
                     {
                         regionChunkPositions.Add(regionChunkPosition);
                     }
-                    utilityStopwatch.Stop();
-                    regionChunkCalculationTime += utilityStopwatch.ElapsedMilliseconds;
-                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    Benchmark.Stop("Element");
+                    Benchmark.Stop("RegionChunk");
 
-                    utilityStopwatch.Restart();
+                    Benchmark.Start("Element");
+                    Benchmark.Start("SectorChunk");
                     Universe.Sector.Chunk.Position sectorChunkPosition = new Universe.Sector.Chunk.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!sectorChunkPositions.Contains(sectorChunkPosition))
                     {
                         sectorChunkPositions.Add(sectorChunkPosition);
                     }
-                    utilityStopwatch.Stop();
-                    sectorChunkCalculationTime += utilityStopwatch.ElapsedMilliseconds;
-                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    Benchmark.Stop("Element");
+                    Benchmark.Stop("SectorChunk");
 
-                    utilityStopwatch.Restart();
+                    Benchmark.Start("Element");
+                    Benchmark.Start("FilamentChunk");
                     Universe.Filament.Chunk.Position filamentChunkPosition = new Universe.Filament.Chunk.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!filamentChunkPositions.Contains(filamentChunkPosition))
                     {
                         filamentChunkPositions.Add(filamentChunkPosition);
                     }
-                    utilityStopwatch.Stop();
-                    filamentChunkCalculationTime += utilityStopwatch.ElapsedMilliseconds;
-                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    Benchmark.Stop("Element");
+                    Benchmark.Stop("FilamentChunk");
 
-                    utilityStopwatch.Restart();
+                    Benchmark.Start("Element");
+                    Benchmark.Start("Region");
                     Universe.Region.Position regionPosition = new Universe.Region.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!regionPositions.Contains(regionPosition))
                     {
                         regionPositions.Add(regionPosition);
                     }
-                    utilityStopwatch.Stop();
-                    regionCalculationTime += utilityStopwatch.ElapsedMilliseconds;
-                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    Benchmark.Stop("Element");
+                    Benchmark.Stop("Region");
 
-                    utilityStopwatch.Restart();
+                    Benchmark.Start("Element");
+                    Benchmark.Start("Sector");
                     Universe.Sector.Position sectorPosition = new Universe.Sector.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!sectorPositions.Contains(sectorPosition))
                     {
                         sectorPositions.Add(sectorPosition);
                     }
-                    utilityStopwatch.Stop();
-                    sectorCalculationTime += utilityStopwatch.ElapsedMilliseconds;
-                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
+                    Benchmark.Stop("Element");
+                    Benchmark.Stop("Sector");
 
-                    utilityStopwatch.Restart();
+                    Benchmark.Start("Element");
+                    Benchmark.Start("Filament");
                     Universe.Filament.Position filamentPosition = new Universe.Filament.Position(currentUniverse, regionChunkPosition.WorldPosition);
                     if (!filamentPositions.Contains(filamentPosition))
                     {
                         filamentPositions.Add(filamentPosition);
                     }
-                    utilityStopwatch.Stop();
-                    filamentCalculationTime += utilityStopwatch.ElapsedMilliseconds;
-                    rowElementCalculationTime += utilityStopwatch.ElapsedMilliseconds;
-
-                    if (maxAverageRowCalculationTime < rowCalculationTime)
-                    {
-                        maxAverageRowCalculationTime = rowCalculationTime;
-                    }
-                    if (maxRegionChunkCalculationTime < regionChunkCalculationTime)
-                    {
-                        maxRegionChunkCalculationTime = regionChunkCalculationTime;
-                    }
-                    if (maxSectorChunkCalculationTime < sectorChunkCalculationTime)
-                    {
-                        maxSectorChunkCalculationTime = sectorChunkCalculationTime;
-                    }
-                    if (maxFilamentChunkCalculationTime < filamentChunkCalculationTime)
-                    {
-                        maxFilamentChunkCalculationTime = filamentChunkCalculationTime;
-                    }
-                    if (maxRegionCalculationTime < regionCalculationTime)
-                    {
-                        maxRegionCalculationTime = regionCalculationTime;
-                    }
-                    if (maxSectorCalculationTime < sectorCalculationTime)
-                    {
-                        maxSectorCalculationTime = sectorCalculationTime;
-                    }
-                    if (maxFilamentCalculationTime < filamentCalculationTime)
-                    {
-                        maxFilamentCalculationTime = filamentCalculationTime;
-                    }
-                    if (maxRowElementCalculationTime < rowElementCalculationTime)
-                    {
-                        maxRowElementCalculationTime = rowElementCalculationTime;
-                    }
+                    Benchmark.Stop("Element");
+                    Benchmark.Stop("Filament");
                 }
-                rowStopwatch.Stop();
-                calculatedRows += 1;
-                rowCalculationTime += rowStopwatch.ElapsedMilliseconds;
+                Benchmark.Stop("Row");
             }
-            totalRowStopwatch.Stop();
-            totalCalculationTime = totalRowStopwatch.ElapsedMilliseconds;
-            averageRowCalculationTime = rowCalculationTime / calculatedRows;
-            if (maxTotalCalculationTime < totalCalculationTime)
-            {
-                maxTotalCalculationTime = totalCalculationTime;
-            }
-            if (maxAverageRowCalculationTime < averageRowCalculationTime)
-            {
-                maxAverageRowCalculationTime = averageRowCalculationTime;
-            }
-            UnityEngine.Debug.Log($"\t\t\t\tRegion: \t{maxRegionCalculationTime}({regionCalculationTime})ms\t\t\tChunk: \t{maxRegionChunkCalculationTime}({regionChunkCalculationTime})ms");
-            UnityEngine.Debug.Log($"\t\t\t\tSector: \t{maxSectorCalculationTime}({sectorCalculationTime})ms\t\t\tChunk: \t{maxSectorChunkCalculationTime}({sectorChunkCalculationTime})ms");
-            UnityEngine.Debug.Log($"\t\t\t\tFilament: {maxFilamentCalculationTime}({filamentCalculationTime})ms\t\tChunk: \t{maxFilamentChunkCalculationTime}({filamentChunkCalculationTime})ms");
-            UnityEngine.Debug.Log($"\t\t\t\tElement: {maxRowElementCalculationTime}({rowElementCalculationTime})ms\t\tRow: \t{maxAverageRowCalculationTime}({averageRowCalculationTime})ms\t\t Total: \t{maxTotalCalculationTime}({totalCalculationTime})ms");
+            Benchmark.Stop("Total");
+            
+            UnityEngine.Debug.Log($"\t\t\t\tRegion: \t{Benchmark.AverageDuration("Region")}({Benchmark.MaxDuration("Region")})ms\t\t\tChunk: \t{Benchmark.AverageDuration("RegionChunk")}({Benchmark.MaxDuration("RegionChunk")})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tSector: \t{Benchmark.AverageDuration("Sector")}({Benchmark.MaxDuration("Sector")})ms\t\t\tChunk: \t{Benchmark.AverageDuration("SectorChunk")}({Benchmark.MaxDuration("SectorChunk")})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tFilament: {Benchmark.AverageDuration("Filament")}({Benchmark.MaxDuration("Filament")})ms\t\tChunk: \t{Benchmark.AverageDuration("FilamentChunk")}({Benchmark.MaxDuration("FilamentChunk")})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tElement: {Benchmark.AverageDuration("Element")}({Benchmark.MaxDuration("Element")})ms\t\tRow: \t{Benchmark.AverageDuration("Row")}({Benchmark.MaxDuration("Row")})ms\t\t Total: \t{Benchmark.AverageDuration("Total")}({Benchmark.MaxDuration("Total")})ms");
         }
         
         private void DrawProximalPositionGizmos()
