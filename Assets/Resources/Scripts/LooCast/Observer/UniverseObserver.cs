@@ -38,6 +38,7 @@ namespace LooCast.Observer
             Benchmark.Create("UpdateRegionChunk");
             Benchmark.Create("UpdateSectorChunk");
             Benchmark.Create("UpdateFilamentChunk");
+            Benchmark.Create("LoadTotal");
             Benchmark.Create("LoadRegion");
             Benchmark.Create("LoadSector");
             Benchmark.Create("LoadFilament");
@@ -239,9 +240,9 @@ namespace LooCast.Observer
 
             Benchmark.Stop("LoadTotal");
 
-            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("LoadRegion").Microseconds()}({Benchmark.MaxDuration("LoadRegion").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("LoadRegionChunk").Microseconds()}({Benchmark.MaxDuration("LoadRegionChunk").Microseconds()})µs");
-            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tSector: \t\t{Benchmark.AverageDuration("LoadSector").Microseconds()}({Benchmark.MaxDuration("LoadSector").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("LoadSectorChunk").Microseconds()}({Benchmark.MaxDuration("LoadSectorChunk").Microseconds()})µs");
-            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tFilament: \t{Benchmark.AverageDuration("LoadFilament").Microseconds()}({Benchmark.MaxDuration("LoadFilament").Microseconds()})µs\t\t\tChunk: \t{Benchmark.AverageDuration("LoadFilamentChunk").Microseconds()}({Benchmark.MaxDuration("LoadFilamentChunk").Microseconds()})µs");
+            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("LoadRegion").Milliseconds}({Benchmark.MaxDuration("LoadRegion").Milliseconds})ms\t\t\tChunk: \t{Benchmark.AverageDuration("LoadRegionChunk").Milliseconds}({Benchmark.MaxDuration("LoadRegionChunk").Milliseconds})ms");
+            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tSector: \t\t{Benchmark.AverageDuration("LoadSector").Milliseconds}({Benchmark.MaxDuration("LoadSector").Milliseconds})ms\t\t\tChunk: \t{Benchmark.AverageDuration("LoadSectorChunk").Milliseconds}({Benchmark.MaxDuration("LoadSectorChunk").Milliseconds})ms");
+            UnityEngine.Debug.Log($"ELEMENT LOAD:\t\t\t\tFilament: \t{Benchmark.AverageDuration("LoadFilament").Milliseconds}({Benchmark.MaxDuration("LoadFilament").Milliseconds})ms\t\t\tChunk: \t{Benchmark.AverageDuration("LoadFilamentChunk").Milliseconds}({Benchmark.MaxDuration("LoadFilamentChunk").Milliseconds})ms");
         }
 
         private void DrawProximalPositionGizmos()
