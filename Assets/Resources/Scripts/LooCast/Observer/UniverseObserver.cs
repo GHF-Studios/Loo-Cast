@@ -257,10 +257,10 @@ namespace LooCast.Observer
             }
             Benchmark.Stop("Total");
             
-            UnityEngine.Debug.Log($"\t\t\t\tRegion: \t{Benchmark.AverageDuration("Region")}({Benchmark.MaxDuration("Region")})ms\t\t\tChunk: \t{Benchmark.AverageDuration("RegionChunk")}({Benchmark.MaxDuration("RegionChunk")})ms");
-            UnityEngine.Debug.Log($"\t\t\t\tSector: \t{Benchmark.AverageDuration("Sector")}({Benchmark.MaxDuration("Sector")})ms\t\t\tChunk: \t{Benchmark.AverageDuration("SectorChunk")}({Benchmark.MaxDuration("SectorChunk")})ms");
-            UnityEngine.Debug.Log($"\t\t\t\tFilament: {Benchmark.AverageDuration("Filament")}({Benchmark.MaxDuration("Filament")})ms\t\tChunk: \t{Benchmark.AverageDuration("FilamentChunk")}({Benchmark.MaxDuration("FilamentChunk")})ms");
-            UnityEngine.Debug.Log($"\t\t\t\tElement: {Benchmark.AverageDuration("Element")}({Benchmark.MaxDuration("Element")})ms\t\tRow: \t{Benchmark.AverageDuration("Row")}({Benchmark.MaxDuration("Row")})ms\t\t Total: \t{Benchmark.AverageDuration("Total")}({Benchmark.MaxDuration("Total")})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("Region").Milliseconds}({Benchmark.MaxDuration("Region").Milliseconds})ms\t\t\tChunk: \t{Benchmark.AverageDuration("RegionChunk").Milliseconds}({Benchmark.MaxDuration("RegionChunk").Milliseconds})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tSector: \t\t{Benchmark.AverageDuration("Sector").Milliseconds}({Benchmark.MaxDuration("Sector").Milliseconds})ms\t\t\tChunk: \t{Benchmark.AverageDuration("SectorChunk").Milliseconds}({Benchmark.MaxDuration("SectorChunk").Milliseconds})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tFilament: \t{Benchmark.AverageDuration("Filament").Milliseconds}({Benchmark.MaxDuration("Filament").Milliseconds})ms\t\t\tChunk: \t{Benchmark.AverageDuration("FilamentChunk").Milliseconds}({Benchmark.MaxDuration("FilamentChunk").Milliseconds})ms");
+            UnityEngine.Debug.Log($"\t\t\t\tElement: \t{Benchmark.AverageDuration("Element").Milliseconds}({Benchmark.MaxDuration("Element").Milliseconds})ms\t\t\tRow: \t{Benchmark.AverageDuration("Row").Milliseconds}({Benchmark.MaxDuration("Row").Milliseconds})ms\t\t\t Total: \t{Benchmark.AverageDuration("Total").Milliseconds}({Benchmark.MaxDuration("Total").Milliseconds})ms");
         }
         
         private void DrawProximalPositionGizmos()
