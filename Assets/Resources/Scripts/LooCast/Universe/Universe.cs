@@ -147,37 +147,97 @@ namespace LooCast.Universe
                 {
                     #region Properties
                     public Vector2Int VectorIntPosition => vectorIntPosition;
-                    public Filament.Position FilamentPosition => filamentPosition;
-                    public Vector2 WorldPosition => worldPosition;
+                    public Vector2 WorldPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                            int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                            Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                            return ((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorSize * filamentChunkSize;
+                        }
+                    }
+                    public Region.Position RegionPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                            int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                            Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                            return new Region.Position((vectorIntPosition.ToVector2() * regionSize) + regionOffset);
+                        }
+                    }
+                    public Sector.Position SectorPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                            int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                            Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                            return new Sector.Position(((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorSize);
+                        }
+                    }
+                    public Filament.Position FilamentPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                            int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                            Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                            return new Filament.Position((((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorSize) * filamentChunkSize);
+                        }
+                    }
+                    public Region.Chunk.Position RegionChunkPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                            int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                            Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                            return new Region.Chunk.Position(((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorSize * filamentChunkSize);
+                        }
+                    }
+                    public Sector.Chunk.Position SectorChunkPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                            int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                            Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                            return new Sector.Chunk.Position((((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorSize) * filamentChunkSize);
+                        }
+                    }
                     #endregion
 
                     #region Fields
                     [SerializeField] private Vector2Int vectorIntPosition;
-                    [SerializeField] private Filament.Position filamentPosition;
-                    [SerializeField] private Vector2 worldPosition;
                     #endregion
 
                     #region Constructors
-                    public Position(Universe universe, Vector2Int vectorIntPosition)
+                    public Position(Vector2Int vectorIntPosition)
                     {
-                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
-                        int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
-                        int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
-                        Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                         this.vectorIntPosition = vectorIntPosition;
-                        worldPosition = ((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorSize * filamentChunkSize;
-                        filamentPosition = new Filament.Position(universe, worldPosition);
                     }
 
-                    public Position(Universe universe, Vector2 worldPosition)
+                    public Position(Vector2 worldPosition)
                     {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
                         int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                         int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                         int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
-                        Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                         vectorIntPosition = (worldPosition / regionSize / sectorSize / filamentChunkSize).FloorToVector2Int();
-                        this.worldPosition = ((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorSize * filamentChunkSize;
-                        filamentPosition = new Filament.Position(universe, worldPosition);
                     }
                     #endregion
                 }
@@ -266,35 +326,90 @@ namespace LooCast.Universe
             {
                 #region Properties
                 public Vector2Int VectorIntPosition => vectorIntPosition;
-                public Vector2 WorldPosition => worldPosition;
+                public Vector2 WorldPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                        int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
+                        Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                        return ((vectorIntPosition * regionSize) + regionOffset) * sectorSize * filamentSize;
+                    }
+                }
+                public Region.Position RegionPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                        int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
+                        Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                        return new Region.Position(((vectorIntPosition * regionSize) + regionOffset) * sectorSize * filamentSize);
+                    }
+                }
+                public Sector.Position SectorPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                        int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
+                        Vector2 sectorOffset = new Vector2(sectorSize / 2.0f, sectorSize / 2.0f);
+                        return new Sector.Position((WorldPosition + sectorOffset) * filamentSize);
+                    }
+                }
+                public Region.Chunk.Position RegionChunkPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int chunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                        Vector2 chunkOffset = new Vector2(chunkSize / 2.0f, chunkSize / 2.0f);
+                        return new Region.Chunk.Position((WorldPosition + chunkOffset));
+                    }
+                }
+                public Sector.Chunk.Position SectorChunkPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int chunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                        Vector2 chunkOffset = new Vector2(chunkSize / 2.0f, chunkSize / 2.0f);
+                        return new Sector.Chunk.Position((WorldPosition + chunkOffset));
+                    }
+                }
+                public Filament.Chunk.Position FilamentChunkPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int chunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                        Vector2 chunkOffset = new Vector2(chunkSize / 2.0f, chunkSize / 2.0f);
+                        return new Filament.Chunk.Position((WorldPosition + chunkOffset));
+                    }
+                }
                 #endregion
 
                 #region Fields
                 [SerializeField] private Vector2Int vectorIntPosition;
-                [SerializeField] private Vector2 worldPosition;
                 #endregion
 
                 #region Constructor
-                public Position(Universe universe, Vector2Int vectorIntPosition)
+                public Position(Vector2Int vectorIntPosition)
                 {
-                    int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
-                    int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
-                    int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
-                    Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
-                    Vector2 sectorOffset = new Vector2(sectorSize / 2.0f, sectorSize / 2.0f);
-                    Vector2 filamentOffset = new Vector2(filamentSize / 2.0f, filamentSize / 2.0f);
                     this.vectorIntPosition = vectorIntPosition;
-                    worldPosition = ((vectorIntPosition * regionSize + regionOffset) * sectorSize + sectorOffset) * filamentSize + filamentOffset;
                 }
 
-                public Position(Universe universe, Vector2 worldPosition)
+                public Position(Vector2 worldPosition)
                 {
+                    Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                     int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                     int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
-                    Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                     vectorIntPosition = (worldPosition / regionSize / sectorSize / filamentSize).FloorToVector2Int();
-                    this.worldPosition = ((vectorIntPosition * regionSize) + regionOffset) * sectorSize * filamentSize;
                 }
                 #endregion
             }
@@ -420,35 +535,90 @@ namespace LooCast.Universe
                 {
                     #region Properties
                     public Vector2Int VectorIntPosition => vectorIntPosition;
-                    public Sector.Position SectorPosition => sectorPosition;
-                    public Vector2 WorldPosition => worldPosition;
+                    public Vector2 WorldPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                            Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                            return ((vectorIntPosition * regionSize) + regionOffset) * sectorChunkSize;
+                        }
+                    }
+                    public Region.Position RegionPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                            Vector2Int regionVectorIntPosition = (vectorIntPosition * regionSize) / sectorChunkSize;
+                            return new Region.Position(regionVectorIntPosition);
+                        }
+                    }
+                    public Sector.Position SectorPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                            Vector2Int sectorVectorIntPosition = (vectorIntPosition * regionSize) / (sectorChunkSize * regionSize);
+                            return new Sector.Position(sectorVectorIntPosition);
+                        }
+                    }
+                    public Filament.Position FilamentPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                            Vector2Int filamentVectorIntPosition = (vectorIntPosition * regionSize) / (sectorChunkSize * regionSize * regionSize);
+                            return new Filament.Position(filamentVectorIntPosition);
+                        }
+                    }
+                    public Region.Chunk.Position RegionChunkPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                            Vector2Int regionChunkVectorIntPosition = (vectorIntPosition * regionSize) / sectorChunkSize;
+                            return new Region.Chunk.Position(regionChunkVectorIntPosition);
+                        }
+                    }
+                    public Filament.Chunk.Position FilamentChunkPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                            int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                            Vector2Int filamentChunkVectorIntPosition = (vectorIntPosition * regionSize) / (sectorChunkSize * regionSize * regionSize);
+                            return new Filament.Chunk.Position(filamentChunkVectorIntPosition);
+                        }
+                    }
                     #endregion
 
                     #region Fields
                     [SerializeField] private Vector2Int vectorIntPosition;
-                    [SerializeField] private Sector.Position sectorPosition;
-                    [SerializeField] private Vector2 worldPosition;
                     #endregion
 
                     #region Constructors
-                    public Position(Universe universe, Vector2Int vectorIntPosition)
+                    public Position(Vector2Int vectorIntPosition)
                     {
-                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
-                        int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
-                        Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                         this.vectorIntPosition = vectorIntPosition;
-                        worldPosition = ((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorChunkSize;
-                        sectorPosition = new Sector.Position(universe, worldPosition);
                     }
 
-                    public Position(Universe universe, Vector2 worldPosition)
+                    public Position(Vector2 worldPosition)
                     {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
                         int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                         int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
-                        Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                         vectorIntPosition = (worldPosition / regionSize / sectorChunkSize).FloorToVector2Int();
-                        this.worldPosition = ((vectorIntPosition.ToVector2() * regionSize) + regionOffset) * sectorChunkSize;
-                        sectorPosition = new Sector.Position(universe, worldPosition);
                     }
                     #endregion
                 }
@@ -533,35 +703,83 @@ namespace LooCast.Universe
             {
                 #region Properties
                 public Vector2Int VectorIntPosition => vectorIntPosition;
-                public Filament.Position FilamentPosition => filamentPosition;
-                public Vector2 WorldPosition => worldPosition;
+                public Vector2 WorldPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                        Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                        return ((vectorIntPosition * regionSize) + regionOffset) * sectorSize;
+                    }
+                }
+                public Region.Position RegionPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        return new Region.Position(vectorIntPosition / regionSize);
+                    }
+                }
+                public Filament.Position FilamentPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                        return new Filament.Position((vectorIntPosition * regionSize) * sectorSize);
+                    }
+                }
+                public Region.Chunk.Position RegionChunkPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                        return new Region.Chunk.Position(vectorIntPosition / regionSize / sectorChunkSize);
+                    }
+                }
+                public Sector.Chunk.Position SectorChunkPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                        return new Sector.Chunk.Position(vectorIntPosition / sectorChunkSize);
+                    }
+                }
+                public Filament.Chunk.Position FilamentChunkPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                        int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                        return new Filament.Chunk.Position((vectorIntPosition * sectorSize) / sectorChunkSize);
+                    }
+                }
                 #endregion
 
                 #region Fields
                 [SerializeField] private Vector2Int vectorIntPosition;
-                [SerializeField] private Filament.Position filamentPosition;
-                [SerializeField] private Vector2 worldPosition;
                 #endregion
 
                 #region Constructors
-                public Position(Universe universe, Vector2Int vectorIntPosition)
+                public Position(Vector2Int vectorIntPosition)
                 {
-                    int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
-                    int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
-                    Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                     this.vectorIntPosition = vectorIntPosition;
-                    worldPosition = (((vectorIntPosition * regionSize) + regionOffset) * sectorSize);
-                    filamentPosition = new Filament.Position(universe, worldPosition);
                 }
 
-                public Position(Universe universe, Vector2 worldPosition)
+                public Position(Vector2 worldPosition)
                 {
+                    Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                     int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
-                    Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                     vectorIntPosition = (worldPosition / regionSize / sectorSize).FloorToVector2Int();
-                    this.worldPosition = ((vectorIntPosition * regionSize) + regionOffset) * sectorSize;
-                    filamentPosition = new Filament.Position(universe, worldPosition);
                 }
                 #endregion
             }
@@ -682,33 +900,86 @@ namespace LooCast.Universe
                 {
                     #region Properties
                     public Vector2Int VectorIntPosition => vectorIntPosition;
-                    public Region.Position RegionPosition => regionPosition;
-                    public Vector2 WorldPosition => worldPosition;
+                    public Vector2 WorldPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
+                            Vector2 regionChunkOffset = new Vector2(regionChunkSize / 2.0f, regionChunkSize / 2.0f);
+                            return (vectorIntPosition.ToVector2() * regionChunkSize) + regionChunkOffset;
+                        }
+                    }
+                    public Region.Position RegionPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
+                            return new Region.Position((vectorIntPosition.ToVector2() * regionChunkSize).FloorToVector2Int());
+                        }
+                    }
+                    public Sector.Position SectorPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
+                            int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                            Vector2 sectorChunkOffset = new Vector2(sectorChunkSize / 2.0f, sectorChunkSize / 2.0f);
+                            return new Sector.Position(((vectorIntPosition.ToVector2() * regionChunkSize) + sectorChunkOffset).FloorToVector2Int());
+                        }
+                    }
+                    public Filament.Position FilamentPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
+                            int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                            Vector2 filamentChunkOffset = new Vector2(filamentChunkSize / 2.0f, filamentChunkSize / 2.0f);
+                            return new Filament.Position(((vectorIntPosition.ToVector2() * regionChunkSize) + filamentChunkOffset).FloorToVector2Int());
+                        }
+                    }
+                    public Sector.Chunk.Position SectorChunkPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
+                            int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                            Vector2 sectorChunkOffset = new Vector2(sectorChunkSize / 2.0f, sectorChunkSize / 2.0f);
+                            return new Sector.Chunk.Position(((vectorIntPosition.ToVector2() * regionChunkSize) + sectorChunkOffset).FloorToVector2Int());
+                        }
+                    }
+                    public Filament.Chunk.Position FilamentChunkPosition
+                    {
+                        get
+                        {
+                            Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                            int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
+                            int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                            Vector2 filamentChunkOffset = new Vector2(filamentChunkSize / 2.0f, filamentChunkSize / 2.0f);
+                            return new Filament.Chunk.Position(((vectorIntPosition.ToVector2() * regionChunkSize) + filamentChunkOffset).FloorToVector2Int());
+                        }
+                    }
                     #endregion
 
                     #region Fields
                     [SerializeField] private Vector2Int vectorIntPosition;
-                    [SerializeField] private Region.Position regionPosition;
-                    [SerializeField] private Vector2 worldPosition;
                     #endregion
 
                     #region Constructors
-                    public Position(Universe universe, Vector2Int vectorIntPosition)
+                    public Position(Vector2Int vectorIntPosition)
                     {
-                        int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
-                        Vector2 regionChunkOffset = new Vector2(regionChunkSize / 2.0f, regionChunkSize / 2.0f);
                         this.vectorIntPosition = vectorIntPosition;
-                        worldPosition = (vectorIntPosition.ToVector2() * regionChunkSize) + regionChunkOffset;
-                        regionPosition = new Region.Position(universe, worldPosition);
                     }
 
-                    public Position(Universe universe, Vector2 worldPosition)
+                    public Position(Vector2 worldPosition)
                     {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
                         int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
-                        Vector2 regionChunkOffset = new Vector2(regionChunkSize / 2.0f, regionChunkSize / 2.0f);
                         vectorIntPosition = (worldPosition / regionChunkSize).FloorToVector2Int();
-                        this.worldPosition = (vectorIntPosition.ToVector2() * regionChunkSize) + regionChunkOffset;
-                        regionPosition = new Region.Position(universe, worldPosition);
                     }
                     #endregion
                 }
@@ -789,33 +1060,85 @@ namespace LooCast.Universe
             {
                 #region Properties
                 public Vector2Int VectorIntPosition => vectorIntPosition;
-                public Sector.Position SectorPosition => sectorPosition;
-                public Vector2 WorldPosition => worldPosition;
+                public Vector2 WorldPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
+                        return (vectorIntPosition * regionSize) + regionOffset;
+                    }
+                }
+                public Sector.Position SectorPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
+                        Vector2 sectorOffset = new Vector2(sectorSize / 2.0f, sectorSize / 2.0f);
+                        return new Sector.Position(((vectorIntPosition.ToVector2() * regionSize) + sectorOffset).FloorToVector2Int());
+                    }
+                }
+                public Filament.Position FilamentPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
+                        int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
+                        Vector2 filamentOffset = new Vector2(filamentSize / 2.0f, filamentSize / 2.0f);
+                        return new Filament.Position(((vectorIntPosition.ToVector2() * regionSize) + filamentOffset).FloorToVector2Int());
+                    }
+                }
+                public Region.Chunk.Position RegionChunkPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
+                        Vector2 regionChunkOffset = new Vector2(regionChunkSize / 2.0f, regionChunkSize / 2.0f);
+                        return new Region.Chunk.Position(((vectorIntPosition.ToVector2() * regionChunkSize) + regionChunkOffset).FloorToVector2Int());
+                    }
+                }
+                public Sector.Chunk.Position SectorChunkPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
+                        Vector2 sectorChunkOffset = new Vector2(sectorChunkSize / 2.0f, sectorChunkSize / 2.0f);
+                        return new Sector.Chunk.Position(((vectorIntPosition.ToVector2() * sectorChunkSize) + sectorChunkOffset).FloorToVector2Int());
+                    }
+                }
+                public Filament.Chunk.Position FilamentChunkPosition
+                {
+                    get
+                    {
+                        Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
+                        int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
+                        Vector2 filamentChunkOffset = new Vector2(filamentChunkSize / 2.0f, filamentChunkSize / 2.0f);
+                        return new Filament.Chunk.Position(((vectorIntPosition.ToVector2() * filamentChunkSize) + filamentChunkOffset).FloorToVector2Int());
+                    }
+                }
                 #endregion
 
                 #region Fields
                 [SerializeField] private Vector2Int vectorIntPosition;
-                [SerializeField] private Sector.Position sectorPosition;
-                [SerializeField] private Vector2 worldPosition;
                 #endregion
 
                 #region Constructors
-                public Position(Universe universe, Vector2Int vectorIntPosition)
+                public Position(Vector2Int vectorIntPosition)
                 {
-                    int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
-                    Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                     this.vectorIntPosition = vectorIntPosition;
-                    worldPosition = (vectorIntPosition * regionSize) + regionOffset;
-                    sectorPosition = new Sector.Position(universe, worldPosition);
                 }
 
-                public Position(Universe universe, Vector2 worldPosition)
+                public Position(Vector2 worldPosition)
                 {
+                    Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
-                    Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
                     vectorIntPosition = (worldPosition / regionSize).FloorToVector2Int();
-                    this.worldPosition = (vectorIntPosition * regionSize) + regionOffset;
-                    sectorPosition = new Sector.Position(universe, worldPosition);
                 }
                 #endregion
             }

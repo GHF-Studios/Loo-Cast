@@ -79,5 +79,10 @@ namespace LooCast.Util
         {
             return new Vector2Int(Mathf.RoundToInt(vector2.x), Mathf.RoundToInt(vector2.y));
         }
+
+        public static double Microseconds(this TimeSpan timeSpan)
+        {
+            return timeSpan.Ticks / 10;
+        }
     }
 }

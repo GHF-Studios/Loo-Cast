@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 
 namespace LooCast.Diagnostic
@@ -14,8 +15,7 @@ namespace LooCast.Diagnostic
         private string name;
         private int samples;
         private bool running;
-        private DateTime startTime;
-        private DateTime endTime;
+        private Stopwatch stopwatch;
         private TimeSpan latestDuration;
         private TimeSpan durationSum;
         private TimeSpan averageDuration;
@@ -29,6 +29,7 @@ namespace LooCast.Diagnostic
             this.name = name;
             samples = 0;
             running = false;
+            stopwatch = new Stopwatch();
         }
         #endregion
 
@@ -134,7 +135,7 @@ namespace LooCast.Diagnostic
             }
             
             running = true;
-            startTime = DateTime.Now;
+            stopwatch.Restart();
         }
 
         private void Stop()
@@ -145,9 +146,9 @@ namespace LooCast.Diagnostic
             }
 
             running = false;
-            endTime = DateTime.Now;
+            stopwatch.Stop();
             samples++;
-            latestDuration = endTime - startTime;
+            latestDuration = stopwatch.Elapsed;
             durationSum += latestDuration;
             averageDuration = durationSum / samples;
             if (maxDuration < latestDuration)
