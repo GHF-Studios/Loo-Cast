@@ -11,6 +11,7 @@ namespace LooCast.Diagnostic
         #endregion
 
         #region Fields
+        private string name;
         private int samples;
         private bool running;
         private DateTime startTime;
@@ -25,6 +26,7 @@ namespace LooCast.Diagnostic
         #region Constructors
         private Benchmark(string name)
         {
+            this.name = name;
             samples = 0;
             running = false;
         }
