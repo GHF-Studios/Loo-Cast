@@ -102,15 +102,15 @@ namespace LooCast.Observer
             }
 
             Universe.Region.Chunk.Position screenRegionChunkPosMin = new Universe.Region.Chunk.Position((Vector2)Camera.main.ScreenToWorldPoint(new Vector2(0, 0)));
-            screenRegionChunkPosMin = new Universe.Region.Chunk.Position(screenRegionChunkPosMin.VectorIntPosition - (Vector2Int.one * regionChunkLoadRadius));
+            screenRegionChunkPosMin = new Universe.Region.Chunk.Position(screenRegionChunkPosMin.ChunkPosition - (Vector2Int.one * regionChunkLoadRadius));
             Universe.Region.Chunk.Position screenRegionChunkPosMax = new Universe.Region.Chunk.Position((Vector2)Camera.main.ScreenToWorldPoint(new Vector2(Screen.width - 1, Screen.height - 1)));
-            screenRegionChunkPosMax = new Universe.Region.Chunk.Position(screenRegionChunkPosMax.VectorIntPosition + (Vector2Int.one * regionChunkLoadRadius));
+            screenRegionChunkPosMax = new Universe.Region.Chunk.Position(screenRegionChunkPosMax.ChunkPosition + (Vector2Int.one * regionChunkLoadRadius));
 
             Benchmark.Start("UpdatePositions");
-            int screenRegionChunkPosWidth = screenRegionChunkPosMax.VectorIntPosition.x - screenRegionChunkPosMin.VectorIntPosition.x;
-            Parallel.For(screenRegionChunkPosMin.VectorIntPosition.x, screenRegionChunkPosMax.VectorIntPosition.x + 1, (x) =>
+            int screenRegionChunkPosWidth = screenRegionChunkPosMax.ChunkPosition.x - screenRegionChunkPosMin.ChunkPosition.x;
+            Parallel.For(screenRegionChunkPosMin.ChunkPosition.x, screenRegionChunkPosMax.ChunkPosition.x + 1, (x) =>
             {
-                Parallel.For(screenRegionChunkPosMin.VectorIntPosition.y, screenRegionChunkPosMax.VectorIntPosition.y + 1, (y) =>
+                Parallel.For(screenRegionChunkPosMin.ChunkPosition.y, screenRegionChunkPosMax.ChunkPosition.y + 1, (y) =>
                 {
                     int threadID = screenRegionChunkPosWidth * y + x;
                     Benchmark.Start("UpdatePosition", threadID);
