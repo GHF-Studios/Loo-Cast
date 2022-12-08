@@ -83,6 +83,11 @@ namespace LooCast.Game
             Debug.Log($"[GameManager] Post-Initialized.");
         }
 
+        private void Update()
+        {
+            Universe.Filament.Chunk.ProcessDensityMapThreadInfoQueue();
+        }
+
         private void OnApplicationQuit()
         {
             runtimeSets.Initialize();

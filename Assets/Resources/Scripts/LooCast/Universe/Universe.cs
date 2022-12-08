@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System;
 using System.Linq;
-
+using System.Threading;
 namespace LooCast.Universe
 {
     using Core;
@@ -11,6 +11,7 @@ namespace LooCast.Universe
     using Util;
     using Util.Collections.Generic;
     using Random;
+    using System.Collections.Concurrent;
 
     [Serializable]
     public class Universe
@@ -151,6 +152,12 @@ namespace LooCast.Universe
                     Neutron,
                     AntiNeutron
                 }
+
+                public enum GenerationState
+                {
+                    Generating,
+                    Generated
+                }
                 #endregion
 
                 #region Structs
@@ -228,30 +235,71 @@ namespace LooCast.Universe
                     }
                     #endregion
                 }
+
+                [Serializable]
+                public struct DensityMap
+                {
+                    public SerializableDictionary<Vector2Int, float> DensityMapDictionary => densityMapDictionary;
+                    public DensityMapType DensityMapType => densityMapType;
+                    
+                    [SerializeField] private SerializableDictionary<Vector2Int, float> densityMapDictionary;
+                    [SerializeField] private DensityMapType densityMapType;
+
+                    public DensityMap(SerializableDictionary<Vector2Int, float> densityMapDictionary, DensityMapType densityMapType)
+                    {
+                        this.densityMapDictionary = densityMapDictionary;
+                        this.densityMapType = densityMapType;
+                    }
+                }
+                
+                private struct DensityMapThreadInfo
+                {
+                    public readonly Action<DensityMapCollection> Callback;
+                    public readonly DensityMapCollection DensityMaps;
+
+                    public DensityMapThreadInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
+                    {
+                        Callback = callback;
+                        DensityMaps = densityMaps;
+                    }
+                }
+                #endregion
+
+                #region Classes
+                [Serializable]
+                public class DensityMapCollection
+                {
+                    [SerializeField] public DensityMap ElectronDensityMap;
+                    [SerializeField] public DensityMap PositronDensityMap;
+                    [SerializeField] public DensityMap ProtonDensityMap;
+                    [SerializeField] public DensityMap AntiProtonDensityMap;
+                    [SerializeField] public DensityMap NeutronDensityMap;
+                    [SerializeField] public DensityMap AntiNeutronDensityMap;
+                    [SerializeField] public GenerationState GenerationState;
+
+                    public DensityMapCollection()
+                    {
+                        GenerationState = GenerationState.Generating;
+                    }
+                }
+                #endregion
+
+                #region Static Fields
+                private static Queue<DensityMapThreadInfo> densityMapThreadInfoQueue = new Queue<DensityMapThreadInfo>();
                 #endregion
 
                 #region Properties
                 public int ChunkSeed => chunkSeed;
                 public int Size => size;
                 public Position ChunkPosition => chunkPosition;
-                public SerializableDictionary<Vector2Int, float> ElectronDensityMap => electronDensityMap;
-                public SerializableDictionary<Vector2Int, float> PositronDensityMap => positronDensityMap;
-                public SerializableDictionary<Vector2Int, float> ProtonDensityMap => protonDensityMap;
-                public SerializableDictionary<Vector2Int, float> AntiProtonDensityMap => antiProtonDensityMap;
-                public SerializableDictionary<Vector2Int, float> NeutronDensityMap => neutronDensityMap;
-                public SerializableDictionary<Vector2Int, float> AntiNeutronDensityMap => antiNeutronDensityMap;
+                public DensityMapCollection DensityMaps => densityMaps;
                 #endregion
 
                 #region Fields
                 [SerializeField] private int chunkSeed;
                 [SerializeField] private int size;
                 [SerializeField] private Position chunkPosition;
-                [SerializeField] private SerializableDictionary<Vector2Int, float> electronDensityMap;
-                [SerializeField] private SerializableDictionary<Vector2Int, float> positronDensityMap;
-                [SerializeField] private SerializableDictionary<Vector2Int, float> protonDensityMap;
-                [SerializeField] private SerializableDictionary<Vector2Int, float> antiProtonDensityMap;
-                [SerializeField] private SerializableDictionary<Vector2Int, float> neutronDensityMap;
-                [SerializeField] private SerializableDictionary<Vector2Int, float> antiNeutronDensityMap;
+                [SerializeField] private DensityMapCollection densityMaps;
                 #endregion
 
                 #region Constructors
@@ -261,24 +309,67 @@ namespace LooCast.Universe
                     size = generationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
                     chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + filament.filamentPosition.VectorIntPosition.magnitude + chunkPosition.VectorIntPosition.magnitude)).Range(int.MinValue, int.MaxValue);
+                    densityMaps = new DensityMapCollection();
+                    RequestDensityMaps(universe, filament, OnDensityMapsReceived);
+                }
+                #endregion
 
-                    Filament.Position filamentPosition = filament.FilamentPosition;
-
-                    #region Electron Density Map Generation
-                    electronDensityMap = new SerializableDictionary<Vector2Int, float>();
-
-                    
-                    #endregion
+                #region Static Methods
+                public static void ProcessDensityMapThreadInfoQueue()
+                {
+                    while (densityMapThreadInfoQueue.Count > 0)
+                    {
+                        DensityMapThreadInfo threadInfo = densityMapThreadInfoQueue.Dequeue();
+                        threadInfo.Callback(threadInfo.DensityMaps);
+                    }
                 }
                 #endregion
 
                 #region Methods
-                public SerializableDictionary<Vector2Int, float> GenerateDensityMap(Universe universe, Filament filament, DensityMapType type)
+                private void RequestDensityMaps(Universe universe, Filament filament, Action<DensityMapCollection> callback)
                 {
-                    SerializableDictionary<Vector2Int, float> densityMap = new SerializableDictionary<Vector2Int, float>();
+                    ThreadStart threadStart = delegate
+                    {
+                        DensityMapGenerationThread(universe, filament, callback);
+                    };
+
+                    new Thread(threadStart).Start();
+                }
+
+                private void OnDensityMapsReceived(DensityMapCollection densityMaps)
+                {
+                    this.densityMaps.ElectronDensityMap = densityMaps.ElectronDensityMap;
+                    this.densityMaps.PositronDensityMap = densityMaps.PositronDensityMap;
+                    this.densityMaps.ProtonDensityMap = densityMaps.ProtonDensityMap;
+                    this.densityMaps.AntiProtonDensityMap = densityMaps.AntiProtonDensityMap;
+                    this.densityMaps.NeutronDensityMap = densityMaps.NeutronDensityMap;
+                    this.densityMaps.AntiNeutronDensityMap = densityMaps.AntiNeutronDensityMap;
+                    this.densityMaps.GenerationState = densityMaps.GenerationState;
+                }
+
+                private void DensityMapGenerationThread(Universe universe, Filament filament, Action<DensityMapCollection> callback)
+                {
+                    DensityMapCollection densityMaps = new DensityMapCollection();
+                    densityMaps.ElectronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Electron);
+                    densityMaps.PositronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Positron);
+                    densityMaps.ProtonDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Proton);
+                    densityMaps.AntiProtonDensityMap = GenerateDensityMap(universe, filament, DensityMapType.AntiProton);
+                    densityMaps.NeutronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Neutron);
+                    densityMaps.AntiNeutronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.AntiNeutron);
+                    densityMaps.GenerationState = GenerationState.Generated;
+                    
+                    lock (densityMapThreadInfoQueue)
+                    {
+                        densityMapThreadInfoQueue.Enqueue(new DensityMapThreadInfo(callback, densityMaps));
+                    }
+                }
+
+                private DensityMap GenerateDensityMap(Universe universe, Filament filament, DensityMapType densityMapType)
+                {
+                    SerializableDictionary<Vector2Int, float> densityMapDictionary = new SerializableDictionary<Vector2Int, float>();
                     GenerationSettings generationSettings = universe.FilamentGenerationSettings;
                     
-                    switch (type)
+                    switch (densityMapType)
                     {
                         case DensityMapType.Electron:
                             for (int y = 0; y < generationSettings.ChunkSize; y++)
@@ -312,7 +403,7 @@ namespace LooCast.Universe
                                     float totalElectronDensity = electronDensity * (1 + (generationSettings.UniverseNoiseInfluence * universeNoiseValue));
                                     #endregion
 
-                                    densityMap.Add(new Vector2Int(x, y), totalElectronDensity);
+                                    densityMapDictionary.Add(new Vector2Int(x, y), totalElectronDensity);
                                 }
                             }
                             break;
@@ -330,7 +421,7 @@ namespace LooCast.Universe
                             break;
                     }
 
-                    return densityMap;
+                    return new DensityMap(densityMapDictionary, densityMapType);
                 }
                 #endregion
             }
@@ -527,6 +618,16 @@ namespace LooCast.Universe
             [Serializable]
             public class Chunk
             {
+                #region Enums
+                public enum DensityMapType
+                {
+                    SolidParticle,
+                    LiquidParticle,
+                    GasParticle,
+                    PlasmaParticle
+                }
+                #endregion
+
                 #region Structs
                 [Serializable]
                 public struct Position
@@ -629,47 +730,65 @@ namespace LooCast.Universe
                     size = generationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
                     chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + sector.sectorPosition.VectorIntPosition.magnitude + chunkPosition.VectorIntPosition.magnitude)).Range(int.MinValue, int.MaxValue);
+                    solidParticleDensityMap = GenerateDensityMap(universe, sector, DensityMapType.SolidParticle);
+                }
+                #endregion
 
-                    Sector.Position sectorPosition = sector.SectorPosition;
+                #region Methods
+                private SerializableDictionary<Vector2Int, float> GenerateDensityMap(Universe universe, Sector sector, DensityMapType densityMapType)
+                {
+                    SerializableDictionary<Vector2Int, float> densityMap = new SerializableDictionary<Vector2Int, float>();
+                    GenerationSettings generationSettings = universe.SectorGenerationSettings;
 
-                    #region Solid Particle Density Map Generation
-                    solidParticleDensityMap = new SerializableDictionary<Vector2Int, float>();
-
-                    for (int y = 0; y < generationSettings.ChunkSize; y++)
+                    switch (densityMapType)
                     {
-                        for (int x = 0; x < generationSettings.ChunkSize; x++)
-                        {
-                            #region Sector Noise Sampling
-                            float sectorOffsetX = -((sectorPosition.VectorIntPosition.x * generationSettings.Size) + chunkPosition.VectorIntPosition.x * generationSettings.ChunkSize);
-                            float sectorOffsetY = -((sectorPosition.VectorIntPosition.y * generationSettings.Size) + chunkPosition.VectorIntPosition.y * generationSettings.ChunkSize);
+                        case DensityMapType.SolidParticle:
+                            for (int y = 0; y < generationSettings.ChunkSize; y++)
+                            {
+                                for (int x = 0; x < generationSettings.ChunkSize; x++)
+                                {
+                                    #region Sector Noise Sampling
+                                    float sectorOffsetX = -((sector.SectorPosition.VectorIntPosition.x * generationSettings.Size) + chunkPosition.VectorIntPosition.x * generationSettings.ChunkSize);
+                                    float sectorOffsetY = -((sector.SectorPosition.VectorIntPosition.y * generationSettings.Size) + chunkPosition.VectorIntPosition.y * generationSettings.ChunkSize);
 
-                            float sectorSampleX = x + sectorOffsetX;
-                            float sectorSampleY = y + sectorOffsetY;
+                                    float sectorSampleX = x + sectorOffsetX;
+                                    float sectorSampleY = y + sectorOffsetY;
 
-                            float solidParticleDensity = sector.SampleNoise(universe, sectorSampleX, sectorSampleY);
-                            // TODO: Sample all other density Maps, too
-                            #endregion
+                                    float solidParticleDensity = sector.SampleNoise(universe, sectorSampleX, sectorSampleY);
+                                    // TODO: Sample all other density Maps, too
+                                    #endregion
 
-                            #region Sector Noise Sampling
-                            float filamentOffsetX = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * x);
-                            float filamentOffsetY = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * y);
+                                    #region Sector Noise Sampling
+                                    float filamentOffsetX = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * x);
+                                    float filamentOffsetY = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * y);
 
-                            float filamentSampleX = sectorPosition.VectorIntPosition.x + filamentOffsetX;
-                            float filamentSampleY = sectorPosition.VectorIntPosition.y + filamentOffsetY;
+                                    float filamentSampleX = sector.SectorPosition.VectorIntPosition.x + filamentOffsetX;
+                                    float filamentSampleY = sector.SectorPosition.VectorIntPosition.y + filamentOffsetY;
 
-                            float filamentNoiseValue = universe.SampleNoise(filamentSampleX, filamentSampleY);
-                            // TODO: Sample all other density Maps, too
-                            #endregion
+                                    float filamentNoiseValue = universe.SampleNoise(filamentSampleX, filamentSampleY);
+                                    // TODO: Sample all other density Maps, too
+                                    #endregion
 
-                            #region Total Density Evaluation
-                            filamentNoiseValue = filamentNoiseValue.Map(0, 1, -1, 1);
-                            float totalSolidParticleDensity = solidParticleDensity * (1 + (generationSettings.FilamentNoiseInfluence * filamentNoiseValue));
-                            #endregion
+                                    #region Total Density Evaluation
+                                    filamentNoiseValue = filamentNoiseValue.Map(0, 1, -1, 1);
+                                    float totalSolidParticleDensity = solidParticleDensity * (1 + (generationSettings.FilamentNoiseInfluence * filamentNoiseValue));
+                                    #endregion
 
-                            solidParticleDensityMap.Add(new Vector2Int(x, y), totalSolidParticleDensity);
-                        }
+                                    densityMap.Add(new Vector2Int(x, y), totalSolidParticleDensity);
+                                }
+                            }
+                            break;
+                        case DensityMapType.LiquidParticle:
+                            break;
+                        case DensityMapType.GasParticle:
+                            break;
+                        case DensityMapType.PlasmaParticle:
+                            break;
+                        default:
+                            break;
                     }
-                    #endregion
+
+                    return densityMap;
                 }
                 #endregion
             }
@@ -859,6 +978,14 @@ namespace LooCast.Universe
             [Serializable]
             public class Chunk
             {
+                #region Enums
+                public enum DensityMapType
+                {
+                    Matter,
+                    AntiMatter
+                }
+                #endregion
+
                 #region Structs
                 [Serializable]
                 public struct Position
@@ -955,47 +1082,61 @@ namespace LooCast.Universe
                     size = generationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
                     chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + region.regionPosition.VectorIntPosition.magnitude + chunkPosition.VectorIntPosition.magnitude)).Range(int.MinValue, int.MaxValue);
+                    matterDensityMap = GenerateDensityMap(universe, region, DensityMapType.Matter);
+                }
+                #endregion
 
-                    Region.Position regionPosition = region.RegionPosition;
+                #region Methods
+                private SerializableDictionary<Vector2Int, float> GenerateDensityMap(Universe universe, Region region, DensityMapType densityMapType)
+                {
+                    SerializableDictionary<Vector2Int, float> densityMap = new SerializableDictionary<Vector2Int, float>();
+                    GenerationSettings generationSettings = universe.RegionGenerationSettings;
 
-                    #region Matter Density Map Generation
-                    matterDensityMap = new SerializableDictionary<Vector2Int, float>();
-
-                    for (int y = 0; y < generationSettings.ChunkSize; y++)
+                    switch (densityMapType)
                     {
-                        for (int x = 0; x < generationSettings.ChunkSize; x++)
-                        {
-                            #region Region Noise Sampling
-                            float regionOffsetX = -((regionPosition.VectorIntPosition.x * generationSettings.Size) + chunkPosition.VectorIntPosition.x * generationSettings.ChunkSize);
-                            float regionOffsetY = -((regionPosition.VectorIntPosition.y * generationSettings.Size) + chunkPosition.VectorIntPosition.y * generationSettings.ChunkSize);
+                        case DensityMapType.Matter:
+                            for (int y = 0; y < generationSettings.ChunkSize; y++)
+                            {
+                                for (int x = 0; x < generationSettings.ChunkSize; x++)
+                                {
+                                    #region Region Noise Sampling
+                                    float regionOffsetX = -((region.RegionPosition.VectorIntPosition.x * generationSettings.Size) + chunkPosition.VectorIntPosition.x * generationSettings.ChunkSize);
+                                    float regionOffsetY = -((region.RegionPosition.VectorIntPosition.y * generationSettings.Size) + chunkPosition.VectorIntPosition.y * generationSettings.ChunkSize);
 
-                            float regionSampleX = x + regionOffsetX;
-                            float regionSampleY = y + regionOffsetY;
+                                    float regionSampleX = x + regionOffsetX;
+                                    float regionSampleY = y + regionOffsetY;
 
-                            float matterDensity = region.SampleNoise(universe, regionSampleX, regionSampleY);
-                            // TODO: Sample all other density Maps, too
-                            #endregion
+                                    float matterDensity = region.SampleNoise(universe, regionSampleX, regionSampleY);
+                                    // TODO: Sample all other density Maps, too
+                                    #endregion
 
-                            #region Sector Noise Sampling
-                            float sectorOffsetX = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * x);
-                            float sectorOffsetY = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * y);
+                                    #region Sector Noise Sampling
+                                    float sectorOffsetX = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * x);
+                                    float sectorOffsetY = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * y);
 
-                            float sectorSampleX = regionPosition.VectorIntPosition.x + sectorOffsetX;
-                            float sectorSampleY = regionPosition.VectorIntPosition.y + sectorOffsetY;
+                                    float sectorSampleX = region.RegionPosition.VectorIntPosition.x + sectorOffsetX;
+                                    float sectorSampleY = region.RegionPosition.VectorIntPosition.y + sectorOffsetY;
 
-                            float sectorNoiseValue = universe.SampleNoise(sectorSampleX, sectorSampleY);
-                            // TODO: Sample all other density Maps, too
-                            #endregion
+                                    float sectorNoiseValue = universe.SampleNoise(sectorSampleX, sectorSampleY);
+                                    // TODO: Sample all other density Maps, too
+                                    #endregion
 
-                            #region Total Density Evaluation
-                            sectorNoiseValue = sectorNoiseValue.Map(0, 1, -1, 1);
-                            float totalMatterDensity = matterDensity * (1 + (generationSettings.SectorNoiseInfluence * sectorNoiseValue));
-                            #endregion
+                                    #region Total Density Evaluation
+                                    sectorNoiseValue = sectorNoiseValue.Map(0, 1, -1, 1);
+                                    float totalMatterDensity = matterDensity * (1 + (generationSettings.SectorNoiseInfluence * sectorNoiseValue));
+                                    #endregion
 
-                            matterDensityMap.Add(new Vector2Int(x, y), totalMatterDensity);
-                        }
+                                    densityMap.Add(new Vector2Int(x, y), totalMatterDensity);
+                                }
+                            }
+                            break;
+                        case DensityMapType.AntiMatter:
+                            break;
+                        default:
+                            break;
                     }
-                    #endregion
+
+                    return densityMap;
                 }
                 #endregion
             }
