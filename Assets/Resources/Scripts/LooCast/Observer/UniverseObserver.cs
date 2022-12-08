@@ -107,7 +107,7 @@ namespace LooCast.Observer
             screenRegionChunkPosMax = new Universe.Region.Chunk.Position(screenRegionChunkPosMax.VectorIntPosition + (Vector2Int.one * regionChunkLoadRadius));
 
             Benchmark.Start("UpdatePositions");
-            int screenRegionChunkPosWidth = (screenRegionChunkPosMax.VectorIntPosition.x - screenRegionChunkPosMin.VectorIntPosition.x);
+            int screenRegionChunkPosWidth = screenRegionChunkPosMax.VectorIntPosition.x - screenRegionChunkPosMin.VectorIntPosition.x;
             Parallel.For(screenRegionChunkPosMin.VectorIntPosition.x, screenRegionChunkPosMax.VectorIntPosition.x + 1, (x) =>
             {
                 Parallel.For(screenRegionChunkPosMin.VectorIntPosition.y, screenRegionChunkPosMax.VectorIntPosition.y + 1, (y) =>
@@ -240,7 +240,7 @@ namespace LooCast.Observer
             Benchmark.Start("LoadPositions");
 
             Benchmark.Start("LoadFilament");
-            Parallel.ForEach(proximalFilamentPositions, (proximalFilamentPositionKeyValuePair) =>
+            foreach (var proximalFilamentPositionKeyValuePair in proximalFilamentPositions)
             {
                 if (!currentUniverse.IsFilamentGenerated(proximalFilamentPositionKeyValuePair.Key))
                 {
@@ -250,11 +250,11 @@ namespace LooCast.Observer
                 {
                     currentUniverse.LoadFilament(proximalFilamentPositionKeyValuePair.Key);
                 }
-            });
+            }
             Benchmark.Stop("LoadFilament");
 
             Benchmark.Start("LoadFilamentChunk");
-            Parallel.ForEach(proximalFilamentChunkPositions, (proximalFilamentChunkPositionKeyValuePair) =>
+            foreach (var proximalFilamentChunkPositionKeyValuePair in proximalFilamentChunkPositions)
             {
                 if (!currentUniverse.IsFilamentChunkGenerated(proximalFilamentChunkPositionKeyValuePair.Key))
                 {
@@ -264,11 +264,11 @@ namespace LooCast.Observer
                 {
                     currentUniverse.LoadFilamentChunk(proximalFilamentChunkPositionKeyValuePair.Key);
                 }
-            });
+            }
             Benchmark.Stop("LoadFilamentChunk");
 
             Benchmark.Start("LoadSector");
-            Parallel.ForEach(proximalSectorPositions, (proximalSectorPositionKeyValuePair) =>
+            foreach (var proximalSectorPositionKeyValuePair in proximalSectorPositions)
             {
                 if (!currentUniverse.IsSectorGenerated(proximalSectorPositionKeyValuePair.Key))
                 {
@@ -278,11 +278,11 @@ namespace LooCast.Observer
                 {
                     currentUniverse.LoadSector(proximalSectorPositionKeyValuePair.Key);
                 }
-            });
+            }
             Benchmark.Stop("LoadSector");
 
             Benchmark.Start("LoadSectorChunk");
-            Parallel.ForEach(proximalSectorChunkPositions, (proximalSectorChunkPositionKeyValuePair) =>
+            foreach (var proximalSectorChunkPositionKeyValuePair in proximalSectorChunkPositions)
             {
                 if (!currentUniverse.IsSectorChunkGenerated(proximalSectorChunkPositionKeyValuePair.Key))
                 {
@@ -292,11 +292,11 @@ namespace LooCast.Observer
                 {
                     currentUniverse.LoadSectorChunk(proximalSectorChunkPositionKeyValuePair.Key);
                 }
-            });
+            }
             Benchmark.Stop("LoadSectorChunk");
 
             Benchmark.Start("LoadRegion");
-            Parallel.ForEach(proximalRegionPositions, (proximalRegionPositionKeyValuePair) =>
+            foreach (var proximalRegionPositionKeyValuePair in proximalRegionPositions)
             {
                 if (!currentUniverse.IsRegionGenerated(proximalRegionPositionKeyValuePair.Key))
                 {
@@ -306,11 +306,11 @@ namespace LooCast.Observer
                 {
                     currentUniverse.LoadRegion(proximalRegionPositionKeyValuePair.Key);
                 }
-            });
+            }
             Benchmark.Stop("LoadRegion");
 
             Benchmark.Start("LoadRegionChunk");
-            Parallel.ForEach(proximalRegionChunkPositions, (proximalRegionChunkPositionKeyValuePair) =>
+            foreach (var proximalRegionChunkPositionKeyValuePair in proximalRegionChunkPositions)
             {
                 if (!currentUniverse.IsRegionChunkGenerated(proximalRegionChunkPositionKeyValuePair.Key))
                 {
@@ -320,7 +320,7 @@ namespace LooCast.Observer
                 {
                     currentUniverse.LoadRegionChunk(proximalRegionChunkPositionKeyValuePair.Key);
                 }
-            });
+            }
             Benchmark.Stop("LoadRegionChunk");
 
             Benchmark.Stop("LoadPositions");

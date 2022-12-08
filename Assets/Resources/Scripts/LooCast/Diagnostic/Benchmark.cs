@@ -43,7 +43,7 @@ namespace LooCast.Diagnostic
 
         #region Fields
         [SerializeField] private string name;
-        [SerializeField] private int id;
+        [SerializeField] private int threadID;
         [SerializeField] private int samples;
         [SerializeField] private SerializableTimeSpan latestDurationSerializable;
         [SerializeField] private SerializableTimeSpan durationSumSerializable;
@@ -60,10 +60,10 @@ namespace LooCast.Diagnostic
         #endregion
 
         #region Constructors
-        private Benchmark(string name, int id)
+        private Benchmark(string name, int threadID)
         {
             this.name = name;
-            this.id = id;
+            this.threadID = threadID;
             samples = 0;
             running = false;
             stopwatch = new Stopwatch();
@@ -304,7 +304,7 @@ namespace LooCast.Diagnostic
         {
             if (running)
             {
-                throw new Exception($"Benchmark '{name}' is already started!");
+                Stop();
             }
             
             running = true;
@@ -315,7 +315,7 @@ namespace LooCast.Diagnostic
         {
             if (!running)
             {
-                throw new Exception($"Benchmark '{name}' is already stopped!");
+                Start();
             }
 
             running = false;
