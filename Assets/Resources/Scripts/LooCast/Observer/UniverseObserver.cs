@@ -37,7 +37,7 @@ namespace LooCast.Observer
         {
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
             regionChunkLoadRadius = 2;
-
+            
             Benchmark.Create("UpdatePositions");
             Benchmark.Create("UpdatePosition");
             Benchmark.Create("UpdateRegion");

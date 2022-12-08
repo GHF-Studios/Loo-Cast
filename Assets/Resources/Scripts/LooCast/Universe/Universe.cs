@@ -345,6 +345,7 @@ namespace LooCast.Universe
                     this.densityMaps.NeutronDensityMap = densityMaps.NeutronDensityMap;
                     this.densityMaps.AntiNeutronDensityMap = densityMaps.AntiNeutronDensityMap;
                     this.densityMaps.GenerationState = densityMaps.GenerationState;
+                    GameManager.Instance.CurrentGame.CurrentUniverse.SaveFilamentChunk(this);
                 }
 
                 private void DensityMapGenerationThread(Universe universe, Filament filament, Action<DensityMapCollection> callback)
