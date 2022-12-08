@@ -86,6 +86,8 @@ namespace LooCast.Game
         private void Update()
         {
             Universe.Filament.Chunk.ProcessDensityMapThreadInfoQueue();
+            Universe.Sector.Chunk.ProcessDensityMapThreadInfoQueue();
+            Universe.Region.Chunk.ProcessDensityMapThreadInfoQueue();
         }
 
         private void OnApplicationQuit()

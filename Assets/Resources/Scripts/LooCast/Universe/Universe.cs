@@ -326,50 +326,11 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Methods
-                private void RequestDensityMaps(Universe universe, Filament filament, Action<DensityMapCollection> callback)
-                {
-                    ThreadStart threadStart = delegate
-                    {
-                        DensityMapGenerationThread(universe, filament, callback);
-                    };
-
-                    new Thread(threadStart).Start();
-                }
-
-                private void OnDensityMapsReceived(DensityMapCollection densityMaps)
-                {
-                    this.densityMaps.ElectronDensityMap = densityMaps.ElectronDensityMap;
-                    this.densityMaps.PositronDensityMap = densityMaps.PositronDensityMap;
-                    this.densityMaps.ProtonDensityMap = densityMaps.ProtonDensityMap;
-                    this.densityMaps.AntiProtonDensityMap = densityMaps.AntiProtonDensityMap;
-                    this.densityMaps.NeutronDensityMap = densityMaps.NeutronDensityMap;
-                    this.densityMaps.AntiNeutronDensityMap = densityMaps.AntiNeutronDensityMap;
-                    this.densityMaps.GenerationState = densityMaps.GenerationState;
-                    GameManager.Instance.CurrentGame.CurrentUniverse.SaveFilamentChunk(this);
-                }
-
-                private void DensityMapGenerationThread(Universe universe, Filament filament, Action<DensityMapCollection> callback)
-                {
-                    DensityMapCollection densityMaps = new DensityMapCollection();
-                    densityMaps.ElectronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Electron);
-                    densityMaps.PositronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Positron);
-                    densityMaps.ProtonDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Proton);
-                    densityMaps.AntiProtonDensityMap = GenerateDensityMap(universe, filament, DensityMapType.AntiProton);
-                    densityMaps.NeutronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Neutron);
-                    densityMaps.AntiNeutronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.AntiNeutron);
-                    densityMaps.GenerationState = GenerationState.Generated;
-                    
-                    lock (densityMapThreadInfoQueue)
-                    {
-                        densityMapThreadInfoQueue.Enqueue(new DensityMapThreadInfo(callback, densityMaps));
-                    }
-                }
-
                 private DensityMap GenerateDensityMap(Universe universe, Filament filament, DensityMapType densityMapType)
                 {
                     SerializableDictionary<Vector2Int, float> densityMapDictionary = new SerializableDictionary<Vector2Int, float>();
                     GenerationSettings generationSettings = universe.FilamentGenerationSettings;
-                    
+
                     switch (densityMapType)
                     {
                         case DensityMapType.Electron:
@@ -423,6 +384,45 @@ namespace LooCast.Universe
                     }
 
                     return new DensityMap(densityMapDictionary, densityMapType);
+                }
+                
+                private void RequestDensityMaps(Universe universe, Filament filament, Action<DensityMapCollection> callback)
+                {
+                    ThreadStart threadStart = delegate
+                    {
+                        DensityMapGenerationThread(universe, filament, callback);
+                    };
+
+                    new Thread(threadStart).Start();
+                }
+
+                private void OnDensityMapsReceived(DensityMapCollection densityMaps)
+                {
+                    this.densityMaps.ElectronDensityMap = densityMaps.ElectronDensityMap;
+                    this.densityMaps.PositronDensityMap = densityMaps.PositronDensityMap;
+                    this.densityMaps.ProtonDensityMap = densityMaps.ProtonDensityMap;
+                    this.densityMaps.AntiProtonDensityMap = densityMaps.AntiProtonDensityMap;
+                    this.densityMaps.NeutronDensityMap = densityMaps.NeutronDensityMap;
+                    this.densityMaps.AntiNeutronDensityMap = densityMaps.AntiNeutronDensityMap;
+                    this.densityMaps.GenerationState = densityMaps.GenerationState;
+                    GameManager.Instance.CurrentGame.CurrentUniverse.SaveFilamentChunk(this);
+                }
+
+                private void DensityMapGenerationThread(Universe universe, Filament filament, Action<DensityMapCollection> callback)
+                {
+                    DensityMapCollection densityMaps = new DensityMapCollection();
+                    densityMaps.ElectronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Electron);
+                    densityMaps.PositronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Positron);
+                    densityMaps.ProtonDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Proton);
+                    densityMaps.AntiProtonDensityMap = GenerateDensityMap(universe, filament, DensityMapType.AntiProton);
+                    densityMaps.NeutronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.Neutron);
+                    densityMaps.AntiNeutronDensityMap = GenerateDensityMap(universe, filament, DensityMapType.AntiNeutron);
+                    densityMaps.GenerationState = GenerationState.Generated;
+                    
+                    lock (densityMapThreadInfoQueue)
+                    {
+                        densityMapThreadInfoQueue.Enqueue(new DensityMapThreadInfo(callback, densityMaps));
+                    }
                 }
                 #endregion
             }
@@ -785,10 +785,21 @@ namespace LooCast.Universe
                 }
                 #endregion
 
-                #region Methods
-                private SerializableDictionary<Vector2Int, float> GenerateDensityMap(Universe universe, Sector sector, DensityMapType densityMapType)
+                #region Static Methods
+                public static void ProcessDensityMapThreadInfoQueue()
                 {
-                    SerializableDictionary<Vector2Int, float> densityMap = new SerializableDictionary<Vector2Int, float>();
+                    while (densityMapThreadInfoQueue.Count > 0)
+                    {
+                        DensityMapThreadInfo threadInfo = densityMapThreadInfoQueue.Dequeue();
+                        threadInfo.Callback(threadInfo.DensityMaps);
+                    }
+                }
+                #endregion
+                
+                #region Methods
+                private DensityMap GenerateDensityMap(Universe universe, Sector sector, DensityMapType densityMapType)
+                {
+                    SerializableDictionary<Vector2Int, float> densityMapDictionary = new SerializableDictionary<Vector2Int, float>();
                     GenerationSettings generationSettings = universe.SectorGenerationSettings;
 
                     switch (densityMapType)
@@ -825,7 +836,7 @@ namespace LooCast.Universe
                                     float totalSolidParticleDensity = solidParticleDensity * (1 + (generationSettings.FilamentNoiseInfluence * filamentNoiseValue));
                                     #endregion
 
-                                    densityMap.Add(new Vector2Int(x, y), totalSolidParticleDensity);
+                                    densityMapDictionary.Add(new Vector2Int(x, y), totalSolidParticleDensity);
                                 }
                             }
                             break;
@@ -839,7 +850,42 @@ namespace LooCast.Universe
                             break;
                     }
 
-                    return densityMap;
+                    return new DensityMap(densityMapDictionary, densityMapType);
+                }
+
+                private void RequestDensityMaps(Universe universe, Sector sector, Action<DensityMapCollection> callback)
+                {
+                    ThreadStart threadStart = delegate
+                    {
+                        DensityMapGenerationThread(universe, sector, callback);
+                    };
+
+                    new Thread(threadStart).Start();
+                }
+
+                private void OnDensityMapsReceived(DensityMapCollection densityMaps)
+                {
+                    this.densityMaps.SolidParticleDensityMap = densityMaps.SolidParticleDensityMap;
+                    this.densityMaps.LiquidParticleDensityMap = densityMaps.LiquidParticleDensityMap;
+                    this.densityMaps.GasParticleDensityMap = densityMaps.GasParticleDensityMap;
+                    this.densityMaps.PlasmaParticleDensityMap = densityMaps.PlasmaParticleDensityMap;
+                    this.densityMaps.GenerationState = densityMaps.GenerationState;
+                    GameManager.Instance.CurrentGame.CurrentUniverse.SaveSectorChunk(this);
+                }
+
+                private void DensityMapGenerationThread(Universe universe, Sector sector, Action<DensityMapCollection> callback)
+                {
+                    DensityMapCollection densityMaps = new DensityMapCollection();
+                    densityMaps.SolidParticleDensityMap = GenerateDensityMap(universe, sector, DensityMapType.SolidParticle);
+                    densityMaps.LiquidParticleDensityMap = GenerateDensityMap(universe, sector, DensityMapType.LiquidParticle);
+                    densityMaps.GasParticleDensityMap = GenerateDensityMap(universe, sector, DensityMapType.GasParticle);
+                    densityMaps.PlasmaParticleDensityMap = GenerateDensityMap(universe, sector, DensityMapType.PlasmaParticle);
+                    densityMaps.GenerationState = GenerationState.Generated;
+
+                    lock (densityMapThreadInfoQueue)
+                    {
+                        densityMapThreadInfoQueue.Enqueue(new DensityMapThreadInfo(callback, densityMaps));
+                    }
                 }
                 #endregion
             }
@@ -1189,10 +1235,21 @@ namespace LooCast.Universe
                 }
                 #endregion
 
-                #region Methods
-                private SerializableDictionary<Vector2Int, float> GenerateDensityMap(Universe universe, Region region, DensityMapType densityMapType)
+                #region Static Methods
+                public static void ProcessDensityMapThreadInfoQueue()
                 {
-                    SerializableDictionary<Vector2Int, float> densityMap = new SerializableDictionary<Vector2Int, float>();
+                    while (densityMapThreadInfoQueue.Count > 0)
+                    {
+                        DensityMapThreadInfo threadInfo = densityMapThreadInfoQueue.Dequeue();
+                        threadInfo.Callback(threadInfo.DensityMaps);
+                    }
+                }
+                #endregion
+
+                #region Methods
+                private DensityMap GenerateDensityMap(Universe universe, Region region, DensityMapType densityMapType)
+                {
+                    SerializableDictionary<Vector2Int, float> densityMapDictionary = new SerializableDictionary<Vector2Int, float>();
                     GenerationSettings generationSettings = universe.RegionGenerationSettings;
 
                     switch (densityMapType)
@@ -1229,7 +1286,7 @@ namespace LooCast.Universe
                                     float totalMatterDensity = matterDensity * (1 + (generationSettings.SectorNoiseInfluence * sectorNoiseValue));
                                     #endregion
 
-                                    densityMap.Add(new Vector2Int(x, y), totalMatterDensity);
+                                    densityMapDictionary.Add(new Vector2Int(x, y), totalMatterDensity);
                                 }
                             }
                             break;
@@ -1239,7 +1296,38 @@ namespace LooCast.Universe
                             break;
                     }
 
-                    return densityMap;
+                    return new DensityMap(densityMapDictionary, densityMapType);
+                }
+
+                private void RequestDensityMaps(Universe universe, Region region, Action<DensityMapCollection> callback)
+                {
+                    ThreadStart threadStart = delegate
+                    {
+                        DensityMapGenerationThread(universe, region, callback);
+                    };
+
+                    new Thread(threadStart).Start();
+                }
+
+                private void OnDensityMapsReceived(DensityMapCollection densityMaps)
+                {
+                    this.densityMaps.MatterDensityMap = densityMaps.MatterDensityMap;
+                    this.densityMaps.AntiMatterDensityMap = densityMaps.AntiMatterDensityMap;
+                    this.densityMaps.GenerationState = densityMaps.GenerationState;
+                    GameManager.Instance.CurrentGame.CurrentUniverse.SaveRegionChunk(this);
+                }
+
+                private void DensityMapGenerationThread(Universe universe, Region region, Action<DensityMapCollection> callback)
+                {
+                    DensityMapCollection densityMaps = new DensityMapCollection();
+                    densityMaps.MatterDensityMap = GenerateDensityMap(universe, region, DensityMapType.Matter);
+                    densityMaps.AntiMatterDensityMap = GenerateDensityMap(universe, region, DensityMapType.AntiMatter);
+                    densityMaps.GenerationState = GenerationState.Generated;
+
+                    lock (densityMapThreadInfoQueue)
+                    {
+                        densityMapThreadInfoQueue.Enqueue(new DensityMapThreadInfo(callback, densityMaps));
+                    }
                 }
                 #endregion
             }
