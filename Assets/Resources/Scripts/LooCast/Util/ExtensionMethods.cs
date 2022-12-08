@@ -84,5 +84,20 @@ namespace LooCast.Util
         {
             return timeSpan.Ticks / 10;
         }
+
+        public static double Nanoseconds(this TimeSpan timeSpan)
+        {
+            return timeSpan.Ticks * 100;
+        }
+
+        public static double Pictoseconds(this TimeSpan timeSpan)
+        {
+            return timeSpan.Ticks * 100000;
+        }
+
+        public static double Femtoseconds(this TimeSpan timeSpan)
+        {
+            return timeSpan.Ticks * 100000000;
+        }
     }
 }

@@ -14,6 +14,10 @@ namespace LooCast.Game
 
         #endregion
 
+        #region Static Properties
+        private string applicationDataPath = Application.dataPath;
+        #endregion
+
         #region Properties
         public string Name
         {
@@ -33,7 +37,7 @@ namespace LooCast.Game
         {
             get
             {
-                return $"{Application.dataPath}/Data/Games/{name}";
+                return $"{applicationDataPath}/Data/Games/{name}";
             }
         }
         #endregion
