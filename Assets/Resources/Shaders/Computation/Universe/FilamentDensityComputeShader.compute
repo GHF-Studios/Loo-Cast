@@ -33,69 +33,69 @@ float Map(float value, float fromMin, float fromMax, float toMin, float toMax)
     return (value - fromMin) / (fromMax - fromMin) * (toMax - toMin) + toMin;
 }
 
-float ProcessElectronDensity(float electronDensity, float universeDensity)
+DensityData ProcessElectronDensity(DensityData electronDensity, DensityData universeDensity)
 {
-    electronDensity = Map(electronDensity, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
-    electronDensity = pow(electronDensity, filamentGenerationSettingsBuffer[0].Power);
-    electronDensity = electronDensity * filamentGenerationSettingsBuffer[0].Amplitude;
+    electronDensity.Value = Map(electronDensity.Value, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
+    electronDensity.Value = pow(electronDensity.Value, filamentGenerationSettingsBuffer[0].Power);
+    electronDensity.Value = electronDensity.Value * filamentGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    electronDensity = electronDensity * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity));
+    electronDensity.Value = electronDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity.Value));
     return electronDensity;
 }
 
-float ProcessPositronDensity(float positronDensity, float universeDensity)
+DensityData ProcessPositronDensity(DensityData positronDensity, DensityData universeDensity)
 {
-    positronDensity = Map(positronDensity, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
-    positronDensity = pow(positronDensity, filamentGenerationSettingsBuffer[0].Power);
-    positronDensity = positronDensity * filamentGenerationSettingsBuffer[0].Amplitude;
+    positronDensity.Value = Map(positronDensity.Value, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
+    positronDensity.Value = pow(positronDensity.Value, filamentGenerationSettingsBuffer[0].Power);
+    positronDensity.Value = positronDensity.Value * filamentGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    positronDensity = positronDensity * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity));
+    positronDensity.Value = positronDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity.Value));
     return positronDensity;
 }
 
-float ProcessProtonDensity(float protonDensity, float universeDensity)
+DensityData ProcessProtonDensity(DensityData protonDensity, DensityData universeDensity)
 {
-    protonDensity = Map(protonDensity, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
-    protonDensity = pow(protonDensity, filamentGenerationSettingsBuffer[0].Power);
-    protonDensity = protonDensity * filamentGenerationSettingsBuffer[0].Amplitude;
+    protonDensity.Value = Map(protonDensity.Value, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
+    protonDensity.Value = pow(protonDensity.Value, filamentGenerationSettingsBuffer[0].Power);
+    protonDensity.Value = protonDensity.Value * filamentGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    protonDensity = protonDensity * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity));
+    protonDensity.Value = protonDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity.Value));
     return protonDensity;
 }
 
-float ProcessAntiProtonDensity(float antiProtonDensity, float universeDensity)
+DensityData ProcessAntiProtonDensity(DensityData antiProtonDensity, DensityData universeDensity)
 {
-    antiProtonDensity = Map(antiProtonDensity, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
-    antiProtonDensity = pow(antiProtonDensity, filamentGenerationSettingsBuffer[0].Power);
-    antiProtonDensity = antiProtonDensity * filamentGenerationSettingsBuffer[0].Amplitude;
+    antiProtonDensity.Value = Map(antiProtonDensity.Value, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
+    antiProtonDensity.Value = pow(antiProtonDensity.Value, filamentGenerationSettingsBuffer[0].Power);
+    antiProtonDensity.Value = antiProtonDensity.Value * filamentGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    antiProtonDensity = antiProtonDensity * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity));
+    antiProtonDensity.Value = antiProtonDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity.Value));
     return antiProtonDensity;
 }
 
-float ProcessNeutronDensity(float neutronDensity, float universeDensity)
+DensityData ProcessNeutronDensity(DensityData neutronDensity, DensityData universeDensity)
 {
-    neutronDensity = Map(neutronDensity, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
-    neutronDensity = pow(neutronDensity, filamentGenerationSettingsBuffer[0].Power);
-    neutronDensity = neutronDensity * filamentGenerationSettingsBuffer[0].Amplitude;
+    neutronDensity.Value = Map(neutronDensity.Value, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
+    neutronDensity.Value = pow(neutronDensity.Value, filamentGenerationSettingsBuffer[0].Power);
+    neutronDensity.Value = neutronDensity.Value * filamentGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    neutronDensity = neutronDensity * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity));
+    neutronDensity.Value = neutronDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity.Value));
     return neutronDensity;
 }
 
-float ProcessAntiNeutronDensity(float antiNeutronDensity, float universeDensity)
+DensityData ProcessAntiNeutronDensity(DensityData antiNeutronDensity, DensityData universeDensity)
 {
-    antiNeutronDensity = Map(antiNeutronDensity, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
-    antiNeutronDensity = pow(antiNeutronDensity, filamentGenerationSettingsBuffer[0].Power);
-    antiNeutronDensity = antiNeutronDensity * filamentGenerationSettingsBuffer[0].Amplitude;
+    antiNeutronDensity.Value = Map(antiNeutronDensity.Value, filamentGenerationSettingsBuffer[0].MapFromMin, filamentGenerationSettingsBuffer[0].MapFromMax, filamentGenerationSettingsBuffer[0].MapToMin, filamentGenerationSettingsBuffer[0].MapToMax);
+    antiNeutronDensity.Value = pow(antiNeutronDensity.Value, filamentGenerationSettingsBuffer[0].Power);
+    antiNeutronDensity.Value = antiNeutronDensity.Value * filamentGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    antiNeutronDensity = antiNeutronDensity * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity));
+    antiNeutronDensity.Value = antiNeutronDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].UniverseNoiseInfluence * universeDensity.Value));
     return antiNeutronDensity;
 }
 

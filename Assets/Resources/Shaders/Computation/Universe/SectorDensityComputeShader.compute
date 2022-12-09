@@ -12,64 +12,71 @@ struct SectorGenerationSettings
     float Amplitude;
 };
 
+struct DensityData
+{
+    int XPosition;
+    int YPosition;
+    float Value;
+};
+
 RWStructuredBuffer<SectorGenerationSettings> sectorGenerationSettingsBuffer;
-RWStructuredBuffer<float> electronDensityMap;
-RWStructuredBuffer<float> positronDensityMap;
-RWStructuredBuffer<float> protonDensityMap;
-RWStructuredBuffer<float> antiProtonDensityMap;
-RWStructuredBuffer<float> neutronDensityMap;
-RWStructuredBuffer<float> antiNeutronDensityMap;
-RWStructuredBuffer<float> solidParticleDensityMap;
-RWStructuredBuffer<float> liquidParticleDensityMap;
-RWStructuredBuffer<float> gasParticleDensityMap;
-RWStructuredBuffer<float> plasmaParticleDensityMap;
+RWStructuredBuffer<DensityData> electronDensityMap;
+RWStructuredBuffer<DensityData> positronDensityMap;
+RWStructuredBuffer<DensityData> protonDensityMap;
+RWStructuredBuffer<DensityData> antiProtonDensityMap;
+RWStructuredBuffer<DensityData> neutronDensityMap;
+RWStructuredBuffer<DensityData> antiNeutronDensityMap;
+RWStructuredBuffer<DensityData> solidParticleDensityMap;
+RWStructuredBuffer<DensityData> liquidParticleDensityMap;
+RWStructuredBuffer<DensityData> gasParticleDensityMap;
+RWStructuredBuffer<DensityData> plasmaParticleDensityMap;
 
 float Map(float value, float fromMin, float fromMax, float toMin, float toMax)
 {
     return (value - fromMin) / (fromMax - fromMin) * (toMax - toMin) + toMin;
 }
 
-float ProcessSolidParticleDensity(float solidParticleDensity, float electronDensity, float positronDensity, float protonDensity, float antiProtonDensity, float neutronDensity, float antiNeutronDensity)
+DensityData ProcessSolidParticleDensity(DensityData solidParticleDensity, DensityData electronDensity, DensityData positronDensity, DensityData protonDensity, DensityData antiProtonDensity, DensityData neutronDensity, DensityData antiNeutronDensity)
 {
-    solidParticleDensity = Map(solidParticleDensity, sectorGenerationSettingsBuffer[0].MapFromMin, sectorGenerationSettingsBuffer[0].MapFromMax, sectorGenerationSettingsBuffer[0].MapToMin, sectorGenerationSettingsBuffer[0].MapToMax);
-    solidParticleDensity = pow(solidParticleDensity, sectorGenerationSettingsBuffer[0].Power);
-    solidParticleDensity = solidParticleDensity * sectorGenerationSettingsBuffer[0].Amplitude;
+    solidParticleDensity.Value = Map(solidParticleDensity.Value, sectorGenerationSettingsBuffer[0].MapFromMin, sectorGenerationSettingsBuffer[0].MapFromMax, sectorGenerationSettingsBuffer[0].MapToMin, sectorGenerationSettingsBuffer[0].MapToMax);
+    solidParticleDensity.Value = pow(solidParticleDensity.Value, sectorGenerationSettingsBuffer[0].Power);
+    solidParticleDensity.Value = solidParticleDensity.Value * sectorGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    solidParticleDensity = solidParticleDensity * (1 + (sectorGenerationSettingsBuffer[0].FilamentNoiseInfluence * electronDensity));
+    solidParticleDensity.Value = solidParticleDensity.Value * (1 + (sectorGenerationSettingsBuffer[0].FilamentNoiseInfluence * electronDensity.Value));
     return solidParticleDensity;
 }
 
-float ProcessLiquidParticleDensity(float liquidParticleDensity, float electronDensity, float positronDensity, float protonDensity, float antiProtonDensity, float neutronDensity, float antiNeutronDensity)
+DensityData ProcessLiquidParticleDensity(DensityData liquidParticleDensity, DensityData electronDensity, DensityData positronDensity, DensityData protonDensity, DensityData antiProtonDensity, DensityData neutronDensity, DensityData antiNeutronDensity)
 {
-    liquidParticleDensity = Map(liquidParticleDensity, sectorGenerationSettingsBuffer[0].MapFromMin, sectorGenerationSettingsBuffer[0].MapFromMax, sectorGenerationSettingsBuffer[0].MapToMin, sectorGenerationSettingsBuffer[0].MapToMax);
-    liquidParticleDensity = pow(liquidParticleDensity, sectorGenerationSettingsBuffer[0].Power);
-    liquidParticleDensity = liquidParticleDensity * sectorGenerationSettingsBuffer[0].Amplitude;
+    liquidParticleDensity.Value = Map(liquidParticleDensity.Value, sectorGenerationSettingsBuffer[0].MapFromMin, sectorGenerationSettingsBuffer[0].MapFromMax, sectorGenerationSettingsBuffer[0].MapToMin, sectorGenerationSettingsBuffer[0].MapToMax);
+    liquidParticleDensity.Value = pow(liquidParticleDensity.Value, sectorGenerationSettingsBuffer[0].Power);
+    liquidParticleDensity.Value = liquidParticleDensity.Value * sectorGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    liquidParticleDensity = liquidParticleDensity * (1 + (sectorGenerationSettingsBuffer[0].FilamentNoiseInfluence * electronDensity));
+    liquidParticleDensity.Value = liquidParticleDensity.Value * (1 + (sectorGenerationSettingsBuffer[0].FilamentNoiseInfluence * electronDensity.Value));
     return liquidParticleDensity;
 }
 
-float ProcessGasParticleDensity(float gasParticleDensity, float electronDensity, float positronDensity, float protonDensity, float antiProtonDensity, float neutronDensity, float antiNeutronDensity)
+DensityData ProcessGasParticleDensity(DensityData gasParticleDensity, DensityData electronDensity, DensityData positronDensity, DensityData protonDensity, DensityData antiProtonDensity, DensityData neutronDensity, DensityData antiNeutronDensity)
 {
-    gasParticleDensity = Map(gasParticleDensity, sectorGenerationSettingsBuffer[0].MapFromMin, sectorGenerationSettingsBuffer[0].MapFromMax, sectorGenerationSettingsBuffer[0].MapToMin, sectorGenerationSettingsBuffer[0].MapToMax);
-    gasParticleDensity = pow(gasParticleDensity, sectorGenerationSettingsBuffer[0].Power);
-    gasParticleDensity = gasParticleDensity * sectorGenerationSettingsBuffer[0].Amplitude;
+    gasParticleDensity.Value = Map(gasParticleDensity.Value, sectorGenerationSettingsBuffer[0].MapFromMin, sectorGenerationSettingsBuffer[0].MapFromMax, sectorGenerationSettingsBuffer[0].MapToMin, sectorGenerationSettingsBuffer[0].MapToMax);
+    gasParticleDensity.Value = pow(gasParticleDensity.Value, sectorGenerationSettingsBuffer[0].Power);
+    gasParticleDensity.Value = gasParticleDensity.Value * sectorGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    gasParticleDensity = gasParticleDensity * (1 + (sectorGenerationSettingsBuffer[0].FilamentNoiseInfluence * electronDensity));
+    gasParticleDensity.Value = gasParticleDensity.Value * (1 + (sectorGenerationSettingsBuffer[0].FilamentNoiseInfluence * electronDensity.Value));
     return gasParticleDensity;
 }
 
-float ProcessPlasmaParticleDensity(float plasmaParticleDensity, float electronDensity, float positronDensity, float protonDensity, float antiProtonDensity, float neutronDensity, float antiNeutronDensity)
+DensityData ProcessPlasmaParticleDensity(DensityData plasmaParticleDensity, DensityData electronDensity, DensityData positronDensity, DensityData protonDensity, DensityData antiProtonDensity, DensityData neutronDensity, DensityData antiNeutronDensity)
 {
-    plasmaParticleDensity = Map(plasmaParticleDensity, sectorGenerationSettingsBuffer[0].MapFromMin, sectorGenerationSettingsBuffer[0].MapFromMax, sectorGenerationSettingsBuffer[0].MapToMin, sectorGenerationSettingsBuffer[0].MapToMax);
-    plasmaParticleDensity = pow(plasmaParticleDensity, sectorGenerationSettingsBuffer[0].Power);
-    plasmaParticleDensity = plasmaParticleDensity * sectorGenerationSettingsBuffer[0].Amplitude;
+    plasmaParticleDensity.Value = Map(plasmaParticleDensity.Value, sectorGenerationSettingsBuffer[0].MapFromMin, sectorGenerationSettingsBuffer[0].MapFromMax, sectorGenerationSettingsBuffer[0].MapToMin, sectorGenerationSettingsBuffer[0].MapToMax);
+    plasmaParticleDensity.Value = pow(plasmaParticleDensity.Value, sectorGenerationSettingsBuffer[0].Power);
+    plasmaParticleDensity.Value = plasmaParticleDensity.Value * sectorGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    plasmaParticleDensity = plasmaParticleDensity * (1 + (sectorGenerationSettingsBuffer[0].FilamentNoiseInfluence * electronDensity));
+    plasmaParticleDensity.Value = plasmaParticleDensity.Value * (1 + (sectorGenerationSettingsBuffer[0].FilamentNoiseInfluence * electronDensity.Value));
     return plasmaParticleDensity;
 }
 

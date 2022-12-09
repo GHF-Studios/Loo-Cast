@@ -12,38 +12,45 @@ struct RegionGenerationSettings
     float Amplitude;
 };
 
+struct DensityData
+{
+    int XPosition;
+    int YPosition;
+    float Value;
+};
+
 RWStructuredBuffer<RegionGenerationSettings> regionGenerationSettingsBuffer;
-RWStructuredBuffer<float> solidParticleDensityMap;
-RWStructuredBuffer<float> liquidParticleDensityMap;
-RWStructuredBuffer<float> gasParticleDensityMap;
-RWStructuredBuffer<float> plasmaParticleDensityMap;
-RWStructuredBuffer<float> matterParticleDensityMap;
-RWStructuredBuffer<float> antiMatterParticleDensityMap;
+RWStructuredBuffer<DensityData> solidParticleDensityMap;
+RWStructuredBuffer<DensityData> liquidParticleDensityMap;
+RWStructuredBuffer<DensityData> gasParticleDensityMap;
+RWStructuredBuffer<DensityData> plasmaParticleDensityMap;
+RWStructuredBuffer<DensityData> matterParticleDensityMap;
+RWStructuredBuffer<DensityData> antiMatterParticleDensityMap;
 
 float Map(float value, float fromMin, float fromMax, float toMin, float toMax)
 {
     return (value - fromMin) / (fromMax - fromMin) * (toMax - toMin) + toMin;
 }
 
-float ProcessMatterDensity(float matterDensity, float solidParticleDensity, float liquidParticleDensity, float gasParticleDensity, float plasmaParticleDensity)
+DensityData ProcessMatterDensity(DensityData matterDensity, DensityData solidParticleDensity, DensityData liquidParticleDensity, DensityData gasParticleDensity, DensityData plasmaParticleDensity)
 {
-    matterDensity = Map(matterDensity, regionGenerationSettingsBuffer[0].MapFromMin, regionGenerationSettingsBuffer[0].MapFromMax, regionGenerationSettingsBuffer[0].MapToMin, regionGenerationSettingsBuffer[0].MapToMax);
-    matterDensity = pow(matterDensity, regionGenerationSettingsBuffer[0].Power);
-    matterDensity = matterDensity * regionGenerationSettingsBuffer[0].Amplitude;
+    matterDensity.Value = Map(matterDensity.Value, regionGenerationSettingsBuffer[0].MapFromMin, regionGenerationSettingsBuffer[0].MapFromMax, regionGenerationSettingsBuffer[0].MapToMin, regionGenerationSettingsBuffer[0].MapToMax);
+    matterDensity.Value = pow(matterDensity.Value, regionGenerationSettingsBuffer[0].Power);
+    matterDensity.Value = matterDensity.Value * regionGenerationSettingsBuffer[0].Amplitude;
 
     // TODO: Implement actual algorithm
-    matterDensity = matterDensity * (1 + (regionGenerationSettingsBuffer[0].SectorNoiseInfluence * solidParticleDensity));
+    matterDensity.Value = matterDensity.Value * (1 + (regionGenerationSettingsBuffer[0].SectorNoiseInfluence * solidParticleDensity.Value));
     return matterDensity;
 }
 
-float ProcessAntiMatterDensity(float antiMatterDensity, float solidParticleDensity, float liquidParticleDensity, float gasParticleDensity, float plasmaParticleDensity)
+DensityData ProcessAntiMatterDensity(DensityData antiMatterDensity, DensityData solidParticleDensity, DensityData liquidParticleDensity, DensityData gasParticleDensity, DensityData plasmaParticleDensity)
 {
-    antiMatterDensity = Map(antiMatterDensity, regionGenerationSettingsBuffer[0].MapFromMin, regionGenerationSettingsBuffer[0].MapFromMax, regionGenerationSettingsBuffer[0].MapToMin, regionGenerationSettingsBuffer[0].MapToMax);
-    antiMatterDensity = pow(antiMatterDensity, regionGenerationSettingsBuffer[0].Power);
-    antiMatterDensity = antiMatterDensity * regionGenerationSettingsBuffer[0].Amplitude;
+    antiMatterDensity.Value = Map(antiMatterDensity.Value, regionGenerationSettingsBuffer[0].MapFromMin, regionGenerationSettingsBuffer[0].MapFromMax, regionGenerationSettingsBuffer[0].MapToMin, regionGenerationSettingsBuffer[0].MapToMax);
+    antiMatterDensity.Value = pow(antiMatterDensity.Value, regionGenerationSettingsBuffer[0].Power);
+    antiMatterDensity.Value = antiMatterDensity.Value * regionGenerationSettingsBuffer[0].Amplitude;
     
     // TODO: Implement actual algorithm
-    antiMatterDensity = antiMatterDensity * (1 + (regionGenerationSettingsBuffer[0].SectorNoiseInfluence * solidParticleDensity));
+    antiMatterDensity.Value = antiMatterDensity.Value * (1 + (regionGenerationSettingsBuffer[0].SectorNoiseInfluence * solidParticleDensity.Value));
     return antiMatterDensity;
 }
 
