@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System;
@@ -11,12 +12,106 @@ namespace LooCast.Universe
     using Util;
     using Util.Collections.Generic;
     using Random;
-    using System.Collections.Concurrent;
 
     [Serializable]
     public class Universe
     {
         #region Classes
+        [Serializable]
+        public class ParallelizationUtil : MonoBehaviour
+        {
+            #region Structs
+            private struct FilamentDensityMapCoroutineInfo
+            {
+                public readonly Action<Filament.Chunk.DensityMapCollection> Callback;
+                public readonly Filament.Chunk.DensityMapCollection DensityMaps;
+
+                public FilamentDensityMapCoroutineInfo(Action<Filament.Chunk.DensityMapCollection> callback, Filament.Chunk.DensityMapCollection densityMaps)
+                {
+                    Callback = callback;
+                    DensityMaps = densityMaps;
+                }
+            }
+
+            private struct SectorDensityMapCoroutineInfo
+            {
+                public readonly Action<Sector.Chunk.DensityMapCollection> Callback;
+                public readonly Sector.Chunk.DensityMapCollection DensityMaps;
+
+                public SectorDensityMapCoroutineInfo(Action<Sector.Chunk.DensityMapCollection> callback, Sector.Chunk.DensityMapCollection densityMaps)
+                {
+                    Callback = callback;
+                    DensityMaps = densityMaps;
+                }
+            }
+
+            private struct RegionDensityMapCoroutineInfo
+            {
+                public readonly Action<Region.Chunk.DensityMapCollection> Callback;
+                public readonly Region.Chunk.DensityMapCollection DensityMaps;
+
+                public RegionDensityMapCoroutineInfo(Action<Region.Chunk.DensityMapCollection> callback, Region.Chunk.DensityMapCollection densityMaps)
+                {
+                    Callback = callback;
+                    DensityMaps = densityMaps;
+                }
+            }
+            #endregion
+
+            #region Static Fields
+            private static ParallelizationUtil instance;
+            private static Queue<FilamentDensityMapCoroutineInfo> filamentDensityMapCoroutineInfoQueue = new Queue<FilamentDensityMapCoroutineInfo>();
+            private static Queue<SectorDensityMapCoroutineInfo> sectorDensityMapCoroutineInfoQueue = new Queue<SectorDensityMapCoroutineInfo>();
+            private static Queue<RegionDensityMapCoroutineInfo> regionDensityMapCoroutineInfoQueue = new Queue<RegionDensityMapCoroutineInfo>();
+            #endregion
+
+            #region Fields
+            [SerializeField] private ComputeShader filamentDensityShader;
+            [SerializeField] private ComputeShader sectorDensityShader;
+            [SerializeField] private ComputeShader regionDensityShader;
+            #endregion
+
+            #region Static Methods
+            public static void InitializeInstance()
+            {
+                if (instance != null)
+                {
+                    throw new Exception("Cannot have multiple instances of Universe.ParallelizationUtil!");
+                }
+                GameObject instanceObject = new GameObject("[Universe.ParallelizationUtil]");
+                instanceObject.layer = 31;
+                instanceObject.tag = "INTERNAL";
+                instance = instanceObject.AddComponent<ParallelizationUtil>();
+                DontDestroyOnLoad(instance);
+                Debug.Log("[Universe.ParallelizationUtil] Initialized.");
+            }
+            #endregion
+
+            #region Static Methods
+            public static void RequestProcessedFilamentDensityMaps(Filament.Chunk.DensityMapCollection filamentDensityMaps, Action<Filament.Chunk.DensityMapCollection> callback)
+            {
+                if (instance == null)
+                {
+                    throw new Exception("Universe.ParallelizationUtil has not been initialized!");
+                }
+                
+                instance.StartCoroutine(instance.FilamentDensityMapsProcessingCoroutine(filamentDensityMaps, callback));
+            }
+            #endregion
+
+            #region Coroutines
+            private IEnumerator FilamentDensityMapsProcessingCoroutine(Filament.Chunk.DensityMapCollection filamentDensityMaps, Action<Filament.Chunk.DensityMapCollection> callback)
+            {
+                // Process the filamentDensityMaps
+
+                filamentDensityMapCoroutineInfoQueue.Enqueue(new FilamentDensityMapCoroutineInfo(callback, filamentDensityMaps));
+
+                yield return null;
+            }
+            #endregion
+        }
+
+        // TODO: Add a Universe.Transform to this class maybe?
         [Serializable]
         public class Object : ExtendedMonoBehaviour
         {
@@ -134,7 +229,6 @@ namespace LooCast.Universe
             #endregion
         }
 
-        // TODO: Add a Universe.Transform to this class maybe?
         [Serializable]
         public class Filament
         {
