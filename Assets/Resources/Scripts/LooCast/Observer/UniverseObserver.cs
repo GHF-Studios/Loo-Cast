@@ -62,11 +62,15 @@ namespace LooCast.Observer
 
         private void Update()
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
             UpdateProximalPositions();
             UpdatePreviouslyProximalPositions();
             LoadProximalPositions();
             UnloadPreviouslyProximalPositions();
-            PrintBenchmarks();
+            // PrintBenchmarks();
+            stopwatch.Stop();
+            UnityEngine.Debug.Log($"[UniverseObserver] Took {stopwatch.ElapsedMilliseconds}ms to update.");
         }
 
         private void OnDrawGizmos()

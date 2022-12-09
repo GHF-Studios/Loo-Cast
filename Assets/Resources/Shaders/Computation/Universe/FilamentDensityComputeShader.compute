@@ -99,7 +99,7 @@ DensityData ProcessAntiNeutronDensity(DensityData antiNeutronDensity, DensityDat
     return antiNeutronDensity;
 }
 
-[numthreads(32,32,1)]
+[numthreads(16,16,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     int x = id.x;

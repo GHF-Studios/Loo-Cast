@@ -5,6 +5,7 @@ using System.IO;
 using System;
 using System.Linq;
 using System.Threading;
+
 namespace LooCast.Universe
 {
     using Core;
@@ -294,11 +295,11 @@ namespace LooCast.Universe
                 DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.NeutronDensityMap.DensityMapDictionary.EntryArray.Length];
                 DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.AntiNeutronDensityMap.DensityMapDictionary.EntryArray.Length];
 
-                for (int x = 0; x < filamentGenerationSettings.Size; x++)
+                for (int x = 0; x < filamentGenerationSettings.ChunkSize; x++)
                 {
-                    for (int y = 0; y < filamentGenerationSettings.Size; y++)
+                    for (int y = 0; y < filamentGenerationSettings.ChunkSize; y++)
                     {
-                        int index = x * filamentGenerationSettings.Size + y;
+                        int index = x * filamentGenerationSettings.ChunkSize + y;
                         universeDensitiesData[index] = new DensityDataGPU(x, y, universeDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
                         electronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.ElectronDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
                         positronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.PositronDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
@@ -335,7 +336,7 @@ namespace LooCast.Universe
                 filamentDensityShader.SetBuffer(0, "neutronDensityMap", neutronDensityBuffer);
                 filamentDensityShader.SetBuffer(0, "antiNeutronDensityMap", antiNeutronDensityBuffer);
                 
-                filamentDensityShader.Dispatch(0, filamentGenerationSettings.ChunkSize / 32, filamentGenerationSettings.ChunkSize / 32, 1);
+                filamentDensityShader.Dispatch(0, filamentGenerationSettings.ChunkSize, filamentGenerationSettings.ChunkSize, 1);
 
                 electronDensityBuffer.GetData(electronDensitiesData);
                 positronDensityBuffer.GetData(positronDensitiesData);
@@ -351,11 +352,11 @@ namespace LooCast.Universe
                 SerializableDictionary<Vector2Int, float> neutronDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
                 SerializableDictionary<Vector2Int, float> antiNeutronDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
 
-                for (int x = 0; x < filamentGenerationSettings.Size; x++)
+                for (int x = 0; x < filamentGenerationSettings.ChunkSize; x++)
                 {
-                    for (int y = 0; y < filamentGenerationSettings.Size; y++)
+                    for (int y = 0; y < filamentGenerationSettings.ChunkSize; y++)
                     {
-                        int index = x * filamentGenerationSettings.Size + y;
+                        int index = x * filamentGenerationSettings.ChunkSize + y;
                         electronDensityMapDictionary.Add(new Vector2Int(x, y), electronDensitiesData[index].Value);
                         positronDensityMapDictionary.Add(new Vector2Int(x, y), positronDensitiesData[index].Value);
                         protonDensityMapDictionary.Add(new Vector2Int(x, y), protonDensitiesData[index].Value);
@@ -402,11 +403,11 @@ namespace LooCast.Universe
                 DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.NeutronDensityMap.DensityMapDictionary.EntryArray.Length];
                 DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.AntiNeutronDensityMap.DensityMapDictionary.EntryArray.Length];
 
-                for (int x = 0; x < sectorGenerationSettings.Size; x++)
+                for (int x = 0; x < sectorGenerationSettings.ChunkSize; x++)
                 {
-                    for (int y = 0; y < sectorGenerationSettings.Size; y++)
+                    for (int y = 0; y < sectorGenerationSettings.ChunkSize; y++)
                     {
-                        int index = x * sectorGenerationSettings.Size + y;
+                        int index = x * sectorGenerationSettings.ChunkSize + y;
                         solidParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.SolidParticleDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
                         liquidParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.LiquidParticleDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
                         gasParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.GasParticleDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
@@ -443,6 +444,7 @@ namespace LooCast.Universe
                 ComputeBuffer antiNeutronDensityBuffer = new ComputeBuffer(antiNeutronDensitiesData.Length, DensityDataGPU.ByteSize);
                 antiNeutronDensityBuffer.SetData(antiNeutronDensitiesData);
                 
+                sectorDensityShader.SetBuffer(0, "sectorGenerationSettingsBuffer", sectorGenerationSettingsBuffer);
                 sectorDensityShader.SetBuffer(0, "solidParticleDensityMap", solidParticleDensityBuffer);
                 sectorDensityShader.SetBuffer(0, "liquidParticleDensityMap", liquidParticleDensityBuffer);
                 sectorDensityShader.SetBuffer(0, "gasParticleDensityMap", gasParticleDensityBuffer);
@@ -454,7 +456,7 @@ namespace LooCast.Universe
                 sectorDensityShader.SetBuffer(0, "neutronDensityMap", neutronDensityBuffer);
                 sectorDensityShader.SetBuffer(0, "antiNeutronDensityMap", antiNeutronDensityBuffer);
 
-                sectorDensityShader.Dispatch(0, sectorGenerationSettings.ChunkSize / 32, sectorGenerationSettings.ChunkSize / 32, 1);
+                sectorDensityShader.Dispatch(0, sectorGenerationSettings.ChunkSize, sectorGenerationSettings.ChunkSize, 1);
 
                 solidParticleDensityBuffer.GetData(electronDensitiesData);
                 liquidParticleDensityBuffer.GetData(positronDensitiesData);
@@ -466,11 +468,11 @@ namespace LooCast.Universe
                 SerializableDictionary<Vector2Int, float> gasParticleDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
                 SerializableDictionary<Vector2Int, float> plasmaParticleDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
 
-                for (int x = 0; x < sectorGenerationSettings.Size; x++)
+                for (int x = 0; x < sectorGenerationSettings.ChunkSize; x++)
                 {
-                    for (int y = 0; y < sectorGenerationSettings.Size; y++)
+                    for (int y = 0; y < sectorGenerationSettings.ChunkSize; y++)
                     {
-                        int index = x * sectorGenerationSettings.Size + y;
+                        int index = x * sectorGenerationSettings.ChunkSize + y;
                         solidParticleDensityMapDictionary.Add(new Vector2Int(x, y), solidParticleDensitiesData[index].Value);
                         liquidParticleDensityMapDictionary.Add(new Vector2Int(x, y), liquidParticleDensitiesData[index].Value);
                         gasParticleDensityMapDictionary.Add(new Vector2Int(x, y), gasParticleDensitiesData[index].Value);
@@ -512,11 +514,11 @@ namespace LooCast.Universe
                 DensityDataGPU[] gasParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.GasParticleDensityMap.DensityMapDictionary.EntryArray.Length];
                 DensityDataGPU[] plasmaParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.PlasmaParticleDensityMap.DensityMapDictionary.EntryArray.Length];
 
-                for (int x = 0; x < regionGenerationSettings.Size; x++)
+                for (int x = 0; x < regionGenerationSettings.ChunkSize; x++)
                 {
-                    for (int y = 0; y < regionGenerationSettings.Size; y++)
+                    for (int y = 0; y < regionGenerationSettings.ChunkSize; y++)
                     {
-                        int index = x * regionGenerationSettings.Size + y;
+                        int index = x * regionGenerationSettings.ChunkSize + y;
                         matterParticleDensitiesData[index] = new DensityDataGPU(x, y, regionDensityMaps.MatterDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
                         antiMatterParticleDensitiesData[index] = new DensityDataGPU(x, y, regionDensityMaps.AntiMatterDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
                         solidParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.SolidParticleDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
@@ -541,6 +543,7 @@ namespace LooCast.Universe
                 ComputeBuffer plasmaParticleDensityBuffer = new ComputeBuffer(plasmaParticleDensitiesData.Length, DensityDataGPU.ByteSize);
                 plasmaParticleDensityBuffer.SetData(plasmaParticleDensitiesData);
 
+                regionDensityShader.SetBuffer(0, "regionGenerationSettingsBuffer", regionGenerationSettingsBuffer);
                 regionDensityShader.SetBuffer(0, "solidParticleDensityMap", solidParticleDensityBuffer);
                 regionDensityShader.SetBuffer(0, "liquidParticleDensityMap", liquidParticleDensityBuffer);
                 regionDensityShader.SetBuffer(0, "gasParticleDensityMap", gasParticleDensityBuffer);
@@ -548,7 +551,7 @@ namespace LooCast.Universe
                 regionDensityShader.SetBuffer(0, "matterParticleDensityMap", matterParticleDensityBuffer);
                 regionDensityShader.SetBuffer(0, "antiMatterParticleDensityMap", antiMatterParticleDensityBuffer);
 
-                regionDensityShader.Dispatch(0, regionGenerationSettings.ChunkSize / 32, regionGenerationSettings.ChunkSize / 32, 1);
+                regionDensityShader.Dispatch(0, regionGenerationSettings.ChunkSize, regionGenerationSettings.ChunkSize, 1);
 
                 matterParticleDensityBuffer.GetData(matterParticleDensitiesData);
                 antiMatterParticleDensityBuffer.GetData(antiMatterParticleDensitiesData);
@@ -556,11 +559,11 @@ namespace LooCast.Universe
                 SerializableDictionary<Vector2Int, float> matterParticleDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
                 SerializableDictionary<Vector2Int, float> antiMatterParticleDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
 
-                for (int x = 0; x < regionGenerationSettings.Size; x++)
+                for (int x = 0; x < regionGenerationSettings.ChunkSize; x++)
                 {
-                    for (int y = 0; y < regionGenerationSettings.Size; y++)
+                    for (int y = 0; y < regionGenerationSettings.ChunkSize; y++)
                     {
-                        int index = x * regionGenerationSettings.Size + y;
+                        int index = x * regionGenerationSettings.ChunkSize + y;
                         matterParticleDensityMapDictionary.Add(new Vector2Int(x, y), matterParticleDensitiesData[index].Value);
                         antiMatterParticleDensityMapDictionary.Add(new Vector2Int(x, y), antiMatterParticleDensitiesData[index].Value);
                     }
@@ -802,22 +805,6 @@ namespace LooCast.Universe
                     }
                     #endregion
                 }
-
-                [Serializable]
-                public struct DensityMap
-                {
-                    public SerializableDictionary<Vector2Int, float> DensityMapDictionary => densityMapDictionary;
-                    public DensityMapType DensityMapType => densityMapType;
-                    
-                    [SerializeField] private SerializableDictionary<Vector2Int, float> densityMapDictionary;
-                    [SerializeField] private DensityMapType densityMapType;
-
-                    public DensityMap(SerializableDictionary<Vector2Int, float> densityMapDictionary, DensityMapType densityMapType)
-                    {
-                        this.densityMapDictionary = densityMapDictionary;
-                        this.densityMapType = densityMapType;
-                    }
-                }
                 
                 private struct DensityMapCoroutineInfo
                 {
@@ -834,6 +821,22 @@ namespace LooCast.Universe
 
                 #region Classes
                 [Serializable]
+                public class DensityMap
+                {
+                    public SerializableDictionary<Vector2Int, float> DensityMapDictionary => densityMapDictionary;
+                    public DensityMapType DensityMapType => densityMapType;
+
+                    [SerializeField] private SerializableDictionary<Vector2Int, float> densityMapDictionary;
+                    [SerializeField] private DensityMapType densityMapType;
+
+                    public DensityMap(SerializableDictionary<Vector2Int, float> densityMapDictionary, DensityMapType densityMapType)
+                    {
+                        this.densityMapDictionary = densityMapDictionary;
+                        this.densityMapType = densityMapType;
+                    }
+                }
+                
+                [Serializable]
                 public class DensityMapCollection
                 {
                     [SerializeField] public DensityMap ElectronDensityMap;
@@ -846,6 +849,12 @@ namespace LooCast.Universe
 
                     public DensityMapCollection()
                     {
+                        ElectronDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.Electron);
+                        PositronDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.Positron);
+                        ProtonDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.Proton);
+                        AntiProtonDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.AntiProton);
+                        NeutronDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.Neutron);
+                        AntiNeutronDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.AntiNeutron);
                         GenerationState = GenerationState.Generating;
                     }
                 }
@@ -1244,22 +1253,6 @@ namespace LooCast.Universe
                     #endregion
                 }
 
-                [Serializable]
-                public struct DensityMap
-                {
-                    public SerializableDictionary<Vector2Int, float> DensityMapDictionary => densityMapDictionary;
-                    public DensityMapType DensityMapType => densityMapType;
-
-                    [SerializeField] private SerializableDictionary<Vector2Int, float> densityMapDictionary;
-                    [SerializeField] private DensityMapType densityMapType;
-
-                    public DensityMap(SerializableDictionary<Vector2Int, float> densityMapDictionary, DensityMapType densityMapType)
-                    {
-                        this.densityMapDictionary = densityMapDictionary;
-                        this.densityMapType = densityMapType;
-                    }
-                }
-
                 private struct DensityMapCoroutineInfo
                 {
                     public readonly Action<DensityMapCollection> Callback;
@@ -1275,6 +1268,22 @@ namespace LooCast.Universe
 
                 #region Classes
                 [Serializable]
+                public class DensityMap
+                {
+                    public SerializableDictionary<Vector2Int, float> DensityMapDictionary => densityMapDictionary;
+                    public DensityMapType DensityMapType => densityMapType;
+
+                    [SerializeField] private SerializableDictionary<Vector2Int, float> densityMapDictionary;
+                    [SerializeField] private DensityMapType densityMapType;
+
+                    public DensityMap(SerializableDictionary<Vector2Int, float> densityMapDictionary, DensityMapType densityMapType)
+                    {
+                        this.densityMapDictionary = densityMapDictionary;
+                        this.densityMapType = densityMapType;
+                    }
+                }
+                
+                [Serializable]
                 public class DensityMapCollection
                 {
                     [SerializeField] public DensityMap SolidParticleDensityMap;
@@ -1285,6 +1294,10 @@ namespace LooCast.Universe
 
                     public DensityMapCollection()
                     {
+                        SolidParticleDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.SolidParticle);
+                        LiquidParticleDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.LiquidParticle);
+                        GasParticleDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.GasParticle);
+                        PlasmaParticleDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.PlasmaParticle);
                         GenerationState = GenerationState.Generating;
                     }
                 }
@@ -1676,22 +1689,6 @@ namespace LooCast.Universe
                     #endregion
                 }
 
-                [Serializable]
-                public struct DensityMap
-                {
-                    public SerializableDictionary<Vector2Int, float> DensityMapDictionary => densityMapDictionary;
-                    public DensityMapType DensityMapType => densityMapType;
-
-                    [SerializeField] private SerializableDictionary<Vector2Int, float> densityMapDictionary;
-                    [SerializeField] private DensityMapType densityMapType;
-
-                    public DensityMap(SerializableDictionary<Vector2Int, float> densityMapDictionary, DensityMapType densityMapType)
-                    {
-                        this.densityMapDictionary = densityMapDictionary;
-                        this.densityMapType = densityMapType;
-                    }
-                }
-
                 private struct DensityMapCoroutineInfo
                 {
                     public readonly Action<DensityMapCollection> Callback;
@@ -1707,6 +1704,22 @@ namespace LooCast.Universe
 
                 #region Classes
                 [Serializable]
+                public class DensityMap
+                {
+                    public SerializableDictionary<Vector2Int, float> DensityMapDictionary => densityMapDictionary;
+                    public DensityMapType DensityMapType => densityMapType;
+
+                    [SerializeField] private SerializableDictionary<Vector2Int, float> densityMapDictionary;
+                    [SerializeField] private DensityMapType densityMapType;
+
+                    public DensityMap(SerializableDictionary<Vector2Int, float> densityMapDictionary, DensityMapType densityMapType)
+                    {
+                        this.densityMapDictionary = densityMapDictionary;
+                        this.densityMapType = densityMapType;
+                    }
+                }
+                
+                [Serializable]
                 public class DensityMapCollection
                 {
                     [SerializeField] public DensityMap MatterDensityMap;
@@ -1715,6 +1728,8 @@ namespace LooCast.Universe
 
                     public DensityMapCollection()
                     {
+                        MatterDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.Matter);
+                        AntiMatterDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.AntiMatter);
                         GenerationState = GenerationState.Generating;
                     }
                 }
@@ -2639,9 +2654,16 @@ namespace LooCast.Universe
                 throw new Exception("Filament is already generated!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(GenerateFilamentCoroutine(filamentPosition));
+        }
+
+        private IEnumerator GenerateFilamentCoroutine(Filament.Position filamentPosition)
+        {
             Filament filament = new Filament(this, filamentPosition);
             loadedFilaments.Add(filamentPosition, filament);
             SaveFilament(filament);
+
+            yield return null;
         }
         #endregion
 
@@ -2687,13 +2709,20 @@ namespace LooCast.Universe
                 throw new Exception($"Filament has not been generated yet!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(LoadFilamentCoroutine(filamentPosition));
+        }
+
+        private IEnumerator LoadFilamentCoroutine(Filament.Position filamentPosition)
+        {
             string path = $"{DataPath}/Filaments/{filamentPosition.ChunkPosition.x}.{filamentPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Filament filament = JsonUtility.FromJson<Filament>(json);
             loadedFilaments.Add(filamentPosition, filament);
-        }
 
+            yield return null;
+        }
+        
         public void UnloadFilament(Filament.Position filamentPosition)
         {
             if (!IsFilamentLoaded(filamentPosition))
@@ -2779,12 +2808,19 @@ namespace LooCast.Universe
                 throw new Exception("Containing Filament is not yet loaded!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(GenerateFilamentChunkCoroutine(filamentChunkPosition));
+        }
+
+        private IEnumerator GenerateFilamentChunkCoroutine(Filament.Chunk.Position filamentChunkPosition)
+        {
             Filament filament = GetFilament(filamentChunkPosition.FilamentPosition);
             Filament.Chunk filamentChunk = new Filament.Chunk(this, filament, filamentChunkPosition);
             filament.RegisterChunkPosition(filamentChunkPosition);
             loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
             SaveFilament(filament);
             SaveFilamentChunk(filamentChunk);
+
+            yield return null;
         }
         #endregion
 
@@ -2840,11 +2876,18 @@ namespace LooCast.Universe
                 throw new Exception("Containing Filament is not yet loaded!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(LoadFilamentChunkCoroutine(filamentChunkPosition));
+        }
+
+        private IEnumerator LoadFilamentChunkCoroutine(Filament.Chunk.Position filamentChunkPosition)
+        {
             string path = $"{DataPath}/Filaments/{filamentChunkPosition.FilamentPosition.ChunkPosition.x}.{filamentChunkPosition.FilamentPosition.ChunkPosition.y}/Chunks/{filamentChunkPosition.ChunkPosition.x}.{filamentChunkPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Filament.Chunk filamentChunk = JsonUtility.FromJson<Filament.Chunk>(json);
             loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
+
+            yield return null;
         }
 
         public void UnloadFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
@@ -2933,9 +2976,16 @@ namespace LooCast.Universe
                 throw new Exception("Sector is already generated!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(GenerateSectorCoroutine(sectorPosition));
+        }
+
+        private IEnumerator GenerateSectorCoroutine(Sector.Position sectorPosition)
+        {
             Sector sector = new Sector(this, sectorPosition);
             loadedSectors.Add(sectorPosition, sector);
             SaveSector(sector);
+
+            yield return null;
         }
         #endregion
 
@@ -2981,11 +3031,18 @@ namespace LooCast.Universe
                 throw new Exception($"Sector has not been generated yet!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(LoadSectorCoroutine(sectorPosition));
+        }
+
+        private IEnumerator LoadSectorCoroutine(Sector.Position sectorPosition)
+        {
             string path = $"{DataPath}/Sectors/{sectorPosition.ChunkPosition.x}.{sectorPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Sector sector = JsonUtility.FromJson<Sector>(json);
             loadedSectors.Add(sectorPosition, sector);
+
+            yield return null;
         }
 
         public void UnloadSector(Sector.Position sectorPosition)
@@ -3073,6 +3130,11 @@ namespace LooCast.Universe
                 throw new Exception("Containing Sector is not yet loaded!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(GenerateSectorChunkCoroutine(sectorChunkPosition));
+        }
+
+        private IEnumerator GenerateSectorChunkCoroutine(Sector.Chunk.Position sectorChunkPosition)
+        {
             Sector sector = GetSector(sectorChunkPosition.SectorPosition);
             Filament filament = GetFilament(sectorChunkPosition.FilamentPosition);
             Sector.Chunk sectorChunk = new Sector.Chunk(this, filament, sector, sectorChunkPosition);
@@ -3080,6 +3142,8 @@ namespace LooCast.Universe
             loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
             SaveSector(sector);
             SaveSectorChunk(sectorChunk);
+
+            yield return null;
         }
         #endregion
 
@@ -3135,11 +3199,18 @@ namespace LooCast.Universe
                 throw new Exception("Containing Sector is not yet loaded!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(LoadSectorChunkCoroutine(sectorChunkPosition));
+        }
+
+        private IEnumerator LoadSectorChunkCoroutine(Sector.Chunk.Position sectorChunkPosition)
+        {
             string path = $"{DataPath}/Sectors/{sectorChunkPosition.SectorPosition.ChunkPosition.x}.{sectorChunkPosition.SectorPosition.ChunkPosition.y}/Chunks/{sectorChunkPosition.ChunkPosition.x}.{sectorChunkPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Sector.Chunk sectorChunk = JsonUtility.FromJson<Sector.Chunk>(json);
             loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
+            
+            yield return null;
         }
 
         public void UnloadSectorChunk(Sector.Chunk.Position sectorChunkPosition)
@@ -3228,9 +3299,16 @@ namespace LooCast.Universe
                 throw new Exception("Region is already generated!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(GenerateRegionCoroutine(regionPosition));
+        }
+
+        private IEnumerator GenerateRegionCoroutine(Region.Position regionPosition)
+        {
             Region region = new Region(this, regionPosition);
             loadedRegions.Add(regionPosition, region);
             SaveRegion(region);
+
+            yield return null;
         }
         #endregion
 
@@ -3276,11 +3354,18 @@ namespace LooCast.Universe
                 throw new Exception($"Region has not been generated yet!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(LoadRegionCoroutine(regionPosition));
+        }
+
+        private IEnumerator LoadRegionCoroutine(Region.Position regionPosition)
+        {
             string path = $"{DataPath}/Regions/{regionPosition.ChunkPosition.x}.{regionPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Region region = JsonUtility.FromJson<Region>(json);
             loadedRegions.Add(regionPosition, region);
+
+            yield return null;
         }
 
         public void UnloadRegion(Region.Position regionPosition)
@@ -3368,6 +3453,11 @@ namespace LooCast.Universe
                 throw new Exception("Containing Region is not yet loaded!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(GenerateRegionChunkCoroutine(regionChunkPosition));
+        }
+
+        private IEnumerator GenerateRegionChunkCoroutine(Region.Chunk.Position regionChunkPosition)
+        {
             Region region = GetRegion(regionChunkPosition.RegionPosition);
             Sector sector = GetSector(regionChunkPosition.SectorPosition);
             Region.Chunk regionChunk = new Region.Chunk(this, sector, region, regionChunkPosition);
@@ -3375,6 +3465,8 @@ namespace LooCast.Universe
             loadedRegionChunks.Add(regionChunkPosition, regionChunk);
             SaveRegion(region);
             SaveRegionChunk(regionChunk);
+
+            yield return null;
         }
         #endregion
 
@@ -3430,11 +3522,18 @@ namespace LooCast.Universe
                 throw new Exception("Containing Region is not yet loaded!");
             }
 
+            ParallelizationUtil.Instance.StartCoroutine(LoadRegionChunkCoroutine(regionChunkPosition));
+        }
+
+        private IEnumerator LoadRegionChunkCoroutine(Region.Chunk.Position regionChunkPosition)
+        {
             string path = $"{DataPath}/Regions/{regionChunkPosition.RegionPosition.ChunkPosition.x}.{regionChunkPosition.RegionPosition.ChunkPosition.y}/Chunks/{regionChunkPosition.ChunkPosition.x}.{regionChunkPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Region.Chunk regionChunk = JsonUtility.FromJson<Region.Chunk>(json);
             loadedRegionChunks.Add(regionChunkPosition, regionChunk);
+
+            yield return null;
         }
 
         public void UnloadRegionChunk(Region.Chunk.Position regionChunkPosition)

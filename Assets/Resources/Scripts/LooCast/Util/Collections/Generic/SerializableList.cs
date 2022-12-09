@@ -6,7 +6,7 @@ using UnityEngine;
 namespace LooCast.Util.Collections.Generic
 {
     [Serializable]
-    public struct SerializableList<T>
+    public class SerializableList<T>
     {
         public List<T> Values
         {

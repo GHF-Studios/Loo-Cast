@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace LooCast.Util.Collections.Generic
 {
     [Serializable]
-    public struct SerializableDictionary<KeyType, ValueType>
+    public class SerializableDictionary<KeyType, ValueType>
     {
         #region Structs
         [Serializable]
