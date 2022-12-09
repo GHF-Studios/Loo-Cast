@@ -819,12 +819,12 @@ namespace LooCast.Universe
                     }
                 }
                 
-                private struct DensityMapThreadInfo
+                private struct DensityMapCoroutineInfo
                 {
                     public readonly Action<DensityMapCollection> Callback;
                     public readonly DensityMapCollection DensityMaps;
 
-                    public DensityMapThreadInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
+                    public DensityMapCoroutineInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
                     {
                         Callback = callback;
                         DensityMaps = densityMaps;
@@ -852,7 +852,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Static Fields
-                private static Queue<DensityMapThreadInfo> densityMapThreadInfoQueue = new Queue<DensityMapThreadInfo>();
+                private static Queue<DensityMapCoroutineInfo> densityMapCoroutineInfoQueue = new Queue<DensityMapCoroutineInfo>();
                 #endregion
 
                 #region Properties
@@ -884,9 +884,9 @@ namespace LooCast.Universe
                 #region Static Methods
                 public static void ProcessDensityMapThreadInfoQueue()
                 {
-                    while (densityMapThreadInfoQueue.Count > 0)
+                    while (densityMapCoroutineInfoQueue.Count > 0)
                     {
-                        DensityMapThreadInfo threadInfo = densityMapThreadInfoQueue.Dequeue();
+                        DensityMapCoroutineInfo threadInfo = densityMapCoroutineInfoQueue.Dequeue();
                         threadInfo.Callback(threadInfo.DensityMaps);
                     }
                 }
@@ -942,12 +942,7 @@ namespace LooCast.Universe
                 
                 private void RequestDensityMaps(Universe universe, Filament filament, Action<DensityMapCollection> callback)
                 {
-                    ThreadStart threadStart = delegate
-                    {
-                        DensityMapGenerationThread(universe, filament, callback);
-                    };
-
-                    new Thread(threadStart).Start();
+                    ParallelizationUtil.Instance.StartCoroutine(DensityMapGenerationCoroutine(universe, filament, callback));
                 }
 
                 private void OnDensityMapsReceived(DensityMapCollection densityMaps)
@@ -962,16 +957,18 @@ namespace LooCast.Universe
                     GameManager.Instance.CurrentGame.CurrentUniverse.SaveFilamentChunk(this);
                 }
 
-                private void DensityMapGenerationThread(Universe universe, Filament filament, Action<DensityMapCollection> callback)
+                private IEnumerator DensityMapGenerationCoroutine(Universe universe, Filament filament, Action<DensityMapCollection> callback)
                 {
                     SampleDensityMaps(universe, filament, out Universe.DensityMap universeDensityMap, out DensityMapCollection filamentDensityMaps);
                     ParallelizationUtil.RequestProcessedFilamentDensityMaps(universeDensityMap, filamentDensityMaps, (filamentDensityMaps) =>
                     {
-                        lock (densityMapThreadInfoQueue)
+                        lock (densityMapCoroutineInfoQueue)
                         {
-                            densityMapThreadInfoQueue.Enqueue(new DensityMapThreadInfo(callback, filamentDensityMaps));
+                            densityMapCoroutineInfoQueue.Enqueue(new DensityMapCoroutineInfo(callback, filamentDensityMaps));
                         }
                     });
+
+                    yield return null;
                 }
                 #endregion
             }
@@ -1263,12 +1260,12 @@ namespace LooCast.Universe
                     }
                 }
 
-                private struct DensityMapThreadInfo
+                private struct DensityMapCoroutineInfo
                 {
                     public readonly Action<DensityMapCollection> Callback;
                     public readonly DensityMapCollection DensityMaps;
 
-                    public DensityMapThreadInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
+                    public DensityMapCoroutineInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
                     {
                         Callback = callback;
                         DensityMaps = densityMaps;
@@ -1294,7 +1291,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Static Fields
-                private static Queue<DensityMapThreadInfo> densityMapThreadInfoQueue = new Queue<DensityMapThreadInfo>();
+                private static Queue<DensityMapCoroutineInfo> densityMapCoroutineInfoQueue = new Queue<DensityMapCoroutineInfo>();
                 #endregion
 
                 #region Properties
@@ -1326,9 +1323,9 @@ namespace LooCast.Universe
                 #region Static Methods
                 public static void ProcessDensityMapThreadInfoQueue()
                 {
-                    while (densityMapThreadInfoQueue.Count > 0)
+                    while (densityMapCoroutineInfoQueue.Count > 0)
                     {
-                        DensityMapThreadInfo threadInfo = densityMapThreadInfoQueue.Dequeue();
+                        DensityMapCoroutineInfo threadInfo = densityMapCoroutineInfoQueue.Dequeue();
                         threadInfo.Callback(threadInfo.DensityMaps);
                     }
                 }
@@ -1390,12 +1387,7 @@ namespace LooCast.Universe
 
                 private void RequestDensityMaps(Universe universe, Filament filament, Sector sector, Action<DensityMapCollection> callback)
                 {
-                    ThreadStart threadStart = delegate
-                    {
-                        DensityMapGenerationThread(universe, filament, sector, callback);
-                    };
-
-                    new Thread(threadStart).Start();
+                    ParallelizationUtil.Instance.StartCoroutine(DensityMapGenerationCoroutine(universe, filament, sector, callback));
                 }
 
                 private void OnDensityMapsReceived(DensityMapCollection densityMaps)
@@ -1408,16 +1400,18 @@ namespace LooCast.Universe
                     GameManager.Instance.CurrentGame.CurrentUniverse.SaveSectorChunk(this);
                 }
 
-                private void DensityMapGenerationThread(Universe universe, Filament filament, Sector sector, Action<DensityMapCollection> callback)
+                private IEnumerator DensityMapGenerationCoroutine(Universe universe, Filament filament, Sector sector, Action<DensityMapCollection> callback)
                 {
                     SampleDensityMaps(universe, filament, sector, out Filament.Chunk.DensityMapCollection filamentDensityMaps, out DensityMapCollection sectorDensityMaps);
                     ParallelizationUtil.RequestProcessedSectorDensityMaps(filamentDensityMaps, sectorDensityMaps, (sectorDensityMaps) =>
                     {
-                        lock (densityMapThreadInfoQueue)
+                        lock (densityMapCoroutineInfoQueue)
                         {
-                            densityMapThreadInfoQueue.Enqueue(new DensityMapThreadInfo(callback, sectorDensityMaps));
+                            densityMapCoroutineInfoQueue.Enqueue(new DensityMapCoroutineInfo(callback, sectorDensityMaps));
                         }
                     });
+
+                    yield return null;
                 }
                 #endregion
             }
@@ -1698,12 +1692,12 @@ namespace LooCast.Universe
                     }
                 }
 
-                private struct DensityMapThreadInfo
+                private struct DensityMapCoroutineInfo
                 {
                     public readonly Action<DensityMapCollection> Callback;
                     public readonly DensityMapCollection DensityMaps;
 
-                    public DensityMapThreadInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
+                    public DensityMapCoroutineInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
                     {
                         Callback = callback;
                         DensityMaps = densityMaps;
@@ -1727,7 +1721,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Static Fields
-                private static Queue<DensityMapThreadInfo> densityMapThreadInfoQueue = new Queue<DensityMapThreadInfo>();
+                private static Queue<DensityMapCoroutineInfo> densityMapCoroutineInfoQueue = new Queue<DensityMapCoroutineInfo>();
                 #endregion
 
                 #region Properties
@@ -1759,9 +1753,9 @@ namespace LooCast.Universe
                 #region Static Methods
                 public static void ProcessDensityMapThreadInfoQueue()
                 {
-                    while (densityMapThreadInfoQueue.Count > 0)
+                    while (densityMapCoroutineInfoQueue.Count > 0)
                     {
-                        DensityMapThreadInfo threadInfo = densityMapThreadInfoQueue.Dequeue();
+                        DensityMapCoroutineInfo threadInfo = densityMapCoroutineInfoQueue.Dequeue();
                         threadInfo.Callback(threadInfo.DensityMaps);
                     }
                 }
@@ -1815,12 +1809,7 @@ namespace LooCast.Universe
 
                 private void RequestDensityMaps(Universe universe, Sector sector, Region region, Action<DensityMapCollection> callback)
                 {
-                    ThreadStart threadStart = delegate
-                    {
-                        DensityMapGenerationThread(universe, sector, region, callback);
-                    };
-
-                    new Thread(threadStart).Start();
+                    ParallelizationUtil.Instance.StartCoroutine(DensityMapGenerationCoroutine(universe, sector, region, callback));
                 }
 
                 private void OnDensityMapsReceived(DensityMapCollection densityMaps)
@@ -1831,16 +1820,18 @@ namespace LooCast.Universe
                     GameManager.Instance.CurrentGame.CurrentUniverse.SaveRegionChunk(this);
                 }
 
-                private void DensityMapGenerationThread(Universe universe, Sector sector, Region region, Action<DensityMapCollection> callback)
+                private IEnumerator DensityMapGenerationCoroutine(Universe universe, Sector sector, Region region, Action<DensityMapCollection> callback)
                 {
                     SampleDensityMaps(universe, sector, region, out Sector.Chunk.DensityMapCollection sectorDensityMaps, out DensityMapCollection regionDensityMaps);
                     ParallelizationUtil.RequestProcessedRegionDensityMaps(sectorDensityMaps, regionDensityMaps, (regionDensityMaps) =>
                     {
-                        lock (densityMapThreadInfoQueue)
+                        lock (densityMapCoroutineInfoQueue)
                         {
-                            densityMapThreadInfoQueue.Enqueue(new DensityMapThreadInfo(callback, regionDensityMaps));
+                            densityMapCoroutineInfoQueue.Enqueue(new DensityMapCoroutineInfo(callback, regionDensityMaps));
                         }
                     });
+
+                    yield return null;
                 }
                 #endregion
             }
