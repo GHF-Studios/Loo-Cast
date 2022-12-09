@@ -271,19 +271,19 @@ namespace LooCast.Universe
 
                 ComputeBuffer filamentGenerationSettingsBuffer = new ComputeBuffer(1, FilamentGenerationSettingsGPU.ByteSize);
                 filamentGenerationSettingsBuffer.SetData(filamentGenerationSettingsData);
-                ComputeBuffer universeDensitiesBuffer = new ComputeBuffer(universeDensitiesData.Length, sizeof(float));
+                ComputeBuffer universeDensitiesBuffer = new ComputeBuffer(universeDensitiesData.Length, DensityDataGPU.ByteSize);
                 universeDensitiesBuffer.SetData(universeDensitiesData);
-                ComputeBuffer electronDensityBuffer = new ComputeBuffer(electronDensitiesData.Length, sizeof(float));
+                ComputeBuffer electronDensityBuffer = new ComputeBuffer(electronDensitiesData.Length, DensityDataGPU.ByteSize);
                 electronDensityBuffer.SetData(electronDensitiesData);
-                ComputeBuffer positronDensityBuffer = new ComputeBuffer(positronDensitiesData.Length, sizeof(float));
+                ComputeBuffer positronDensityBuffer = new ComputeBuffer(positronDensitiesData.Length, DensityDataGPU.ByteSize);
                 positronDensityBuffer.SetData(positronDensitiesData);
-                ComputeBuffer protonDensityBuffer = new ComputeBuffer(protonDensitiesData.Length, sizeof(float));
+                ComputeBuffer protonDensityBuffer = new ComputeBuffer(protonDensitiesData.Length, DensityDataGPU.ByteSize);
                 protonDensityBuffer.SetData(protonDensitiesData);
-                ComputeBuffer antiProtonDensityBuffer = new ComputeBuffer(antiProtonDensitiesData.Length, sizeof(float));
+                ComputeBuffer antiProtonDensityBuffer = new ComputeBuffer(antiProtonDensitiesData.Length, DensityDataGPU.ByteSize);
                 antiProtonDensityBuffer.SetData(antiProtonDensitiesData);
-                ComputeBuffer neutronDensityBuffer = new ComputeBuffer(neutronDensitiesData.Length, sizeof(float));
+                ComputeBuffer neutronDensityBuffer = new ComputeBuffer(neutronDensitiesData.Length, DensityDataGPU.ByteSize);
                 neutronDensityBuffer.SetData(neutronDensitiesData);
-                ComputeBuffer antiNeutronDensityBuffer = new ComputeBuffer(antiNeutronDensitiesData.Length, sizeof(float));
+                ComputeBuffer antiNeutronDensityBuffer = new ComputeBuffer(antiNeutronDensitiesData.Length, DensityDataGPU.ByteSize);
                 antiNeutronDensityBuffer.SetData(antiNeutronDensitiesData);
 
                 filamentDensityShader.SetBuffer(0, "filamentGenerationSettingsBuffer", filamentGenerationSettingsBuffer);
@@ -345,12 +345,68 @@ namespace LooCast.Universe
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
                 Sector.GenerationSettings sectorGenerationSettings = universeGenerationSettings.SectorGenerationSettings;
                 SectorGenerationSettingsGPU[] sectorGenerationSettingsData = { new SectorGenerationSettingsGPU(sectorGenerationSettings) };
+                DensityDataGPU[] solidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.SolidParticleDensityMap.DensityMapDictionary.EntryArray.Length];
+                DensityDataGPU[] liquidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.LiquidParticleDensityMap.DensityMapDictionary.EntryArray.Length];
+                DensityDataGPU[] gasParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.GasParticleDensityMap.DensityMapDictionary.EntryArray.Length];
+                DensityDataGPU[] plasmaParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.PlasmaParticleDensityMap.DensityMapDictionary.EntryArray.Length];
                 DensityDataGPU[] electronDensitiesData = new DensityDataGPU[filamentDensityMaps.ElectronDensityMap.DensityMapDictionary.EntryArray.Length];
                 DensityDataGPU[] positronDensitiesData = new DensityDataGPU[filamentDensityMaps.PositronDensityMap.DensityMapDictionary.EntryArray.Length];
                 DensityDataGPU[] protonDensitiesData = new DensityDataGPU[filamentDensityMaps.ProtonDensityMap.DensityMapDictionary.EntryArray.Length];
                 DensityDataGPU[] antiProtonDensitiesData = new DensityDataGPU[filamentDensityMaps.AntiProtonDensityMap.DensityMapDictionary.EntryArray.Length];
                 DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.NeutronDensityMap.DensityMapDictionary.EntryArray.Length];
                 DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.AntiNeutronDensityMap.DensityMapDictionary.EntryArray.Length];
+
+                for (int x = 0; x < universeGenerationSettings.Size; x++)
+                {
+                    for (int y = 0; y < universeGenerationSettings.Size; y++)
+                    {
+                        int index = x * universeGenerationSettings.Size + y;
+                        solidParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.SolidParticleDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                        liquidParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.LiquidParticleDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                        gasParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.GasParticleDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                        plasmaParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.PlasmaParticleDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                        electronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.ElectronDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                        positronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.PositronDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                        protonDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.ProtonDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                        antiProtonDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.AntiProtonDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                        neutronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.NeutronDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                        antiNeutronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.AntiNeutronDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                    }
+                }
+
+                ComputeBuffer sectorGenerationSettingsBuffer = new ComputeBuffer(1, SectorGenerationSettingsGPU.ByteSize);
+                sectorGenerationSettingsBuffer.SetData(sectorGenerationSettingsData);
+                ComputeBuffer solidParticleDensityBuffer = new ComputeBuffer(solidParticleDensitiesData.Length, DensityDataGPU.ByteSize);
+                solidParticleDensityBuffer.SetData(electronDensitiesData);
+                ComputeBuffer liquidParticleDensityBuffer = new ComputeBuffer(liquidParticleDensitiesData.Length, DensityDataGPU.ByteSize);
+                liquidParticleDensityBuffer.SetData(electronDensitiesData);
+                ComputeBuffer gasParticleDensityBuffer = new ComputeBuffer(gasParticleDensitiesData.Length, DensityDataGPU.ByteSize);
+                gasParticleDensityBuffer.SetData(electronDensitiesData);
+                ComputeBuffer plasmaParticleDensityBuffer = new ComputeBuffer(plasmaParticleDensitiesData.Length, DensityDataGPU.ByteSize);
+                plasmaParticleDensityBuffer.SetData(electronDensitiesData);
+                ComputeBuffer electronDensityBuffer = new ComputeBuffer(electronDensitiesData.Length, DensityDataGPU.ByteSize);
+                electronDensityBuffer.SetData(electronDensitiesData);
+                ComputeBuffer positronDensityBuffer = new ComputeBuffer(positronDensitiesData.Length, DensityDataGPU.ByteSize);
+                positronDensityBuffer.SetData(positronDensitiesData);
+                ComputeBuffer protonDensityBuffer = new ComputeBuffer(protonDensitiesData.Length, DensityDataGPU.ByteSize);
+                protonDensityBuffer.SetData(protonDensitiesData);
+                ComputeBuffer antiProtonDensityBuffer = new ComputeBuffer(antiProtonDensitiesData.Length, DensityDataGPU.ByteSize);
+                antiProtonDensityBuffer.SetData(antiProtonDensitiesData);
+                ComputeBuffer neutronDensityBuffer = new ComputeBuffer(neutronDensitiesData.Length, DensityDataGPU.ByteSize);
+                neutronDensityBuffer.SetData(neutronDensitiesData);
+                ComputeBuffer antiNeutronDensityBuffer = new ComputeBuffer(antiNeutronDensitiesData.Length, DensityDataGPU.ByteSize);
+                antiNeutronDensityBuffer.SetData(antiNeutronDensitiesData);
+                
+                filamentDensityShader.SetBuffer(0, "solidParticleDensityMap", solidParticleDensityBuffer);
+                filamentDensityShader.SetBuffer(0, "liquidParticleDensityMap", liquidParticleDensityBuffer);
+                filamentDensityShader.SetBuffer(0, "gasParticleDensityMap", gasParticleDensityBuffer);
+                filamentDensityShader.SetBuffer(0, "plasmaParticleDensityMap", plasmaParticleDensityBuffer);
+                filamentDensityShader.SetBuffer(0, "electronDensityMap", electronDensityBuffer);
+                filamentDensityShader.SetBuffer(0, "positronDensityMap", positronDensityBuffer);
+                filamentDensityShader.SetBuffer(0, "protonDensityMap", protonDensityBuffer);
+                filamentDensityShader.SetBuffer(0, "antiProtonDensityMap", antiProtonDensityBuffer);
+                filamentDensityShader.SetBuffer(0, "neutronDensityMap", neutronDensityBuffer);
+                filamentDensityShader.SetBuffer(0, "antiNeutronDensityMap", antiNeutronDensityBuffer);
             }
             #endregion
         }
