@@ -82,6 +82,10 @@ namespace LooCast.Core
             TimerUtil.InitializeInstance();
             #endregion
 
+            #region Universe.Parallelization Initialization
+            Universe.ParallelizationUtil.InitializeInstance();
+            #endregion
+
             #region Scene Initialization
             switch (activeSceneName)
             {
