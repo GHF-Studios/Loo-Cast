@@ -820,14 +820,14 @@ namespace LooCast.Universe
                                     // TODO: Sample all other density Maps, too
                                     #endregion
 
-                                    #region Sector Noise Sampling
+                                    #region Filament Noise Sampling
                                     float filamentOffsetX = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * x);
                                     float filamentOffsetY = -(1 / generationSettings.ChunkAmount / generationSettings.ChunkSize * y);
 
                                     float filamentSampleX = sector.SectorPosition.ChunkPosition.x + filamentOffsetX;
                                     float filamentSampleY = sector.SectorPosition.ChunkPosition.y + filamentOffsetY;
 
-                                    float filamentNoiseValue = universe.SampleNoise(filamentSampleX, filamentSampleY);
+                                    float filamentNoiseValue = filament.SampleNoise(filamentSampleX, filamentSampleY);
                                     // TODO: Sample all other density Maps, too
                                     #endregion
 
@@ -1277,7 +1277,7 @@ namespace LooCast.Universe
                                     float sectorSampleX = region.RegionPosition.ChunkPosition.x + sectorOffsetX;
                                     float sectorSampleY = region.RegionPosition.ChunkPosition.y + sectorOffsetY;
 
-                                    float sectorNoiseValue = universe.SampleNoise(sectorSampleX, sectorSampleY);
+                                    float sectorNoiseValue = sector.SampleNoise(sectorSampleX, sectorSampleY);
                                     // TODO: Sample all other density Maps, too
                                     #endregion
 
