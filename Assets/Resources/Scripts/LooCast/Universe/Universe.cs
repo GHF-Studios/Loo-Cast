@@ -295,7 +295,7 @@ namespace LooCast.Universe
                 filamentDensityShader.SetBuffer(0, "neutronDensityMap", neutronDensityBuffer);
                 filamentDensityShader.SetBuffer(0, "antiNeutronDensityMap", antiNeutronDensityBuffer);
                 
-                filamentDensityShader.Dispatch(0, filamentGenerationSettingsData[0].ChunkSize / 32, filamentGenerationSettingsData[0].ChunkSize / 32, 1);
+                filamentDensityShader.Dispatch(0, filamentGenerationSettings.ChunkSize / 32, filamentGenerationSettings.ChunkSize / 32, 1);
 
                 electronDensityBuffer.GetData(electronDensitiesData);
                 positronDensityBuffer.GetData(positronDensitiesData);
@@ -333,8 +333,13 @@ namespace LooCast.Universe
                 filamentDensityMaps.AntiNeutronDensityMap = new Filament.Chunk.DensityMap(antiNeutronDensityMapDictionary, Filament.Chunk.DensityMapType.AntiNeutron);
 
                 filamentGenerationSettingsBuffer.Dispose();
+                universeDensitiesBuffer.Dispose();
                 electronDensityBuffer.Dispose();
-                #endregion
+                positronDensityBuffer.Dispose();
+                protonDensityBuffer.Dispose();
+                antiProtonDensityBuffer.Dispose();
+                neutronDensityBuffer.Dispose();
+                antiNeutronDensityBuffer.Dispose();
 
                 filamentDensityMapCoroutineInfoQueue.Enqueue(new FilamentDensityMapCoroutineInfo(callback, filamentDensityMaps));
                 yield return null;
@@ -407,6 +412,50 @@ namespace LooCast.Universe
                 filamentDensityShader.SetBuffer(0, "antiProtonDensityMap", antiProtonDensityBuffer);
                 filamentDensityShader.SetBuffer(0, "neutronDensityMap", neutronDensityBuffer);
                 filamentDensityShader.SetBuffer(0, "antiNeutronDensityMap", antiNeutronDensityBuffer);
+
+                sectorDensityShader.Dispatch(0, sectorGenerationSettings.ChunkSize / 32, sectorGenerationSettings.ChunkSize / 32, 1);
+
+                solidParticleDensityBuffer.GetData(electronDensitiesData);
+                liquidParticleDensityBuffer.GetData(positronDensitiesData);
+                gasParticleDensityBuffer.GetData(protonDensitiesData);
+                plasmaParticleDensityBuffer.GetData(antiProtonDensitiesData);
+
+                SerializableDictionary<Vector2Int, float> solidParticleDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
+                SerializableDictionary<Vector2Int, float> liquidParticleDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
+                SerializableDictionary<Vector2Int, float> gasParticleDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
+                SerializableDictionary<Vector2Int, float> plasmaParticleDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
+
+                for (int x = 0; x < sectorGenerationSettings.Size; x++)
+                {
+                    for (int y = 0; y < sectorGenerationSettings.Size; y++)
+                    {
+                        int index = x * sectorGenerationSettings.Size + y;
+                        solidParticleDensityMapDictionary.Add(new Vector2Int(x, y), solidParticleDensitiesData[index].Value);
+                        liquidParticleDensityMapDictionary.Add(new Vector2Int(x, y), liquidParticleDensitiesData[index].Value);
+                        gasParticleDensityMapDictionary.Add(new Vector2Int(x, y), gasParticleDensitiesData[index].Value);
+                        plasmaParticleDensityMapDictionary.Add(new Vector2Int(x, y), plasmaParticleDensitiesData[index].Value);
+                    }
+                }
+
+                sectorDensityMaps.SolidParticleDensityMap = new Sector.Chunk.DensityMap(solidParticleDensityMapDictionary, Sector.Chunk.DensityMapType.SolidParticle);
+                sectorDensityMaps.LiquidParticleDensityMap = new Sector.Chunk.DensityMap(liquidParticleDensityMapDictionary, Sector.Chunk.DensityMapType.LiquidParticle);
+                sectorDensityMaps.GasParticleDensityMap = new Sector.Chunk.DensityMap(gasParticleDensityMapDictionary, Sector.Chunk.DensityMapType.GasParticle);
+                sectorDensityMaps.PlasmaParticleDensityMap = new Sector.Chunk.DensityMap(plasmaParticleDensityMapDictionary, Sector.Chunk.DensityMapType.PlasmaParticle);
+
+                sectorGenerationSettingsBuffer.Dispose();
+                solidParticleDensityBuffer.Dispose();
+                liquidParticleDensityBuffer.Dispose();
+                gasParticleDensityBuffer.Dispose();
+                plasmaParticleDensityBuffer.Dispose();
+                electronDensityBuffer.Dispose();
+                positronDensityBuffer.Dispose();
+                protonDensityBuffer.Dispose();
+                antiProtonDensityBuffer.Dispose();
+                neutronDensityBuffer.Dispose();
+                antiNeutronDensityBuffer.Dispose();
+
+                sectorDensityMapCoroutineInfoQueue.Enqueue(new SectorDensityMapCoroutineInfo(callback, sectorDensityMaps));
+                yield return null;
             }
             #endregion
         }
