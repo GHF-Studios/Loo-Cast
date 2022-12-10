@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections;
 using System.Diagnostics;
 using UnityEngine;
 
@@ -18,6 +18,7 @@ namespace LooCast.Observer
     {
         private Universe currentUniverse;
         private int regionChunkLoadRadius;
+        private bool isLoadingProximalPositions;
 
         private ConcurrentDictionary<Universe.Region.Chunk.Position, byte> proximalRegionChunkPositions = new ConcurrentDictionary<Universe.Region.Chunk.Position, byte>();
         private ConcurrentDictionary<Universe.Sector.Chunk.Position, byte> proximalSectorChunkPositions = new ConcurrentDictionary<Universe.Sector.Chunk.Position, byte>();
@@ -37,7 +38,8 @@ namespace LooCast.Observer
         {
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
             regionChunkLoadRadius = 2;
-            
+            isLoadingProximalPositions = false;
+
             Benchmark.Create("UpdatePositions");
             Benchmark.Create("UpdatePosition");
             Benchmark.Create("UpdateRegion");
@@ -62,15 +64,15 @@ namespace LooCast.Observer
 
         private void Update()
         {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
             UpdateProximalPositions();
             UpdatePreviouslyProximalPositions();
-            LoadProximalPositions();
+            if (!isLoadingProximalPositions)
+            {
+                isLoadingProximalPositions = true;
+                Universe.ParallelizationUtil.Instance.StartCoroutine(LoadProximalPositions());
+            }
             UnloadPreviouslyProximalPositions();
-            // PrintBenchmarks();
-            stopwatch.Stop();
-            UnityEngine.Debug.Log($"[UniverseObserver] Took {stopwatch.ElapsedMilliseconds}ms to update.");
+            PrintBenchmarks();
         }
 
         private void OnDrawGizmos()
@@ -239,7 +241,7 @@ namespace LooCast.Observer
             }
         }
         
-        private void LoadProximalPositions()
+        private IEnumerator LoadProximalPositions()
         {
             Benchmark.Start("LoadPositions");
 
@@ -328,6 +330,9 @@ namespace LooCast.Observer
             Benchmark.Stop("LoadRegionChunk");
 
             Benchmark.Stop("LoadPositions");
+
+            isLoadingProximalPositions = false;
+            yield return null;
         }
 
         private void UnloadPreviouslyProximalPositions()

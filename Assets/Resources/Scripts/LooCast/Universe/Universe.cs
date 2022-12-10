@@ -2654,16 +2654,9 @@ namespace LooCast.Universe
                 throw new Exception("Filament is already generated!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(GenerateFilamentCoroutine(filamentPosition));
-        }
-
-        private IEnumerator GenerateFilamentCoroutine(Filament.Position filamentPosition)
-        {
             Filament filament = new Filament(this, filamentPosition);
             loadedFilaments.Add(filamentPosition, filament);
             SaveFilament(filament);
-
-            yield return null;
         }
         #endregion
 
@@ -2709,18 +2702,11 @@ namespace LooCast.Universe
                 throw new Exception($"Filament has not been generated yet!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(LoadFilamentCoroutine(filamentPosition));
-        }
-
-        private IEnumerator LoadFilamentCoroutine(Filament.Position filamentPosition)
-        {
             string path = $"{DataPath}/Filaments/{filamentPosition.ChunkPosition.x}.{filamentPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Filament filament = JsonUtility.FromJson<Filament>(json);
             loadedFilaments.Add(filamentPosition, filament);
-
-            yield return null;
         }
         
         public void UnloadFilament(Filament.Position filamentPosition)
@@ -2808,19 +2794,12 @@ namespace LooCast.Universe
                 throw new Exception("Containing Filament is not yet loaded!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(GenerateFilamentChunkCoroutine(filamentChunkPosition));
-        }
-
-        private IEnumerator GenerateFilamentChunkCoroutine(Filament.Chunk.Position filamentChunkPosition)
-        {
             Filament filament = GetFilament(filamentChunkPosition.FilamentPosition);
             Filament.Chunk filamentChunk = new Filament.Chunk(this, filament, filamentChunkPosition);
             filament.RegisterChunkPosition(filamentChunkPosition);
             loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
             SaveFilament(filament);
             SaveFilamentChunk(filamentChunk);
-
-            yield return null;
         }
         #endregion
 
@@ -2876,18 +2855,11 @@ namespace LooCast.Universe
                 throw new Exception("Containing Filament is not yet loaded!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(LoadFilamentChunkCoroutine(filamentChunkPosition));
-        }
-
-        private IEnumerator LoadFilamentChunkCoroutine(Filament.Chunk.Position filamentChunkPosition)
-        {
             string path = $"{DataPath}/Filaments/{filamentChunkPosition.FilamentPosition.ChunkPosition.x}.{filamentChunkPosition.FilamentPosition.ChunkPosition.y}/Chunks/{filamentChunkPosition.ChunkPosition.x}.{filamentChunkPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Filament.Chunk filamentChunk = JsonUtility.FromJson<Filament.Chunk>(json);
             loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
-
-            yield return null;
         }
 
         public void UnloadFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
@@ -2976,16 +2948,9 @@ namespace LooCast.Universe
                 throw new Exception("Sector is already generated!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(GenerateSectorCoroutine(sectorPosition));
-        }
-
-        private IEnumerator GenerateSectorCoroutine(Sector.Position sectorPosition)
-        {
             Sector sector = new Sector(this, sectorPosition);
             loadedSectors.Add(sectorPosition, sector);
             SaveSector(sector);
-
-            yield return null;
         }
         #endregion
 
@@ -3031,18 +2996,11 @@ namespace LooCast.Universe
                 throw new Exception($"Sector has not been generated yet!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(LoadSectorCoroutine(sectorPosition));
-        }
-
-        private IEnumerator LoadSectorCoroutine(Sector.Position sectorPosition)
-        {
             string path = $"{DataPath}/Sectors/{sectorPosition.ChunkPosition.x}.{sectorPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Sector sector = JsonUtility.FromJson<Sector>(json);
             loadedSectors.Add(sectorPosition, sector);
-
-            yield return null;
         }
 
         public void UnloadSector(Sector.Position sectorPosition)
@@ -3130,11 +3088,6 @@ namespace LooCast.Universe
                 throw new Exception("Containing Sector is not yet loaded!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(GenerateSectorChunkCoroutine(sectorChunkPosition));
-        }
-
-        private IEnumerator GenerateSectorChunkCoroutine(Sector.Chunk.Position sectorChunkPosition)
-        {
             Sector sector = GetSector(sectorChunkPosition.SectorPosition);
             Filament filament = GetFilament(sectorChunkPosition.FilamentPosition);
             Sector.Chunk sectorChunk = new Sector.Chunk(this, filament, sector, sectorChunkPosition);
@@ -3142,8 +3095,6 @@ namespace LooCast.Universe
             loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
             SaveSector(sector);
             SaveSectorChunk(sectorChunk);
-
-            yield return null;
         }
         #endregion
 
@@ -3199,18 +3150,11 @@ namespace LooCast.Universe
                 throw new Exception("Containing Sector is not yet loaded!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(LoadSectorChunkCoroutine(sectorChunkPosition));
-        }
-
-        private IEnumerator LoadSectorChunkCoroutine(Sector.Chunk.Position sectorChunkPosition)
-        {
             string path = $"{DataPath}/Sectors/{sectorChunkPosition.SectorPosition.ChunkPosition.x}.{sectorChunkPosition.SectorPosition.ChunkPosition.y}/Chunks/{sectorChunkPosition.ChunkPosition.x}.{sectorChunkPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Sector.Chunk sectorChunk = JsonUtility.FromJson<Sector.Chunk>(json);
             loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
-            
-            yield return null;
         }
 
         public void UnloadSectorChunk(Sector.Chunk.Position sectorChunkPosition)
@@ -3299,16 +3243,9 @@ namespace LooCast.Universe
                 throw new Exception("Region is already generated!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(GenerateRegionCoroutine(regionPosition));
-        }
-
-        private IEnumerator GenerateRegionCoroutine(Region.Position regionPosition)
-        {
             Region region = new Region(this, regionPosition);
             loadedRegions.Add(regionPosition, region);
             SaveRegion(region);
-
-            yield return null;
         }
         #endregion
 
@@ -3354,18 +3291,11 @@ namespace LooCast.Universe
                 throw new Exception($"Region has not been generated yet!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(LoadRegionCoroutine(regionPosition));
-        }
-
-        private IEnumerator LoadRegionCoroutine(Region.Position regionPosition)
-        {
             string path = $"{DataPath}/Regions/{regionPosition.ChunkPosition.x}.{regionPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Region region = JsonUtility.FromJson<Region>(json);
             loadedRegions.Add(regionPosition, region);
-
-            yield return null;
         }
 
         public void UnloadRegion(Region.Position regionPosition)
@@ -3453,11 +3383,6 @@ namespace LooCast.Universe
                 throw new Exception("Containing Region is not yet loaded!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(GenerateRegionChunkCoroutine(regionChunkPosition));
-        }
-
-        private IEnumerator GenerateRegionChunkCoroutine(Region.Chunk.Position regionChunkPosition)
-        {
             Region region = GetRegion(regionChunkPosition.RegionPosition);
             Sector sector = GetSector(regionChunkPosition.SectorPosition);
             Region.Chunk regionChunk = new Region.Chunk(this, sector, region, regionChunkPosition);
@@ -3465,8 +3390,6 @@ namespace LooCast.Universe
             loadedRegionChunks.Add(regionChunkPosition, regionChunk);
             SaveRegion(region);
             SaveRegionChunk(regionChunk);
-
-            yield return null;
         }
         #endregion
 
@@ -3522,18 +3445,11 @@ namespace LooCast.Universe
                 throw new Exception("Containing Region is not yet loaded!");
             }
 
-            ParallelizationUtil.Instance.StartCoroutine(LoadRegionChunkCoroutine(regionChunkPosition));
-        }
-
-        private IEnumerator LoadRegionChunkCoroutine(Region.Chunk.Position regionChunkPosition)
-        {
             string path = $"{DataPath}/Regions/{regionChunkPosition.RegionPosition.ChunkPosition.x}.{regionChunkPosition.RegionPosition.ChunkPosition.y}/Chunks/{regionChunkPosition.ChunkPosition.x}.{regionChunkPosition.ChunkPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Region.Chunk regionChunk = JsonUtility.FromJson<Region.Chunk>(json);
             loadedRegionChunks.Add(regionChunkPosition, regionChunk);
-
-            yield return null;
         }
 
         public void UnloadRegionChunk(Region.Chunk.Position regionChunkPosition)
