@@ -333,22 +333,13 @@ namespace LooCast.Universe
 
                 SerializableDictionary<Vector2Int, float> universeDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
 
-                Benchmark.Create("X-Loop");
-                Benchmark.Create("Y-Loop");
-
                 for (int x = 0; x < universeGenerationSettings.Size; x++)
                 {
-                    Benchmark.Start("X-Loop");
                     for (int y = 0; y < universeGenerationSettings.Size; y++)
                     {
-                        Benchmark.Start("Y-Loop");
                         int index = x * universeGenerationSettings.Size + y;
                         universeDensityMapDictionary.Add(new Vector2Int(x, y), universeDensitiesData[index].Value);
-                        Benchmark.Stop("Y-Loop");
                     }
-                    Benchmark.Stop("X-Loop");
-                    TimeSpan xLoopTime = Benchmark.AverageDuration("X-Loop");
-                    TimeSpan yLoopTime = Benchmark.AverageDuration("Y-Loop");
                 }
 
                 universeGenerationSettingsBuffer.Dispose();
