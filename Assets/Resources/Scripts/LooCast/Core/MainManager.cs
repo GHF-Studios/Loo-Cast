@@ -83,7 +83,7 @@ namespace LooCast.Core
             #endregion
 
             #region Universe.Parallelization Initialization
-            Universe.ParallelizationUtil.InitializeInstance();
+            Universe.ParallelGenerationUtil.InitializeInstance();
             #endregion
 
             #region Scene Initialization

@@ -1,258 +1,104 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace LooCast.Util.Collections.Generic
 {
-    [Serializable]
-    public class SerializableDictionary<KeyType, ValueType>
+    public class SerializableDictionary<KeyType, ValueType> : IDictionary<KeyType, ValueType>, ISerializationCallbackReceiver
     {
-        #region Structs
-        [Serializable]
-        public struct Entry
+        [SerializeField] private List<KeyType> keys = new List<KeyType>();
+        [SerializeField] private List<ValueType> values = new List<ValueType>();
+        
+        private Dictionary<KeyType, ValueType> hashTable = new Dictionary<KeyType, ValueType>();
+
+        public ICollection<KeyType> Keys => ((IDictionary<KeyType, ValueType>)hashTable).Keys;
+        public ICollection<ValueType> Values => ((IDictionary<KeyType, ValueType>)hashTable).Values;
+        public int Count => ((ICollection<KeyValuePair<KeyType, ValueType>>)hashTable).Count;
+        public bool IsReadOnly => ((ICollection<KeyValuePair<KeyType, ValueType>>)hashTable).IsReadOnly;
+
+        public ValueType this[KeyType key]
         {
-            public KeyType Key => key;
-            public ValueType Value => value;
-
-            [SerializeField] private KeyType key;
-            [SerializeField] private ValueType value;
-
-            public Entry(KeyType key, ValueType value)
-            {
-                this.key = key;
-                this.value = value;
-            }
-        }
-        #endregion
-
-        #region Properties
-        public Entry[] EntryArray
-        {
-            get
-            {
-                if (entryArray == null)
-                {
-                    entryArray = new Entry[0];
-                }
-                return entryArray;
-            }
-
-            set
-            {
-                entryArray = value;
-            }
-        }
-        public KeyType[] KeyArray
-        {
-            get
-            {
-                if (keyArray == null)
-                {
-                    keyArray = new KeyType[0];
-                }
-                return keyArray;
-            }
-
-            set
-            {
-                keyArray = value;
-            }
-        }
-        public ValueType[] ValueArray
-        {
-            get
-            {
-                if (valueArray == null)
-                {
-                    valueArray = new ValueType[0];
-                }
-                return valueArray;
-            }
-
-            set
-            {
-                valueArray = value;
-            }
-        }
-        #endregion
-
-        #region Fields
-        [SerializeField] private Entry[] entryArray;
-        [SerializeField] private KeyType[] keyArray;
-        [SerializeField] private ValueType[] valueArray;
-        #endregion
-
-        #region Methods
-        public bool ContainsKey(KeyType key)
-        {
-            foreach (KeyType otherKey in KeyArray)
-            {
-                if (otherKey.Equals(key))
-                {
-                    return true;
-                }
-            }
-            return false;
+            get => hashTable[key];
+            set => hashTable[key] = value;
         }
 
-        public bool ContainsValue(ValueType value)
+        public void OnBeforeSerialize()
         {
-            foreach (ValueType otherValue in ValueArray)
+            keys.Clear();
+            values.Clear();
+
+            foreach (var kvp in hashTable)
             {
-                if (otherValue.Equals(value))
-                {
-                    return true;
-                }
+                keys.Add(kvp.Key);
+                values.Add(kvp.Value);
             }
-            return false;
         }
 
-        public bool ContainsEntry(Entry entry)
+        public void OnAfterDeserialize()
         {
-            foreach (Entry otherEntry in EntryArray)
+            hashTable.Clear();
+
+            for (int i = 0; i < keys.Count; i++)
             {
-                if (otherEntry.Equals(entry))
-                {
-                    return true;
-                }
+                hashTable.Add(keys[i], values[i]);
             }
-            return false;
         }
 
         public void Add(KeyType key, ValueType value)
         {
-            if (ContainsKey(key))
-            {
-                throw new ArgumentException("Already contains key!");
-            }
-
-            List<Entry> entryList = EntryArray.ToList();
-            List<KeyType> keyList = KeyArray.ToList();
-            List<ValueType> valueList = ValueArray.ToList();
-            entryList.Add(new Entry(key, value));
-            keyList.Add(key);
-            valueList.Add(value);
-            EntryArray = entryList.ToArray();
-            KeyArray = keyList.ToArray();
-            ValueArray = valueList.ToArray();
+            ((IDictionary<KeyType, ValueType>)hashTable).Add(key, value);
         }
 
-        public void Remove(KeyType key)
+        public bool ContainsKey(KeyType key)
         {
-            if (!ContainsKey(key))
-            {
-                return;
-            }
-
-            List<Entry> entryList = EntryArray.ToList();
-            List<KeyType> keyList = KeyArray.ToList();
-            List<ValueType> valueList = ValueArray.ToList();
-            Entry entry = GetEntry(key);
-            entryList.Remove(entry);
-            keyList.Remove(entry.Key);
-            valueList.Remove(entry.Value);
-            EntryArray = entryList.ToArray();
-            KeyArray = keyList.ToArray();
-            ValueArray = valueList.ToArray();
+            return ((IDictionary<KeyType, ValueType>)hashTable).ContainsKey(key);
         }
 
-        public void Remove(ValueType value)
+        public bool Remove(KeyType key)
         {
-            if (!ContainsValue(value))
-            {
-                return;
-            }
-
-            List<Entry> entryList = EntryArray.ToList();
-            List<KeyType> keyList = KeyArray.ToList();
-            List<ValueType> valueList = ValueArray.ToList();
-            Entry entry = GetEntry(value);
-            entryList.Remove(entry);
-            keyList.Remove(entry.Key);
-            valueList.Remove(entry.Value);
-            EntryArray = entryList.ToArray();
-            KeyArray = keyList.ToArray();
-            ValueArray = valueList.ToArray();
+            return ((IDictionary<KeyType, ValueType>)hashTable).Remove(key);
         }
 
-        public void Remove(Entry entry)
+        public bool TryGetValue(KeyType key, out ValueType value)
         {
-            if (!ContainsEntry(entry))
-            {
-                return;
-            }
-
-            List<Entry> entryList = EntryArray.ToList();
-            List<KeyType> keyList = KeyArray.ToList();
-            List<ValueType> valueList = ValueArray.ToList();
-            entryList.Remove(entry);
-            keyList.Remove(entry.Key);
-            valueList.Remove(entry.Value);
-            EntryArray = entryList.ToArray();
-            KeyArray = keyList.ToArray();
-            ValueArray = valueList.ToArray();
+            return ((IDictionary<KeyType, ValueType>)hashTable).TryGetValue(key, out value);
         }
 
-        public Entry GetEntry(KeyType key)
+        public void Add(KeyValuePair<KeyType, ValueType> item)
         {
-            int? index = GetIndex(key);
-            if (index == null)
-            {
-                throw new ArgumentException("Key could not be found!");
-            }
-            return GetEntry((int)index);
+            ((ICollection<KeyValuePair<KeyType, ValueType>>)hashTable).Add(item);
         }
 
-        public Entry GetEntry(ValueType value)
+        public void Clear()
         {
-            int? index = GetIndex(value);
-            if (index == null)
-            {
-                throw new ArgumentException("Value could not be found!");
-            }
-            return GetEntry((int)index);
+            ((ICollection<KeyValuePair<KeyType, ValueType>>)hashTable).Clear();
         }
 
-        private Entry GetEntry(int index)
+        public bool Contains(KeyValuePair<KeyType, ValueType> item)
         {
-            if (index < 0)
-            {
-                throw new ArgumentOutOfRangeException("Index cannot be smaller than 0!");
-            }
-            if (index >= EntryArray.Length)
-            {
-                throw new ArgumentOutOfRangeException("Index cannot be greater than or equal to the array!");
-            }
-
-            return EntryArray[index];
-        }
-        
-        private int? GetIndex(KeyType key)
-        {
-            for (int i = 0; i < EntryArray.Length; i++)
-            {
-                if (EntryArray[i].Key.Equals(key))
-                {
-                    return i;
-                }
-            }
-            return null;
+            return ((ICollection<KeyValuePair<KeyType, ValueType>>)hashTable).Contains(item);
         }
 
-        private int? GetIndex(ValueType value)
+        public void CopyTo(KeyValuePair<KeyType, ValueType>[] array, int arrayIndex)
         {
-            for (int i = 0; i < EntryArray.Length; i++)
-            {
-                if (EntryArray[i].Value.Equals(value))
-                {
-                    return i;
-                }
-            }
-            return null;
+            ((ICollection<KeyValuePair<KeyType, ValueType>>)hashTable).CopyTo(array, arrayIndex);
         }
-        #endregion
+
+        public bool Remove(KeyValuePair<KeyType, ValueType> item)
+        {
+            return ((ICollection<KeyValuePair<KeyType, ValueType>>)hashTable).Remove(item);
+        }
+
+        public IEnumerator<KeyValuePair<KeyType, ValueType>> GetEnumerator()
+        {
+            return ((IEnumerable<KeyValuePair<KeyType, ValueType>>)hashTable).GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable)hashTable).GetEnumerator();
+        }
     }
 }
