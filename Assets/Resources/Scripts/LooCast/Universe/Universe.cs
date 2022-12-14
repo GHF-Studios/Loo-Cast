@@ -58,8 +58,51 @@ namespace LooCast.Universe
                 }
             }
 
+            private struct UniverseGenerationSettingsGPU
+            {
+                public readonly int Seed;
+                public readonly int Size;
+                public readonly float MapFromMin;
+                public readonly float MapFromMax;
+                public readonly float MapToMin;
+                public readonly float MapToMax;
+                public readonly float Power;
+                public readonly float Frequency;
+                public readonly int Octaves;
+                public readonly float Persistence;
+                public readonly float Lacunarity;
+                public readonly float Amplitude;
+                public readonly float CellularJitter;
+
+                public UniverseGenerationSettingsGPU(Universe.GenerationSettings settings)
+                {
+                    Seed = settings.Seed;
+                    Size = settings.Size;
+                    MapFromMin = settings.MapFromMin;
+                    MapFromMax = settings.MapFromMax;
+                    MapToMin = settings.MapToMin;
+                    MapToMax = settings.MapToMax;
+                    Power = settings.Power;
+                    Frequency = settings.Frequency;
+                    Octaves = settings.Octaves;
+                    Persistence = settings.Persistence;
+                    Lacunarity = settings.Lacunarity;
+                    Amplitude = settings.Amplitude;
+                    CellularJitter = settings.CellularJitter;
+                }
+
+                public static int ByteSize
+                {
+                    get
+                    {
+                        return sizeof(int) * 3 + sizeof(float) * 10;
+                    }
+                }
+            }
+
             private struct FilamentGenerationSettingsGPU
             {
+                public readonly int Seed;
                 public readonly int ChunkSize;
                 public readonly float MapFromMin;
                 public readonly float MapFromMax;
@@ -67,10 +110,16 @@ namespace LooCast.Universe
                 public readonly float MapToMax;
                 public readonly float UniverseNoiseInfluence;
                 public readonly float Power;
+                public readonly float Frequency;
+                public readonly int Octaves;
+                public readonly float Persistence;
+                public readonly float Lacunarity;
                 public readonly float Amplitude;
+                public readonly float CellularJitter;
 
                 public FilamentGenerationSettingsGPU(Universe.Filament.GenerationSettings settings)
                 {
+                    Seed = settings.Seed;
                     ChunkSize = settings.ChunkSize;
                     MapFromMin = settings.MapFromMin;
                     MapFromMax = settings.MapFromMax;
@@ -78,20 +127,26 @@ namespace LooCast.Universe
                     MapToMax = settings.MapToMax;
                     UniverseNoiseInfluence = settings.UniverseNoiseInfluence;
                     Power = settings.Power;
+                    Frequency = settings.Frequency;
+                    Octaves = settings.Octaves;
+                    Persistence = settings.Persistence;
+                    Lacunarity = settings.Lacunarity;
                     Amplitude = settings.Amplitude;
+                    CellularJitter = settings.CellularJitter;
                 }
 
                 public static int ByteSize
                 {
                     get
                     {
-                        return sizeof(int) + sizeof(float) * 7;
+                        return sizeof(int) * 3 + sizeof(float) * 11;
                     }
                 }
             }
 
             private struct SectorGenerationSettingsGPU
             {
+                public readonly int Seed;
                 public readonly int ChunkSize;
                 public readonly float MapFromMin;
                 public readonly float MapFromMax;
@@ -99,10 +154,15 @@ namespace LooCast.Universe
                 public readonly float MapToMax;
                 public readonly float FilamentNoiseInfluence;
                 public readonly float Power;
+                public readonly float Frequency;
+                public readonly int Octaves;
+                public readonly float Persistence;
+                public readonly float Lacunarity;
                 public readonly float Amplitude;
 
                 public SectorGenerationSettingsGPU(Universe.Sector.GenerationSettings settings)
                 {
+                    Seed = settings.Seed;
                     ChunkSize = settings.ChunkSize;
                     MapFromMin = settings.MapFromMin;
                     MapFromMax = settings.MapFromMax;
@@ -110,6 +170,10 @@ namespace LooCast.Universe
                     MapToMax = settings.MapToMax;
                     FilamentNoiseInfluence = settings.FilamentNoiseInfluence;
                     Power = settings.Power;
+                    Frequency = settings.Frequency;
+                    Octaves = settings.Octaves;
+                    Persistence = settings.Persistence;
+                    Lacunarity = settings.Lacunarity;
                     Amplitude = settings.Amplitude;
                 }
 
@@ -117,13 +181,14 @@ namespace LooCast.Universe
                 {
                     get
                     {
-                        return sizeof(int) + sizeof(float) * 7;
+                        return sizeof(int) * 3 + sizeof(float) * 10;
                     }
                 }
             }
 
             private struct RegionGenerationSettingsGPU
             {
+                public readonly int Seed;
                 public readonly int ChunkSize;
                 public readonly float MapFromMin;
                 public readonly float MapFromMax;
@@ -131,10 +196,15 @@ namespace LooCast.Universe
                 public readonly float MapToMax;
                 public readonly float SectorNoiseInfluence;
                 public readonly float Power;
+                public readonly float Frequency;
+                public readonly int Octaves;
+                public readonly float Persistence;
+                public readonly float Lacunarity;
                 public readonly float Amplitude;
 
                 public RegionGenerationSettingsGPU(Universe.Region.GenerationSettings settings)
                 {
+                    Seed = settings.Seed;
                     ChunkSize = settings.ChunkSize;
                     MapFromMin = settings.MapFromMin;
                     MapFromMax = settings.MapFromMax;
@@ -142,6 +212,10 @@ namespace LooCast.Universe
                     MapToMax = settings.MapToMax;
                     SectorNoiseInfluence = settings.SectorNoiseInfluence;
                     Power = settings.Power;
+                    Frequency = settings.Frequency;
+                    Octaves = settings.Octaves;
+                    Persistence = settings.Persistence;
+                    Lacunarity = settings.Lacunarity;
                     Amplitude = settings.Amplitude;
                 }
 
@@ -149,7 +223,7 @@ namespace LooCast.Universe
                 {
                     get
                     {
-                        return sizeof(int) + sizeof(float) * 7;
+                        return sizeof(int) * 3 + sizeof(float) * 9;
                     }
                 }
             }
@@ -189,6 +263,7 @@ namespace LooCast.Universe
             #endregion
 
             #region Fields
+            private ComputeShader universeDensityShader;
             private ComputeShader filamentDensityShader;
             private ComputeShader sectorDensityShader;
             private ComputeShader regionDensityShader;
@@ -197,6 +272,7 @@ namespace LooCast.Universe
             #region Unity Callbacks
             private void Update()
             {
+                GenerateUniverseDensityMapCoroutineInfoQueue();
                 ProcessFilamentDensityMapCoroutineInfoQueue();
                 ProcessSectorDensityMapCoroutineInfoQueue();
                 ProcessRegionDensityMapCoroutineInfoQueue();
@@ -216,41 +292,94 @@ namespace LooCast.Universe
                 instance = instanceObject.AddComponent<ParallelizationUtil>();
                 DontDestroyOnLoad(instance);
 
-                instance.filamentDensityShader = Resources.Load<ComputeShader>("Shaders/Computation/Universe/FilamentDensityComputeShader");
-                instance.sectorDensityShader = Resources.Load<ComputeShader>("Shaders/Computation/Universe/SectorDensityComputeShader");
-                instance.regionDensityShader = Resources.Load<ComputeShader>("Shaders/Computation/Universe/RegionDensityComputeShader");
+                instance.universeDensityShader = Resources.Load<ComputeShader>("Shaders/Computation/Universe/UniverseDensity");
+                instance.filamentDensityShader = Resources.Load<ComputeShader>("Shaders/Computation/Universe/FilamentDensity");
+                instance.sectorDensityShader = Resources.Load<ComputeShader>("Shaders/Computation/Universe/SectorDensity");
+                instance.regionDensityShader = Resources.Load<ComputeShader>("Shaders/Computation/Universe/RegionDensity");
 
                 Debug.Log("[Universe.ParallelizationUtil] Initialized.");
             }
             
-            public static void RequestProcessedFilamentDensityMaps(DensityMap universeDensityMap, Filament.Chunk.DensityMapCollection filamentDensityMaps, Action<Filament.Chunk.DensityMapCollection> callback)
+            public static DensityMap GenerateUniverseDensityMap()
+            {
+                if (instance == null)
+                {
+                    throw new Exception("Universe.ParallelizationUtil has not been initialized!");
+                }
+
+                DensityMap universeDensityMap = new DensityMap();
+                GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
+                UniverseGenerationSettingsGPU[] universeGenerationSettingsData = { new UniverseGenerationSettingsGPU(universeGenerationSettings) };
+                DensityDataGPU[] universeDensitiesData = new DensityDataGPU[universeDensityMap.DensityMapDictionary.EntryArray.Length];
+
+                for (int x = 0; x < universeGenerationSettings.Size; x++)
+                {
+                    for (int y = 0; y < universeGenerationSettings.Size; y++)
+                    {
+                        int index = x * universeGenerationSettings.Size + y;
+                        universeDensitiesData[index] = new DensityDataGPU(x, y, universeDensityMap.DensityMapDictionary.GetEntry(new Vector2Int(x, y)).Value);
+                    }
+                }
+
+                ComputeBuffer universeGenerationSettingsBuffer = new ComputeBuffer(1, UniverseGenerationSettingsGPU.ByteSize);
+                universeGenerationSettingsBuffer.SetData(universeGenerationSettingsData);
+                ComputeBuffer universeDensitiesBuffer = new ComputeBuffer(universeDensitiesData.Length, DensityDataGPU.ByteSize);
+                universeDensitiesBuffer.SetData(universeDensitiesData);
+
+                instance.universeDensityShader.SetBuffer(0, "universeGenerationSettingsBuffer", universeGenerationSettingsBuffer);
+                instance.universeDensityShader.SetBuffer(0, "universeDensityMap", universeDensitiesBuffer);
+
+                instance.universeDensityShader.Dispatch(0, universeGenerationSettings.Size, universeGenerationSettings.Size, 1);
+
+                universeDensitiesBuffer.GetData(universeDensitiesData);
+
+                SerializableDictionary<Vector2Int, float> universeDensityMapDictionary = new SerializableDictionary<Vector2Int, float>();
+
+                for (int x = 0; x < universeGenerationSettings.Size; x++)
+                {
+                    for (int y = 0; y < universeGenerationSettings.Size; y++)
+                    {
+                        int index = x * universeGenerationSettings.Size + y;
+                        universeDensityMapDictionary.Add(new Vector2Int(x, y), universeDensitiesData[index].Value);
+                    }
+                }
+
+                universeDensityMap = new DensityMap(universeDensityMapDictionary);
+
+                universeGenerationSettingsBuffer.Dispose();
+                universeDensitiesBuffer.Dispose();
+
+                return universeDensityMap;
+            }
+
+            public static void RequestFilamentDensityMaps(DensityMap universeDensityMap, Filament.Chunk.DensityMapCollection filamentDensityMaps, Action<Filament.Chunk.DensityMapCollection> callback)
             {
                 if (instance == null)
                 {
                     throw new Exception("Universe.ParallelizationUtil has not been initialized!");
                 }
                 
-                instance.StartCoroutine(instance.FilamentDensityMapsProcessingCoroutine(universeDensityMap, filamentDensityMaps, callback));
+                instance.StartCoroutine(instance.FilamentDensityMapsGenerationCoroutine(universeDensityMap, filamentDensityMaps, callback));
             }
 
-            public static void RequestProcessedSectorDensityMaps(Filament.Chunk.DensityMapCollection filamentDensityMaps, Sector.Chunk.DensityMapCollection sectorDensityMaps, Action<Sector.Chunk.DensityMapCollection> callback)
+            public static void RequestSectorDensityMaps(Filament.Chunk.DensityMapCollection filamentDensityMaps, Sector.Chunk.DensityMapCollection sectorDensityMaps, Action<Sector.Chunk.DensityMapCollection> callback)
             {
                 if (instance == null)
                 {
                     throw new Exception("Universe.ParallelizationUtil has not been initialized!");
                 }
 
-                instance.StartCoroutine(instance.SectorDensityMapsProcessingCoroutine(filamentDensityMaps, sectorDensityMaps, callback));
+                instance.StartCoroutine(instance.SectorDensityMapsGenerationCoroutine(filamentDensityMaps, sectorDensityMaps, callback));
             }
 
-            public static void RequestProcessedRegionDensityMaps(Sector.Chunk.DensityMapCollection sectorDensityMaps, Region.Chunk.DensityMapCollection regionDensityMaps, Action<Region.Chunk.DensityMapCollection> callback)
+            public static void RequestRegionDensityMaps(Sector.Chunk.DensityMapCollection sectorDensityMaps, Region.Chunk.DensityMapCollection regionDensityMaps, Action<Region.Chunk.DensityMapCollection> callback)
             {
                 if (instance == null)
                 {
                     throw new Exception("Universe.ParallelizationUtil has not been initialized!");
                 }
 
-                instance.StartCoroutine(instance.RegionDensityMapsProcessingCoroutine(sectorDensityMaps, regionDensityMaps, callback));
+                instance.StartCoroutine(instance.RegionDensityMapsGenerationCoroutine(sectorDensityMaps, regionDensityMaps, callback));
             }
 
             public static void ProcessFilamentDensityMapCoroutineInfoQueue()
@@ -282,7 +411,7 @@ namespace LooCast.Universe
             #endregion
 
             #region Coroutines
-            private IEnumerator FilamentDensityMapsProcessingCoroutine(DensityMap universeDensityMap, Filament.Chunk.DensityMapCollection filamentDensityMaps, Action<Filament.Chunk.DensityMapCollection> callback)
+            private IEnumerator FilamentDensityMapsGenerationCoroutine(DensityMap universeDensityMap, Filament.Chunk.DensityMapCollection filamentDensityMaps, Action<Filament.Chunk.DensityMapCollection> callback)
             {
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
                 Filament.GenerationSettings filamentGenerationSettings = universeGenerationSettings.FilamentGenerationSettings;
@@ -387,7 +516,7 @@ namespace LooCast.Universe
                 yield return null;
             }
 
-            private IEnumerator SectorDensityMapsProcessingCoroutine(Filament.Chunk.DensityMapCollection filamentDensityMaps, Sector.Chunk.DensityMapCollection sectorDensityMaps, Action<Sector.Chunk.DensityMapCollection> callback)
+            private IEnumerator SectorDensityMapsGenerationCoroutine(Filament.Chunk.DensityMapCollection filamentDensityMaps, Sector.Chunk.DensityMapCollection sectorDensityMaps, Action<Sector.Chunk.DensityMapCollection> callback)
             {
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
                 Sector.GenerationSettings sectorGenerationSettings = universeGenerationSettings.SectorGenerationSettings;
@@ -502,7 +631,7 @@ namespace LooCast.Universe
                 yield return null;
             }
             
-            private IEnumerator RegionDensityMapsProcessingCoroutine(Sector.Chunk.DensityMapCollection sectorDensityMaps, Region.Chunk.DensityMapCollection regionDensityMaps, Action<Region.Chunk.DensityMapCollection> callback)
+            private IEnumerator RegionDensityMapsGenerationCoroutine(Sector.Chunk.DensityMapCollection sectorDensityMaps, Region.Chunk.DensityMapCollection regionDensityMaps, Action<Region.Chunk.DensityMapCollection> callback)
             {
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
                 Region.GenerationSettings regionGenerationSettings = universeGenerationSettings.RegionGenerationSettings;
@@ -891,7 +1020,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Static Methods
-                public static void ProcessDensityMapThreadInfoQueue()
+                public static void ProcessDensityMapCoroutineInfoQueue()
                 {
                     while (densityMapCoroutineInfoQueue.Count > 0)
                     {
@@ -969,7 +1098,7 @@ namespace LooCast.Universe
                 private IEnumerator DensityMapGenerationCoroutine(Universe universe, Filament filament, Action<DensityMapCollection> callback)
                 {
                     SampleDensityMaps(universe, filament, out Universe.DensityMap universeDensityMap, out DensityMapCollection filamentDensityMaps);
-                    ParallelizationUtil.RequestProcessedFilamentDensityMaps(universeDensityMap, filamentDensityMaps, (filamentDensityMaps) =>
+                    ParallelizationUtil.RequestFilamentDensityMaps(universeDensityMap, filamentDensityMaps, (filamentDensityMaps) =>
                     {
                         lock (densityMapCoroutineInfoQueue)
                         {
@@ -1073,8 +1202,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Fields
-                [Header("Main Settings")]
-                public GameObject Prefab;
+                public int Seed;
                 public int ChunkSize;
                 public int ChunkAmount;
                 public float MapFromMin;
@@ -1083,34 +1211,12 @@ namespace LooCast.Universe
                 public float MapToMax;
                 public float UniverseNoiseInfluence;
                 public float Power;
-                public float Amplitude;
-
-                [Header("FNL Noise General Settings")]
-                public FastNoiseLite.NoiseType NoiseType;
                 public float Frequency;
-
-                [Header("FNL Noise Fractal Settings")]
-                public FastNoiseLite.FractalType FractalType;
-                public int FractalOctaves;
-                public float FractalLacunarity;
-                public float FractalGain;
-                public float FractalWeightedStrength;
-
-                [Header("FNL Noise Cellular Settings")]
-                public FastNoiseLite.CellularDistanceFunction CellularDistanceFunction;
-                public FastNoiseLite.CellularReturnType CellularReturnType;
+                public int Octaves;
+                public float Persistence;
+                public float Lacunarity;
+                public float Amplitude;
                 public float CellularJitter;
-
-                [Header("FNL Domain Warp General Settings")]
-                public FastNoiseLite.DomainWarpType DomainWarpType;
-                public float DomainWarpAmplitude;
-                public float DomainWarpFrequency;
-
-                [Header("FNL Domain Warp Fractal Settings")]
-                public FastNoiseLite.FractalType DomainWarpFractalType;
-                public int DomainWarpFractalOctaves;
-                public float DomainWarpFractalLacunarity;
-                public float DomainWarpFractalGain;
                 #endregion
             }
             #endregion
@@ -1334,7 +1440,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Static Methods
-                public static void ProcessDensityMapThreadInfoQueue()
+                public static void ProcessDensityMapCoroutineInfoQueue()
                 {
                     while (densityMapCoroutineInfoQueue.Count > 0)
                     {
@@ -1416,7 +1522,7 @@ namespace LooCast.Universe
                 private IEnumerator DensityMapGenerationCoroutine(Universe universe, Filament filament, Sector sector, Action<DensityMapCollection> callback)
                 {
                     SampleDensityMaps(universe, filament, sector, out Filament.Chunk.DensityMapCollection filamentDensityMaps, out DensityMapCollection sectorDensityMaps);
-                    ParallelizationUtil.RequestProcessedSectorDensityMaps(filamentDensityMaps, sectorDensityMaps, (sectorDensityMaps) =>
+                    ParallelizationUtil.RequestSectorDensityMaps(filamentDensityMaps, sectorDensityMaps, (sectorDensityMaps) =>
                     {
                         lock (densityMapCoroutineInfoQueue)
                         {
@@ -1518,8 +1624,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Fields
-                [Header("Main Settings")]
-                public GameObject Prefab;
+                public int Seed;
                 public int ChunkSize;
                 public int ChunkAmount;
                 public float MapFromMin;
@@ -1528,29 +1633,11 @@ namespace LooCast.Universe
                 public float MapToMax;
                 public float FilamentNoiseInfluence;
                 public float Power;
-                public float Amplitude;
-
-                [Header("FNL Noise General Settings")]
-                public FastNoiseLite.NoiseType NoiseType;
                 public float Frequency;
-
-                [Header("FNL Noise Fractal Settings")]
-                public FastNoiseLite.FractalType FractalType;
-                public int FractalOctaves;
-                public float FractalLacunarity;
-                public float FractalGain;
-                public float FractalWeightedStrength;
-
-                [Header("FNL Domain Warp General Settings")]
-                public FastNoiseLite.DomainWarpType DomainWarpType;
-                public float DomainWarpAmplitude;
-                public float DomainWarpFrequency;
-
-                [Header("FNL Domain Warp Fractal Settings")]
-                public FastNoiseLite.FractalType DomainWarpFractalType;
-                public int DomainWarpFractalOctaves;
-                public float DomainWarpFractalLacunarity;
-                public float DomainWarpFractalGain;
+                public int Octaves;
+                public float Persistence;
+                public float Lacunarity;
+                public float Amplitude;
                 #endregion
             }
             #endregion
@@ -1766,7 +1853,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Static Methods
-                public static void ProcessDensityMapThreadInfoQueue()
+                public static void ProcessDensityMapCoroutineInfoQueue()
                 {
                     while (densityMapCoroutineInfoQueue.Count > 0)
                     {
@@ -1838,7 +1925,7 @@ namespace LooCast.Universe
                 private IEnumerator DensityMapGenerationCoroutine(Universe universe, Sector sector, Region region, Action<DensityMapCollection> callback)
                 {
                     SampleDensityMaps(universe, sector, region, out Sector.Chunk.DensityMapCollection sectorDensityMaps, out DensityMapCollection regionDensityMaps);
-                    ParallelizationUtil.RequestProcessedRegionDensityMaps(sectorDensityMaps, regionDensityMaps, (regionDensityMaps) =>
+                    ParallelizationUtil.RequestRegionDensityMaps(sectorDensityMaps, regionDensityMaps, (regionDensityMaps) =>
                     {
                         lock (densityMapCoroutineInfoQueue)
                         {
@@ -1938,8 +2025,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Fields
-                [Header("Main Settings")]
-                public GameObject Prefab;
+                public int Seed;
                 public int ChunkSize;
                 public int ChunkAmount;
                 public float MapFromMin;
@@ -1948,29 +2034,11 @@ namespace LooCast.Universe
                 public float MapToMax;
                 public float SectorNoiseInfluence;
                 public float Power;
-                public float Amplitude;
-
-                [Header("FNL Noise General Settings")]
-                public FastNoiseLite.NoiseType NoiseType;
                 public float Frequency;
-
-                [Header("FNL Noise Fractal Settings")]
-                public FastNoiseLite.FractalType FractalType;
-                public int FractalOctaves;
-                public float FractalLacunarity;
-                public float FractalGain;
-                public float FractalWeightedStrength;
-
-                [Header("FNL Domain Warp General Settings")]
-                public FastNoiseLite.DomainWarpType DomainWarpType;
-                public float DomainWarpAmplitude;
-                public float DomainWarpFrequency;
-
-                [Header("FNL Domain Warp Fractal Settings")]
-                public FastNoiseLite.FractalType DomainWarpFractalType;
-                public int DomainWarpFractalOctaves;
-                public float DomainWarpFractalLacunarity;
-                public float DomainWarpFractalGain;
+                public int Octaves;
+                public float Persistence;
+                public float Lacunarity;
+                public float Amplitude;
                 #endregion
             }
             #endregion
@@ -2022,44 +2090,21 @@ namespace LooCast.Universe
         public struct GenerationSettings
         {
             #region Fields
-            [Header("Main Settings")]
             public int Seed;
             public int Size;
             public float MapFromMin;
             public float MapFromMax;
             public float MapToMin;
             public float MapToMax;
+            public float UniverseNoiseInfluence;
             public float Power;
-            public float Amplitude;
-
-            [Header("FNL Noise General Settings")]
-            public FastNoiseLite.NoiseType NoiseType;
             public float Frequency;
-
-            [Header("FNL Noise Fractal Settings")]
-            public FastNoiseLite.FractalType FractalType;
-            public int FractalOctaves;
-            public float FractalLacunarity;
-            public float FractalGain;
-            public float FractalWeightedStrength;
-
-            [Header("FNL Noise Cellular Settings")]
-            public FastNoiseLite.CellularDistanceFunction CellularDistanceFunction;
-            public FastNoiseLite.CellularReturnType CellularReturnType;
+            public int Octaves;
+            public float Persistence;
+            public float Lacunarity;
+            public float Amplitude;
             public float CellularJitter;
 
-            [Header("FNL Domain Warp General Settings")]
-            public FastNoiseLite.DomainWarpType DomainWarpType;
-            public float DomainWarpAmplitude;
-            public float DomainWarpFrequency;
-
-            [Header("FNL Domain Warp Fractal Settings")]
-            public FastNoiseLite.FractalType DomainWarpFractalType;
-            public int DomainWarpFractalOctaves;
-            public float DomainWarpFractalLacunarity;
-            public float DomainWarpFractalGain;
-
-            [Header("Sub Settings")]
             public Filament.GenerationSettings FilamentGenerationSettings;
             public Sector.GenerationSettings SectorGenerationSettings;
             public Region.GenerationSettings RegionGenerationSettings;
@@ -2111,32 +2156,16 @@ namespace LooCast.Universe
                 generationSettings.MapToMin = 0.0f;
                 generationSettings.MapToMax = 1.0f;
                 generationSettings.Power = 5.0f;
-                generationSettings.Amplitude = 64.0f;
-
-                generationSettings.NoiseType = FastNoiseLite.NoiseType.Cellular;
                 generationSettings.Frequency = 0.04f;
-
-                generationSettings.FractalType = FastNoiseLite.FractalType.FBm;
-                generationSettings.FractalOctaves = 3;
-                generationSettings.FractalLacunarity = 2.0f;
-                generationSettings.FractalGain = 0.5f;
-                generationSettings.FractalWeightedStrength = 1.0f;
-
-                generationSettings.CellularDistanceFunction = FastNoiseLite.CellularDistanceFunction.EuclideanSq;
-                generationSettings.CellularReturnType = FastNoiseLite.CellularReturnType.Distance;
+                generationSettings.Octaves = 3;
+                generationSettings.Persistence = 0.5f;
+                generationSettings.Lacunarity = 2.0f;
+                generationSettings.Amplitude = 64.0f;
                 generationSettings.CellularJitter = 1.0f;
-
-                generationSettings.DomainWarpType = FastNoiseLite.DomainWarpType.OpenSimplex2;
-                generationSettings.DomainWarpAmplitude = 20.0f;
-                generationSettings.DomainWarpFrequency = 0.01f;
-
-                generationSettings.DomainWarpFractalType = FastNoiseLite.FractalType.DomainWarpProgressive;
-                generationSettings.DomainWarpFractalOctaves = 5;
-                generationSettings.DomainWarpFractalLacunarity = 2.0f;
-                generationSettings.DomainWarpFractalGain = 0.5f;
                 #endregion
 
                 #region Filament Generation Settings Default
+                generationSettings.FilamentGenerationSettings.Seed = generationSettings.Seed;
                 generationSettings.FilamentGenerationSettings.ChunkSize = 16;
                 generationSettings.FilamentGenerationSettings.ChunkAmount = 64;
                 generationSettings.FilamentGenerationSettings.MapFromMin = -1.0f;
@@ -2145,32 +2174,15 @@ namespace LooCast.Universe
                 generationSettings.FilamentGenerationSettings.MapToMax = 1.0f;
                 generationSettings.FilamentGenerationSettings.UniverseNoiseInfluence = 1.0f;
                 generationSettings.FilamentGenerationSettings.Power = 1.0f;
-                generationSettings.FilamentGenerationSettings.Amplitude = 1.0f;
-
-                generationSettings.FilamentGenerationSettings.NoiseType = FastNoiseLite.NoiseType.Cellular;
                 generationSettings.FilamentGenerationSettings.Frequency = 0.02f;
-
-                generationSettings.FilamentGenerationSettings.FractalType = FastNoiseLite.FractalType.FBm;
-                generationSettings.FilamentGenerationSettings.FractalOctaves = 5;
-                generationSettings.FilamentGenerationSettings.FractalLacunarity = 2.0f;
-                generationSettings.FilamentGenerationSettings.FractalGain = 0.5f;
-                generationSettings.FilamentGenerationSettings.FractalWeightedStrength = 0.0f;
-
-                generationSettings.FilamentGenerationSettings.CellularDistanceFunction = FastNoiseLite.CellularDistanceFunction.EuclideanSq;
-                generationSettings.FilamentGenerationSettings.CellularReturnType = FastNoiseLite.CellularReturnType.Distance;
+                generationSettings.FilamentGenerationSettings.Octaves = 5;
+                generationSettings.FilamentGenerationSettings.Persistence = 0.5f;
+                generationSettings.FilamentGenerationSettings.Lacunarity = 2.0f;
+                generationSettings.FilamentGenerationSettings.Amplitude = 1.0f;
                 generationSettings.FilamentGenerationSettings.CellularJitter = 1.0f;
-
-                generationSettings.FilamentGenerationSettings.DomainWarpType = FastNoiseLite.DomainWarpType.OpenSimplex2;
-                generationSettings.FilamentGenerationSettings.DomainWarpAmplitude = 20.0f;
-                generationSettings.FilamentGenerationSettings.DomainWarpFrequency = 0.005f;
-
-                generationSettings.FilamentGenerationSettings.DomainWarpFractalType = FastNoiseLite.FractalType.DomainWarpProgressive;
-                generationSettings.FilamentGenerationSettings.DomainWarpFractalOctaves = 5;
-                generationSettings.FilamentGenerationSettings.DomainWarpFractalLacunarity = 2.0f;
-                generationSettings.FilamentGenerationSettings.DomainWarpFractalGain = 0.5f;
                 #endregion
 
-                #region Sectror Generation Settings Default
+                #region Sector Generation Settings Default
                 generationSettings.SectorGenerationSettings.ChunkSize = 16;
                 generationSettings.SectorGenerationSettings.ChunkAmount = 64;
                 generationSettings.SectorGenerationSettings.MapFromMin = -1.0f;
@@ -2179,25 +2191,11 @@ namespace LooCast.Universe
                 generationSettings.SectorGenerationSettings.MapToMax = 1.0f;
                 generationSettings.SectorGenerationSettings.FilamentNoiseInfluence = 1.0f;
                 generationSettings.SectorGenerationSettings.Power = 1.0f;
-                generationSettings.SectorGenerationSettings.Amplitude = 1.0f;
-
-                generationSettings.SectorGenerationSettings.NoiseType = FastNoiseLite.NoiseType.OpenSimplex2;
                 generationSettings.SectorGenerationSettings.Frequency = 0.01f;
-
-                generationSettings.SectorGenerationSettings.FractalType = FastNoiseLite.FractalType.FBm;
-                generationSettings.SectorGenerationSettings.FractalOctaves = 5;
-                generationSettings.SectorGenerationSettings.FractalLacunarity = 2.0f;
-                generationSettings.SectorGenerationSettings.FractalGain = 0.5f;
-                generationSettings.SectorGenerationSettings.FractalWeightedStrength = 0.0f;
-
-                generationSettings.SectorGenerationSettings.DomainWarpType = FastNoiseLite.DomainWarpType.OpenSimplex2;
-                generationSettings.SectorGenerationSettings.DomainWarpAmplitude = 20.0f;
-                generationSettings.SectorGenerationSettings.DomainWarpFrequency = 0.005f;
-
-                generationSettings.SectorGenerationSettings.DomainWarpFractalType = FastNoiseLite.FractalType.DomainWarpProgressive;
-                generationSettings.SectorGenerationSettings.DomainWarpFractalOctaves = 5;
-                generationSettings.SectorGenerationSettings.DomainWarpFractalLacunarity = 2.0f;
-                generationSettings.SectorGenerationSettings.DomainWarpFractalGain = 0.5f;
+                generationSettings.SectorGenerationSettings.Octaves = 5;
+                generationSettings.SectorGenerationSettings.Persistence = 0.5f;
+                generationSettings.SectorGenerationSettings.Lacunarity = 2.0f;
+                generationSettings.SectorGenerationSettings.Amplitude = 1.0f;
                 #endregion
 
                 #region Region Generation Settings Default
@@ -2209,25 +2207,11 @@ namespace LooCast.Universe
                 generationSettings.RegionGenerationSettings.MapToMax = 1.375f;
                 generationSettings.RegionGenerationSettings.SectorNoiseInfluence = 1.0f;
                 generationSettings.RegionGenerationSettings.Power = 1.0f;
+                generationSettings.SectorGenerationSettings.Frequency = 0.005f;
+                generationSettings.SectorGenerationSettings.Octaves = 5;
+                generationSettings.SectorGenerationSettings.Persistence = 0.5f;
+                generationSettings.SectorGenerationSettings.Lacunarity = 2.0f;
                 generationSettings.RegionGenerationSettings.Amplitude = 1.0f;
-
-                generationSettings.RegionGenerationSettings.NoiseType = FastNoiseLite.NoiseType.OpenSimplex2;
-                generationSettings.RegionGenerationSettings.Frequency = 0.005f;
-
-                generationSettings.RegionGenerationSettings.FractalType = FastNoiseLite.FractalType.FBm;
-                generationSettings.RegionGenerationSettings.FractalOctaves = 5;
-                generationSettings.RegionGenerationSettings.FractalLacunarity = 2.0f;
-                generationSettings.RegionGenerationSettings.FractalGain = 0.5f;
-                generationSettings.RegionGenerationSettings.FractalWeightedStrength = 0.0f;
-
-                generationSettings.RegionGenerationSettings.DomainWarpType = FastNoiseLite.DomainWarpType.OpenSimplex2;
-                generationSettings.RegionGenerationSettings.DomainWarpAmplitude = 20.0f;
-                generationSettings.RegionGenerationSettings.DomainWarpFrequency = 0.005f;
-
-                generationSettings.RegionGenerationSettings.DomainWarpFractalType = FastNoiseLite.FractalType.DomainWarpProgressive;
-                generationSettings.RegionGenerationSettings.DomainWarpFractalOctaves = 5;
-                generationSettings.RegionGenerationSettings.DomainWarpFractalLacunarity = 2.0f;
-                generationSettings.RegionGenerationSettings.DomainWarpFractalGain = 0.5f;
                 #endregion
 
                 return generationSettings;
@@ -2237,44 +2221,11 @@ namespace LooCast.Universe
 
         #region Properties
         public bool Initialized => initialized;
-        public Texture2D Map
-        {
-            get
-            {
-                if (map == null)
-                {
-                    string path = $"{DataPath}/Map.png";
-                    byte[] mapData = File.ReadAllBytes(path);
-                    map = new Texture2D(UniverseGenerationSettings.Size, UniverseGenerationSettings.Size);
-                    map.filterMode = FilterMode.Point;
-                    map.wrapMode = TextureWrapMode.Clamp;
-                    ImageConversion.LoadImage(map, mapData);
-                }
-                return map;
-            }
-
-            private set
-            {
-                map = value;
-                string path = $"{DataPath}/Map.png";
-                byte[] mapData = ImageConversion.EncodeToPNG(map);
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-                using BinaryWriter binaryWriter = new BinaryWriter(File.OpenWrite(path));
-                binaryWriter.Write(mapData);
-            }
-        }
+        public DensityMap UniverseDensityMap => universeDensityMap;
         public GenerationSettings UniverseGenerationSettings => generationSettings;
         public Filament.GenerationSettings FilamentGenerationSettings => generationSettings.FilamentGenerationSettings;
         public Sector.GenerationSettings SectorGenerationSettings => generationSettings.SectorGenerationSettings;
         public Region.GenerationSettings RegionGenerationSettings => generationSettings.RegionGenerationSettings;
-        public FastNoiseLite UniverseNoiseGenerator => universeNoiseGenerator;
-        public FastNoiseLite UniverseDomainWarper => universeDomainWarper;
-        public FastNoiseLite FilamentNoiseGenerator => filamentNoiseGenerator;
-        public FastNoiseLite FilamentDomainWarper => filamentDomainWarper;
-        public FastNoiseLite SectorNoiseGenerator => sectorNoiseGenerator;
-        public FastNoiseLite SectorDomainWarper => sectorDomainWarper;
-        public FastNoiseLite RegionNoiseGenerator => regionNoiseGenerator;
-        public FastNoiseLite RegionDomainWarper => regionDomainWarper;
         public HashSet<Filament> LoadedFilaments
         {
             get
@@ -2363,17 +2314,9 @@ namespace LooCast.Universe
 
         #region Fields
         [SerializeField] private GenerationSettings generationSettings;
-        [SerializeField] private FastNoiseLite universeNoiseGenerator;
-        [SerializeField] private FastNoiseLite universeDomainWarper;
-        [SerializeField] private FastNoiseLite filamentNoiseGenerator;
-        [SerializeField] private FastNoiseLite filamentDomainWarper;
-        [SerializeField] private FastNoiseLite sectorNoiseGenerator;
-        [SerializeField] private FastNoiseLite sectorDomainWarper;
-        [SerializeField] private FastNoiseLite regionNoiseGenerator;
-        [SerializeField] private FastNoiseLite regionDomainWarper;
+        [SerializeField] private DensityMap universeDensityMap;
 
         private bool initialized = false;
-        private Texture2D map;
         private Dictionary<Filament.Position, Filament> loadedFilaments;
         private Dictionary<Sector.Position, Sector> loadedSectors;
         private Dictionary<Region.Position, Region> loadedRegions;
@@ -2386,182 +2329,7 @@ namespace LooCast.Universe
         private Universe(GenerationSettings generationSettings)
         {
             this.generationSettings = generationSettings;
-
-            #region Noise Generators & Domain Warpers Creation
-
-            #region Universe
-
-            #region Noise Generator Creation
-            universeNoiseGenerator = new FastNoiseLite();
-
-            //General
-            universeNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
-            universeNoiseGenerator.SetSeed(generationSettings.Seed);
-            universeNoiseGenerator.SetFrequency(0.04f);
-
-            //Fractal
-            universeNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
-            universeNoiseGenerator.SetFractalOctaves(3);
-            universeNoiseGenerator.SetFractalLacunarity(2.0f);
-            universeNoiseGenerator.SetFractalGain(0.5f);
-            universeNoiseGenerator.SetFractalWeightedStrength(1.0f);
-
-            //Cellular
-            universeNoiseGenerator.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
-            universeNoiseGenerator.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
-            universeNoiseGenerator.SetCellularJitter(1.0f);
-            #endregion
-
-            #region Domain Warper Creation
-            universeDomainWarper = new FastNoiseLite();
-
-            //General
-            universeDomainWarper.SetSeed(generationSettings.Seed);
-            universeDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
-            universeDomainWarper.SetDomainWarpAmp(20.0f);
-            universeDomainWarper.SetFrequency(0.01f);
-
-            //Fractal
-            universeDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
-            universeDomainWarper.SetFractalOctaves(5);
-            universeDomainWarper.SetFractalLacunarity(2.0f);
-            universeDomainWarper.SetFractalGain(0.5f);
-            #endregion
-
-            #endregion
-
-            #region Filament
-
-            #region Noise Generator Creation
-            filamentNoiseGenerator = new FastNoiseLite();
-
-            //General
-            filamentNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.Cellular);
-            filamentNoiseGenerator.SetSeed(generationSettings.Seed);
-            filamentNoiseGenerator.SetFrequency(0.02f);
-
-            //Fractal
-            filamentNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
-            filamentNoiseGenerator.SetFractalOctaves(5);
-            filamentNoiseGenerator.SetFractalLacunarity(2.0f);
-            filamentNoiseGenerator.SetFractalGain(0.5f);
-            filamentNoiseGenerator.SetFractalWeightedStrength(0.0f);
-
-            //Cellular
-            filamentNoiseGenerator.SetCellularDistanceFunction(FastNoiseLite.CellularDistanceFunction.EuclideanSq);
-            filamentNoiseGenerator.SetCellularReturnType(FastNoiseLite.CellularReturnType.Distance);
-            filamentNoiseGenerator.SetCellularJitter(1.0f);
-            #endregion
-
-            #region Domain Warper Creation
-            filamentDomainWarper = new FastNoiseLite();
-
-            //General
-            filamentDomainWarper.SetSeed(generationSettings.Seed);
-            filamentDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
-            filamentDomainWarper.SetDomainWarpAmp(20.0f);
-            filamentDomainWarper.SetFrequency(0.005f);
-
-            //Fractal
-            filamentDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
-            filamentDomainWarper.SetFractalOctaves(5);
-            filamentDomainWarper.SetFractalLacunarity(2.0f);
-            filamentDomainWarper.SetFractalGain(0.5f);
-            #endregion
-
-            #endregion
-
-            #region Sector
-
-            #region Noise Generator Creation
-            sectorNoiseGenerator = new FastNoiseLite();
-
-            //General
-            sectorNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-            sectorNoiseGenerator.SetSeed(generationSettings.Seed);
-            sectorNoiseGenerator.SetFrequency(0.01f);
-
-            //Fractal
-            sectorNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
-            sectorNoiseGenerator.SetFractalOctaves(5);
-            sectorNoiseGenerator.SetFractalLacunarity(2.0f);
-            sectorNoiseGenerator.SetFractalGain(0.5f);
-            sectorNoiseGenerator.SetFractalWeightedStrength(0.0f);
-            #endregion
-
-            #region Domain Warper Creation
-            sectorDomainWarper = new FastNoiseLite();
-
-            //General
-            sectorDomainWarper.SetSeed(generationSettings.Seed);
-            sectorDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
-            sectorDomainWarper.SetDomainWarpAmp(20.0f);
-            sectorDomainWarper.SetFrequency(0.005f);
-
-            //Fractal
-            sectorDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
-            sectorDomainWarper.SetFractalOctaves(5);
-            sectorDomainWarper.SetFractalLacunarity(2.0f);
-            sectorDomainWarper.SetFractalGain(0.5f);
-            #endregion
-
-            #endregion
-
-            #region Region
-
-            #region Noise Generator Creation
-            regionNoiseGenerator = new FastNoiseLite();
-
-            //General
-            regionNoiseGenerator.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-            regionNoiseGenerator.SetSeed(generationSettings.Seed);
-            regionNoiseGenerator.SetFrequency(0.005f);
-
-            //Fractal
-            regionNoiseGenerator.SetFractalType(FastNoiseLite.FractalType.FBm);
-            regionNoiseGenerator.SetFractalOctaves(5);
-            regionNoiseGenerator.SetFractalLacunarity(2.0f);
-            regionNoiseGenerator.SetFractalGain(0.5f);
-            regionNoiseGenerator.SetFractalWeightedStrength(0.0f);
-            #endregion
-
-            #region Domain Warper Creation
-            regionDomainWarper = new FastNoiseLite();
-
-            //General
-            regionDomainWarper.SetSeed(generationSettings.Seed);
-            regionDomainWarper.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
-            regionDomainWarper.SetDomainWarpAmp(20.0f);
-            regionDomainWarper.SetFrequency(0.005f);
-
-            //Fractal
-            regionDomainWarper.SetFractalType(FastNoiseLite.FractalType.DomainWarpProgressive);
-            regionDomainWarper.SetFractalOctaves(5);
-            regionDomainWarper.SetFractalLacunarity(2.0f);
-            regionDomainWarper.SetFractalGain(0.5f);
-            #endregion
-
-            #endregion
-
-            #endregion
-
-            #region Universe Map Generation
-            Color[] noiseColorMap = new Color[UniverseGenerationSettings.Size * UniverseGenerationSettings.Size];
-            for (int y = 0; y < UniverseGenerationSettings.Size; y++)
-            {
-                for (int x = 0; x < UniverseGenerationSettings.Size; x++)
-                {
-                    float sampleX = x;
-                    float sampleY = y;
-
-                    float noiseValue = SampleNoise(sampleX, sampleY);
-
-                    noiseColorMap[y * UniverseGenerationSettings.Size + x] = new Color(noiseValue, noiseValue, noiseValue, 1.0f);
-                }
-            }
-
-            Map = TextureUtil.TextureFromColorMap(noiseColorMap, UniverseGenerationSettings.Size, UniverseGenerationSettings.Size);
-            #endregion
+            universeDensityMap = ParallelizationUtil.GenerateUniverseDensityMap();
 
             Initialize();
         }
@@ -2597,7 +2365,7 @@ namespace LooCast.Universe
             initialized = true;
         }
 
-        public float SampleNoise(float sampleX, float sampleY)
+        private float SampleNoise(float sampleX, float sampleY)
         {
             #region Sampling
             UniverseDomainWarper.DomainWarp(ref sampleX, ref sampleY);

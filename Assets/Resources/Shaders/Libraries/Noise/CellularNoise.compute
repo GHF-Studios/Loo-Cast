@@ -1,0 +1,6 @@
+#include "../Math/Random.compute"
+
+float sampleNoise(float x, float y, uint seed, float frequency, int octaves, float persistence, float lacunarity, float amplitude, float cellularJitter)
+{
+    return 0.0f;
+}

@@ -1,0 +1,153 @@
+#include "../../Libraries/Universe/DensityMap.compute"
+#include "../../Libraries/Noise/CellularNoise.compute"
+
+#pragma kernel CSMain
+
+struct FilamentGenerationSettings
+{
+    int seed;
+    int chunkSize;
+    float mapFromMin;
+    float mapFromMax;
+    float mapToMin;
+    float mapToMax;
+    float universeNoiseInfluence;
+    float power;
+    float frequency;
+    int octaves;
+    float persistence;
+    float lacunarity;
+    float amplitude;
+    float cellularJitter;
+};
+
+RWStructuredBuffer<FilamentGenerationSettings> filamentGenerationSettingsBuffer;
+RWStructuredBuffer<DensityData> universeDensityMap;
+RWStructuredBuffer<DensityData> electronDensityMap;
+RWStructuredBuffer<DensityData> positronDensityMap;
+RWStructuredBuffer<DensityData> protonDensityMap;
+RWStructuredBuffer<DensityData> antiProtonDensityMap;
+RWStructuredBuffer<DensityData> neutronDensityMap;
+RWStructuredBuffer<DensityData> antiNeutronDensityMap;
+
+DensityData SampleElectronDensity(DensityData electronDensity)
+{
+    electronDensity.Value = sampleNoise(electronDensity.XPosition - filamentGenerationSettingsBuffer[0].chunkSize, electronDensity.YPosition - filamentGenerationSettingsBuffer[0].chunkSize, filamentGenerationSettingsBuffer[0].seed, filamentGenerationSettingsBuffer[0].frequency, filamentGenerationSettingsBuffer[0].octaves, filamentGenerationSettingsBuffer[0].persistence, filamentGenerationSettingsBuffer[0].lacunarity, filamentGenerationSettingsBuffer[0].amplitude, filamentGenerationSettingsBuffer[0].cellularJitter);
+    return electronDensity;
+}
+
+DensityData SamplePositronDensity(DensityData positronDensity)
+{
+    positronDensity.Value = sampleNoise(positronDensity.XPosition - filamentGenerationSettingsBuffer[0].chunkSize, positronDensity.YPosition - filamentGenerationSettingsBuffer[0].chunkSize, filamentGenerationSettingsBuffer[0].seed, filamentGenerationSettingsBuffer[0].frequency, filamentGenerationSettingsBuffer[0].octaves, filamentGenerationSettingsBuffer[0].persistence, filamentGenerationSettingsBuffer[0].lacunarity, filamentGenerationSettingsBuffer[0].amplitude, filamentGenerationSettingsBuffer[0].cellularJitter);
+    return positronDensity;
+}
+
+DensityData SampleProtonDensity(DensityData protonDensity)
+{
+    protonDensity.Value = sampleNoise(protonDensity.XPosition - filamentGenerationSettingsBuffer[0].chunkSize, protonDensity.YPosition - filamentGenerationSettingsBuffer[0].chunkSize, filamentGenerationSettingsBuffer[0].seed, filamentGenerationSettingsBuffer[0].frequency, filamentGenerationSettingsBuffer[0].octaves, filamentGenerationSettingsBuffer[0].persistence, filamentGenerationSettingsBuffer[0].lacunarity, filamentGenerationSettingsBuffer[0].amplitude, filamentGenerationSettingsBuffer[0].cellularJitter);
+    return protonDensity;
+}
+
+DensityData SampleAntiProtonDensity(DensityData antiProtonDensity)
+{
+    antiProtonDensity.Value = sampleNoise(antiProtonDensity.XPosition - filamentGenerationSettingsBuffer[0].chunkSize, antiProtonDensity.YPosition - filamentGenerationSettingsBuffer[0].chunkSize, filamentGenerationSettingsBuffer[0].seed, filamentGenerationSettingsBuffer[0].frequency, filamentGenerationSettingsBuffer[0].octaves, filamentGenerationSettingsBuffer[0].persistence, filamentGenerationSettingsBuffer[0].lacunarity, filamentGenerationSettingsBuffer[0].amplitude, filamentGenerationSettingsBuffer[0].cellularJitter);
+    return antiProtonDensity;
+}
+
+DensityData SampleNeutronDensity(DensityData neutronDensity)
+{
+    neutronDensity.Value = sampleNoise(neutronDensity.XPosition - filamentGenerationSettingsBuffer[0].chunkSize, neutronDensity.YPosition - filamentGenerationSettingsBuffer[0].chunkSize, filamentGenerationSettingsBuffer[0].seed, filamentGenerationSettingsBuffer[0].frequency, filamentGenerationSettingsBuffer[0].octaves, filamentGenerationSettingsBuffer[0].persistence, filamentGenerationSettingsBuffer[0].lacunarity, filamentGenerationSettingsBuffer[0].amplitude, filamentGenerationSettingsBuffer[0].cellularJitter);
+    return neutronDensity;
+}
+
+DensityData SampleAntiNeutronDensity(DensityData antiNeutronDensity)
+{
+    antiNeutronDensity.Value = sampleNoise(antiNeutronDensity.XPosition - filamentGenerationSettingsBuffer[0].chunkSize, antiNeutronDensity.YPosition - filamentGenerationSettingsBuffer[0].chunkSize, filamentGenerationSettingsBuffer[0].seed, filamentGenerationSettingsBuffer[0].frequency, filamentGenerationSettingsBuffer[0].octaves, filamentGenerationSettingsBuffer[0].persistence, filamentGenerationSettingsBuffer[0].lacunarity, filamentGenerationSettingsBuffer[0].amplitude, filamentGenerationSettingsBuffer[0].cellularJitter);
+    return antiNeutronDensity;
+}
+
+DensityData ProcessElectronDensity(DensityData electronDensity, DensityData universeDensity)
+{
+    electronDensity.Value = map(electronDensity.Value, filamentGenerationSettingsBuffer[0].mapFromMin, filamentGenerationSettingsBuffer[0].mapFromMax, filamentGenerationSettingsBuffer[0].mapToMin, filamentGenerationSettingsBuffer[0].mapToMax);
+    electronDensity.Value = pow(electronDensity.Value, filamentGenerationSettingsBuffer[0].power);
+    electronDensity.Value = electronDensity.Value * filamentGenerationSettingsBuffer[0].amplitude;
+    
+    // TODO: Implement actual algorithm
+    electronDensity.Value = electronDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].universeNoiseInfluence * universeDensity.Value));
+    return electronDensity;
+}
+
+DensityData ProcessPositronDensity(DensityData positronDensity, DensityData universeDensity)
+{
+    positronDensity.Value = map(positronDensity.Value, filamentGenerationSettingsBuffer[0].mapFromMin, filamentGenerationSettingsBuffer[0].mapFromMax, filamentGenerationSettingsBuffer[0].mapToMin, filamentGenerationSettingsBuffer[0].mapToMax);
+    positronDensity.Value = pow(positronDensity.Value, filamentGenerationSettingsBuffer[0].power);
+    positronDensity.Value = positronDensity.Value * filamentGenerationSettingsBuffer[0].amplitude;
+    
+    // TODO: Implement actual algorithm
+    positronDensity.Value = positronDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].universeNoiseInfluence * universeDensity.Value));
+    return positronDensity;
+}
+
+DensityData ProcessProtonDensity(DensityData protonDensity, DensityData universeDensity)
+{
+    protonDensity.Value = map(protonDensity.Value, filamentGenerationSettingsBuffer[0].mapFromMin, filamentGenerationSettingsBuffer[0].mapFromMax, filamentGenerationSettingsBuffer[0].mapToMin, filamentGenerationSettingsBuffer[0].mapToMax);
+    protonDensity.Value = pow(protonDensity.Value, filamentGenerationSettingsBuffer[0].power);
+    protonDensity.Value = protonDensity.Value * filamentGenerationSettingsBuffer[0].amplitude;
+    
+    // TODO: Implement actual algorithm
+    protonDensity.Value = protonDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].universeNoiseInfluence * universeDensity.Value));
+    return protonDensity;
+}
+
+DensityData ProcessAntiProtonDensity(DensityData antiProtonDensity, DensityData universeDensity)
+{
+    antiProtonDensity.Value = map(antiProtonDensity.Value, filamentGenerationSettingsBuffer[0].mapFromMin, filamentGenerationSettingsBuffer[0].mapFromMax, filamentGenerationSettingsBuffer[0].mapToMin, filamentGenerationSettingsBuffer[0].mapToMax);
+    antiProtonDensity.Value = pow(antiProtonDensity.Value, filamentGenerationSettingsBuffer[0].power);
+    antiProtonDensity.Value = antiProtonDensity.Value * filamentGenerationSettingsBuffer[0].amplitude;
+    
+    // TODO: Implement actual algorithm
+    antiProtonDensity.Value = antiProtonDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].universeNoiseInfluence * universeDensity.Value));
+    return antiProtonDensity;
+}
+
+DensityData ProcessNeutronDensity(DensityData neutronDensity, DensityData universeDensity)
+{
+    neutronDensity.Value = map(neutronDensity.Value, filamentGenerationSettingsBuffer[0].mapFromMin, filamentGenerationSettingsBuffer[0].mapFromMax, filamentGenerationSettingsBuffer[0].mapToMin, filamentGenerationSettingsBuffer[0].mapToMax);
+    neutronDensity.Value = pow(neutronDensity.Value, filamentGenerationSettingsBuffer[0].power);
+    neutronDensity.Value = neutronDensity.Value * filamentGenerationSettingsBuffer[0].amplitude;
+    
+    // TODO: Implement actual algorithm
+    neutronDensity.Value = neutronDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].universeNoiseInfluence * universeDensity.Value));
+    return neutronDensity;
+}
+
+DensityData ProcessAntiNeutronDensity(DensityData antiNeutronDensity, DensityData universeDensity)
+{
+    antiNeutronDensity.Value = map(antiNeutronDensity.Value, filamentGenerationSettingsBuffer[0].mapFromMin, filamentGenerationSettingsBuffer[0].mapFromMax, filamentGenerationSettingsBuffer[0].mapToMin, filamentGenerationSettingsBuffer[0].mapToMax);
+    antiNeutronDensity.Value = pow(antiNeutronDensity.Value, filamentGenerationSettingsBuffer[0].power);
+    antiNeutronDensity.Value = antiNeutronDensity.Value * filamentGenerationSettingsBuffer[0].amplitude;
+    
+    // TODO: Implement actual algorithm
+    antiNeutronDensity.Value = antiNeutronDensity.Value * (1 + (filamentGenerationSettingsBuffer[0].universeNoiseInfluence * universeDensity.Value));
+    return antiNeutronDensity;
+}
+
+[numthreads(16,16,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    int x = id.x;
+    int y = id.y;
+    int index = y * filamentGenerationSettingsBuffer[0].chunkSize + x;
+    electronDensityMap[index] = SampleElectronDensity(electronDensityMap[index]);
+    positronDensityMap[index] = SamplePositronDensity(positronDensityMap[index]);
+    protonDensityMap[index] = SampleProtonDensity(protonDensityMap[index]);
+    antiProtonDensityMap[index] = SampleAntiProtonDensity(antiProtonDensityMap[index]);
+    neutronDensityMap[index] = SampleNeutronDensity(neutronDensityMap[index]);
+    antiNeutronDensityMap[index] = SampleAntiNeutronDensity(antiNeutronDensityMap[index]);
+    electronDensityMap[index] = ProcessElectronDensity(electronDensityMap[index], universeDensityMap[index]);
+    positronDensityMap[index] = ProcessPositronDensity(positronDensityMap[index], universeDensityMap[index]);
+    protonDensityMap[index] = ProcessProtonDensity(protonDensityMap[index], universeDensityMap[index]);
+    antiProtonDensityMap[index] = ProcessAntiProtonDensity(antiProtonDensityMap[index], universeDensityMap[index]);
+    neutronDensityMap[index] = ProcessNeutronDensity(neutronDensityMap[index], universeDensityMap[index]);
+    antiNeutronDensityMap[index] = ProcessAntiNeutronDensity(antiNeutronDensityMap[index], universeDensityMap[index]);
+}

@@ -18,7 +18,6 @@ namespace LooCast.Observer
     {
         private Universe currentUniverse;
         private int regionChunkLoadRadius;
-        private bool isLoadingProximalPositions;
 
         private ConcurrentDictionary<Universe.Region.Chunk.Position, byte> proximalRegionChunkPositions = new ConcurrentDictionary<Universe.Region.Chunk.Position, byte>();
         private ConcurrentDictionary<Universe.Sector.Chunk.Position, byte> proximalSectorChunkPositions = new ConcurrentDictionary<Universe.Sector.Chunk.Position, byte>();
@@ -38,7 +37,6 @@ namespace LooCast.Observer
         {
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
             regionChunkLoadRadius = 2;
-            isLoadingProximalPositions = false;
 
             Benchmark.Create("UpdatePositions");
             Benchmark.Create("UpdatePosition");
@@ -66,11 +64,7 @@ namespace LooCast.Observer
         {
             UpdateProximalPositions();
             UpdatePreviouslyProximalPositions();
-            if (!isLoadingProximalPositions)
-            {
-                isLoadingProximalPositions = true;
-                Universe.ParallelizationUtil.Instance.StartCoroutine(LoadProximalPositions());
-            }
+            LoadProximalPositions();
             UnloadPreviouslyProximalPositions();
             PrintBenchmarks();
         }
@@ -241,7 +235,7 @@ namespace LooCast.Observer
             }
         }
         
-        private IEnumerator LoadProximalPositions()
+        private void LoadProximalPositions()
         {
             Benchmark.Start("LoadPositions");
 
@@ -330,9 +324,6 @@ namespace LooCast.Observer
             Benchmark.Stop("LoadRegionChunk");
 
             Benchmark.Stop("LoadPositions");
-
-            isLoadingProximalPositions = false;
-            yield return null;
         }
 
         private void UnloadPreviouslyProximalPositions()

@@ -1,0 +1,75 @@
+#include "../../Libraries/Universe/DensityMap.compute"
+#include "../../Libraries/Noise/PerlinNoise.compute"
+
+#pragma kernel CSMain
+
+struct RegionGenerationSettings
+{
+    int seed;
+    int chunkSize;
+    float mapFromMin;
+    float mapFromMax;
+    float mapToMin;
+    float mapToMax;
+    float sectorNoiseInfluence;
+    float power;
+    float frequency;
+    int octaves;
+    float persistence;
+    float lacunarity;
+    float amplitude;
+};
+
+RWStructuredBuffer<RegionGenerationSettings> regionGenerationSettingsBuffer;
+RWStructuredBuffer<DensityData> solidParticleDensityMap;
+RWStructuredBuffer<DensityData> liquidParticleDensityMap;
+RWStructuredBuffer<DensityData> gasParticleDensityMap;
+RWStructuredBuffer<DensityData> plasmaParticleDensityMap;
+RWStructuredBuffer<DensityData> matterParticleDensityMap;
+RWStructuredBuffer<DensityData> antiMatterParticleDensityMap;
+
+DensityData SampleMatterDensity(DensityData matterDensity)
+{
+    matterDensity.Value = sampleNoise(matterDensity.XPosition - regionGenerationSettingsBuffer[0].chunkSize, matterDensity.YPosition - regionGenerationSettingsBuffer[0].chunkSize, regionGenerationSettingsBuffer[0].seed, regionGenerationSettingsBuffer[0].frequency, regionGenerationSettingsBuffer[0].octaves, regionGenerationSettingsBuffer[0].persistence, regionGenerationSettingsBuffer[0].lacunarity, regionGenerationSettingsBuffer[0].amplitude);
+    return matterDensity;
+}
+
+DensityData SampleAntiMatterDensity(DensityData antiMatterDensity)
+{
+    antiMatterDensity.Value = sampleNoise(antiMatterDensity.XPosition - regionGenerationSettingsBuffer[0].chunkSize, antiMatterDensity.YPosition - regionGenerationSettingsBuffer[0].chunkSize, regionGenerationSettingsBuffer[0].seed, regionGenerationSettingsBuffer[0].frequency, regionGenerationSettingsBuffer[0].octaves, regionGenerationSettingsBuffer[0].persistence, regionGenerationSettingsBuffer[0].lacunarity, regionGenerationSettingsBuffer[0].amplitude);
+    return antiMatterDensity;
+}
+
+DensityData ProcessMatterDensity(DensityData matterDensity, DensityData solidParticleDensity, DensityData liquidParticleDensity, DensityData gasParticleDensity, DensityData plasmaParticleDensity)
+{
+    matterDensity.Value = map(matterDensity.Value, regionGenerationSettingsBuffer[0].mapFromMin, regionGenerationSettingsBuffer[0].mapFromMax, regionGenerationSettingsBuffer[0].mapToMin, regionGenerationSettingsBuffer[0].mapToMax);
+    matterDensity.Value = pow(matterDensity.Value, regionGenerationSettingsBuffer[0].power);
+    matterDensity.Value = matterDensity.Value * regionGenerationSettingsBuffer[0].amplitude;
+
+    // TODO: Implement actual algorithm
+    matterDensity.Value = matterDensity.Value * (1 + (regionGenerationSettingsBuffer[0].sectorNoiseInfluence * solidParticleDensity.Value));
+    return matterDensity;
+}
+
+DensityData ProcessAntiMatterDensity(DensityData antiMatterDensity, DensityData solidParticleDensity, DensityData liquidParticleDensity, DensityData gasParticleDensity, DensityData plasmaParticleDensity)
+{
+    antiMatterDensity.Value = map(antiMatterDensity.Value, regionGenerationSettingsBuffer[0].mapFromMin, regionGenerationSettingsBuffer[0].mapFromMax, regionGenerationSettingsBuffer[0].mapToMin, regionGenerationSettingsBuffer[0].mapToMax);
+    antiMatterDensity.Value = pow(antiMatterDensity.Value, regionGenerationSettingsBuffer[0].power);
+    antiMatterDensity.Value = antiMatterDensity.Value * regionGenerationSettingsBuffer[0].amplitude;
+    
+    // TODO: Implement actual algorithm
+    antiMatterDensity.Value = antiMatterDensity.Value * (1 + (regionGenerationSettingsBuffer[0].sectorNoiseInfluence * solidParticleDensity.Value));
+    return antiMatterDensity;
+}
+
+[numthreads(16,16,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    int x = id.x;
+    int y = id.y;
+    int index = y * regionGenerationSettingsBuffer[0].chunkSize + x;
+    matterParticleDensityMap[index] = SampleMatterDensity(matterParticleDensityMap[index]);
+    antiMatterParticleDensityMap[index] = SampleAntiMatterDensity(antiMatterParticleDensityMap[index]);
+    matterParticleDensityMap[index] = ProcessMatterDensity(matterParticleDensityMap[index], solidParticleDensityMap[index], liquidParticleDensityMap[index], gasParticleDensityMap[index], plasmaParticleDensityMap[index]);
+    antiMatterParticleDensityMap[index] = ProcessAntiMatterDensity(antiMatterParticleDensityMap[index], solidParticleDensityMap[index], liquidParticleDensityMap[index], gasParticleDensityMap[index], plasmaParticleDensityMap[index]);
+}
