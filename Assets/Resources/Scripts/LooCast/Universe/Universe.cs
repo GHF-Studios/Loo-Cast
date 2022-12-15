@@ -14,6 +14,7 @@ namespace LooCast.Universe
     using Util.Collections.Generic;
     using Random;
     using LooCast.Diagnostic;
+    using Steamworks;
 
     [Serializable]
     public class Universe
@@ -413,25 +414,25 @@ namespace LooCast.Universe
                 Filament.GenerationSettings filamentGenerationSettings = universeGenerationSettings.FilamentGenerationSettings;
                 FilamentGenerationSettingsGPU[] filamentGenerationSettingsData = { new FilamentGenerationSettingsGPU(filamentGenerationSettings) };
                 DensityDataGPU[] universeDensitiesData = new DensityDataGPU[universeDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] electronDensitiesData = new DensityDataGPU[filamentDensityMaps.ElectronDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] positronDensitiesData = new DensityDataGPU[filamentDensityMaps.PositronDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] protonDensitiesData = new DensityDataGPU[filamentDensityMaps.ProtonDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] antiProtonDensitiesData = new DensityDataGPU[filamentDensityMaps.AntiProtonDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.NeutronDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.AntiNeutronDensityMap.DensityMapDictionary.Count];
+                DensityDataGPU[] electronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] positronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] protonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] antiProtonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
 
                 for (int x = 0; x < filamentGenerationSettings.ChunkSize; x++)
                 {
                     for (int y = 0; y < filamentGenerationSettings.ChunkSize; y++)
                     {
                         int index = x * filamentGenerationSettings.ChunkSize + y;
-                        universeDensitiesData[index] = new DensityDataGPU(x, y, universeDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        electronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.ElectronDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        positronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.PositronDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        protonDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.ProtonDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        antiProtonDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.AntiProtonDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        neutronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.NeutronDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        antiNeutronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.AntiNeutronDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
+                        universeDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        electronDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        positronDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        protonDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        antiProtonDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        neutronDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        antiNeutronDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
                     }
                 }
 
@@ -517,32 +518,32 @@ namespace LooCast.Universe
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
                 Sector.GenerationSettings sectorGenerationSettings = universeGenerationSettings.SectorGenerationSettings;
                 SectorGenerationSettingsGPU[] sectorGenerationSettingsData = { new SectorGenerationSettingsGPU(sectorGenerationSettings) };
-                DensityDataGPU[] solidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.SolidParticleDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] liquidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.LiquidParticleDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] gasParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.GasParticleDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] plasmaParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.PlasmaParticleDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] electronDensitiesData = new DensityDataGPU[filamentDensityMaps.ElectronDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] positronDensitiesData = new DensityDataGPU[filamentDensityMaps.PositronDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] protonDensitiesData = new DensityDataGPU[filamentDensityMaps.ProtonDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] antiProtonDensitiesData = new DensityDataGPU[filamentDensityMaps.AntiProtonDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.NeutronDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.AntiNeutronDensityMap.DensityMapDictionary.Count];
+                DensityDataGPU[] solidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
+                DensityDataGPU[] liquidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
+                DensityDataGPU[] gasParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
+                DensityDataGPU[] plasmaParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
+                DensityDataGPU[] electronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] positronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] protonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] antiProtonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
 
                 for (int x = 0; x < sectorGenerationSettings.ChunkSize; x++)
                 {
                     for (int y = 0; y < sectorGenerationSettings.ChunkSize; y++)
                     {
                         int index = x * sectorGenerationSettings.ChunkSize + y;
-                        solidParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.SolidParticleDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        liquidParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.LiquidParticleDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        gasParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.GasParticleDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        plasmaParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.PlasmaParticleDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        electronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.ElectronDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        positronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.PositronDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        protonDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.ProtonDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        antiProtonDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.AntiProtonDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        neutronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.NeutronDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        antiNeutronDensitiesData[index] = new DensityDataGPU(x, y, filamentDensityMaps.AntiNeutronDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
+                        solidParticleDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        liquidParticleDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        gasParticleDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        plasmaParticleDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        electronDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        positronDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        protonDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        antiProtonDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        neutronDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        antiNeutronDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
                     }
                 }
 
@@ -632,24 +633,24 @@ namespace LooCast.Universe
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
                 Region.GenerationSettings regionGenerationSettings = universeGenerationSettings.RegionGenerationSettings;
                 RegionGenerationSettingsGPU[] regionGenerationSettingsData = { new RegionGenerationSettingsGPU(regionGenerationSettings) };
-                DensityDataGPU[] matterParticleDensitiesData = new DensityDataGPU[regionDensityMaps.MatterDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] antiMatterParticleDensitiesData = new DensityDataGPU[regionDensityMaps.AntiMatterDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] solidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.SolidParticleDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] liquidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.LiquidParticleDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] gasParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.GasParticleDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] plasmaParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.PlasmaParticleDensityMap.DensityMapDictionary.Count];
+                DensityDataGPU[] matterParticleDensitiesData = new DensityDataGPU[regionDensityMaps.Size];
+                DensityDataGPU[] antiMatterParticleDensitiesData = new DensityDataGPU[regionDensityMaps.Size];
+                DensityDataGPU[] solidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
+                DensityDataGPU[] liquidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
+                DensityDataGPU[] gasParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
+                DensityDataGPU[] plasmaParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
 
                 for (int x = 0; x < regionGenerationSettings.ChunkSize; x++)
                 {
                     for (int y = 0; y < regionGenerationSettings.ChunkSize; y++)
                     {
                         int index = x * regionGenerationSettings.ChunkSize + y;
-                        matterParticleDensitiesData[index] = new DensityDataGPU(x, y, regionDensityMaps.MatterDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        antiMatterParticleDensitiesData[index] = new DensityDataGPU(x, y, regionDensityMaps.AntiMatterDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        solidParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.SolidParticleDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        liquidParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.LiquidParticleDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        gasParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.GasParticleDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
-                        plasmaParticleDensitiesData[index] = new DensityDataGPU(x, y, sectorDensityMaps.PlasmaParticleDensityMap.DensityMapDictionary[new Vector2Int(x, y)]);
+                        matterParticleDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        antiMatterParticleDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        solidParticleDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        liquidParticleDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        gasParticleDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
+                        plasmaParticleDensitiesData[index] = new DensityDataGPU(x, y, 0.0f);
                     }
                 }
 
@@ -971,8 +972,9 @@ namespace LooCast.Universe
                     [SerializeField] public DensityMap NeutronDensityMap;
                     [SerializeField] public DensityMap AntiNeutronDensityMap;
                     [SerializeField] public GenerationState GenerationState;
+                    [SerializeField] public int Size;
 
-                    public DensityMapCollection()
+                    public DensityMapCollection(int size)
                     {
                         ElectronDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.Electron);
                         PositronDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.Positron);
@@ -981,6 +983,7 @@ namespace LooCast.Universe
                         NeutronDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.Neutron);
                         AntiNeutronDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.AntiNeutron);
                         GenerationState = GenerationState.Generating;
+                        Size = size;
                     }
                 }
                 #endregion
@@ -1010,7 +1013,7 @@ namespace LooCast.Universe
                     size = filamentGenerationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
                     chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + filament.filamentPosition.ChunkPosition.magnitude + chunkPosition.ChunkPosition.magnitude)).Range(int.MinValue, int.MaxValue);
-                    densityMaps = new DensityMapCollection();
+                    densityMaps = new DensityMapCollection(size);
                     RequestDensityMaps(universe, filament, OnDensityMapsReceived);
                 }
                 #endregion
@@ -1046,7 +1049,8 @@ namespace LooCast.Universe
 
                 private IEnumerator DensityMapGenerationCoroutine(Universe universe, Filament filament, Action<DensityMapCollection> callback)
                 {
-                    DensityMapCollection filamentDensityMaps = new DensityMapCollection();
+                    Filament.GenerationSettings filamentGenerationSettings = universe.FilamentGenerationSettings;
+                    DensityMapCollection filamentDensityMaps = new DensityMapCollection(filamentGenerationSettings.ChunkSize);
                     ParallelGenerationUtil.RequestGenerateFilamentDensityMaps(universe.UniverseDensityMap, filamentDensityMaps, (filamentDensityMaps) =>
                     {
                         lock (densityMapCoroutineInfoQueue)
@@ -1341,14 +1345,16 @@ namespace LooCast.Universe
                     [SerializeField] public DensityMap GasParticleDensityMap;
                     [SerializeField] public DensityMap PlasmaParticleDensityMap;
                     [SerializeField] public GenerationState GenerationState;
+                    [SerializeField] public int Size;
 
-                    public DensityMapCollection()
+                    public DensityMapCollection(int size)
                     {
                         SolidParticleDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.SolidParticle);
                         LiquidParticleDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.LiquidParticle);
                         GasParticleDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.GasParticle);
                         PlasmaParticleDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.PlasmaParticle);
                         GenerationState = GenerationState.Generating;
+                        Size = size;
                     }
                 }
                 #endregion
@@ -1378,7 +1384,7 @@ namespace LooCast.Universe
                     size = sectorGenerationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
                     chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + sector.sectorPosition.ChunkPosition.magnitude + chunkPosition.ChunkPosition.magnitude)).Range(int.MinValue, int.MaxValue);
-                    densityMaps = new DensityMapCollection();
+                    densityMaps = new DensityMapCollection(size);
                     RequestDensityMaps(universe, filament, sector, OnDensityMapsReceived);
                 }
                 #endregion
@@ -1412,8 +1418,10 @@ namespace LooCast.Universe
 
                 private IEnumerator DensityMapGenerationCoroutine(Universe universe, Filament filament, Sector sector, Action<DensityMapCollection> callback)
                 {
-                    Filament.Chunk.DensityMapCollection filamentDensityMaps = new Filament.Chunk.DensityMapCollection();
-                    DensityMapCollection sectorDensityMaps = new DensityMapCollection();
+                    Filament.GenerationSettings filamentGenerationSettings = universe.FilamentGenerationSettings;
+                    Sector.GenerationSettings sectorGenerationSettings = universe.SectorGenerationSettings;
+                    Filament.Chunk.DensityMapCollection filamentDensityMaps = new Filament.Chunk.DensityMapCollection(filamentGenerationSettings.ChunkSize);
+                    DensityMapCollection sectorDensityMaps = new DensityMapCollection(sectorGenerationSettings.ChunkSize);
                     ParallelGenerationUtil.RequestGenerateSectorDensityMaps(filamentDensityMaps, sectorDensityMaps, (sectorDensityMaps) =>
                     {
                         lock (densityMapCoroutineInfoQueue)
@@ -1698,12 +1706,14 @@ namespace LooCast.Universe
                     [SerializeField] public DensityMap MatterDensityMap;
                     [SerializeField] public DensityMap AntiMatterDensityMap;
                     [SerializeField] public GenerationState GenerationState;
+                    [SerializeField] public int Size;
 
-                    public DensityMapCollection()
+                    public DensityMapCollection(int size)
                     {
                         MatterDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.Matter);
                         AntiMatterDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.AntiMatter);
                         GenerationState = GenerationState.Generating;
+                        Size = size;
                     }
                 }
                 #endregion
@@ -1733,7 +1743,7 @@ namespace LooCast.Universe
                     size = regionGenerationSettings.ChunkSize;
                     this.chunkPosition = chunkPosition;
                     chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + region.regionPosition.ChunkPosition.magnitude + chunkPosition.ChunkPosition.magnitude)).Range(int.MinValue, int.MaxValue);
-                    densityMaps = new DensityMapCollection();
+                    densityMaps = new DensityMapCollection(regionGenerationSettings.ChunkSize);
                     RequestDensityMaps(universe, sector, region, OnDensityMapsReceived);
                 }
                 #endregion
@@ -1765,8 +1775,10 @@ namespace LooCast.Universe
 
                 private IEnumerator DensityMapGenerationCoroutine(Universe universe, Sector sector, Region region, Action<DensityMapCollection> callback)
                 {
-                    Sector.Chunk.DensityMapCollection sectorDensityMaps = new Sector.Chunk.DensityMapCollection();
-                    DensityMapCollection regionDensityMaps = new DensityMapCollection();
+                    Sector.GenerationSettings sectorGenerationSettings = universe.SectorGenerationSettings;
+                    Region.GenerationSettings regionGenerationSettings = universe.RegionGenerationSettings;
+                    Sector.Chunk.DensityMapCollection sectorDensityMaps = new Sector.Chunk.DensityMapCollection(sectorGenerationSettings.ChunkSize);
+                    DensityMapCollection regionDensityMaps = new DensityMapCollection(regionGenerationSettings.ChunkSize);
                     ParallelGenerationUtil.RequestRegionDensityMapsGeneration(sectorDensityMaps, regionDensityMaps, (regionDensityMaps) =>
                     {
                         lock (densityMapCoroutineInfoQueue)
