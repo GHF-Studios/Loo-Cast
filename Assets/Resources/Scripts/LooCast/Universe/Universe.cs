@@ -2062,90 +2062,12 @@ namespace LooCast.Universe
         public Filament.GenerationSettings FilamentGenerationSettings => generationSettings.FilamentGenerationSettings;
         public Sector.GenerationSettings SectorGenerationSettings => generationSettings.SectorGenerationSettings;
         public Region.GenerationSettings RegionGenerationSettings => generationSettings.RegionGenerationSettings;
-        public HashSet<Filament> LoadedFilaments
-        {
-            get
-            {
-                return loadedFilaments.Values.ToHashSet();
-            }
-        }
-        public HashSet<Sector> LoadedSectors
-        {
-            get
-            {
-                return loadedSectors.Values.ToHashSet();
-            }
-        }
-        public HashSet<Region> LoadedRegions
-        {
-            get
-            {
-                return loadedRegions.Values.ToHashSet();
-            }
-        }
-        public HashSet<Filament.Chunk> LoadedFilamentChunks
-        {
-            get
-            {
-                return loadedFilamentChunks.Values.ToHashSet();
-            }
-        }
-        public HashSet<Sector.Chunk> LoadedSectorChunks
-        {
-            get
-            {
-                return loadedSectorChunks.Values.ToHashSet();
-            }
-        }
-        public HashSet<Region.Chunk> LoadedRegionChunks
-        {
-            get
-            {
-                return loadedRegionChunks.Values.ToHashSet();
-            }
-        }
-        public HashSet<Filament.Position> LoadedFilamentPositions
-        {
-            get
-            {
-                return loadedFilaments.Keys.ToHashSet();
-            }
-        }
-        public HashSet<Sector.Position> LoadedSectorPositions
-        {
-            get
-            {
-                return loadedSectors.Keys.ToHashSet();
-            }
-        }
-        public HashSet<Region.Position> LoadedRegionPositions
-        {
-            get
-            {
-                return loadedRegions.Keys.ToHashSet();
-            }
-        }
-        public HashSet<Filament.Chunk.Position> LoadedFilamentChunkPositions
-        {
-            get
-            {
-                return loadedFilamentChunks.Keys.ToHashSet();
-            }
-        }
-        public HashSet<Sector.Chunk.Position> LoadedSectorChunkPositions
-        {
-            get
-            {
-                return loadedSectorChunks.Keys.ToHashSet();
-            }
-        }
-        public HashSet<Region.Chunk.Position> LoadedRegionChunkPositions
-        {
-            get
-            {
-                return loadedRegionChunks.Keys.ToHashSet();
-            }
-        }
+        public Dictionary<Filament.Position, Filament> LoadedFilaments => loadedFilaments;
+        public Dictionary<Sector.Position, Sector> LoadedSectors => loadedSectors;
+        public Dictionary<Region.Position, Region> LoadedRegions => loadedRegions;
+        public Dictionary<Filament.Chunk.Position, Filament.Chunk> LoadedFilamentChunks => loadedFilamentChunks;
+        public Dictionary<Sector.Chunk.Position, Sector.Chunk> LoadedSectorChunks => loadedSectorChunks;
+        public Dictionary<Region.Chunk.Position, Region.Chunk> LoadedRegionChunks => loadedRegionChunks;
         #endregion
 
         #region Fields

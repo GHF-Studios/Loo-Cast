@@ -80,22 +80,27 @@ namespace LooCast.Observer
             {
                 proximalRegionChunkPositions = new ConcurrentDictionary<Universe.Region.Chunk.Position, byte>();
             }
+            
             if (proximalSectorChunkPositions == null)
             {
                 proximalSectorChunkPositions = new ConcurrentDictionary<Universe.Sector.Chunk.Position, byte>();
             }
+            
             if (proximalFilamentChunkPositions == null)
             {
                 proximalFilamentChunkPositions = new ConcurrentDictionary<Universe.Filament.Chunk.Position, byte>();
             }
+
             if (proximalRegionPositions == null)
             {
                 proximalRegionPositions = new ConcurrentDictionary<Universe.Region.Position, byte>();
             }
+
             if (proximalSectorPositions == null)
             {
                 proximalSectorPositions = new ConcurrentDictionary<Universe.Sector.Position, byte>();
             }
+
             if (proximalFilamentPositions == null)
             {
                 proximalFilamentPositions = new ConcurrentDictionary<Universe.Filament.Position, byte>();
@@ -179,14 +184,61 @@ namespace LooCast.Observer
 
         private void UpdatePreviouslyProximalPositions()
         {
-            previouslyProximalRegionChunkPositions = new ConcurrentDictionary<Universe.Region.Chunk.Position, byte>();
-            previouslyProximalSectorChunkPositions = new ConcurrentDictionary<Universe.Sector.Chunk.Position, byte>();
-            previouslyProximalFilamentChunkPositions = new ConcurrentDictionary<Universe.Filament.Chunk.Position, byte>();
-            previouslyProximalRegionPositions = new ConcurrentDictionary<Universe.Region.Position, byte>();
-            previouslyProximalSectorPositions = new ConcurrentDictionary<Universe.Sector.Position, byte>();
-            previouslyProximalFilamentPositions = new ConcurrentDictionary<Universe.Filament.Position, byte>();
+            if (previouslyProximalRegionChunkPositions == null)
+            {
+                previouslyProximalRegionChunkPositions = new ConcurrentDictionary<Universe.Region.Chunk.Position, byte>();
+            }
+            else
+            {
+                previouslyProximalRegionChunkPositions.Clear();
+            }
 
-            foreach (Universe.Region.Chunk.Position loadedRegionChunkPosition in currentUniverse.LoadedRegionChunkPositions)
+            if (previouslyProximalSectorChunkPositions == null)
+            {
+                previouslyProximalSectorChunkPositions = new ConcurrentDictionary<Universe.Sector.Chunk.Position, byte>();
+            }
+            else
+            {
+                previouslyProximalSectorChunkPositions.Clear();
+            }
+
+            if (previouslyProximalFilamentChunkPositions == null)
+            {
+                previouslyProximalFilamentChunkPositions = new ConcurrentDictionary<Universe.Filament.Chunk.Position, byte>();
+            }
+            else
+            {
+                previouslyProximalFilamentChunkPositions.Clear();
+            }
+
+            if (previouslyProximalRegionPositions == null)
+            {
+                previouslyProximalRegionPositions = new ConcurrentDictionary<Universe.Region.Position, byte>();
+            }
+            else
+            {
+                previouslyProximalRegionPositions.Clear();
+            }
+
+            if (previouslyProximalSectorPositions == null)
+            {
+                previouslyProximalSectorPositions = new ConcurrentDictionary<Universe.Sector.Position, byte>();
+            }
+            else
+            {
+                previouslyProximalSectorPositions.Clear();
+            }
+
+            if (previouslyProximalFilamentPositions == null)
+            {
+                previouslyProximalFilamentPositions = new ConcurrentDictionary<Universe.Filament.Position, byte>();
+            }
+            else
+            {
+                previouslyProximalFilamentPositions.Clear();
+            }
+
+            foreach (Universe.Region.Chunk.Position loadedRegionChunkPosition in currentUniverse.LoadedRegionChunks.Keys)
             {
                 if (!proximalRegionChunkPositions.ContainsKey(loadedRegionChunkPosition))
                 {
@@ -194,7 +246,7 @@ namespace LooCast.Observer
                 }
             }
 
-            foreach (Universe.Region.Position loadedRegionPosition in currentUniverse.LoadedRegionPositions)
+            foreach (Universe.Region.Position loadedRegionPosition in currentUniverse.LoadedRegions.Keys)
             {
                 if (!proximalRegionPositions.ContainsKey(loadedRegionPosition))
                 {
@@ -202,7 +254,7 @@ namespace LooCast.Observer
                 }
             }
 
-            foreach (Universe.Sector.Chunk.Position loadedSectorChunkPosition in currentUniverse.LoadedSectorChunkPositions)
+            foreach (Universe.Sector.Chunk.Position loadedSectorChunkPosition in currentUniverse.LoadedSectorChunks.Keys)
             {
                 if (!proximalSectorChunkPositions.ContainsKey(loadedSectorChunkPosition))
                 {
@@ -210,7 +262,7 @@ namespace LooCast.Observer
                 }
             }
 
-            foreach (Universe.Sector.Position loadedSectorPosition in currentUniverse.LoadedSectorPositions)
+            foreach (Universe.Sector.Position loadedSectorPosition in currentUniverse.LoadedSectors.Keys)
             {
                 if (!proximalSectorPositions.ContainsKey(loadedSectorPosition))
                 {
@@ -218,7 +270,7 @@ namespace LooCast.Observer
                 }
             }
 
-            foreach (Universe.Filament.Chunk.Position loadedFilamentChunkPosition in currentUniverse.LoadedFilamentChunkPositions)
+            foreach (Universe.Filament.Chunk.Position loadedFilamentChunkPosition in currentUniverse.LoadedFilamentChunks.Keys)
             {
                 if (!proximalFilamentChunkPositions.ContainsKey(loadedFilamentChunkPosition))
                 {
@@ -226,7 +278,7 @@ namespace LooCast.Observer
                 }
             }
 
-            foreach (Universe.Filament.Position loadedFilamentPosition in currentUniverse.LoadedFilamentPositions)
+            foreach (Universe.Filament.Position loadedFilamentPosition in currentUniverse.LoadedFilaments.Keys)
             {
                 if (!proximalFilamentPositions.ContainsKey(loadedFilamentPosition))
                 {
@@ -397,42 +449,42 @@ namespace LooCast.Observer
             int filamentChunkSize = currentUniverse.FilamentGenerationSettings.ChunkSize;
 
             // Region Chunk
-            foreach (Universe.Region.Chunk.Position loadedRegionChunkPositions in currentUniverse.LoadedRegionChunkPositions)
+            foreach (Universe.Region.Chunk.Position loadedRegionChunkPositions in currentUniverse.LoadedRegionChunks.Keys)
             {
                 Gizmos.color = Color.green;
                 Gizmos.DrawWireCube(loadedRegionChunkPositions.WorldPosition, new Vector2(regionChunkSize, regionChunkSize));
             }
 
             // Region
-            foreach (Universe.Region.Position loadedRegionPositions in currentUniverse.LoadedRegionPositions)
+            foreach (Universe.Region.Position loadedRegionPositions in currentUniverse.LoadedRegions.Keys)
             {
                 Gizmos.color = Color.red;
                 Gizmos.DrawWireCube(loadedRegionPositions.WorldPosition, new Vector2(regionSize, regionSize));
             }
 
             // Sector Chunk
-            foreach (Universe.Sector.Chunk.Position loadedSectorChunkPositions in currentUniverse.LoadedSectorChunkPositions)
+            foreach (Universe.Sector.Chunk.Position loadedSectorChunkPositions in currentUniverse.LoadedSectorChunks.Keys)
             {
                 Gizmos.color = Color.yellow;
                 Gizmos.DrawWireCube(loadedSectorChunkPositions.WorldPosition, new Vector2(sectorChunkSize, sectorChunkSize));
             }
 
             // Sector
-            foreach (Universe.Sector.Position loadedSectorPositions in currentUniverse.LoadedSectorPositions)
+            foreach (Universe.Sector.Position loadedSectorPositions in currentUniverse.LoadedSectors.Keys)
             {
                 Gizmos.color = Color.blue;
                 Gizmos.DrawWireCube(loadedSectorPositions.WorldPosition, new Vector2(sectorSize, sectorSize));
             }
 
             // Filament Chunk
-            foreach (Universe.Filament.Chunk.Position loadedFilamentChunkPositions in currentUniverse.LoadedFilamentChunkPositions)
+            foreach (Universe.Filament.Chunk.Position loadedFilamentChunkPositions in currentUniverse.LoadedFilamentChunks.Keys)
             {
                 Gizmos.color = new Color(1.0f, 0.0f, 1.0f);
                 Gizmos.DrawWireCube(loadedFilamentChunkPositions.WorldPosition, new Vector2(filamentChunkSize, filamentChunkSize));
             }
 
             // Filament
-            foreach (Universe.Filament.Position loadedFilamentPositions in currentUniverse.LoadedFilamentPositions)
+            foreach (Universe.Filament.Position loadedFilamentPositions in currentUniverse.LoadedFilaments.Keys)
             {
                 Gizmos.color = new Color(1.0f, 0.5f, 0.0f);
                 Gizmos.DrawWireCube(loadedFilamentPositions.WorldPosition, new Vector2(filamentSize, filamentSize));
