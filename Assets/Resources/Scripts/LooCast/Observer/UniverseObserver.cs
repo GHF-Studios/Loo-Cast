@@ -55,6 +55,17 @@ namespace LooCast.Observer
             Benchmark.Create("LoadFilamentChunk");
             Benchmark.Create("UnloadPositions");
 
+            #region DEV
+
+            
+            Benchmark.Create("IsRegionChunkGenerated");
+            Benchmark.Create("GenerateRegionChunk");
+            Benchmark.Create("IsRegionChunkLoaded");
+            Benchmark.Create("LoadRegionChunk");
+
+
+            #endregion
+
             UpdateProximalPositions();
             LoadProximalPositions();
             UnloadPreviouslyProximalPositions();
@@ -66,7 +77,8 @@ namespace LooCast.Observer
             UpdatePreviouslyProximalPositions();
             LoadProximalPositions();
             UnloadPreviouslyProximalPositions();
-            PrintBenchmarks();
+            // PrintBenchmarks();
+            PrintBenchmarksDEV();
         }
 
         private void OnDrawGizmos()
@@ -364,13 +376,22 @@ namespace LooCast.Observer
             Benchmark.Start("LoadRegionChunk");
             foreach (var proximalRegionChunkPositionKeyValuePair in proximalRegionChunkPositions)
             {
+                Benchmark.Start("IsRegionChunkGenerated");
                 if (!currentUniverse.IsRegionChunkGenerated(proximalRegionChunkPositionKeyValuePair.Key))
                 {
+                    Benchmark.Stop("IsRegionChunkGenerated");
+                    Benchmark.Start("GenerateRegionChunk");
                     currentUniverse.GenerateRegionChunk(proximalRegionChunkPositionKeyValuePair.Key);
+                    Benchmark.Stop("GenerateRegionChunk");
                 }
-                else if (!currentUniverse.IsRegionChunkLoaded(proximalRegionChunkPositionKeyValuePair.Key))
+                else
+                Benchmark.Start("IsRegionChunkLoaded");
+                if (!currentUniverse.IsRegionChunkLoaded(proximalRegionChunkPositionKeyValuePair.Key))
                 {
+                    Benchmark.Stop("IsRegionChunkLoaded");
+                    Benchmark.Start("LoadRegionChunk");
                     currentUniverse.LoadRegionChunk(proximalRegionChunkPositionKeyValuePair.Key);
+                    Benchmark.Stop("LoadRegionChunk");
                 }
             }
             Benchmark.Stop("LoadRegionChunk");
@@ -523,6 +544,16 @@ namespace LooCast.Observer
                 $"\t\t Update Positions: \t{Benchmark.AverageDuration("UpdatePositions").Milliseconds}({Benchmark.MaxDuration("UpdatePositions").Milliseconds})ms" +
                 $"\t\t Load Positions: \t{Benchmark.AverageDuration("LoadPositions").Milliseconds}({Benchmark.MaxDuration("LoadPositions").Milliseconds})ms" +
                 $"\t\t Unload Positions: \t{Benchmark.AverageDuration("UnloadPositions").Milliseconds}({Benchmark.MaxDuration("UnloadPositions").Milliseconds})ms");
+        }
+
+        private void PrintBenchmarksDEV()
+        {
+            UnityEngine.Debug.Log(
+                $"DEV:" +
+                $"\t\t\t\tIsRegionChunkGenerated: \t{Benchmark.AverageDuration("tIsRegionChunkGenerated").Milliseconds}({Benchmark.MaxDuration("tIsRegionChunkGenerated").Milliseconds})ms" +
+                $"\t\t GenerateRegionChunk: \t{Benchmark.AverageDuration("GenerateRegionChunk").Milliseconds}({Benchmark.MaxDuration("GenerateRegionChunk").Milliseconds})ms" +
+                $"\t\t IsRegionChunkLoaded: \t{Benchmark.AverageDuration("IsRegionChunkLoaded").Milliseconds}({Benchmark.MaxDuration("IsRegionChunkLoaded").Milliseconds})ms" +
+                $"\t\t LoadRegionChunk: \t{Benchmark.AverageDuration("LoadRegionChunk").Milliseconds}({Benchmark.MaxDuration("LoadRegionChunk").Milliseconds})ms");
         }
     }
 }
