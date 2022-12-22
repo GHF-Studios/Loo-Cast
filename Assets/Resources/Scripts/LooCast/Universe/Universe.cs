@@ -414,12 +414,12 @@ namespace LooCast.Universe
                 Filament.GenerationSettings filamentGenerationSettings = universeGenerationSettings.FilamentGenerationSettings;
                 FilamentGenerationSettingsGPU[] filamentGenerationSettingsData = { new FilamentGenerationSettingsGPU(filamentGenerationSettings) };
                 DensityDataGPU[] universeDensitiesData = new DensityDataGPU[universeDensityMap.DensityMapDictionary.Count];
-                DensityDataGPU[] electronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
-                DensityDataGPU[] positronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
-                DensityDataGPU[] protonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
-                DensityDataGPU[] antiProtonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
-                DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
-                DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] electronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
+                DensityDataGPU[] positronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
+                DensityDataGPU[] protonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
+                DensityDataGPU[] antiProtonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
+                DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
+                DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
 
                 for (int x = 0; x < filamentGenerationSettings.ChunkSize; x++)
                 {
@@ -518,16 +518,16 @@ namespace LooCast.Universe
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
                 Sector.GenerationSettings sectorGenerationSettings = universeGenerationSettings.SectorGenerationSettings;
                 SectorGenerationSettingsGPU[] sectorGenerationSettingsData = { new SectorGenerationSettingsGPU(sectorGenerationSettings) };
-                DensityDataGPU[] solidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
-                DensityDataGPU[] liquidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
-                DensityDataGPU[] gasParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
-                DensityDataGPU[] plasmaParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
-                DensityDataGPU[] electronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
-                DensityDataGPU[] positronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
-                DensityDataGPU[] protonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
-                DensityDataGPU[] antiProtonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
-                DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
-                DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size];
+                DensityDataGPU[] solidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size * sectorDensityMaps.Size];
+                DensityDataGPU[] liquidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size * sectorDensityMaps.Size];
+                DensityDataGPU[] gasParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size * sectorDensityMaps.Size];
+                DensityDataGPU[] plasmaParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size * sectorDensityMaps.Size];
+                DensityDataGPU[] electronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
+                DensityDataGPU[] positronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
+                DensityDataGPU[] protonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
+                DensityDataGPU[] antiProtonDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
+                DensityDataGPU[] neutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
+                DensityDataGPU[] antiNeutronDensitiesData = new DensityDataGPU[filamentDensityMaps.Size * filamentDensityMaps.Size];
 
                 for (int x = 0; x < sectorGenerationSettings.ChunkSize; x++)
                 {
@@ -633,12 +633,12 @@ namespace LooCast.Universe
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
                 Region.GenerationSettings regionGenerationSettings = universeGenerationSettings.RegionGenerationSettings;
                 RegionGenerationSettingsGPU[] regionGenerationSettingsData = { new RegionGenerationSettingsGPU(regionGenerationSettings) };
-                DensityDataGPU[] matterParticleDensitiesData = new DensityDataGPU[regionDensityMaps.Size];
-                DensityDataGPU[] antiMatterParticleDensitiesData = new DensityDataGPU[regionDensityMaps.Size];
-                DensityDataGPU[] solidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
-                DensityDataGPU[] liquidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
-                DensityDataGPU[] gasParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
-                DensityDataGPU[] plasmaParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size];
+                DensityDataGPU[] matterParticleDensitiesData = new DensityDataGPU[regionDensityMaps.Size * regionDensityMaps.Size];
+                DensityDataGPU[] antiMatterParticleDensitiesData = new DensityDataGPU[regionDensityMaps.Size * regionDensityMaps.Size];
+                DensityDataGPU[] solidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size * sectorDensityMaps.Size];
+                DensityDataGPU[] liquidParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size * sectorDensityMaps.Size];
+                DensityDataGPU[] gasParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size * sectorDensityMaps.Size];
+                DensityDataGPU[] plasmaParticleDensitiesData = new DensityDataGPU[sectorDensityMaps.Size * sectorDensityMaps.Size];
 
                 for (int x = 0; x < regionGenerationSettings.ChunkSize; x++)
                 {
@@ -1974,22 +1974,6 @@ namespace LooCast.Universe
         #endregion
 
         #region Static Properties
-        public static string DataPath
-        {
-            get
-            {
-                if (!GameManager.Initialized)
-                {
-                    throw new Exception("Cannot get DataPath when GameManager is not initialized!");
-                }
-                if (GameManager.Instance.CurrentGame == null)
-                {
-                    throw new Exception("Cannot get DataPath when no Game is loaded!");
-                }
-
-                return $"{GameManager.Instance.CurrentGame.DataPath}/Universe";
-            }
-        }
         public static GenerationSettings DefaultGenerationSettings
         {
             get
@@ -2069,6 +2053,26 @@ namespace LooCast.Universe
 
         #region Properties
         public bool Initialized => initialized;
+        public string DataPath
+        {
+            get
+            {
+                if (dataPath.Equals(string.Empty))
+                {
+                    if (!GameManager.Initialized)
+                    {
+                        throw new Exception("Cannot get DataPath when GameManager is not initialized!");
+                    }
+                    if (GameManager.Instance.CurrentGame == null)
+                    {
+                        throw new Exception("Cannot get DataPath when no Game is loaded!");
+                    }
+
+                    dataPath = $"{GameManager.Instance.CurrentGame.DataPath}/Universe";
+                }
+                return dataPath;
+            }
+        }
         public DensityMap UniverseDensityMap => universeDensityMap;
         public GenerationSettings UniverseGenerationSettings => generationSettings;
         public Filament.GenerationSettings FilamentGenerationSettings => generationSettings.FilamentGenerationSettings;
@@ -2087,6 +2091,7 @@ namespace LooCast.Universe
         [SerializeField] private DensityMap universeDensityMap;
 
         private bool initialized = false;
+        private string dataPath;
         private Dictionary<Filament.Position, Filament> loadedFilaments;
         private Dictionary<Sector.Position, Sector> loadedSectors;
         private Dictionary<Region.Position, Region> loadedRegions;

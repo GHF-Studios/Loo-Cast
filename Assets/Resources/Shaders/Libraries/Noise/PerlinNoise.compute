@@ -17,7 +17,7 @@ float sampleRawNoise(float3 x)
 
 float sampleNoise(float x, float y, uint seed, float frequency, int octaves, float persistence, float lacunarity, float amplitude)
 {
-    float2 octaveOffsets[octaves];
+    float2 octaveOffsets[8];
     for (int i = 0; i < octaves; i++)
     {
         float octaveOffsetX = sampleRandomInRange(-100000, 100000);

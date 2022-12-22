@@ -384,14 +384,16 @@ namespace LooCast.Observer
                     Benchmark.Stop("GenerateRegionChunk");
                 }
                 else
-                Benchmark.Start("IsRegionChunkLoaded");
-                bool isRegionChunkLoaded = currentUniverse.IsRegionChunkLoaded(proximalRegionChunkPositionKeyValuePair.Key);
-                Benchmark.Stop("IsRegionChunkLoaded");
-                if (!isRegionChunkLoaded)
                 {
-                    Benchmark.Start("LoadRegionChunk");
-                    currentUniverse.LoadRegionChunk(proximalRegionChunkPositionKeyValuePair.Key);
-                    Benchmark.Stop("LoadRegionChunk");
+                    Benchmark.Start("IsRegionChunkLoaded");
+                    bool isRegionChunkLoaded = currentUniverse.IsRegionChunkLoaded(proximalRegionChunkPositionKeyValuePair.Key);
+                    Benchmark.Stop("IsRegionChunkLoaded");
+                    if (!isRegionChunkLoaded)
+                    {
+                        Benchmark.Start("LoadRegionChunk");
+                        currentUniverse.LoadRegionChunk(proximalRegionChunkPositionKeyValuePair.Key);
+                        Benchmark.Stop("LoadRegionChunk");
+                    }
                 }
             }
 

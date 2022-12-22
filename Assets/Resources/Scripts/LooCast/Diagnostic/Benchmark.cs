@@ -223,6 +223,11 @@ namespace LooCast.Diagnostic
                 throw new Exception($"Benchmark '{name}' does not exist!");
             }
 
+            if (benchmarkDictionaries[name].IsEmpty)
+            {
+                return TimeSpan.Zero;
+            }
+
             TimeSpan averageDuration = TimeSpan.Zero;
             Parallel.ForEach(benchmarkDictionaries[name], (benchmarkKeyValuePair) =>
             {
