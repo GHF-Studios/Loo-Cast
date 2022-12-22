@@ -19,15 +19,6 @@ namespace LooCast.Universe
     [Serializable]
     public class Universe
     {
-        #region Enums
-        public enum GenerationState
-        {
-            None,
-            Generating,
-            Complete
-        }
-        #endregion
-
         #region Classes
         [Serializable]
         public class ParallelGenerationUtil : MonoBehaviour
@@ -507,7 +498,7 @@ namespace LooCast.Universe
                 filamentDensityMaps.AntiProtonDensityMap = new Filament.Chunk.DensityMap(antiProtonDensityMapDictionary, Filament.Chunk.DensityMapType.AntiProton);
                 filamentDensityMaps.NeutronDensityMap = new Filament.Chunk.DensityMap(neutronDensityMapDictionary, Filament.Chunk.DensityMapType.Neutron);
                 filamentDensityMaps.AntiNeutronDensityMap = new Filament.Chunk.DensityMap(antiNeutronDensityMapDictionary, Filament.Chunk.DensityMapType.AntiNeutron);
-                filamentDensityMaps.GenerationState = GenerationState.Complete;
+                filamentDensityMaps.GenerationState = Filament.Chunk.GenerationState.Generated;
 
                 filamentGenerationSettingsBuffer.Dispose();
                 universeDensitiesBuffer.Dispose();
@@ -619,7 +610,7 @@ namespace LooCast.Universe
                 sectorDensityMaps.LiquidParticleDensityMap = new Sector.Chunk.DensityMap(liquidParticleDensityMapDictionary, Sector.Chunk.DensityMapType.LiquidParticle);
                 sectorDensityMaps.GasParticleDensityMap = new Sector.Chunk.DensityMap(gasParticleDensityMapDictionary, Sector.Chunk.DensityMapType.GasParticle);
                 sectorDensityMaps.PlasmaParticleDensityMap = new Sector.Chunk.DensityMap(plasmaParticleDensityMapDictionary, Sector.Chunk.DensityMapType.PlasmaParticle);
-                sectorDensityMaps.GenerationState = GenerationState.Complete;
+                sectorDensityMaps.GenerationState = Sector.Chunk.GenerationState.Generated;
 
                 sectorGenerationSettingsBuffer.Dispose();
                 solidParticleDensityBuffer.Dispose();
@@ -706,7 +697,7 @@ namespace LooCast.Universe
 
                 regionDensityMaps.MatterDensityMap = new Region.Chunk.DensityMap(matterParticleDensityMapDictionary, Region.Chunk.DensityMapType.Matter);
                 regionDensityMaps.AntiMatterDensityMap = new Region.Chunk.DensityMap(antiMatterParticleDensityMapDictionary, Region.Chunk.DensityMapType.AntiMatter);
-                regionDensityMaps.GenerationState = GenerationState.Complete;
+                regionDensityMaps.GenerationState = Region.Chunk.GenerationState.Generated;
 
                 regionGenerationSettingsBuffer.Dispose();
                 matterParticleDensityBuffer.Dispose();
@@ -856,6 +847,12 @@ namespace LooCast.Universe
                     AntiProton,
                     Neutron,
                     AntiNeutron
+                }
+
+                public enum GenerationState
+                {
+                    Generating,
+                    Generated
                 }
                 #endregion
 
@@ -1048,7 +1045,6 @@ namespace LooCast.Universe
                     this.densityMaps.AntiNeutronDensityMap = densityMaps.AntiNeutronDensityMap;
                     this.densityMaps.GenerationState = densityMaps.GenerationState;
                     GameManager.Instance.CurrentGame.CurrentUniverse.SaveFilamentChunk(this);
-                    GameManager.Instance.CurrentGame.CurrentUniverse.filamentChunkGenerationStatesCache[chunkPosition] = Universe.GenerationState.Complete;
                 }
 
                 private IEnumerator DensityMapGenerationCoroutine(Universe universe, Filament filament, Action<DensityMapCollection> callback)
@@ -1228,6 +1224,12 @@ namespace LooCast.Universe
                     LiquidParticle,
                     GasParticle,
                     PlasmaParticle
+                }
+
+                public enum GenerationState
+                {
+                    Generating,
+                    Generated
                 }
                 #endregion
 
@@ -1412,7 +1414,6 @@ namespace LooCast.Universe
                     this.densityMaps.PlasmaParticleDensityMap = densityMaps.PlasmaParticleDensityMap;
                     this.densityMaps.GenerationState = densityMaps.GenerationState;
                     GameManager.Instance.CurrentGame.CurrentUniverse.SaveSectorChunk(this);
-                    GameManager.Instance.CurrentGame.CurrentUniverse.sectorChunkGenerationStatesCache[chunkPosition] = Universe.GenerationState.Complete;
                 }
 
                 private IEnumerator DensityMapGenerationCoroutine(Universe universe, Filament filament, Sector sector, Action<DensityMapCollection> callback)
@@ -1589,6 +1590,12 @@ namespace LooCast.Universe
                     Matter,
                     AntiMatter
                 }
+
+                public enum GenerationState
+                {
+                    Generating,
+                    Generated
+                }
                 #endregion
 
                 #region Structs
@@ -1764,7 +1771,6 @@ namespace LooCast.Universe
                     this.densityMaps.AntiMatterDensityMap = densityMaps.AntiMatterDensityMap;
                     this.densityMaps.GenerationState = densityMaps.GenerationState;
                     GameManager.Instance.CurrentGame.CurrentUniverse.SaveRegionChunk(this);
-                    GameManager.Instance.CurrentGame.CurrentUniverse.regionChunkGenerationStatesCache[chunkPosition] = Universe.GenerationState.Complete;
                 }
 
                 private IEnumerator DensityMapGenerationCoroutine(Universe universe, Sector sector, Region region, Action<DensityMapCollection> callback)
@@ -2051,7 +2057,7 @@ namespace LooCast.Universe
         {
             get
             {
-                if (dataPath == null || dataPath == "")
+                if (dataPath.Equals(string.Empty))
                 {
                     if (!GameManager.Initialized)
                     {
@@ -2084,13 +2090,6 @@ namespace LooCast.Universe
         [SerializeField] private GenerationSettings generationSettings;
         [SerializeField] private DensityMap universeDensityMap;
 
-        private const int filamentGenerationStatesCacheSize = 1024;
-        private const int sectorGenerationStatesCacheSize = 1024;
-        private const int regionGenerationStatesCacheSize = 1024;
-        private const int filamentChunkGenerationStatesCacheSize = 1024;
-        private const int sectorChunkGenerationStatesCacheSize = 1024;
-        private const int regionChunkGenerationStatesCacheSize = 1024;
-
         private bool initialized = false;
         private string dataPath;
         private Dictionary<Filament.Position, Filament> loadedFilaments;
@@ -2099,12 +2098,6 @@ namespace LooCast.Universe
         private Dictionary<Filament.Chunk.Position, Filament.Chunk> loadedFilamentChunks;
         private Dictionary<Sector.Chunk.Position, Sector.Chunk> loadedSectorChunks;
         private Dictionary<Region.Chunk.Position, Region.Chunk> loadedRegionChunks;
-        private Dictionary<Filament.Position, GenerationState> filamentGenerationStatesCache;
-        private Dictionary<Sector.Position, GenerationState> sectorGenerationStatesCache;
-        private Dictionary<Region.Position, GenerationState> regionGenerationStatesCache;
-        private Dictionary<Filament.Chunk.Position, GenerationState> filamentChunkGenerationStatesCache;
-        private Dictionary<Sector.Chunk.Position, GenerationState> sectorChunkGenerationStatesCache;
-        private Dictionary<Region.Chunk.Position, GenerationState> regionChunkGenerationStatesCache;
         #endregion
 
         #region Constructors
@@ -2143,12 +2136,6 @@ namespace LooCast.Universe
             loadedFilamentChunks = new Dictionary<Filament.Chunk.Position, Filament.Chunk>();
             loadedSectorChunks = new Dictionary<Sector.Chunk.Position, Sector.Chunk>();
             loadedRegionChunks = new Dictionary<Region.Chunk.Position, Region.Chunk>();
-            filamentGenerationStatesCache = new Dictionary<Filament.Position, GenerationState>();
-            sectorGenerationStatesCache = new Dictionary<Sector.Position, GenerationState>();
-            regionGenerationStatesCache = new Dictionary<Region.Position, GenerationState>();
-            filamentChunkGenerationStatesCache = new Dictionary<Filament.Chunk.Position, GenerationState>();
-            sectorChunkGenerationStatesCache = new Dictionary<Sector.Chunk.Position, GenerationState>();
-            regionChunkGenerationStatesCache = new Dictionary<Region.Chunk.Position, GenerationState>();
 
             initialized = true;
         }
@@ -2183,25 +2170,8 @@ namespace LooCast.Universe
         #region Generation
         public bool IsFilamentGenerated(Filament.Position filamentPosition)
         {
-            if (!filamentGenerationStatesCache.ContainsKey(filamentPosition))
-            {
-                string path = Path.Combine(DataPath, "Filaments", $"{filamentPosition.ChunkPosition.x}.{filamentPosition.ChunkPosition.y}.json");
-                if (File.Exists(path))
-                {
-                    filamentGenerationStatesCache.Add(filamentPosition, GenerationState.Complete);
-                    return true;
-                }
-                else
-                {
-                    filamentGenerationStatesCache.Add(filamentPosition, GenerationState.None);
-                    return false;
-                }
-            }
-            if (filamentGenerationStatesCache[filamentPosition] == GenerationState.Complete)
-            {
-                return true;
-            }
-            return false;
+            string path = $"{DataPath}/Filaments/{filamentPosition.ChunkPosition.x}.{filamentPosition.ChunkPosition.y}.json";
+            return File.Exists(path);
         }
 
         public void GenerateFilament(Filament.Position filamentPosition)
@@ -2212,7 +2182,6 @@ namespace LooCast.Universe
             }
 
             Filament filament = new Filament(this, filamentPosition);
-            filamentGenerationStatesCache.Add(filamentPosition, GenerationState.Complete);
             loadedFilaments.Add(filamentPosition, filament);
             SaveFilament(filament);
         }
@@ -2331,29 +2300,8 @@ namespace LooCast.Universe
         #region Generation
         public bool IsFilamentChunkGenerated(Filament.Chunk.Position filamentChunkPosition)
         {
-            if (!filamentChunkGenerationStatesCache.ContainsKey(filamentChunkPosition))
-            {
-                string path = Path.Combine(DataPath, "Filaments", $"{filamentChunkPosition.FilamentPosition.ChunkPosition.x}.{filamentChunkPosition.FilamentPosition.ChunkPosition.y}", "Chunks", $"{filamentChunkPosition.ChunkPosition.x}.{filamentChunkPosition.ChunkPosition.y}.json");
-                if (File.Exists(path))
-                {
-                    if (!IsFilamentChunkLoaded(filamentChunkPosition))
-                    {
-                        LoadFilamentChunk(filamentChunkPosition);
-                    }
-                    Filament.Chunk filamentChunk = loadedFilamentChunks[filamentChunkPosition];
-                    filamentChunkGenerationStatesCache.Add(filamentChunkPosition, filamentChunk.DensityMaps.GenerationState);
-                }
-                else
-                {
-                    filamentChunkGenerationStatesCache.Add(filamentChunkPosition, GenerationState.None);
-                    return false;
-                }
-            }
-            if (filamentChunkGenerationStatesCache[filamentChunkPosition] == GenerationState.Complete)
-            {
-                return true;
-            }
-            return false;
+            string path = $"{DataPath}/Filaments/{filamentChunkPosition.FilamentPosition.ChunkPosition.x}.{filamentChunkPosition.FilamentPosition.ChunkPosition.y}/Chunks/{filamentChunkPosition.ChunkPosition.x}.{filamentChunkPosition.ChunkPosition.y}.json";
+            return File.Exists(path);
         }
 
         public void GenerateFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
@@ -2373,7 +2321,6 @@ namespace LooCast.Universe
                 throw new Exception("Containing Filament is not yet loaded!");
             }
 
-            filamentChunkGenerationStatesCache.Add(filamentChunkPosition, GenerationState.Generating);
             Filament filament = GetFilament(filamentChunkPosition.FilamentPosition);
             Filament.Chunk filamentChunk = new Filament.Chunk(this, filament, filamentChunkPosition);
             filament.RegisterChunkPosition(filamentChunkPosition);
@@ -2513,25 +2460,8 @@ namespace LooCast.Universe
         #region Generation
         public bool IsSectorGenerated(Sector.Position sectorPosition)
         {
-            if (!sectorGenerationStatesCache.ContainsKey(sectorPosition))
-            {
-                string path = Path.Combine(DataPath, "Sectors", $"{sectorPosition.ChunkPosition.x}.{sectorPosition.ChunkPosition.y}.json");
-                if (File.Exists(path))
-                {
-                    sectorGenerationStatesCache.Add(sectorPosition, GenerationState.Complete);
-                    return true;
-                }
-                else
-                {
-                    sectorGenerationStatesCache.Add(sectorPosition, GenerationState.None);
-                    return false;
-                }
-            }
-            if (sectorGenerationStatesCache[sectorPosition] == GenerationState.Complete)
-            {
-                return true;
-            }
-            return false;
+            string path = $"{DataPath}/Sectors/{sectorPosition.ChunkPosition.x}.{sectorPosition.ChunkPosition.y}.json";
+            return File.Exists(path);
         }
 
         public void GenerateSector(Sector.Position sectorPosition)
@@ -2546,7 +2476,6 @@ namespace LooCast.Universe
             }
 
             Sector sector = new Sector(this, sectorPosition);
-            sectorGenerationStatesCache.Add(sectorPosition, GenerationState.Complete);
             loadedSectors.Add(sectorPosition, sector);
             SaveSector(sector);
         }
@@ -2665,29 +2594,8 @@ namespace LooCast.Universe
         #region Generation
         public bool IsSectorChunkGenerated(Sector.Chunk.Position sectorChunkPosition)
         {
-            if (!sectorChunkGenerationStatesCache.ContainsKey(sectorChunkPosition))
-            {
-                string path = Path.Combine(DataPath, "Sectors", $"{sectorChunkPosition.SectorPosition.ChunkPosition.x}.{sectorChunkPosition.SectorPosition.ChunkPosition.y}", "Chunks", $"{sectorChunkPosition.ChunkPosition.x}.{sectorChunkPosition.ChunkPosition.y}.json");
-                if (File.Exists(path))
-                {
-                    if (!IsSectorChunkLoaded(sectorChunkPosition))
-                    {
-                        LoadSectorChunk(sectorChunkPosition);
-                    }
-                    Sector.Chunk sectorChunk = loadedSectorChunks[sectorChunkPosition];
-                    sectorChunkGenerationStatesCache.Add(sectorChunkPosition, sectorChunk.DensityMaps.GenerationState);
-                }
-                else
-                {
-                    sectorChunkGenerationStatesCache.Add(sectorChunkPosition, GenerationState.None);
-                    return false;
-                }
-            }
-            if (sectorChunkGenerationStatesCache[sectorChunkPosition] == GenerationState.Complete)
-            {
-                return true;
-            }
-            return false;
+            string path = $"{DataPath}/Sectors/{sectorChunkPosition.SectorPosition.ChunkPosition.x}.{sectorChunkPosition.SectorPosition.ChunkPosition.y}/Chunks/{sectorChunkPosition.ChunkPosition.x}.{sectorChunkPosition.ChunkPosition.y}.json";
+            return File.Exists(path);
         }
 
         public void GenerateSectorChunk(Sector.Chunk.Position sectorChunkPosition)
@@ -2707,7 +2615,6 @@ namespace LooCast.Universe
                 throw new Exception("Containing Sector is not yet loaded!");
             }
 
-            sectorChunkGenerationStatesCache.Add(sectorChunkPosition, GenerationState.Generating);
             Sector sector = GetSector(sectorChunkPosition.SectorPosition);
             Filament filament = GetFilament(sectorChunkPosition.FilamentPosition);
             Sector.Chunk sectorChunk = new Sector.Chunk(this, filament, sector, sectorChunkPosition);
@@ -2848,25 +2755,8 @@ namespace LooCast.Universe
         #region Generation
         public bool IsRegionGenerated(Region.Position regionPosition)
         {
-            if (!regionGenerationStatesCache.ContainsKey(regionPosition))
-            {
-                string path = Path.Combine(DataPath, "Regions", $"{regionPosition.ChunkPosition.x}.{regionPosition.ChunkPosition.y}.json");
-                if (File.Exists(path))
-                {
-                    regionGenerationStatesCache.Add(regionPosition, GenerationState.Complete);
-                    return true;
-                }
-                else
-                {
-                    regionGenerationStatesCache.Add(regionPosition, GenerationState.None);
-                    return false;
-                }
-            }
-            if (regionGenerationStatesCache[regionPosition] == GenerationState.Complete)
-            {
-                return true;
-            }
-            return false;
+            string path = $"{DataPath}/Regions/{regionPosition.ChunkPosition.x}.{regionPosition.ChunkPosition.y}.json";
+            return File.Exists(path);
         }
 
         public void GenerateRegion(Region.Position regionPosition)
@@ -2881,7 +2771,6 @@ namespace LooCast.Universe
             }
 
             Region region = new Region(this, regionPosition);
-            regionGenerationStatesCache.Add(regionPosition, GenerationState.Complete);
             loadedRegions.Add(regionPosition, region);
             SaveRegion(region);
         }
@@ -3000,29 +2889,8 @@ namespace LooCast.Universe
         #region Generation
         public bool IsRegionChunkGenerated(Region.Chunk.Position regionChunkPosition)
         {
-            if (!regionChunkGenerationStatesCache.ContainsKey(regionChunkPosition))
-            {
-                string path = Path.Combine(DataPath, "Regions", $"{regionChunkPosition.RegionPosition.ChunkPosition.x}.{regionChunkPosition.RegionPosition.ChunkPosition.y}", "Chunks", $"{regionChunkPosition.ChunkPosition.x}.{regionChunkPosition.ChunkPosition.y}.json");
-                if (File.Exists(path))
-                {
-                    if (!IsRegionChunkLoaded(regionChunkPosition))
-                    {
-                        LoadRegionChunk(regionChunkPosition);
-                    }
-                    Region.Chunk regionChunk = loadedRegionChunks[regionChunkPosition];
-                    regionChunkGenerationStatesCache.Add(regionChunkPosition, regionChunk.DensityMaps.GenerationState);
-                }
-                else
-                {
-                    regionChunkGenerationStatesCache.Add(regionChunkPosition, GenerationState.None);
-                    return false;
-                }
-            }
-            if (regionChunkGenerationStatesCache[regionChunkPosition] == GenerationState.Complete)
-            {
-                return true;
-            }
-            return false;
+            string path = $"{DataPath}/Regions/{regionChunkPosition.RegionPosition.ChunkPosition.x}.{regionChunkPosition.RegionPosition.ChunkPosition.y}/Chunks/{regionChunkPosition.ChunkPosition.x}.{regionChunkPosition.ChunkPosition.y}.json";
+            return File.Exists(path);
         }
 
         public void GenerateRegionChunk(Region.Chunk.Position regionChunkPosition)
@@ -3042,7 +2910,6 @@ namespace LooCast.Universe
                 throw new Exception("Containing Region is not yet loaded!");
             }
 
-            regionChunkGenerationStatesCache.Add(regionChunkPosition, GenerationState.Generating);
             Region region = GetRegion(regionChunkPosition.RegionPosition);
             Sector sector = GetSector(regionChunkPosition.SectorPosition);
             Region.Chunk regionChunk = new Region.Chunk(this, sector, region, regionChunkPosition);
