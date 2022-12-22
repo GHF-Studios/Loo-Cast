@@ -225,7 +225,7 @@ namespace LooCast.Universe
                 {
                     get
                     {
-                        return sizeof(int) * 3 + sizeof(float) * 9;
+                        return sizeof(int) * 3 + sizeof(float) * 10;
                     }
                 }
             }
@@ -2057,7 +2057,7 @@ namespace LooCast.Universe
         {
             get
             {
-                if (dataPath.Equals(string.Empty))
+                if (dataPath == null || dataPath == "")
                 {
                     if (!GameManager.Initialized)
                     {
