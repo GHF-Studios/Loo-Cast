@@ -14,6 +14,9 @@ namespace LooCast.Observer
     using Unity.VisualScripting;
     using System.Collections.Concurrent;
 
+    // ISSUE TRACKER
+    // 1. Loaded Chunks never get unloaded
+
     // OPTIMIZATION PLAN
     // A. UpdateProximalPositions / UpdatePreviouslyProximalPositions
     //      1.  If the current screenRegionChunkPosMin && screenRegionChunkPosMax are the same as the previous, then skip the update
