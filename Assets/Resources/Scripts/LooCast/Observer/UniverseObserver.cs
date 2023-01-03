@@ -14,6 +14,18 @@ namespace LooCast.Observer
     using Unity.VisualScripting;
     using System.Collections.Concurrent;
 
+    // OPTIMIZATION PLAN
+    // A. UpdateProximalPositions / UpdatePreviouslyProximalPositions
+    //      1.  If the current screenRegionChunkPosMin && screenRegionChunkPosMax are the same as the previous, then skip the update
+    //      2.  If the current screenRegionChunkPosMin || screenRegionChunkPosMax are different from the previous,
+    //          then get the offset and calculate the newly visible region chunk positions (Replace proximalRegionChunkPositions, etc. with newlyProximalRegionChunkPositions 
+    //      3.  Update the previous screenRegionChunkPosMin and screenRegionChunkPosMax
+    //      4.  Calculate the newly invisible region chunk positions
+    //      5.  Repeat for Regions, Sectors, Filaments, Sector Chunks and Filament Chunks
+    //      6. Combine this into a unified UpdateProximalPositions method and remove UpdatePreviouslyProximalPositions
+    // B. LoadProximalPositions
+    //      1. Load the newly proximal region chunk positions
+
     public class UniverseObserver : ExtendedMonoBehaviour
     {
         private Universe currentUniverse;
