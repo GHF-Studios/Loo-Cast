@@ -2923,7 +2923,7 @@ namespace LooCast.Universe
 
             if (!IsRegionGenerated(regionChunkPosition.RegionPosition))
             {
-d                throw new Exception("Containing Region is not yet generated!");
+                throw new Exception("Containing Region is not yet generated!");
             }
 
             if (!IsRegionLoaded(regionChunkPosition.RegionPosition))
