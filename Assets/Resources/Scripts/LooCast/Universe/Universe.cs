@@ -13,8 +13,14 @@ namespace LooCast.Universe
     using Util;
     using Util.Collections.Generic;
     using Random;
-    using LooCast.Diagnostic;
-    using Steamworks;
+
+    // OPTIMIZATION PLAN
+    // A. Use a single thread to load all the data
+    // B. Optimize IsFilament*Generated & IsFilament*ChunkGenerated
+    // C. Optimize IsFilament*Loaded & IsFilament*ChunkLoaded
+    // D. Optimize GenerateFilament* & GenerateFilament*Chunk
+    // E. Maybe optimize LoadFilament* & LoadFilament*Chunk
+    // F. Maybe optimize UnloadFilament* & UnloadFilament*Chunk
 
     [Serializable]
     public class Universe
