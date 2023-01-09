@@ -16,19 +16,6 @@ namespace LooCast.Observer
     // ISSUE TRACKER
     // 1. Loaded Chunks never get unloaded
 
-    // OPTIMIZATION PLAN
-    // A. UpdateProximalPositions / UpdatePreviouslyProximalPositions
-    //      1.  If the current screenRegionChunkPosMin && screenRegionChunkPosMax are the same as the previous, then skip the update
-    //      2.  If the previous screenRegionChunkPosMin && screenRegionChunkPosMax are empty/null, then queue all onscreen-chunks for update
-    //      2.  If the current screenRegionChunkPosMin || screenRegionChunkPosMax are different from the previous,
-    //          then get the offset and calculate the newly visible region chunk positions (Replace proximalRegionChunkPositions, etc. with newlyProximalRegionChunkPositions 
-    //      3.  Update the previous screenRegionChunkPosMin and screenRegionChunkPosMax
-    //      4.  Calculate the newly invisible region chunk positions (aka previously proximal region chunk positions)
-    //      5.  Repeat for Regions, Sectors, Filaments, Sector Chunks and Filament Chunks
-    //      6. Combine this into a unified UpdateProximalPositions method and remove UpdatePreviouslyProximalPositions
-    // B. LoadProximalPositions
-    //      1. Load the newly proximal region chunk positions
-
     public class UniverseObserver : ExtendedMonoBehaviour
     {
         private Universe currentUniverse;
@@ -459,7 +446,7 @@ namespace LooCast.Observer
             {
                 if (!currentUniverse.IsFilamentGenerated(proximalFilamentPosition))
                 {
-                    currentUniverse.GenerateFilament(proximalFilamentPosition);
+                    currentUniverse.RequestGenerateFilament(proximalFilamentPosition);
                 }
                 else if (!currentUniverse.IsFilamentLoaded(proximalFilamentPosition))
                 {
@@ -473,7 +460,7 @@ namespace LooCast.Observer
             {
                 if (!currentUniverse.IsFilamentChunkGenerated(proximalFilamentChunkPosition))
                 {
-                    currentUniverse.GenerateFilamentChunk(proximalFilamentChunkPosition);
+                    currentUniverse.RequestGenerateFilamentChunk(proximalFilamentChunkPosition);
                 }
                 else if (!currentUniverse.IsFilamentChunkLoaded(proximalFilamentChunkPosition))
                 {
@@ -487,7 +474,7 @@ namespace LooCast.Observer
             {
                 if (!currentUniverse.IsSectorGenerated(proximalSectorPosition))
                 {
-                    currentUniverse.GenerateSector(proximalSectorPosition);
+                    currentUniverse.RequestGenerateSector(proximalSectorPosition);
                 }
                 else if (!currentUniverse.IsSectorLoaded(proximalSectorPosition))
                 {
@@ -501,7 +488,7 @@ namespace LooCast.Observer
             {
                 if (!currentUniverse.IsSectorChunkGenerated(proximalSectorChunkPosition))
                 {
-                    currentUniverse.GenerateSectorChunk(proximalSectorChunkPosition);
+                    currentUniverse.RequestGenerateSectorChunk(proximalSectorChunkPosition);
                 }
                 else if (!currentUniverse.IsSectorChunkLoaded(proximalSectorChunkPosition))
                 {
@@ -515,7 +502,7 @@ namespace LooCast.Observer
             {
                 if (!currentUniverse.IsRegionGenerated(proximalRegionPosition))
                 {
-                    currentUniverse.GenerateRegion(proximalRegionPosition);
+                    currentUniverse.RequestGenerateRegion(proximalRegionPosition);
                 }
                 else if (!currentUniverse.IsRegionLoaded(proximalRegionPosition))
                 {
@@ -529,7 +516,7 @@ namespace LooCast.Observer
             {
                 if (!currentUniverse.IsRegionChunkGenerated(proximalRegionChunkPosition))
                 {
-                    currentUniverse.GenerateRegionChunk(proximalRegionChunkPosition);
+                    currentUniverse.RequestGenerateRegionChunk(proximalRegionChunkPosition);
                 }
                 else if (!currentUniverse.IsRegionChunkLoaded(proximalRegionChunkPosition))
                 {
