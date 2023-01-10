@@ -82,11 +82,8 @@ namespace LooCast.Core
             TimerUtil.InitializeInstance();
             #endregion
 
-            #region Universe Utilities Initialization
             Universe.DensityMapGenerationUtil.InitializeInstance();
-            Universe.MapElementLoadingUtil.InitializeInstance();
-            #endregion
-
+            
             #region Scene Initialization
             switch (activeSceneName)
             {

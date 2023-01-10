@@ -315,7 +315,7 @@ namespace LooCast.Universe
             {
                 if (Instance == null)
                 {
-                    throw new Exception("Universe.ParallelizationUtil has not been initialized!");
+                    throw new Exception("Universe.DensityMapGenerationUtil has not been initialized!");
                 }
                 
                 UniverseGenerationSettingsGPU[] universeGenerationSettingsData = { new UniverseGenerationSettingsGPU(universeGenerationSettings) };
@@ -742,20 +742,6 @@ namespace LooCast.Universe
             private Universe currentUniverse;
             #endregion
 
-            #region Unity Callbacks
-            private void OnEnable()
-            {
-                currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
-
-                StartCoroutine(ProcessFilamentLoadQueueCoroutine());
-                StartCoroutine(ProcessFilamentChunkLoadQueueCoroutine());
-                StartCoroutine(ProcessSectorLoadQueueCoroutine());
-                StartCoroutine(ProcessSectorChunkLoadQueueCoroutine());
-                StartCoroutine(ProcessRegionLoadQueueCoroutine());
-                StartCoroutine(ProcessRegionChunkLoadQueueCoroutine());
-            }
-            #endregion
-
             #region Static Methods
             public static void InitializeInstance()
             {
@@ -768,6 +754,22 @@ namespace LooCast.Universe
                 instanceObject.tag = "INTERNAL";
                 Instance = instanceObject.AddComponent<MapElementLoadingUtil>();
                 DontDestroyOnLoad(Instance);
+
+                filamentLoadQueue = new Queue<Filament.Position>();
+                sectorLoadQueue = new Queue<Sector.Position>();
+                regionLoadQueue = new Queue<Region.Position>();
+                filamentChunkLoadQueue = new Queue<Filament.Chunk.Position>();
+                sectorChunkLoadQueue = new Queue<Sector.Chunk.Position>();
+                regionChunkLoadQueue = new Queue<Region.Chunk.Position>();
+
+                Instance.currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
+
+                Instance.StartCoroutine(Instance.ProcessFilamentLoadQueueCoroutine());
+                Instance.StartCoroutine(Instance.ProcessFilamentChunkLoadQueueCoroutine());
+                Instance.StartCoroutine(Instance.ProcessSectorLoadQueueCoroutine());
+                Instance.StartCoroutine(Instance.ProcessSectorChunkLoadQueueCoroutine());
+                Instance.StartCoroutine(Instance.ProcessRegionLoadQueueCoroutine());
+                Instance.StartCoroutine(Instance.ProcessRegionChunkLoadQueueCoroutine());
 
                 Debug.Log("[Universe.MapElementLoadingUtil] Initialized.");
             }
@@ -2543,7 +2545,12 @@ namespace LooCast.Universe
         #region Generation
         public bool IsFilamentChunkGenerated(Filament.Chunk.Position filamentChunkPosition)
         {
-            Filament filament = GetFilament(filamentChunkPosition.FilamentPosition);
+            Filament.Position filamentPosition = filamentChunkPosition.FilamentPosition;
+            if (!IsFilamentGenerated(filamentPosition))
+            {
+                return false;
+            }
+            Filament filament = GetFilament(filamentPosition);
             return filament.ChunkPositionMap.ContainsKey(filamentChunkPosition.CurrentChunkPosition);
         }
 
@@ -2816,7 +2823,12 @@ namespace LooCast.Universe
         #region Generation
         public bool IsSectorChunkGenerated(Sector.Chunk.Position sectorChunkPosition)
         {
-            Sector sector = GetSector(sectorChunkPosition.SectorPosition);
+            Sector.Position sectorPosition = sectorChunkPosition.SectorPosition;
+            if (!IsSectorGenerated(sectorPosition))
+            {
+                return false;
+            }
+            Sector sector = GetSector(sectorPosition);
             return sector.ChunkPositionMap.ContainsKey(sectorChunkPosition.CurrentChunkPosition);
         }
 
@@ -3089,7 +3101,12 @@ namespace LooCast.Universe
         #region Generation
         public bool IsRegionChunkGenerated(Region.Chunk.Position regionChunkPosition)
         {
-            Region region = GetRegion(regionChunkPosition.RegionPosition);
+            Region.Position regionPosition = regionChunkPosition.RegionPosition;
+            if (!IsRegionGenerated(regionPosition))
+            {
+                return false;
+            }
+            Region region = GetRegion(regionPosition);
             return region.ChunkPositionMap.ContainsKey(regionChunkPosition.CurrentChunkPosition);
         }
 

@@ -195,6 +195,7 @@ namespace LooCast.Game
             LoadGame(game);
             SaveGame();
             game.GenerateUniverse(generationSettings);
+            Universe.MapElementLoadingUtil.InitializeInstance();
 
             Debug.Log($"[GameManager] Initialized Game.");
         }
