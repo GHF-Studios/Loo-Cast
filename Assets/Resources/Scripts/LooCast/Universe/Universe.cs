@@ -824,126 +824,152 @@ namespace LooCast.Universe
             #endregion
 
             #region Coroutines
-            public IEnumerator ProcessFilamentLoadQueueCoroutine()
+            // Add Min and Max Iterations
+            // Add Min and Max Iterations Attempts to allow for more unready things to be checked, I guess, maybe?
+
+            private IEnumerator ProcessFilamentLoadQueueCoroutine()
             {
-                while (filamentLoadQueue.Count > 0)
+                while (true)
                 {
-                    Filament.Position filamentPosition = filamentLoadQueue.Dequeue();
+                    if (filamentLoadQueue.Count > 0)
+                    {
+                        Filament.Position filamentPosition = filamentLoadQueue.Dequeue();
+
+                        Filament filament = new Filament(currentUniverse, filamentPosition);
+                        currentUniverse.loadedFilaments.Add(filamentPosition, filament);
+                        currentUniverse.SaveFilament(filament);
+                    }
                     
-                    Filament filament = new Filament(currentUniverse, filamentPosition);
-                    currentUniverse.loadedFilaments.Add(filamentPosition, filament);
-                    currentUniverse.SaveFilament(filament);
+                    yield return null;
+                }
+            }
+
+            private IEnumerator ProcessFilamentChunkLoadQueueCoroutine()
+            {
+                while (true)
+                {
+                    if (filamentChunkLoadQueue.Count > 0)
+                    {
+                        Filament.Chunk.Position filamentChunkPosition = filamentChunkLoadQueue.Dequeue();
+
+                        if (!currentUniverse.IsFilamentLoaded(filamentChunkPosition.FilamentPosition))
+                        {
+                            filamentChunkLoadQueue.Enqueue(filamentChunkPosition);
+                            yield return null;
+                            continue;
+                        }
+
+                        Filament filament = currentUniverse.GetFilament(filamentChunkPosition.FilamentPosition);
+                        Filament.Chunk filamentChunk = new Filament.Chunk(currentUniverse, filament, filamentChunkPosition);
+                        filament.RegisterChunkPosition(filamentChunkPosition);
+                        currentUniverse.loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
+                        currentUniverse.SaveFilament(filament);
+                        currentUniverse.SaveFilamentChunk(filamentChunk); 
+                    }
 
                     yield return null;
                 }
             }
 
-            public IEnumerator ProcessFilamentChunkLoadQueueCoroutine()
+            private IEnumerator ProcessSectorLoadQueueCoroutine()
             {
-                while (filamentChunkLoadQueue.Count > 0)
+                while (true)
                 {
-                    Filament.Chunk.Position filamentChunkPosition = filamentChunkLoadQueue.Dequeue();
-
-                    if (currentUniverse.IsFilamentLoaded(filamentChunkPosition.FilamentPosition))
+                    if (sectorLoadQueue.Count > 0)
                     {
-                        filamentChunkLoadQueue.Enqueue(filamentChunkPosition);
-                        continue;
-                    }
+                        Sector.Position sectorPosition = sectorLoadQueue.Dequeue();
 
-                    Filament filament = currentUniverse.GetFilament(filamentChunkPosition.FilamentPosition);
-                    Filament.Chunk filamentChunk = new Filament.Chunk(currentUniverse, filament, filamentChunkPosition);
-                    filament.RegisterChunkPosition(filamentChunkPosition);
-                    currentUniverse.loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
-                    currentUniverse.SaveFilament(filament);
-                    currentUniverse.SaveFilamentChunk(filamentChunk);
+                        if (!currentUniverse.IsFilamentLoaded(sectorPosition.FilamentPosition))
+                        {
+                            sectorLoadQueue.Enqueue(sectorPosition);
+                            yield return null;
+                            continue;
+                        }
+
+                        Sector sector = new Sector(currentUniverse, sectorPosition);
+                        currentUniverse.loadedSectors.Add(sectorPosition, sector);
+                        currentUniverse.SaveSector(sector); 
+                    }
 
                     yield return null;
                 }
             }
 
-            public IEnumerator ProcessSectorLoadQueueCoroutine()
+            private IEnumerator ProcessSectorChunkLoadQueueCoroutine()
             {
-                while (sectorLoadQueue.Count > 0)
+                while (true)
                 {
-                    Sector.Position sectorPosition = sectorLoadQueue.Dequeue();
-
-                    if (!currentUniverse.IsFilamentLoaded(sectorPosition.FilamentPosition))
+                    if (sectorChunkLoadQueue.Count > 0)
                     {
-                        sectorLoadQueue.Enqueue(sectorPosition);
-                        continue;
-                    }
+                        Sector.Chunk.Position sectorChunkPosition = sectorChunkLoadQueue.Dequeue();
 
-                    Sector sector = new Sector(currentUniverse, sectorPosition);
-                    currentUniverse.loadedSectors.Add(sectorPosition, sector);
-                    currentUniverse.SaveSector(sector);
+                        if (!currentUniverse.IsSectorLoaded(sectorChunkPosition.SectorPosition))
+                        {
+                            sectorChunkLoadQueue.Enqueue(sectorChunkPosition);
+                            yield return null;
+                            continue;
+                        }
+
+                        Sector sector = currentUniverse.GetSector(sectorChunkPosition.SectorPosition);
+                        Filament filament = currentUniverse.GetFilament(sectorChunkPosition.FilamentPosition);
+                        Sector.Chunk sectorChunk = new Sector.Chunk(currentUniverse, filament, sector, sectorChunkPosition);
+                        sector.RegisterChunkPosition(sectorChunkPosition);
+                        currentUniverse.loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
+                        currentUniverse.SaveSector(sector);
+                        currentUniverse.SaveSectorChunk(sectorChunk); 
+                    }
 
                     yield return null;
                 }
             }
 
-            public IEnumerator ProcessSectorChunkLoadQueueCoroutine()
+            private IEnumerator ProcessRegionLoadQueueCoroutine()
             {
-                while (sectorChunkLoadQueue.Count > 0)
+                while (true)
                 {
-                    Sector.Chunk.Position sectorChunkPosition = sectorChunkLoadQueue.Dequeue();
-
-                    if (!currentUniverse.IsSectorLoaded(sectorChunkPosition.SectorPosition))
+                    if (regionLoadQueue.Count > 0)
                     {
-                        sectorChunkLoadQueue.Enqueue(sectorChunkPosition);
-                        continue;
-                    }
+                        Region.Position regionPosition = regionLoadQueue.Dequeue();
 
-                    Sector sector = currentUniverse.GetSector(sectorChunkPosition.SectorPosition);
-                    Filament filament = currentUniverse.GetFilament(sectorChunkPosition.FilamentPosition);
-                    Sector.Chunk sectorChunk = new Sector.Chunk(currentUniverse, filament, sector, sectorChunkPosition);
-                    sector.RegisterChunkPosition(sectorChunkPosition);
-                    currentUniverse.loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
-                    currentUniverse.SaveSector(sector);
-                    currentUniverse.SaveSectorChunk(sectorChunk);
+                        if (!currentUniverse.IsSectorLoaded(regionPosition.SectorPosition))
+                        {
+                            regionLoadQueue.Enqueue(regionPosition);
+                            yield return null;
+                            continue;
+                        }
+
+                        Region region = new Region(currentUniverse, regionPosition);
+                        currentUniverse.loadedRegions.Add(regionPosition, region);
+                        currentUniverse.SaveRegion(region); 
+                    }
 
                     yield return null;
                 }
             }
 
-            public IEnumerator ProcessRegionLoadQueueCoroutine()
+            private IEnumerator ProcessRegionChunkLoadQueueCoroutine()
             {
-                while (regionLoadQueue.Count > 0)
+                while (true)
                 {
-                    Region.Position regionPosition = regionLoadQueue.Dequeue();
-
-                    if (!currentUniverse.IsSectorLoaded(regionPosition.SectorPosition))
+                    if (regionChunkLoadQueue.Count > 0)
                     {
-                        regionLoadQueue.Enqueue(regionPosition);
-                        continue;
+                        Region.Chunk.Position regionChunkPosition = regionChunkLoadQueue.Dequeue();
+
+                        if (!currentUniverse.IsRegionLoaded(regionChunkPosition.RegionPosition))
+                        {
+                            regionChunkLoadQueue.Enqueue(regionChunkPosition);
+                            yield return null;
+                            continue;
+                        }
+
+                        Region region = currentUniverse.GetRegion(regionChunkPosition.RegionPosition);
+                        Sector sector = currentUniverse.GetSector(regionChunkPosition.SectorPosition);
+                        Region.Chunk regionChunk = new Region.Chunk(currentUniverse, sector, region, regionChunkPosition);
+                        region.RegisterChunkPosition(regionChunkPosition);
+                        currentUniverse.loadedRegionChunks.Add(regionChunkPosition, regionChunk);
+                        currentUniverse.SaveRegion(region);
+                        currentUniverse.SaveRegionChunk(regionChunk); 
                     }
-
-                    Region region = new Region(currentUniverse, regionPosition);
-                    currentUniverse.loadedRegions.Add(regionPosition, region);
-                    currentUniverse.SaveRegion(region);
-
-                    yield return null;
-                }
-            }
-
-            public IEnumerator ProcessRegionChunkLoadQueueCoroutine()
-            {
-                while (regionChunkLoadQueue.Count > 0)
-                {
-                    Region.Chunk.Position regionChunkPosition = regionChunkLoadQueue.Dequeue();
-
-                    if (!currentUniverse.IsRegionLoaded(regionChunkPosition.RegionPosition))
-                    {
-                        regionChunkLoadQueue.Enqueue(regionChunkPosition);
-                        continue;
-                    }
-
-                    Region region = currentUniverse.GetRegion(regionChunkPosition.RegionPosition);
-                    Sector sector = currentUniverse.GetSector(regionChunkPosition.SectorPosition);
-                    Region.Chunk regionChunk = new Region.Chunk(currentUniverse, sector, region, regionChunkPosition);
-                    region.RegisterChunkPosition(regionChunkPosition);
-                    currentUniverse.loadedRegionChunks.Add(regionChunkPosition, regionChunk);
-                    currentUniverse.SaveRegion(region);
-                    currentUniverse.SaveRegionChunk(regionChunk);
 
                     yield return null;
                 }
@@ -1102,7 +1128,7 @@ namespace LooCast.Universe
                 public class Position
                 {
                     #region Properties
-                    public Vector2Int CurrentChunkPosition => chunkPosition;
+                    public Vector2Int CurrentPosition => currentPosition;
                     public Vector2 WorldPosition
                     {
                         get
@@ -1112,7 +1138,7 @@ namespace LooCast.Universe
                             int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                             int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
                             Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
-                            return ((chunkPosition.ToVector2() * regionSize) + regionOffset) * sectorSize * filamentChunkSize;
+                            return ((currentPosition.ToVector2() * regionSize) + regionOffset) * sectorSize * filamentChunkSize;
                         }
                     }
                     public Region.Position RegionPosition
@@ -1153,13 +1179,13 @@ namespace LooCast.Universe
                     #endregion
 
                     #region Fields
-                    [SerializeField] private Vector2Int chunkPosition;
+                    [SerializeField] private Vector2Int currentPosition;
                     #endregion
 
                     #region Constructors
                     public Position(Vector2Int chunkPosition)
                     {
-                        this.chunkPosition = chunkPosition;
+                        this.currentPosition = chunkPosition;
                     }
 
                     public Position(Vector2 worldPosition)
@@ -1168,27 +1194,24 @@ namespace LooCast.Universe
                         int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                         int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                         int filamentChunkSize = universe.generationSettings.FilamentGenerationSettings.ChunkSize;
-                        chunkPosition = (worldPosition / regionSize / sectorSize / filamentChunkSize).FloorToVector2Int();
+                        currentPosition = (worldPosition / regionSize / sectorSize / filamentChunkSize).FloorToVector2Int();
+                    }
+                    #endregion
+
+                    #region Overrides
+                    public override bool Equals(object obj)
+                    {
+                        Position otherPosition = obj as Position;
+                        return currentPosition.Equals(otherPosition.currentPosition);
+                    }
+
+                    public override int GetHashCode()
+                    {
+                        return currentPosition.GetHashCode();
                     }
                     #endregion
                 }
-                #endregion
 
-                #region Structs
-                private struct DensityMapCoroutineInfo
-                {
-                    public readonly Action<DensityMapCollection> Callback;
-                    public readonly DensityMapCollection DensityMaps;
-
-                    public DensityMapCoroutineInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
-                    {
-                        Callback = callback;
-                        DensityMaps = densityMaps;
-                    }
-                }
-                #endregion
-
-                #region Classes
                 [Serializable]
                 public class DensityMap
                 {
@@ -1204,7 +1227,7 @@ namespace LooCast.Universe
                         this.densityMapType = densityMapType;
                     }
                 }
-                
+
                 [Serializable]
                 public class DensityMapCollection
                 {
@@ -1227,6 +1250,20 @@ namespace LooCast.Universe
                         AntiNeutronDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.AntiNeutron);
                         GenerationState = GenerationState.Generating;
                         Size = size;
+                    }
+                }
+                #endregion
+
+                #region Structs
+                private struct DensityMapCoroutineInfo
+                {
+                    public readonly Action<DensityMapCollection> Callback;
+                    public readonly DensityMapCollection DensityMaps;
+
+                    public DensityMapCoroutineInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
+                    {
+                        Callback = callback;
+                        DensityMaps = densityMaps;
                     }
                 }
                 #endregion
@@ -1255,7 +1292,7 @@ namespace LooCast.Universe
                     GenerationSettings filamentGenerationSettings = universe.FilamentGenerationSettings;
                     size = filamentGenerationSettings.ChunkSize;
                     this.filamentChunkPosition = chunkPosition;
-                    chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + filament.filamentPosition.CurrentPosition.magnitude + chunkPosition.CurrentChunkPosition.magnitude)).Range(int.MinValue, int.MaxValue);
+                    chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + filament.filamentPosition.CurrentPosition.magnitude + chunkPosition.CurrentPosition.magnitude)).Range(int.MinValue, int.MaxValue);
                     densityMaps = new DensityMapCollection(size);
                     RequestDensityMaps(universe, filament, OnDensityMapsReceived);
                 }
@@ -1311,7 +1348,7 @@ namespace LooCast.Universe
             public class Position
             {
                 #region Properties
-                public Vector2Int CurrentPosition => chunkPosition;
+                public Vector2Int CurrentPosition => currentPosition;
                 public Vector2 WorldPosition
                 {
                     get
@@ -1321,7 +1358,7 @@ namespace LooCast.Universe
                         int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                         int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
                         Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
-                        return ((chunkPosition * regionSize) + regionOffset) * sectorSize * filamentSize;
+                        return ((currentPosition * regionSize) + regionOffset) * sectorSize * filamentSize;
                     }
                 }
                 public Region.Position RegionPosition
@@ -1362,13 +1399,13 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Fields
-                [SerializeField] private Vector2Int chunkPosition;
+                [SerializeField] private Vector2Int currentPosition;
                 #endregion
 
                 #region Constructor
                 public Position(Vector2Int chunkPosition)
                 {
-                    this.chunkPosition = chunkPosition;
+                    this.currentPosition = chunkPosition;
                 }
 
                 public Position(Vector2 worldPosition)
@@ -1377,7 +1414,20 @@ namespace LooCast.Universe
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                     int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                     int filamentSize = universe.generationSettings.FilamentGenerationSettings.Size;
-                    chunkPosition = (worldPosition / regionSize / sectorSize / filamentSize).FloorToVector2Int();
+                    currentPosition = (worldPosition / regionSize / sectorSize / filamentSize).FloorToVector2Int();
+                }
+                #endregion
+
+                #region Overrides
+                public override bool Equals(object obj)
+                {
+                    Position otherPosition = obj as Position;
+                    return currentPosition.Equals(otherPosition.currentPosition);
+                }
+
+                public override int GetHashCode()
+                {
+                    return currentPosition.GetHashCode();
                 }
                 #endregion
             }
@@ -1439,16 +1489,16 @@ namespace LooCast.Universe
 
             public void RegisterChunkPosition(Chunk.Position chunkPosition)
             {
-                if (chunkPositionMap.ContainsKey(chunkPosition.CurrentChunkPosition))
+                if (chunkPositionMap.ContainsKey(chunkPosition.CurrentPosition))
                 {
                     throw new Exception("Chunk.Position is already registered!");
                 }
-                chunkPositionMap.Add(chunkPosition.CurrentChunkPosition, chunkPosition);
+                chunkPositionMap.Add(chunkPosition.CurrentPosition, chunkPosition);
             }
 
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
-                chunkPositionMap.Remove(chunkPosition.CurrentChunkPosition);
+                chunkPositionMap.Remove(chunkPosition.CurrentPosition);
             }
             #endregion
         }
@@ -1481,7 +1531,7 @@ namespace LooCast.Universe
                 public class Position
                 {
                     #region Properties
-                    public Vector2Int CurrentChunkPosition => chunkPosition;
+                    public Vector2Int CurrentPosition => currentPosition;
                     public Vector2 WorldPosition
                     {
                         get
@@ -1490,7 +1540,7 @@ namespace LooCast.Universe
                             int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                             int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
                             Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
-                            return ((chunkPosition * regionSize) + regionOffset) * sectorChunkSize;
+                            return ((currentPosition * regionSize) + regionOffset) * sectorChunkSize;
                         }
                     }
                     public Region.Position RegionPosition
@@ -1531,13 +1581,13 @@ namespace LooCast.Universe
                     #endregion
 
                     #region Fields
-                    [SerializeField] private Vector2Int chunkPosition;
+                    [SerializeField] private Vector2Int currentPosition;
                     #endregion
 
                     #region Constructors
                     public Position(Vector2Int chunkPosition)
                     {
-                        this.chunkPosition = chunkPosition;
+                        this.currentPosition = chunkPosition;
                     }
 
                     public Position(Vector2 worldPosition)
@@ -1545,27 +1595,24 @@ namespace LooCast.Universe
                         Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
                         int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                         int sectorChunkSize = universe.generationSettings.SectorGenerationSettings.ChunkSize;
-                        chunkPosition = (worldPosition / regionSize / sectorChunkSize).FloorToVector2Int();
+                        currentPosition = (worldPosition / regionSize / sectorChunkSize).FloorToVector2Int();
+                    }
+                    #endregion
+
+                    #region Overrides
+                    public override bool Equals(object obj)
+                    {
+                        Position otherPosition = obj as Position;
+                        return currentPosition.Equals(otherPosition.currentPosition);
+                    }
+
+                    public override int GetHashCode()
+                    {
+                        return currentPosition.GetHashCode();
                     }
                     #endregion
                 }
-                #endregion
 
-                #region Structs
-                private struct DensityMapCoroutineInfo
-                {
-                    public readonly Action<DensityMapCollection> Callback;
-                    public readonly DensityMapCollection DensityMaps;
-
-                    public DensityMapCoroutineInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
-                    {
-                        Callback = callback;
-                        DensityMaps = densityMaps;
-                    }
-                }
-                #endregion
-
-                #region Classes
                 [Serializable]
                 public class DensityMap
                 {
@@ -1581,7 +1628,7 @@ namespace LooCast.Universe
                         this.densityMapType = densityMapType;
                     }
                 }
-                
+
                 [Serializable]
                 public class DensityMapCollection
                 {
@@ -1600,6 +1647,20 @@ namespace LooCast.Universe
                         PlasmaParticleDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.PlasmaParticle);
                         GenerationState = GenerationState.Generating;
                         Size = size;
+                    }
+                }
+                #endregion
+
+                #region Structs
+                private struct DensityMapCoroutineInfo
+                {
+                    public readonly Action<DensityMapCollection> Callback;
+                    public readonly DensityMapCollection DensityMaps;
+
+                    public DensityMapCoroutineInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
+                    {
+                        Callback = callback;
+                        DensityMaps = densityMaps;
                     }
                 }
                 #endregion
@@ -1628,7 +1689,7 @@ namespace LooCast.Universe
                     GenerationSettings sectorGenerationSettings = universe.SectorGenerationSettings;
                     size = sectorGenerationSettings.ChunkSize;
                     this.sectorChunkPosition = chunkPosition;
-                    chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + sector.sectorPosition.CurrentPosition.magnitude + chunkPosition.CurrentChunkPosition.magnitude)).Range(int.MinValue, int.MaxValue);
+                    chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + sector.sectorPosition.CurrentPosition.magnitude + chunkPosition.CurrentPosition.magnitude)).Range(int.MinValue, int.MaxValue);
                     densityMaps = new DensityMapCollection(size);
                     RequestDensityMaps(universe, filament, sector, OnDensityMapsReceived);
                 }
@@ -1684,7 +1745,7 @@ namespace LooCast.Universe
             public class Position
             {
                 #region Properties
-                public Vector2Int CurrentPosition => chunkPosition;
+                public Vector2Int CurrentPosition => currentPosition;
                 public Vector2 WorldPosition
                 {
                     get
@@ -1693,7 +1754,7 @@ namespace LooCast.Universe
                         int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                         int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
                         Vector2 regionOffset = new Vector2(regionSize / 2.0f, regionSize / 2.0f);
-                        return ((chunkPosition * regionSize) + regionOffset) * sectorSize;
+                        return ((currentPosition * regionSize) + regionOffset) * sectorSize;
                     }
                 }
                 public Region.Position RegionPosition
@@ -1734,13 +1795,13 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Fields
-                [SerializeField] private Vector2Int chunkPosition;
+                [SerializeField] private Vector2Int currentPosition;
                 #endregion
 
                 #region Constructors
                 public Position(Vector2Int chunkPosition)
                 {
-                    this.chunkPosition = chunkPosition;
+                    this.currentPosition = chunkPosition;
                 }
 
                 public Position(Vector2 worldPosition)
@@ -1748,7 +1809,20 @@ namespace LooCast.Universe
                     Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
                     int regionSize = universe.generationSettings.RegionGenerationSettings.Size;
                     int sectorSize = universe.generationSettings.SectorGenerationSettings.Size;
-                    chunkPosition = (worldPosition / regionSize / sectorSize).FloorToVector2Int();
+                    currentPosition = (worldPosition / regionSize / sectorSize).FloorToVector2Int();
+                }
+                #endregion
+
+                #region Overrides
+                public override bool Equals(object obj)
+                {
+                    Position otherPosition = obj as Position;
+                    return currentPosition.Equals(otherPosition.currentPosition);
+                }
+
+                public override int GetHashCode()
+                {
+                    return currentPosition.GetHashCode();
                 }
                 #endregion
             }
@@ -1808,16 +1882,16 @@ namespace LooCast.Universe
             #region Methods
             public void RegisterChunkPosition(Chunk.Position chunkPosition)
             {
-                if (chunkPositionMap.ContainsKey(chunkPosition.CurrentChunkPosition))
+                if (chunkPositionMap.ContainsKey(chunkPosition.CurrentPosition))
                 {
                     throw new Exception("Chunk.Position is already registered!");
                 }
-                chunkPositionMap.Add(chunkPosition.CurrentChunkPosition, chunkPosition);
+                chunkPositionMap.Add(chunkPosition.CurrentPosition, chunkPosition);
             }
 
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
-                chunkPositionMap.Remove(chunkPosition.CurrentChunkPosition);
+                chunkPositionMap.Remove(chunkPosition.CurrentPosition);
             }
             #endregion
         }
@@ -1848,7 +1922,7 @@ namespace LooCast.Universe
                 public class Position
                 {
                     #region Properties
-                    public Vector2Int CurrentChunkPosition => currentChunkPosition;
+                    public Vector2Int CurrentPosition => currentPosition;
                     public Vector2 WorldPosition
                     {
                         get
@@ -1856,7 +1930,7 @@ namespace LooCast.Universe
                             Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
                             int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
                             Vector2 regionChunkOffset = new Vector2(regionChunkSize / 2.0f, regionChunkSize / 2.0f);
-                            return (currentChunkPosition.ToVector2() * regionChunkSize) + regionChunkOffset;
+                            return (currentPosition.ToVector2() * regionChunkSize) + regionChunkOffset;
                         }
                     }
                     public Region.Position RegionPosition
@@ -1897,40 +1971,37 @@ namespace LooCast.Universe
                     #endregion
 
                     #region Fields
-                    [SerializeField] private Vector2Int currentChunkPosition;
+                    [SerializeField] private Vector2Int currentPosition;
                     #endregion
 
                     #region Constructors
                     public Position(Vector2Int chunkPosition)
                     {
-                        this.currentChunkPosition = chunkPosition;
+                        this.currentPosition = chunkPosition;
                     }
 
                     public Position(Vector2 worldPosition)
                     {
                         Universe universe = GameManager.Instance.CurrentGame.CurrentUniverse;
                         int regionChunkSize = universe.generationSettings.RegionGenerationSettings.ChunkSize;
-                        currentChunkPosition = (worldPosition / regionChunkSize).FloorToVector2Int();
+                        currentPosition = (worldPosition / regionChunkSize).FloorToVector2Int();
+                    }
+                    #endregion
+
+                    #region Overrides
+                    public override bool Equals(object obj)
+                    {
+                        Position otherPosition = obj as Position;
+                        return currentPosition.Equals(otherPosition.currentPosition);
+                    }
+
+                    public override int GetHashCode()
+                    {
+                        return currentPosition.GetHashCode();
                     }
                     #endregion
                 }
-                #endregion
 
-                #region Structs
-                private struct DensityMapCoroutineInfo
-                {
-                    public readonly Action<DensityMapCollection> Callback;
-                    public readonly DensityMapCollection DensityMaps;
-
-                    public DensityMapCoroutineInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
-                    {
-                        Callback = callback;
-                        DensityMaps = densityMaps;
-                    }
-                }
-                #endregion
-
-                #region Classes
                 [Serializable]
                 public class DensityMap
                 {
@@ -1946,7 +2017,7 @@ namespace LooCast.Universe
                         this.densityMapType = densityMapType;
                     }
                 }
-                
+
                 [Serializable]
                 public class DensityMapCollection
                 {
@@ -1961,6 +2032,20 @@ namespace LooCast.Universe
                         AntiMatterDensityMap = new DensityMap(new SerializableDictionary<Vector2Int, float>(), DensityMapType.AntiMatter);
                         GenerationState = GenerationState.Generating;
                         Size = size;
+                    }
+                }
+                #endregion
+
+                #region Structs
+                private struct DensityMapCoroutineInfo
+                {
+                    public readonly Action<DensityMapCollection> Callback;
+                    public readonly DensityMapCollection DensityMaps;
+
+                    public DensityMapCoroutineInfo(Action<DensityMapCollection> callback, DensityMapCollection densityMaps)
+                    {
+                        Callback = callback;
+                        DensityMaps = densityMaps;
                     }
                 }
                 #endregion
@@ -1989,7 +2074,7 @@ namespace LooCast.Universe
                     GenerationSettings regionGenerationSettings = universe.RegionGenerationSettings;
                     size = regionGenerationSettings.ChunkSize;
                     this.regionChunkPosition = chunkPosition;
-                    chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + region.regionPosition.CurrentPosition.magnitude + chunkPosition.CurrentChunkPosition.magnitude)).Range(int.MinValue, int.MaxValue);
+                    chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + region.regionPosition.CurrentPosition.magnitude + chunkPosition.CurrentPosition.magnitude)).Range(int.MinValue, int.MaxValue);
                     densityMaps = new DensityMapCollection(regionGenerationSettings.ChunkSize);
                     RequestDensityMaps(universe, sector, region, OnDensityMapsReceived);
                 }
@@ -2108,6 +2193,19 @@ namespace LooCast.Universe
                     currentPosition = (worldPosition / regionSize).FloorToVector2Int();
                 }
                 #endregion
+
+                #region Overrides
+                public override bool Equals(object obj)
+                {
+                    Position otherPosition = obj as Position;
+                    return currentPosition.Equals(otherPosition.currentPosition);
+                }
+
+                public override int GetHashCode()
+                {
+                    return currentPosition.GetHashCode();
+                }
+                #endregion
             }
             #endregion
 
@@ -2165,16 +2263,16 @@ namespace LooCast.Universe
             #region Methods
             public void RegisterChunkPosition(Chunk.Position chunkPosition)
             {
-                if (chunkPositionMap.ContainsKey(chunkPosition.CurrentChunkPosition))
+                if (chunkPositionMap.ContainsKey(chunkPosition.CurrentPosition))
                 {
                     throw new Exception("Chunk.Position is already registered!");
                 }
-                chunkPositionMap.Add(chunkPosition.CurrentChunkPosition, chunkPosition);
+                chunkPositionMap.Add(chunkPosition.CurrentPosition, chunkPosition);
             }
 
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
-                chunkPositionMap.Remove(chunkPosition.CurrentChunkPosition);
+                chunkPositionMap.Remove(chunkPosition.CurrentPosition);
             }
             #endregion
         }
@@ -2459,7 +2557,8 @@ namespace LooCast.Universe
         #region Loading
         public bool IsFilamentLoaded(Filament.Position filamentPosition)
         {
-            return loadedFilaments.ContainsKey(filamentPosition);
+            bool result = loadedFilaments.ContainsKey(filamentPosition);
+            return result;
         }
 
         public void LoadFilament(Filament.Position filamentPosition)
@@ -2550,8 +2649,19 @@ namespace LooCast.Universe
             {
                 return false;
             }
+            bool unloadFilament = false;
+            if (!IsFilamentLoaded(filamentPosition))
+            {
+                LoadFilament(filamentPosition);
+                unloadFilament = true;
+            }
             Filament filament = GetFilament(filamentPosition);
-            return filament.ChunkPositionMap.ContainsKey(filamentChunkPosition.CurrentChunkPosition);
+            bool result = filament.ChunkPositionMap.ContainsKey(filamentChunkPosition.CurrentPosition);
+            if (unloadFilament)
+            {
+                UnloadFilament(filamentPosition); 
+            }
+            return result;
         }
 
         public void RequestGenerateFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
@@ -2568,7 +2678,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveFilamentChunk(Filament.Chunk filamentChunk)
         {
-            string path = $"{DataPath}/Filaments/{filamentChunk.FilamentChunkPosition.FilamentPosition.CurrentPosition.x}.{filamentChunk.FilamentChunkPosition.FilamentPosition.CurrentPosition.y}/Chunks/{filamentChunk.FilamentChunkPosition.CurrentChunkPosition.x}.{filamentChunk.FilamentChunkPosition.CurrentChunkPosition.y}.json";
+            string path = $"{DataPath}/Filaments/{filamentChunk.FilamentChunkPosition.FilamentPosition.CurrentPosition.x}.{filamentChunk.FilamentChunkPosition.FilamentPosition.CurrentPosition.y}/Chunks/{filamentChunk.FilamentChunkPosition.CurrentPosition.x}.{filamentChunk.FilamentChunkPosition.CurrentPosition.y}.json";
             string json = JsonUtility.ToJson(filamentChunk, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -2617,7 +2727,7 @@ namespace LooCast.Universe
                 throw new Exception("Containing Filament is not yet loaded!");
             }
 
-            string path = $"{DataPath}/Filaments/{filamentChunkPosition.FilamentPosition.CurrentPosition.x}.{filamentChunkPosition.FilamentPosition.CurrentPosition.y}/Chunks/{filamentChunkPosition.CurrentChunkPosition.x}.{filamentChunkPosition.CurrentChunkPosition.y}.json";
+            string path = $"{DataPath}/Filaments/{filamentChunkPosition.FilamentPosition.CurrentPosition.x}.{filamentChunkPosition.FilamentPosition.CurrentPosition.y}/Chunks/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Filament.Chunk filamentChunk = JsonUtility.FromJson<Filament.Chunk>(json);
@@ -2657,10 +2767,10 @@ namespace LooCast.Universe
                 filament.UnregisterChunkPosition(filamentChunkPosition);
                 SaveFilament(filament);
 
-                string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentChunkPosition.CurrentChunkPosition.x}.{filamentChunkPosition.CurrentChunkPosition.y}/Chunks/{filamentChunkPosition.CurrentChunkPosition.x}.{filamentChunkPosition.CurrentChunkPosition.y}.json";
+                string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}/Chunks/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}.json";
                 File.Delete(path);
 
-                path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentChunkPosition.CurrentChunkPosition.x}.{filamentChunkPosition.CurrentChunkPosition.y}/Chunks/{filamentChunkPosition.CurrentChunkPosition.x}.{filamentChunkPosition.CurrentChunkPosition.y}_Map.png";
+                path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}/Chunks/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}_Map.png";
                 File.Delete(path);
             }
         }
@@ -2828,8 +2938,19 @@ namespace LooCast.Universe
             {
                 return false;
             }
+            bool unloadSector = false;
+            if (!IsSectorLoaded(sectorPosition))
+            {
+                LoadSector(sectorPosition);
+                unloadSector = true;
+            }
             Sector sector = GetSector(sectorPosition);
-            return sector.ChunkPositionMap.ContainsKey(sectorChunkPosition.CurrentChunkPosition);
+            bool result = sector.ChunkPositionMap.ContainsKey(sectorChunkPosition.CurrentPosition);
+            if (unloadSector)
+            {
+                UnloadSector(sectorPosition); 
+            }
+            return result;
         }
 
         public void RequestGenerateSectorChunk(Sector.Chunk.Position sectorChunkPosition)
@@ -2846,7 +2967,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveSectorChunk(Sector.Chunk sectorChunk)
         {
-            string path = $"{DataPath}/Sectors/{sectorChunk.SectorChunkPosition.SectorPosition.CurrentPosition.x}.{sectorChunk.SectorChunkPosition.SectorPosition.CurrentPosition.y}/Chunks/{sectorChunk.SectorChunkPosition.CurrentChunkPosition.x}.{sectorChunk.SectorChunkPosition.CurrentChunkPosition.y}.json";
+            string path = $"{DataPath}/Sectors/{sectorChunk.SectorChunkPosition.SectorPosition.CurrentPosition.x}.{sectorChunk.SectorChunkPosition.SectorPosition.CurrentPosition.y}/Chunks/{sectorChunk.SectorChunkPosition.CurrentPosition.x}.{sectorChunk.SectorChunkPosition.CurrentPosition.y}.json";
             string json = JsonUtility.ToJson(sectorChunk, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -2895,7 +3016,7 @@ namespace LooCast.Universe
                 throw new Exception("Containing Sector is not yet loaded!");
             }
 
-            string path = $"{DataPath}/Sectors/{sectorChunkPosition.SectorPosition.CurrentPosition.x}.{sectorChunkPosition.SectorPosition.CurrentPosition.y}/Chunks/{sectorChunkPosition.CurrentChunkPosition.x}.{sectorChunkPosition.CurrentChunkPosition.y}.json";
+            string path = $"{DataPath}/Sectors/{sectorChunkPosition.SectorPosition.CurrentPosition.x}.{sectorChunkPosition.SectorPosition.CurrentPosition.y}/Chunks/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Sector.Chunk sectorChunk = JsonUtility.FromJson<Sector.Chunk>(json);
@@ -2935,10 +3056,10 @@ namespace LooCast.Universe
                 sector.UnregisterChunkPosition(sectorChunkPosition);
                 SaveSector(sector);
 
-                string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorChunkPosition.CurrentChunkPosition.x}.{sectorChunkPosition.CurrentChunkPosition.y}/Chunks/{sectorChunkPosition.CurrentChunkPosition.x}.{sectorChunkPosition.CurrentChunkPosition.y}.json";
+                string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}/Chunks/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}.json";
                 File.Delete(path);
 
-                path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorChunkPosition.CurrentChunkPosition.x}.{sectorChunkPosition.CurrentChunkPosition.y}/Chunks/{sectorChunkPosition.CurrentChunkPosition.x}.{sectorChunkPosition.CurrentChunkPosition.y}_Map.png";
+                path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}/Chunks/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}_Map.png";
                 File.Delete(path);
             }
         }
@@ -3106,8 +3227,19 @@ namespace LooCast.Universe
             {
                 return false;
             }
+            bool unloadRegion = false;
+            if (!IsRegionLoaded(regionPosition))
+            {
+                LoadRegion(regionPosition);
+                unloadRegion = true;
+            }
             Region region = GetRegion(regionPosition);
-            return region.ChunkPositionMap.ContainsKey(regionChunkPosition.CurrentChunkPosition);
+            bool result = region.ChunkPositionMap.ContainsKey(regionChunkPosition.CurrentPosition);
+            if (unloadRegion)
+            {
+                UnloadRegion(regionPosition); 
+            }
+            return result;
         }
 
         public void RequestGenerateRegionChunk(Region.Chunk.Position regionChunkPosition)
@@ -3124,7 +3256,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveRegionChunk(Region.Chunk regionChunk)
         {
-            string path = $"{DataPath}/Regions/{regionChunk.RegionChunkPosition.RegionPosition.CurrentPosition.x}.{regionChunk.RegionChunkPosition.RegionPosition.CurrentPosition.y}/Chunks/{regionChunk.RegionChunkPosition.CurrentChunkPosition.x}.{regionChunk.RegionChunkPosition.CurrentChunkPosition.y}.json";
+            string path = $"{DataPath}/Regions/{regionChunk.RegionChunkPosition.RegionPosition.CurrentPosition.x}.{regionChunk.RegionChunkPosition.RegionPosition.CurrentPosition.y}/Chunks/{regionChunk.RegionChunkPosition.CurrentPosition.x}.{regionChunk.RegionChunkPosition.CurrentPosition.y}.json";
             string json = JsonUtility.ToJson(regionChunk, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -3173,7 +3305,7 @@ namespace LooCast.Universe
                 throw new Exception("Containing Region is not yet loaded!");
             }
 
-            string path = $"{DataPath}/Regions/{regionChunkPosition.RegionPosition.CurrentPosition.x}.{regionChunkPosition.RegionPosition.CurrentPosition.y}/Chunks/{regionChunkPosition.CurrentChunkPosition.x}.{regionChunkPosition.CurrentChunkPosition.y}.json";
+            string path = $"{DataPath}/Regions/{regionChunkPosition.RegionPosition.CurrentPosition.x}.{regionChunkPosition.RegionPosition.CurrentPosition.y}/Chunks/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}.json";
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Region.Chunk regionChunk = JsonUtility.FromJson<Region.Chunk>(json);
@@ -3213,10 +3345,10 @@ namespace LooCast.Universe
                 region.UnregisterChunkPosition(regionChunkPosition);
                 SaveRegion(region);
 
-                string path = $"{Application.dataPath}/Data/Universe/Regions/{regionChunkPosition.CurrentChunkPosition.x}.{regionChunkPosition.CurrentChunkPosition.y}/Chunks/{regionChunkPosition.CurrentChunkPosition.x}.{regionChunkPosition.CurrentChunkPosition.y}.json";
+                string path = $"{Application.dataPath}/Data/Universe/Regions/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}/Chunks/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}.json";
                 File.Delete(path);
 
-                path = $"{Application.dataPath}/Data/Universe/Regions/{regionChunkPosition.CurrentChunkPosition.x}.{regionChunkPosition.CurrentChunkPosition.y}/Chunks/{regionChunkPosition.CurrentChunkPosition.x}.{regionChunkPosition.CurrentChunkPosition.y}_Map.png";
+                path = $"{Application.dataPath}/Data/Universe/Regions/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}/Chunks/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}_Map.png";
                 File.Delete(path);
             }
         }

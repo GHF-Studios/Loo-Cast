@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace LooCast.Util.Collections.Generic
 {
+    [Serializable]
     public class SerializableDictionary<KeyType, ValueType> : IDictionary<KeyType, ValueType>, ISerializationCallbackReceiver
     {
         [SerializeField] private List<KeyType> keys = new List<KeyType>();
