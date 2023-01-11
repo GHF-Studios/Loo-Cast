@@ -1,17 +1,17 @@
-using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System;
 using System.Linq;
+using UnityEngine;
 
 namespace LooCast.Universe
 {
     using Core;
     using Game;
+    using Random;
     using Util;
     using Util.Collections.Generic;
-    using Random;
 
     // OPTIMIZATION PLAN
     // A. Maybe Use a single thread to load all the data
@@ -27,7 +27,7 @@ namespace LooCast.Universe
     //      REMEMBER:   This removes the need for LoadRegion, for example, to check if the containing Sector is generated and loaded,
     //                  because LoadRegion will not load the region directly, but only queue this region position for loading. This applies to loading and generation of Filaments*
     //      
-    
+
     [Serializable]
     public class Universe
     {
@@ -886,8 +886,11 @@ namespace LooCast.Universe
                             continue;
                         }
 
+                        Filament filament = currentUniverse.GetFilament(sectorPosition.FilamentPosition);
                         Sector sector = new Sector(currentUniverse, sectorPosition);
+                        filament.RegisterSectorPosition(sectorPosition);
                         currentUniverse.loadedSectors.Add(sectorPosition, sector);
+                        currentUniverse.SaveFilament(filament);
                         currentUniverse.SaveSector(sector); 
                     }
 
@@ -938,8 +941,11 @@ namespace LooCast.Universe
                             continue;
                         }
 
+                        Sector sector = currentUniverse.GetSector(regionPosition.SectorPosition);
                         Region region = new Region(currentUniverse, regionPosition);
+                        sector.RegisterRegionPosition(regionPosition);
                         currentUniverse.loadedRegions.Add(regionPosition, region);
+                        currentUniverse.SaveSector(sector);
                         currentUniverse.SaveRegion(region); 
                     }
 
@@ -1470,11 +1476,13 @@ namespace LooCast.Universe
             #region Properties
             public Position FilamentPosition => filamentPosition;
             public SerializableDictionary<Vector2Int, Chunk.Position> ChunkPositionMap => chunkPositionMap;
+            public SerializableDictionary<Vector2Int, Sector.Position> SectorPositionMap => sectorPositionMap;
             #endregion
 
             #region Fields
             [SerializeField] private Position filamentPosition;
             [SerializeField] private SerializableDictionary<Vector2Int, Chunk.Position> chunkPositionMap;
+            [SerializeField] private SerializableDictionary<Vector2Int, Sector.Position> sectorPositionMap;
             #endregion
 
             #region Constructors
@@ -1482,11 +1490,11 @@ namespace LooCast.Universe
             {
                 this.filamentPosition = filamentPosition;
                 chunkPositionMap = new SerializableDictionary<Vector2Int, Chunk.Position>();
+                sectorPositionMap = new SerializableDictionary<Vector2Int, Sector.Position>();
             }
             #endregion
 
             #region Methods
-
             public void RegisterChunkPosition(Chunk.Position chunkPosition)
             {
                 if (chunkPositionMap.ContainsKey(chunkPosition.CurrentPosition))
@@ -1499,6 +1507,20 @@ namespace LooCast.Universe
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
                 chunkPositionMap.Remove(chunkPosition.CurrentPosition);
+            }
+
+            public void RegisterSectorPosition(Sector.Position sectorPosition)
+            {
+                if (sectorPositionMap.ContainsKey(sectorPosition.CurrentPosition))
+                {
+                    throw new Exception("Sector.Position is already registered!");
+                }
+                sectorPositionMap.Add(sectorPosition.CurrentPosition, sectorPosition);
+            }
+
+            public void UnregisterSectorPosition(Sector.Position sectorPosition)
+            {
+                sectorPositionMap.Remove(sectorPosition.CurrentPosition);
             }
             #endregion
         }
@@ -1864,11 +1886,13 @@ namespace LooCast.Universe
             #region Properties
             public Position SectorPosition => sectorPosition;
             public SerializableDictionary<Vector2Int, Chunk.Position> ChunkPositionMap => chunkPositionMap;
+            public SerializableDictionary<Vector2Int, Region.Position> RegionPositionMap => regionPositionMap;
             #endregion
 
             #region Fields
             [SerializeField] private Position sectorPosition;
             [SerializeField] private SerializableDictionary<Vector2Int, Chunk.Position> chunkPositionMap;
+            [SerializeField] private SerializableDictionary<Vector2Int, Region.Position> regionPositionMap;
             #endregion
 
             #region Constructors
@@ -1876,6 +1900,7 @@ namespace LooCast.Universe
             {
                 this.sectorPosition = sectorPosition;
                 chunkPositionMap = new SerializableDictionary<Vector2Int, Chunk.Position>();
+                regionPositionMap = new SerializableDictionary<Vector2Int, Region.Position>();
             }
             #endregion
 
@@ -1892,6 +1917,20 @@ namespace LooCast.Universe
             public void UnregisterChunkPosition(Chunk.Position chunkPosition)
             {
                 chunkPositionMap.Remove(chunkPosition.CurrentPosition);
+            }
+
+            public void RegisterRegionPosition(Region.Position regionPosition)
+            {
+                if (regionPositionMap.ContainsKey(regionPosition.CurrentPosition))
+                {
+                    throw new Exception("Region.Position is already registered!");
+                }
+                regionPositionMap.Add(regionPosition.CurrentPosition, regionPosition);
+            }
+
+            public void UnregisterRegionPosition(Region.Position regionPosition)
+            {
+                regionPositionMap.Remove(regionPosition.CurrentPosition);
             }
             #endregion
         }
@@ -2649,19 +2688,13 @@ namespace LooCast.Universe
             {
                 return false;
             }
-            bool unloadFilament = false;
             if (!IsFilamentLoaded(filamentPosition))
             {
-                LoadFilament(filamentPosition);
-                unloadFilament = true;
+                string path = $"{DataPath}/Filaments/{filamentPosition.CurrentPosition.x}.{filamentPosition.CurrentPosition.y}/Chunks/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}.json";
+                return File.Exists(path);
             }
             Filament filament = GetFilament(filamentPosition);
-            bool result = filament.ChunkPositionMap.ContainsKey(filamentChunkPosition.CurrentPosition);
-            if (unloadFilament)
-            {
-                UnloadFilament(filamentPosition); 
-            }
-            return result;
+            return filament.ChunkPositionMap.ContainsKey(filamentChunkPosition.CurrentPosition);
         }
 
         public void RequestGenerateFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
@@ -2805,8 +2838,18 @@ namespace LooCast.Universe
         #region Generation
         public bool IsSectorGenerated(Sector.Position sectorPosition)
         {
-            string path = $"{DataPath}/Sectors/{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}.json";
-            return File.Exists(path);
+            Filament.Position filamentPosition = sectorPosition.FilamentPosition;
+            if (!IsFilamentGenerated(filamentPosition))
+            {
+                return false;
+            }
+            if (!IsFilamentLoaded(filamentPosition))
+            {
+                string path = $"{DataPath}/Sectors/{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}.json";
+                return File.Exists(path);
+            }
+            Filament filament = GetFilament(filamentPosition);
+            return filament.SectorPositionMap.ContainsKey(sectorPosition.CurrentPosition);
         }
 
         public void RequestGenerateSector(Sector.Position sectorPosition)
@@ -2938,19 +2981,13 @@ namespace LooCast.Universe
             {
                 return false;
             }
-            bool unloadSector = false;
             if (!IsSectorLoaded(sectorPosition))
             {
-                LoadSector(sectorPosition);
-                unloadSector = true;
+                string path = $"{DataPath}/Sectors/{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}/Chunks/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}.json";
+                return File.Exists(path);
             }
             Sector sector = GetSector(sectorPosition);
-            bool result = sector.ChunkPositionMap.ContainsKey(sectorChunkPosition.CurrentPosition);
-            if (unloadSector)
-            {
-                UnloadSector(sectorPosition); 
-            }
-            return result;
+            return sector.ChunkPositionMap.ContainsKey(sectorChunkPosition.CurrentPosition);
         }
 
         public void RequestGenerateSectorChunk(Sector.Chunk.Position sectorChunkPosition)
@@ -3094,8 +3131,18 @@ namespace LooCast.Universe
         #region Generation
         public bool IsRegionGenerated(Region.Position regionPosition)
         {
-            string path = $"{DataPath}/Regions/{regionPosition.CurrentPosition.x}.{regionPosition.CurrentPosition.y}.json";
-            return File.Exists(path);
+            Sector.Position sectorPosition = regionPosition.SectorPosition;
+            if (!IsSectorGenerated(sectorPosition))
+            {
+                return false;
+            }
+            if (!IsSectorLoaded(sectorPosition))
+            {
+                string path = $"{DataPath}/Regions/{regionPosition.CurrentPosition.x}.{regionPosition.CurrentPosition.y}.json";
+                return File.Exists(path);
+            }
+            Sector sector = GetSector(sectorPosition);
+            return sector.RegionPositionMap.ContainsKey(regionPosition.CurrentPosition);
         }
 
         public void RequestGenerateRegion(Region.Position regionPosition)
@@ -3227,19 +3274,13 @@ namespace LooCast.Universe
             {
                 return false;
             }
-            bool unloadRegion = false;
             if (!IsRegionLoaded(regionPosition))
             {
-                LoadRegion(regionPosition);
-                unloadRegion = true;
+                string path = $"{DataPath}/Regions/{regionPosition.CurrentPosition.x}.{regionPosition.CurrentPosition.y}/Chunks/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}.json";
+                return File.Exists(path);
             }
             Region region = GetRegion(regionPosition);
-            bool result = region.ChunkPositionMap.ContainsKey(regionChunkPosition.CurrentPosition);
-            if (unloadRegion)
-            {
-                UnloadRegion(regionPosition); 
-            }
-            return result;
+            return region.ChunkPositionMap.ContainsKey(regionChunkPosition.CurrentPosition);
         }
 
         public void RequestGenerateRegionChunk(Region.Chunk.Position regionChunkPosition)
