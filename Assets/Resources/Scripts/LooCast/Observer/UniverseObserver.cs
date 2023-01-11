@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace LooCast.Observer
@@ -12,6 +13,7 @@ namespace LooCast.Observer
     using Util;
     using System.Threading.Tasks;
     using System.Collections.Concurrent;
+    using UnityEditor.Localization.Plugins.XLIFF.V12;
 
     // ISSUE TRACKER
     // 1. Loaded Chunks never get unloaded
@@ -58,6 +60,13 @@ namespace LooCast.Observer
         private ConcurrentBag<Universe.Sector.Position> previouslyProximalSectorPositions;
         private ConcurrentBag<Universe.Filament.Position> previouslyProximalFilamentPositions;
 
+        private ConcurrentBag<Universe.Region.Chunk.Position> currentlyProximalRegionChunkPositions;
+        private ConcurrentBag<Universe.Sector.Chunk.Position> currentlyProximalSectorChunkPositions;
+        private ConcurrentBag<Universe.Filament.Chunk.Position> currentlyProximalFilamentChunkPositions;
+        private ConcurrentBag<Universe.Region.Position> currentlyProximalRegionPositions;
+        private ConcurrentBag<Universe.Sector.Position> currentlyProximalSectorPositions;
+        private ConcurrentBag<Universe.Filament.Position> currentlyProximalFilamentPositions;
+
         private ConcurrentBag<Universe.Region.Chunk.Position> newlyProximalRegionChunkPositions;
         private ConcurrentBag<Universe.Sector.Chunk.Position> newlyProximalSectorChunkPositions;
         private ConcurrentBag<Universe.Filament.Chunk.Position> newlyProximalFilamentChunkPositions;
@@ -93,7 +102,8 @@ namespace LooCast.Observer
             UpdateProximalPositions();
             UnloadPreviouslyProximalPositions();
             LoadNewlyProximalPositions();
-            PrintBenchmarks();
+            // PrintBenchmarks();
+            Debug.Log($"Region Chunks per Frame: {MainManager.Instance.RegionChunksPerFrame}\t\t(Max: {MainManager.Instance.MaxRegionChunksPerFrame})");
         }
 
         private void OnDrawGizmos()
@@ -150,7 +160,14 @@ namespace LooCast.Observer
             previouslyProximalRegionPositions = new ConcurrentBag<Universe.Region.Position>();
             previouslyProximalSectorPositions = new ConcurrentBag<Universe.Sector.Position>();
             previouslyProximalFilamentPositions = new ConcurrentBag<Universe.Filament.Position>();
-            
+
+            currentlyProximalRegionChunkPositions = new ConcurrentBag<Universe.Region.Chunk.Position>();
+            currentlyProximalSectorChunkPositions = new ConcurrentBag<Universe.Sector.Chunk.Position>();
+            currentlyProximalFilamentChunkPositions = new ConcurrentBag<Universe.Filament.Chunk.Position>();
+            currentlyProximalRegionPositions = new ConcurrentBag<Universe.Region.Position>();
+            currentlyProximalSectorPositions = new ConcurrentBag<Universe.Sector.Position>();
+            currentlyProximalFilamentPositions = new ConcurrentBag<Universe.Filament.Position>();
+
             newlyProximalRegionChunkPositions = new ConcurrentBag<Universe.Region.Chunk.Position>();
             newlyProximalSectorChunkPositions = new ConcurrentBag<Universe.Sector.Chunk.Position>();
             newlyProximalFilamentChunkPositions = new ConcurrentBag<Universe.Filament.Chunk.Position>();
@@ -165,6 +182,10 @@ namespace LooCast.Observer
                     newlyProximalRegionChunkPositions.Add(new Universe.Region.Chunk.Position(new Vector2Int(x, y)));
                 });
             });
+            newlyProximalRegionChunkPositions = new ConcurrentBag<Universe.Region.Chunk.Position>(newlyProximalRegionChunkPositions.OrderBy((newlyProximalRegionChunkPosition) =>
+            {
+                return -(new Universe.Region.Chunk.Position(transform.position).WorldPosition - newlyProximalRegionChunkPosition.WorldPosition).sqrMagnitude;
+            }));
 
             Parallel.For(previousScreenSectorChunkPosMin.CurrentPosition.x, previousScreenSectorChunkPosMax.CurrentPosition.x + 1, (x) =>
             {
@@ -173,6 +194,10 @@ namespace LooCast.Observer
                     newlyProximalSectorChunkPositions.Add(new Universe.Sector.Chunk.Position(new Vector2Int(x, y)));
                 });
             });
+            newlyProximalSectorChunkPositions = new ConcurrentBag<Universe.Sector.Chunk.Position>(newlyProximalSectorChunkPositions.OrderBy((newlyProximalSectorChunkPosition) =>
+            {
+                return -(new Universe.Sector.Chunk.Position(transform.position).WorldPosition - newlyProximalSectorChunkPosition.WorldPosition).sqrMagnitude;
+            }));
 
             Parallel.For(previousScreenFilamentChunkPosMin.CurrentPosition.x, previousScreenFilamentChunkPosMax.CurrentPosition.x + 1, (x) =>
             {
@@ -181,6 +206,10 @@ namespace LooCast.Observer
                     newlyProximalFilamentChunkPositions.Add(new Universe.Filament.Chunk.Position(new Vector2Int(x, y)));
                 });
             });
+            newlyProximalFilamentChunkPositions = new ConcurrentBag<Universe.Filament.Chunk.Position>(newlyProximalFilamentChunkPositions.OrderBy((newlyProximalFilamentChunkPosition) =>
+            {
+                return -(new Universe.Filament.Chunk.Position(transform.position).WorldPosition - newlyProximalFilamentChunkPosition.WorldPosition).sqrMagnitude;
+            }));
 
             Parallel.For(previousScreenRegionPosMin.CurrentPosition.x, previousScreenRegionPosMax.CurrentPosition.x + 1, (x) =>
             {
@@ -189,6 +218,10 @@ namespace LooCast.Observer
                     newlyProximalRegionPositions.Add(new Universe.Region.Position(new Vector2Int(x, y)));
                 });
             });
+            newlyProximalRegionPositions = new ConcurrentBag<Universe.Region.Position>(newlyProximalRegionPositions.OrderBy((newlyProximalRegionPosition) =>
+            {
+                return -(new Universe.Region.Position(transform.position).WorldPosition - newlyProximalRegionPosition.WorldPosition).sqrMagnitude;
+            }));
 
             Parallel.For(previousScreenSectorPosMin.CurrentPosition.x, previousScreenSectorPosMax.CurrentPosition.x + 1, (x) =>
             {
@@ -197,6 +230,10 @@ namespace LooCast.Observer
                     newlyProximalSectorPositions.Add(new Universe.Sector.Position(new Vector2Int(x, y)));
                 });
             });
+            newlyProximalSectorPositions = new ConcurrentBag<Universe.Sector.Position>(newlyProximalSectorPositions.OrderBy((newlyProximalSectorPosition) =>
+            {
+                return -(new Universe.Sector.Position(transform.position).WorldPosition - newlyProximalSectorPosition.WorldPosition).sqrMagnitude;
+            }));
 
             Parallel.For(previousScreenFilamentPosMin.CurrentPosition.x, previousScreenFilamentPosMax.CurrentPosition.x + 1, (x) =>
             {
@@ -205,6 +242,10 @@ namespace LooCast.Observer
                     newlyProximalFilamentPositions.Add(new Universe.Filament.Position(new Vector2Int(x, y)));
                 });
             });
+            newlyProximalFilamentPositions = new ConcurrentBag<Universe.Filament.Position>(newlyProximalFilamentPositions.OrderBy((newlyProximalFilamentPosition) =>
+            {
+                return -(new Universe.Filament.Position(transform.position).WorldPosition - newlyProximalFilamentPosition.WorldPosition).sqrMagnitude;
+            }));
         }
 
         private void UpdateScreenPositions()
@@ -300,24 +341,10 @@ namespace LooCast.Observer
             }
             #endregion
 
-            #region Calculate Previously & Newly Proximal Screen Positions
+            #region Calculate Previously, Currently, & Newly Proximal Screen Positions
             if (screenRegionChunkPosMinOffset != Vector2Int.zero || screenRegionChunkPosMaxOffset != Vector2Int.zero)
             {
-                #region Previously Proximal Region Chunks
-                previouslyProximalRegionChunkPositions = new ConcurrentBag<Universe.Region.Chunk.Position>();
-                Parallel.For(previousScreenRegionChunkPosMin.CurrentPosition.x, previousScreenRegionChunkPosMax.CurrentPosition.x + 1, (x) =>
-                {
-                    Parallel.For(previousScreenRegionChunkPosMin.CurrentPosition.y, previousScreenRegionChunkPosMax.CurrentPosition.y + 1, (y) =>
-                    {
-                        if (x < currentScreenRegionChunkPosMin.CurrentPosition.x || x > currentScreenRegionChunkPosMax.CurrentPosition.x || y < currentScreenRegionChunkPosMin.CurrentPosition.y || y > currentScreenRegionChunkPosMax.CurrentPosition.y)
-                        {
-                            previouslyProximalRegionChunkPositions.Add(new Universe.Region.Chunk.Position(new Vector2Int(x, y)));
-                        }
-                    });
-                });
-                #endregion
-
-                #region Newly Proximal Region Chunks
+                #region Newly & Currently Proximal Region Chunks
                 newlyProximalRegionChunkPositions = new ConcurrentBag<Universe.Region.Chunk.Position>();
                 Parallel.For(currentScreenRegionChunkPosMin.CurrentPosition.x, currentScreenRegionChunkPosMax.CurrentPosition.x + 1, (x) =>
                 {
@@ -327,28 +354,34 @@ namespace LooCast.Observer
                         {
                             newlyProximalRegionChunkPositions.Add(new Universe.Region.Chunk.Position(new Vector2Int(x, y)));
                         }
+                        if (x < previousScreenRegionChunkPosMin.CurrentPosition.x && x > previousScreenRegionChunkPosMax.CurrentPosition.x && y < previousScreenRegionChunkPosMin.CurrentPosition.y && y > previousScreenRegionChunkPosMax.CurrentPosition.y)
+                        {
+                            currentlyProximalRegionChunkPositions.Add(new Universe.Region.Chunk.Position(new Vector2Int(x, y)));
+                        }
                     });
+                });
+                newlyProximalRegionChunkPositions = new ConcurrentBag<Universe.Region.Chunk.Position>(newlyProximalRegionChunkPositions.OrderBy((newlyProximalRegionChunkPosition) =>
+                {
+                    return -(new Universe.Region.Chunk.Position(transform.position).WorldPosition - newlyProximalRegionChunkPosition.WorldPosition).sqrMagnitude;
+                }));
+                #endregion
+                
+                #region Previously Proximal Region Chunks
+                previouslyProximalRegionChunkPositions = new ConcurrentBag<Universe.Region.Chunk.Position>();
+
+                Parallel.ForEach(currentUniverse.LoadedRegionChunks.Keys.Except(currentlyProximalRegionChunkPositions), (loadedRegionChunkPosition) =>
+                {
+                    if (loadedRegionChunkPosition.CurrentPosition.x < currentScreenRegionChunkPosMin.CurrentPosition.x || loadedRegionChunkPosition.CurrentPosition.x > currentScreenRegionChunkPosMax.CurrentPosition.x || loadedRegionChunkPosition.CurrentPosition.y < currentScreenRegionChunkPosMin.CurrentPosition.y || loadedRegionChunkPosition.CurrentPosition.y > currentScreenRegionChunkPosMax.CurrentPosition.y)
+                    {
+                        previouslyProximalRegionChunkPositions.Add(new Universe.Region.Chunk.Position(new Vector2Int(loadedRegionChunkPosition.CurrentPosition.x, loadedRegionChunkPosition.CurrentPosition.y)));
+                    }
                 });
                 #endregion
             }
 
             if (screenSectorChunkPosMinOffset != Vector2Int.zero || screenSectorChunkPosMaxOffset != Vector2Int.zero)
             {
-                #region Previously Proximal Sector Chunks
-                previouslyProximalSectorChunkPositions = new ConcurrentBag<Universe.Sector.Chunk.Position>();
-                Parallel.For(previousScreenSectorChunkPosMin.CurrentPosition.x, previousScreenSectorChunkPosMax.CurrentPosition.x + 1, (x) =>
-                {
-                    Parallel.For(previousScreenSectorChunkPosMin.CurrentPosition.y, previousScreenSectorChunkPosMax.CurrentPosition.y + 1, (y) =>
-                    {
-                        if (x < currentScreenSectorChunkPosMin.CurrentPosition.x || x > currentScreenSectorChunkPosMax.CurrentPosition.x || y < currentScreenSectorChunkPosMin.CurrentPosition.y || y > currentScreenSectorChunkPosMax.CurrentPosition.y)
-                        {
-                            previouslyProximalSectorChunkPositions.Add(new Universe.Sector.Chunk.Position(new Vector2Int(x, y)));
-                        }
-                    });
-                });
-                #endregion
-
-                #region Newly Proximal Sector Chunks
+                #region Newly & Currently Proximal Sector Chunks
                 newlyProximalSectorChunkPositions = new ConcurrentBag<Universe.Sector.Chunk.Position>();
                 Parallel.For(currentScreenSectorChunkPosMin.CurrentPosition.x, currentScreenSectorChunkPosMax.CurrentPosition.x + 1, (x) =>
                 {
@@ -358,28 +391,34 @@ namespace LooCast.Observer
                         {
                             newlyProximalSectorChunkPositions.Add(new Universe.Sector.Chunk.Position(new Vector2Int(x, y)));
                         }
+                        if (x < previousScreenSectorChunkPosMin.CurrentPosition.x && x > previousScreenSectorChunkPosMax.CurrentPosition.x && y < previousScreenSectorChunkPosMin.CurrentPosition.y && y > previousScreenSectorChunkPosMax.CurrentPosition.y)
+                        {
+                            currentlyProximalSectorChunkPositions.Add(new Universe.Sector.Chunk.Position(new Vector2Int(x, y)));
+                        }
                     });
+                });
+                newlyProximalSectorChunkPositions = new ConcurrentBag<Universe.Sector.Chunk.Position>(newlyProximalSectorChunkPositions.OrderBy((newlyProximalSectorChunkPosition) =>
+                {
+                    return -(new Universe.Sector.Chunk.Position(transform.position).WorldPosition - newlyProximalSectorChunkPosition.WorldPosition).sqrMagnitude;
+                }));
+                #endregion
+                
+                #region Previously Proximal Sector Chunks
+                previouslyProximalSectorChunkPositions = new ConcurrentBag<Universe.Sector.Chunk.Position>();
+
+                Parallel.ForEach(currentUniverse.LoadedSectorChunks.Keys.Except(currentlyProximalSectorChunkPositions), (loadedSectorChunkPosition) =>
+                {
+                    if (loadedSectorChunkPosition.CurrentPosition.x < currentScreenSectorChunkPosMin.CurrentPosition.x || loadedSectorChunkPosition.CurrentPosition.x > currentScreenSectorChunkPosMax.CurrentPosition.x || loadedSectorChunkPosition.CurrentPosition.y < currentScreenSectorChunkPosMin.CurrentPosition.y || loadedSectorChunkPosition.CurrentPosition.y > currentScreenSectorChunkPosMax.CurrentPosition.y)
+                    {
+                        previouslyProximalSectorChunkPositions.Add(new Universe.Sector.Chunk.Position(new Vector2Int(loadedSectorChunkPosition.CurrentPosition.x, loadedSectorChunkPosition.CurrentPosition.y)));
+                    }
                 });
                 #endregion
             }
 
             if (screenFilamentChunkPosMinOffset != Vector2Int.zero || screenFilamentChunkPosMaxOffset != Vector2Int.zero)
             {
-                #region Previously Proximal Filament Chunks
-                previouslyProximalFilamentChunkPositions = new ConcurrentBag<Universe.Filament.Chunk.Position>();
-                Parallel.For(previousScreenFilamentChunkPosMin.CurrentPosition.x, previousScreenFilamentChunkPosMax.CurrentPosition.x + 1, (x) =>
-                {
-                    Parallel.For(previousScreenFilamentChunkPosMin.CurrentPosition.y, previousScreenFilamentChunkPosMax.CurrentPosition.y + 1, (y) =>
-                    {
-                        if (x < currentScreenFilamentChunkPosMin.CurrentPosition.x || x > currentScreenFilamentChunkPosMax.CurrentPosition.x || y < currentScreenFilamentChunkPosMin.CurrentPosition.y || y > currentScreenFilamentChunkPosMax.CurrentPosition.y)
-                        {
-                            previouslyProximalFilamentChunkPositions.Add(new Universe.Filament.Chunk.Position(new Vector2Int(x, y)));
-                        }
-                    });
-                });
-                #endregion
-
-                #region Newly Proximal Filament Chunks
+                #region Newly & Currently Proximal Filament Chunks
                 newlyProximalFilamentChunkPositions = new ConcurrentBag<Universe.Filament.Chunk.Position>();
                 Parallel.For(currentScreenFilamentChunkPosMin.CurrentPosition.x, currentScreenFilamentChunkPosMax.CurrentPosition.x + 1, (x) =>
                 {
@@ -389,28 +428,34 @@ namespace LooCast.Observer
                         {
                             newlyProximalFilamentChunkPositions.Add(new Universe.Filament.Chunk.Position(new Vector2Int(x, y)));
                         }
+                        if (x < previousScreenFilamentChunkPosMin.CurrentPosition.x && x > previousScreenFilamentChunkPosMax.CurrentPosition.x && y < previousScreenFilamentChunkPosMin.CurrentPosition.y && y > previousScreenFilamentChunkPosMax.CurrentPosition.y)
+                        {
+                            currentlyProximalFilamentChunkPositions.Add(new Universe.Filament.Chunk.Position(new Vector2Int(x, y)));
+                        }
                     });
+                });
+                newlyProximalFilamentChunkPositions = new ConcurrentBag<Universe.Filament.Chunk.Position>(newlyProximalFilamentChunkPositions.OrderBy((newlyProximalFilamentChunkPosition) =>
+                {
+                    return -(new Universe.Filament.Chunk.Position(transform.position).WorldPosition - newlyProximalFilamentChunkPosition.WorldPosition).sqrMagnitude;
+                }));
+                #endregion
+                
+                #region Previously Proximal Filament Chunks
+                previouslyProximalFilamentChunkPositions = new ConcurrentBag<Universe.Filament.Chunk.Position>();
+
+                Parallel.ForEach(currentUniverse.LoadedFilamentChunks.Keys.Except(currentlyProximalFilamentChunkPositions), (loadedFilamentChunkPosition) =>
+                {
+                    if (loadedFilamentChunkPosition.CurrentPosition.x < currentScreenFilamentChunkPosMin.CurrentPosition.x || loadedFilamentChunkPosition.CurrentPosition.x > currentScreenFilamentChunkPosMax.CurrentPosition.x || loadedFilamentChunkPosition.CurrentPosition.y < currentScreenFilamentChunkPosMin.CurrentPosition.y || loadedFilamentChunkPosition.CurrentPosition.y > currentScreenFilamentChunkPosMax.CurrentPosition.y)
+                    {
+                        previouslyProximalFilamentChunkPositions.Add(new Universe.Filament.Chunk.Position(new Vector2Int(loadedFilamentChunkPosition.CurrentPosition.x, loadedFilamentChunkPosition.CurrentPosition.y)));
+                    }
                 });
                 #endregion
             }
 
             if (screenRegionPosMinOffset != Vector2Int.zero || screenRegionPosMaxOffset != Vector2Int.zero)
             {
-                #region Previously Proximal Regions
-                previouslyProximalRegionPositions = new ConcurrentBag<Universe.Region.Position>();
-                Parallel.For(previousScreenRegionPosMin.CurrentPosition.x, previousScreenRegionPosMax.CurrentPosition.x + 1, (x) =>
-                {
-                    Parallel.For(previousScreenRegionPosMin.CurrentPosition.y, previousScreenRegionPosMax.CurrentPosition.y + 1, (y) =>
-                    {
-                        if (x < currentScreenRegionPosMin.CurrentPosition.x || x > currentScreenRegionPosMax.CurrentPosition.x || y < currentScreenRegionPosMin.CurrentPosition.y || y > currentScreenRegionPosMax.CurrentPosition.y)
-                        {
-                            previouslyProximalRegionPositions.Add(new Universe.Region.Position(new Vector2Int(x, y)));
-                        }
-                    });
-                });
-                #endregion
-
-                #region Newly Proximal Regions
+                #region Newly & Currently Proximal Regions
                 newlyProximalRegionPositions = new ConcurrentBag<Universe.Region.Position>();
                 Parallel.For(currentScreenRegionPosMin.CurrentPosition.x, currentScreenRegionPosMax.CurrentPosition.x + 1, (x) =>
                 {
@@ -420,28 +465,35 @@ namespace LooCast.Observer
                         {
                             newlyProximalRegionPositions.Add(new Universe.Region.Position(new Vector2Int(x, y)));
                         }
+                        if (x < previousScreenRegionPosMin.CurrentPosition.x && x > previousScreenRegionPosMax.CurrentPosition.x && y < previousScreenRegionPosMin.CurrentPosition.y && y > previousScreenRegionPosMax.CurrentPosition.y)
+                        {
+                            currentlyProximalRegionPositions.Add(new Universe.Region.Position(new Vector2Int(x, y)));
+                        }
                     });
                 });
+                newlyProximalRegionPositions = new ConcurrentBag<Universe.Region.Position>(newlyProximalRegionPositions.OrderBy((newlyProximalRegionPosition) =>
+                {
+                    return -(new Universe.Region.Position(transform.position).WorldPosition - newlyProximalRegionPosition.WorldPosition).sqrMagnitude;
+                }));
                 #endregion
+                
+                #region Previously Proximal Regions
+                previouslyProximalRegionPositions = new ConcurrentBag<Universe.Region.Position>();
+
+                Parallel.ForEach(currentUniverse.LoadedRegions.Keys.Except(currentlyProximalRegionPositions), (loadedRegionPosition) =>
+                {
+                    if (loadedRegionPosition.CurrentPosition.x < currentScreenRegionPosMin.CurrentPosition.x || loadedRegionPosition.CurrentPosition.x > currentScreenRegionPosMax.CurrentPosition.x || loadedRegionPosition.CurrentPosition.y < currentScreenRegionPosMin.CurrentPosition.y || loadedRegionPosition.CurrentPosition.y > currentScreenRegionPosMax.CurrentPosition.y)
+                    {
+                        previouslyProximalRegionPositions.Add(new Universe.Region.Position(new Vector2Int(loadedRegionPosition.CurrentPosition.x, loadedRegionPosition.CurrentPosition.y)));
+                    }
+                });
+                #endregion
+
             }
 
             if (screenSectorPosMinOffset != Vector2Int.zero || screenSectorPosMaxOffset != Vector2Int.zero)
             {
-                #region Previously Proximal Sectors
-                previouslyProximalSectorPositions = new ConcurrentBag<Universe.Sector.Position>();
-                Parallel.For(previousScreenSectorPosMin.CurrentPosition.x, previousScreenSectorPosMax.CurrentPosition.x + 1, (x) =>
-                {
-                    Parallel.For(previousScreenSectorPosMin.CurrentPosition.y, previousScreenSectorPosMax.CurrentPosition.y + 1, (y) =>
-                    {
-                        if (x < currentScreenSectorPosMin.CurrentPosition.x || x > currentScreenSectorPosMax.CurrentPosition.x || y < currentScreenSectorPosMin.CurrentPosition.y || y > currentScreenSectorPosMax.CurrentPosition.y)
-                        {
-                            previouslyProximalSectorPositions.Add(new Universe.Sector.Position(new Vector2Int(x, y)));
-                        }
-                    });
-                });
-                #endregion
-
-                #region Newly Proximal Sectors
+                #region Newly & Currently Proximal Sectors
                 newlyProximalSectorPositions = new ConcurrentBag<Universe.Sector.Position>();
                 Parallel.For(currentScreenSectorPosMin.CurrentPosition.x, currentScreenSectorPosMax.CurrentPosition.x + 1, (x) =>
                 {
@@ -451,28 +503,35 @@ namespace LooCast.Observer
                         {
                             newlyProximalSectorPositions.Add(new Universe.Sector.Position(new Vector2Int(x, y)));
                         }
+                        if (x < previousScreenSectorPosMin.CurrentPosition.x && x > previousScreenSectorPosMax.CurrentPosition.x && y < previousScreenSectorPosMin.CurrentPosition.y && y > previousScreenSectorPosMax.CurrentPosition.y)
+                        {
+                            currentlyProximalSectorPositions.Add(new Universe.Sector.Position(new Vector2Int(x, y)));
+                        }
                     });
                 });
+                newlyProximalSectorPositions = new ConcurrentBag<Universe.Sector.Position>(newlyProximalSectorPositions.OrderBy((newlyProximalSectorPosition) =>
+                {
+                    return -(new Universe.Sector.Position(transform.position).WorldPosition - newlyProximalSectorPosition.WorldPosition).sqrMagnitude;
+                }));
                 #endregion
+                
+                #region Previously Proximal Sectors
+                previouslyProximalSectorPositions = new ConcurrentBag<Universe.Sector.Position>();
+
+                Parallel.ForEach(currentUniverse.LoadedSectors.Keys.Except(currentlyProximalSectorPositions), (loadedSectorPosition) =>
+                {
+                    if (loadedSectorPosition.CurrentPosition.x < currentScreenSectorPosMin.CurrentPosition.x || loadedSectorPosition.CurrentPosition.x > currentScreenSectorPosMax.CurrentPosition.x || loadedSectorPosition.CurrentPosition.y < currentScreenSectorPosMin.CurrentPosition.y || loadedSectorPosition.CurrentPosition.y > currentScreenSectorPosMax.CurrentPosition.y)
+                    {
+                        previouslyProximalSectorPositions.Add(new Universe.Sector.Position(new Vector2Int(loadedSectorPosition.CurrentPosition.x, loadedSectorPosition.CurrentPosition.y)));
+                    }
+                });
+                #endregion
+
             }
 
             if (screenFilamentPosMinOffset != Vector2Int.zero || screenFilamentPosMaxOffset != Vector2Int.zero)
             {
-                #region Previously Proximal Filaments
-                previouslyProximalFilamentPositions = new ConcurrentBag<Universe.Filament.Position>();
-                Parallel.For(previousScreenFilamentPosMin.CurrentPosition.x, previousScreenFilamentPosMax.CurrentPosition.x + 1, (x) =>
-                {
-                    Parallel.For(previousScreenFilamentPosMin.CurrentPosition.y, previousScreenFilamentPosMax.CurrentPosition.y + 1, (y) =>
-                    {
-                        if (x < currentScreenFilamentPosMin.CurrentPosition.x || x > currentScreenFilamentPosMax.CurrentPosition.x || y < currentScreenFilamentPosMin.CurrentPosition.y || y > currentScreenFilamentPosMax.CurrentPosition.y)
-                        {
-                            previouslyProximalFilamentPositions.Add(new Universe.Filament.Position(new Vector2Int(x, y)));
-                        }
-                    });
-                });
-                #endregion
-
-                #region Newly Proximal Filaments
+                #region Newly & Currently Proximal Filaments
                 newlyProximalFilamentPositions = new ConcurrentBag<Universe.Filament.Position>();
                 Parallel.For(currentScreenFilamentPosMin.CurrentPosition.x, currentScreenFilamentPosMax.CurrentPosition.x + 1, (x) =>
                 {
@@ -482,9 +541,30 @@ namespace LooCast.Observer
                         {
                             newlyProximalFilamentPositions.Add(new Universe.Filament.Position(new Vector2Int(x, y)));
                         }
+                        if (x < previousScreenFilamentPosMin.CurrentPosition.x && x > previousScreenFilamentPosMax.CurrentPosition.x && y < previousScreenFilamentPosMin.CurrentPosition.y && y > previousScreenFilamentPosMax.CurrentPosition.y)
+                        {
+                            currentlyProximalFilamentPositions.Add(new Universe.Filament.Position(new Vector2Int(x, y)));
+                        }
                     });
                 });
+                newlyProximalFilamentPositions = new ConcurrentBag<Universe.Filament.Position>(newlyProximalFilamentPositions.OrderBy((newlyProximalFilamentPosition) =>
+                {
+                    return -(new Universe.Filament.Position(transform.position).WorldPosition - newlyProximalFilamentPosition.WorldPosition).sqrMagnitude;
+                }));
                 #endregion
+                
+                #region Previously Proximal Filaments
+                previouslyProximalFilamentPositions = new ConcurrentBag<Universe.Filament.Position>();
+
+                Parallel.ForEach(currentUniverse.LoadedFilaments.Keys.Except(currentlyProximalFilamentPositions), (loadedFilamentPosition) =>
+                {
+                    if (loadedFilamentPosition.CurrentPosition.x < currentScreenFilamentPosMin.CurrentPosition.x || loadedFilamentPosition.CurrentPosition.x > currentScreenFilamentPosMax.CurrentPosition.x || loadedFilamentPosition.CurrentPosition.y < currentScreenFilamentPosMin.CurrentPosition.y || loadedFilamentPosition.CurrentPosition.y > currentScreenFilamentPosMax.CurrentPosition.y)
+                    {
+                        previouslyProximalFilamentPositions.Add(new Universe.Filament.Position(new Vector2Int(loadedFilamentPosition.CurrentPosition.x, loadedFilamentPosition.CurrentPosition.y)));
+                    }
+                });
+                #endregion
+
             }
             #endregion
 

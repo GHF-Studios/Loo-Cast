@@ -763,7 +763,7 @@ namespace LooCast.Universe
                 regionChunkLoadQueue = new Queue<Region.Chunk.Position>();
 
                 Instance.currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
-
+                
                 Instance.StartCoroutine(Instance.ProcessFilamentLoadQueueCoroutine());
                 Instance.StartCoroutine(Instance.ProcessFilamentChunkLoadQueueCoroutine());
                 Instance.StartCoroutine(Instance.ProcessSectorLoadQueueCoroutine());
@@ -824,20 +824,25 @@ namespace LooCast.Universe
             #endregion
 
             #region Coroutines
-            // Add Min and Max Iterations
-            // Add Min and Max Iterations Attempts to allow for more unready things to be checked, I guess, maybe?
+            // TODO: Maybe add Min and Max Iterations
+            // TODO: Maybe add Min and Max Iterations Attempts to allow for more unready things to be checked, I guess, maybe?
 
             private IEnumerator ProcessFilamentLoadQueueCoroutine()
             {
                 while (true)
                 {
-                    if (filamentLoadQueue.Count > 0)
+                    if (filamentLoadQueue.Count >= MainManager.Instance.FilamentsPerFrame)
                     {
-                        Filament.Position filamentPosition = filamentLoadQueue.Dequeue();
-
-                        Filament filament = new Filament(currentUniverse, filamentPosition);
-                        currentUniverse.loadedFilaments.Add(filamentPosition, filament);
-                        currentUniverse.SaveFilament(filament);
+                        for (int i = 0; i < MainManager.Instance.FilamentsPerFrame; i++)
+                        {
+                            Filament.Position filamentPosition = filamentLoadQueue.Dequeue();
+                            
+                            Filament filament = new Filament(currentUniverse, filamentPosition);
+                            currentUniverse.loadedFilaments.Add(filamentPosition, filament);
+                            currentUniverse.SaveFilament(filament);
+                            
+                            yield return null;
+                        }
                     }
                     
                     yield return null;
@@ -848,23 +853,28 @@ namespace LooCast.Universe
             {
                 while (true)
                 {
-                    if (filamentChunkLoadQueue.Count > 0)
+                    if (filamentChunkLoadQueue.Count >= MainManager.Instance.FilamentChunksPerFrame)
                     {
-                        Filament.Chunk.Position filamentChunkPosition = filamentChunkLoadQueue.Dequeue();
-
-                        if (!currentUniverse.IsFilamentLoaded(filamentChunkPosition.FilamentPosition))
+                        for (int i = 0; i < MainManager.Instance.FilamentChunksPerFrame; i++)
                         {
-                            filamentChunkLoadQueue.Enqueue(filamentChunkPosition);
-                            yield return null;
-                            continue;
-                        }
+                            Filament.Chunk.Position filamentChunkPosition = filamentChunkLoadQueue.Dequeue();
 
-                        Filament filament = currentUniverse.GetFilament(filamentChunkPosition.FilamentPosition);
-                        Filament.Chunk filamentChunk = new Filament.Chunk(currentUniverse, filament, filamentChunkPosition);
-                        filament.RegisterChunkPosition(filamentChunkPosition);
-                        currentUniverse.loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
-                        currentUniverse.SaveFilament(filament);
-                        currentUniverse.SaveFilamentChunk(filamentChunk); 
+                            if (!currentUniverse.IsFilamentLoaded(filamentChunkPosition.FilamentPosition))
+                            {
+                                filamentChunkLoadQueue.Enqueue(filamentChunkPosition);
+                                yield return null;
+                                continue;
+                            }
+
+                            Filament filament = currentUniverse.GetFilament(filamentChunkPosition.FilamentPosition);
+                            Filament.Chunk filamentChunk = new Filament.Chunk(currentUniverse, filament, filamentChunkPosition);
+                            filament.RegisterChunkPosition(filamentChunkPosition);
+                            currentUniverse.loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
+                            currentUniverse.SaveFilament(filament);
+                            currentUniverse.SaveFilamentChunk(filamentChunk);
+
+                            yield return null; 
+                        }
                     }
 
                     yield return null;
@@ -875,23 +885,28 @@ namespace LooCast.Universe
             {
                 while (true)
                 {
-                    if (sectorLoadQueue.Count > 0)
+                    if (sectorLoadQueue.Count >= MainManager.Instance.SectorsPerFrame)
                     {
-                        Sector.Position sectorPosition = sectorLoadQueue.Dequeue();
-
-                        if (!currentUniverse.IsFilamentLoaded(sectorPosition.FilamentPosition))
+                        for (int i = 0; i < MainManager.Instance.SectorsPerFrame; i++)
                         {
-                            sectorLoadQueue.Enqueue(sectorPosition);
-                            yield return null;
-                            continue;
-                        }
+                            Sector.Position sectorPosition = sectorLoadQueue.Dequeue();
 
-                        Filament filament = currentUniverse.GetFilament(sectorPosition.FilamentPosition);
-                        Sector sector = new Sector(currentUniverse, sectorPosition);
-                        filament.RegisterSectorPosition(sectorPosition);
-                        currentUniverse.loadedSectors.Add(sectorPosition, sector);
-                        currentUniverse.SaveFilament(filament);
-                        currentUniverse.SaveSector(sector); 
+                            if (!currentUniverse.IsFilamentLoaded(sectorPosition.FilamentPosition))
+                            {
+                                sectorLoadQueue.Enqueue(sectorPosition);
+                                yield return null;
+                                continue;
+                            }
+
+                            Filament filament = currentUniverse.GetFilament(sectorPosition.FilamentPosition);
+                            Sector sector = new Sector(currentUniverse, sectorPosition);
+                            filament.RegisterSectorPosition(sectorPosition);
+                            currentUniverse.loadedSectors.Add(sectorPosition, sector);
+                            currentUniverse.SaveFilament(filament);
+                            currentUniverse.SaveSector(sector);
+
+                            yield return null; 
+                        }
                     }
 
                     yield return null;
@@ -902,24 +917,29 @@ namespace LooCast.Universe
             {
                 while (true)
                 {
-                    if (sectorChunkLoadQueue.Count > 0)
+                    if (sectorChunkLoadQueue.Count >= MainManager.Instance.SectorChunksPerFrame)
                     {
-                        Sector.Chunk.Position sectorChunkPosition = sectorChunkLoadQueue.Dequeue();
-
-                        if (!currentUniverse.IsSectorLoaded(sectorChunkPosition.SectorPosition))
+                        for (int i = 0; i < MainManager.Instance.SectorChunksPerFrame; i++)
                         {
-                            sectorChunkLoadQueue.Enqueue(sectorChunkPosition);
-                            yield return null;
-                            continue;
-                        }
+                            Sector.Chunk.Position sectorChunkPosition = sectorChunkLoadQueue.Dequeue();
 
-                        Sector sector = currentUniverse.GetSector(sectorChunkPosition.SectorPosition);
-                        Filament filament = currentUniverse.GetFilament(sectorChunkPosition.FilamentPosition);
-                        Sector.Chunk sectorChunk = new Sector.Chunk(currentUniverse, filament, sector, sectorChunkPosition);
-                        sector.RegisterChunkPosition(sectorChunkPosition);
-                        currentUniverse.loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
-                        currentUniverse.SaveSector(sector);
-                        currentUniverse.SaveSectorChunk(sectorChunk); 
+                            if (!currentUniverse.IsSectorLoaded(sectorChunkPosition.SectorPosition))
+                            {
+                                sectorChunkLoadQueue.Enqueue(sectorChunkPosition);
+                                yield return null;
+                                continue;
+                            }
+
+                            Sector sector = currentUniverse.GetSector(sectorChunkPosition.SectorPosition);
+                            Filament filament = currentUniverse.GetFilament(sectorChunkPosition.FilamentPosition);
+                            Sector.Chunk sectorChunk = new Sector.Chunk(currentUniverse, filament, sector, sectorChunkPosition);
+                            sector.RegisterChunkPosition(sectorChunkPosition);
+                            currentUniverse.loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
+                            currentUniverse.SaveSector(sector);
+                            currentUniverse.SaveSectorChunk(sectorChunk);
+
+                            yield return null; 
+                        }
                     }
 
                     yield return null;
@@ -930,23 +950,28 @@ namespace LooCast.Universe
             {
                 while (true)
                 {
-                    if (regionLoadQueue.Count > 0)
+                    if (regionLoadQueue.Count >= MainManager.Instance.RegionsPerFrame)
                     {
-                        Region.Position regionPosition = regionLoadQueue.Dequeue();
-
-                        if (!currentUniverse.IsSectorLoaded(regionPosition.SectorPosition))
+                        for (int i = 0; i < MainManager.Instance.RegionsPerFrame; i++)
                         {
-                            regionLoadQueue.Enqueue(regionPosition);
-                            yield return null;
-                            continue;
-                        }
+                            Region.Position regionPosition = regionLoadQueue.Dequeue();
 
-                        Sector sector = currentUniverse.GetSector(regionPosition.SectorPosition);
-                        Region region = new Region(currentUniverse, regionPosition);
-                        sector.RegisterRegionPosition(regionPosition);
-                        currentUniverse.loadedRegions.Add(regionPosition, region);
-                        currentUniverse.SaveSector(sector);
-                        currentUniverse.SaveRegion(region); 
+                            if (!currentUniverse.IsSectorLoaded(regionPosition.SectorPosition))
+                            {
+                                regionLoadQueue.Enqueue(regionPosition);
+                                yield return null;
+                                continue;
+                            }
+
+                            Sector sector = currentUniverse.GetSector(regionPosition.SectorPosition);
+                            Region region = new Region(currentUniverse, regionPosition);
+                            sector.RegisterRegionPosition(regionPosition);
+                            currentUniverse.loadedRegions.Add(regionPosition, region);
+                            currentUniverse.SaveSector(sector);
+                            currentUniverse.SaveRegion(region);
+
+                            yield return null; 
+                        }
                     }
 
                     yield return null;
@@ -957,24 +982,29 @@ namespace LooCast.Universe
             {
                 while (true)
                 {
-                    if (regionChunkLoadQueue.Count > 0)
+                    if (regionChunkLoadQueue.Count >= MainManager.Instance.RegionChunksPerFrame)
                     {
-                        Region.Chunk.Position regionChunkPosition = regionChunkLoadQueue.Dequeue();
-
-                        if (!currentUniverse.IsRegionLoaded(regionChunkPosition.RegionPosition))
+                        for (int i = 0; i < MainManager.Instance.RegionChunksPerFrame; i++)
                         {
-                            regionChunkLoadQueue.Enqueue(regionChunkPosition);
-                            yield return null;
-                            continue;
-                        }
+                            Region.Chunk.Position regionChunkPosition = regionChunkLoadQueue.Dequeue();
 
-                        Region region = currentUniverse.GetRegion(regionChunkPosition.RegionPosition);
-                        Sector sector = currentUniverse.GetSector(regionChunkPosition.SectorPosition);
-                        Region.Chunk regionChunk = new Region.Chunk(currentUniverse, sector, region, regionChunkPosition);
-                        region.RegisterChunkPosition(regionChunkPosition);
-                        currentUniverse.loadedRegionChunks.Add(regionChunkPosition, regionChunk);
-                        currentUniverse.SaveRegion(region);
-                        currentUniverse.SaveRegionChunk(regionChunk); 
+                            if (!currentUniverse.IsRegionLoaded(regionChunkPosition.RegionPosition))
+                            {
+                                regionChunkLoadQueue.Enqueue(regionChunkPosition);
+                                yield return null;
+                                continue;
+                            }
+
+                            Region region = currentUniverse.GetRegion(regionChunkPosition.RegionPosition);
+                            Sector sector = currentUniverse.GetSector(regionChunkPosition.SectorPosition);
+                            Region.Chunk regionChunk = new Region.Chunk(currentUniverse, sector, region, regionChunkPosition);
+                            region.RegisterChunkPosition(regionChunkPosition);
+                            currentUniverse.loadedRegionChunks.Add(regionChunkPosition, regionChunk);
+                            currentUniverse.SaveRegion(region);
+                            currentUniverse.SaveRegionChunk(regionChunk);
+
+                            yield return null; 
+                        }
                     }
 
                     yield return null;

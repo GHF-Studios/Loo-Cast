@@ -13,6 +13,11 @@ namespace LooCast.Util
             return (value - fromMin) / (fromMax - fromMin) * (toMax - toMin) + toMin;
         }
 
+        public static float Map(this int value, int fromMin, int fromMax, int toMin, int toMax)
+        {
+            return (value - fromMin) / (fromMax - fromMin) * (toMax - toMin) + toMin;
+        }
+
         public static Item[] GetItems(this Dictionary<int, ItemContainerSlot> itemSlots)
         {
             Item[] items = new Item[itemSlots.Count];

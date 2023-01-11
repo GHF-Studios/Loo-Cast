@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -9,7 +10,7 @@ namespace LooCast.Core
     using Util;
     using Universe;
     using UI.Screen;
-    using System.Collections;
+    using Math.Map;
 
     public class MainManager : MonoBehaviour
     {
@@ -40,16 +41,49 @@ namespace LooCast.Core
             }
         }
         public static Games Games => games;
-        public static Game GameToBeLoaded => gameToBeLoaded;    //TODO
+        public static Game GameToBeLoaded => gameToBeLoaded;    // TODO: Implement this
         #endregion
 
         #region Static Fields
+
         private static MainManager instance;
+        private static Games games;
+        private static Game gameToBeLoaded;
         #endregion
 
         #region Properties
-        private static Games games;
-        private static Game gameToBeLoaded;
+        public int MaxFilamentsPerFrame => maxFilamentsPerFrame;
+        public int MaxSectorsPerFrame => maxSectorsPerFrame;
+        public int MaxRegionsPerFrame => maxRegionsPerFrame;
+        public int MaxFilamentChunksPerFrame => maxFilamentChunksPerFrame;
+        public int MaxSectorChunksPerFrame => maxSectorChunksPerFrame;
+        public int MaxRegionChunksPerFrame => maxRegionChunksPerFrame;
+        
+        public int FilamentsPerFrame => filamentsPerFrame;
+        public int SectorsPerFrame => sectorsPerFrame;
+        public int RegionsPerFrame => regionsPerFrame;
+        public int FilamentChunksPerFrame => filamentChunksPerFrame;
+        public int SectorChunksPerFrame => sectorChunksPerFrame;
+        public int RegionChunksPerFrame => regionChunksPerFrame;
+        #endregion
+
+        #region Fields
+        [SerializeField] private int maxFilamentsPerFrame = 1;
+        [SerializeField] private int maxSectorsPerFrame = 1;
+        [SerializeField] private int maxRegionsPerFrame = 1;
+        [SerializeField] private int maxFilamentChunksPerFrame = 1;
+        [SerializeField] private int maxSectorChunksPerFrame = 1;
+        [SerializeField] private int maxRegionChunksPerFrame = 1;
+
+        private int filamentsPerFrame;
+        private int sectorsPerFrame;
+        private int regionsPerFrame;
+        private int filamentChunksPerFrame;
+        private int sectorChunksPerFrame;
+        private int regionChunksPerFrame;
+        private float frameTime;
+        private int frameCount;
+        private float frameRate;
         #endregion
 
         #region Unity Callbacks
@@ -82,8 +116,29 @@ namespace LooCast.Core
             TimerUtil.InitializeInstance();
             #endregion
 
+            #region Utilities Initialization
             Universe.DensityMapGenerationUtil.InitializeInstance();
-            
+            #endregion
+
+            #region TEMPORARY: Video Settings Initialization
+            // TODO: Actually implement (video) settings
+            if (Application.targetFrameRate == -1)
+            {
+                Debug.LogWarning("TargetFrameRate set to 60 by default, this has to be controlled by a not yet implemented video settings system!!!");
+                Application.targetFrameRate = 60;
+            }
+
+            filamentsPerFrame = 1;
+            sectorsPerFrame = 1;
+            regionsPerFrame = 1;
+            filamentChunksPerFrame = 1;
+            sectorChunksPerFrame = 1;
+            regionChunksPerFrame = 1;
+            frameTime = 0.0f;
+            frameCount = 0;
+            frameRate = 0.0f;
+            #endregion
+
             #region Scene Initialization
             switch (activeSceneName)
             {
@@ -109,6 +164,27 @@ namespace LooCast.Core
             #endregion
 
             Debug.Log($"[MainManager] Finished Initialization in Scene '{activeSceneName}'.");
+        }
+
+        private void Update()
+        {
+            frameCount++;
+            frameTime += Time.deltaTime;
+
+            if (frameTime > 1.0f)
+            {
+                frameRate = frameCount / frameTime;
+
+                filamentsPerFrame = Mathf.RoundToInt((frameRate / Application.targetFrameRate).Map(0, 1, 0, maxFilamentsPerFrame));
+                sectorsPerFrame = Mathf.RoundToInt((frameRate / Application.targetFrameRate).Map(0, 1, 0, maxSectorsPerFrame));
+                regionsPerFrame = Mathf.RoundToInt((frameRate / Application.targetFrameRate).Map(0, 1, 0, maxRegionsPerFrame));
+                filamentChunksPerFrame = Mathf.RoundToInt((frameRate / Application.targetFrameRate).Map(0, 1, 0, maxFilamentChunksPerFrame));
+                sectorChunksPerFrame = Mathf.RoundToInt((frameRate / Application.targetFrameRate).Map(0, 1, 0, maxSectorChunksPerFrame));
+                regionChunksPerFrame = Mathf.RoundToInt((frameRate / Application.targetFrameRate).Map(0, 1, 0, maxRegionChunksPerFrame));
+
+                frameTime = 0.0f;
+                frameCount = 0;
+            }
         }
         #endregion
 
