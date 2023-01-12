@@ -925,13 +925,21 @@ namespace LooCast.Universe
                 {
                     if (filamentLoadRequests.Count > 0)
                     {
-                        foreach (Filament.Position filamentPosition in filamentLoadRequests)
+                        List<Filament.Position> loadedFilamentPositions = new List<Filament.Position>();
+                        List<Filament.Position> filamentLoadRequestsCopy = new List<Filament.Position>(filamentLoadRequests);
+                        foreach (Filament.Position filamentPosition in filamentLoadRequestsCopy)
                         {
                             Filament filament = new Filament(currentUniverse, filamentPosition);
                             currentUniverse.loadedFilaments.Add(filamentPosition, filament);
                             currentUniverse.SaveFilament(filament);
+                            loadedFilamentPositions.Add(filamentPosition);
 
                             yield return null;
+                        }
+
+                        foreach (Filament.Position filamentPosition in loadedFilamentPositions)
+                        {
+                            filamentLoadRequests.Remove(filamentPosition);
                         }
                     }
                     
@@ -945,7 +953,9 @@ namespace LooCast.Universe
                 {
                     if (filamentChunkLoadRequests.Count > 0)
                     {
-                        foreach (Filament.Chunk.Position filamentChunkPosition in filamentChunkLoadRequests)
+                        List<Filament.Chunk.Position> loadedFilamentChunkPositions = new List<Filament.Chunk.Position>();
+                        List<Filament.Chunk.Position> filamentChunkLoadRequestsCopy = new List<Filament.Chunk.Position>(filamentChunkLoadRequests);
+                        foreach (Filament.Chunk.Position filamentChunkPosition in filamentChunkLoadRequestsCopy)
                         {
                             if (!currentUniverse.IsFilamentLoaded(filamentChunkPosition.FilamentPosition))
                             {
@@ -958,8 +968,14 @@ namespace LooCast.Universe
                             currentUniverse.loadedFilamentChunks.Add(filamentChunkPosition, filamentChunk);
                             currentUniverse.SaveFilament(filament);
                             currentUniverse.SaveFilamentChunk(filamentChunk);
+                            loadedFilamentChunkPositions.Add(filamentChunkPosition);
 
                             yield return null;
+                        }
+
+                        foreach (Filament.Chunk.Position filamentChunkPosition in loadedFilamentChunkPositions)
+                        {
+                            filamentChunkLoadRequests.Remove(filamentChunkPosition);
                         }
                     }
 
@@ -973,7 +989,9 @@ namespace LooCast.Universe
                 {
                     if (sectorLoadRequests.Count > 0)
                     {
-                        foreach (Sector.Position sectorPosition in sectorLoadRequests)
+                        List<Sector.Position> loadedSectorPositions = new List<Sector.Position>();
+                        List<Sector.Position> sectorLoadRequestsCopy = new List<Sector.Position>(sectorLoadRequests);
+                        foreach (Sector.Position sectorPosition in sectorLoadRequestsCopy)
                         {
                             if (!currentUniverse.IsFilamentLoaded(sectorPosition.FilamentPosition))
                             {
@@ -986,8 +1004,14 @@ namespace LooCast.Universe
                             currentUniverse.loadedSectors.Add(sectorPosition, sector);
                             currentUniverse.SaveFilament(filament);
                             currentUniverse.SaveSector(sector);
+                            loadedSectorPositions.Add(sectorPosition);
 
                             yield return null;
+                        }
+
+                        foreach (Sector.Position sectorPosition in loadedSectorPositions)
+                        {
+                            sectorLoadRequests.Remove(sectorPosition);
                         }
                     }
 
@@ -1001,7 +1025,9 @@ namespace LooCast.Universe
                 {
                     if (sectorChunkLoadRequests.Count > 0)
                     {
-                        foreach (Sector.Chunk.Position sectorChunkPosition in sectorChunkLoadRequests)
+                        List<Sector.Chunk.Position> loadedSectorChunkPositions = new List<Sector.Chunk.Position>();
+                        List<Sector.Chunk.Position> sectorChunkLoadRequestsCopy = new List<Sector.Chunk.Position>(sectorChunkLoadRequests);
+                        foreach (Sector.Chunk.Position sectorChunkPosition in sectorChunkLoadRequestsCopy)
                         {
                             if (!currentUniverse.IsSectorLoaded(sectorChunkPosition.SectorPosition))
                             {
@@ -1015,8 +1041,14 @@ namespace LooCast.Universe
                             currentUniverse.loadedSectorChunks.Add(sectorChunkPosition, sectorChunk);
                             currentUniverse.SaveSector(sector);
                             currentUniverse.SaveSectorChunk(sectorChunk);
+                            loadedSectorChunkPositions.Add(sectorChunkPosition);
 
                             yield return null;
+                        }
+
+                        foreach (Sector.Chunk.Position sectorChunkPosition in loadedSectorChunkPositions)
+                        {
+                            sectorChunkLoadRequests.Remove(sectorChunkPosition);
                         }
                     }
 
@@ -1030,7 +1062,9 @@ namespace LooCast.Universe
                 {
                     if (regionLoadRequests.Count > 0)
                     {
-                        foreach (Region.Position regionPosition in regionLoadRequests)
+                        List<Region.Position> loadedRegionPositions = new List<Region.Position>();
+                        List<Region.Position> regionLoadRequestsCopy = new List<Region.Position>(regionLoadRequests);
+                        foreach (Region.Position regionPosition in regionLoadRequestsCopy)
                         {
                             if (!currentUniverse.IsSectorLoaded(regionPosition.SectorPosition))
                             {
@@ -1043,8 +1077,14 @@ namespace LooCast.Universe
                             currentUniverse.loadedRegions.Add(regionPosition, region);
                             currentUniverse.SaveSector(sector);
                             currentUniverse.SaveRegion(region);
+                            loadedRegionPositions.Add(regionPosition);
 
                             yield return null;
+                        }
+
+                        foreach (Region.Position regionPosition in loadedRegionPositions)
+                        {
+                            regionLoadRequests.Remove(regionPosition);
                         }
                     }
 
@@ -1083,7 +1123,9 @@ namespace LooCast.Universe
                 {
                     if (regionChunkLoadRequests.Count > 0)
                     {
-                        foreach (Region.Chunk.Position regionChunkPosition in regionChunkLoadRequests)
+                        List<Region.Chunk.Position> loadedRegionChunkPositions = new List<Region.Chunk.Position>();
+                        List<Region.Chunk.Position> regionChunkLoadRequestsCopy = new List<Region.Chunk.Position>(regionChunkLoadRequests);
+                        foreach (Region.Chunk.Position regionChunkPosition in regionChunkLoadRequestsCopy)
                         {
                             if (!currentUniverse.IsRegionLoaded(regionChunkPosition.RegionPosition))
                             {
@@ -1097,11 +1139,17 @@ namespace LooCast.Universe
                             currentUniverse.loadedRegionChunks.Add(regionChunkPosition, regionChunk);
                             currentUniverse.SaveRegion(region);
                             currentUniverse.SaveRegionChunk(regionChunk);
+                            loadedRegionChunkPositions.Add(regionChunkPosition);
 
                             do
                             {
                                 yield return EndFrame();
                             } while (!canFrameBeUsed);
+                        }
+
+                        foreach (Region.Chunk.Position regionChunkPosition in loadedRegionChunkPositions)
+                        {
+                            regionChunkLoadRequests.Remove(regionChunkPosition);
                         }
                     }
 

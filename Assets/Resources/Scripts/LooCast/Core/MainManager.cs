@@ -148,9 +148,7 @@ namespace LooCast.Core
             if (frameTime > 1.0f)
             {
                 frameRate = frameCount / frameTime;
-                
-                regionChunksPerFrame = Mathf.Round((frameRate / Application.targetFrameRate).Map(0.0f, 1.0f, 0.0f, maxRegionChunksPerFrame));
-
+                regionChunksPerFrame = (frameRate / Application.targetFrameRate).Map(0.0f, 1.0f, 0.0f, maxRegionChunksPerFrame);
                 frameTime = 0.0f;
                 frameCount = 0;
             }
