@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using System.Linq;
 using UnityEngine;
 
@@ -11,9 +13,6 @@ namespace LooCast.Observer
     using Universe;
     using Diagnostic;
     using Util;
-    using System.Threading.Tasks;
-    using System.Collections.Concurrent;
-    using UnityEditor.Localization.Plugins.XLIFF.V12;
 
     // ISSUE TRACKER
     // 1. Loaded Chunks never get unloaded
@@ -101,7 +100,7 @@ namespace LooCast.Observer
             UpdateScreenPositions();
             UpdateProximalPositions();
             UnloadPreviouslyProximalPositions();
-            CancelInvalidatedProximalPositionLoadRequests();
+            // CancelInvalidatedProximalPositionLoadRequests();
             LoadNewlyProximalPositions();
             // PrintBenchmarks();
             Debug.Log($"Region Chunks per Frame: {MainManager.Instance.RegionChunksPerFrame}\t\t(Max: {MainManager.Instance.MaxRegionChunksPerFrame})");

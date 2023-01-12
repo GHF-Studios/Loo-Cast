@@ -10,11 +10,10 @@ namespace LooCast.Universe
     using Core;
     using Game;
     using Random;
-    using System.Runtime.CompilerServices;
     using Util;
     using Util.Collections.Generic;
 
-    // OPTIMIZATION PLAN
+    // OPTIMIZATION PLAN TODO
     // A. Maybe Use a single thread to load all the data
     // B. Optimize IsFilament*Generated & IsFilament*ChunkGenerated
     // C. Optimize IsFilament*Loaded & IsFilament*ChunkLoaded
@@ -1106,7 +1105,7 @@ namespace LooCast.Universe
                         }
                     }
 
-                    EndFrame();
+                    yield return EndFrame();
                 }
             }
             #endregion
