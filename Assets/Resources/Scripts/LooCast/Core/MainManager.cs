@@ -51,20 +51,6 @@ namespace LooCast.Core
         private static Game gameToBeLoaded;
         #endregion
 
-        #region Properties
-        public float MaxRegionChunksPerFrame => maxRegionChunksPerFrame;
-        public float RegionChunksPerFrame => regionChunksPerFrame;
-        #endregion
-
-        #region Fields
-        [SerializeField] private float maxRegionChunksPerFrame = 1;
-        
-        private float regionChunksPerFrame;
-        private float frameTime;
-        private int frameCount;
-        private float frameRate;
-        #endregion
-
         #region Unity Callbacks
         private void Awake()
         {
@@ -99,20 +85,6 @@ namespace LooCast.Core
             Universe.DensityMapGenerationUtil.InitializeInstance();
             #endregion
 
-            #region TEMPORARY: Video Settings Initialization
-            // TODO: Actually implement (video) settings
-            if (Application.targetFrameRate == -1)
-            {
-                Debug.LogWarning("TargetFrameRate set to 60 by default, this has to be controlled by a not yet implemented video settings system!!!");
-                Application.targetFrameRate = 60;
-            }
-            
-            regionChunksPerFrame = 1;
-            frameTime = 0.0f;
-            frameCount = 0;
-            frameRate = 0.0f;
-            #endregion
-
             #region Scene Initialization
             switch (activeSceneName)
             {
@@ -138,20 +110,6 @@ namespace LooCast.Core
             #endregion
 
             Debug.Log($"[MainManager] Finished Initialization in Scene '{activeSceneName}'.");
-        }
-
-        private void Update()
-        {
-            frameCount++;
-            frameTime += Time.deltaTime;
-
-            if (frameTime > 1.0f)
-            {
-                frameRate = frameCount / frameTime;
-                regionChunksPerFrame = (frameRate / Application.targetFrameRate).Map(0.0f, 1.0f, 0.0f, maxRegionChunksPerFrame);
-                frameTime = 0.0f;
-                frameCount = 0;
-            }
         }
         #endregion
 

@@ -308,6 +308,10 @@ namespace LooCast.Universe
                 Instance.sectorDensityShader = Resources.Load<ComputeShader>("Shaders/Computation/Universe/SectorDensity");
                 Instance.regionDensityShader = Resources.Load<ComputeShader>("Shaders/Computation/Universe/RegionDensity");
 
+                Instance.StartCoroutine(Instance.FilamentLoadQueueProcessingCoroutine());
+                Instance.StartCoroutine(Instance.SectorLoadQueueProcessingCoroutine());
+                Instance.StartCoroutine(Instance.RegionLoadQueueProcessingCoroutine());
+
                 Debug.Log("[Universe.DensityMapGenerationUtil] Initialized.");
             }
             
@@ -418,7 +422,7 @@ namespace LooCast.Universe
             #endregion
 
             #region Coroutines
-            // TODO: Parallelize for-Loops
+            // TODO: Parallelize for-Loops to better utilize multithreading
             private IEnumerator FilamentDensityMapsGenerationCoroutine(DensityMap universeDensityMap, Filament.Chunk.DensityMapCollection filamentDensityMaps, Action<Filament.Chunk.DensityMapCollection> callback)
             {
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
@@ -535,6 +539,7 @@ namespace LooCast.Universe
                 yield return null;
             }
 
+            // TODO: Parallelize for-Loops to better utilize multithreading
             private IEnumerator SectorDensityMapsGenerationCoroutine(Filament.Chunk.DensityMapCollection filamentDensityMaps, Sector.Chunk.DensityMapCollection sectorDensityMaps, Action<Sector.Chunk.DensityMapCollection> callback)
             {
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
@@ -661,7 +666,8 @@ namespace LooCast.Universe
                 sectorDensityMapCoroutineInfoQueue.Enqueue(new SectorDensityMapCoroutineInfo(callback, sectorDensityMaps));
                 yield return null;
             }
-            
+
+            // TODO: Parallelize for-Loops to better utilize multithreading
             private IEnumerator RegionDensityMapsGenerationCoroutine(Sector.Chunk.DensityMapCollection sectorDensityMaps, Region.Chunk.DensityMapCollection regionDensityMaps, Action<Region.Chunk.DensityMapCollection> callback)
             {
                 GenerationSettings universeGenerationSettings = GameManager.Instance.CurrentGame.CurrentUniverse.UniverseGenerationSettings;
@@ -755,6 +761,54 @@ namespace LooCast.Universe
 
                 regionDensityMapCoroutineInfoQueue.Enqueue(new RegionDensityMapCoroutineInfo(callback, regionDensityMaps));
                 yield return null;
+            }
+            
+            private IEnumerator FilamentLoadQueueProcessingCoroutine()
+            {
+                while (true)
+                {
+                    while (Filament.Chunk.DensityMapCoroutineInfoQueue.Count > 0)
+                    {
+                        Filament.Chunk.DensityMapCoroutineInfo threadInfo = Filament.Chunk.DensityMapCoroutineInfoQueue.Dequeue();
+                        threadInfo.Callback(threadInfo.DensityMaps);
+
+                        yield return null;
+                    }
+                    
+                    yield return null;
+                }
+            }
+
+            private IEnumerator SectorLoadQueueProcessingCoroutine()
+            {
+                while (true)
+                {
+                    while (Sector.Chunk.DensityMapCoroutineInfoQueue.Count > 0)
+                    {
+                        Sector.Chunk.DensityMapCoroutineInfo threadInfo = Sector.Chunk.DensityMapCoroutineInfoQueue.Dequeue();
+                        threadInfo.Callback(threadInfo.DensityMaps);
+
+                        yield return null;
+                    }
+                    
+                    yield return null;
+                }
+            }
+
+            private IEnumerator RegionLoadQueueProcessingCoroutine()
+            {
+                while (true)
+                {
+                    while (Region.Chunk.DensityMapCoroutineInfoQueue.Count > 0)
+                    {
+                        Region.Chunk.DensityMapCoroutineInfo threadInfo = Region.Chunk.DensityMapCoroutineInfoQueue.Dequeue();
+                        threadInfo.Callback(threadInfo.DensityMaps);
+
+                        yield return null;
+                    }
+                    
+                    yield return null;
+                }
             }
             #endregion
         }
@@ -916,9 +970,6 @@ namespace LooCast.Universe
             #endregion
 
             #region Coroutines
-            // TODO: Maybe add Min and Max Iterations
-            // TODO: Maybe add Min and Max Iterations Attempts to allow for more unready things to be checked, I guess, maybe?
-
             private IEnumerator ProcessFilamentLoadQueueCoroutine()
             {
                 while (true)
@@ -1094,31 +1145,6 @@ namespace LooCast.Universe
 
             private IEnumerator ProcessRegionChunkLoadQueueCoroutine()
             {
-                float regionChunksPerFrameCounter = 0.0f;
-                bool canFrameBeUsed = true;
-                
-                IEnumerator EndFrame()
-                {
-                    regionChunksPerFrameCounter += MainManager.Instance.MaxRegionChunksPerFrame;
-                    if (regionChunksPerFrameCounter == 0.0f)
-                    {
-                        canFrameBeUsed = true;
-                    }
-                    else
-                    {
-                        if (regionChunksPerFrameCounter >= 1.0f)
-                        {
-                            regionChunksPerFrameCounter -= 1.0f;
-                            canFrameBeUsed = true;
-                        }
-                        else
-                        {
-                            canFrameBeUsed = false;
-                        }
-                    }
-                    yield return null;
-                }
-                
                 while (true)
                 {
                     if (regionChunkLoadRequests.Count > 0)
@@ -1141,10 +1167,7 @@ namespace LooCast.Universe
                             currentUniverse.SaveRegionChunk(regionChunk);
                             loadedRegionChunkPositions.Add(regionChunkPosition);
 
-                            do
-                            {
-                                yield return EndFrame();
-                            } while (!canFrameBeUsed);
+                            yield return null;
                         }
 
                         foreach (Region.Chunk.Position regionChunkPosition in loadedRegionChunkPositions)
@@ -1153,7 +1176,7 @@ namespace LooCast.Universe
                         }
                     }
 
-                    yield return EndFrame();
+                    yield return null;
                 }
             }
             #endregion
@@ -1437,7 +1460,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Structs
-                private struct DensityMapCoroutineInfo
+                public struct DensityMapCoroutineInfo
                 {
                     public readonly Action<DensityMapCollection> Callback;
                     public readonly DensityMapCollection DensityMaps;
@@ -1448,6 +1471,10 @@ namespace LooCast.Universe
                         DensityMaps = densityMaps;
                     }
                 }
+                #endregion
+
+                #region Static Properties
+                public static Queue<DensityMapCoroutineInfo> DensityMapCoroutineInfoQueue => densityMapCoroutineInfoQueue;
                 #endregion
 
                 #region Static Fields
@@ -1477,17 +1504,6 @@ namespace LooCast.Universe
                     chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + filament.filamentPosition.CurrentPosition.magnitude + chunkPosition.CurrentPosition.magnitude)).Range(int.MinValue, int.MaxValue);
                     densityMaps = new DensityMapCollection(size);
                     RequestDensityMaps(universe, filament, OnDensityMapsReceived);
-                }
-                #endregion
-
-                #region Static Methods
-                public static void ProcessDensityMapCoroutineInfoQueue()
-                {
-                    while (densityMapCoroutineInfoQueue.Count > 0)
-                    {
-                        DensityMapCoroutineInfo threadInfo = densityMapCoroutineInfoQueue.Dequeue();
-                        threadInfo.Callback(threadInfo.DensityMaps);
-                    }
                 }
                 #endregion
 
@@ -1850,7 +1866,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Structs
-                private struct DensityMapCoroutineInfo
+                public struct DensityMapCoroutineInfo
                 {
                     public readonly Action<DensityMapCollection> Callback;
                     public readonly DensityMapCollection DensityMaps;
@@ -1861,6 +1877,10 @@ namespace LooCast.Universe
                         DensityMaps = densityMaps;
                     }
                 }
+                #endregion
+
+                #region Static Properties
+                public static Queue<DensityMapCoroutineInfo> DensityMapCoroutineInfoQueue => densityMapCoroutineInfoQueue;
                 #endregion
 
                 #region Static Fields
@@ -1890,17 +1910,6 @@ namespace LooCast.Universe
                     chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + sector.sectorPosition.CurrentPosition.magnitude + chunkPosition.CurrentPosition.magnitude)).Range(int.MinValue, int.MaxValue);
                     densityMaps = new DensityMapCollection(size);
                     RequestDensityMaps(universe, filament, sector, OnDensityMapsReceived);
-                }
-                #endregion
-
-                #region Static Methods
-                public static void ProcessDensityMapCoroutineInfoQueue()
-                {
-                    while (densityMapCoroutineInfoQueue.Count > 0)
-                    {
-                        DensityMapCoroutineInfo threadInfo = densityMapCoroutineInfoQueue.Dequeue();
-                        threadInfo.Callback(threadInfo.DensityMaps);
-                    }
                 }
                 #endregion
                 
@@ -2252,7 +2261,7 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Structs
-                private struct DensityMapCoroutineInfo
+                public struct DensityMapCoroutineInfo
                 {
                     public readonly Action<DensityMapCollection> Callback;
                     public readonly DensityMapCollection DensityMaps;
@@ -2263,6 +2272,10 @@ namespace LooCast.Universe
                         DensityMaps = densityMaps;
                     }
                 }
+                #endregion
+
+                #region Static Properties
+                public static Queue<DensityMapCoroutineInfo> DensityMapCoroutineInfoQueue => densityMapCoroutineInfoQueue;
                 #endregion
 
                 #region Static Fields
@@ -2292,17 +2305,6 @@ namespace LooCast.Universe
                     chunkSeed = new SeededRandom((int)(universe.generationSettings.Seed + region.regionPosition.CurrentPosition.magnitude + chunkPosition.CurrentPosition.magnitude)).Range(int.MinValue, int.MaxValue);
                     densityMaps = new DensityMapCollection(regionGenerationSettings.ChunkSize);
                     RequestDensityMaps(universe, sector, region, OnDensityMapsReceived);
-                }
-                #endregion
-
-                #region Static Methods
-                public static void ProcessDensityMapCoroutineInfoQueue()
-                {
-                    while (densityMapCoroutineInfoQueue.Count > 0)
-                    {
-                        DensityMapCoroutineInfo threadInfo = densityMapCoroutineInfoQueue.Dequeue();
-                        threadInfo.Callback(threadInfo.DensityMaps);
-                    }
                 }
                 #endregion
 
@@ -2558,8 +2560,8 @@ namespace LooCast.Universe
 
                 #region Filament Generation Settings Default
                 generationSettings.FilamentGenerationSettings.Seed = generationSettings.Seed;
-                generationSettings.FilamentGenerationSettings.ChunkSize = 32;
-                generationSettings.FilamentGenerationSettings.ChunkAmount = 32;
+                generationSettings.FilamentGenerationSettings.ChunkSize = 64;
+                generationSettings.FilamentGenerationSettings.ChunkAmount = 16;
                 generationSettings.FilamentGenerationSettings.MapFromMin = -1.0f;
                 generationSettings.FilamentGenerationSettings.MapFromMax = 1.0f;
                 generationSettings.FilamentGenerationSettings.MapToMin = 0.0f;
@@ -2575,8 +2577,8 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Sector Generation Settings Default
-                generationSettings.SectorGenerationSettings.ChunkSize = 32;
-                generationSettings.SectorGenerationSettings.ChunkAmount = 32;
+                generationSettings.SectorGenerationSettings.ChunkSize = 64;
+                generationSettings.SectorGenerationSettings.ChunkAmount = 16;
                 generationSettings.SectorGenerationSettings.MapFromMin = -1.0f;
                 generationSettings.SectorGenerationSettings.MapFromMax = 1.0f;
                 generationSettings.SectorGenerationSettings.MapToMin = 0.0f;
@@ -2591,8 +2593,8 @@ namespace LooCast.Universe
                 #endregion
 
                 #region Region Generation Settings Default
-                generationSettings.RegionGenerationSettings.ChunkSize = 32;
-                generationSettings.RegionGenerationSettings.ChunkAmount = 32;
+                generationSettings.RegionGenerationSettings.ChunkSize = 64;
+                generationSettings.RegionGenerationSettings.ChunkAmount = 16;
                 generationSettings.RegionGenerationSettings.MapFromMin = -1.0f;
                 generationSettings.RegionGenerationSettings.MapFromMax = 1.0f;
                 generationSettings.RegionGenerationSettings.MapToMin = -0.375f;
@@ -2734,13 +2736,13 @@ namespace LooCast.Universe
             return File.Exists(path);
         }
 
+        public bool IsFilamentGenerationRequested(Filament.Position filamentPosition)
+        {
+            return MapElementLoadingUtil.FilamentLoadRequests.Contains(filamentPosition);
+        }
+
         public void RequestGenerateFilament(Filament.Position filamentPosition)
         {
-            if (IsFilamentGenerated(filamentPosition))
-            {
-                throw new Exception("Filament is already generated!");
-            }
-
             MapElementLoadingUtil.RequestFilamentLoad(filamentPosition);
         }
         #endregion
@@ -2873,13 +2875,13 @@ namespace LooCast.Universe
             return filament.ChunkPositionMap.ContainsKey(filamentChunkPosition.CurrentPosition);
         }
 
+        public bool IsFilamentChunkGenerationRequested(Filament.Chunk.Position filamentChunkPosition)
+        {
+            return MapElementLoadingUtil.FilamentChunkLoadRequests.Contains(filamentChunkPosition);
+        }
+
         public void RequestGenerateFilamentChunk(Filament.Chunk.Position filamentChunkPosition)
         {
-            if (IsFilamentChunkGenerated(filamentChunkPosition))
-            {
-                throw new Exception("Filament.Chunk is already generated!");
-            }
-
             MapElementLoadingUtil.RequestFilamentChunkLoad(filamentChunkPosition);
         }
         #endregion
@@ -3028,13 +3030,13 @@ namespace LooCast.Universe
             return filament.SectorPositionMap.ContainsKey(sectorPosition.CurrentPosition);
         }
 
+        public bool IsSectorGenerationRequested(Sector.Position sectorPosition)
+        {
+            return MapElementLoadingUtil.SectorLoadRequests.Contains(sectorPosition);
+        }
+
         public void RequestGenerateSector(Sector.Position sectorPosition)
         {
-            if (IsSectorGenerated(sectorPosition))
-            {
-                throw new Exception("Sector is already generated!");
-            }
-
             MapElementLoadingUtil.RequestSectorLoad(sectorPosition);
         }
         #endregion
@@ -3166,13 +3168,13 @@ namespace LooCast.Universe
             return sector.ChunkPositionMap.ContainsKey(sectorChunkPosition.CurrentPosition);
         }
 
+        public bool IsSectorChunkGenerationRequested(Sector.Chunk.Position sectorChunkPosition)
+        {
+            return MapElementLoadingUtil.SectorChunkLoadRequests.Contains(sectorChunkPosition);
+        }
+
         public void RequestGenerateSectorChunk(Sector.Chunk.Position sectorChunkPosition)
         {
-            if (IsSectorChunkGenerated(sectorChunkPosition))
-            {
-                throw new Exception("Sector Chunk is already generated!");
-            }
-
             MapElementLoadingUtil.RequestSectorChunkLoad(sectorChunkPosition);
         }
         #endregion
@@ -3321,13 +3323,13 @@ namespace LooCast.Universe
             return sector.RegionPositionMap.ContainsKey(regionPosition.CurrentPosition);
         }
 
+        public bool IsRegionGenerationRequested(Region.Position regionPosition)
+        {
+            return MapElementLoadingUtil.RegionLoadRequests.Contains(regionPosition);
+        }
+
         public void RequestGenerateRegion(Region.Position regionPosition)
         {
-            if (IsRegionGenerated(regionPosition))
-            {
-                throw new Exception("Region is already generated!");
-            }
-
             MapElementLoadingUtil.RequestRegionLoad(regionPosition);
         }
         #endregion
@@ -3459,13 +3461,13 @@ namespace LooCast.Universe
             return region.ChunkPositionMap.ContainsKey(regionChunkPosition.CurrentPosition);
         }
 
+        public bool IsRegionChunkGenerationRequested(Region.Chunk.Position regionChunkPosition)
+        {
+            return MapElementLoadingUtil.RegionChunkLoadRequests.Contains(regionChunkPosition);
+        }
+
         public void RequestGenerateRegionChunk(Region.Chunk.Position regionChunkPosition)
         {
-            if (IsRegionChunkGenerated(regionChunkPosition))
-            {
-                throw new Exception("Region Chunk is already generated!");
-            }
-
             MapElementLoadingUtil.RequestRegionChunkLoad(regionChunkPosition);
         }
         #endregion

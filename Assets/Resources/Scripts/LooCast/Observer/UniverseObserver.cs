@@ -5,17 +5,13 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 namespace LooCast.Observer
 {
     using Core;
     using Game;
     using Universe;
-    using Diagnostic;
-    using Util;
-
-    // ISSUE TRACKER
-    // 1. Loaded Chunks never get unloaded
 
     public class UniverseObserver : ExtendedMonoBehaviour
     {
@@ -77,19 +73,8 @@ namespace LooCast.Observer
         {
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
             regionChunkLoadRadius = 2;
+            // TODO: Implement Sector and Filament Chunk Load Radius
 
-            Benchmark.Create("UpdatePositions");
-            //Benchmark.Create("UpdatePosition");
-            Benchmark.Create("LoadPositions");
-            Benchmark.Create("LoadRegion");
-            Benchmark.Create("LoadSector");
-            Benchmark.Create("LoadFilament");
-            Benchmark.Create("LoadRegionChunk");
-            Benchmark.Create("LoadSectorChunk");
-            Benchmark.Create("LoadFilamentChunk");
-            Benchmark.Create("UnloadPositions");
-
-            
             InitializeScreenPositions();
             InitializeProximalPositions();
             LoadNewlyProximalPositions();
@@ -98,12 +83,15 @@ namespace LooCast.Observer
         private void Update()
         {
             UpdateScreenPositions();
+
             UpdateProximalPositions();
+
             UnloadPreviouslyProximalPositions();
+
+            // TODO: Fix / Maybe remove CancelInvalidatedProximalPositionLoadRequests
             // CancelInvalidatedProximalPositionLoadRequests();
+
             LoadNewlyProximalPositions();
-            // PrintBenchmarks();
-            Debug.Log($"Region Chunks per Frame: {MainManager.Instance.RegionChunksPerFrame}\t\t(Max: {MainManager.Instance.MaxRegionChunksPerFrame})");
         }
 
         private void OnDrawGizmos()
@@ -591,99 +579,171 @@ namespace LooCast.Observer
         
         private void LoadNewlyProximalPositions()
         {
-            Benchmark.Start("LoadPositions");
-
-            Benchmark.Start("LoadFilament");
             foreach (var newlyProximalFilamentPosition in newlyProximalFilamentPositions)
             {
-                if (!currentUniverse.IsFilamentGenerated(newlyProximalFilamentPosition))
+                if (currentUniverse.IsFilamentGenerationRequested(newlyProximalFilamentPosition))
                 {
-                    currentUniverse.RequestGenerateFilament(newlyProximalFilamentPosition);
+                    continue;
                 }
-                else if (!currentUniverse.IsFilamentLoaded(newlyProximalFilamentPosition))
+                else
                 {
-                    currentUniverse.LoadFilament(newlyProximalFilamentPosition);
+                    if (currentUniverse.IsFilamentLoaded(newlyProximalFilamentPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsFilamentGenerated(newlyProximalFilamentPosition))
+                        {
+                            currentUniverse.LoadFilament(newlyProximalFilamentPosition);
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateFilament(newlyProximalFilamentPosition);
+                        }
+                    }
                 }
             }
-            Benchmark.Stop("LoadFilament");
 
-            Benchmark.Start("LoadFilamentChunk");
             foreach (var newlyProximalFilamentChunkPosition in newlyProximalFilamentChunkPositions)
             {
-                if (!currentUniverse.IsFilamentChunkGenerated(newlyProximalFilamentChunkPosition))
+                if (currentUniverse.IsFilamentChunkGenerationRequested(newlyProximalFilamentChunkPosition))
                 {
-                    currentUniverse.RequestGenerateFilamentChunk(newlyProximalFilamentChunkPosition);
+                    continue;
                 }
-                else if (!currentUniverse.IsFilamentChunkLoaded(newlyProximalFilamentChunkPosition))
+                else
                 {
-                    currentUniverse.LoadFilamentChunk(newlyProximalFilamentChunkPosition);
+                    if (currentUniverse.IsFilamentChunkLoaded(newlyProximalFilamentChunkPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsFilamentChunkGenerated(newlyProximalFilamentChunkPosition))
+                        {
+                            currentUniverse.LoadFilamentChunk(newlyProximalFilamentChunkPosition);
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateFilamentChunk(newlyProximalFilamentChunkPosition);
+                        }
+                    }
                 }
             }
-            Benchmark.Stop("LoadFilamentChunk");
 
-            Benchmark.Start("LoadSector");
             foreach (var newlyProximalSectorPosition in newlyProximalSectorPositions)
             {
-                if (!currentUniverse.IsSectorGenerated(newlyProximalSectorPosition))
+                if (currentUniverse.IsSectorGenerationRequested(newlyProximalSectorPosition))
                 {
-                    currentUniverse.RequestGenerateSector(newlyProximalSectorPosition);
+                    continue;
                 }
-                else if (!currentUniverse.IsSectorLoaded(newlyProximalSectorPosition))
+                else
                 {
-                    currentUniverse.LoadSector(newlyProximalSectorPosition);
+                    if (currentUniverse.IsSectorLoaded(newlyProximalSectorPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsSectorGenerated(newlyProximalSectorPosition))
+                        {
+                            currentUniverse.LoadSector(newlyProximalSectorPosition);
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateSector(newlyProximalSectorPosition);
+                        }
+                    }
                 }
             }
-            Benchmark.Stop("LoadSector");
 
-            Benchmark.Start("LoadSectorChunk");
             foreach (var newlyProximalSectorChunkPosition in newlyProximalSectorChunkPositions)
             {
-                if (!currentUniverse.IsSectorChunkGenerated(newlyProximalSectorChunkPosition))
+                if (currentUniverse.IsSectorChunkGenerationRequested(newlyProximalSectorChunkPosition))
                 {
-                    currentUniverse.RequestGenerateSectorChunk(newlyProximalSectorChunkPosition);
+                    continue;
                 }
-                else if (!currentUniverse.IsSectorChunkLoaded(newlyProximalSectorChunkPosition))
+                else
                 {
-                    currentUniverse.LoadSectorChunk(newlyProximalSectorChunkPosition);
+                    if (currentUniverse.IsSectorChunkLoaded(newlyProximalSectorChunkPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsSectorChunkGenerated(newlyProximalSectorChunkPosition))
+                        {
+                            currentUniverse.LoadSectorChunk(newlyProximalSectorChunkPosition);
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateSectorChunk(newlyProximalSectorChunkPosition);
+                        }
+                    }
                 }
             }
-            Benchmark.Stop("LoadSectorChunk");
 
-            Benchmark.Start("LoadRegion");
             foreach (var newlyProximalRegionPosition in newlyProximalRegionPositions)
             {
-                if (!currentUniverse.IsRegionGenerated(newlyProximalRegionPosition))
+                if (currentUniverse.IsRegionGenerationRequested(newlyProximalRegionPosition))
                 {
-                    currentUniverse.RequestGenerateRegion(newlyProximalRegionPosition);
+                    continue;
                 }
-                else if (!currentUniverse.IsRegionLoaded(newlyProximalRegionPosition))
+                else
                 {
-                    currentUniverse.LoadRegion(newlyProximalRegionPosition);
+                    if (currentUniverse.IsRegionLoaded(newlyProximalRegionPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsRegionGenerated(newlyProximalRegionPosition))
+                        {
+                            currentUniverse.LoadRegion(newlyProximalRegionPosition);
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateRegion(newlyProximalRegionPosition);
+                        }
+                    }
                 }
             }
-            Benchmark.Stop("LoadRegion");
 
-            Benchmark.Start("LoadRegionChunk");
             foreach (var newlyProximalRegionChunkPosition in newlyProximalRegionChunkPositions)
             {
-                if (!currentUniverse.IsRegionChunkGenerated(newlyProximalRegionChunkPosition))
+                if (currentUniverse.IsRegionChunkGenerationRequested(newlyProximalRegionChunkPosition))
                 {
-                    currentUniverse.RequestGenerateRegionChunk(newlyProximalRegionChunkPosition);
+                    continue;
                 }
-                else if (!currentUniverse.IsRegionChunkLoaded(newlyProximalRegionChunkPosition))
+                else
                 {
-                    currentUniverse.LoadRegionChunk(newlyProximalRegionChunkPosition);
+                    if (currentUniverse.IsRegionChunkLoaded(newlyProximalRegionChunkPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsRegionChunkGenerated(newlyProximalRegionChunkPosition))
+                        {
+                            currentUniverse.LoadRegionChunk(newlyProximalRegionChunkPosition);
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateRegionChunk(newlyProximalRegionChunkPosition);
+                        }
+                    }
                 }
             }
-            Benchmark.Stop("LoadRegionChunk");
-
-            Benchmark.Stop("LoadPositions");
         }
 
         private void UnloadPreviouslyProximalPositions()
         {
-            Benchmark.Start("UnloadPositions");
-
             // Region Chunk
             foreach (Universe.Region.Chunk.Position previouslyProximalRegionChunkPosition in previouslyProximalRegionChunkPositions)
             {
@@ -737,8 +797,6 @@ namespace LooCast.Observer
                     currentUniverse.UnloadFilament(previouslyProximalFilamentPosition);
                 }
             }
-
-            Benchmark.Stop("UnloadPositions");
         }
 
         private void CancelInvalidatedProximalPositionLoadRequests()
@@ -848,28 +906,6 @@ namespace LooCast.Observer
                 Gizmos.color = new Color(1.0f, 0.5f, 0.0f);
                 Gizmos.DrawWireCube(loadedFilamentPositions.WorldPosition, new Vector2(filamentSize, filamentSize));
             }
-        }
-
-        private void PrintBenchmarks()
-        {
-            Debug.Log(
-                $"ELEMENT LOAD:" +
-                $"\t\t\t\tRegion: \t\t{Benchmark.AverageDuration("LoadRegion").Milliseconds}({Benchmark.MaxDuration("LoadRegion").Milliseconds})ms" +
-                $"\t\t\t\tChunk: \t{Benchmark.AverageDuration("LoadRegionChunk").Milliseconds}({Benchmark.MaxDuration("LoadRegionChunk").Milliseconds})ms");
-            Debug.Log(
-                $"ELEMENT LOAD:" +
-                $"\t\t\t\tSector: \t\t{Benchmark.AverageDuration("LoadSector").Milliseconds}({Benchmark.MaxDuration("LoadSector").Milliseconds})ms" +
-                $"\t\t\t\tChunk: \t{Benchmark.AverageDuration("LoadSectorChunk").Milliseconds}({Benchmark.MaxDuration("LoadSectorChunk").Milliseconds})ms");
-            Debug.Log(
-                $"ELEMENT LOAD:" +
-                $"\t\t\t\tFilament: \t{Benchmark.AverageDuration("LoadFilament").Milliseconds}({Benchmark.MaxDuration("LoadFilament").Milliseconds})ms" +
-                $"\t\t\t\tChunk: \t{Benchmark.AverageDuration("LoadFilamentChunk").Milliseconds}({Benchmark.MaxDuration("LoadFilamentChunk").Milliseconds})ms");
-            Debug.Log(
-                $"MISCELLANEOUS:" +
-                //$"\t\t\t\tUpdate Position: \t{Benchmark.AverageDuration("UpdatePosition").Milliseconds}({Benchmark.MaxDuration("UpdatePosition").Milliseconds})ms" +
-                $"\t\t Update Positions: \t{Benchmark.AverageDuration("UpdatePositions").Milliseconds}({Benchmark.MaxDuration("UpdatePositions").Milliseconds})ms" +
-                $"\t\t Load Positions: \t{Benchmark.AverageDuration("LoadPositions").Milliseconds}({Benchmark.MaxDuration("LoadPositions").Milliseconds})ms" +
-                $"\t\t Unload Positions: \t{Benchmark.AverageDuration("UnloadPositions").Milliseconds}({Benchmark.MaxDuration("UnloadPositions").Milliseconds})ms");
         }
     }
 }
