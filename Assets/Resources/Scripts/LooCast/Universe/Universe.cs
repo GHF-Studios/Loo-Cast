@@ -10,6 +10,7 @@ namespace LooCast.Universe
     using Core;
     using Game;
     using Random;
+    using UnityEngine.Profiling;
     using Util;
     using Util.Collections.Generic;
 
@@ -992,6 +993,8 @@ namespace LooCast.Universe
                         {
                             filamentLoadRequests.Remove(filamentPosition);
                         }
+
+                        yield return null;
                     }
                     
                     yield return null;
@@ -1028,6 +1031,8 @@ namespace LooCast.Universe
                         {
                             filamentChunkLoadRequests.Remove(filamentChunkPosition);
                         }
+
+                        yield return null;
                     }
 
                     yield return null;
@@ -1064,6 +1069,8 @@ namespace LooCast.Universe
                         {
                             sectorLoadRequests.Remove(sectorPosition);
                         }
+
+                        yield return null;
                     }
 
                     yield return null;
@@ -1101,6 +1108,8 @@ namespace LooCast.Universe
                         {
                             sectorChunkLoadRequests.Remove(sectorChunkPosition);
                         }
+
+                        yield return null;
                     }
 
                     yield return null;
@@ -1137,6 +1146,8 @@ namespace LooCast.Universe
                         {
                             regionLoadRequests.Remove(regionPosition);
                         }
+
+                        yield return null;
                     }
 
                     yield return null;
@@ -1155,6 +1166,7 @@ namespace LooCast.Universe
                         {
                             if (!currentUniverse.IsRegionLoaded(regionChunkPosition.RegionPosition))
                             {
+                                yield return null;
                                 continue;
                             }
 
@@ -1174,6 +1186,8 @@ namespace LooCast.Universe
                         {
                             regionChunkLoadRequests.Remove(regionChunkPosition);
                         }
+
+                        yield return null;
                     }
 
                     yield return null;

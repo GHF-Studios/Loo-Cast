@@ -11,10 +11,12 @@ namespace LooCast.Observer
 {
     using Core;
     using Game;
+    using LooCast.Diagnostic;
     using Universe;
 
     public class UniverseObserver : ExtendedMonoBehaviour
     {
+        #region Fields
         private Universe currentUniverse;
         private int regionChunkLoadRadius;
 
@@ -68,7 +70,9 @@ namespace LooCast.Observer
         private ConcurrentBag<Universe.Region.Position> newlyProximalRegionPositions;
         private ConcurrentBag<Universe.Sector.Position> newlyProximalSectorPositions;
         private ConcurrentBag<Universe.Filament.Position> newlyProximalFilamentPositions;
+        #endregion
 
+        #region Unity Callbacks
         private void Start()
         {
             currentUniverse = GameManager.Instance.CurrentGame.CurrentUniverse;
@@ -77,7 +81,7 @@ namespace LooCast.Observer
 
             InitializeScreenPositions();
             InitializeProximalPositions();
-            LoadNewlyProximalPositions();
+            StartCoroutine(LoadNewlyProximalPositionsCoroutine());
         }
 
         private void Update()
@@ -90,15 +94,15 @@ namespace LooCast.Observer
 
             // TODO: Fix / Maybe remove CancelInvalidatedProximalPositionLoadRequests
             // CancelInvalidatedProximalPositionLoadRequests();
-
-            LoadNewlyProximalPositions();
         }
 
         private void OnDrawGizmos()
         {
             DrawLoadedPositionGizmos();
         }
+        #endregion
 
+        #region Methods
         private void InitializeScreenPositions()
         {
             UpdateScreenPositions();
@@ -576,171 +580,6 @@ namespace LooCast.Observer
             previousScreenFilamentPosMax = currentScreenFilamentPosMax;
             #endregion
         }
-        
-        private void LoadNewlyProximalPositions()
-        {
-            foreach (var newlyProximalFilamentPosition in newlyProximalFilamentPositions)
-            {
-                if (currentUniverse.IsFilamentGenerationRequested(newlyProximalFilamentPosition))
-                {
-                    continue;
-                }
-                else
-                {
-                    if (currentUniverse.IsFilamentLoaded(newlyProximalFilamentPosition))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        if (currentUniverse.IsFilamentGenerated(newlyProximalFilamentPosition))
-                        {
-                            currentUniverse.LoadFilament(newlyProximalFilamentPosition);
-                            continue;
-                        }
-                        else
-                        {
-                            currentUniverse.RequestGenerateFilament(newlyProximalFilamentPosition);
-                        }
-                    }
-                }
-            }
-
-            foreach (var newlyProximalFilamentChunkPosition in newlyProximalFilamentChunkPositions)
-            {
-                if (currentUniverse.IsFilamentChunkGenerationRequested(newlyProximalFilamentChunkPosition))
-                {
-                    continue;
-                }
-                else
-                {
-                    if (currentUniverse.IsFilamentChunkLoaded(newlyProximalFilamentChunkPosition))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        if (currentUniverse.IsFilamentChunkGenerated(newlyProximalFilamentChunkPosition))
-                        {
-                            currentUniverse.LoadFilamentChunk(newlyProximalFilamentChunkPosition);
-                            continue;
-                        }
-                        else
-                        {
-                            currentUniverse.RequestGenerateFilamentChunk(newlyProximalFilamentChunkPosition);
-                        }
-                    }
-                }
-            }
-
-            foreach (var newlyProximalSectorPosition in newlyProximalSectorPositions)
-            {
-                if (currentUniverse.IsSectorGenerationRequested(newlyProximalSectorPosition))
-                {
-                    continue;
-                }
-                else
-                {
-                    if (currentUniverse.IsSectorLoaded(newlyProximalSectorPosition))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        if (currentUniverse.IsSectorGenerated(newlyProximalSectorPosition))
-                        {
-                            currentUniverse.LoadSector(newlyProximalSectorPosition);
-                            continue;
-                        }
-                        else
-                        {
-                            currentUniverse.RequestGenerateSector(newlyProximalSectorPosition);
-                        }
-                    }
-                }
-            }
-
-            foreach (var newlyProximalSectorChunkPosition in newlyProximalSectorChunkPositions)
-            {
-                if (currentUniverse.IsSectorChunkGenerationRequested(newlyProximalSectorChunkPosition))
-                {
-                    continue;
-                }
-                else
-                {
-                    if (currentUniverse.IsSectorChunkLoaded(newlyProximalSectorChunkPosition))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        if (currentUniverse.IsSectorChunkGenerated(newlyProximalSectorChunkPosition))
-                        {
-                            currentUniverse.LoadSectorChunk(newlyProximalSectorChunkPosition);
-                            continue;
-                        }
-                        else
-                        {
-                            currentUniverse.RequestGenerateSectorChunk(newlyProximalSectorChunkPosition);
-                        }
-                    }
-                }
-            }
-
-            foreach (var newlyProximalRegionPosition in newlyProximalRegionPositions)
-            {
-                if (currentUniverse.IsRegionGenerationRequested(newlyProximalRegionPosition))
-                {
-                    continue;
-                }
-                else
-                {
-                    if (currentUniverse.IsRegionLoaded(newlyProximalRegionPosition))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        if (currentUniverse.IsRegionGenerated(newlyProximalRegionPosition))
-                        {
-                            currentUniverse.LoadRegion(newlyProximalRegionPosition);
-                            continue;
-                        }
-                        else
-                        {
-                            currentUniverse.RequestGenerateRegion(newlyProximalRegionPosition);
-                        }
-                    }
-                }
-            }
-
-            foreach (var newlyProximalRegionChunkPosition in newlyProximalRegionChunkPositions)
-            {
-                if (currentUniverse.IsRegionChunkGenerationRequested(newlyProximalRegionChunkPosition))
-                {
-                    continue;
-                }
-                else
-                {
-                    if (currentUniverse.IsRegionChunkLoaded(newlyProximalRegionChunkPosition))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        if (currentUniverse.IsRegionChunkGenerated(newlyProximalRegionChunkPosition))
-                        {
-                            currentUniverse.LoadRegionChunk(newlyProximalRegionChunkPosition);
-                            continue;
-                        }
-                        else
-                        {
-                            currentUniverse.RequestGenerateRegionChunk(newlyProximalRegionChunkPosition);
-                        }
-                    }
-                }
-            }
-        }
 
         private void UnloadPreviouslyProximalPositions()
         {
@@ -907,5 +746,215 @@ namespace LooCast.Observer
                 Gizmos.DrawWireCube(loadedFilamentPositions.WorldPosition, new Vector2(filamentSize, filamentSize));
             }
         }
+        #endregion
+
+        #region Coroutines
+        private IEnumerator LoadNewlyProximalPositionsCoroutine()
+        {
+            while (true)
+            {
+                yield return StartCoroutine(LoadNewlyProximalFilamentPositionsCoroutine());
+                yield return StartCoroutine(LoadNewlyProximalFilamentChunkPositionsCoroutine());
+                yield return StartCoroutine(LoadNewlyProximalSectorPositionsCoroutine());
+                yield return StartCoroutine(LoadNewlyProximalSectorChunkPositionsCoroutine());
+                yield return StartCoroutine(LoadNewlyProximalRegionPositionsCoroutine());
+                yield return StartCoroutine(LoadNewlyProximalRegionChunkPositionsCoroutine());
+
+                yield return null;
+            }
+        }
+
+        private IEnumerator LoadNewlyProximalFilamentPositionsCoroutine()
+        {
+            foreach (var newlyProximalFilamentPosition in newlyProximalFilamentPositions)
+            {
+                if (currentUniverse.IsFilamentGenerationRequested(newlyProximalFilamentPosition))
+                {
+                    continue;
+                }
+                else
+                {
+                    if (currentUniverse.IsFilamentLoaded(newlyProximalFilamentPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsFilamentGenerated(newlyProximalFilamentPosition))
+                        {
+                            currentUniverse.LoadFilament(newlyProximalFilamentPosition);
+                            yield return null;
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateFilament(newlyProximalFilamentPosition);
+                            yield return null;
+                        }
+                    }
+                }
+            }
+        }
+
+        private IEnumerator LoadNewlyProximalFilamentChunkPositionsCoroutine()
+        {
+            foreach (var newlyProximalFilamentChunkPosition in newlyProximalFilamentChunkPositions)
+            {
+                if (currentUniverse.IsFilamentChunkGenerationRequested(newlyProximalFilamentChunkPosition))
+                {
+                    continue;
+                }
+                else
+                {
+                    if (currentUniverse.IsFilamentChunkLoaded(newlyProximalFilamentChunkPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsFilamentChunkGenerated(newlyProximalFilamentChunkPosition))
+                        {
+                            currentUniverse.LoadFilamentChunk(newlyProximalFilamentChunkPosition);
+                            yield return null;
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateFilamentChunk(newlyProximalFilamentChunkPosition);
+                            yield return null;
+                        }
+                    }
+                }
+            }
+        }
+
+        private IEnumerator LoadNewlyProximalSectorPositionsCoroutine()
+        {
+            foreach (var newlyProximalSectorPosition in newlyProximalSectorPositions)
+            {
+                if (currentUniverse.IsSectorGenerationRequested(newlyProximalSectorPosition))
+                {
+                    continue;
+                }
+                else
+                {
+                    if (currentUniverse.IsSectorLoaded(newlyProximalSectorPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsSectorGenerated(newlyProximalSectorPosition))
+                        {
+                            currentUniverse.LoadSector(newlyProximalSectorPosition);
+                            yield return null;
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateSector(newlyProximalSectorPosition);
+                            yield return null;
+                        }
+                    }
+                }
+            }
+        }
+
+        private IEnumerator LoadNewlyProximalSectorChunkPositionsCoroutine()
+        {
+            foreach (var newlyProximalSectorChunkPosition in newlyProximalSectorChunkPositions)
+            {
+                if (currentUniverse.IsSectorChunkGenerationRequested(newlyProximalSectorChunkPosition))
+                {
+                    continue;
+                }
+                else
+                {
+                    if (currentUniverse.IsSectorChunkLoaded(newlyProximalSectorChunkPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsSectorChunkGenerated(newlyProximalSectorChunkPosition))
+                        {
+                            currentUniverse.LoadSectorChunk(newlyProximalSectorChunkPosition);
+                            yield return null;
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateSectorChunk(newlyProximalSectorChunkPosition);
+                            yield return null;
+                        }
+                    }
+                }
+            }
+        }
+
+        private IEnumerator LoadNewlyProximalRegionPositionsCoroutine()
+        {
+            foreach (var newlyProximalRegionPosition in newlyProximalRegionPositions)
+            {
+                if (currentUniverse.IsRegionGenerationRequested(newlyProximalRegionPosition))
+                {
+                    continue;
+                }
+                else
+                {
+                    if (currentUniverse.IsRegionLoaded(newlyProximalRegionPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsRegionGenerated(newlyProximalRegionPosition))
+                        {
+                            currentUniverse.LoadRegion(newlyProximalRegionPosition);
+                            yield return null;
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateRegion(newlyProximalRegionPosition);
+                            yield return null;
+                        }
+                    }
+                }
+            }
+        }
+
+        private IEnumerator LoadNewlyProximalRegionChunkPositionsCoroutine()
+        {
+            foreach (var newlyProximalRegionChunkPosition in newlyProximalRegionChunkPositions)
+            {
+                if (currentUniverse.IsRegionChunkGenerationRequested(newlyProximalRegionChunkPosition))
+                {
+                    continue;
+                }
+                else
+                {
+                    if (currentUniverse.IsRegionChunkLoaded(newlyProximalRegionChunkPosition))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (currentUniverse.IsRegionChunkGenerated(newlyProximalRegionChunkPosition))
+                        {
+                            currentUniverse.LoadRegionChunk(newlyProximalRegionChunkPosition);
+                            yield return null;
+                            continue;
+                        }
+                        else
+                        {
+                            currentUniverse.RequestGenerateRegionChunk(newlyProximalRegionChunkPosition);
+                            yield return null;
+                        }
+                    }
+                }
+            }
+        }
+        #endregion
     }
 }
