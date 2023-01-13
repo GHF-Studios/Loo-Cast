@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace LooCast.Data
 {
-    public class Data
+    public abstract class Data
     {
         public static string Path
         {
@@ -17,7 +17,6 @@ namespace LooCast.Data
         public static void ResetAll()
         {
             string path = $"{Application.dataPath}/.Data";
-            // create path if not exists
             if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
