@@ -9,8 +9,9 @@ namespace LooCast.Attribute.Stat
     using LooCast.Util;
 
     [CreateAssetMenu(fileName = "Stats", menuName = "Data/Attribute/Stat/Stats", order = 0)]
-    public class Stats : ScriptableObject
+    public class Stats : DynamicData
     {
+        #region Properties
         public float MovementSpeedMultiplier { get { return Agility.MovementSpeedMultiplier; } }
         //public float UNDEFINED { get { return Alertness.UNDEFINED; } }
         //public float UNDEFINED { get { return Awareness.UNDEFINED; } }
@@ -45,7 +46,9 @@ namespace LooCast.Attribute.Stat
         public float DurationMultiplier { get { return Stamina.DurationMultiplier; } }
         public float HealthMultiplier { get { return Vitality.HealthMultiplier; } }
         //public float UNDEFINED { get { return Wits.UNDEFINED; } }
+        #endregion
 
+        #region Fields
         public Attributes Attributes;
 
         public AgilityStat Agility;
@@ -82,83 +85,9 @@ namespace LooCast.Attribute.Stat
         public StaminaStat Stamina;
         public VitalityStat Vitality;
         public WitsStat Wits;
+        #endregion
 
-        private void OnEnable()
-        {
-            LoadStat(Agility);
-            LoadStat(Alertness);
-            LoadStat(Awareness);
-            LoadStat(Body);
-            LoadStat(Brawn);
-            LoadStat(Cautiousness);
-            LoadStat(Chance);
-            LoadStat(Charm);
-            LoadStat(Ego);
-            LoadStat(Endurance);
-            LoadStat(Fate);
-            LoadStat(Fortitude);
-            LoadStat(Fortune);
-            LoadStat(Intellect);
-            LoadStat(Knowledge);
-            LoadStat(Might);
-            LoadStat(Mind);
-            LoadStat(Personality);
-            LoadStat(Power);
-            LoadStat(Presence);
-            LoadStat(Psyche);
-            LoadStat(Quickness);
-            LoadStat(Recovery);
-            LoadStat(Reflexes);
-            LoadStat(Resilience);
-            LoadStat(Resistance);
-            LoadStat(Resolve);
-            LoadStat(Sanity);
-            LoadStat(Sense);
-            LoadStat(Social);
-            LoadStat(Spirit);
-            LoadStat(Stamina);
-            LoadStat(Vitality);
-            LoadStat(Wits);
-        }
-
-        private void OnDisable()
-        {
-            SaveStat(Agility);
-            SaveStat(Alertness);
-            SaveStat(Awareness);
-            SaveStat(Body);
-            SaveStat(Brawn);
-            SaveStat(Cautiousness);
-            SaveStat(Chance);
-            SaveStat(Charm);
-            SaveStat(Ego);
-            SaveStat(Endurance);
-            SaveStat(Fate);
-            SaveStat(Fortitude);
-            SaveStat(Fortune);
-            SaveStat(Intellect);
-            SaveStat(Knowledge);
-            SaveStat(Might);
-            SaveStat(Mind);
-            SaveStat(Personality);
-            SaveStat(Power);
-            SaveStat(Presence);
-            SaveStat(Psyche);
-            SaveStat(Quickness);
-            SaveStat(Recovery);
-            SaveStat(Reflexes);
-            SaveStat(Resilience);
-            SaveStat(Resistance);
-            SaveStat(Resolve);
-            SaveStat(Sanity);
-            SaveStat(Sense);
-            SaveStat(Social);
-            SaveStat(Spirit);
-            SaveStat(Stamina);
-            SaveStat(Vitality);
-            SaveStat(Wits);
-        }
-
+        #region Methods
         public void Cheat()
         {
             Agility.Level.Value = Agility.MaxLevel.Value;
@@ -277,18 +206,142 @@ namespace LooCast.Attribute.Stat
             }
         }
 
-        public void SaveStat(Stat stat, bool saveDefault = false)
+        public override void Save()
         {
-            JSONUtil.SaveData(new Stat.DataContainer(stat.Attribute, stat.Level, stat.MaxLevel, stat.ProposedLevelChange), $"{(saveDefault ? "Default/" : "")}Attribute/Stat/{stat.StatName}.json");
+            SaveStat(Agility);
+            SaveStat(Alertness);
+            SaveStat(Awareness);
+            SaveStat(Body);
+            SaveStat(Brawn);
+            SaveStat(Cautiousness);
+            SaveStat(Chance);
+            SaveStat(Charm);
+            SaveStat(Ego);
+            SaveStat(Endurance);
+            SaveStat(Fate);
+            SaveStat(Fortitude);
+            SaveStat(Fortune);
+            SaveStat(Intellect);
+            SaveStat(Knowledge);
+            SaveStat(Might);
+            SaveStat(Mind);
+            SaveStat(Personality);
+            SaveStat(Power);
+            SaveStat(Presence);
+            SaveStat(Psyche);
+            SaveStat(Quickness);
+            SaveStat(Recovery);
+            SaveStat(Reflexes);
+            SaveStat(Resilience);
+            SaveStat(Resistance);
+            SaveStat(Resolve);
+            SaveStat(Sanity);
+            SaveStat(Sense);
+            SaveStat(Social);
+            SaveStat(Spirit);
+            SaveStat(Stamina);
+            SaveStat(Vitality);
+            SaveStat(Wits);
         }
 
-        public void LoadStat(Stat stat)
+        public override void Load()
         {
-            Stat.DataContainer dataContainer = JSONUtil.LoadData<Stat.DataContainer>($"Attribute/Stat/{stat.StatName}.json");
+            LoadStat(Agility);
+            LoadStat(Alertness);
+            LoadStat(Awareness);
+            LoadStat(Body);
+            LoadStat(Brawn);
+            LoadStat(Cautiousness);
+            LoadStat(Chance);
+            LoadStat(Charm);
+            LoadStat(Ego);
+            LoadStat(Endurance);
+            LoadStat(Fate);
+            LoadStat(Fortitude);
+            LoadStat(Fortune);
+            LoadStat(Intellect);
+            LoadStat(Knowledge);
+            LoadStat(Might);
+            LoadStat(Mind);
+            LoadStat(Personality);
+            LoadStat(Power);
+            LoadStat(Presence);
+            LoadStat(Psyche);
+            LoadStat(Quickness);
+            LoadStat(Recovery);
+            LoadStat(Reflexes);
+            LoadStat(Resilience);
+            LoadStat(Resistance);
+            LoadStat(Resolve);
+            LoadStat(Sanity);
+            LoadStat(Sense);
+            LoadStat(Social);
+            LoadStat(Spirit);
+            LoadStat(Stamina);
+            LoadStat(Vitality);
+            LoadStat(Wits);
+        }
+
+        public override void LoadDefault()
+        {
+            LoadStatDefault(Agility, "Dexterity", 0, 0, 0);
+            LoadStatDefault(Alertness, "Perception", 0, 0, 0);
+            LoadStatDefault(Awareness, "Perception", 0, 0, 0);
+            LoadStatDefault(Body, "Strength", 0, 0, 0);
+            LoadStatDefault(Brawn, "Strength", 0, 0, 0);
+            LoadStatDefault(Cautiousness, "Perception", 0, 0, 0);
+            LoadStatDefault(Chance, "Luck", 0, 0, 0);
+            LoadStatDefault(Charm, "Charisma", 0, 0, 0);
+            LoadStatDefault(Ego, "Willpower", 0, 0, 0);
+            LoadStatDefault(Endurance, "Constitution", 0, 0, 0);
+            LoadStatDefault(Fate, "Luck", 0, 0, 0);
+            LoadStatDefault(Fortitude, "Defense", 0, 0, 0);
+            LoadStatDefault(Fortune, "Luck", 0, 0, 0);
+            LoadStatDefault(Intellect, "Intelligence", 0, 0, 0);
+            LoadStatDefault(Knowledge, "Intelligence", 0, 0, 0);
+            LoadStatDefault(Might, "Strength", 0, 0, 0);
+            LoadStatDefault(Mind, "Intelligence", 0, 0, 0);
+            LoadStatDefault(Personality, "Willpower", 0, 0, 0);
+            LoadStatDefault(Power, "Strength", 0, 0, 0);
+            LoadStatDefault(Presence, "Charisma", 0, 0, 0);
+            LoadStatDefault(Psyche, "Wisdom", 0, 0, 0);
+            LoadStatDefault(Quickness, "Dexterity", 0, 0, 0);
+            LoadStatDefault(Recovery, "Constitution", 0, 0, 0);
+            LoadStatDefault(Reflexes, "Dexterity", 0, 0, 0);
+            LoadStatDefault(Resilience, "Defense", 0, 0, 0);
+            LoadStatDefault(Resistance, "Defense", 0, 0, 0);
+            LoadStatDefault(Resolve, "Willpower", 0, 0, 0);
+            LoadStatDefault(Sanity, "Willpower", 0, 0, 0);
+            LoadStatDefault(Sense, "Wisdom", 0, 0, 0);
+            LoadStatDefault(Social, "Charisma", 0, 0, 0);
+            LoadStatDefault(Spirit, "Wisdom", 0, 0, 0);
+            LoadStatDefault(Stamina, "Constitution", 0, 0, 0);
+            LoadStatDefault(Vitality, "Constitution", 0, 0, 0);
+            LoadStatDefault(Wits, "Wisdom", 0, 0, 0);
+        }
+
+        private void SaveStat(Stat stat)
+        {
+            SerializationUtil.SaveData(new Stat.DataContainer(stat.Attribute, stat.Level, stat.MaxLevel, stat.ProposedLevelChange), $"Attribute/Stat/{stat.StatName}.dat");
+        }
+
+        private void LoadStat(Stat stat)
+        {
+            Stat.DataContainer dataContainer = SerializationUtil.LoadData<Stat.DataContainer>($"Attribute/Stat/{stat.StatName}.dat");
             stat.Attribute = dataContainer.GetAttribute(Attributes);
             stat.Level = dataContainer.GetLevel();
             stat.MaxLevel = dataContainer.GetMaxLevel();
             stat.ProposedLevelChange = dataContainer.GetProposedLevelChange();
         }
-    } 
+
+        private void LoadStatDefault(Stat stat, string attributeName, int level, int maxLevel, int proposedLevelChange)
+        {
+            Stat.DataContainer dataContainer = new Stat.DataContainer(attributeName, 0, 0, 0);
+            stat.Attribute = dataContainer.GetAttribute(Attributes);
+            stat.Level = dataContainer.GetLevel();
+            stat.MaxLevel = dataContainer.GetMaxLevel();
+            stat.ProposedLevelChange = dataContainer.GetProposedLevelChange();
+        }
+        #endregion
+    }
 }

@@ -11,6 +11,8 @@ using JetBrains.Annotations;
 
 namespace LooCast.Game
 {
+    using LooCast.Data;
+    
     [Serializable]
     public class Games
     {
@@ -20,7 +22,7 @@ namespace LooCast.Game
         #region Fields
         [SerializeField] private SerializableList<string> gameNames;
         #endregion
-
+        
         #region Constructors
         public Games()
         {
@@ -33,7 +35,7 @@ namespace LooCast.Game
         {
             if (gameNames.Contains(gameName))
             {
-                return Game.LoadGame(gameName);
+                return Game.Load(gameName);
             }
             return null;
         }
@@ -61,14 +63,14 @@ namespace LooCast.Game
 
         public static void Save(Games games)
         {
-            string relativeDataPath = $"Games/Games.json";
-            JSONUtil.SaveData(games, relativeDataPath);
+            string relativeDataPath = $"Games/Games.dat";
+            SerializationUtil.SaveData(games, relativeDataPath);
         }
 
         public static Games Load()
         {
-            string relativeDataPath = $"Games/Games.json";
-            string dataPath = $"{Application.dataPath}/Data/{relativeDataPath}";
+            string relativeDataPath = $"Games/Games.dat";
+            string dataPath = Path.Combine(Data.Path, relativeDataPath);
             Games games;
             if (!File.Exists(dataPath))
             {
@@ -77,7 +79,7 @@ namespace LooCast.Game
             }
             else
             {
-                games = JSONUtil.LoadData<Games>(relativeDataPath);
+                games = SerializationUtil.LoadData<Games>(relativeDataPath);
             }
             return games;
         }

@@ -12,6 +12,7 @@ namespace LooCast.Game
     using System;
     using Util;
     using Universe;
+    using System.Xml.Linq;
 
     public class GameManager : MonoBehaviour
     {
@@ -63,14 +64,16 @@ namespace LooCast.Game
             }
 
             #region Initialization
+            
+            #region Game Manager Initialization
             Instance = this;
             runtimeSets.Initialize();
             IsPaused = false;
             KillsStatistic.Kills = 0;
+            Debug.Log($"[GameManager] Initialized.");
             #endregion
 
-            Debug.Log($"[GameManager] Initialized.");
-
+            #region Game Manager Post-Initialization
             if (postInitializationActionQueue != null)
             {
                 while (postInitializationActionQueue.Count > 0)
@@ -79,12 +82,15 @@ namespace LooCast.Game
                     postInitializationAction.Invoke();
                 }
             }
-
             Debug.Log($"[GameManager] Post-Initialized.");
+            #endregion
+
+            #endregion
         }
 
         private void OnApplicationQuit()
         {
+            Game.Save(currentGame);
             runtimeSets.Initialize();
         }
         #endregion
@@ -153,7 +159,7 @@ namespace LooCast.Game
                 throw new Exception("Cannot save Game when no Game is loaded!");
             }
 
-            Game.SaveGame(Instance.currentGame);
+            Game.Save(Instance.currentGame);
 
             // TODO: Save all loaded Chunks
         }
@@ -184,6 +190,7 @@ namespace LooCast.Game
         public void InitializeGame(string newGameName, Universe.GenerationSettings generationSettings)
         {
             Game game = new Game(newGameName);
+            game.Initialize();
             MainManager.Games.AddGame(newGameName);
             LoadGame(game);
             SaveGame();
@@ -195,6 +202,7 @@ namespace LooCast.Game
 
         public void InitializeGame(Game game)
         {
+            game.Initialize();
             LoadGame(game);
 
             Debug.Log($"[GameManager] Initialized Game.");

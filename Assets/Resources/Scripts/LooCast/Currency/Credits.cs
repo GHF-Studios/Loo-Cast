@@ -11,9 +11,10 @@ namespace LooCast.Currency
     using LooCast.Util;
 
     [CreateAssetMenu(fileName = "Credits", menuName = "Data/Currency/Credits", order = 0)]
-    [Serializable]
-    public class Credits : ScriptableObject
+    public class Credits : DynamicData
     {
+        #region Classes
+        [Serializable]
         private class DataContainer
         {
             [SerializeField] private int balance;
@@ -23,6 +24,12 @@ namespace LooCast.Currency
             {
                 this.balance = balance.Value;
                 this.proposedBalanceChange = proposedBalanceChange.Value;
+            }
+
+            public DataContainer(int balance, int proposedBalanceChange)
+            {
+                this.balance = balance;
+                this.proposedBalanceChange = proposedBalanceChange;
             }
 
             public IntVariable GetBalance()
@@ -35,17 +42,25 @@ namespace LooCast.Currency
                 return new IntVariable(proposedBalanceChange);
             }
         }
+        #endregion
+
+        #region Fields
         public IntVariable Balance;
         public IntVariable ProposedBalanceChange;
+        #endregion
 
-        private void OnValidate()
+        #region Methods
+        public override void Save()
         {
-            Save(true);
+            SerializationUtil.SaveData(new DataContainer(Balance, ProposedBalanceChange), $"Currency/Credits.dat");
         }
 
-        private void OnEnable()
+        public override void Load()
         {
-            Load();
+            DataContainer dataContainer = SerializationUtil.LoadData<DataContainer>("Currency/Credits.dat");
+            Balance = dataContainer.GetBalance();
+            ProposedBalanceChange = dataContainer.GetProposedBalanceChange();
+
             Balance.OnValueChanged.AddListener(() =>
             {
                 if (SteamManager.Initialized)
@@ -60,21 +75,25 @@ namespace LooCast.Currency
             });
         }
 
-        private void OnDisable()
+        public override void LoadDefault()
         {
-            Save();
-        }
-
-        public void Save(bool saveDefault = false)
-        {
-            JSONUtil.SaveData(new DataContainer(Balance, ProposedBalanceChange), $"{(saveDefault ? "Default/" : "")}Currency/Credits.json");
-        }
-
-        public void Load()
-        {
-            DataContainer dataContainer = JSONUtil.LoadData<DataContainer>("Currency/Credits.json");
+            DataContainer dataContainer = new DataContainer(0, 0);
             Balance = dataContainer.GetBalance();
             ProposedBalanceChange = dataContainer.GetProposedBalanceChange();
+
+            Balance.OnValueChanged.AddListener(() =>
+            {
+                if (SteamManager.Initialized)
+                {
+                    SteamUserStats.GetStat("highscore_credits_balance", out int highscore_credits_balance);
+                    if (Balance.Value > highscore_credits_balance)
+                    {
+                        SteamUserStats.SetStat("highscore_credits_balance", Balance.Value);
+                    }
+                    SteamUserStats.StoreStats();
+                }
+            });
         }
-    } 
+        #endregion
+    }
 }

@@ -21,7 +21,7 @@ namespace LooCast.Data.Runtime
                 return instanceIdentifier;
             }
         }
-        public string DataFilePath  // Example: Enemy/SmolEnemy/69.json
+        public string DataFilePath  // Example: Enemy/SmolEnemy/69.dat
         {
             get
             {
@@ -30,7 +30,7 @@ namespace LooCast.Data.Runtime
                 {
                     dataFilePath += $"{InstanceIdentifier.Namespaces[i]}/";
                 }
-                dataFilePath += $"{InstanceIdentifier.Type.Name}/{InstanceIdentifier.InstanceID}.json";
+                dataFilePath += $"{InstanceIdentifier.Type.Name}/{InstanceIdentifier.InstanceID}.dat";
                 return dataFilePath;
             }
         }

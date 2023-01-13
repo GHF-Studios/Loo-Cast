@@ -11,6 +11,7 @@ namespace LooCast.Attribute.Stat
     [Serializable]
     public abstract class Stat : ScriptableObject
     {
+        [Serializable]
         public class DataContainer
         {
             [SerializeField] private string attributeName;
@@ -24,6 +25,14 @@ namespace LooCast.Attribute.Stat
                 this.level = level.Value;
                 this.maxLevel = maxLevel.Value;
                 this.proposedLevelChange = proposedLevelChange.Value;
+            }
+
+            public DataContainer(string attributeName, int level, int maxLevel, int proposedLevelChange)
+            {
+                this.attributeName = attributeName;
+                this.level = level;
+                this.maxLevel = maxLevel;
+                this.proposedLevelChange = proposedLevelChange;
             }
 
             public Attribute GetAttribute(Attributes allAttributes)

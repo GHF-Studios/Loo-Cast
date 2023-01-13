@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -11,6 +12,7 @@ namespace LooCast.Core
     using Universe;
     using UI.Screen;
     using Math.Map;
+    using LooCast.Data;
 
     public class MainManager : MonoBehaviour
     {
@@ -45,10 +47,10 @@ namespace LooCast.Core
         #endregion
 
         #region Static Fields
-
         private static MainManager instance;
         private static Games games;
         private static Game gameToBeLoaded;
+        public static float saveInterval = 30.0f;
         #endregion
 
         #region Unity Callbacks
@@ -75,6 +77,10 @@ namespace LooCast.Core
 
             #region SteamManager Initialization
             _ = SteamManager.Initialized;
+            #endregion
+
+            #region Data.Path Initialization
+            _ = Data.Path;
             #endregion
 
             #region TimerUtil Initialization
@@ -191,6 +197,11 @@ namespace LooCast.Core
             switch (sceneType)
             {
                 case SceneType.MainMenu:
+                    if (SceneManager.GetActiveScene().name == "Game")
+                    {
+                        Game.Save(GameManager.Instance.CurrentGame);
+                    }
+
                     GameManager.AddPostInitializationAction(postLoadAction);
                     Instance.StartCoroutine(Instance.LoadSceneAsynchronously(sceneName));
                     break;
@@ -233,6 +244,9 @@ namespace LooCast.Core
         #endregion
 
         #region Methods
+        #endregion
+
+        #region Coroutines
         public IEnumerator LoadSceneAsynchronously(string sceneIndex)
         {
             LoadingScreen loadingScreen = FindObjectOfType<LoadingScreen>();

@@ -2644,7 +2644,7 @@ namespace LooCast.Universe
                         throw new Exception("Cannot get DataPath when no Game is loaded!");
                     }
 
-                    dataPath = $"{GameManager.Instance.CurrentGame.DataPath}/Universe";
+                    dataPath = Path.Combine(GameManager.Instance.CurrentGame.AbsoluteDataPath, "Universe");
                 }
                 return dataPath;
             }
@@ -2746,7 +2746,7 @@ namespace LooCast.Universe
         #region Generation
         public bool IsFilamentGenerated(Filament.Position filamentPosition)
         {
-            string path = $"{DataPath}/Filaments/{filamentPosition.CurrentPosition.x}.{filamentPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Filaments", $"{filamentPosition.CurrentPosition.x}.{filamentPosition.CurrentPosition.y}.dat");
             return File.Exists(path);
         }
 
@@ -2764,7 +2764,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveFilament(Filament filament)
         {
-            string path = $"{DataPath}/Filaments/{filament.FilamentPosition.CurrentPosition.x}.{filament.FilamentPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Filaments", $"{filament.FilamentPosition.CurrentPosition.x}.{filament.FilamentPosition.CurrentPosition.y}.dat");
             string json = JsonUtility.ToJson(filament, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -2804,7 +2804,7 @@ namespace LooCast.Universe
                 throw new Exception($"Filament has not been generated yet!");
             }
 
-            string path = $"{DataPath}/Filaments/{filamentPosition.CurrentPosition.x}.{filamentPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Filaments", $"{filamentPosition.CurrentPosition.x}.{filamentPosition.CurrentPosition.y}.dat");
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Filament filament = JsonUtility.FromJson<Filament>(json);
@@ -2840,7 +2840,7 @@ namespace LooCast.Universe
 
             if (IsFilamentGenerated(filamentPosition))
             {
-                string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.CurrentPosition.x}.{filamentPosition.CurrentPosition.y}.json";
+                string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentPosition.CurrentPosition.x}.{filamentPosition.CurrentPosition.y}.dat";
                 File.Delete(path);
             }
         }
@@ -2882,7 +2882,7 @@ namespace LooCast.Universe
             }
             if (!IsFilamentLoaded(filamentPosition))
             {
-                string path = $"{DataPath}/Filaments/{filamentPosition.CurrentPosition.x}.{filamentPosition.CurrentPosition.y}/Chunks/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}.json";
+                string path = Path.Combine(DataPath, "Filaments", $"{filamentPosition.CurrentPosition.x}.{filamentPosition.CurrentPosition.y}", "Chunks", $"{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}.dat");
                 return File.Exists(path);
             }
             Filament filament = GetFilament(filamentPosition);
@@ -2903,7 +2903,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveFilamentChunk(Filament.Chunk filamentChunk)
         {
-            string path = $"{DataPath}/Filaments/{filamentChunk.FilamentChunkPosition.FilamentPosition.CurrentPosition.x}.{filamentChunk.FilamentChunkPosition.FilamentPosition.CurrentPosition.y}/Chunks/{filamentChunk.FilamentChunkPosition.CurrentPosition.x}.{filamentChunk.FilamentChunkPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Filaments", $"{filamentChunk.FilamentChunkPosition.FilamentPosition.CurrentPosition.x}.{filamentChunk.FilamentChunkPosition.FilamentPosition.CurrentPosition.y}", "Chunks", $"{filamentChunk.FilamentChunkPosition.CurrentPosition.x}.{filamentChunk.FilamentChunkPosition.CurrentPosition.y}.dat");
             string json = JsonUtility.ToJson(filamentChunk, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -2952,7 +2952,7 @@ namespace LooCast.Universe
                 throw new Exception("Containing Filament is not yet loaded!");
             }
 
-            string path = $"{DataPath}/Filaments/{filamentChunkPosition.FilamentPosition.CurrentPosition.x}.{filamentChunkPosition.FilamentPosition.CurrentPosition.y}/Chunks/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Filaments", $"{filamentChunkPosition.FilamentPosition.CurrentPosition.x}.{filamentChunkPosition.FilamentPosition.CurrentPosition.y}", "Chunks", $"{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}.dat");
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Filament.Chunk filamentChunk = JsonUtility.FromJson<Filament.Chunk>(json);
@@ -2992,7 +2992,7 @@ namespace LooCast.Universe
                 filament.UnregisterChunkPosition(filamentChunkPosition);
                 SaveFilament(filament);
 
-                string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}/Chunks/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}.json";
+                string path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}/Chunks/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}.dat";
                 File.Delete(path);
 
                 path = $"{Application.dataPath}/Data/Universe/Filaments/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}/Chunks/{filamentChunkPosition.CurrentPosition.x}.{filamentChunkPosition.CurrentPosition.y}_Map.png";
@@ -3037,7 +3037,7 @@ namespace LooCast.Universe
             }
             if (!IsFilamentLoaded(filamentPosition))
             {
-                string path = $"{DataPath}/Sectors/{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}.json";
+                string path = Path.Combine(DataPath, "Sectors", $"{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}.dat");
                 return File.Exists(path);
             }
             Filament filament = GetFilament(filamentPosition);
@@ -3058,7 +3058,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveSector(Sector sector)
         {
-            string path = $"{DataPath}/Sectors/{sector.SectorPosition.CurrentPosition.x}.{sector.SectorPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Sectors", $"{sector.SectorPosition.CurrentPosition.x}.{sector.SectorPosition.CurrentPosition.y}.dat");
             string json = JsonUtility.ToJson(sector, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -3097,7 +3097,7 @@ namespace LooCast.Universe
                 throw new Exception($"Sector has not been generated yet!");
             }
 
-            string path = $"{DataPath}/Sectors/{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Sectors", $"{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}.dat");
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Sector sector = JsonUtility.FromJson<Sector>(json);
@@ -3133,7 +3133,7 @@ namespace LooCast.Universe
 
             if (IsSectorGenerated(sectorPosition))
             {
-                string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}.json";
+                string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}.dat";
                 File.Delete(path);
             }
         }
@@ -3175,7 +3175,7 @@ namespace LooCast.Universe
             }
             if (!IsSectorLoaded(sectorPosition))
             {
-                string path = $"{DataPath}/Sectors/{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}/Chunks/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}.json";
+                string path = Path.Combine(DataPath, "Sectors", $"{sectorPosition.CurrentPosition.x}.{sectorPosition.CurrentPosition.y}", "Chunks", $"{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}.dat");
                 return File.Exists(path);
             }
             Sector sector = GetSector(sectorPosition);
@@ -3196,7 +3196,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveSectorChunk(Sector.Chunk sectorChunk)
         {
-            string path = $"{DataPath}/Sectors/{sectorChunk.SectorChunkPosition.SectorPosition.CurrentPosition.x}.{sectorChunk.SectorChunkPosition.SectorPosition.CurrentPosition.y}/Chunks/{sectorChunk.SectorChunkPosition.CurrentPosition.x}.{sectorChunk.SectorChunkPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Sectors", $"{sectorChunk.SectorChunkPosition.SectorPosition.CurrentPosition.x}.{sectorChunk.SectorChunkPosition.SectorPosition.CurrentPosition.y}", "Chunks", $"{sectorChunk.SectorChunkPosition.CurrentPosition.x}.{sectorChunk.SectorChunkPosition.CurrentPosition.y}.dat");
             string json = JsonUtility.ToJson(sectorChunk, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -3245,7 +3245,7 @@ namespace LooCast.Universe
                 throw new Exception("Containing Sector is not yet loaded!");
             }
 
-            string path = $"{DataPath}/Sectors/{sectorChunkPosition.SectorPosition.CurrentPosition.x}.{sectorChunkPosition.SectorPosition.CurrentPosition.y}/Chunks/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Sectors", $"{sectorChunkPosition.SectorPosition.CurrentPosition.x}.{sectorChunkPosition.SectorPosition.CurrentPosition.y}", "Chunks", $"{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}.dat");
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Sector.Chunk sectorChunk = JsonUtility.FromJson<Sector.Chunk>(json);
@@ -3285,7 +3285,7 @@ namespace LooCast.Universe
                 sector.UnregisterChunkPosition(sectorChunkPosition);
                 SaveSector(sector);
 
-                string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}/Chunks/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}.json";
+                string path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}/Chunks/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}.dat";
                 File.Delete(path);
 
                 path = $"{Application.dataPath}/Data/Universe/Sectors/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}/Chunks/{sectorChunkPosition.CurrentPosition.x}.{sectorChunkPosition.CurrentPosition.y}_Map.png";
@@ -3330,7 +3330,7 @@ namespace LooCast.Universe
             }
             if (!IsSectorLoaded(sectorPosition))
             {
-                string path = $"{DataPath}/Regions/{regionPosition.CurrentPosition.x}.{regionPosition.CurrentPosition.y}.json";
+                string path = Path.Combine(DataPath, "Regions", $"{regionPosition.CurrentPosition.x}.{regionPosition.CurrentPosition.y}.dat");
                 return File.Exists(path);
             }
             Sector sector = GetSector(sectorPosition);
@@ -3351,7 +3351,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveRegion(Region region)
         {
-            string path = $"{DataPath}/Regions/{region.RegionPosition.CurrentPosition.x}.{region.RegionPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Regions", $"{region.RegionPosition.CurrentPosition.x}.{region.RegionPosition.CurrentPosition.y}.dat");
             string json = JsonUtility.ToJson(region, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -3390,7 +3390,7 @@ namespace LooCast.Universe
                 throw new Exception($"Region has not been generated yet!");
             }
 
-            string path = $"{DataPath}/Regions/{regionPosition.CurrentPosition.x}.{regionPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "Regions", $"{regionPosition.CurrentPosition.x}.{regionPosition.CurrentPosition.y}.dat");
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Region region = JsonUtility.FromJson<Region>(json);
@@ -3426,7 +3426,7 @@ namespace LooCast.Universe
 
             if (IsRegionGenerated(regionPosition))
             {
-                string path = $"{DataPath}/Regions/{regionPosition.CurrentPosition.x}.{regionPosition.CurrentPosition.y}.json";
+                string path = Path.Combine(DataPath, "Regions", $"{regionPosition.CurrentPosition.x}.{regionPosition.CurrentPosition.y}.dat");
                 File.Delete(path);
             }
         }
@@ -3468,7 +3468,7 @@ namespace LooCast.Universe
             }
             if (!IsRegionLoaded(regionPosition))
             {
-                string path = $"{DataPath}/Regions/{regionPosition.CurrentPosition.x}.{regionPosition.CurrentPosition.y}/Chunks/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}.json";
+                string path = Path.Combine(DataPath, "RegionChunks", $"{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}.dat");
                 return File.Exists(path);
             }
             Region region = GetRegion(regionPosition);
@@ -3489,7 +3489,7 @@ namespace LooCast.Universe
         #region Saving
         public void SaveRegionChunk(Region.Chunk regionChunk)
         {
-            string path = $"{DataPath}/Regions/{regionChunk.RegionChunkPosition.RegionPosition.CurrentPosition.x}.{regionChunk.RegionChunkPosition.RegionPosition.CurrentPosition.y}/Chunks/{regionChunk.RegionChunkPosition.CurrentPosition.x}.{regionChunk.RegionChunkPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "RegionChunks", $"{regionChunk.RegionChunkPosition.CurrentPosition.x}.{regionChunk.RegionChunkPosition.CurrentPosition.y}.dat");
             string json = JsonUtility.ToJson(regionChunk, true);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using StreamWriter writer = new StreamWriter(path);
@@ -3538,7 +3538,7 @@ namespace LooCast.Universe
                 throw new Exception("Containing Region is not yet loaded!");
             }
 
-            string path = $"{DataPath}/Regions/{regionChunkPosition.RegionPosition.CurrentPosition.x}.{regionChunkPosition.RegionPosition.CurrentPosition.y}/Chunks/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}.json";
+            string path = Path.Combine(DataPath, "RegionChunks", $"{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}.dat");
             using StreamReader reader = new StreamReader(path);
             string json = reader.ReadToEnd();
             Region.Chunk regionChunk = JsonUtility.FromJson<Region.Chunk>(json);
@@ -3578,7 +3578,7 @@ namespace LooCast.Universe
                 region.UnregisterChunkPosition(regionChunkPosition);
                 SaveRegion(region);
 
-                string path = $"{Application.dataPath}/Data/Universe/Regions/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}/Chunks/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}.json";
+                string path = $"{Application.dataPath}/Data/Universe/Regions/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}/Chunks/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}.dat";
                 File.Delete(path);
 
                 path = $"{Application.dataPath}/Data/Universe/Regions/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}/Chunks/{regionChunkPosition.CurrentPosition.x}.{regionChunkPosition.CurrentPosition.y}_Map.png";

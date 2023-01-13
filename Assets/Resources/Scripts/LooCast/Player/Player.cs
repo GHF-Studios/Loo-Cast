@@ -147,12 +147,12 @@ namespace LooCast.Player
 
             if (Input.GetKeyDown(KeyCode.F7))
             {
-                Util.JSONUtil.SaveData(SerializedRuntimeData, SerializedRuntimeData.DataFilePath);
+                Util.SerializationUtil.SaveData(SerializedRuntimeData, SerializedRuntimeData.DataFilePath);
             }
 
             if (Input.GetKeyDown(KeyCode.F8))
             {
-                SerializedRuntimeData = Util.JSONUtil.LoadData<RuntimeData>(SerializedRuntimeData.DataFilePath);
+                SerializedRuntimeData = Util.SerializationUtil.LoadData<RuntimeData>(SerializedRuntimeData.DataFilePath);
             }
         }
     } 

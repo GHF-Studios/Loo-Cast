@@ -6,9 +6,22 @@ namespace LooCast.Data
 {
     public class Data
     {
+        public static string Path
+        {
+            get
+            {
+                return $"{Application.dataPath}/.Data/";
+            }
+        }
+
         public static void ResetAll()
         {
-            string path = $"{Application.dataPath}/Data";
+            string path = $"{Application.dataPath}/.Data";
+            // create path if not exists
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
             string[] filePaths = Directory.GetFiles(path);
             string[] directoryPaths = Directory.GetDirectories(path);
             
