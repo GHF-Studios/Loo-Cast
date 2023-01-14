@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace LooCast.Data
 {
-    public abstract class Data
+    public static class Data
     {
         public static string Path
         {

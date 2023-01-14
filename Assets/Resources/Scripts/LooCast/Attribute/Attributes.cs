@@ -12,7 +12,7 @@ namespace LooCast.Attribute
     using LooCast.Game;
 
     [CreateAssetMenu(fileName = "Attributes", menuName = "Data/Attribute/Attributes", order = 0)]
-    public class Attributes : DynamicData
+    public class Attributes : DynamicGameData
     {
         #region Fields
         public Stats Stats;

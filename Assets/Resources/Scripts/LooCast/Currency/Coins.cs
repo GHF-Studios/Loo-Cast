@@ -11,7 +11,7 @@ namespace LooCast.Currency
     using LooCast.Util;
 
     [CreateAssetMenu(fileName = "Coins", menuName = "Data/Currency/Coins", order = 0)]
-    public class Coins : DynamicData
+    public class Coins : DynamicGameData
     {
         #region Classes
         [Serializable]

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Data
 {
-    public abstract class DynamicData : ScriptableObject
+    public abstract class DynamicGameData : ScriptableObject
     {
         public abstract void Save();
 

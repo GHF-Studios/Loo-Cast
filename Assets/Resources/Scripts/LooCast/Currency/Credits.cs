@@ -11,7 +11,7 @@ namespace LooCast.Currency
     using LooCast.Util;
 
     [CreateAssetMenu(fileName = "Credits", menuName = "Data/Currency/Credits", order = 0)]
-    public class Credits : DynamicData
+    public class Credits : DynamicGameData
     {
         #region Classes
         [Serializable]
