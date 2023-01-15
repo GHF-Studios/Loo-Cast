@@ -1,0 +1,12 @@
+ID: "LooCast.Player"
+Dependencies: {
+	"LooCast.Core",
+	"LooCast.Data",
+	"LooCast.Health",
+	"LooCast.Movement",
+	"LooCast.Particle",
+	"LooCast.Experience",
+	"LooCast.Attribute",
+	"LooCast.Currency",
+	"LooCast.Item"
+}

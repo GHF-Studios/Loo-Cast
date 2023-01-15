@@ -56,12 +56,15 @@ namespace LooCast.Core
         #region Unity Callbacks
         private void Awake()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
-            Debug.Log($"[MainManager] Starting Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[MainManager] Starting Initialization.");
 
             #region Initialization
 
-            #region MainManager Initialization
+            #region Data.Path
+            _ = Data.Path;
+            #endregion
+            
+            #region MainManager
             if (instance != null)
             {
                 Destroy(gameObject);
@@ -75,23 +78,21 @@ namespace LooCast.Core
             Debug.Log($"[MainManager] Initialized.");
             #endregion
 
-            #region SteamManager Initialization
+            #region SteamManager
             _ = SteamManager.Initialized;
             #endregion
 
-            #region Data.Path Initialization
-            _ = Data.Path;
+            #region ModManager
+            ModManager.Instance.Initialize();
             #endregion
 
-            #region TimerUtil Initialization
+            #region Utilities
             TimerUtil.InitializeInstance();
-            #endregion
-
-            #region Utilities Initialization
             Universe.DensityMapGenerationUtil.InitializeInstance();
             #endregion
 
-            #region Scene Initialization
+            #region Scene
+            string activeSceneName = SceneManager.GetActiveScene().name;
             switch (activeSceneName)
             {
                 case "MainMenu":
@@ -115,7 +116,7 @@ namespace LooCast.Core
 
             #endregion
 
-            Debug.Log($"[MainManager] Finished Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[MainManager] Finished Initialization.");
         }
         #endregion
 
@@ -210,7 +211,7 @@ namespace LooCast.Core
                     Instance.StartCoroutine(Instance.LoadSceneAsynchronously(sceneName));
                     break;
                 default:
-                    throw new ArgumentException($"Scene Type '{sceneName}' not supported!");
+                    throw new ArgumentException($"[MainManager] Scene Type '{sceneName}' not supported!");
             }
             Debug.Log($"[MainManager] Finished loading Scene '{sceneName}'.");
         }
@@ -218,28 +219,39 @@ namespace LooCast.Core
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void PreInitialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
-            Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[MainManager] Starting Pre-Initialization.");
 
             #region Pre-Initialization
-
+            
+            #region ModManager
+            _ = ModManager.Instance;
+            ModManager.Instance.OnPreInitialize();
             #endregion
 
-            Debug.Log($"[MainManager] Finished Pre-Initialization in Scene '{activeSceneName}'.");
+            #region ModuleManager
+            _ = ModuleManager.Instance;
+            #endregion
+            
+            #endregion
+
+            Debug.Log($"[MainManager] Finished Pre-Initialization.");
             _ = Instance;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void PostInitialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
-            Debug.Log($"[MainManager] Starting Post-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[MainManager] Starting Post-Initialization.");
 
             #region Post-Initialization
 
+            #region ModManager
+            ModManager.Instance.OnPostInitialize();
             #endregion
 
-            Debug.Log($"[MainManager] Finished Post-Initialization in Scene '{activeSceneName}'.");
+            #endregion
+
+            Debug.Log($"[MainManager] Finished Post-Initialization'.");
         }
         #endregion
 

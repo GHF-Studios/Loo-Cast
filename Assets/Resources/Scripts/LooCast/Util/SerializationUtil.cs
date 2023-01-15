@@ -12,11 +12,8 @@ namespace LooCast.Util
         {
             path = Path.Combine(Data.Path, path);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            using (FileStream fileStream = File.Open(path, FileMode.Create))
-            {
-                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                binaryFormatter.Serialize(fileStream, data);
-            }
+            string json = JsonUtility.ToJson(data, true);
+            File.WriteAllText(path, json);
         }
 
         public static T LoadData<T>(string path)
@@ -24,11 +21,8 @@ namespace LooCast.Util
             path = Path.Combine(Data.Path, path);
             if (File.Exists(path))
             {
-                using (FileStream fileStream = File.Open(path, FileMode.Open))
-                {
-                    var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                    return (T)binaryFormatter.Deserialize(fileStream);
-                }
+                string json = File.ReadAllText(path);
+                return JsonUtility.FromJson<T>(json);
             }
             else
             {
