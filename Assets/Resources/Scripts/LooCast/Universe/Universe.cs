@@ -10,7 +10,6 @@ namespace LooCast.Universe
     using Core;
     using Game;
     using Random;
-    using UnityEngine.Profiling;
     using Util;
     using Util.Collections.Generic;
 

@@ -1,0 +1,13 @@
+{
+    "name": "LooCast",
+    "displayName": "Loo Cast Base Mod",
+    "description": "The Loo Cast Base Mod",
+    "gameVersion": "0.4.9",
+    "version": "0.4.9",
+    "author": "Leslie-John Richardson",
+    "dependencies": [],
+    "conflicts": [],
+    "moduleNames": [
+        "Player"
+    ]
+}

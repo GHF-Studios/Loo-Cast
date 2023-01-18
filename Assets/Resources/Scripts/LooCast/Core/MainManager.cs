@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,6 +14,8 @@ namespace LooCast.Core
     using UI.Screen;
     using Math.Map;
     using LooCast.Data;
+    using Mod;
+    using Module;
 
     public class MainManager : MonoBehaviour
     {
@@ -51,6 +54,13 @@ namespace LooCast.Core
         private static Games games;
         private static Game gameToBeLoaded;
         public static float saveInterval = 30.0f;
+        public static string ModsFolderPath
+        {
+            get
+            {
+                return Path.Combine(Application.dataPath, ".Mods");
+            }
+        }
         #endregion
 
         #region Unity Callbacks
@@ -82,8 +92,13 @@ namespace LooCast.Core
             _ = SteamManager.Initialized;
             #endregion
 
-            #region ModManager
-            ModManager.Instance.Initialize();
+            #region Modding Framework
+
+            #region Callback Invocations
+            ModManager.Instance.OnInitialize();
+            ModuleManager.Instance.OnInitialize();
+            #endregion
+
             #endregion
 
             #region Utilities
@@ -222,16 +237,39 @@ namespace LooCast.Core
             Debug.Log($"[MainManager] Starting Pre-Initialization.");
 
             #region Pre-Initialization
-            
-            #region ModManager
-            _ = ModManager.Instance;
+
+            #region Modding Framework
+            try
+            {
+                ModManager.Instance.Initialize();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"[MainManager] An error occured while initializing the ModManager!");
+                Debug.LogException(exception);
+                Debug.Log("[MainManager] Quitting Game.");
+                Application.Quit();
+            }
+
+            try
+            {
+                ModuleManager.Instance.Initialize();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError($"[MainManager] An error occured while initializing the ModuleManager!");
+                Debug.LogException(exception);
+                Debug.Log("[MainManager] Quitting Game.");
+                Application.Quit();
+            }
+
+            #region Callback Invocations
             ModManager.Instance.OnPreInitialize();
+            ModuleManager.Instance.OnPreInitialize();
             #endregion
 
-            #region ModuleManager
-            _ = ModuleManager.Instance;
             #endregion
-            
+
             #endregion
 
             Debug.Log($"[MainManager] Finished Pre-Initialization.");
@@ -245,13 +283,18 @@ namespace LooCast.Core
 
             #region Post-Initialization
 
-            #region ModManager
+            #region Modding Framework
+
+            #region Callback Invocations
             ModManager.Instance.OnPostInitialize();
+            ModuleManager.Instance.OnPostInitialize();
             #endregion
 
             #endregion
 
-            Debug.Log($"[MainManager] Finished Post-Initialization'.");
+            #endregion
+
+            Debug.Log($"[MainManager] Finished Post-Initialization.");
         }
         #endregion
 
