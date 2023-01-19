@@ -4,16 +4,22 @@ using UnityEngine;
 
 namespace LooCast.Data
 {
+    using Core;
+    
+    [Serializable]
     public static class Data
     {
+        #region Static Properties
         public static string Path
         {
             get
             {
-                return $"{Application.dataPath}/.Data/";
+                return System.IO.Path.Combine(Application.dataPath, ".Data");
             }
         }
+        #endregion
 
+        #region Static Methods
         public static void ResetAll()
         {
             string path = $"{Application.dataPath}/.Data";
@@ -42,5 +48,6 @@ namespace LooCast.Data
                 }
             }
         }
+        #endregion
     }
 }

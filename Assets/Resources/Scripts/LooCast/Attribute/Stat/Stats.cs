@@ -9,7 +9,7 @@ namespace LooCast.Attribute.Stat
     using LooCast.Util;
 
     [CreateAssetMenu(fileName = "Stats", menuName = "Data/Attribute/Stat/Stats", order = 0)]
-    public class Stats : DynamicGameData
+    public class Stats : DynamicData
     {
         #region Properties
         public float MovementSpeedMultiplier { get { return Agility.MovementSpeedMultiplier; } }

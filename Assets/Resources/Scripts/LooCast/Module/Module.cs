@@ -66,19 +66,19 @@ namespace LooCast.Module
         #endregion
 
         #region Methods
-        public virtual void OnInitialize()
-        {
-
-        }
-
         public virtual void OnPreInitialize()
         {
-
+            
+        }
+        
+        public virtual void OnInitialize()
+        {
+            
         }
 
         public virtual void OnPostInitialize()
         {
-
+            
         }
 
         internal void Validate()

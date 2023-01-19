@@ -38,9 +38,6 @@ namespace LooCast.Mod
         #region Methods
         internal void Initialize()
         {
-            loadedMods = new Dictionary<string, Mod>();
-            Mod exampleMod = new Mod("LooCast", "Loo Cast Base Mod", "The Loo Cast Base Mod", "0.4.9", "0.4.9", "Leslie-John Richardson", new string[0], new string[0], new string[] { "Player" });
-            SaveMod(exampleMod);
             LoadAllMods();
             ValidateAllMods();
         }

@@ -38,9 +38,6 @@ namespace LooCast.Module
         #region Methods
         internal void Initialize()
         {
-            loadedModules = new Dictionary<string, Module>();
-            Module exampleModule = new Module("LooCast", "Player", "Player", "Loo Cast Base Mod's Player Module", new string[0], new string[0]);
-            SaveModule(exampleModule);
             LoadAllModules();
             ValidateAllModules();
         }

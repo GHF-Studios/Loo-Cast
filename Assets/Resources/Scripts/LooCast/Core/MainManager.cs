@@ -16,6 +16,7 @@ namespace LooCast.Core
     using LooCast.Data;
     using Mod;
     using Module;
+    using LooCast.Registry;
 
     public class MainManager : MonoBehaviour
     {
@@ -45,8 +46,28 @@ namespace LooCast.Core
                 }
             }
         }
+        public static string ModsFolderPath
+        {
+            get
+            {
+                return Path.Combine(Data.Path, "Mods");
+            }
+        }
         public static Games Games => games;
         public static Game GameToBeLoaded => gameToBeLoaded;    // TODO: Implement this
+        public static bool IsPreInitializing { get; private set; }
+        public static bool IsPreInitialized { get; private set; }
+        public static bool IsInitializing { get; private set; }
+        public static bool IsInitialized { get; private set; }
+        public static bool IsPostInitializing { get; private set; }
+        public static bool IsPostInitialized { get; private set; }
+        public static bool IsFullyInitialized
+        {
+            get
+            {
+                return IsPreInitialized && IsInitialized && IsPostInitialized;
+            }
+        }
         #endregion
 
         #region Static Fields
@@ -54,13 +75,6 @@ namespace LooCast.Core
         private static Games games;
         private static Game gameToBeLoaded;
         public static float saveInterval = 30.0f;
-        public static string ModsFolderPath
-        {
-            get
-            {
-                return Path.Combine(Application.dataPath, ".Mods");
-            }
-        }
         #endregion
 
         #region Unity Callbacks
@@ -69,6 +83,8 @@ namespace LooCast.Core
             Debug.Log($"[MainManager] Starting Initialization.");
 
             #region Initialization
+
+            IsInitializing = true;
 
             #region Data.Path
             _ = Data.Path;
@@ -84,8 +100,6 @@ namespace LooCast.Core
             DontDestroyOnLoad(this);
 
             games = Games.Load();
-
-            Debug.Log($"[MainManager] Initialized.");
             #endregion
 
             #region SteamManager
@@ -129,8 +143,11 @@ namespace LooCast.Core
             }
             #endregion
 
-            #endregion
+            IsInitializing = false;
+            IsInitialized = true;
 
+            #endregion
+            
             Debug.Log($"[MainManager] Finished Initialization.");
         }
         #endregion
@@ -237,7 +254,13 @@ namespace LooCast.Core
             Debug.Log($"[MainManager] Starting Pre-Initialization.");
 
             #region Pre-Initialization
+            
+            IsPreInitializing = true;
 
+            #region RegistryManager
+            RegistryManager.Instance.Initialize();
+            #endregion
+            
             #region Modding Framework
             try
             {
@@ -270,8 +293,11 @@ namespace LooCast.Core
 
             #endregion
 
+            IsPreInitializing = false;
+            IsPreInitialized = true;
+            
             #endregion
-
+            
             Debug.Log($"[MainManager] Finished Pre-Initialization.");
             _ = Instance;
         }
@@ -283,6 +309,8 @@ namespace LooCast.Core
 
             #region Post-Initialization
 
+            IsPostInitializing = true;
+            
             #region Modding Framework
 
             #region Callback Invocations
@@ -291,6 +319,9 @@ namespace LooCast.Core
             #endregion
 
             #endregion
+
+            IsPostInitializing = false;
+            IsPostInitialized = true;
 
             #endregion
 

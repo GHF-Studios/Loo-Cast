@@ -8,7 +8,7 @@ namespace LooCast.Data
     {
         public bool UseConstant = false;
         public int ConstantValue;
-        public IntData Variable;
+        public DynamicIntData Variable;
         public UnityEvent OnValueChanged = new UnityEvent();
 
         public int Value

@@ -73,7 +73,7 @@ namespace LooCast.Game
         [SerializeField] private string name;
         [SerializeField] private Universe currentUniverse;
         
-        private List<DynamicGameData> dynamicDataList;
+        private List<DynamicData> gameDataList;
         #endregion
 
         #region Constructors
@@ -86,7 +86,7 @@ namespace LooCast.Game
         #region Methods
         public void Initialize()
         {
-            dynamicDataList = new List<DynamicGameData>
+            gameDataList = new List<DynamicData>
             {
                 Resources.Load<Attributes>("Data/Dynamic/Attribute/Attributes"),
                 Resources.Load<Stats>("Data/Dynamic/Attribute/Stat/Stats"),
@@ -111,7 +111,7 @@ namespace LooCast.Game
 
         private void SaveDynamicData()
         {
-            foreach (DynamicGameData dynamicData in dynamicDataList)
+            foreach (DynamicData dynamicData in gameDataList)
             {
                 dynamicData.Save();
             }
@@ -119,7 +119,7 @@ namespace LooCast.Game
 
         private void LoadDynamicData()
         {
-            foreach (DynamicGameData dynamicData in dynamicDataList)
+            foreach (DynamicData dynamicData in gameDataList)
             {
                 try
                 {
