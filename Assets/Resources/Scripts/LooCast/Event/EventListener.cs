@@ -3,7 +3,9 @@ using UnityEngine.Events;
 
 namespace LooCast.Event
 {
-    public class EventListener : MonoBehaviour
+    using Core;
+    
+    public class EventListener : ExtendedMonoBehaviour
     {
         public Event Event;
         public UnityEvent Response;
