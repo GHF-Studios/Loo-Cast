@@ -39,6 +39,16 @@ namespace LooCast.Util.Collections.Generic
 
         [SerializeField] private T[] values;
 
+        public SerializableList()
+        {
+            values = null;
+        }
+
+        public SerializableList(List<T> values)
+        {
+            this.values = values.ToArray();
+        }
+
         public void Add(T value)
         {
             List<T> valueList = Values;

@@ -4,53 +4,38 @@ using UnityEngine;
 
 namespace LooCast.Identifier
 {
+    using Util.Collections.Generic;
+    
     [Serializable]
     public class TypeIdentifier : IIdentifiableType
     {
-        public TypeIdentifier Parent { get; set; }
-        public List<TypeIdentifier> Children { get; set; } = new List<TypeIdentifier>();
-        public string TypeName
+        #region Properties
+        public string ID
         {
             get
             {
-                return Type.Name;
+                return $"{TypeNamespace.ID}.{ParentType.ID}.{TypeName}";
             }
         }
-        public Type Type
-        {
-            get
-            {
-                return Type.GetType(TypeName);
-            }
-        }
-        public string GUID
-        {
-            get
-            {
-                return TypeName;
-            }
-        }
-        
-        [SerializeField] private string typeAssemblyQualifiedName;
 
-        public TypeIdentifier(Type type)
+        public string TypeName => typeName;
+        public IIdentifiableType ParentType => parentType;
+        public List<IIdentifiableType> ChildTypes => childTypes.Values;
+        public IIdentifiableNamespace TypeNamespace => typeNamespace;
+        #endregion
+
+        #region Fields
+        [SerializeField] private string typeName;
+        [SerializeField] private IIdentifiableType parentType;
+        [SerializeField] private SerializableList<IIdentifiableType> childTypes;
+        [SerializeField] private IIdentifiableNamespace typeNamespace;
+        #endregion
+
+        #region Methods
+        public void AddChildType(IIdentifiableType childType)
         {
-            Name = GetType().Name;
-            if (Parent != null)
-            {
-                GUID = Parent.GUID + "." + TypeName;
-            }
-            else
-            {
-                GUID = TypeName;
-            }
+            throw new NotImplementedException();
         }
-        public TypeIdentifier(TypeIdentifier parent)
-        {
-            Parent = parent;
-            parent.Children.Add(this);
-            Name = GetType().Name;
-            GUID = Parent.GUID + "." + TypeName;
-        }
+        #endregion
     }
 }

@@ -1,9 +1,9 @@
-﻿using System;
-
-namespace LooCast.Identifier
+﻿namespace LooCast.Identifier
 {
     public interface IIdentifiable
     {
-        string GUID { get; }
+        #region Properties
+        string ID { get; }
+        #endregion
     }
 }

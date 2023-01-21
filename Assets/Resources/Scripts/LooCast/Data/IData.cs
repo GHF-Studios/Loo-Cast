@@ -8,7 +8,6 @@ namespace LooCast.Data
         string ID { get; }
         Type DataType { get; }
         string Name { get; }
-        DataFolder ParentFolder { get; }
         #endregion
     }
 }
