@@ -7,16 +7,15 @@ using UnityEngine.SceneManagement;
 
 namespace LooCast.Core
 {
-    using MainMenu;
     using Game;
     using Util;
     using Universe;
     using UI.Screen;
-    using Math.Map;
     using LooCast.Data;
     using Mod;
     using Module;
-    using LooCast.Registry;
+    using Registry;
+    using Identifier;
 
     public class MainManager : MonoBehaviour
     {
@@ -256,6 +255,13 @@ namespace LooCast.Core
             #region Pre-Initialization
             
             IsPreInitializing = true;
+
+            #region IdentifierManager
+            IdentifierManager idManager = IdentifierManager.Instance;
+            idManager.Initialize();
+            IdentifierManager.NamespaceIdentifier rootNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateRootNamespace("LooCast");
+            // TODO: Add all namespaces, types and instances here and shit
+            #endregion
 
             #region RegistryManager
             RegistryManager.Instance.Initialize();
