@@ -6,7 +6,7 @@ namespace LooCast.Util
 {
     using Core;
 
-    public class LerpFollower : ExtendedMonoBehaviour
+    public class LerpFollower : Component
     {
         public GameObject target;
 

@@ -11,7 +11,7 @@ namespace LooCast.Movement
     using LooCast.Variable;
     using LooCast.Util;
 
-    public class AllyMovement : ExtendedMonoBehaviour, IMovement
+    public class AllyMovement : Component, IMovement
     {
         #region Data
         public AllyMovementData Data;

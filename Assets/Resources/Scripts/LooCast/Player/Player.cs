@@ -20,7 +20,7 @@ namespace LooCast.Player
 
     [DisallowMultipleComponent]
     [RequireComponent(typeof(PlayerHealth), typeof(PlayerExperience), typeof(PlayerMovement))]
-    public class Player : ExtendedMonoBehaviour, IItemUpgrader, IIdentifierProvider, IInstanceIdentifierProvider, IRuntimeDataSerializer, IRuntimeDataDeserializer
+    public class Player : Component, IItemUpgrader, IIdentifierProvider, IInstanceIdentifierProvider, IRuntimeDataSerializer, IRuntimeDataDeserializer
     {
         #region Data
         [Serializable]

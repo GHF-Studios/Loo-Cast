@@ -13,7 +13,7 @@ namespace LooCast.Movement
 
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D))]
-    public sealed class PlayerMovement : ExtendedMonoBehaviour, IMovement
+    public sealed class PlayerMovement : Component, IMovement
     {
         #region Data
         public PlayerMovementData Data;

@@ -9,7 +9,7 @@ namespace LooCast.AOE
     using LooCast.Movement;
     using LooCast.Movement.Effect;
 
-    public class FreezeZone : ExtendedMonoBehaviour
+    public class FreezeZone : Component
     {
         public Stats Stats;
         private Animator animator;

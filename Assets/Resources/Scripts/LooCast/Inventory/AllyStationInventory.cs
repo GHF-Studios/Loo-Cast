@@ -9,7 +9,7 @@ namespace LooCast.Inventory
     using Item.Data;
     using Core;
 
-    public sealed class AllyStationInventory : ExtendedMonoBehaviour
+    public sealed class AllyStationInventory : Component
     {
         #region Data
         public AllyStationInventoryData Data;

@@ -11,7 +11,7 @@ namespace LooCast.Experience
     using Sound;
 
     [DisallowMultipleComponent]
-    public class PlayerExperience : ExtendedMonoBehaviour, IExperience
+    public class PlayerExperience : Component, IExperience
     {
         public PlayerExperienceData Data;
         public PlayerExperienceRuntimeData RuntimeData;

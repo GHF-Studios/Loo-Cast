@@ -14,7 +14,7 @@ namespace LooCast.Observer
     using LooCast.Diagnostic;
     using Universe;
 
-    public class UniverseObserver : ExtendedMonoBehaviour
+    public class UniverseObserver : Component
     {
         #region Fields
         private Universe currentUniverse;

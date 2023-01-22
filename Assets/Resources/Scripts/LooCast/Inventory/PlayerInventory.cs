@@ -11,7 +11,7 @@ namespace LooCast.Inventory
     using LooCast.Attribute.Stat;
     using LooCast.Core;
 
-    public sealed class PlayerInventory : ExtendedMonoBehaviour
+    public sealed class PlayerInventory : Component
     {
         #region Data
         public PlayerInventoryData Data;

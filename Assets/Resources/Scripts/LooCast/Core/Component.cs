@@ -6,9 +6,9 @@ using LooCast.Identifier;
 
 namespace LooCast.Core
 {
-    public abstract class ExtendedMonoBehaviour : MonoBehaviour
+    public abstract class Component : MonoBehaviour
     {
-        public static List<ExtendedMonoBehaviour> Instances = new List<ExtendedMonoBehaviour>();
+        public static List<Component> Instances = new List<Component>();
         public Guid InstanceID { get; private set; }
         public bool IsPaused { get; private set; }
         [HideInInspector] public bool IsVisible;

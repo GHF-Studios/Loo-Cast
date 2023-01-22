@@ -7,7 +7,7 @@ namespace LooCast.Arc
     using Core;
 
     [RequireComponent(typeof(LineRenderer))]
-    public class ArcSegment : ExtendedMonoBehaviour
+    public class ArcSegment : Component
     {
         public LineRenderer lineRenderer { get; protected set; }
         public Vector3 startPos

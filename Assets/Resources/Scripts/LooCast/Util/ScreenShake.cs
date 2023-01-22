@@ -9,7 +9,7 @@ namespace LooCast.Util
 {
     using Core;
 
-    public sealed class ScreenShake : ExtendedMonoBehaviour
+    public sealed class ScreenShake : Component
     {
         private float shakeTimer;
 

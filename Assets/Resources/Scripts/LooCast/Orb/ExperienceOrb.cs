@@ -10,7 +10,7 @@ namespace LooCast.Orb
     using Sound;
     using Attribute.Stat;
 
-    public class ExperienceOrb : ExtendedMonoBehaviour
+    public class ExperienceOrb : Component
     {
         public Stats Stats;
 

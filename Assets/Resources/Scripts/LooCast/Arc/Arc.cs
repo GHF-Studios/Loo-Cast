@@ -7,7 +7,7 @@ namespace LooCast.Arc
     using Target;
     using Util;
 
-    public class Arc : ExtendedMonoBehaviour
+    public class Arc : Component
     {
         #region Fields
         public List<Target> targets;

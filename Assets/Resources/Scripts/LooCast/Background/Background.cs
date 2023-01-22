@@ -6,7 +6,7 @@ namespace LooCast.Background
 {
     using Core;
 
-    public class Background : ExtendedMonoBehaviour
+    public class Background : Component
     {
         [SerializeField] private Sprite backgroundSprite;
         [SerializeField] private SpriteRenderer[] backgroundRenderers;

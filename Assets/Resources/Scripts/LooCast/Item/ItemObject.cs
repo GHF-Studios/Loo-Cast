@@ -7,7 +7,7 @@ namespace LooCast.Item
     using LooCast.Inventory;
 
     [RequireComponent(typeof(SpriteRenderer))]
-    public abstract class ItemObject : ExtendedMonoBehaviour
+    public abstract class ItemObject : Component
     {
         public UnityEvent OnItemChanged
         {

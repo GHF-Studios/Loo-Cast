@@ -105,7 +105,7 @@ namespace LooCast.Game
             if (!Instance.IsPaused)
             {
                 Instance.IsPaused = true;
-                foreach (ExtendedMonoBehaviour extendedMonoBehaviour in ExtendedMonoBehaviour.Instances)
+                foreach (Component extendedMonoBehaviour in Component.Instances)
                 {
                     extendedMonoBehaviour.Pause();
                 }
@@ -121,7 +121,7 @@ namespace LooCast.Game
             if (Instance.IsPaused)
             {
                 Instance.IsPaused = false;
-                foreach (ExtendedMonoBehaviour extendedMonoBehaviour in ExtendedMonoBehaviour.Instances)
+                foreach (Component extendedMonoBehaviour in Component.Instances)
                 {
                     extendedMonoBehaviour.Resume();
                 }

@@ -17,7 +17,7 @@ namespace LooCast.Health
     using Statistic;
     using Ally;
 
-    public class AllyHealth : ExtendedMonoBehaviour, IHealth
+    public class AllyHealth : Component, IHealth
     {
         #region Data
         public AllyHealthData Data;

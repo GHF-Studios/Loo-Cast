@@ -10,7 +10,7 @@ namespace LooCast.Projectile
     using Target;
 
     [RequireComponent(typeof(Rigidbody2D))]
-    public abstract class Projectile : ExtendedMonoBehaviour
+    public abstract class Projectile : Component
     {
         public readonly static List<Projectile> projectiles = new List<Projectile>();
 

@@ -7,7 +7,7 @@ namespace LooCast.Indicator
 {
     using Core;
 
-    public class DamageIndicator : ExtendedMonoBehaviour
+    public class DamageIndicator : Component
     {
         [SerializeField]
         private Text text;

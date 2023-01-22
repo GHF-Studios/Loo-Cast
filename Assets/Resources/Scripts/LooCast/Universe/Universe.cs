@@ -1197,7 +1197,7 @@ namespace LooCast.Universe
 
         // TODO: Add a Universe.Transform to this class maybe?
         [Serializable]
-        public class Object : ExtendedMonoBehaviour
+        public class Object : Component
         {
             #region Classes
             [Serializable]

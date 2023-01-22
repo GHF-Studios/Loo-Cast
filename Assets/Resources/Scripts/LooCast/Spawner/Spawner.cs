@@ -7,7 +7,7 @@ namespace LooCast.Spawner
     using Core;
     using Data;
 
-    public abstract class Spawner : ExtendedMonoBehaviour
+    public abstract class Spawner : Component
     {
         protected void Initialize(SpawnerData data)
         {

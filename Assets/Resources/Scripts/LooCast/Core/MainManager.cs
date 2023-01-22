@@ -17,7 +17,7 @@ namespace LooCast.Core
     using Registry;
     using Identifier;
 
-    public class MainManager : MonoBehaviour
+    public class MainManager : Component
     {
         #region Enums
         public enum SceneType

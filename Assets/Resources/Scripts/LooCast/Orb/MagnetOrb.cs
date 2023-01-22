@@ -9,7 +9,7 @@ namespace LooCast.Orb
     using Util;
     using Sound;
 
-    public class MagnetOrb : ExtendedMonoBehaviour
+    public class MagnetOrb : Component
     {
         public Stats Stats;
 

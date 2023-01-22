@@ -12,7 +12,7 @@ namespace LooCast.AI
     using Enemy;
     using Target;
 
-    public class AllyAI : ExtendedMonoBehaviour
+    public class AllyAI : Component
     {
         public enum State
         {

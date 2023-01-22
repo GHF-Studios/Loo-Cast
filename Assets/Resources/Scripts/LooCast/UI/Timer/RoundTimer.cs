@@ -7,7 +7,7 @@ namespace LooCast.UI.Timer
 {
     using Core;
 
-    public class RoundTimer : ExtendedMonoBehaviour
+    public class RoundTimer : Component
     {
         [HideInInspector]
         public Text text;

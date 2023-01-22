@@ -14,7 +14,7 @@ namespace LooCast.Ally
     using Health;
 
     [RequireComponent(typeof(AllyMovement), typeof(AllyHealth)), DisallowMultipleComponent]
-    public abstract class Ally : ExtendedMonoBehaviour
+    public abstract class Ally : Component
     {
         #region Data
         public AllyData Data;

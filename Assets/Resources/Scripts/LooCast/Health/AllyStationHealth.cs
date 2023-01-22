@@ -14,7 +14,7 @@ namespace LooCast.Health
     using LooCast.Random;
     using static LooCast.Health.IHealth;
 
-    public class AllyStationHealth : ExtendedMonoBehaviour, IHealth
+    public class AllyStationHealth : Component, IHealth
     {
         #region Data
         public AllyStationHealthData Data;

@@ -11,7 +11,7 @@ namespace LooCast.AI
     using Target;
     using LooCast.Game;
 
-    public class EnemyAI : ExtendedMonoBehaviour
+    public class EnemyAI : Component
     {
         public enum State
         {

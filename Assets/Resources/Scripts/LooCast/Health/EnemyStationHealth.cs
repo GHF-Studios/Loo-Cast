@@ -16,7 +16,7 @@ namespace LooCast.Health
     using LooCast.Orb;
     using static LooCast.Health.IHealth;
 
-    public sealed class EnemyStationHealth : ExtendedMonoBehaviour, IHealth
+    public sealed class EnemyStationHealth : Component, IHealth
     {
         #region Data
         public EnemyStationHealthData Data;

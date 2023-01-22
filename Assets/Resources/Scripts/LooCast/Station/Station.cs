@@ -10,7 +10,7 @@ namespace LooCast.Station
     using Data.Runtime;
 
     [DisallowMultipleComponent]
-    public abstract class Station : ExtendedMonoBehaviour
+    public abstract class Station : Component
     {
         public StationRuntimeSet RuntimeSet;
 

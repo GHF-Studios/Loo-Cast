@@ -5,7 +5,7 @@ namespace LooCast.Event
 {
     using Core;
     
-    public class EventListener : ExtendedMonoBehaviour
+    public class EventListener : Component
     {
         public Event Event;
         public UnityEvent Response;

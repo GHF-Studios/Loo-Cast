@@ -17,7 +17,7 @@ namespace LooCast.Health
     using Statistic;
     using Enemy;
 
-    public class EnemyHealth : ExtendedMonoBehaviour, IHealth
+    public class EnemyHealth : Component, IHealth
     {
         #region Data
         public EnemyHealthData Data;

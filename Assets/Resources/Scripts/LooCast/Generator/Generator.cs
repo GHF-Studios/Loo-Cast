@@ -6,7 +6,7 @@ namespace LooCast.Generator
 {
     using Core;
 
-    public abstract class Generator : ExtendedMonoBehaviour
+    public abstract class Generator : Component
     {
         public abstract void Initialize();
 

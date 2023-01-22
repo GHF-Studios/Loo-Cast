@@ -18,7 +18,7 @@ namespace LooCast.Health
     using static LooCast.Health.IHealth;
 
     [DisallowMultipleComponent]
-    public class PlayerHealth : ExtendedMonoBehaviour, IHealth, IIdentifierProvider
+    public class PlayerHealth : Component, IHealth, IIdentifierProvider
     {
         #region Data
         [Serializable]

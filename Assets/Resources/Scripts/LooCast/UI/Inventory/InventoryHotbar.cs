@@ -9,7 +9,7 @@ namespace LooCast.UI.Inventory
     using LooCast.Inventory.Data.Runtime;
     using LooCast.Item;
 
-    public class InventoryHotbar : ExtendedMonoBehaviour
+    public class InventoryHotbar : Component
     {
         #region Data
         [SerializeField] private InventoryHotbarData data;

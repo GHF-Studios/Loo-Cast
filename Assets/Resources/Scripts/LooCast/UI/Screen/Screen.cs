@@ -8,7 +8,7 @@ namespace LooCast.UI.Screen
     using LooCast.Game;
     using LooCast.UI.Canvas;
 
-    public abstract class Screen : ExtendedMonoBehaviour
+    public abstract class Screen : Component
     {
         protected bool isHideable;
         protected bool isInitiallyVisible;
