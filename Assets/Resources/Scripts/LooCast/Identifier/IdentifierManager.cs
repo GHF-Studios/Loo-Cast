@@ -1,5 +1,6 @@
 using LooCast.Core;
 using System;
+using System.Reflection;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -49,12 +50,12 @@ namespace LooCast.Identifier
             #endregion
         }
 
-        public interface IIdentifiableRuntimeDataType : IIdentifiableType, IRuntimeData
+        public interface IIdentifiableRuntimeDataType : IIdentifiableType
         {
             
         }
 
-        public interface IIdentifiablePersistentDataType : IIdentifiableType, IPersistentData
+        public interface IIdentifiablePersistentDataType : IIdentifiableType
         {
             
         }
@@ -222,7 +223,7 @@ namespace LooCast.Identifier
         }
 
         [Serializable]
-        public class ObjectTypeIdentifier : IIdentifiableObjectType
+        public class ObjectTypeIdentifier<ObjectType> : IIdentifiableObjectType where ObjectType : Object
         {
             #region Properties
             public string ID
@@ -239,11 +240,11 @@ namespace LooCast.Identifier
                     return Type.GetType(assemblyQualifiedTypeName);
                 }
             }
-            public Object ObjectInstance
+            public ObjectType ObjectInstance
             {
                 get
                 {
-                    
+                    return objectInstance;
                 }
             }
 
@@ -260,6 +261,8 @@ namespace LooCast.Identifier
             [SerializeField] private SerializableList<IIdentifiableType> childTypes;
             [SerializeField] private IIdentifiableNamespace typeNamespace;
             [SerializeField] private IPersistentData objectData;
+
+            private ObjectType objectInstance;
             #endregion
 
             #region Constructors
@@ -306,6 +309,21 @@ namespace LooCast.Identifier
                     }
                     this.childTypes.Add(childType);
                 }
+            }
+
+            public IPersistentData SerializeData<RuntimeDataType, PersistentDataType>(IRuntimeData runtimeData) where RuntimeDataType : IRuntimeData where PersistentDataType : IPersistentData
+            {
+                
+            }
+            
+            public IRuntimeData DeserializeData<RuntimeDataType, PersistentDataType>(IPersistentData persistentData) where RuntimeDataType : IRuntimeData where PersistentDataType : IPersistentData
+            {
+                
+            }
+            
+            public IIdentifiableObjectInstance CreateObjectInstance()
+            {
+                
             }
             #endregion
         }
