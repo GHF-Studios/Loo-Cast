@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -54,6 +55,13 @@ namespace LooCast.Util.Collections.Generic
             List<T> valueList = Values;
             valueList.Add(value);
             values = valueList.ToArray();
+        }
+
+        public void AddRange(IEnumerable<T> values)
+        {
+            List<T> valueList = Values;
+            valueList.AddRange(values);
+            this.values = valueList.ToArray();
         }
 
         public void Remove(T value)

@@ -72,6 +72,24 @@ namespace LooCast.Identifier
 
             childNamespaces.Add(childNamespace);
         }
+
+        public void AddChildNamespaces(IEnumerable<IIdentifiableNamespace> childNamespaces)
+        {
+            if (this.childNamespaces == null)
+            {
+                this.childNamespaces = new SerializableList<IIdentifiableNamespace>();
+            }
+
+            foreach (IIdentifiableNamespace childNamespace in childNamespaces)
+            {
+                if (this.childNamespaces.Contains(childNamespace))
+                {
+                    throw new Exception($"Namespace '{childNamespace.Name}' already exists in {Name}!");
+                }
+            }
+
+            this.childNamespaces.AddRange(childNamespaces);
+        }
         #endregion
     }
 }

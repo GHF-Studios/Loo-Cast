@@ -12,6 +12,7 @@ namespace LooCast.Identifier
 
         #region Methods
         void AddChildNamespace(IIdentifiableNamespace childNamespace);
+        void AddChildNamespaces(IEnumerable<IIdentifiableNamespace> childNamespaces);
         #endregion
     }
 }

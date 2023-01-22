@@ -89,7 +89,7 @@ namespace LooCast.Core
             #region Data.Path
             _ = Data.Path;
             #endregion
-            
+
             #region MainManager
             if (instance != null)
             {

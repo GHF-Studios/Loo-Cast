@@ -2,22 +2,21 @@ using UnityEngine;
 using System.Collections.Generic;
 using System;
 using System.Runtime.CompilerServices;
+using LooCast.Identifier;
 
 namespace LooCast.Core
 {
     public abstract class ExtendedMonoBehaviour : MonoBehaviour
     {
         public static List<ExtendedMonoBehaviour> Instances = new List<ExtendedMonoBehaviour>();
-        public static int nextInstanceID = 0;
-        public int InstanceID { get; private set; }
+        public Guid InstanceID { get; private set; }
         public bool IsPaused { get; private set; }
         [HideInInspector] public bool IsVisible;
 
         private void Awake()
         {
             Instances.Add(this);
-            InstanceID = nextInstanceID;
-            nextInstanceID++;
+            InstanceID = Guid.NewGuid();
             IsPaused = false;
             IsVisible = false;
         }
