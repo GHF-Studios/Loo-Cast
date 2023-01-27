@@ -923,11 +923,35 @@
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
 			<DynamicDataTypes>
+				<DynamicDataType>
+					<Namespace></Namespace>
+					<Name>Coins</Name>
+				</DynamicDataType>
+				<DynamicDataType>
+					<Namespace></Namespace>
+					<Name>Credits</Name>
+				</DynamicDataType>
+				<DynamicDataType>
+					<Namespace></Namespace>
+					<Name>Tokens</Name>
+				</DynamicDataType>
 			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
 				<ScriptAssets>
+					<ScriptAsset>
+						<Name>Coins</Name>
+						<Filename>Coins.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>Credits</Name>
+						<Filename>Credits.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>Tokens</Name>
+						<Filename>Tokens.cs</Filename>
+					</ScriptAsset>
 				</ScriptAssets>
 			</Assets>
 		</Module>
@@ -968,12 +992,132 @@
 					</SubModules>
 					<Assets>
 						<ScriptAssets>
+							<ScriptAsset>
+								<Name>IRuntimeDataDeserializer</Name>
+								<Filename>IRuntimeDataDeserializer.cs</Filename>
+							</ScriptAsset>
+							<ScriptAsset>
+								<Name>IRuntimeDataSerializer</Name>
+								<Filename>IRuntimeDataSerializer.cs</Filename>
+							</ScriptAsset>
+							<ScriptAsset>
+								<Name>RuntimeData</Name>
+								<Filename>RuntimeData.cs</Filename>
+							</ScriptAsset>
+							<ScriptAsset>
+								<Name>RuntimeSet</Name>
+								<Filename>RuntimeSet.cs</Filename>
+							</ScriptAsset>
+							<ScriptAsset>
+								<Name>RuntimeSets</Name>
+								<Filename>RuntimeSets.cs</Filename>
+							</ScriptAsset>
 						</ScriptAssets>
 					</Assets>
 				</Module>
 			</SubModules>
 			<Assets>
 				<ScriptAssets>
+					<ScriptAsset>
+						<Name>BinarySerializer</Name>
+						<Filename>BinarySerializer.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>BoolDataReference</Name>
+						<Filename>BoolDataReference.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>Data</Name>
+						<Filename>Data.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>DataFolder</Name>
+						<Filename>DataFolder.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>DataManager</Name>
+						<Filename>DataManager.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>DynamicBoolData</Name>
+						<Filename>DynamicBoolData.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>DynamicData</Name>
+						<Filename>DynamicData.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>DynamicFloatData</Name>
+						<Filename>DynamicFloatData.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>DynamicIntData</Name>
+						<Filename>DynamicIntData.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>DynamicStringData</Name>
+						<Filename>DynamicStringData.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>FloatDataReference</Name>
+						<Filename>FloatDataReference.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>IData</Name>
+						<Filename>IData.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>IDataProvider</Name>
+						<Filename>IDataProvider.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>IMetaData</Name>
+						<Filename>IMetaData.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>IntDataReference</Name>
+						<Filename>IntDataReference.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>IPersistentData</Name>
+						<Filename>IPersistentData.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>IPersistentDataFolder</Name>
+						<Filename>IPersistentDataFolder.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>IRuntimeData</Name>
+						<Filename>IRuntimeData.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>JSONSerializer</Name>
+						<Filename>JSONSerializer.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>PNGSerializer</Name>
+						<Filename>PNGSerializer.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>ResourceManager</Name>
+						<Filename>ResourceManager.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>Serializer</Name>
+						<Filename>Serializer.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>StaticData</Name>
+						<Filename>StaticData.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>StringDataReference</Name>
+						<Filename>StringDataReference.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>XMLSerializer</Name>
+						<Filename>XMLSerializer.cs</Filename>
+					</ScriptAsset>
 				</ScriptAssets>
 			</Assets>
 		</Module>
