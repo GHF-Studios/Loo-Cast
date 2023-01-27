@@ -6,8 +6,8 @@ namespace LooCast.Arc
     using Core;
     using Target;
     using Util;
-
-    public class Arc : Component
+    
+    public class Arc : GameObject
     {
         #region Fields
         public List<Target> targets;

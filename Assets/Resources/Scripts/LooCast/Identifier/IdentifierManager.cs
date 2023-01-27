@@ -50,6 +50,12 @@ namespace LooCast.Identifier
             #endregion
         }
 
+        public interface IIdentifiableMetaDataType : IIdentifiableType
+        {
+            IIdentifiableRuntimeDataType RuntimeDataType { get; }
+            IIdentifiablePersistentDataType PersistentDataType { get; }
+        }
+        
         public interface IIdentifiableRuntimeDataType : IIdentifiableType
         {
             
@@ -60,7 +66,7 @@ namespace LooCast.Identifier
             
         }
 
-        public interface IIdentifiableObjectType : IIdentifiableType
+        public interface IIdentifiableGameObjectType : IIdentifiableType
         {
             #region Properties
             IIdentifiableRuntimeDataType RuntimeDataType { get; }
@@ -70,7 +76,7 @@ namespace LooCast.Identifier
             #region Methods
             IPersistentData SerializeData<RuntimeDataType, PersistentDataType>(IRuntimeData runtimeData) where RuntimeDataType : IRuntimeData where PersistentDataType : IPersistentData;
             IRuntimeData DeserializeData<RuntimeDataType, PersistentDataType>(IPersistentData persistentData) where RuntimeDataType : IRuntimeData where PersistentDataType : IPersistentData;
-            IIdentifiableObjectInstance CreateObjectInstance();
+            IIdentifiableGameObjectInstance CreateGameObjectInstance();
             #endregion
         }
 
@@ -98,22 +104,22 @@ namespace LooCast.Identifier
             #endregion
         }
 
-        public interface IIdentifiableObjectInstance : IIdentifiableInstance
+        public interface IIdentifiableGameObjectInstance : IIdentifiableInstance
         {
             #region Properties
-            IIdentifiableObjectInstance ParentObject { get; }
-            List<IIdentifiableObjectInstance> ChildObjects { get; }
+            IIdentifiableGameObjectInstance ParentObject { get; }
+            List<IIdentifiableGameObjectInstance> ChildObjects { get; }
             List<IIdentifiableComponentInstance> ChildComponents { get; }
             IRuntimeData RuntimeData { get; }
             IPersistentData PersistentData { get; }
-            Object ObjectInstance { get; }
+            GameObject ObjectInstance { get; }
             #endregion
 
             #region Methods
-            void AddChildObjectInstance(IIdentifiableObjectInstance childObjectInstance);
-            void AddChildObjectInstances(IEnumerable<IIdentifiableObjectInstance> childObjectInstances);
-            void RemoveChildObjectInstance(IIdentifiableObjectInstance childObjectInstance);
-            void RemoveChildObjectInstances(IEnumerable<IIdentifiableObjectInstance> childObjectInstances);
+            void AddChildObjectInstance(IIdentifiableGameObjectInstance childObjectInstance);
+            void AddChildObjectInstances(IEnumerable<IIdentifiableGameObjectInstance> childObjectInstances);
+            void RemoveChildObjectInstance(IIdentifiableGameObjectInstance childObjectInstance);
+            void RemoveChildObjectInstances(IEnumerable<IIdentifiableGameObjectInstance> childObjectInstances);
             void AddChildComponentInstance(IIdentifiableComponentInstance childComponentInstance);
             void AddChildComponentInstances(IEnumerable<IIdentifiableComponentInstance> childComponentInstances);
             void RemoveChildComponentInstance(IIdentifiableComponentInstance childComponentInstance);
@@ -124,7 +130,7 @@ namespace LooCast.Identifier
         public interface IIdentifiableComponentInstance : IIdentifiableInstance
         {
             #region Properties
-            IIdentifiableObjectInstance ParentObject { get; }
+            IIdentifiableGameObjectInstance ParentObject { get; }
             IRuntimeData RuntimeData { get; }
             IPersistentData PersistentData { get; }
             Component ComponentInstance { get; }
@@ -223,7 +229,7 @@ namespace LooCast.Identifier
         }
 
         [Serializable]
-        public class ObjectTypeIdentifier<ObjectType> : IIdentifiableObjectType where ObjectType : Object
+        public class GameObjectTypeIdentifier<GameObjectType> : IIdentifiableGameObjectType where GameObjectType : GameObject
         {
             #region Properties
             public string ID
@@ -240,11 +246,11 @@ namespace LooCast.Identifier
                     return Type.GetType(assemblyQualifiedTypeName);
                 }
             }
-            public ObjectType ObjectInstance
+            public GameObjectType GameObjectInstance
             {
                 get
                 {
-                    return objectInstance;
+                    return gameObjectInstance;
                 }
             }
 
@@ -252,6 +258,8 @@ namespace LooCast.Identifier
             public IIdentifiableType ParentType => parentType;
             public List<IIdentifiableType> ChildTypes => childTypes.Values;
             public IIdentifiableNamespace TypeNamespace => typeNamespace;
+            public IIdentifiableRuntimeDataType RuntimeDataType => runtimeDataType;
+            public IIdentifiablePersistentDataType PersistentDataType => persistentDataType;
             #endregion
 
             #region Fields
@@ -260,13 +268,14 @@ namespace LooCast.Identifier
             [SerializeField] private IIdentifiableType parentType;
             [SerializeField] private SerializableList<IIdentifiableType> childTypes;
             [SerializeField] private IIdentifiableNamespace typeNamespace;
-            [SerializeField] private IPersistentData objectData;
+            [SerializeField] private IIdentifiableRuntimeDataType runtimeDataType;
+            [SerializeField] private IIdentifiablePersistentDataType persistentDataType;
 
-            private ObjectType objectInstance;
+            private GameObjectType gameObjectInstance;
             #endregion
 
             #region Constructors
-            internal ObjectTypeIdentifier(IIdentifiableNamespace typeNamespace, Type type)
+            internal GameObjectTypeIdentifier(IIdentifiableNamespace typeNamespace, Type type)
             {
                 typeName = type.Name;
                 assemblyQualifiedTypeName = type.AssemblyQualifiedName;
@@ -275,7 +284,7 @@ namespace LooCast.Identifier
                 this.typeNamespace = typeNamespace;
             }
 
-            internal ObjectTypeIdentifier(IIdentifiableType parentType, Type type)
+            internal GameObjectTypeIdentifier(IIdentifiableType parentType, Type type)
             {
                 typeName = type.Name;
                 assemblyQualifiedTypeName = type.AssemblyQualifiedName;
@@ -311,17 +320,21 @@ namespace LooCast.Identifier
                 }
             }
 
-            public IPersistentData SerializeData<RuntimeDataType, PersistentDataType>(IRuntimeData runtimeData) where RuntimeDataType : IRuntimeData where PersistentDataType : IPersistentData
+            public IPersistentData SerializeData<RuntimeDataType, PersistentDataType>(IRuntimeData runtimeData)
+                where RuntimeDataType : IRuntimeData 
+                where PersistentDataType : IPersistentData
             {
                 
             }
             
-            public IRuntimeData DeserializeData<RuntimeDataType, PersistentDataType>(IPersistentData persistentData) where RuntimeDataType : IRuntimeData where PersistentDataType : IPersistentData
+            public IRuntimeData DeserializeData<RuntimeDataType, PersistentDataType>(IPersistentData persistentData) 
+                where RuntimeDataType : IRuntimeData 
+                where PersistentDataType : IPersistentData
             {
                 
             }
             
-            public IIdentifiableObjectInstance CreateObjectInstance()
+            public IIdentifiableGameObjectInstance CreateGameObjectInstance()
             {
                 
             }
@@ -329,7 +342,7 @@ namespace LooCast.Identifier
         }
 
         [Serializable]
-        public class ComponentTypeIdentifier : IIdentifiableComponentType
+        public class ComponentTypeIdentifier<ComponentType> : IIdentifiableComponentType where ComponentType : Component
         {
             #region Properties
             public string ID
@@ -346,11 +359,21 @@ namespace LooCast.Identifier
                     return Type.GetType(assemblyQualifiedTypeName);
                 }
             }
+            public ComponentType ComponentInstance
+            {
+                get
+                {
+                    return componentInstance;
+                }
+            }
 
             public string TypeName => typeName;
             public IIdentifiableType ParentType => parentType;
             public List<IIdentifiableType> ChildTypes => childTypes.Values;
             public IIdentifiableNamespace TypeNamespace => typeNamespace;
+            public IIdentifiableMetaDataType MetaDataType => metaDataType;
+            public IIdentifiableRuntimeDataType RuntimeDataType => runtimeDataType;
+            public IIdentifiablePersistentDataType PersistentDataType => persistentDataType;
             #endregion
 
             #region Fields
@@ -359,10 +382,15 @@ namespace LooCast.Identifier
             [SerializeField] private IIdentifiableType parentType;
             [SerializeField] private SerializableList<IIdentifiableType> childTypes;
             [SerializeField] private IIdentifiableNamespace typeNamespace;
+            [SerializeField] private IIdentifiableMetaDataType metaDataType;
+            [SerializeField] private IIdentifiableRuntimeDataType runtimeDataType;
+            [SerializeField] private IIdentifiablePersistentDataType persistentDataType;
+
+            private ComponentType componentInstance;
             #endregion
 
             #region Constructors
-            internal ComponentTypeIdentifier(IIdentifiableNamespace typeNamespace, Type type)
+            internal ComponentTypeIdentifier(IIdentifiableNamespace typeNamespace, Type type, IIdentifiableRuntimeDataType runtimeDataType, IIdentifiablePersistentDataType persistentDataType)
             {
                 typeName = type.Name;
                 assemblyQualifiedTypeName = type.AssemblyQualifiedName;
@@ -405,6 +433,25 @@ namespace LooCast.Identifier
                     }
                     this.childTypes.Add(childType);
                 }
+            }
+
+            public IPersistentData SerializeData<RuntimeDataType, PersistentDataType>(IRuntimeData runtimeData)
+                where RuntimeDataType : IRuntimeData
+                where PersistentDataType : IPersistentData
+            {
+                
+            }
+
+            public IRuntimeData DeserializeData<RuntimeDataType, PersistentDataType>(IPersistentData persistentData)
+                where RuntimeDataType : IRuntimeData
+                where PersistentDataType : IPersistentData
+            {
+                
+            }
+
+            public IIdentifiableComponentInstance CreateComponentInstance()
+            {
+
             }
             #endregion
         }
@@ -572,20 +619,42 @@ namespace LooCast.Identifier
             return newChildNamespace;
         }
 
-        public IIdentifiableType CreateRootType(IIdentifiableNamespace parentNamespace, Type type)
+        public IIdentifiableType CreateRootGameObjectType(IIdentifiableNamespace parentNamespace, Type type)
         {
             if (rootTypes.ContainsKey(type.Name))
             {
                 throw new Exception($"[IdentifierManager] Root Type '{type.Name}' already exists!");
             }
-            ObjectTypeIdentifier newRootType = new ObjectTypeIdentifier(parentNamespace, type);
+            GameObjectTypeIdentifier newRootType = new GameObjectTypeIdentifier(parentNamespace, type);
             rootTypes.Add(newRootType.ID, newRootType);
             return newRootType;
         }
 
-        public IIdentifiableType CreateType(IIdentifiableType parentType, Type type)
+        public IIdentifiableType CreateGameObjectType(IIdentifiableGameObjectType parentType, Type type)
         {
-            ObjectTypeIdentifier newChildType = new ObjectTypeIdentifier(parentType, type);
+            GameObjectTypeIdentifier newChildType = new GameObjectTypeIdentifier(parentType, type);
+            if (parentType.ChildTypes.Contains(newChildType))
+            {
+                throw new Exception($"[IdentifierManager] Type '{type.Name}' in parent '{parentType.ID}' already exists!");
+            }
+            parentType.AddChildType(newChildType);
+            return newChildType;
+        }
+
+        public IIdentifiableType CreateRootComponentType(IIdentifiableNamespace parentNamespace, Type type)
+        {
+            if (rootTypes.ContainsKey(type.Name))
+            {
+                throw new Exception($"[IdentifierManager] Root Type '{type.Name}' already exists!");
+            }
+            ComponentTypeIdentifier newRootType = new ComponentTypeIdentifier(parentNamespace, type);
+            rootTypes.Add(newRootType.ID, newRootType);
+            return newRootType;
+        }
+
+        public IIdentifiableType CreateComponentType(IIdentifiableComponentType parentType, Type type)
+        {
+            ComponentTypeIdentifier newChildType = new ComponentTypeIdentifier(parentType, type);
             if (parentType.ChildTypes.Contains(newChildType))
             {
                 throw new Exception($"[IdentifierManager] Type '{type.Name}' in parent '{parentType.ID}' already exists!");

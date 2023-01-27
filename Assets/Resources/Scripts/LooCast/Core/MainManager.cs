@@ -34,7 +34,7 @@ namespace LooCast.Core
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[MainManager]");
+                    GameObject instanceObject = new UnityEngine.GameObject("[MainManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     return instanceObject.AddComponent<MainManager>();
@@ -259,8 +259,205 @@ namespace LooCast.Core
             #region IdentifierManager
             IdentifierManager idManager = IdentifierManager.Instance;
             idManager.Initialize();
+
+            #region Namespaces
+            // Root Namespace
             IdentifierManager.NamespaceIdentifier rootNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateRootNamespace("LooCast");
-            // TODO: Add all namespaces, types and instances here and shit
+            
+            // Top Level Namespaces
+            IdentifierManager.NamespaceIdentifier aiNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "AI");
+            
+            IdentifierManager.NamespaceIdentifier allyNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Ally");
+            IdentifierManager.NamespaceIdentifier allyDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(allyNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier allyDataRuntimeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(allyDataNamespace, "Runtime");
+            
+            IdentifierManager.NamespaceIdentifier aoeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "AOE");
+            
+            IdentifierManager.NamespaceIdentifier apiNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "API");
+            
+            IdentifierManager.NamespaceIdentifier arcNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Arc");
+            
+            IdentifierManager.NamespaceIdentifier asteroidNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Asteroid");
+            IdentifierManager.NamespaceIdentifier asteroidDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(asteroidNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier asteroidDataRuntimeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(asteroidDataNamespace, "Runtime");
+
+            IdentifierManager.NamespaceIdentifier attributeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Attribute");
+            IdentifierManager.NamespaceIdentifier attributeStatNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(attributeNamespace, "Stat");
+            
+            IdentifierManager.NamespaceIdentifier backgroundNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Background");
+            
+            IdentifierManager.NamespaceIdentifier chanceNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Chance");
+            
+            IdentifierManager.NamespaceIdentifier coreNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Core");
+            
+            IdentifierManager.NamespaceIdentifier currencyNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Currency");
+            
+            IdentifierManager.NamespaceIdentifier dataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier dataRuntimeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(dataNamespace, "Runtime");
+            
+            IdentifierManager.NamespaceIdentifier diagnosticNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Diagnostic");
+            
+            IdentifierManager.NamespaceIdentifier enemyNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Enemy");
+            IdentifierManager.NamespaceIdentifier enemyDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(enemyNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier enemyDataRuntimeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(enemyDataNamespace, "Runtime");
+            
+            IdentifierManager.NamespaceIdentifier eventNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Event");
+            
+            IdentifierManager.NamespaceIdentifier experienceNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Experience");
+            IdentifierManager.NamespaceIdentifier experienceDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(experienceNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier experienceDataRuntimeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(experienceDataNamespace, "Runtime");
+            
+            IdentifierManager.NamespaceIdentifier gameNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Game");
+            
+            IdentifierManager.NamespaceIdentifier generatorNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Generator");
+            IdentifierManager.NamespaceIdentifier generatorDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(generatorNamespace, "Data");
+
+            IdentifierManager.NamespaceIdentifier healthNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Health");
+            IdentifierManager.NamespaceIdentifier healthDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(healthNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier healthDataRuntimeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(healthDataNamespace, "Runtime");
+
+            IdentifierManager.NamespaceIdentifier identifierNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Identifier");
+            
+            IdentifierManager.NamespaceIdentifier indicatorNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Indicator");
+            
+            IdentifierManager.NamespaceIdentifier inventoryNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Inventory");
+            IdentifierManager.NamespaceIdentifier inventoryDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(inventoryNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier inventoryDataRuntimeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(inventoryDataNamespace, "Runtime");
+
+            IdentifierManager.NamespaceIdentifier itemNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Item");
+            IdentifierManager.NamespaceIdentifier itemDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(itemNamespace, "Data");
+
+            IdentifierManager.NamespaceIdentifier mainMenuNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "MainMenu");
+            
+            IdentifierManager.NamespaceIdentifier mathNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Math");
+            IdentifierManager.NamespaceIdentifier mathGeometryNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(mathNamespace, "Geometry");
+            IdentifierManager.NamespaceIdentifier mathMapNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(mathNamespace, "Map");
+            
+            IdentifierManager.NamespaceIdentifier missionNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Mission");
+            IdentifierManager.NamespaceIdentifier missionDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(missionNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier missionRewardNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(missionNamespace, "Reward");
+            IdentifierManager.NamespaceIdentifier missionTargetNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(missionNamespace, "Target");
+            IdentifierManager.NamespaceIdentifier missionTaskNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(missionNamespace, "Task");
+            IdentifierManager.NamespaceIdentifier missionTriggerNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(missionNamespace, "Trigger");
+            
+            IdentifierManager.NamespaceIdentifier modNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Mod");
+            
+            IdentifierManager.NamespaceIdentifier moduleNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Module");
+            
+            IdentifierManager.NamespaceIdentifier movementNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Movement");
+            IdentifierManager.NamespaceIdentifier movementDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(movementNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier movementDataRuntimeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(movementDataNamespace, "Runtime");
+            IdentifierManager.NamespaceIdentifier movementEffectNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(movementNamespace, "Effect");
+
+            IdentifierManager.NamespaceIdentifier noiseNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Noise");
+            
+            IdentifierManager.NamespaceIdentifier observerNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Observer");
+            IdentifierManager.NamespaceIdentifier observerDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(observerNamespace, "Data");
+            
+            IdentifierManager.NamespaceIdentifier orbNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Orb");
+            
+            IdentifierManager.NamespaceIdentifier particleNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Particle");
+            
+            IdentifierManager.NamespaceIdentifier playerNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Player");
+            IdentifierManager.NamespaceIdentifier playerDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(playerNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier playerDataRuntimeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(playerDataNamespace, "Runtime");
+            
+            IdentifierManager.NamespaceIdentifier projectileNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Projectile");
+            
+            IdentifierManager.NamespaceIdentifier randomNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Random");
+            
+            IdentifierManager.NamespaceIdentifier registryNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Registry");
+            
+            IdentifierManager.NamespaceIdentifier resourceNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Resource");
+            
+            IdentifierManager.NamespaceIdentifier soundNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Sound");
+
+            IdentifierManager.NamespaceIdentifier spawnerNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Spawner");
+            IdentifierManager.NamespaceIdentifier spawnerDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(spawnerNamespace, "Data");
+            
+            IdentifierManager.NamespaceIdentifier stateMachineNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "StateMachine");
+            
+            IdentifierManager.NamespaceIdentifier stationNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Station");
+            IdentifierManager.NamespaceIdentifier stationDataNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(stationNamespace, "Data");
+            IdentifierManager.NamespaceIdentifier stationDataRuntimeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(stationDataNamespace, "Runtime");
+            
+            IdentifierManager.NamespaceIdentifier statisticNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Statistic");
+            
+            IdentifierManager.NamespaceIdentifier steamworksNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Steamworks");
+
+            IdentifierManager.NamespaceIdentifier targetNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Target");
+
+            IdentifierManager.NamespaceIdentifier testNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Test");
+
+            IdentifierManager.NamespaceIdentifier transformNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Transform");
+
+            IdentifierManager.NamespaceIdentifier uiNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "UI");
+            IdentifierManager.NamespaceIdentifier uiAnimationNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Animation");
+            IdentifierManager.NamespaceIdentifier uiBarNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Bar");
+            IdentifierManager.NamespaceIdentifier uiButtonNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Button");
+            IdentifierManager.NamespaceIdentifier uiCanvasNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Canvas");
+            IdentifierManager.NamespaceIdentifier uiCursorNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Cursor");
+            IdentifierManager.NamespaceIdentifier uiHUDNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "HUD");
+            IdentifierManager.NamespaceIdentifier uiInspectorNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Inspector");
+            IdentifierManager.NamespaceIdentifier uiInventoryNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Inventory");
+            IdentifierManager.NamespaceIdentifier uiLevelNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Level");
+            IdentifierManager.NamespaceIdentifier uiOverlayNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Overlay");
+            IdentifierManager.NamespaceIdentifier uiPanelNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Panel");
+            IdentifierManager.NamespaceIdentifier uiRewardNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Reward");
+            IdentifierManager.NamespaceIdentifier uiScreenNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Screen");
+            IdentifierManager.NamespaceIdentifier uiSliderNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Slider");
+            IdentifierManager.NamespaceIdentifier uiTabNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Tab");
+            IdentifierManager.NamespaceIdentifier uiTaskNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Task");
+            IdentifierManager.NamespaceIdentifier uiTimerNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Timer");
+            IdentifierManager.NamespaceIdentifier uiTitleNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Title");
+            IdentifierManager.NamespaceIdentifier uiTooltipNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Tooltip");
+            IdentifierManager.NamespaceIdentifier uiValueNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(uiNamespace, "Value");
+            
+            IdentifierManager.NamespaceIdentifier universeNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Universe");
+            
+            IdentifierManager.NamespaceIdentifier utilNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Util");
+            IdentifierManager.NamespaceIdentifier utilCollectionsNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(utilNamespace, "Collections");
+            IdentifierManager.NamespaceIdentifier utilCollectionsConcurrentNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(utilCollectionsNamespace, "Concurrent");
+            IdentifierManager.NamespaceIdentifier utilCollectionsGenericNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(utilCollectionsNamespace, "Generic");
+            
+            IdentifierManager.NamespaceIdentifier variableNamespace = (IdentifierManager.NamespaceIdentifier)idManager.CreateNamespace(rootNamespace, "Variable");
+            #endregion
+
+            #region Types
+            IdentifierManager.ComponentTypeIdentifier<AI.AllyAI> allyAIComponentType = (IdentifierManager.ComponentTypeIdentifier<AI.AllyAI>)idManager.CreateRootGameObjectType(aiNamespace, typeof(AI.AllyAI));
+            IdentifierManager.ComponentTypeIdentifier<AI.EnemyAI> enemyAIComponentType = (IdentifierManager.ComponentTypeIdentifier<AI.EnemyAI>)idManager.CreateRootGameObjectType(aiNamespace, typeof(AI.EnemyAI));
+            
+            IdentifierManager.GameObjectTypeIdentifier<Ally.Ally> allyGameObjectType = (IdentifierManager.GameObjectTypeIdentifier<Ally.Ally>)idManager.CreateRootGameObjectType(allyNamespace, typeof(Ally.Ally));
+            IdentifierManager.GameObjectDataTypeIdentifier<Ally.Data.AllyData> allyGameObjectDataType = (IdentifierManager.GameObjectDataTypeIdentifier<Ally.Data.AllyData>)idManager.CreateGameObjectDataType(allyGameObjectType, typeof(Ally.Data.AllyData));
+            IdentifierManager.GameObjectRuntimeDataTypeIdentifier<Ally.Data.Runtime.AllyRuntimeSet> allyGameObjectRuntimeDataType = (IdentifierManager.GameObjectRuntimeDataTypeIdentifier<Ally.Data.Runtime.AllyRuntimeSet>)idManager.CreateGameObjectRuntimeDataType(allyGameObjectType, typeof(Ally.Data.Runtime.AllyRuntimeSet));
+
+            IdentifierManager.GameObjectTypeIdentifier<Ally.SmolAlly> smolAllyGameObjectType = (IdentifierManager.GameObjectTypeIdentifier<Ally.SmolAlly>)idManager.CreateGameObjectType(allyGameObjectType, typeof(Ally.SmolAlly));
+            
+            IdentifierManager.GameObjectTypeIdentifier<AOE.FreezeZone> freezeZoneGameObjectType = (IdentifierManager.GameObjectTypeIdentifier<AOE.FreezeZone>)idManager.CreateGameObjectType(allyGameObjectType, typeof(AOE.FreezeZone));
+
+            IdentifierManager.GameObjectTypeIdentifier<Arc.Arc> arcGameObjectType = (IdentifierManager.GameObjectTypeIdentifier<Arc.Arc>)idManager.CreateRootGameObjectType(arcNamespace, typeof(Arc.Arc));
+            
+            idManager.CreateRootGameObjectType(asteroidNamespace, typeof(Asteroid.Asteroid));
+            
+            idManager.CreateRootGameObjectType(attributeNamespace, typeof(Attribute.Attribute));
+            idManager.CreateRootGameObjectType(attributeStatNamespace, typeof(Attribute.Stat.Stat));
+            
+            idManager.CreateRootGameObjectType(backgroundNamespace, typeof(Background.Background));
+            
+            idManager.CreateRootGameObjectType(chanceNamespace, typeof(Chance.Chance));
+
+            IdentifierManager.GameObjectTypeIdentifier<Enemy.Enemy> enemyObjectType = (IdentifierManager.GameObjectTypeIdentifier<Enemy.Enemy>)idManager.CreateRootGameObjectType(enemyNamespace, typeof(Enemy.Enemy));
+            IdentifierManager.GameObjectTypeIdentifier<Enemy.SmolEnemy> smolEnemyObjectType = (IdentifierManager.GameObjectTypeIdentifier<Enemy.SmolEnemy>)idManager.CreateGameObjectType(enemyObjectType, typeof(Enemy.SmolEnemy));
+            idManager.CreateRootGameObjectType(arcNamespace, typeof());
+            idManager.CreateRootGameObjectType(arcNamespace, typeof());
+            idManager.CreateRootGameObjectType(arcNamespace, typeof());
+            idManager.CreateRootGameObjectType(arcNamespace, typeof());
+            #endregion
+
+            #region Singleton Instances
+
+            #endregion
+
             #endregion
 
             #region RegistryManager

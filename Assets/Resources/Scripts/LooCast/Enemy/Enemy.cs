@@ -14,7 +14,7 @@ namespace LooCast.Enemy
     using Health;
 
     [RequireComponent(typeof(EnemyMovement), typeof(EnemyHealth)), DisallowMultipleComponent]
-    public abstract class Enemy : Component
+    public abstract class Enemy : GameObject
     {
         #region Data
         public EnemyData Data;

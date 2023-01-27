@@ -47,7 +47,7 @@ namespace LooCast.Data
 
         internal void Initialize()
         {
-            
+            rootDataFolder = new DataFolder();
         }
 
         internal void OnPreInitialize()

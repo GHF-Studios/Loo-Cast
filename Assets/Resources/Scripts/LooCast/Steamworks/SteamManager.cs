@@ -31,7 +31,7 @@ public class SteamManager : MonoBehaviour
 		get {
 			if (s_instance == null) 
 			{
-                GameObject instanceObject = new GameObject("[SteamManager]");
+                UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[SteamManager]");
                 instanceObject.layer = 31;
                 instanceObject.tag = "INTERNAL";
                 return instanceObject.AddComponent<SteamManager>();

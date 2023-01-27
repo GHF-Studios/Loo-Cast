@@ -9,5 +9,9 @@ namespace LooCast.Data
         Type DataType { get; }
         string Name { get; }
         #endregion
+
+        #region Methods
+
+        #endregion
     }
 }

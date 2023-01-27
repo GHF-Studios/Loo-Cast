@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<Mod>
+    <Namespace>Loo Cast</Namespace>
+    <Version>0.4.9</Version>
+    <Modules>
+        <Module>
+            <Namespace>AI</Namespace>
+			<Version>0.4.9</Version>
+			<Assets>
+				<AssetType>
+					
+				</AssetType>
+			</Assets>
+        </Module>
+    </Modules>
+</Mod>

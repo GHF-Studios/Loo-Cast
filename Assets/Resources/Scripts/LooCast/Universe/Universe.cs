@@ -297,7 +297,7 @@ namespace LooCast.Universe
                 {
                     throw new Exception("Cannot have multiple instances of Universe.DensityMapGenerationUtil!");
                 }
-                GameObject instanceObject = new GameObject("[Universe.DensityMapGenerationUtil]");
+                GameObject instanceObject = new UnityEngine.GameObject("[Universe.DensityMapGenerationUtil]");
                 instanceObject.layer = 31;
                 instanceObject.tag = "INTERNAL";
                 Instance = instanceObject.AddComponent<DensityMapGenerationUtil>();
@@ -845,7 +845,7 @@ namespace LooCast.Universe
                 {
                     throw new Exception("Cannot have multiple instances of Universe.MapElementLoadingUtil!");
                 }
-                GameObject instanceObject = new GameObject("[Universe.MapElementLoadingUtil]");
+                GameObject instanceObject = new UnityEngine.GameObject("[Universe.MapElementLoadingUtil]");
                 instanceObject.layer = 31;
                 instanceObject.tag = "INTERNAL";
                 Instance = instanceObject.AddComponent<MapElementLoadingUtil>();

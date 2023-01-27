@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace LooCast.Data
 {
-    public abstract class DataFolder : IDataFolder
+    public class DataFolder : IPersistentDataFolder
     {
         #region Properties
         public string ID
@@ -21,7 +21,7 @@ namespace LooCast.Data
                 }
             }
         }
-        public abstract Type DataType { get; }
+        public Type DataType { get; }
         public string Name => name;
         public DataFolder ParentFolder => parentFolder;
         public Dictionary<string, IData> ContainedData => containedData;

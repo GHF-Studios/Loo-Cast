@@ -6,7 +6,7 @@ using LooCast.Identifier;
 
 namespace LooCast.Core
 {
-    public abstract class Component : MonoBehaviour
+    public abstract class Component : MonoBehaviour, IdentifierManager.IIdentifiableComponentInstance
     {
         public static List<Component> Instances = new List<Component>();
         public Guid InstanceID { get; private set; }
