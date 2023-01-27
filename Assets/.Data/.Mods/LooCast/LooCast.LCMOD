@@ -144,36 +144,6 @@
             <Name>AI</Name>
 			<Version>0.4.9</Version>
 			<Dependencies>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Core</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Random</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Movement</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>StateMachine</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Util</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Target</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
 			</Dependencies>
 			<Conflicts>
 			</Conflicts>
@@ -205,36 +175,6 @@
             <Name>Ally</Name>
 			<Version>0.4.9</Version>
 			<Dependencies>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Core</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Data</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Data.Runtime</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Particle</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Movement</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Health</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
 			</Dependencies>
 			<Conflicts>
 			</Conflicts>
@@ -282,21 +222,6 @@
 			<Name>AOE</Name>
 			<Version>0.4.9</Version>
 			<Dependencies>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Core</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Attribute.Stat</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Movement.Effect</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
 			</Dependencies>
 			<Conflicts>
 			</Conflicts>
@@ -324,11 +249,6 @@
 			<Name>API</Name>
 			<Version>0.4.9</Version>
 			<Dependencies>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Core</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
 			</Dependencies>
 			<Conflicts>
 			</Conflicts>
@@ -360,21 +280,6 @@
 			<Name>Arc</Name>
 			<Version>0.4.9</Version>
 			<Dependencies>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Core</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Target</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Util</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
 			</Dependencies>
 			<Conflicts>
 			</Conflicts>
@@ -406,41 +311,6 @@
 			<Name>Asteroid</Name>
 			<Version>0.4.9</Version>
 			<Dependencies>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Core</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Data</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Data.Runtime</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Chance</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Resource</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Item</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Item.Data</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
 			</Dependencies>
 			<Conflicts>
 			</Conflicts>
@@ -500,31 +370,6 @@
 			<Name>Attribute</Name>
 			<Version>0.4.9</Version>
 			<Dependencies>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Core</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Data</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Game</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Util</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
-				<Dependency>
-					<ModName>LooCast</ModName>
-					<Name>Variable</Name>
-					<Version>0.4.9</Version>
-				</Dependency>
 			</Dependencies>
 			<Conflicts>
 			</Conflicts>
@@ -984,9 +829,17 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+					<ScriptAsset>
+						<Name>Background</Name>
+						<Filename>Background.cs</Filename>
+					</ScriptAsset>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1003,9 +856,21 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+					<ScriptAsset>
+						<Name>Chance</Name>
+						<Filename>Chance.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>Seed</Name>
+						<Filename>Seed.cs</Filename>
+					</ScriptAsset>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1022,9 +887,25 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+					<ScriptAsset>
+						<Name>Component</Name>
+						<Filename>Component.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>GameObject</Name>
+						<Filename>GameObject.cs</Filename>
+					</ScriptAsset>
+					<ScriptAsset>
+						<Name>MainManager</Name>
+						<Filename>MainManager.cs</Filename>
+					</ScriptAsset>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1041,9 +922,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1060,9 +945,11 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 				<Module>
-					<Namespace>Data</Namespace>
+					<Namespace>Runtime</Namespace>
 					<Name>Runtime</Name>
 					<Version>0.4.9</Version>
 					<Dependencies>
@@ -1075,13 +962,19 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1098,9 +991,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1117,9 +1014,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1136,9 +1037,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1155,9 +1060,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1174,9 +1083,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1193,9 +1106,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1212,9 +1129,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1231,9 +1152,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1250,9 +1175,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1269,9 +1198,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1288,9 +1221,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1307,9 +1244,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1326,6 +1267,8 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 				<Module>
 					<Namespace>Map</Namespace>
@@ -1341,13 +1284,19 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1364,6 +1313,8 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 				<Module>
 					<Namespace>Reward</Namespace>
@@ -1379,9 +1330,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -1398,9 +1353,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -1417,9 +1376,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -1436,13 +1399,19 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1459,9 +1428,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1478,9 +1451,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1497,6 +1474,8 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 				<Module>
 					<Namespace>Effect</Namespace>
@@ -1512,13 +1491,19 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1535,9 +1520,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1554,9 +1543,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1573,9 +1566,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1592,9 +1589,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1611,9 +1612,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1630,9 +1635,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1649,9 +1658,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1668,9 +1681,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1687,9 +1704,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1706,9 +1727,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1725,9 +1750,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1744,9 +1773,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1763,9 +1796,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1782,9 +1819,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1801,9 +1842,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1820,9 +1865,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1839,9 +1888,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -1858,6 +1911,8 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 				<Module>
 					<Namespace>Bar</Namespace>
@@ -1873,9 +1928,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -1892,9 +1951,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -1911,9 +1974,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -1930,9 +1997,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -1949,9 +2020,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -1968,9 +2043,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -1987,9 +2066,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -2006,9 +2089,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -2025,9 +2112,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -2044,9 +2135,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -2063,9 +2158,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -2082,9 +2181,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -2101,9 +2204,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -2120,9 +2227,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -2139,9 +2250,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -2158,9 +2273,13 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 				<Module>
@@ -2177,13 +2296,19 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 					</SubModules>
 					<Assets>
+						<ScriptAssets>
+						</ScriptAssets>
 					</Assets>
 				</Module>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -2200,9 +2325,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -2219,6 +2348,8 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 				<Module>
 					<Namespace>Collections</Namespace>
@@ -2234,6 +2365,8 @@
 					</PersistentDataTypes>
 					<RuntimeDataTypes>
 					</RuntimeDataTypes>
+					<DynamicDataTypes>
+					</DynamicDataTypes>
 					<SubModules>
 						<Module>
 							<Namespace>Concurrent</Namespace>
@@ -2249,9 +2382,13 @@
 							</PersistentDataTypes>
 							<RuntimeDataTypes>
 							</RuntimeDataTypes>
+							<DynamicDataTypes>
+							</DynamicDataTypes>
 							<SubModules>
 							</SubModules>
 							<Assets>
+								<ScriptAssets>
+								</ScriptAssets>
 							</Assets>
 						</Module>
 						<Module>
@@ -2268,9 +2405,13 @@
 							</PersistentDataTypes>
 							<RuntimeDataTypes>
 							</RuntimeDataTypes>
+							<DynamicDataTypes>
+							</DynamicDataTypes>
 							<SubModules>
 							</SubModules>
 							<Assets>
+								<ScriptAssets>
+								</ScriptAssets>
 							</Assets>
 						</Module>
 					</SubModules>
@@ -2279,6 +2420,8 @@
 				</Module>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
 		<Module>
@@ -2295,9 +2438,13 @@
 			</PersistentDataTypes>
 			<RuntimeDataTypes>
 			</RuntimeDataTypes>
+			<DynamicDataTypes>
+			</DynamicDataTypes>
 			<SubModules>
 			</SubModules>
 			<Assets>
+				<ScriptAssets>
+				</ScriptAssets>
 			</Assets>
 		</Module>
     </Modules>
