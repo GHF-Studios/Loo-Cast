@@ -6,10 +6,10 @@ namespace LooCast.Asteroid
 {
     using Data;
     using Data.Runtime;
-    using LooCast.Chance;
-    using LooCast.Resource;
-    using LooCast.Item;
-    using LooCast.Item.Data;
+    using Chance;
+    using Resource;
+    using Item;
+    using Item.Data;
 
     public class Asteroid : MonoBehaviour
     {

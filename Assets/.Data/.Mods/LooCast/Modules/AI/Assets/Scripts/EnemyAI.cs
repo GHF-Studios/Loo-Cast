@@ -9,6 +9,7 @@ namespace LooCast.AI
     using StateMachine;
     using Util;
     using Target;
+    using LooCast.Game;
 
     public class EnemyAI : Component
     {

@@ -6,9 +6,9 @@ using UnityEngine.Events;
 
 namespace LooCast.Ally
 {
+    using Core;
     using Data;
     using Data.Runtime;
-    using Core;
     using Particle;
     using Movement;
     using Health;

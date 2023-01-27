@@ -6,8 +6,7 @@ namespace LooCast.AOE
 {
     using Core;
     using Attribute.Stat;
-    using LooCast.Movement;
-    using LooCast.Movement.Effect;
+    using Movement.Effect;
 
     public class FreezeZone : Component
     {

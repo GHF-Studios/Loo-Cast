@@ -9,6 +9,7 @@ namespace LooCast.AI
     using Movement;
     using StateMachine;
     using Util;
+    using Enemy;
     using Target;
 
     public class AllyAI : Component

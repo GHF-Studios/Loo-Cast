@@ -1,8 +1,0 @@
-{
-    "modName": "LooCast",
-    "name": "Player",
-    "displayName": "Player",
-    "description": "Loo Cast Base Mod's Player Module",
-    "dependencies": [],
-    "conflicts": []
-}

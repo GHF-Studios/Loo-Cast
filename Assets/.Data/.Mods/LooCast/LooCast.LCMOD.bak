@@ -630,139 +630,139 @@
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>AgilityStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>AlertnessStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>AwarenessStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>BodyStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>BrawnStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>CautiousnessStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>ChanceStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>CharmStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>EgoStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>EnduranceStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>FateStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>FortitudeStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>FortuneStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>IntellectStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>KnowledgeStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>MightStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>MindStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>PersonalityStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>PowerStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>PresenceStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>PsycheStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>QuicknessStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>RecoveryStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>ReflexesStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>ResilienceStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>ResistanceStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>ResolveStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>SanityStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>SenseStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>SocialStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>SpiritStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>StaminaStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>VitalityStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 						<DynamicDataType>
 							<Namespace></Namespace>
-							<Name>WitsStat</Name>
+							<Name>Stat</Name>
 						</DynamicDataType>
 					</DynamicDataTypes>
 					<SubModules>
