@@ -14,7 +14,7 @@ namespace LooCast.Data
         {
             get
             {
-                return System.IO.Path.Combine(Application.dataPath, ".Data");
+                return System.IO.Path.Combine(Application.dataPath, "Data");
             }
         }
         #endregion
