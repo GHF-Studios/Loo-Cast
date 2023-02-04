@@ -1,23 +1,13 @@
 ﻿using System;
 using System.IO;
-using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace LooCast
 {
-    using Game;
-    using Util;
-    using Universe;
-    using UI.Screen;
-    using LooCast.Data;
-    using Mod;
-    using Module;
-    using Registry;
-    using Identifier;
-    using System.Reflection;
-
+    using Core;
+    
     public class MainManager : Component
     {
         #region Static Properties
@@ -27,7 +17,7 @@ namespace LooCast
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new UnityEngine.GameObject("[MainManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[MainManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     return instanceObject.AddComponent<MainManager>();
@@ -55,7 +45,7 @@ namespace LooCast
 
         #region Static Fields
         private static MainManager instance;
-        private static List<Entrypoint> modEntrypoints;
+        private static List<IEntrypoint> modEntrypoints;
         #endregion
 
         #region Unity Callbacks
@@ -72,7 +62,7 @@ namespace LooCast
             instance = this;
             DontDestroyOnLoad(this);
 
-            foreach (Entrypoint modEntrypoint in modEntrypoints)
+            foreach (IEntrypoint modEntrypoint in modEntrypoints)
             {
                 modEntrypoint.Initialize();
             }
@@ -90,7 +80,7 @@ namespace LooCast
             IsPreInitializing = true;
 
             #region Pre-Initialization
-            modEntrypoints = new List<Entrypoint>();
+            modEntrypoints = new List<IEntrypoint>();
             string modsFolderPath = Path.Combine(Application.dataPath, "Data", "Mods");
             string[] modDirectoryPaths = Directory.GetDirectories(modsFolderPath);
             foreach (string modDirectoryPath in modDirectoryPaths)
@@ -102,12 +92,12 @@ namespace LooCast
                 {
                     Assembly modAssembly = Assembly.LoadFile(modEntrypointPath);
                     Type entrypointType = modAssembly.GetType(modName + ".Entrypoint");
-                    Entrypoint modEntrypoint = (Entrypoint)Activator.CreateInstance(entrypointType);
+                    IEntrypoint modEntrypoint = (IEntrypoint)Activator.CreateInstance(entrypointType);
                     modEntrypoints.Add(modEntrypoint);
                 }
             }
 
-            foreach (Entrypoint modEntrypoint in modEntrypoints)
+            foreach (IEntrypoint modEntrypoint in modEntrypoints)
             {
                 modEntrypoint.PreInitialize();
             }
@@ -124,7 +114,7 @@ namespace LooCast
             IsPostInitializing = true;
 
             #region Post-Initialization
-            foreach (Entrypoint modEntrypoint in modEntrypoints)
+            foreach (IEntrypoint modEntrypoint in modEntrypoints)
             {
                 modEntrypoint.PostInitialize();
             }
