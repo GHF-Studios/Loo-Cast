@@ -99,8 +99,6 @@ namespace LooCast.Identifier
             #region Properties
             IIdentifiableType InstanceType { get; }
             Guid InstanceID { get; }
-            IRuntimeData runtimeData { get; set; }
-            IPersistentData persistentData { get; set; }
             #endregion
         }
 

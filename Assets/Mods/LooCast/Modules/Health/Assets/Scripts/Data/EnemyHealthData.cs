@@ -4,7 +4,9 @@ using UnityEngine;
 
 namespace LooCast.Health.Data
 {
+    using LooCast.Core;
     using LooCast.Data;
+    using System;
 
     [CreateAssetMenu(fileName = "EnemyHealthData", menuName = "Data/Health/EnemyHealthData", order = 0)]
     public class EnemyHealthData : ScriptableObject
