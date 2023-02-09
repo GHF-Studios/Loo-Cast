@@ -6,13 +6,77 @@ using UnityEngine.SceneManagement;
 
 namespace LooCast.Core
 {
-    using MainMenu;
+    using AI;
+    using Ally;
+    using AOE;
+    using Arc;
+    using Asteroid;
+    using Attribute;
+    using Attribute.Stat;
+    using Background;
+    using Chance;
+    using Core.Registry;
+    using Currency;
+    using Data;
+    using Diagnostic;
+    using Enemy;
+    using Event;
+    using Experience;
     using Game;
-    using Util;
-    using Universe;
-    using UI.Screen;
+    using Generator;
+    using Health;
+    using Identifier;
+    using Indicator;
+    using Inventory;
+    using Item;
+    using MainMenu;
+    using Math;
     using Math.Map;
-    using LooCast.Data;
+    using Mission;
+    using Mission.Reward;
+    using Mission.Target;
+    using Mission.Task;
+    using Mission.Trigger;
+    using Movement;
+    using Movement.Effect;
+    using Noise;
+    using Observer;
+    using Orb;
+    using Particle;
+    using Player;
+    using Projectile;
+    using Random;
+    using Resource;
+    using Sound;
+    using Spawner;
+    using StateMachine;
+    using Station;
+    using Statistic;
+    using Steamworks;
+    using Target;
+    using Test;
+    using UI;
+    using UI.Bar;
+    using UI.Button;
+    using UI.Canvas;
+    using UI.Cursor;
+    using UI.HUD;
+    using UI.Inspector;
+    using UI.Inventory;
+    using UI.Level;
+    using UI.Panel;
+    using UI.Reward;
+    using UI.Screen;
+    using UI.Slider;
+    using UI.Tab;
+    using UI.Task;
+    using UI.Timer;
+    using UI.Title;
+    using UI.Value;
+    using Universe;
+    using Util;
+    using Util.Collections;
+    using Variable;
 
     public class MainManager : MonoBehaviour
     {
@@ -44,6 +108,19 @@ namespace LooCast.Core
         }
         public static Games Games => games;
         public static Game GameToBeLoaded => gameToBeLoaded;    // TODO: Implement this
+        public static bool IsPreInitializing { get; private set; }
+        public static bool IsPreInitialized { get; private set; }
+        public static bool IsInitializing { get; private set; }
+        public static bool IsInitialized { get; private set; }
+        public static bool IsPostInitializing { get; private set; }
+        public static bool IsPostInitialized { get; private set; }
+        public static bool IsFullyInitialized
+        {
+            get
+            {
+                return IsPreInitialized && IsInitialized && IsPostInitialized;
+            }
+        }
         #endregion
 
         #region Static Fields
@@ -58,6 +135,8 @@ namespace LooCast.Core
         {
             string activeSceneName = SceneManager.GetActiveScene().name;
             Debug.Log($"[MainManager] Starting Initialization in Scene '{activeSceneName}'.");
+
+            IsInitializing = true;
 
             #region Initialization
 
@@ -115,6 +194,9 @@ namespace LooCast.Core
 
             #endregion
 
+            IsInitializing = false;
+            IsInitialized = true;
+            
             Debug.Log($"[MainManager] Finished Initialization in Scene '{activeSceneName}'.");
         }
         #endregion
@@ -221,9 +303,147 @@ namespace LooCast.Core
             string activeSceneName = SceneManager.GetActiveScene().name;
             Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
 
-            #region Pre-Initialization
+            IsPreInitializing = true;
 
+            #region Pre-Initialization
+            Namespace rootNamespace = new Namespace("LooCast");
+            
+            Namespace aiNamespace = new Namespace("AI", rootNamespace);
+            Type allyAI = new Type(typeof(AllyAI), aiNamespace);
+            Type enemyAI = new Type(typeof(EnemyAI), aiNamespace);
+
+            Namespace allyNamespace = new Namespace("Ally", rootNamespace);
+            Type ally = new Type(typeof(Ally), allyNamespace);
+            Type smolAlly = new Type(typeof(SmolAlly), allyNamespace);
+
+            Namespace aoeNamespace = new Namespace("AOE", rootNamespace);
+
+            Namespace arcNamespace = new Namespace("Arc", rootNamespace);
+            
+            Namespace asteroidNamespace = new Namespace("Asteroid", rootNamespace);
+
+            Namespace attributeNamespace = new Namespace("Attribute", rootNamespace);
+            Namespace attributeStatNamespace = new Namespace("Stat", attributeNamespace);
+
+            Namespace backgroundNamespace = new Namespace("Background", rootNamespace);
+            
+            Namespace chanceNamespace = new Namespace("Chance", rootNamespace);
+            
+            Namespace coreNamespace = new Namespace("Core", rootNamespace);
+            Namespace coreRegistryNamespace = new Namespace("Registry", coreNamespace);
+            Type namespaceRegistryType = new Type(typeof(Registry<NamespaceIdentifier, Namespace>), coreRegistryNamespace);
+            Type typeRegistryType = new Type(typeof(Registry<TypeIdentifier, Type>), coreRegistryNamespace);
+            Type instanceRegistryType = new Type(typeof(Registry<InstanceIdentifier, Instance>), coreRegistryNamespace);
+            
+            Namespace currencyNamespace = new Namespace("Currency", rootNamespace);
+            
+            Namespace dataNamespace = new Namespace("Data", rootNamespace);
+            
+            Namespace diagnosticNamespace = new Namespace("Diagnostic", rootNamespace);
+
+            Namespace enemyNamespace = new Namespace("Enemy", rootNamespace);
+            
+            Namespace eventNamespace = new Namespace("Event", rootNamespace);
+            
+            Namespace experienceNamespace = new Namespace("Experience", rootNamespace);
+
+            Namespace gameNamespace = new Namespace("Game", rootNamespace);
+
+            Namespace generatorNamespace = new Namespace("Generator", rootNamespace);
+            
+            Namespace healthNamespace = new Namespace("Health", rootNamespace);
+
+            Namespace identifierNamespace = new Namespace("Identifier", rootNamespace);
+
+            Namespace indicatorNamespace = new Namespace("Indicator", rootNamespace);
+
+            Namespace inventoryNamespace = new Namespace("Inventory", rootNamespace);
+
+            Namespace itemNamespace = new Namespace("Item", rootNamespace);
+            
+            Namespace mainMenuNamespace = new Namespace("MainMenu", rootNamespace);
+            
+            Namespace mathNamespace = new Namespace("Math", rootNamespace);
+            Namespace mathMapNamespace = new Namespace("Map", mathNamespace);
+            
+            Namespace missionNamespace = new Namespace("Mission", rootNamespace);
+            Namespace missionRewardNamespace = new Namespace("Reward", missionNamespace);
+            Namespace missionTargetNamespace = new Namespace("Target", missionNamespace);
+            Namespace missionTaskNamespace = new Namespace("Task", missionNamespace);
+            Namespace missionTriggerNamespace = new Namespace("Trigger", missionNamespace);
+            
+            Namespace movementNamespace = new Namespace("Movement", rootNamespace);
+            Namespace movementEffectNamespace = new Namespace("Effect", movementNamespace);
+
+            Namespace noiseNamespace = new Namespace("Noise", rootNamespace);
+            
+            Namespace observerNamespace = new Namespace("Observer", rootNamespace);
+            
+            Namespace orbNamespace = new Namespace("Orb", rootNamespace);
+            
+            Namespace particleNamespace = new Namespace("Particle", rootNamespace);
+
+            Namespace playerNamespace = new Namespace("Player", rootNamespace);
+
+            Namespace projectileNamespace = new Namespace("Projectile", rootNamespace);
+            
+            Namespace randomNamespace = new Namespace("Random", rootNamespace);
+
+            Namespace resourceNamespace = new Namespace("Resource", rootNamespace);
+
+            Namespace soundNamespace = new Namespace("Sound", rootNamespace);
+
+            Namespace spawnerNamespace = new Namespace("Spawner", rootNamespace);
+            
+            Namespace stateMachineNamespace = new Namespace("StateMachine", rootNamespace);
+            
+            Namespace stationNamespace = new Namespace("Station", rootNamespace);
+            
+            Namespace statisticNamespace = new Namespace("Statistic", rootNamespace);
+            
+            Namespace steamworksNamespace = new Namespace("Steamworks", rootNamespace);
+
+            Namespace targetNamespace = new Namespace("Target", rootNamespace);
+            
+            Namespace testNamespace = new Namespace("Test", rootNamespace);
+            
+            Namespace uiNamespace = new Namespace("UI", rootNamespace);
+            Namespace uiBarNamespace = new Namespace("Bar", uiNamespace);
+            Namespace uiButtonNamespace = new Namespace("Button", uiNamespace);
+            Namespace uiCanvasNamespace = new Namespace("Canvas", uiNamespace);
+            Namespace uiCursorNamespace = new Namespace("Cursor", uiNamespace);
+            Namespace uiHudNamespace = new Namespace("HUD", uiNamespace);
+            Namespace uiInspectorNamespace = new Namespace("Inspector", uiNamespace);
+            Namespace uiInventoryNamespace = new Namespace("Inventory", uiNamespace);
+            Namespace uiLevelNamespace = new Namespace("Level", uiNamespace);
+            Namespace uiPanelNamespace = new Namespace("Panel", uiNamespace);
+            Namespace uiRewardNamespace = new Namespace("Reward", uiNamespace);
+            Namespace uiScreenNamespace = new Namespace("Screen", uiNamespace);
+            Namespace uiSliderNamespace = new Namespace("Slider", uiNamespace);
+            Namespace uiTabNamespace = new Namespace("Tab", uiNamespace);
+            Namespace uiTaskNamespace = new Namespace("Task", uiNamespace);
+            Namespace uiTimerNamespace = new Namespace("Timer", uiNamespace);
+            Namespace uiTitleNamespace = new Namespace("Title", uiNamespace);
+            Namespace uiValueNamespace = new Namespace("Value", uiNamespace);
+            
+            Namespace universeNamespace = new Namespace("Universe", rootNamespace);
+            
+            Namespace utilNamespace = new Namespace("Util", rootNamespace);
+            Namespace utilCollectionsNamespace = new Namespace("Collections", utilNamespace);
+            
+            Namespace variableNamespace = new Namespace("Variable", rootNamespace);
+            
+
+            RegistryManager.Instance.Initialize();
+            NamespaceManager.Instance.Initialize();
+            TypeManager.Instance.Initialize();
+            InstanceManager.Instance.Initialize();
+
+            // Register all Namespaces, Types and Instances
             #endregion
+
+            IsPreInitializing = false;
+            IsPreInitialized = true;
 
             Debug.Log($"[MainManager] Finished Pre-Initialization in Scene '{activeSceneName}'.");
             _ = Instance;
@@ -235,9 +455,14 @@ namespace LooCast.Core
             string activeSceneName = SceneManager.GetActiveScene().name;
             Debug.Log($"[MainManager] Starting Post-Initialization in Scene '{activeSceneName}'.");
 
+            IsPostInitializing = true;
+
             #region Post-Initialization
 
             #endregion
+
+            IsPostInitializing = false;
+            IsPostInitialized = true;
 
             Debug.Log($"[MainManager] Finished Post-Initialization in Scene '{activeSceneName}'.");
         }
