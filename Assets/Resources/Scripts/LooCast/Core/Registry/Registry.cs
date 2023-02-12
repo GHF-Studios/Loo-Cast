@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace LooCast.Core.Registry
 {
+    using Core.Manager;
     using Identifier;
     
     public sealed class Registry<KeyType, ValueType> : IIdentifiable where KeyType : IIdentifier where ValueType : IIdentifiable
