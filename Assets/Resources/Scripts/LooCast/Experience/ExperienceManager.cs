@@ -6,7 +6,7 @@ namespace LooCast.Core
     using Core.Manager;
     using Identifier;
     
-    public class ExperienceManager : Manager
+    public class ExperienceManager : ModuleManager
     {
         #region Static Properties
         public static ExperienceManager Instance

@@ -6,7 +6,7 @@ namespace LooCast.Core
     using Core.Manager;
     using Identifier;
     
-    public class EventManager : Manager
+    public class EventManager : ModuleManager
     {
         #region Static Properties
         public static EventManager Instance

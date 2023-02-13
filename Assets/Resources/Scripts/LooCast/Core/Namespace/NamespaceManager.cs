@@ -33,17 +33,17 @@ namespace LooCast.Core.Namespace
         #endregion
 
         #region Properties
-        public override Manager[] SubManagers => subManagers;
+        public override SubModuleManager[] SubModuleManagers => subModuleManagers;
         #endregion
 
         #region Fields
-        private Manager[] subManagers;
+        private SubModuleManager[] subModuleManagers;
         #endregion
 
         #region Methods
         public override void PreInitialize()
         {
-            subManagers = new Manager[]
+            subModuleManagers = new SubModuleManager[]
             {
 
             };
@@ -61,12 +61,12 @@ namespace LooCast.Core.Namespace
 
         public void RegisterNamespace(Namespace @namespace)
         {
-
+            // TODO: Implement
         }
 
         public Namespace GetNamespace(NamespaceIdentifier namespaceIdentifier)
         {
-            
+            // TODO: Implement
         }
         #endregion
     }

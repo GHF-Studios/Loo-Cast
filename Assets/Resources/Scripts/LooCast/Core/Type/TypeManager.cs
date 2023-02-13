@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Core.Type
 {
+    using Core.Manager;
     using Identifier;
 
     public class TypeManager : SubModuleManager
@@ -32,17 +33,17 @@ namespace LooCast.Core.Type
         #endregion
 
         #region Properties
-        public override Manager[] SubManagers => subManagers;
+        public override SubModuleManager[] SubModuleManagers => subModuleManagers;
         #endregion
 
         #region Fields
-        private Manager[] subManagers;
+        private SubModuleManager[] subModuleManagers;
         #endregion
 
         #region Methods
         public override void PreInitialize()
         {
-            subManagers = new Manager[]
+            subModuleManagers = new SubModuleManager[]
             {
 
             };
@@ -60,12 +61,12 @@ namespace LooCast.Core.Type
         
         public void RegisterType(Type type)
         {
-            
+            // TODO: Implement
         }
 
         public Type GetType(TypeIdentifier typeIdentifier)
         {
-
+            // TODO: Implement
         }
         #endregion
     }

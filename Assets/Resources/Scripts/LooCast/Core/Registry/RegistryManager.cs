@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace LooCast.Core.Registry
 {
+    using Core.Manager;
     using Identifier;
     using UnityEngine;
 
@@ -33,19 +34,19 @@ namespace LooCast.Core.Registry
         #endregion
 
         #region Properties
-        public override Manager[] SubManagers => subManagers;
+        public override SubModuleManager[] SubModuleManagers => subModuleManagers;
         #endregion
 
         #region Fields
         private Dictionary<TypeIdentifier, object> registries;
-        private Manager[] subManagers;
+        private SubModuleManager[] subModuleManagers;
         #endregion
 
         #region Methods
         public override void PreInitialize()
         {
             registries = new Dictionary<TypeIdentifier, object>();
-            subManagers = new Manager[]
+            subModuleManagers = new SubModuleManager[]
             {
                 
             };

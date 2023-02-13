@@ -6,7 +6,7 @@ namespace LooCast.Core
     using Core.Manager;
     using Identifier;
     
-    public class EnemyManager : Manager
+    public class EnemyManager : ModuleManager
     {
         #region Static Properties
         public static EnemyManager Instance

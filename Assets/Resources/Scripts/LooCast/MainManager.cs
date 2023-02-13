@@ -6,7 +6,15 @@ using UnityEngine.SceneManagement;
 
 namespace LooCast
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.Core.Instance;
+    using LooCast.Core.Manager;
+    using LooCast.Core.Namespace;
+    using LooCast.Core.Registry;
+    using LooCast.Core.Type;
+    using LooCast.Game;
+    using LooCast.Universe;
+    using System.Linq;
 
     public class MainManager : MonoBehaviour
     {
@@ -19,6 +27,111 @@ namespace LooCast
         #endregion
 
         #region Static Properties
+        
+        #region Initialization Phase Flags
+        public static bool IsEarlyPreInitializing { get; private set; }
+        public static bool IsPreInitializing { get; private set; }
+        public static bool IsLatePreInitializing { get; private set; }
+        public static bool IsEarlyPreInitialized { get; private set; }
+        public static bool IsPreInitialized { get; private set; }
+        public static bool IsLatePreInitialized { get; private set; }
+
+        public static bool IsEarlyInitializing { get; private set; }
+        public static bool IsInitializing { get; private set; }
+        public static bool IsLateInitializing { get; private set; }
+        public static bool IsEarlyInitialized { get; private set; }
+        public static bool IsInitialized { get; private set; }
+        public static bool IsLateInitialized { get; private set; }
+
+        public static bool IsEarlyPostInitializing { get; private set; }
+        public static bool IsPostInitializing { get; private set; }
+        public static bool IsLatePostInitializing { get; private set; }
+        public static bool IsEarlyPostInitialized { get; private set; }
+        public static bool IsPostInitialized { get; private set; }
+        public static bool IsLatePostInitialized { get; private set; }
+
+        public static bool IsFullyPreInitialized
+        {
+            get
+            {
+                return IsEarlyPreInitialized && IsPreInitialized && IsLatePreInitialized;
+            }
+        }
+        public static bool IsFullyInitialized
+        {
+            get
+            {
+                return IsEarlyInitialized && IsInitialized && IsLateInitialized;
+            }
+        }
+        public static bool IsFullyPostInitialized
+        {
+            get
+            {
+                return IsEarlyPostInitialized && IsPostInitialized && IsLatePostInitialized;
+            }
+        }
+        public static bool IsCompletelyInitialized
+        {
+            get
+            {
+                return IsFullyPreInitialized && IsFullyInitialized && IsPostInitialized;
+            }
+        }
+        #endregion
+
+        #region Termination Phase Flags
+        public static bool IsEarlyPreTerminating { get; private set; }
+        public static bool IsPreTerminating { get; private set; }
+        public static bool IsLatePreTerminating { get; private set; }
+        public static bool IsEarlyPreTerminated { get; private set; }
+        public static bool IsPreTerminated { get; private set; }
+        public static bool IsLatePreTerminated { get; private set; }
+
+        public static bool IsEarlyTerminating { get; private set; }
+        public static bool IsTerminating { get; private set; }
+        public static bool IsLateTerminating { get; private set; }
+        public static bool IsEarlyTerminated { get; private set; }
+        public static bool IsTerminated { get; private set; }
+        public static bool IsLateTerminated { get; private set; }
+
+        public static bool IsEarlyPostTerminating { get; private set; }
+        public static bool IsPostTerminating { get; private set; }
+        public static bool IsLatePostTerminating { get; private set; }
+        public static bool IsEarlyPostTerminated { get; private set; }
+        public static bool IsPostTerminated { get; private set; }
+        public static bool IsLatePostTerminated { get; private set; }
+
+        public static bool IsFullyPreTerminated
+        {
+            get
+            {
+                return IsEarlyPreTerminated && IsPreTerminated && IsLatePreTerminated;
+            }
+        }
+        public static bool IsFullyTerminated
+        {
+            get
+            {
+                return IsEarlyTerminated && IsTerminated && IsLateTerminated;
+            }
+        }
+        public static bool IsFullyPostTerminated
+        {
+            get
+            {
+                return IsEarlyPostTerminated && IsPostTerminated && IsLatePostTerminated;
+            }
+        }
+        public static bool IsCompletelyTerminated
+        {
+            get
+            {
+                return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
+            }
+        }
+        #endregion  
+        
         public static MainManager Instance
         {
             get
@@ -37,105 +150,55 @@ namespace LooCast
             }
         }
         public static Games Games => games;
-        public static Game GameToBeLoaded => gameToBeLoaded;    // TODO: Implement this
-        public static bool IsPreInitializing { get; private set; }
-        public static bool IsPreInitialized { get; private set; }
-        public static bool IsInitializing { get; private set; }
-        public static bool IsInitialized { get; private set; }
-        public static bool IsPostInitializing { get; private set; }
-        public static bool IsPostInitialized { get; private set; }
-        public static bool IsFullyInitialized
-        {
-            get
-            {
-                return IsPreInitialized && IsInitialized && IsPostInitialized;
-            }
-        }
+        public static Game.Game GameToBeLoaded => gameToBeLoaded;    // TODO: Implement this
         public static CoreModuleManager[] CoreModuleManagers { get; private set; }
         #endregion
 
         #region Static Fields
         private static MainManager instance;
         private static Games games;
-        private static Game gameToBeLoaded;
+        private static Game.Game gameToBeLoaded;
         public static float saveInterval = 30.0f;
         #endregion
 
         #region Unity Callbacks
+
+        #region Initialization
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void OnEarlyPreInitialize()
+        {
+            Instance.EarlyPreInitialize();
+        }
+
         private void Awake()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
-            Debug.Log($"[MainManager] Starting Initialization in Scene '{activeSceneName}'.");
-
-            IsInitializing = true;
-
-            #region Initialization
-
-            #region MainManager Initialization
-            if (instance != null)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            instance = this;
-            DontDestroyOnLoad(this);
-
-            games = Games.Load();
-
-            Debug.Log($"[MainManager] Initialized.");
-            #endregion
-
-            #region CoreModuleManagers Initialization
-            // TODO: Load CoreModuleManagers
-            #endregion
-
-            #region DEPRECATED! [TO BE MOVED!]
-            #region SteamManager Initialization
-            _ = SteamManager.Initialized;
-            #endregion
-
-            #region Data.Path Initialization
-            _ = Data.Path;
-            #endregion
-
-            #region TimerUtil Initialization
-            TimerUtil.InitializeInstance();
-            #endregion
-
-            #region Utilities Initialization
-            Universe.DensityMapGenerationUtil.InitializeInstance();
-            #endregion
-
-            #region Scene Initialization
-            switch (activeSceneName)
-            {
-                case "MainMenu":
-                    break;
-                case "Game":
-                    GameManager.AddPostInitializationAction(() =>
-                    {
-                        GameManager gameManager = FindObjectOfType<GameManager>();
-                        if (games.Contains("New Game"))
-                        {
-                            gameManager.InitializeGame(games.GetGame("New Game"));
-                        }
-                        else
-                        {
-                            gameManager.InitializeGame("New Game");
-                        }
-                    });
-                    break;
-            }
-            #endregion
-            #endregion
-            
-            #endregion
-
-            IsInitializing = false;
-            IsInitialized = true;
-            
-            Debug.Log($"[MainManager] Finished Initialization in Scene '{activeSceneName}'.");
+            EarlyInitialize();
         }
+        
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void OnEarlyPostInitialize()
+        {
+            Instance.EarlyPostInitialize();
+        }
+        #endregion
+
+        #region Termination
+        private void OnDisable()
+        {
+            EarlyPreTerminate();
+        }
+
+        private void OnDestroy()
+        {
+            EarlyPreTerminate();
+        }
+
+        private void OnApplicationQuit()
+        {
+            EarlyPreTerminate();
+        }
+        #endregion
+
         #endregion
 
         #region Static Methods
@@ -153,7 +216,7 @@ namespace LooCast
             });
         }
 
-        public static void CreateNewGame(string gameName, Universe.GenerationSettings generationSettings)
+        public static void CreateNewGame(string gameName, Universe.Universe.GenerationSettings generationSettings)
         {
             if (games.Contains(gameName))
             {
@@ -233,37 +296,61 @@ namespace LooCast
             }
             Debug.Log($"[MainManager] Finished loading Scene '{sceneName}'.");
         }
+        #endregion
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void PreInitialize()
+        #region Methods
+
+        #region Initialization Phases
+        private void EarlyPreInitialize()
         {
             string activeSceneName = SceneManager.GetActiveScene().name;
-            Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
+            IsEarlyPreInitializing = true;
+            Debug.Log($"[MainManager] Starting Early Pre-Initialization in Scene '{activeSceneName}'.");
 
+            #region Early Pre-Initialization
+
+            #region Main Manager
+            // TODO: Fetch CoreModuleManagers, ordered by their Dependencies(index 0 is Base Mod Core Module Manager, 1 is Mod Core Module Manager, 2 is Mod Extension Core Module Manager, 3 is Mod Extension Extension Core Module Manager, etc.)
+            #endregion
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.EarlyPreInitialize();
+            }
+            #endregion
+
+            #endregion
+
+            IsEarlyPreInitializing = false;
+            IsEarlyPreInitialized = true;
+            Debug.Log($"[MainManager] Finished Early Pre-Initialization in Scene '{activeSceneName}'.");
+
+            PreInitialize();
+        }
+
+        private void PreInitialize()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
             IsPreInitializing = true;
+            Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
 
             #region Pre-Initialization
 
-            #region Core Managers
-            LooCast.Core.DataManager looCastCoreManager = DataManager.Instance;
-            looCastCoreManager.PreInitialize();
+            #region Main Manager
             #endregion
 
-            RegistryManager registryManager = RegistryManager.Instance;
-            NamespaceManager namespaceManager = NamespaceManager.Instance;
-            TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.PreInitialize();
+            }
+            #endregion
 
-
-
-
-            // TODO:    THIS ENTIRE REAGON HAS TO BE SPLIT INTO EACH MODULE'S OWN MANAGER!
-            //          AND THE DEPENDENCIES HAVE TO BE CORRECTLY DETERMINED,
-            //          SO THAT THE MODULES ARE INITIALIZED IN THE CORRECT ORDER!!
-            #region THIS HAS TO BE SPLIT UP INTO MODULES
+            #region DEPRECATED! [TO BE MOVED!]
 
             Namespace rootNamespace = new Namespace("LooCast");
-            
+
             Namespace aiNamespace = new Namespace("AI", rootNamespace);
             Type allyAIType = new Type(typeof(AllyAI), aiNamespace);
             Type enemyAIType = new Type(typeof(EnemyAI), aiNamespace);
@@ -353,12 +440,12 @@ namespace LooCast
             Type namespaceRegistryType = new Type(typeof(Registry<NamespaceIdentifier, Namespace>), coreRegistryNamespace);
             Type typeRegistryType = new Type(typeof(Registry<TypeIdentifier, Type>), coreRegistryNamespace);
             Type instanceRegistryType = new Type(typeof(Registry<InstanceIdentifier, Instance>), coreRegistryNamespace);
-            
+
             Namespace currencyNamespace = new Namespace("Currency", rootNamespace);
             Type coinsType = new Type(typeof(Coins), currencyNamespace);
             Type creditsType = new Type(typeof(Credits), currencyNamespace);
             Type tokensType = new Type(typeof(Tokens), currencyNamespace);
-            
+
             Namespace dataNamespace = new Namespace("Data", rootNamespace);
 
             Namespace diagnosticNamespace = new Namespace("Diagnostic", rootNamespace);
@@ -676,7 +763,7 @@ namespace LooCast
             Type intVariableType = new Type(typeof(IntVariable), variableNamespace);
             Type intComputedVariableType = new Type(typeof(IntComputedVariable), variableNamespace);
             Type stringVariableType = new Type(typeof(StringVariable), variableNamespace);
-            
+
 
             namespaceManager.RegisterNamespace(rootNamespace);
 
@@ -1099,28 +1186,494 @@ namespace LooCast
 
             IsPreInitializing = false;
             IsPreInitialized = true;
-
             Debug.Log($"[MainManager] Finished Pre-Initialization in Scene '{activeSceneName}'.");
+
+            LatePreInitialize();
+        }
+
+        private void LatePreInitialize()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsLatePreInitializing = true;
+            Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
+
+            #region Late Pre-Initialization
+
+            #region MainManager
+            #endregion
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.LatePreInitialize();
+            }
+            #endregion
+
+            #endregion
+
+            IsPreInitializing = false;
+            IsPreInitialized = true;
+            Debug.Log($"[MainManager] Finished Pre-Initialization in Scene '{activeSceneName}'.");
+
             _ = Instance;
         }
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void PostInitialize()
+        private void EarlyInitialize()
         {
             string activeSceneName = SceneManager.GetActiveScene().name;
+            IsEarlyInitializing = true;
+            Debug.Log($"[MainManager] Starting Early Pre-Initialization in Scene '{activeSceneName}'.");
+
+            #region Early Initialization
+
+            #region Main Manager
+
+            #endregion
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.EarlyInitialize();
+            }
+            #endregion
+
+            #endregion
+
+            IsEarlyInitializing = false;
+            IsEarlyInitialized = true;
+            Debug.Log($"[MainManager] Finished Early Pre-Initialization in Scene '{activeSceneName}'.");
+
+            Initialize();
+        }
+
+        private void Initialize()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsInitializing = true;
+            Debug.Log($"[MainManager] Starting Initialization in Scene '{activeSceneName}'.");
+
+            #region Initialization
+
+            #region MainManager
+            if (instance != null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            instance = this;
+            DontDestroyOnLoad(this);
+
+            games = Games.Load();
+            #endregion
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.Initialize();
+            }
+            #endregion
+
+            #region DEPRECATED! [TO BE MOVED!]
+
+            #region SteamManager
+            _ = SteamManager.Initialized;
+            #endregion
+
+            #region Data.Path
+            _ = Data.Path;
+            #endregion
+
+            #region TimerUtil
+            TimerUtil.InitializeInstance();
+            #endregion
+
+            #region Utilities
+            Universe.DensityMapGenerationUtil.InitializeInstance();
+            #endregion
+
+            #region Scene
+            switch (activeSceneName)
+            {
+                case "MainMenu":
+                    break;
+                case "Game":
+                    GameManager.AddPostInitializationAction(() =>
+                    {
+                        GameManager gameManager = FindObjectOfType<GameManager>();
+                        if (games.Contains("New Game"))
+                        {
+                            gameManager.InitializeGame(games.GetGame("New Game"));
+                        }
+                        else
+                        {
+                            gameManager.InitializeGame("New Game");
+                        }
+                    });
+                    break;
+            }
+            #endregion
+
+            #endregion
+
+            #endregion
+
+            IsInitializing = false;
+            IsInitialized = true;
+            Debug.Log($"[MainManager] Finished Initialization in Scene '{activeSceneName}'.");
+
+            LateInitialize();
+        }
+
+        private void LateInitialize()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsLateInitializing = true;
+            Debug.Log($"[MainManager] Starting Late Pre-Initialization in Scene '{activeSceneName}'.");
+
+            #region Late Initialization
+
+            #region Main Manager
+
+            #endregion
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.LateInitialize();
+            }
+            #endregion
+
+            #endregion
+
+            IsLateInitializing = false;
+            IsLateInitialized = true;
+            Debug.Log($"[MainManager] Finished Late Pre-Initialization in Scene '{activeSceneName}'.");
+        }
+
+        private void EarlyPostInitialize()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsEarlyPostInitializing = true;
+            Debug.Log($"[MainManager] Starting Early Post-Initialization in Scene '{activeSceneName}'.");
+
+            #region Early Post-Initialization
+
+            #region MainManager
+
+            #endregion
+
+            #region Core Module Managers
+            LooCast.Core.CoreManager looCastCoreManager = CoreManager.Instance;
+            looCastCoreManager.PostInitialize();
+            #endregion
+
+            #endregion
+
+            IsEarlyPostInitializing = false;
+            IsEarlyPostInitialized = true;
+            Debug.Log($"[MainManager] Finished Early Post-Initialization in Scene '{activeSceneName}'.");
+
+            PostInitialize();
+        }
+
+        private void PostInitialize()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsPostInitializing = true;
             Debug.Log($"[MainManager] Starting Post-Initialization in Scene '{activeSceneName}'.");
 
-            IsPostInitializing = true;
-
             #region Post-Initialization
+
+            #region MainManager
+
+            #endregion
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.PostInitialize();
+            }
+            #endregion
 
             #endregion
 
             IsPostInitializing = false;
             IsPostInitialized = true;
-
             Debug.Log($"[MainManager] Finished Post-Initialization in Scene '{activeSceneName}'.");
+
+            LatePostInitialize();
         }
+
+        private void LatePostInitialize()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsLatePostInitializing = true;
+            Debug.Log($"[MainManager] Starting Late Post-Initialization in Scene '{activeSceneName}'.");
+
+            #region Late Post-Initialization
+
+            #region MainManager
+
+            #endregion
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.LatePostInitialize();
+            }
+            #endregion
+
+            #endregion
+
+            IsLatePostInitializing = false;
+            IsLatePostInitialized = true;
+            Debug.Log($"[MainManager] Finished Late Post-Initialization in Scene '{activeSceneName}'.");
+        }
+        #endregion
+
+        #region Termination Phases
+        private void EarlyPreTerminate()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsEarlyPreTerminating = true;
+            Debug.Log($"[MainManager] Starting Early Pre-Termination in Scene '{activeSceneName}'.");
+
+            #region Early Pre-Termination
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers.Reverse())
+            {
+                coreModuleManager.EarlyPreTerminate();
+            }
+            #endregion
+
+            #region MainManager
+            #endregion
+
+            #endregion
+
+            IsEarlyPreTerminating = false;
+            IsEarlyPreTerminated = true;
+            Debug.Log($"[MainManager] Finished Early Pre-Termination in Scene '{activeSceneName}'.");
+
+            PreTerminate();
+        }
+
+        private void PreTerminate()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsPreTerminating = true;
+            Debug.Log($"[MainManager] Starting Pre-Termination in Scene '{activeSceneName}'.");
+
+            #region Pre-Termination
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers.Reverse())
+            {
+                coreModuleManager.PreTerminate();
+            }
+            #endregion
+
+            #region MainManager
+            #endregion
+
+            #endregion
+
+            IsPreTerminating = false;
+            IsPreTerminated = true;
+            Debug.Log($"[MainManager] Finished Pre-Termination in Scene '{activeSceneName}'.");
+
+            LatePreTerminate();
+        }
+
+        private void LatePreTerminate()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsLatePreTerminating = true;
+            Debug.Log($"[MainManager] Starting Late Pre-Termination in Scene '{activeSceneName}'.");
+
+            #region Late Pre-Termination
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers.Reverse())
+            {
+                coreModuleManager.LatePreTerminate();
+            }
+            #endregion
+
+            #region MainManager
+            #endregion
+
+            #endregion
+
+            IsLatePreTerminating = false;
+            IsLatePreTerminated = true;
+            Debug.Log($"[MainManager] Finished Late Pre-Termination in Scene '{activeSceneName}'.");
+
+            EarlyTerminate();
+        }
+
+        private void EarlyTerminate()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsEarlyTerminating = true;
+            Debug.Log($"[MainManager] Starting Early Termination in Scene '{activeSceneName}'.");
+
+            #region Early Termination
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers.Reverse())
+            {
+                coreModuleManager.EarlyTerminate();
+            }
+            #endregion
+
+            #region MainManager
+            #endregion
+
+            #endregion
+
+            IsEarlyTerminating = false;
+            IsEarlyTerminated = true;
+            Debug.Log($"[MainManager] Finished Early Termination in Scene '{activeSceneName}'.");
+
+            Terminate();
+        }
+
+        private void Terminate()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsTerminating = true;
+            Debug.Log($"[MainManager] Starting Termination in Scene '{activeSceneName}'.");
+
+            #region Termination
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers.Reverse())
+            {
+                coreModuleManager.Terminate();
+            }
+            #endregion
+
+            #region MainManager
+            #endregion
+
+            #endregion
+
+            IsTerminating = false;
+            IsTerminated = true;
+            Debug.Log($"[MainManager] Finished Termination in Scene '{activeSceneName}'.");
+
+            LateTerminate();
+        }
+
+        private void LateTerminate()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsLateTerminating = true;
+            Debug.Log($"[MainManager] Starting Late Termination in Scene '{activeSceneName}'.");
+
+            #region Late Termination
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers.Reverse())
+            {
+                coreModuleManager.LateTerminate();
+            }
+            #endregion
+
+            #region MainManager
+            #endregion
+
+            #endregion
+
+            IsLateTerminating = false;
+            IsLateTerminated = true;
+            Debug.Log($"[MainManager] Finished Late Termination in Scene '{activeSceneName}'.");
+
+            EarlyPostTerminate();
+        }
+
+        private void EarlyPostTerminate()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsEarlyPostTerminating = true;
+            Debug.Log($"[MainManager] Starting Early Post-Termination in Scene '{activeSceneName}'.");
+
+            #region Early Post-Termination
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers.Reverse())
+            {
+                coreModuleManager.EarlyPostTerminate();
+            }
+            #endregion
+
+            #region MainManager
+            #endregion
+
+            #endregion
+
+            IsEarlyPostTerminating = false;
+            IsEarlyPostTerminated = true;
+            Debug.Log($"[MainManager] Finished Early Post-Termination in Scene '{activeSceneName}'.");
+
+            PostTerminate();
+        }
+
+        private void PostTerminate()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsPostTerminating = true;
+            Debug.Log($"[MainManager] Starting Post-Termination in Scene '{activeSceneName}'.");
+
+            #region Post-Termination
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers.Reverse())
+            {
+                coreModuleManager.PostTerminate();
+            }
+            #endregion
+
+            #region MainManager
+            #endregion
+
+            #endregion
+
+            IsPostTerminating = false;
+            IsPostTerminated = true;
+            Debug.Log($"[MainManager] Finished Post-Termination in Scene '{activeSceneName}'.");
+
+            LatePostTerminate();
+        }
+
+        private void LatePostTerminate()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsLatePostTerminating = true;
+            Debug.Log($"[MainManager] Starting Late Post-Termination in Scene '{activeSceneName}'.");
+
+            #region Late Post-Termination
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers.Reverse())
+            {
+                coreModuleManager.LatePostTerminate();
+            }
+            #endregion
+
+            #region MainManager
+            #endregion
+
+            #endregion
+
+            IsLatePostTerminating = false;
+            IsLatePostTerminated = true;
+            Debug.Log($"[MainManager] Finished Late Post-Termination in Scene '{activeSceneName}'.");
+        }
+        #endregion
+
         #endregion
 
         #region Coroutines

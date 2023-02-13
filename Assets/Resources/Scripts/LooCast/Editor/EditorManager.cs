@@ -6,7 +6,7 @@ namespace LooCast.Core
     using Core.Manager;
     using Identifier;
     
-    public class EditorManager : Manager
+    public class EditorManager : ModuleManager
     {
         #region Static Properties
         public static EditorManager Instance

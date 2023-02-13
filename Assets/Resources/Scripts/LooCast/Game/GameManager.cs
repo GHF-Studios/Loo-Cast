@@ -181,7 +181,21 @@ namespace LooCast.Game
         #endregion
 
         #region Methods
+        public override void PreInitialize()
+        {
 
+        }
+
+        public override void Initialize()
+        {
+
+        }
+
+        public override void PostInitialize()
+        {
+
+        }
+        
         public void InitializeGame(string newGameName)
         {
             InitializeGame(newGameName, Universe.DefaultGenerationSettings);

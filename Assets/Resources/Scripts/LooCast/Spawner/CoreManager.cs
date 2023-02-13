@@ -6,7 +6,7 @@ namespace LooCast.Core
     using Core.Manager;
     using Identifier;
     
-    public class DataManager : Manager
+    public class DataManager : ModuleManager
     {
         #region Static Properties
         public static DataManager Instance

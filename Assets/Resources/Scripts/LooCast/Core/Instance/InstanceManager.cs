@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace LooCast.Core.Instance
 {
+    using Core.Manager;
     using Identifier;
-    using LooCast.Core.Registry;
 
     public class InstanceManager : SubModuleManager
     {
@@ -33,18 +33,18 @@ namespace LooCast.Core.Instance
         #endregion
 
         #region Properties
-        public override Manager[] SubManagers => subManagers;
+        public override SubModuleManager[] SubModuleManagers => subModuleManagers;
         #endregion
 
         #region Fields
-        private Manager[] subManagers;
+        private SubModuleManager[] subModuleManagers;
 
         #endregion
 
         #region Methods
         public override void PreInitialize()
         {
-            subManagers = new Manager[]
+            subModuleManagers = new SubModuleManager[]
             {
 
             };
@@ -62,17 +62,17 @@ namespace LooCast.Core.Instance
 
         public void RegisterInstance(Instance instance)
         {
-
+            // TODO: Implement
         }
 
         public void UnregisterInstance(Instance instance)
         {
-
+            // TODO: Implement
         }
 
         public Instance GetInstance(InstanceIdentifier instanceIdentifier)
         {
-            
+            // TODO: Implement
         }
         #endregion
     }

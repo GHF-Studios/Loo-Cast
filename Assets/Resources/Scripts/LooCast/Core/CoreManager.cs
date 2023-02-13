@@ -12,7 +12,9 @@ namespace LooCast.Core
     using Attribute.Stat;
     using Background;
     using Chance;
+    using Core;
     using Core.Instance;
+    using Core.Manager;
     using Core.Namespace;
     using Core.Registry;
     using Core.Type;
@@ -117,6 +119,13 @@ namespace LooCast.Core
         #endregion
 
         #region Methods
+        public override void EarlyPreInitialize()
+        {
+            base.EarlyPreInitialize();
+
+            // TODO: Somehow get ModuleManagers, ordered by their Dependencies(index 0 is Core Module Manager, 1 is Primary Module Manager, 2 is Secondary Module Manager, 3 is Tertiary Module Manager, etc.)
+        }
+        
         public override void PreInitialize()
         {
             subModuleManagers = new SubModuleManager[]

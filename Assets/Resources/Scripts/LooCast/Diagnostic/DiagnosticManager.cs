@@ -6,7 +6,7 @@ namespace LooCast.Core
     using Core.Manager;
     using Identifier;
     
-    public class DiagnosticManager : Manager
+    public class DiagnosticManager : ModuleManager
     {
         #region Static Properties
         public static DiagnosticManager Instance
