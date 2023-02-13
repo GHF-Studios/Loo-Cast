@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.AOE
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     
     public class AOEManager : ModuleManager

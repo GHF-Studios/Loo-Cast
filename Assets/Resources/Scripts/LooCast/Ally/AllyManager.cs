@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Ally
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     
     public class AllyManager : ModuleManager

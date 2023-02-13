@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.AI
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     
     public class AIManager : ModuleManager

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,15 +7,7 @@ using UnityEngine.SceneManagement;
 
 namespace LooCast
 {
-    using LooCast.Core;
-    using LooCast.Core.Instance;
-    using LooCast.Core.Manager;
-    using LooCast.Core.Namespace;
-    using LooCast.Core.Registry;
-    using LooCast.Core.Type;
     using LooCast.Game;
-    using LooCast.Universe;
-    using System.Linq;
 
     public class MainManager : MonoBehaviour
     {
@@ -239,7 +232,7 @@ namespace LooCast
 
             LoadScene(SceneType.Game, () =>
             {
-                Game game = games.GetGame(gameName);
+                Game.Game game = games.GetGame(gameName);
                 GameManager gameManager = FindObjectOfType<GameManager>();
                 gameManager.InitializeGame(game);
             });
@@ -252,8 +245,8 @@ namespace LooCast
                 throw new Exception("Cannot delete Game when it is loaded!");
             }
 
-            Game game = games.GetGame(gameName);
-            Game.DeleteGame(game);
+            Game.Game game = games.GetGame(gameName);
+            Game.Game.DeleteGame(game);
         }
 
         public static void RenameGame(string oldGameName, string newGameName)
@@ -263,8 +256,8 @@ namespace LooCast
                 throw new Exception("Cannot rename Game when it is loaded!");
             }
 
-            Game game = games.GetGame(oldGameName);
-            Game.Rename(game, newGameName);
+            Game.Game game = games.GetGame(oldGameName);
+            Game.Game.Rename(game, newGameName);
         }
 
         public static void LoadMainMenu()
@@ -310,6 +303,10 @@ namespace LooCast
             #region Early Pre-Initialization
 
             #region Main Manager
+            Namespace rootNamespace = new Namespace("LooCast");
+            NamespaceManager.Instance.RegisterNamespace(rootNamespace);
+            NamespaceManager.Instance.GetNamespace(new NamespaceIdentifier("LooCast"));
+            
             // TODO: Fetch CoreModuleManagers, ordered by their Dependencies(index 0 is Base Mod Core Module Manager, 1 is Mod Core Module Manager, 2 is Mod Extension Core Module Manager, 3 is Mod Extension Extension Core Module Manager, etc.)
             #endregion
 
@@ -320,37 +317,7 @@ namespace LooCast
             }
             #endregion
 
-            #endregion
-
-            IsEarlyPreInitializing = false;
-            IsEarlyPreInitialized = true;
-            Debug.Log($"[MainManager] Finished Early Pre-Initialization in Scene '{activeSceneName}'.");
-
-            PreInitialize();
-        }
-
-        private void PreInitialize()
-        {
-            string activeSceneName = SceneManager.GetActiveScene().name;
-            IsPreInitializing = true;
-            Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
-
-            #region Pre-Initialization
-
-            #region Main Manager
-            #endregion
-
-            #region Core Module Managers
-            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
-            {
-                coreModuleManager.PreInitialize();
-            }
-            #endregion
-
             #region DEPRECATED! [TO BE MOVED!]
-
-            Namespace rootNamespace = new Namespace("LooCast");
-
             Namespace aiNamespace = new Namespace("AI", rootNamespace);
             Type allyAIType = new Type(typeof(AllyAI), aiNamespace);
             Type enemyAIType = new Type(typeof(EnemyAI), aiNamespace);
@@ -763,9 +730,6 @@ namespace LooCast
             Type intVariableType = new Type(typeof(IntVariable), variableNamespace);
             Type intComputedVariableType = new Type(typeof(IntComputedVariable), variableNamespace);
             Type stringVariableType = new Type(typeof(StringVariable), variableNamespace);
-
-
-            namespaceManager.RegisterNamespace(rootNamespace);
 
             namespaceManager.RegisterNamespace(aiNamespace);
             typeManager.RegisterType(allyAIType);
@@ -1180,6 +1144,33 @@ namespace LooCast
             typeManager.RegisterType(intComputedVariableType);
             typeManager.RegisterType(stringVariableType);
 
+            #endregion
+
+            #endregion
+
+            IsEarlyPreInitializing = false;
+            IsEarlyPreInitialized = true;
+            Debug.Log($"[MainManager] Finished Early Pre-Initialization in Scene '{activeSceneName}'.");
+
+            PreInitialize();
+        }
+
+        private void PreInitialize()
+        {
+            string activeSceneName = SceneManager.GetActiveScene().name;
+            IsPreInitializing = true;
+            Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
+
+            #region Pre-Initialization
+
+            #region Main Manager
+            #endregion
+
+            #region Core Module Managers
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.PreInitialize();
+            }
             #endregion
 
             #endregion

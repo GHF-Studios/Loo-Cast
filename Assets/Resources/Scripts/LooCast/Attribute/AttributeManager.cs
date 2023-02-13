@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Attribute
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     using Stat;
     

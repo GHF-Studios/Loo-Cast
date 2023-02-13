@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Asteroid
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     
     public class AsteroidManager : ModuleManager

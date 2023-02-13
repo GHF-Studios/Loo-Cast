@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Currency
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     
     public class CurrencyManager : ModuleManager

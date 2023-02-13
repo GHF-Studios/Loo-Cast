@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Attribute.Stat
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     
     public class StatManager : SubModuleManager

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Arc
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     
     public class ArcManager : ModuleManager

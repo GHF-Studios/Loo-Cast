@@ -12,12 +12,6 @@ namespace LooCast.Core
     using Attribute.Stat;
     using Background;
     using Chance;
-    using Core;
-    using Core.Instance;
-    using Core.Manager;
-    using Core.Namespace;
-    using Core.Registry;
-    using Core.Type;
     using Currency;
     using Data;
     using Diagnostic;
@@ -27,7 +21,6 @@ namespace LooCast.Core
     using Game;
     using Generator;
     using Health;
-    using Identifier;
     using Indicator;
     using Inventory;
     using Item;
@@ -107,94 +100,190 @@ namespace LooCast.Core
         #region Static Fields
         private static CoreManager instance;
         #endregion
-        
-        #region Properties
-        public override SubModuleManager[] SubModuleManagers => subModuleManagers;
-        public override ModuleManager[] ModuleManagers => moduleManagers;
+
+        #region Constructors
+        public CoreManager() : base(GetDependencies(), GetSubModuleManagers(), GetModuleManagers())
+        {
+            
+        }
         #endregion
 
-        #region Fields
-        private SubModuleManager[] subModuleManagers;
-        private ModuleManager[] moduleManagers;
+        #region Callbacks
+
+        #region Initialization Phases
+        private void OnEarlyPreInitialize()
+        {
+            
+        }
+
+        private void OnPreInitialize()
+        {
+            
+        }
+
+        private void OnLatePreInitialize()
+        {
+
+        }
+
+        private void OnEarlyInitialize()
+        {
+
+        }
+
+        private void OnInitialize()
+        {
+
+        }
+
+        private void OnLateInitialize()
+        {
+
+        }
+
+        private void OnEarlyPostInitialize()
+        {
+
+        }
+
+        private void OnPostInitialize()
+        {
+
+        }
+
+        private void OnLatePostInitialize()
+        {
+
+        }
         #endregion
 
-        #region Methods
-        public override void EarlyPreInitialize()
-        {
-            base.EarlyPreInitialize();
-
-            // TODO: Somehow get ModuleManagers, ordered by their Dependencies(index 0 is Core Module Manager, 1 is Primary Module Manager, 2 is Secondary Module Manager, 3 is Tertiary Module Manager, etc.)
-        }
-        
-        public override void PreInitialize()
-        {
-            subModuleManagers = new SubModuleManager[]
-            {
-                RegistryManager.Instance,
-                NamespaceManager.Instance,
-                TypeManager.Instance,
-                InstanceManager.Instance
-            };
-            moduleManagers = new ModuleManager[]
-            {
-                AIManager.Instance,
-                AllyManager.Instance,
-                AOEManager.Instance,
-                ArcManager.Instance,
-                AsteroidManager.Instance,
-                AttributeManager.Instance,
-                StatManager.Instance,
-                BackgroundManager.Instance,
-                ChanceManager.Instance,
-                CurrencyManager.Instance,
-                DataManager.Instance,
-                DiagnosticManager.Instance,
-                EnemyManager.Instance,
-                EventManager.Instance,
-                ExperienceManager.Instance,
-                GameManager.Instance,
-                GeneratorManager.Instance,
-                HealthManager.Instance,
-                IdentifierManager.Instance,
-                IndicatorManager.Instance,
-                InventoryManager.Instance,
-                ItemManager.Instance,
-                MainMenuManager.Instance,
-                MathManager.Instance,
-                MissionManager.Instance,
-                MovementManager.Instance,
-                EffectManager.Instance,
-                NoiseManager.Instance,
-                ObserverManager.Instance,
-                OrbManager.Instance,
-                ParticleManager.Instance,
-                PlayerManager.Instance,
-                ProjectileManager.Instance,
-                RandomManager.Instance,
-                ResourceManager.Instance,
-                SoundManager.Instance,
-                SpawnerManager.Instance,
-                StateMachineManager.Instance,
-                StationManager.Instance,
-                StatisticManager.Instance,
-                SteamworksManager.Instance,
-                TargetManager.Instance,
-                TestManager.Instance,
-                UIManager.Instance,
-                UniverseManager.Instance,
-                UtilManager.Instance,
-                VariableManager.Instance
-            };
-        }
-
-        public override void Initialize()
+        #region Termination Phases
+        private void OnEarlyPreTerminate()
         {
 
         }
 
-        public override void PostInitialize()
+        private void OnPreTerminate()
         {
 
+        }
+
+        private void OnLatePreTerminate()
+        {
+
+        }
+
+        private void OnEarlyTerminate()
+        {
+
+        }
+
+        private void OnTerminate()
+        {
+
+        }
+
+        private void OnLateTerminate()
+        {
+
+        }
+
+        private void OnEarlyPostTerminate()
+        {
+
+        }
+
+        private void OnPostTerminate()
+        {
+
+        }
+
+        private void OnLatePostTerminate()
+        {
+
+        }
+        #endregion
+
+        #endregion
+
+        #region Static Methods
+        /// <summary>
+        /// Return the core module managers in no particular order.
+        /// </summary>
+        private static CoreModuleManager[] GetDependencies()
+        {
+            return new CoreModuleManager[]
+                {
+                    // ExampleMod.Core.CoreManager.Instance
+                };
+        }
+
+        /// <summary>
+        /// Return the sub-module managers in the order they should be initialized.
+        /// </summary>
+        private static SubModuleManager[] GetSubModuleManagers()
+        {
+            return new SubModuleManager[]
+                {
+                    // LooCast.Core.ExampleSubModule.ExampleSubModuleManager.Instance
+                };
+        }
+
+        /// <summary>
+        /// Return the module managers in the order they should be initialized.
+        /// </summary>
+        private static ModuleManager[] GetModuleManagers()
+        {
+            return new ModuleManager[]
+                {
+                    // TODO: Sort by initialization order
+                    AIManager.Instance,
+                    AllyManager.Instance,
+                    AOEManager.Instance,
+                    ArcManager.Instance,
+                    AsteroidManager.Instance,
+                    AttributeManager.Instance,
+                    StatManager.Instance,
+                    BackgroundManager.Instance,
+                    ChanceManager.Instance,
+                    CurrencyManager.Instance,
+                    DataManager.Instance,
+                    DiagnosticManager.Instance,
+                    EnemyManager.Instance,
+                    EventManager.Instance,
+                    ExperienceManager.Instance,
+                    GameManager.Instance,
+                    GeneratorManager.Instance,
+                    HealthManager.Instance,
+                    IndicatorManager.Instance,
+                    InventoryManager.Instance,
+                    ItemManager.Instance,
+                    MainMenuManager.Instance,
+                    MathManager.Instance,
+                    MissionManager.Instance,
+                    MovementManager.Instance,
+                    EffectManager.Instance,
+                    NoiseManager.Instance,
+                    ObserverManager.Instance,
+                    OrbManager.Instance,
+                    ParticleManager.Instance,
+                    PlayerManager.Instance,
+                    ProjectileManager.Instance,
+                    RandomManager.Instance,
+                    ResourceManager.Instance,
+                    SoundManager.Instance,
+                    SpawnerManager.Instance,
+                    StateMachineManager.Instance,
+                    StationManager.Instance,
+                    StatisticManager.Instance,
+                    SteamworksManager.Instance,
+                    TargetManager.Instance,
+                    TestManager.Instance,
+                    UIManager.Instance,
+                    UniverseManager.Instance,
+                    UtilManager.Instance,
+                    VariableManager.Instance
+                };
         }
         #endregion
     }

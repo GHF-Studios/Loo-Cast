@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Chance
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     
     public class ChanceManager : ModuleManager

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Background
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     
     public class BackgroundManager : ModuleManager

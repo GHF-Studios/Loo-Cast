@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Core
 {
-    using Core.Manager;
+    using Core;
     using Identifier;
     
     public class EditorManager : ModuleManager
