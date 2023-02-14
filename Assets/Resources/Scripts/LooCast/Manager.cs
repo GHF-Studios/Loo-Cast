@@ -698,6 +698,11 @@ namespace LooCast
         }
         #endregion
 
+        public virtual void PreInitializeInstance()
+        {
+            
+        }
+
         public virtual void InitializeInstance()
         {
             Dependencies = GetDependencies();
@@ -721,6 +726,11 @@ namespace LooCast
             earlyPostTerminationActions = new List<Action>();
             postTerminationActions = new List<Action>();
             latePostTerminationActions = new List<Action>();
+        }
+
+        public virtual void PostInitializeInstance()
+        {
+            
         }
 
         /// <summary>

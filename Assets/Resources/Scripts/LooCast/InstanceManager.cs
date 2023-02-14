@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast
 {
-    public class InstanceManager : Manager
+    public class InstanceManager : InternalManager
     {
         #region Static Properties
         public static InstanceManager Instance
@@ -29,12 +29,19 @@ namespace LooCast
         private static InstanceManager instance;
         #endregion
 
-        #region Methods
-        public override void InitializeInstance()
-        {
-            base.InitializeInstance();
-        }
+        #region Properties
+        public override Namespace LooCastNamespace => looCastNamespace;
+        public override Type LooCastType => looCastType;
+        public override Instance LooCastInstance => looCastInstance;
+        #endregion
 
+        #region Fields
+        private Namespace looCastNamespace;
+        private Type looCastType;
+        private Instance looCastInstance;
+        #endregion
+
+        #region Methods
         public void RegisterInstance(Instance instance)
         {
             Registry<IIdentifier, IIdentifiable> instanceRegistry = RegistryManager.Instance.GetRegistry("LooCast:InstanceIdentifier_LooCast:Instance");
@@ -53,5 +60,22 @@ namespace LooCast
             return (Instance)instanceRegistry.Get(instanceIdentifier);
         }
         #endregion
+
+        #region Overrides
+        public override void InitializeInstance()
+        {
+            base.InitializeInstance();
+
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+
+            looCastNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastType = new Type(typeof(InstanceManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
+
+            typeManager.RegisterType(looCastType);
+            RegisterInstance(looCastInstance);
         }
+        #endregion
+    }
 }

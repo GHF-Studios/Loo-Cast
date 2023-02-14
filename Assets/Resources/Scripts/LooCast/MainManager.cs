@@ -115,8 +115,8 @@ namespace LooCast
                 return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
             }
         }
-        #endregion  
-        
+        #endregion
+
         public static MainManager Instance
         {
             get
@@ -134,7 +134,32 @@ namespace LooCast
                 }
             }
         }
-        public static CoreModuleManager[] CoreModuleManagers { get; private set; }
+        /// <summary>
+        /// All InternalManagers, ordered by their Dependencies(index 0 is RegistryManager, 1 is NamespaceManager, 2 is TypeManager, 3 is InstanceManager, etc.).
+        /// </summary>
+        public static InternalManager[] InternalManagers
+        {
+            get
+            {
+                return new InternalManager[]
+                {
+                    RegistryManager.Instance,
+                    NamespaceManager.Instance,
+                    TypeManager.Instance,
+                    InstanceManager.Instance,
+                };
+            }
+        }
+        /// <summary>
+        /// All CoreModuleManagers, ordered by their Dependencies(index 0 is Base Mod Core Module Manager, 1 is Mod Core Module Manager, 2 is Mod Extension Core Module Manager, 3 is Mod Extension Extension Core Module Manager, etc.).
+        /// </summary>
+        public static CoreModuleManager[] CoreModuleManagers
+        {
+            get
+            {
+                // TODO: Implement loading/deserialization/injection of CoreModuleManagers.
+            }
+        }
         #endregion
 
         #region Static Fields
@@ -200,33 +225,82 @@ namespace LooCast
         private void EarlyPreInitialize()
         {
             string activeSceneName = SceneManager.GetActiveScene().name;
-            IsEarlyPreInitializing = true;
-            Debug.Log($"[MainManager] Starting Early Pre-Initialization in Scene '{activeSceneName}'.");
-
-            #region Main System Setup
-            RegistryManager.Instance.InitializeInstance();
-            NamespaceManager.Instance.InitializeInstance();
-            TypeManager.Instance.InitializeInstance();
-            InstanceManager.Instance.InitializeInstance();
-
-            looCastNamespace = new Namespace("LooCast");
-            looCastType = new Type(typeof(MainManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
-
-            NamespaceManager.Instance.RegisterNamespace(looCastNamespace);
-            TypeManager.Instance.RegisterType(looCastType);
-            InstanceManager.Instance.RegisterInstance(looCastInstance);
-
-            // TODO: Fetch CoreModuleManagers, ordered by their Dependencies(index 0 is Base Mod Core Module Manager, 1 is Mod Core Module Manager, 2 is Mod Extension Core Module Manager, 3 is Mod Extension Extension Core Module Manager, etc.)
+            
+            #region Internal Managers Setup
+            #region Pre-Initialization
+            Debug.Log($"[MainManager] Pre-Initializing internal manager instances.");
+            foreach (InternalManager internalManager in InternalManagers)
+            {
+                internalManager.PreInitializeInstance();
+            }
+            Debug.Log($"[MainManager] Pre-Initialized internal manager instances.");
             #endregion
 
-            #region Core Systems Setup
+            #region Initialization
+            Debug.Log($"[MainManager] Initializing internal manager instances.");
+            foreach (InternalManager internalManager in InternalManagers)
+            {
+                internalManager.InitializeInstance();
+            }
+            Debug.Log($"[MainManager] Initialized internal manager instances.");
+            #endregion
+
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
+            
+            looCastNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastType = new Type(typeof(MainManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
+            
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
+
+            #region Post-Initialization
+            Debug.Log($"[MainManager] Post-Initializing internal manager instances.");
+            foreach (InternalManager internalManager in InternalManagers)
+            {
+                internalManager.PostInitializeInstance();
+            }
+            Debug.Log($"[MainManager] Post-Initialized internal manager instances.");
+            #endregion
+
+            #endregion
+
+            #region Core Module Managers Setup
+            #region Pre-Initialization
+            Debug.Log($"[MainManager] Pre-Initializing core module manager instances.");
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.PreInitializeInstance();
+            }
+            Debug.Log($"[MainManager] Pre-Initialized core module manager instances.");
+            #endregion
+
+            #region Initialization
+            Debug.Log($"[MainManager] Initializing core module manager instances.");
             foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
             {
                 coreModuleManager.InitializeInstance();
             }
+            Debug.Log($"[MainManager] Initialized core module manager instances.");
             #endregion
 
+            #region Post-Initialization
+            Debug.Log($"[MainManager] Post-Initializing core module manager instances.");
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.PostInitializeInstance();
+            }
+            Debug.Log($"[MainManager] Post-Initialized core module manager instances.");
+            #endregion
+
+            #endregion
+
+            IsEarlyPreInitializing = true;
+            Debug.Log($"[MainManager] Starting Early Pre-Initialization in Scene '{activeSceneName}'.");
+            
             #region Early Pre-Initialization
 
             #region Core Module Managers

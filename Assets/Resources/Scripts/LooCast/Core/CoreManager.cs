@@ -42,6 +42,7 @@ namespace LooCast.Core
     using Projectile;
     using Random;
     using Resource;
+    using Scene;
     using Sound;
     using Spawner;
     using StateMachine;
@@ -220,15 +221,14 @@ namespace LooCast.Core
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
-
+            
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Core", rootNamespace);
-            namespaceManager.RegisterNamespace(looCastNamespace);
-            
             looCastType = new Type(typeof(CoreManager), looCastNamespace);
-            typeManager.RegisterType(looCastType);
-            
             looCastInstance = new Instance(this, looCastType);
+            
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
             #endregion
         }
@@ -272,6 +272,7 @@ namespace LooCast.Core
                     ProjectileManager.Instance,
                     RandomManager.Instance,
                     ResourceManager.Instance,
+                    SceneManager.Instance,
                     SoundManager.Instance,
                     SpawnerManager.Instance,
                     StateMachineManager.Instance,

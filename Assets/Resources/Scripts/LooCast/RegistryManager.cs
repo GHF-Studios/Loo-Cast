@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace LooCast
 {
-    public class RegistryManager : Manager
+    public class RegistryManager : InternalManager
     {
         #region Static Properties
         public static RegistryManager Instance
@@ -30,18 +30,21 @@ namespace LooCast
         private static RegistryManager instance;
         #endregion
 
+        #region Properties
+        public override Namespace LooCastNamespace => looCastNamespace;
+        public override Type LooCastType => looCastType;
+        public override Instance LooCastInstance => looCastInstance;
+        #endregion
+
         #region Fields
+        private Namespace looCastNamespace;
+        private Type looCastType;
+        private Instance looCastInstance;
+        
         private Dictionary<RegistryIdentifier, Registry<IIdentifier, IIdentifiable>> registries;
         #endregion
 
         #region Methods
-        public override void InitializeInstance()
-        {
-            base.InitializeInstance();
-
-            registries = new Dictionary<RegistryIdentifier, Registry<IIdentifier, IIdentifiable>>();
-        }
-
         public void RegisterRegistry(Registry<IIdentifier, IIdentifiable> registry)
         {
             RegistryIdentifier registryIdentifier = registry.RegistryIdentifier;
@@ -63,6 +66,31 @@ namespace LooCast
             {
                 throw new Exception($"[RegistryManager] Registry '{registryIdentifier}' does not exist!");
             }
+        }
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
+        {
+            base.PreInitializeInstance();
+
+            registries = new Dictionary<RegistryIdentifier, Registry<IIdentifier, IIdentifiable>>();
+        }
+
+        public override void PostInitializeInstance()
+        {
+            base.PostInitializeInstance();
+
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
+            
+            looCastNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastType = new Type(typeof(RegistryManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
+
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
         }
         #endregion
     }
