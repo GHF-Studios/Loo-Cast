@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast
 {
     [Serializable]
-    public struct TypeIdentifier : IIdentifier
+    public record TypeIdentifier : IGenericIdentifier<Type>
     {
         #region Properties
         public string ParentNamespaceID => parentNamespaceID;
@@ -46,6 +46,13 @@ namespace LooCast
         }
         #endregion
 
+        #region Operators
+        public static implicit operator TypeIdentifier(string typeID)
+        {
+            return new TypeIdentifier(typeID);
+        }
+        #endregion
+
         #region Overrides
         public override bool Equals(object obj)
         {
@@ -75,6 +82,11 @@ namespace LooCast
         public static bool operator !=(TypeIdentifier left, TypeIdentifier right)
         {
             return !(left == right);
+        }
+
+        public override string ToString()
+        {
+            return TypeID;
         }
         #endregion
     }

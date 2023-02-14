@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast
 {
     [Serializable]
-    public struct InstanceIdentifier : IIdentifier
+    public record InstanceIdentifier : IGenericIdentifier<Instance>
     {
         #region Properties
         public string InstanceTypeID => instanceTypeID;
@@ -31,6 +31,13 @@ namespace LooCast
             string[] instanceIDParts = instanceID.Split('[');
             instanceTypeID = instanceIDParts[0];
             instanceGUID = instanceIDParts[1].Substring(0, instanceIDParts[1].Length - 1);
+        }
+        #endregion
+
+        #region Operators
+        public static implicit operator InstanceIdentifier(string instanceID)
+        {
+            return new InstanceIdentifier(instanceID);
         }
         #endregion
 
@@ -63,6 +70,11 @@ namespace LooCast
         public static bool operator !=(InstanceIdentifier left, InstanceIdentifier right)
         {
             return !(left == right);
+        }
+
+        public override string ToString()
+        {
+            return InstanceID;
         }
         #endregion
     }

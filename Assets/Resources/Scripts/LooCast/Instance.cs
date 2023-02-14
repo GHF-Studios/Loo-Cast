@@ -3,18 +3,19 @@ using System.Collections.Generic;
 
 namespace LooCast
 {
-    public class Instance : IIdentifiable
+    public class Instance : IGenericIdentifiable<Instance>
     {
         #region Properties
         public object RootObject => rootObject;
-        public IIdentifier Identifier => identifier;
+        public InstanceIdentifier InstanceIdentifier => instanceIdentifier;
+        public IIdentifier Identifier => instanceIdentifier;
         public Instance ParentInstance => parentInstance;
         public List<Instance> ChildInstances => childInstances;
         #endregion
 
         #region Fields
         private object rootObject;
-        private InstanceIdentifier identifier;
+        private InstanceIdentifier instanceIdentifier;
         private Instance parentInstance;
         private List<Instance> childInstances;
         #endregion
@@ -22,14 +23,14 @@ namespace LooCast
         #region Constructors
         internal Instance(object rootObject, Type instanceType)
         {
-            identifier = new InstanceIdentifier((TypeIdentifier)instanceType.Identifier);
+            instanceIdentifier = new InstanceIdentifier((TypeIdentifier)instanceType.Identifier);
             parentInstance = null;
             childInstances = new List<Instance>();
         }
 
         internal Instance(object rootObject, Type instanceType, Instance parentInstance)
         {
-            identifier = new InstanceIdentifier((TypeIdentifier)instanceType.Identifier);
+            instanceIdentifier = new InstanceIdentifier((TypeIdentifier)instanceType.Identifier);
             this.parentInstance = parentInstance;
             childInstances = new List<Instance>();
         }

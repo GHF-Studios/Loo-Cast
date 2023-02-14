@@ -371,8 +371,8 @@ namespace LooCast
             Type enemyStationHealthType = new Type(typeof(EnemyStationHealth), healthNamespace);
 
             Namespace identifierNamespace = new Namespace("Identifier", rootNamespace);
-            Type iIdentifierType = new Type(typeof(IIdentifier), identifierNamespace);
-            Type iIdentifiableType = new Type(typeof(IIdentifiable), identifierNamespace);
+            Type iIdentifierType = new Type(typeof(IGenericIdentifier), identifierNamespace);
+            Type iIdentifiableType = new Type(typeof(IGenericIdentifiable), identifierNamespace);
             Type namespaceIdentifierType = new Type(typeof(NamespaceIdentifier), identifierNamespace);
             Type typeIdentifierType = new Type(typeof(TypeIdentifier), identifierNamespace);
             Type instanceIdentifierType = new Type(typeof(InstanceIdentifier), identifierNamespace);

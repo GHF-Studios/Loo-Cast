@@ -31,7 +31,7 @@ namespace LooCast
         #endregion
 
         #region Fields
-        private Dictionary<TypeIdentifier, object> registries;
+        private Dictionary<RegistryIdentifier, Registry<IIdentifier, IIdentifiable>> registries;
         #endregion
 
         #region Methods
@@ -39,36 +39,30 @@ namespace LooCast
         {
             base.InitializeInstance();
 
-            registries = new Dictionary<TypeIdentifier, object>();
+            registries = new Dictionary<RegistryIdentifier, Registry<IIdentifier, IIdentifiable>>();
         }
 
-        public void RegisterRegistry<KeyType, ValueType>(Registry<KeyType, ValueType> registry) where KeyType : IIdentifier where ValueType : IIdentifiable
+        public void RegisterRegistry(Registry<IIdentifier, IIdentifiable> registry)
         {
-            TypeIdentifier registryTypeIdentifier = (TypeIdentifier)registry.Identifier;
-            if (!MainManager.IsPreInitializing)
+            RegistryIdentifier registryIdentifier = registry.RegistryIdentifier;
+            if (registries.ContainsKey(registryIdentifier))
             {
-                throw new Exception("[RegistryManager] Registries can only be registered in Pre-Initialization!");
-            }
-            if (registries.ContainsKey(registryTypeIdentifier))
-            {
-                throw new Exception($"[RegistryManager] Registry '{registryTypeIdentifier}' already exists!");
+                throw new Exception($"[RegistryManager] Registry '{registryIdentifier}' already exists!");
             }
 
-            registries.Add(registryTypeIdentifier, registry);
+            registries.Add(registryIdentifier, registry);
         }
 
-        public Registry<KeyType, ValueType> GetRegistry<KeyType, ValueType>(TypeIdentifier registryTypeIdentifier) where KeyType : IIdentifier where ValueType : IIdentifiable
+        public Registry<IIdentifier, IIdentifiable> GetRegistry(RegistryIdentifier registryIdentifier)
         {
-            if (!MainManager.IsPreInitialized)
+            if (registries.ContainsKey(registryIdentifier))
             {
-                throw new Exception("[RegistryManager] Registries can only be accessed after Pre-Initialization!");
+                return registries[registryIdentifier];
             }
-            if (!registries.ContainsKey(registryTypeIdentifier))
+            else
             {
-                throw new Exception($"[RegistryManager] Registry '{registryTypeIdentifier}' does not exist!");
+                throw new Exception($"[RegistryManager] Registry '{registryIdentifier}' does not exist!");
             }
-
-            return (Registry<KeyType, ValueType>)registries[registryTypeIdentifier];
         }
         #endregion
     }

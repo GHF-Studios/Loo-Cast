@@ -32,12 +32,14 @@ namespace LooCast
         #region Methods
         public void RegisterNamespace(Namespace @namespace)
         {
-            // TODO: Implement
+            Registry<IIdentifier, IIdentifiable> namespaceRegistry = RegistryManager.Instance.GetRegistry("LooCast:NamespaceIdentifier_LooCast:Namespace");
+            namespaceRegistry.Register(@namespace.NamespaceIdentifier, @namespace);
         }
 
         public Namespace GetNamespace(NamespaceIdentifier namespaceIdentifier)
         {
-            // TODO: Implement
+            Registry<IIdentifier, IIdentifiable> namespaceRegistry = RegistryManager.Instance.GetRegistry("LooCast:NamespaceIdentifier_LooCast:Namespace");
+            return (Namespace)namespaceRegistry.Get(namespaceIdentifier);
         }
         #endregion
     }

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast
 {
     [Serializable]
-    public struct NamespaceIdentifier : IIdentifier
+    public record NamespaceIdentifier : IGenericIdentifier<Namespace>
     {
         #region Properties
         public string ParentNamespaceID => parentNamespaceID;
@@ -31,6 +31,13 @@ namespace LooCast
             string[] namespaceIDParts = namespaceID.Split('.');
             name = namespaceIDParts[namespaceIDParts.Length - 1];
             parentNamespaceID = namespaceIDParts.Length > 1 ? namespaceID.Substring(0, namespaceID.Length - name.Length - 1) : null;
+        }
+        #endregion
+
+        #region Operators
+        public static implicit operator NamespaceIdentifier(string namespaceID)
+        {
+            return new NamespaceIdentifier(namespaceID);
         }
         #endregion
 
@@ -63,6 +70,11 @@ namespace LooCast
         public static bool operator !=(NamespaceIdentifier left, NamespaceIdentifier right)
         {
             return !(left == right);
+        }
+
+        public override string ToString()
+        {
+            return NamespaceID;
         }
         #endregion
     }

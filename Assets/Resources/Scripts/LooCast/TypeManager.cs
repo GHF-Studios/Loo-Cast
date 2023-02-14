@@ -32,12 +32,14 @@ namespace LooCast
         #region Methods
         public void RegisterType(Type type)
         {
-            // TODO: Implement
+            Registry<IIdentifier, IIdentifiable> typeRegistry = RegistryManager.Instance.GetRegistry("LooCast:TypeIdentifier_LooCast:Type");
+            typeRegistry.Register(type.TypeIdentifier, type);
         }
 
         public Type GetType(TypeIdentifier typeIdentifier)
         {
-            // TODO: Implement
+            Registry<IIdentifier, IIdentifiable> typeRegistry = RegistryManager.Instance.GetRegistry("LooCast:TypeIdentifier_LooCast:Type");
+            return (Type)typeRegistry.Get(typeIdentifier);
         }
         #endregion
     }

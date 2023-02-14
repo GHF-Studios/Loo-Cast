@@ -3,16 +3,17 @@ using System.Collections.Generic;
 
 namespace LooCast
 {
-    public class Namespace : IIdentifiable
+    public class Namespace : IGenericIdentifiable<Namespace>
     {
         #region Properties
-        public IIdentifier Identifier => identifier;
+        public NamespaceIdentifier NamespaceIdentifier => namespaceIdentifier;
+        public IIdentifier Identifier => namespaceIdentifier;
         public Namespace ParentNamespace => parentNamespace;
         public List<Namespace> ChildNamespaces => childNamespaces;
         #endregion
 
         #region Fields
-        private NamespaceIdentifier identifier;
+        private NamespaceIdentifier namespaceIdentifier;
         private Namespace parentNamespace;
         private List<Namespace> childNamespaces;
         #endregion
@@ -20,7 +21,7 @@ namespace LooCast
         #region Constructors
         internal Namespace(string name)
         {
-            identifier = new NamespaceIdentifier(name);
+            namespaceIdentifier = new NamespaceIdentifier(name);
             parentNamespace = null;
             childNamespaces = new List<Namespace>();
         }
@@ -28,8 +29,15 @@ namespace LooCast
         internal Namespace(string name, Namespace parentNamespace)
         {
             NamespaceIdentifier parentNamespaceIdentifier = (NamespaceIdentifier)parentNamespace.Identifier;
-            identifier = new NamespaceIdentifier(name, parentNamespaceIdentifier.NamespaceID);
+            namespaceIdentifier = new NamespaceIdentifier(name, parentNamespaceIdentifier.NamespaceID);
             this.parentNamespace = parentNamespace;
+            childNamespaces = new List<Namespace>();
+        }
+
+        internal Namespace(NamespaceIdentifier namespaceIdentifier)
+        {
+            this.namespaceIdentifier = namespaceIdentifier;
+            parentNamespace = null;
             childNamespaces = new List<Namespace>();
         }
         #endregion

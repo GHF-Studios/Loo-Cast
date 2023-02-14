@@ -29,16 +29,6 @@ namespace LooCast
         private static InstanceManager instance;
         #endregion
 
-        #region Properties
-        public override Namespace LooCastNamespace => throw new NotImplementedException();
-        public override Type LooCastType => throw new NotImplementedException();
-        public override Instance LooCastInstance => throw new NotImplementedException();
-        #endregion
-
-        #region Fields
-
-        #endregion
-
         #region Methods
         public override void InitializeInstance()
         {
@@ -47,18 +37,21 @@ namespace LooCast
 
         public void RegisterInstance(Instance instance)
         {
-            // TODO: Implement
+            Registry<IIdentifier, IIdentifiable> instanceRegistry = RegistryManager.Instance.GetRegistry("LooCast:InstanceIdentifier_LooCast:Instance");
+            instanceRegistry.Register(instance.InstanceIdentifier, instance);
         }
 
         public void UnregisterInstance(Instance instance)
         {
-            // TODO: Implement
+            Registry<IIdentifier, IIdentifiable> instanceRegistry = RegistryManager.Instance.GetRegistry("LooCast:InstanceIdentifier_LooCast:Instance");
+            instanceRegistry.Unregister(instance.InstanceIdentifier);
         }
 
         public Instance GetInstance(InstanceIdentifier instanceIdentifier)
         {
-            // TODO: Implement
+            Registry<IIdentifier, IIdentifiable> instanceRegistry = RegistryManager.Instance.GetRegistry("LooCast:InstanceIdentifier_LooCast:Instance");
+            return (Instance)instanceRegistry.Get(instanceIdentifier);
         }
         #endregion
-    }
+        }
 }

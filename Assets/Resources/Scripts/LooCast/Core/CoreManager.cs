@@ -221,7 +221,7 @@ namespace LooCast.Core
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace(new NamespaceIdentifier("LooCast"));
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Core", rootNamespace);
             namespaceManager.RegisterNamespace(looCastNamespace);
             

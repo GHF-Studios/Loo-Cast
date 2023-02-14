@@ -3,23 +3,23 @@ using System.Collections.Generic;
 
 namespace LooCast
 {
-    public sealed class Registry<KeyType, ValueType> : IIdentifiable where KeyType : IIdentifier where ValueType : IIdentifiable
+    public sealed class Registry<KeyType, ValueType> : IGenericIdentifiable<Registry<IIdentifier, IIdentifiable>> where KeyType : IIdentifier where ValueType : IIdentifiable
     {
         #region Properties
-        public TypeIdentifier RegistryTypeIdentifier => registryTypeIdentifier;
-        public IIdentifier Identifier => RegistryTypeIdentifier;
+        public RegistryIdentifier RegistryIdentifier => registryIdentifier;
+        public IIdentifier Identifier => RegistryIdentifier;
         public Dictionary<KeyType, ValueType> RegistryDictionary => registryDictionary;
         #endregion
 
         #region Fields
-        private TypeIdentifier registryTypeIdentifier;
+        private RegistryIdentifier registryIdentifier;
         private Dictionary<KeyType, ValueType> registryDictionary;
         #endregion
 
         #region Constructors
-        public Registry(TypeIdentifier registryTypeIdentifier)
+        public Registry(RegistryIdentifier registryIdentifier)
         {
-            this.registryTypeIdentifier = registryTypeIdentifier;
+            this.registryIdentifier = registryIdentifier;
             registryDictionary = new Dictionary<KeyType, ValueType>();
         }
         #endregion
