@@ -9,6 +9,7 @@ namespace LooCast
         #region Properties
         public string ParentNamespaceID => parentNamespaceID;
         public string Name => name;
+        
         public string NamespaceID => parentNamespaceID == null ? name : $"{parentNamespaceID}.{name}";
         public string ID => NamespaceID;
         #endregion

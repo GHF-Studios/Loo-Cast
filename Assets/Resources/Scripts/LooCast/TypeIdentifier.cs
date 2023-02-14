@@ -7,29 +7,42 @@ namespace LooCast
     public struct TypeIdentifier : IIdentifier
     {
         #region Properties
-        public NamespaceIdentifier TypeNamespace => typeNamespace;
+        public string ParentNamespaceID => parentNamespaceID;
+        public string ParentTypeID => parentTypeID;
         public System.Type SystemType => systemType;
-        public string TypeID => typeNamespace.NamespaceID + ":" + systemType.Name;
+        
+        public string TypeID => parentTypeID == null ? $"{parentNamespaceID}:{systemType.FullName}" : $"{parentTypeID}.{systemType.FullName}";
         public string ID => TypeID;
         #endregion
 
         #region Fields
-        [SerializeField] private NamespaceIdentifier typeNamespace;
-        [SerializeField] private System.Type systemType;
+        [SerializeField] private string parentNamespaceID;
+        [SerializeField] private string parentTypeID;
+        [SerializeField] private System.Type systemType; // TODO: Use serializable Type instead of System.Type
         #endregion
 
         #region Constructors
-        internal TypeIdentifier(NamespaceIdentifier typeNamespace, System.Type systemType)
+        internal TypeIdentifier(NamespaceIdentifier parentNamespace, System.Type systemType)
         {
-            this.typeNamespace = typeNamespace;
+            parentNamespaceID = parentNamespace.NamespaceID;
+            parentTypeID = null;
+            this.systemType = systemType;
+        }
+
+        internal TypeIdentifier(TypeIdentifier parentType, System.Type systemType)
+        {
+            parentNamespaceID = parentType.parentNamespaceID;
+            parentTypeID = parentType.TypeID;
             this.systemType = systemType;
         }
 
         internal TypeIdentifier(string typeID)
         {
             string[] typeIDParts = typeID.Split(':');
-            typeNamespace = new NamespaceIdentifier(typeIDParts[0]);
-            systemType = System.Type.GetType(typeID.Replace(":", "."));
+            string[] typeIDParts2 = typeIDParts[1].Split('.');
+            parentNamespaceID = typeIDParts[0];
+            systemType = System.Type.GetType($"{typeIDParts[0]}.{typeIDParts[1]}");
+            parentTypeID = typeIDParts2.Length > 1 ? $"{typeIDParts[0]}:{typeID.Substring(0, typeID.Length - typeIDParts2[typeIDParts2.Length - 1].Length - 1)}" : null;
         }
         #endregion
 

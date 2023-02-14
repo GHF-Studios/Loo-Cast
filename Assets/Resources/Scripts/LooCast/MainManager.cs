@@ -306,7 +306,7 @@ namespace LooCast
             Namespace rootNamespace = new Namespace("LooCast");
             NamespaceManager.Instance.RegisterNamespace(rootNamespace);
             NamespaceManager.Instance.GetNamespace(new NamespaceIdentifier("LooCast"));
-            
+
             // TODO: Fetch CoreModuleManagers, ordered by their Dependencies(index 0 is Base Mod Core Module Manager, 1 is Mod Core Module Manager, 2 is Mod Extension Core Module Manager, 3 is Mod Extension Extension Core Module Manager, etc.)
             #endregion
 

@@ -7,28 +7,29 @@ namespace LooCast
     public struct InstanceIdentifier : IIdentifier
     {
         #region Properties
-        public TypeIdentifier InstanceType => instanceType;
+        public string InstanceTypeID => instanceTypeID;
         public string InstanceGUID => instanceGUID;
-        public string InstanceID => $"{instanceType.ID}[{instanceGUID}]";
+        
+        public string InstanceID => $"{instanceTypeID}[{instanceGUID}]";
         public string ID => InstanceID;
         #endregion
 
         #region Fields
-        [SerializeField] private TypeIdentifier instanceType;
+        [SerializeField] private string instanceTypeID;
         [SerializeField] private string instanceGUID;
         #endregion
 
         #region Constructors
         internal InstanceIdentifier(TypeIdentifier instanceType)
         {
-            this.instanceType = instanceType;
+            instanceTypeID = instanceType.TypeID;
             instanceGUID = new Guid().ToString();
         }
 
         internal InstanceIdentifier(string instanceID)
         {
             string[] instanceIDParts = instanceID.Split('[');
-            instanceType = new TypeIdentifier(instanceIDParts[0]);
+            instanceTypeID = instanceIDParts[0];
             instanceGUID = instanceIDParts[1].Substring(0, instanceIDParts[1].Length - 1);
         }
         #endregion
