@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast
 {
-    public class InstanceManager : SubModuleManager
+    public class InstanceManager : Manager
     {
         #region Static Properties
         public static InstanceManager Instance
@@ -30,31 +30,19 @@ namespace LooCast
         #endregion
 
         #region Properties
-        public override SubModuleManager[] SubModuleManagers => subModuleManagers;
+        public override Namespace LooCastNamespace => throw new NotImplementedException();
+        public override Type LooCastType => throw new NotImplementedException();
+        public override Instance LooCastInstance => throw new NotImplementedException();
         #endregion
 
         #region Fields
-        private SubModuleManager[] subModuleManagers;
 
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        public override void InitializeInstance()
         {
-            subModuleManagers = new SubModuleManager[]
-            {
-
-            };
-        }
-
-        public override void Initialize()
-        {
-
-        }
-
-        public override void PostInitialize()
-        {
-
+            base.InitializeInstance();
         }
 
         public void RegisterInstance(Instance instance)

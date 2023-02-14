@@ -6,31 +6,6 @@ namespace LooCast
 {
     public abstract class SubModuleManager : ModuleManager
     {
-        #region Constructors
-        protected SubModuleManager(SubModuleManager[] dependencies, SubModuleManager[] subModuleManagers) : base(dependencies, subModuleManagers)
-        {
-            RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
-            RegisterPreInitializationAction(OnPreInitialize);
-            RegisterLatePreInitializationAction(OnLatePreInitialize);
-            RegisterEarlyInitializationAction(OnEarlyInitialize);
-            RegisterInitializationAction(OnInitialize);
-            RegisterLateInitializationAction(OnLateInitialize);
-            RegisterEarlyPostInitializationAction(OnEarlyPostInitialize);
-            RegisterPostInitializationAction(OnPostInitialize);
-            RegisterLatePostInitializationAction(OnLatePostInitialize);
-
-            RegisterEarlyPreTerminationAction(OnEarlyPreTerminate);
-            RegisterPreTerminationAction(OnPreTerminate);
-            RegisterLatePreTerminationAction(OnLatePreTerminate);
-            RegisterEarlyTerminationAction(OnEarlyTerminate);
-            RegisterTerminationAction(OnTerminate);
-            RegisterLateTerminationAction(OnLateTerminate);
-            RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
-            RegisterPostTerminationAction(OnPostTerminate);
-            RegisterLatePostTerminationAction(OnLatePostTerminate);
-        }
-        #endregion
-
         #region Callbacks
 
         #region Initialization Phases
@@ -127,6 +102,33 @@ namespace LooCast
         }
         #endregion
 
+        #endregion
+
+        #region Methods
+        public override void InitializeInstance()
+        {
+            base.InitializeInstance();
+
+            RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
+            RegisterPreInitializationAction(OnPreInitialize);
+            RegisterLatePreInitializationAction(OnLatePreInitialize);
+            RegisterEarlyInitializationAction(OnEarlyInitialize);
+            RegisterInitializationAction(OnInitialize);
+            RegisterLateInitializationAction(OnLateInitialize);
+            RegisterEarlyPostInitializationAction(OnEarlyPostInitialize);
+            RegisterPostInitializationAction(OnPostInitialize);
+            RegisterLatePostInitializationAction(OnLatePostInitialize);
+
+            RegisterEarlyPreTerminationAction(OnEarlyPreTerminate);
+            RegisterPreTerminationAction(OnPreTerminate);
+            RegisterLatePreTerminationAction(OnLatePreTerminate);
+            RegisterEarlyTerminationAction(OnEarlyTerminate);
+            RegisterTerminationAction(OnTerminate);
+            RegisterLateTerminationAction(OnLateTerminate);
+            RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
+            RegisterPostTerminationAction(OnPostTerminate);
+            RegisterLatePostTerminationAction(OnLatePostTerminate);
+        }
         #endregion
     }
 }

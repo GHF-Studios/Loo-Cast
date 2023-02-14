@@ -101,11 +101,16 @@ namespace LooCast.Core
         private static CoreManager instance;
         #endregion
 
-        #region Constructors
-        public CoreManager() : base(GetDependencies(), GetSubModuleManagers(), GetModuleManagers())
-        {
-            
-        }
+        #region Properties
+        public override Namespace LooCastNamespace => looCastNamespace;
+        public override Type LooCastType => looCastType;
+        public override Instance LooCastInstance => looCastInstance;
+        #endregion
+
+        #region Fields
+        private Namespace looCastNamespace;
+        private Type looCastType;
+        private Instance looCastInstance;
         #endregion
 
         #region Callbacks
@@ -206,33 +211,29 @@ namespace LooCast.Core
 
         #endregion
 
-        #region Static Methods
-        /// <summary>
-        /// Return the core module managers in no particular order.
-        /// </summary>
-        private static CoreModuleManager[] GetDependencies()
+        #region Methods
+        public override void InitializeInstance()
         {
-            return new CoreModuleManager[]
-                {
-                    // ExampleMod.Core.CoreManager.Instance
-                };
+            base.InitializeInstance();
+
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
+
+            Namespace rootNamespace = namespaceManager.GetNamespace(new NamespaceIdentifier("LooCast"));
+            looCastNamespace = new Namespace("Core", rootNamespace);
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            
+            looCastType = new Type(typeof(CoreManager), looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            
+            looCastInstance = new Instance(this, looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
+            #endregion
         }
 
-        /// <summary>
-        /// Return the sub-module managers in the order they should be initialized.
-        /// </summary>
-        private static SubModuleManager[] GetSubModuleManagers()
-        {
-            return new SubModuleManager[]
-                {
-                    // LooCast.Core.ExampleSubModule.ExampleSubModuleManager.Instance
-                };
-        }
-
-        /// <summary>
-        /// Return the module managers in the order they should be initialized.
-        /// </summary>
-        private static ModuleManager[] GetModuleManagers()
+        protected override ModuleManager[] GetModuleManagers()
         {
             return new ModuleManager[]
                 {

@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace LooCast.UI.Button
 {
-    using Core;
+    using Game;
 
     public class LoadGameButton : Button
     {
@@ -16,7 +16,7 @@ namespace LooCast.UI.Button
 
         public override void OnClick()
         {
-            MainManager.LoadGame(gameNameText.text);
+            GameManager.Instance.LoadGame(gameNameText.text);
         }
     }
 }

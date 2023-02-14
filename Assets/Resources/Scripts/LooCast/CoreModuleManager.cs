@@ -9,33 +9,6 @@ namespace LooCast
         #region Properties
         public ModuleManager[] ModuleManagers { get; private set; }
         #endregion
-        
-        #region Constructors
-        protected CoreModuleManager(CoreModuleManager[] dependencies, SubModuleManager[] subModuleManagers, ModuleManager[] moduleManagers) : base(dependencies, subModuleManagers)
-        {
-            ModuleManagers = moduleManagers;
-            
-            RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
-            RegisterPreInitializationAction(OnPreInitialize);
-            RegisterLatePreInitializationAction(OnLatePreInitialize);
-            RegisterEarlyInitializationAction(OnEarlyInitialize);
-            RegisterInitializationAction(OnInitialize);
-            RegisterLateInitializationAction(OnLateInitialize);
-            RegisterEarlyPostInitializationAction(OnEarlyPostInitialize);
-            RegisterPostInitializationAction(OnPostInitialize);
-            RegisterLatePostInitializationAction(OnLatePostInitialize);
-
-            RegisterEarlyPreTerminationAction(OnEarlyPreTerminate);
-            RegisterPreTerminationAction(OnPreTerminate);
-            RegisterLatePreTerminationAction(OnLatePreTerminate);
-            RegisterEarlyTerminationAction(OnEarlyTerminate);
-            RegisterTerminationAction(OnTerminate);
-            RegisterLateTerminationAction(OnLateTerminate);
-            RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
-            RegisterPostTerminationAction(OnPostTerminate);
-            RegisterLatePostTerminationAction(OnLatePostTerminate);
-        }
-        #endregion
 
         #region Callbacks
 
@@ -187,6 +160,43 @@ namespace LooCast
         }
         #endregion
 
+        #endregion
+
+        #region Methods
+        public override void InitializeInstance()
+        {
+            base.InitializeInstance();
+
+            ModuleManagers = GetModuleManagers();
+
+            RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
+            RegisterPreInitializationAction(OnPreInitialize);
+            RegisterLatePreInitializationAction(OnLatePreInitialize);
+            RegisterEarlyInitializationAction(OnEarlyInitialize);
+            RegisterInitializationAction(OnInitialize);
+            RegisterLateInitializationAction(OnLateInitialize);
+            RegisterEarlyPostInitializationAction(OnEarlyPostInitialize);
+            RegisterPostInitializationAction(OnPostInitialize);
+            RegisterLatePostInitializationAction(OnLatePostInitialize);
+
+            RegisterEarlyPreTerminationAction(OnEarlyPreTerminate);
+            RegisterPreTerminationAction(OnPreTerminate);
+            RegisterLatePreTerminationAction(OnLatePreTerminate);
+            RegisterEarlyTerminationAction(OnEarlyTerminate);
+            RegisterTerminationAction(OnTerminate);
+            RegisterLateTerminationAction(OnLateTerminate);
+            RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
+            RegisterPostTerminationAction(OnPostTerminate);
+            RegisterLatePostTerminationAction(OnLatePostTerminate);
+        }
+
+        /// <summary>
+        /// Returns the module managers in the order they should be initialized.
+        /// </summary>
+        protected virtual ModuleManager[] GetModuleManagers()
+        {
+            return new ModuleManager[0];
+        }
         #endregion
     }
 }

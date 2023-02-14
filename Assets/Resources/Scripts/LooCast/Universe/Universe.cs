@@ -2635,10 +2635,6 @@ namespace LooCast.Universe
             {
                 if (dataPath == null || dataPath == "")
                 {
-                    if (!GameManager.Initialized)
-                    {
-                        throw new Exception("Cannot get DataPath when GameManager is not initialized!");
-                    }
                     if (GameManager.Instance.CurrentGame == null)
                     {
                         throw new Exception("Cannot get DataPath when no Game is loaded!");
@@ -2689,10 +2685,6 @@ namespace LooCast.Universe
         #region Static Methods
         public static Universe GenerateUniverse(GenerationSettings generationSettings)
         {
-            if (!GameManager.Initialized)
-            {
-                throw new Exception("Cannot generate Universe when GameManager is not initialized!");
-            }
             if (GameManager.Instance.CurrentGame == null)
             {
                 throw new Exception("Cannot generate Universe when no Game is loaded!");

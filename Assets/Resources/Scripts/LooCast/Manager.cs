@@ -8,7 +8,7 @@ namespace LooCast
 {
     using Core;
     
-    public abstract class Manager : MonoBehaviour
+    public abstract class Manager : MonoBehaviour, INamespaceProvider, ITypeProvider, ISingletonInstanceProvider
     {
         #region Static Properties
 
@@ -119,10 +119,14 @@ namespace LooCast
         #endregion
 
         #region Properties
+        public abstract Namespace LooCastNamespace { get; }
+        public abstract Type LooCastType { get; }
+        public abstract Instance LooCastInstance { get; }
         public Manager[] Dependencies { get; private set; }
         #endregion
 
         #region Fields
+
         private List<Action> earlyPreInitializationActions;
         private List<Action> preInitializationActions;
         private List<Action> latePreInitializationActions;
@@ -142,33 +146,6 @@ namespace LooCast
         private List<Action> earlyPostTerminationActions;
         private List<Action> postTerminationActions;
         private List<Action> latePostTerminationActions;
-        #endregion
-
-        #region Constructors
-        protected Manager(Manager[] dependencies)
-        {
-            Dependencies = dependencies;
-            
-            earlyPreInitializationActions = new List<Action>();
-            preInitializationActions = new List<Action>();
-            latePreInitializationActions = new List<Action>();
-            earlyInitializationActions = new List<Action>();
-            initializationActions = new List<Action>();
-            lateInitializationActions = new List<Action>();
-            earlyPostInitializationActions = new List<Action>();
-            postInitializationActions = new List<Action>();
-            latePostInitializationActions = new List<Action>();
-
-            earlyPreTerminationActions = new List<Action>();
-            preTerminationActions = new List<Action>();
-            latePreTerminationActions = new List<Action>();
-            earlyTerminationActions = new List<Action>();
-            terminationActions = new List<Action>();
-            lateTerminationActions = new List<Action>();
-            earlyPostTerminationActions = new List<Action>();
-            postTerminationActions = new List<Action>();
-            latePostTerminationActions = new List<Action>();
-        }
         #endregion
 
         #region Methods
@@ -721,6 +698,38 @@ namespace LooCast
         }
         #endregion
 
+        public virtual void InitializeInstance()
+        {
+            Dependencies = GetDependencies();
+
+            earlyPreInitializationActions = new List<Action>();
+            preInitializationActions = new List<Action>();
+            latePreInitializationActions = new List<Action>();
+            earlyInitializationActions = new List<Action>();
+            initializationActions = new List<Action>();
+            lateInitializationActions = new List<Action>();
+            earlyPostInitializationActions = new List<Action>();
+            postInitializationActions = new List<Action>();
+            latePostInitializationActions = new List<Action>();
+
+            earlyPreTerminationActions = new List<Action>();
+            preTerminationActions = new List<Action>();
+            latePreTerminationActions = new List<Action>();
+            earlyTerminationActions = new List<Action>();
+            terminationActions = new List<Action>();
+            lateTerminationActions = new List<Action>();
+            earlyPostTerminationActions = new List<Action>();
+            postTerminationActions = new List<Action>();
+            latePostTerminationActions = new List<Action>();
+        }
+
+        /// <summary>
+        /// Returns the core module managers in no particular order.
+        /// </summary>
+        protected virtual Manager[] GetDependencies()
+        {
+            return new Manager[0];
+        }
         #endregion
     }
 }

@@ -9,16 +9,8 @@ namespace LooCast
 {
     using LooCast.Game;
 
-    public class MainManager : MonoBehaviour
+    public class MainManager : MonoBehaviour, INamespaceProvider, ITypeProvider, ISingletonInstanceProvider
     {
-        #region Enums
-        public enum SceneType
-        {
-            MainMenu,
-            Game
-        }
-        #endregion
-
         #region Static Properties
         
         #region Initialization Phase Flags
@@ -142,16 +134,24 @@ namespace LooCast
                 }
             }
         }
-        public static Games Games => games;
-        public static Game.Game GameToBeLoaded => gameToBeLoaded;    // TODO: Implement this
         public static CoreModuleManager[] CoreModuleManagers { get; private set; }
         #endregion
 
         #region Static Fields
         private static MainManager instance;
-        private static Games games;
-        private static Game.Game gameToBeLoaded;
         public static float saveInterval = 30.0f;
+        #endregion
+
+        #region Properties
+        public Namespace LooCastNamespace => looCastNamespace;
+        public Type LooCastType => looCastType;
+        public Instance LooCastInstance => looCastInstance;
+        #endregion
+
+        #region Fields
+        private Namespace looCastNamespace;
+        private Type looCastType;
+        private Instance looCastInstance;
         #endregion
 
         #region Unity Callbacks
@@ -194,103 +194,6 @@ namespace LooCast
 
         #endregion
 
-        #region Static Methods
-        public static void CreateNewGame(string gameName)
-        {
-            if (games.Contains(gameName))
-            {
-                throw new Exception("Cannot create new Game, because another Game with the same Name already exists!");
-            }
-
-            LoadScene(SceneType.Game, () =>
-            {
-                GameManager gameManager = FindObjectOfType<GameManager>();
-                gameManager.InitializeGame(gameName);
-            });
-        }
-
-        public static void CreateNewGame(string gameName, Universe.Universe.GenerationSettings generationSettings)
-        {
-            if (games.Contains(gameName))
-            {
-                throw new Exception("Cannot create new Game, because another Game with the same Name already exists!");
-            }
-
-            LoadScene(SceneType.Game, () =>
-            {
-                GameManager gameManager = FindObjectOfType<GameManager>();
-                gameManager.InitializeGame(gameName, generationSettings);
-            });
-        }
-
-        public static void LoadGame(string gameName)
-        {
-            if (!games.Contains(gameName))
-            {
-                throw new Exception("Cannot load Game, because it does not exist!");
-            }
-
-            LoadScene(SceneType.Game, () =>
-            {
-                Game.Game game = games.GetGame(gameName);
-                GameManager gameManager = FindObjectOfType<GameManager>();
-                gameManager.InitializeGame(game);
-            });
-        }
-
-        public static void DeleteGame(string gameName)
-        {
-            if (GameManager.Initialized && GameManager.Instance.CurrentGame.Name == gameName)
-            {
-                throw new Exception("Cannot delete Game when it is loaded!");
-            }
-
-            Game.Game game = games.GetGame(gameName);
-            Game.Game.DeleteGame(game);
-        }
-
-        public static void RenameGame(string oldGameName, string newGameName)
-        {
-            if (GameManager.Initialized && GameManager.Instance.CurrentGame.Name == oldGameName)
-            {
-                throw new Exception("Cannot rename Game when it is loaded!");
-            }
-
-            Game.Game game = games.GetGame(oldGameName);
-            Game.Game.Rename(game, newGameName);
-        }
-
-        public static void LoadMainMenu()
-        {
-            LoadScene(SceneType.MainMenu);
-        }
-
-        private static void LoadScene(SceneType sceneType, Action postLoadAction = null)
-        {
-            string sceneName = Enum.GetName(typeof(SceneType), sceneType);
-            Debug.Log($"[MainManager] Loading Scene '{sceneName}'.");
-            switch (sceneType)
-            {
-                case SceneType.MainMenu:
-                    if (SceneManager.GetActiveScene().name == "Game")
-                    {
-                        Game.Save(GameManager.Instance.CurrentGame);
-                    }
-
-                    GameManager.AddPostInitializationAction(postLoadAction);
-                    Instance.StartCoroutine(Instance.LoadSceneAsynchronously(sceneName));
-                    break;
-                case SceneType.Game:
-                    GameManager.AddPostInitializationAction(postLoadAction);
-                    Instance.StartCoroutine(Instance.LoadSceneAsynchronously(sceneName));
-                    break;
-                default:
-                    throw new ArgumentException($"Scene Type '{sceneName}' not supported!");
-            }
-            Debug.Log($"[MainManager] Finished loading Scene '{sceneName}'.");
-        }
-        #endregion
-
         #region Methods
 
         #region Initialization Phases
@@ -300,15 +203,31 @@ namespace LooCast
             IsEarlyPreInitializing = true;
             Debug.Log($"[MainManager] Starting Early Pre-Initialization in Scene '{activeSceneName}'.");
 
-            #region Early Pre-Initialization
+            #region Main System Setup
+            RegistryManager.Instance.InitializeInstance();
+            NamespaceManager.Instance.InitializeInstance();
+            TypeManager.Instance.InitializeInstance();
+            InstanceManager.Instance.InitializeInstance();
 
-            #region Main Manager
-            Namespace rootNamespace = new Namespace("LooCast");
-            NamespaceManager.Instance.RegisterNamespace(rootNamespace);
-            NamespaceManager.Instance.GetNamespace(new NamespaceIdentifier("LooCast"));
+            looCastNamespace = new Namespace("LooCast");
+            looCastType = new Type(typeof(MainManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
+
+            NamespaceManager.Instance.RegisterNamespace(looCastNamespace);
+            TypeManager.Instance.RegisterType(looCastType);
+            InstanceManager.Instance.RegisterInstance(looCastInstance);
 
             // TODO: Fetch CoreModuleManagers, ordered by their Dependencies(index 0 is Base Mod Core Module Manager, 1 is Mod Core Module Manager, 2 is Mod Extension Core Module Manager, 3 is Mod Extension Extension Core Module Manager, etc.)
             #endregion
+
+            #region Core Systems Setup
+            foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.InitializeInstance();
+            }
+            #endregion
+
+            #region Early Pre-Initialization
 
             #region Core Module Managers
             foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
@@ -1665,14 +1584,6 @@ namespace LooCast
         }
         #endregion
 
-        #endregion
-
-        #region Coroutines
-        public IEnumerator LoadSceneAsynchronously(string sceneIndex)
-        {
-            LoadingScreen loadingScreen = FindObjectOfType<LoadingScreen>();
-            yield return loadingScreen.LoadSceneAsynchronously(sceneIndex);
-        }
         #endregion
     }
 }

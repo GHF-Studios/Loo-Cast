@@ -12,39 +12,39 @@ namespace LooCast.Game
     using System;
     using Util;
     using Universe;
-    using System.Xml.Linq;
+    using Scene;
 
-    public class GameManager : MonoBehaviour
+    public class GameManager : ModuleManager
     {
         #region Static Properties
-        public static GameManager Instance { get; private set; }
-        public static bool Initialized
+        public static GameManager Instance
         {
             get
             {
-                return Instance != null;
+                if (instance == null)
+                {
+                    GameObject instanceObject = new GameObject("[GameManager]");
+                    instanceObject.layer = 31;
+                    instanceObject.tag = "INTERNAL";
+                    return instanceObject.AddComponent<GameManager>();
+                }
+                else
+                {
+                    return instance;
+                }
             }
         }
         #endregion
 
         #region Static Fields
-        private static Queue<Action> postInitializationActionQueue;
+        private static GameManager instance;
         #endregion
 
         #region Properties
         public bool IsPaused { get; private set; }
-        public Game CurrentGame
-        {
-            get
-            {
-                return currentGame;
-            }
-
-            private set
-            {
-                currentGame = value;
-            }
-        }
+        public Game CurrentGame => currentGame;
+        public Games Games => games;
+        public Game GameToBeLoaded => gameToBeLoaded;    // TODO: Implement this
         #endregion
 
         #region Fields
@@ -53,41 +53,22 @@ namespace LooCast.Game
         public GameSoundHandler gameSoundHandler;
 
         private Game currentGame;
+        private Games games;
+        private Game gameToBeLoaded;
         #endregion
 
-        #region Unity Callbacks
-        private void Awake()
+        #region Static Methods
+        public override void InitializeInstance()
         {
-            if (Instance != null)
-            {
-                throw new Exception("Cannot have multiple instances of GameManager!");
-            }
+            base.InitializeInstance();
 
-            #region Initialization
-            
-            #region Game Manager Initialization
-            Instance = this;
             runtimeSets.Initialize();
             IsPaused = false;
             KillsStatistic.Kills = 0;
-            Debug.Log($"[GameManager] Initialized.");
-            #endregion
-
-            #region Game Manager Post-Initialization
-            if (postInitializationActionQueue != null)
-            {
-                while (postInitializationActionQueue.Count > 0)
-                {
-                    Action postInitializationAction = postInitializationActionQueue.Dequeue();
-                    postInitializationAction.Invoke();
-                }
-            }
-            Debug.Log($"[GameManager] Post-Initialized.");
-            #endregion
-
-            #endregion
         }
+        #endregion
 
+        #region Unity Callbacks
         private void OnApplicationQuit()
         {
             Game.Save(currentGame);
@@ -130,10 +111,6 @@ namespace LooCast.Game
 
         public static void LoadGame(Game game)
         {
-            if (!Initialized)
-            {
-                throw new Exception("Cannot load Game when GameManager is not initialized!");
-            }
             if (Instance.CurrentGame != null)
             {
                 if (Instance.CurrentGame == game)
@@ -143,17 +120,13 @@ namespace LooCast.Game
                 throw new Exception("Cannot load Game when another Game is already loaded!");
             }
 
-            Instance.CurrentGame = game;
+            Instance.currentGame = game;
 
             // TODO: Load all Chunks inside range at player position into Scene
         }
 
         public static void SaveGame()
         {
-            if (!Initialized)
-            {
-                throw new Exception("Cannot save Game when GameManager is not initialized!");
-            }
             if (Instance.CurrentGame == null)
             {
                 throw new Exception("Cannot save Game when no Game is loaded!");
@@ -163,39 +136,74 @@ namespace LooCast.Game
 
             // TODO: Save all loaded Chunks
         }
-
-        public static void AddPostInitializationAction(Action postInitializationAction)
-        {
-            if (postInitializationAction == null)
-            {
-                return;
-            }
-
-            if (postInitializationActionQueue == null)
-            {
-                postInitializationActionQueue = new Queue<Action>();
-            }
-
-            postInitializationActionQueue.Enqueue(postInitializationAction);
-        }
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        public void CreateNewGame(string gameName)
         {
+            if (games.Contains(gameName))
+            {
+                throw new Exception("Cannot create new Game, because another Game with the same Name already exists!");
+            }
 
+            SceneManager.Instance.LoadScene(SceneManager.SceneType.Game, () =>
+            {
+                GameManager gameManager = FindObjectOfType<GameManager>();
+                gameManager.InitializeGame(gameName);
+            });
         }
 
-        public override void Initialize()
+        public void CreateNewGame(string gameName, Universe.GenerationSettings generationSettings)
         {
+            if (games.Contains(gameName))
+            {
+                throw new Exception("Cannot create new Game, because another Game with the same Name already exists!");
+            }
 
+            SceneManager.Instance.LoadScene(SceneManager.SceneType.Game, () =>
+            {
+                GameManager gameManager = FindObjectOfType<GameManager>();
+                gameManager.InitializeGame(gameName, generationSettings);
+            });
         }
 
-        public override void PostInitialize()
+        public void LoadGame(string gameName)
         {
+            if (!games.Contains(gameName))
+            {
+                throw new Exception("Cannot load Game, because it does not exist!");
+            }
 
+            SceneManager.Instance.LoadScene(SceneManager.SceneType.Game, () =>
+            {
+                Game game = games.GetGame(gameName);
+                GameManager gameManager = FindObjectOfType<GameManager>();
+                gameManager.InitializeGame(game);
+            });
         }
-        
+
+        public void DeleteGame(string gameName)
+        {
+            if (CurrentGame.Name == gameName)
+            {
+                throw new Exception("Cannot delete Game when it is loaded!");
+            }
+
+            Game game = games.GetGame(gameName);
+            Game.DeleteGame(game);
+        }
+
+        public void RenameGame(string oldGameName, string newGameName)
+        {
+            if (CurrentGame.Name == oldGameName)
+            {
+                throw new Exception("Cannot rename Game when it is loaded!");
+            }
+
+            Game game = games.GetGame(oldGameName);
+            Game.Rename(game, newGameName);
+        }
+
         public void InitializeGame(string newGameName)
         {
             InitializeGame(newGameName, Universe.DefaultGenerationSettings);
@@ -205,7 +213,7 @@ namespace LooCast.Game
         {
             Game game = new Game(newGameName);
             game.Initialize();
-            MainManager.Games.AddGame(newGameName);
+            Games.AddGame(newGameName);
             LoadGame(game);
             SaveGame();
             game.GenerateUniverse(generationSettings);

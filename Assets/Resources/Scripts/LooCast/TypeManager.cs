@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast
 {
-    public class TypeManager : SubModuleManager
+    public class TypeManager : Manager
     {
         #region Static Properties
         public static TypeManager Instance
@@ -29,33 +29,7 @@ namespace LooCast
         private static TypeManager instance;
         #endregion
 
-        #region Properties
-        public override SubModuleManager[] SubModuleManagers => subModuleManagers;
-        #endregion
-
-        #region Fields
-        private SubModuleManager[] subModuleManagers;
-        #endregion
-
         #region Methods
-        public override void PreInitialize()
-        {
-            subModuleManagers = new SubModuleManager[]
-            {
-
-            };
-        }
-
-        public override void Initialize()
-        {
-
-        }
-
-        public override void PostInitialize()
-        {
-
-        }
-        
         public void RegisterType(Type type)
         {
             // TODO: Implement

@@ -10,33 +10,6 @@ namespace LooCast
         public SubModuleManager[] SubModuleManagers { get; private set; }
         #endregion
 
-        #region Constructors
-        protected ModuleManager(ModuleManager[] dependencies, SubModuleManager[] subModuleManagers) : base(dependencies)
-        {
-            SubModuleManagers = subModuleManagers;
-            
-            RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
-            RegisterPreInitializationAction(OnPreInitialize);
-            RegisterLatePreInitializationAction(OnLatePreInitialize);
-            RegisterEarlyInitializationAction(OnEarlyInitialize);
-            RegisterInitializationAction(OnInitialize);
-            RegisterLateInitializationAction(OnLateInitialize);
-            RegisterEarlyPostInitializationAction(OnEarlyPostInitialize);
-            RegisterPostInitializationAction(OnPostInitialize);
-            RegisterLatePostInitializationAction(OnLatePostInitialize);
-            
-            RegisterEarlyPreTerminationAction(OnEarlyPreTerminate);
-            RegisterPreTerminationAction(OnPreTerminate);
-            RegisterLatePreTerminationAction(OnLatePreTerminate);
-            RegisterEarlyTerminationAction(OnEarlyTerminate);
-            RegisterTerminationAction(OnTerminate);
-            RegisterLateTerminationAction(OnLateTerminate);
-            RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
-            RegisterPostTerminationAction(OnPostTerminate);
-            RegisterLatePostTerminationAction(OnLatePostTerminate);
-        }
-        #endregion
-
         #region Callbacks
 
         #region Initialization Phases
@@ -187,6 +160,43 @@ namespace LooCast
         }
         #endregion
 
+        #endregion
+
+        #region Methods
+        public override void InitializeInstance()
+        {
+            base.InitializeInstance();
+
+            SubModuleManagers = GetSubModuleManagers();
+
+            RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
+            RegisterPreInitializationAction(OnPreInitialize);
+            RegisterLatePreInitializationAction(OnLatePreInitialize);
+            RegisterEarlyInitializationAction(OnEarlyInitialize);
+            RegisterInitializationAction(OnInitialize);
+            RegisterLateInitializationAction(OnLateInitialize);
+            RegisterEarlyPostInitializationAction(OnEarlyPostInitialize);
+            RegisterPostInitializationAction(OnPostInitialize);
+            RegisterLatePostInitializationAction(OnLatePostInitialize);
+
+            RegisterEarlyPreTerminationAction(OnEarlyPreTerminate);
+            RegisterPreTerminationAction(OnPreTerminate);
+            RegisterLatePreTerminationAction(OnLatePreTerminate);
+            RegisterEarlyTerminationAction(OnEarlyTerminate);
+            RegisterTerminationAction(OnTerminate);
+            RegisterLateTerminationAction(OnLateTerminate);
+            RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
+            RegisterPostTerminationAction(OnPostTerminate);
+            RegisterLatePostTerminationAction(OnLatePostTerminate);
+        }
+
+        /// <summary>
+        /// Returns the sub-module managers in the order they should be initialized.
+        /// </summary>
+        protected virtual SubModuleManager[] GetSubModuleManagers()
+        {
+            return new SubModuleManager[0];
+        }
         #endregion
     }
 }

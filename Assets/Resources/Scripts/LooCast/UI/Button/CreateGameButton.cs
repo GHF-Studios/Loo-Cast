@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace LooCast.UI.Button
 {
-    using Core;
+    using Game;
 
     public class CreateGameButton : Button
     {
@@ -26,7 +26,7 @@ namespace LooCast.UI.Button
                 newGameName = gameNameText.text;
             }
 
-            MainManager.CreateNewGame(newGameName);
+            GameManager.Instance.CreateNewGame(newGameName);
         }
     }
 }

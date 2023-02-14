@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace LooCast
 {
-    public class RegistryManager : SubModuleManager
+    public class RegistryManager : Manager
     {
         #region Static Properties
         public static RegistryManager Instance
@@ -30,35 +30,18 @@ namespace LooCast
         private static RegistryManager instance;
         #endregion
 
-        #region Properties
-        public override SubModuleManager[] SubModuleManagers => subModuleManagers;
-        #endregion
-
         #region Fields
         private Dictionary<TypeIdentifier, object> registries;
-        private SubModuleManager[] subModuleManagers;
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        public override void InitializeInstance()
         {
+            base.InitializeInstance();
+
             registries = new Dictionary<TypeIdentifier, object>();
-            subModuleManagers = new SubModuleManager[]
-            {
-                
-            };
         }
 
-        public override void Initialize()
-        {
-
-        }
-
-        public override void PostInitialize()
-        {
-
-        }
-        
         public void RegisterRegistry<KeyType, ValueType>(Registry<KeyType, ValueType> registry) where KeyType : IIdentifier where ValueType : IIdentifiable
         {
             TypeIdentifier registryTypeIdentifier = (TypeIdentifier)registry.Identifier;

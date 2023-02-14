@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace LooCast.UI.Button
 {
-    using Core;
+    using Scene;
 
     public class LoadMainMenuButton : Button
     {
@@ -14,7 +14,7 @@ namespace LooCast.UI.Button
 
         public override void OnClick()
         {
-            MainManager.LoadMainMenu();
+            SceneManager.Instance.LoadScene(SceneManager.SceneType.MainMenu);
         }
     }
 }
