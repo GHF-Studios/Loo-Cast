@@ -1,11 +1,9 @@
 ﻿using System;
 using UnityEngine;
 
-namespace LooCast.Core
+namespace LooCast.Data
 {
-    using Core;
-    using Identifier;
-    
+    // TODO: Implement Data System and Internal Data System
     public class DataManager : ModuleManager
     {
         #region Static Properties
