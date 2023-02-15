@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace LooCast.Background
 {
-    using Core;
+    using LooCast.System;
 
     public class Background : ExtendedMonoBehaviour
     {

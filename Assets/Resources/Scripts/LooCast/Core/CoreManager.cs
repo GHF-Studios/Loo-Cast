@@ -49,6 +49,10 @@ namespace LooCast.Core
     using Station;
     using Statistic;
     using Steamworks;
+    using System;
+    using System.Exceptions;
+    using System.Identification;
+    using System.Management;
     using Target;
     using Test;
     using UI;

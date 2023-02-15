@@ -7,7 +7,9 @@ using UnityEngine.SceneManagement;
 
 namespace LooCast
 {
-    using LooCast.Game;
+    using LooCast.System;
+    using LooCast.System.Identification;
+    using LooCast.System.Management;
 
     public class MainManager : MonoBehaviour, INamespaceProvider, ITypeProvider, ISingletonInstanceProvider
     {

@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Asteroid
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class AsteroidManager : ModuleManager
     {
         #region Static Properties

@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Arc
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class ArcManager : ModuleManager
     {
         #region Static Properties

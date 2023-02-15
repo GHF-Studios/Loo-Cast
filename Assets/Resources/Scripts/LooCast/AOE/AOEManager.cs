@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.AOE
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class AOEManager : ModuleManager
     {
         #region Static Properties

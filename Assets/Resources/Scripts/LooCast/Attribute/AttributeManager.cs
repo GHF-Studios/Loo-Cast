@@ -3,8 +3,10 @@ using UnityEngine;
 
 namespace LooCast.Attribute
 {
-    using Stat;
-    
+    using LooCast.System;
+    using LooCast.System.Management;
+    using LooCast.Attribute.Stat;
+
     public class AttributeManager : ModuleManager
     {
         #region Static Properties

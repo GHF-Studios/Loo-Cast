@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace LooCast.Indicator
 {
-    using Core;
+    using LooCast.System;
 
     public class DamageIndicator : ExtendedMonoBehaviour
     {

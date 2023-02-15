@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Ally
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class AllyManager : ModuleManager
     {
         #region Static Properties

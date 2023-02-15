@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.AI
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class AIManager : ModuleManager
     {
         #region Static Properties

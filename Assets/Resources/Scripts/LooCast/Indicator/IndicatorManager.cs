@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Indicator
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class IndicatorManager : ModuleManager
     {
         #region Static Properties
