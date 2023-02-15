@@ -1,11 +1,10 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace LooCast.Universe
 {
     using LooCast.System;
     using LooCast.System.Management;
-    
+
     public class UniverseManager : ModuleManager
     {
         #region Static Properties

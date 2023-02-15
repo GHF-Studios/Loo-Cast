@@ -10,6 +10,12 @@ namespace LooCast
     using LooCast.System;
     using LooCast.System.Identification;
     using LooCast.System.Management;
+    using LooCast.Game;
+    using LooCast.Scene;
+    using LooCast.Steamworks;
+    using LooCast.Util;
+    using LooCast.Data;
+    using LooCast.Universe;
 
     public class MainManager : MonoBehaviour, INamespaceProvider, ITypeProvider, ISingletonInstanceProvider
     {
@@ -227,7 +233,7 @@ namespace LooCast
         #region Initialization Phases
         private void EarlyPreInitialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             
             #region Internal Managers Setup
             #region Pre-Initialization
@@ -272,6 +278,7 @@ namespace LooCast
             #endregion
 
             #region Core Module Managers Setup
+            
             #region Pre-Initialization
             Debug.Log($"[MainManager] Pre-Initializing core module manager instances.");
             foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
@@ -328,7 +335,7 @@ namespace LooCast
 
         private void PreInitialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsPreInitializing = true;
             Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
 
@@ -356,7 +363,7 @@ namespace LooCast
 
         private void LatePreInitialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsLatePreInitializing = true;
             Debug.Log($"[MainManager] Starting Pre-Initialization in Scene '{activeSceneName}'.");
 
@@ -383,7 +390,7 @@ namespace LooCast
 
         private void EarlyInitialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsEarlyInitializing = true;
             Debug.Log($"[MainManager] Starting Early Pre-Initialization in Scene '{activeSceneName}'.");
 
@@ -411,7 +418,7 @@ namespace LooCast
 
         private void Initialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsInitializing = true;
             Debug.Log($"[MainManager] Starting Initialization in Scene '{activeSceneName}'.");
 
@@ -430,11 +437,11 @@ namespace LooCast
             #region DEPRECATED! [TO BE MOVED!]
 
             #region SteamManager
-            _ = SteamManager.Initialized;
+            _ = SteamworksManager.Initialized;
             #endregion
 
             #region Data.Path
-            _ = Data.Path;
+            _ = Data.Data.Path;
             #endregion
 
             #region TimerUtil
@@ -442,7 +449,7 @@ namespace LooCast
             #endregion
 
             #region Utilities
-            Universe.DensityMapGenerationUtil.InitializeInstance();
+            Universe.Universe.DensityMapGenerationUtil.InitializeInstance();
             #endregion
 
             #region Scene
@@ -451,12 +458,12 @@ namespace LooCast
                 case "MainMenu":
                     break;
                 case "Game":
-                    GameManager.AddPostInitializationAction(() =>
+                    SceneManager.Instance.AddPostSceneLoadAction(() =>
                     {
                         GameManager gameManager = FindObjectOfType<GameManager>();
-                        if (games.Contains("New Game"))
+                        if (gameManager.Games.Contains("New Game"))
                         {
-                            gameManager.InitializeGame(games.GetGame("New Game"));
+                            gameManager.InitializeGame(gameManager.Games.GetGame("New Game"));
                         }
                         else
                         {
@@ -480,7 +487,7 @@ namespace LooCast
 
         private void LateInitialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsLateInitializing = true;
             Debug.Log($"[MainManager] Starting Late Pre-Initialization in Scene '{activeSceneName}'.");
 
@@ -506,7 +513,7 @@ namespace LooCast
 
         private void EarlyPostInitialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsEarlyPostInitializing = true;
             Debug.Log($"[MainManager] Starting Early Post-Initialization in Scene '{activeSceneName}'.");
 
@@ -517,7 +524,7 @@ namespace LooCast
             #endregion
 
             #region Core Module Managers
-            LooCast.Core.CoreManager looCastCoreManager = CoreManager.Instance;
+            LooCast.Core.CoreManager looCastCoreManager = LooCast.Core.CoreManager.Instance;
             looCastCoreManager.PostInitialize();
             #endregion
 
@@ -532,7 +539,7 @@ namespace LooCast
 
         private void PostInitialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsPostInitializing = true;
             Debug.Log($"[MainManager] Starting Post-Initialization in Scene '{activeSceneName}'.");
 
@@ -560,7 +567,7 @@ namespace LooCast
 
         private void LatePostInitialize()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsLatePostInitializing = true;
             Debug.Log($"[MainManager] Starting Late Post-Initialization in Scene '{activeSceneName}'.");
 
@@ -588,7 +595,7 @@ namespace LooCast
         #region Termination Phases
         private void EarlyPreTerminate()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsEarlyPreTerminating = true;
             Debug.Log($"[MainManager] Starting Early Pre-Termination in Scene '{activeSceneName}'.");
 
@@ -615,7 +622,7 @@ namespace LooCast
 
         private void PreTerminate()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsPreTerminating = true;
             Debug.Log($"[MainManager] Starting Pre-Termination in Scene '{activeSceneName}'.");
 
@@ -642,7 +649,7 @@ namespace LooCast
 
         private void LatePreTerminate()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsLatePreTerminating = true;
             Debug.Log($"[MainManager] Starting Late Pre-Termination in Scene '{activeSceneName}'.");
 
@@ -669,7 +676,7 @@ namespace LooCast
 
         private void EarlyTerminate()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsEarlyTerminating = true;
             Debug.Log($"[MainManager] Starting Early Termination in Scene '{activeSceneName}'.");
 
@@ -696,7 +703,7 @@ namespace LooCast
 
         private void Terminate()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsTerminating = true;
             Debug.Log($"[MainManager] Starting Termination in Scene '{activeSceneName}'.");
 
@@ -723,7 +730,7 @@ namespace LooCast
 
         private void LateTerminate()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsLateTerminating = true;
             Debug.Log($"[MainManager] Starting Late Termination in Scene '{activeSceneName}'.");
 
@@ -750,7 +757,7 @@ namespace LooCast
 
         private void EarlyPostTerminate()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsEarlyPostTerminating = true;
             Debug.Log($"[MainManager] Starting Early Post-Termination in Scene '{activeSceneName}'.");
 
@@ -777,7 +784,7 @@ namespace LooCast
 
         private void PostTerminate()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsPostTerminating = true;
             Debug.Log($"[MainManager] Starting Post-Termination in Scene '{activeSceneName}'.");
 
@@ -804,7 +811,7 @@ namespace LooCast
 
         private void LatePostTerminate()
         {
-            string activeSceneName = SceneManager.GetActiveScene().name;
+            string activeSceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             IsLatePostTerminating = true;
             Debug.Log($"[MainManager] Starting Late Post-Termination in Scene '{activeSceneName}'.");
 
