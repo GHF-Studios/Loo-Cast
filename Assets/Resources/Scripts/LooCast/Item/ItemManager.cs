@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Item
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class ItemManager : ModuleManager
     {
         #region Static Properties

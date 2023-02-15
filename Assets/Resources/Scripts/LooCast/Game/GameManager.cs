@@ -4,12 +4,14 @@ using UnityEngine;
 
 namespace LooCast.Game
 {
-    using Data.Runtime;
-    using UI.Screen;
-    using Sound;
-    using Statistic;
-    using Universe;
-    using Scene;
+    using LooCast.System;
+    using LooCast.System.Management;
+    using LooCast.Data.Runtime;
+    using LooCast.UI.Screen;
+    using LooCast.Sound;
+    using LooCast.Statistic;
+    using LooCast.Universe;
+    using LooCast.Scene;
 
     public class GameManager : ModuleManager
     {

@@ -5,7 +5,6 @@ namespace LooCast.Background
 {
     using LooCast.System;
     using LooCast.System.Management;
-    using LooCast.System.Identification;
     
     public class BackgroundManager : ModuleManager
     {

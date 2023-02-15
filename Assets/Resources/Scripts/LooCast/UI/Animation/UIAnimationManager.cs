@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Animation
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UIAnimationManager : SubModuleManager
     {
         #region Static Properties

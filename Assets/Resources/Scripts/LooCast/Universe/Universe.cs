@@ -7,7 +7,8 @@ using UnityEngine;
 
 namespace LooCast.Universe
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
     using Game;
     using Random;
     using UnityEngine.Profiling;

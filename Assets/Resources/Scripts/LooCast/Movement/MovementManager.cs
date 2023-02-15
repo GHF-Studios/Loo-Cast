@@ -3,8 +3,10 @@ using UnityEngine;
 
 namespace LooCast.Movement
 {
-    using Effect;
-    
+    using LooCast.System;
+    using LooCast.System.Management;
+    using LooCast.Movement.Effect;
+
     public class MovementManager : ModuleManager
     {
         #region Static Properties

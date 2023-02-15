@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Slider
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UISliderManager : SubModuleManager
     {
         #region Static Properties

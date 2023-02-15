@@ -1,3 +1,4 @@
+using CSSystem = System;
 using UnityEngine;
 
 namespace LooCast.Test
@@ -153,7 +154,7 @@ namespace LooCast.Test
         #endregion
 
         #region Structs
-        [System.Serializable]
+        [CSSystem.Serializable]
         public struct TerrainType
         {
             public string name;

@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Random
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class RandomManager : ModuleManager
     {
         #region Static Properties

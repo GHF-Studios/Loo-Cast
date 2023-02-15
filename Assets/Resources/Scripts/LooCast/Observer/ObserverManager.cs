@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Observer
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class ObserverManager : ModuleManager
     {
         #region Static Properties

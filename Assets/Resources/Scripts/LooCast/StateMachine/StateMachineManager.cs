@@ -1,8 +1,11 @@
-﻿using System;
+﻿using CSSystem = System;
 using UnityEngine;
 
 namespace LooCast.StateMachine
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class StateMachineManager : ModuleManager
     {
         #region Static Properties
@@ -57,8 +60,8 @@ namespace LooCast.StateMachine
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
             
-            Type finiteStateMachineType = new Type(typeof(FiniteStateMachine<Enum>), looCastNamespace);
-            Type stateType = new Type(typeof(State<Enum>), looCastNamespace);
+            Type finiteStateMachineType = new Type(typeof(FiniteStateMachine<CSSystem.Enum>), looCastNamespace);
+            Type stateType = new Type(typeof(State<CSSystem.Enum>), looCastNamespace);
 
             typeManager.RegisterType(finiteStateMachineType);
             typeManager.RegisterType(stateType);

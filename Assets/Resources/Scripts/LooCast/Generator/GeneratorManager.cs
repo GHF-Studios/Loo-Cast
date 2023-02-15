@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Generator
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class GeneratorManager : ModuleManager
     {
         #region Static Properties

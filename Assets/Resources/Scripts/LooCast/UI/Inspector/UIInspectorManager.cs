@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Inspector
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UIInspectorManager : SubModuleManager
     {
         #region Static Properties

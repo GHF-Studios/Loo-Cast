@@ -6,7 +6,8 @@ namespace LooCast.Health
 {
     using Data;
     using Data.Runtime;
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
     using Sound;
     using UI.Canvas;
     using UI.Screen;

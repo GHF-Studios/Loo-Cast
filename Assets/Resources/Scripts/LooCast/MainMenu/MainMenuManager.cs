@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.MainMenu
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class MainMenuManager : ModuleManager
     {
         #region Static Properties

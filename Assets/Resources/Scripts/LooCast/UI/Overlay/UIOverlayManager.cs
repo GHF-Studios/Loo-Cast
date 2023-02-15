@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Overlay
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UIOverlayManager : SubModuleManager
     {
         #region Static Properties

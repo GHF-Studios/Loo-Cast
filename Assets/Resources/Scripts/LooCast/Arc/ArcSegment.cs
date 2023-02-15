@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace LooCast.Arc
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
 
     [RequireComponent(typeof(LineRenderer))]
     public class ArcSegment : ExtendedMonoBehaviour

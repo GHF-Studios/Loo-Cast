@@ -7,7 +7,8 @@ using System.IO;
 namespace LooCast.Game
 {
     using Universe;
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
     using Attribute;
     using Attribute.Stat;
     using Currency;

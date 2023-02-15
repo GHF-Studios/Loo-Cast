@@ -5,7 +5,8 @@ using UnityEngine.UI;
 
 namespace LooCast.UI.Timer
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
 
     public class RoundTimer : ExtendedMonoBehaviour
     {

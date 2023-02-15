@@ -8,7 +8,8 @@ namespace LooCast.Ally
 {
     using Data;
     using Data.Runtime;
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
     using Particle;
     using Movement;
     using Health;

@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Orb
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class OrbManager : ModuleManager
     {
         #region Static Properties

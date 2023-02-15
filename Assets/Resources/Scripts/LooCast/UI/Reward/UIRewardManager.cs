@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Reward
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UIRewardManager : SubModuleManager
     {
         #region Static Properties

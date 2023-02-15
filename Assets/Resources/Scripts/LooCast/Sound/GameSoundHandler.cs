@@ -1,3 +1,4 @@
+using CSSystem = System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -30,7 +31,7 @@ namespace LooCast.Sound
         [SerializeField]
         private AudioClip[] bigExplosion;
 
-        private System.Random random = new System.Random();
+        private CSSystem.Random random = new CSSystem.Random();
 
         private void Start()
         {

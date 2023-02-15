@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Timer
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UITimerManager : SubModuleManager
     {
         #region Static Properties

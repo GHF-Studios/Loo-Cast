@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Transform
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class TransformManager : ModuleManager
     {
         #region Static Properties

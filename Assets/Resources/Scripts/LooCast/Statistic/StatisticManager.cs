@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Statistic
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class StatisticManager : ModuleManager
     {
         #region Static Properties

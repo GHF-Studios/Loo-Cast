@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Experience
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+    
     public class ExperienceManager : ModuleManager
     {
         #region Static Properties

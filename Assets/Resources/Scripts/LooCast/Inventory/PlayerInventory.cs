@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace LooCast.Inventory
 {
+    using LooCast.System;
     using Data;
     using Data.Runtime;
     using LooCast.Item;

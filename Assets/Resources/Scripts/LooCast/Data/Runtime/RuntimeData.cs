@@ -3,7 +3,8 @@ using UnityEngine;
 
 namespace LooCast.Data.Runtime
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
 
     public struct RuntimeData
     {

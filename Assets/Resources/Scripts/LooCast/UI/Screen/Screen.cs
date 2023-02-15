@@ -1,9 +1,11 @@
+using CSSystem = System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace LooCast.UI.Screen
 {
+    using LooCast.System;
     using LooCast.Core;
     using LooCast.Game;
     using LooCast.UI.Canvas;
@@ -24,7 +26,7 @@ namespace LooCast.UI.Screen
             {
                 if (!isInitiallyVisible)
                 {
-                    throw new System.Exception("Screen is initialized as initially invisible and unhideable!");
+                    throw new CSSystem.Exception("Screen is initialized as initially invisible and unhideable!");
                 }
             }
 
@@ -33,7 +35,7 @@ namespace LooCast.UI.Screen
                 transform.SetAsLastSibling();
                 if (Canvas.screenStack.Count > 0)
                 {
-                    throw new System.Exception("More than one screen initially visible!");
+                    throw new CSSystem.Exception("More than one screen initially visible!");
                 }
                 Canvas.screenStack.Push(this);
             }
@@ -80,7 +82,7 @@ namespace LooCast.UI.Screen
             {
                 if (priority == -1)
                 {
-                    throw new System.Exception("Priority is not set!");
+                    throw new CSSystem.Exception("Priority is not set!");
                 }
 
                 foreach (Screen screen in Canvas.screenStack)

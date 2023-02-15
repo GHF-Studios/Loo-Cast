@@ -5,7 +5,8 @@ using UnityEngine;
 
 namespace LooCast.Station
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
     using Data;
     using Data.Runtime;
 

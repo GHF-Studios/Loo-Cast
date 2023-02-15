@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Noise
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class NoiseManager : ModuleManager
     {
         #region Static Properties

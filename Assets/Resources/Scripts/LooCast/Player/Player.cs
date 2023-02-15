@@ -5,18 +5,20 @@ using UnityEngine;
 
 namespace LooCast.Player
 {
-    using Core;
+    using LooCast.System;
+    using LooCast.System.Identification;
+    using LooCast.Core;
+    using LooCast.Player.Data;
+    using LooCast.Player.Data.Runtime;
     using LooCast.Data.Runtime;
-    using Data;
-    using Data.Runtime;
-    using Health;
-    using Movement;
-    using Particle;
-    using Experience;
-    using Attribute;
-    using Attribute.Stat;
-    using Currency;
-    using Item;
+    using LooCast.Health;
+    using LooCast.Movement;
+    using LooCast.Particle;
+    using LooCast.Experience;
+    using LooCast.Attribute;
+    using LooCast.Attribute.Stat;
+    using LooCast.Currency;
+    using LooCast.Item;
 
     [DisallowMultipleComponent]
     [RequireComponent(typeof(PlayerHealth), typeof(PlayerExperience), typeof(PlayerMovement))]

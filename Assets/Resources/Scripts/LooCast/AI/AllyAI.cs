@@ -4,13 +4,13 @@ using UnityEngine;
 
 namespace LooCast.AI
 {
-    using Core;
-    using Random;
-    using Movement;
-    using StateMachine;
-    using Util;
-    using Enemy;
-    using Target;
+    using LooCast.Core;
+    using LooCast.System;
+    using LooCast.Random;
+    using LooCast.Movement;
+    using LooCast.StateMachine;
+    using LooCast.Util;
+    using LooCast.Target;
 
     public class AllyAI : ExtendedMonoBehaviour
     {

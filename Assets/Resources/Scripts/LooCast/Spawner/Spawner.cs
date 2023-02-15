@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace LooCast.Spawner
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
     using Data;
 
     public abstract class Spawner : ExtendedMonoBehaviour

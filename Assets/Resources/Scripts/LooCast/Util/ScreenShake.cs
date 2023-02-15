@@ -7,7 +7,8 @@ using UnityEngine;
 
 namespace LooCast.Util
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
 
     public sealed class ScreenShake : ExtendedMonoBehaviour
     {

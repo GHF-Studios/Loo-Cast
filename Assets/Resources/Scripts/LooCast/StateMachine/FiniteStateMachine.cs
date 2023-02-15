@@ -1,8 +1,12 @@
+using CSSystem = System;
 using System.Collections.Generic;
 
 namespace LooCast.StateMachine
 {
-    public class FiniteStateMachine<StateEnumType> where StateEnumType : System.Enum
+    using LooCast.System;
+    using LooCast.System.Management;
+    
+    public class FiniteStateMachine<StateEnumType> where StateEnumType : CSSystem.Enum
     {
         protected Dictionary<StateEnumType, State<StateEnumType>> states;
         protected State<StateEnumType> currentState;

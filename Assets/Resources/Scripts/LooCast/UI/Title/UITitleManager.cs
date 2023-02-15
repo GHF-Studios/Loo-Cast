@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Title
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UITitleManager : SubModuleManager
     {
         #region Static Properties

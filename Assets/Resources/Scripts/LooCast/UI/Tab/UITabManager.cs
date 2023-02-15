@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Tab
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UITabManager : SubModuleManager
     {
         #region Static Properties

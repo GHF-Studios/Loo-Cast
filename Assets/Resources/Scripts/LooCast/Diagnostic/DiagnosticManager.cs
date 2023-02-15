@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Diagnostic
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class DiagnosticManager : ModuleManager
     {
         #region Static Properties

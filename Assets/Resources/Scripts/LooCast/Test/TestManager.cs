@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Test
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class TestManager : ModuleManager
     {
         #region Static Properties

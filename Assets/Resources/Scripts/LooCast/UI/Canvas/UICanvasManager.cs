@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Canvas
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+    
     public class UICanvasManager : SubModuleManager
     {
         #region Static Properties

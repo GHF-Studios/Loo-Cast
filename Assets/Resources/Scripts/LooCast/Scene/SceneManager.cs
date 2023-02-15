@@ -5,9 +5,11 @@ using UnityEngine;
 
 namespace LooCast.Scene
 {
-    using Game;
-    using UI.Screen;
-    
+    using LooCast.System;
+    using LooCast.System.Management;
+    using LooCast.Game;
+    using LooCast.UI.Screen;
+
     public class SceneManager : ModuleManager
     {
         #region Enums

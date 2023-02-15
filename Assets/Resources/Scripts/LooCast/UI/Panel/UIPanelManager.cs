@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Panel
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UIPanelManager : SubModuleManager
     {
         #region Static Properties

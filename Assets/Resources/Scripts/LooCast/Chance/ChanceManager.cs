@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Chance
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class ChanceManager : ModuleManager
     {
         #region Static Properties

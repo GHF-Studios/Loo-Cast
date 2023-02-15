@@ -5,7 +5,8 @@ using UnityEngine.Events;
 
 namespace LooCast.Projectile
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
     using LooCast.Health;
     using Target;
 

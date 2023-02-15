@@ -3,6 +3,7 @@ using UnityEngine.Events;
 
 namespace LooCast.Item
 {
+    using LooCast.System;
     using LooCast.Core;
     using LooCast.Inventory;
 

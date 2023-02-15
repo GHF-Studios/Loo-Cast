@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace LooCast.Math
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+    
     public class MathManager : ModuleManager
     {
         #region Static Properties

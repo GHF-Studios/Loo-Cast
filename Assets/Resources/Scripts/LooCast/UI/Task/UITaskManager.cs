@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Task
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UITaskManager : SubModuleManager
     {
         #region Static Properties

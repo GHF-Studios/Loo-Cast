@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Projectile
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class ProjectileManager : ModuleManager
     {
         #region Static Properties

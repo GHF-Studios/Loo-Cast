@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Particle
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class ParticleManager : ModuleManager
     {
         #region Static Properties

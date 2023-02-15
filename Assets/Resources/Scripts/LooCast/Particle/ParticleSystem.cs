@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace LooCast.Particle
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
 
     [RequireComponent(typeof(UnityEngine.ParticleSystem))]
     public sealed class ParticleSystem : ExtendedMonoBehaviour

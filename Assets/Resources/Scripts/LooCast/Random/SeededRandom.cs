@@ -1,15 +1,15 @@
-﻿using UnityEngine;
-using System;
+﻿using CSSystem = System;
+using UnityEngine;
 
 namespace LooCast.Random
 {
     public class SeededRandom
     {
-        private System.Random prng;
+        private CSSystem.Random prng;
 
         public SeededRandom(int seed)
         {
-            prng = new System.Random(seed);
+            prng = new CSSystem.Random(seed);
         }
 
         public int Range(int minInclusive, int maxInclusive)

@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Inventory
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UIInventoryManager : SubModuleManager
     {
         #region Static Properties

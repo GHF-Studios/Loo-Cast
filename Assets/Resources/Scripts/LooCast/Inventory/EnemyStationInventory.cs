@@ -7,7 +7,8 @@ namespace LooCast.Inventory
     using Data;
     using Item;
     using Item.Data;
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
 
     public sealed class EnemyStationInventory : ExtendedMonoBehaviour
     {

@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Cursor
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UICursorManager : SubModuleManager
     {
         #region Static Properties

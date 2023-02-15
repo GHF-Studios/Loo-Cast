@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Mission.Trigger
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class MissionTriggerManager : SubModuleManager
     {
         #region Static Properties

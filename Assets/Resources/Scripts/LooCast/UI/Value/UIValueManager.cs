@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Value
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UIValueManager : SubModuleManager
     {
         #region Static Properties

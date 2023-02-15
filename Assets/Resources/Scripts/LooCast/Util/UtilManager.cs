@@ -3,9 +3,11 @@ using UnityEngine;
 
 namespace LooCast.Util
 {
-    using Collections.Concurrent;
-    using Collections.Generic;
-    
+    using LooCast.Util.Collections.Concurrent;
+    using LooCast.Util.Collections.Generic;
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UtilManager : ModuleManager
     {
         #region Static Properties

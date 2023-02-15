@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Health
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class HealthManager : ModuleManager
     {
         #region Static Properties

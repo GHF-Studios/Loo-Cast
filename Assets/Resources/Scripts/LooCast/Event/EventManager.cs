@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Event
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+    
     public class EventManager : ModuleManager
     {
         #region Static Properties

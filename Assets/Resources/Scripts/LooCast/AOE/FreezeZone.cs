@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace LooCast.AOE
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
     using Attribute.Stat;
     using LooCast.Movement;
     using LooCast.Movement.Effect;

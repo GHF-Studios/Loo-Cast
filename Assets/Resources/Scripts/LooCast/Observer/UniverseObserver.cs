@@ -9,7 +9,8 @@ using UnityEngine.Profiling;
 
 namespace LooCast.Observer
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
     using Game;
     using LooCast.Diagnostic;
     using Universe;

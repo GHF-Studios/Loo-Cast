@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Variable
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+    
     public class VariableManager : ModuleManager
     {
         #region Static Properties

@@ -1,3 +1,4 @@
+using CSSystem = System;
 using UnityEngine;
 
 namespace LooCast.Test

@@ -14,10 +14,14 @@ using Steamworks;
 #endif
 
 using UnityEngine;
-using LooCast.Core;
+using CSSystem = System;
 
 namespace LooCast.Steamworks
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+	using LooCast.Core;
+
     //
     // The SteamManager provides a base implementation of Steamworks.NET on which you can build upon.
     // It handles the basics of starting up and shutting down the SteamAPI for use.
@@ -78,7 +82,7 @@ namespace LooCast.Steamworks
 #endif
 		
         [AOT.MonoPInvokeCallback(typeof(SteamAPIWarningMessageHook_t))]
-        private static void SteamAPIDebugTextHook(int nSeverity, System.Text.StringBuilder pchDebugText)
+        private static void SteamAPIDebugTextHook(int nSeverity, CSSystem.Text.StringBuilder pchDebugText)
         {
             Debug.LogWarning(pchDebugText);
         }

@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Currency
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class CurrencyManager : ModuleManager
     {
         #region Static Properties

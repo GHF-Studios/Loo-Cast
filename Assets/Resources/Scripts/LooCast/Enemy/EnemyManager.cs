@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Enemy
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class EnemyManager : ModuleManager
     {
         #region Static Properties

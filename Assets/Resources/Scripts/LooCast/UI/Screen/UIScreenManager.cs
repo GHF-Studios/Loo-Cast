@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Screen
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UIScreenManager : SubModuleManager
     {
         #region Static Properties

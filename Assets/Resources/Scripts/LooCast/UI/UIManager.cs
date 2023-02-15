@@ -3,26 +3,28 @@ using UnityEngine;
 
 namespace LooCast.UI
 {
-    using UI.Animation;
-    using UI.Bar;
-    using UI.Button;
-    using UI.Canvas;
-    using UI.Cursor;
-    using UI.HUD;
-    using UI.Inspector;
-    using UI.Inventory;
-    using UI.Level;
-    using UI.Overlay;
-    using UI.Panel;
-    using UI.Reward;
-    using UI.Screen;
-    using UI.Slider;
-    using UI.Tab;
-    using UI.Task;
-    using UI.Timer;
-    using UI.Title;
-    using UI.Tooltip;
-    using UI.Value;
+    using LooCast.System;
+    using LooCast.System.Management;
+    using LooCast.UI.Animation;
+    using LooCast.UI.Bar;
+    using LooCast.UI.Button;
+    using LooCast.UI.Canvas;
+    using LooCast.UI.Cursor;
+    using LooCast.UI.HUD;
+    using LooCast.UI.Inspector;
+    using LooCast.UI.Inventory;
+    using LooCast.UI.Level;
+    using LooCast.UI.Overlay;
+    using LooCast.UI.Panel;
+    using LooCast.UI.Reward;
+    using LooCast.UI.Screen;
+    using LooCast.UI.Slider;
+    using LooCast.UI.Tab;
+    using LooCast.UI.Task;
+    using LooCast.UI.Timer;
+    using LooCast.UI.Title;
+    using LooCast.UI.Tooltip;
+    using LooCast.UI.Value;
 
     public class UIManager : ModuleManager
     {

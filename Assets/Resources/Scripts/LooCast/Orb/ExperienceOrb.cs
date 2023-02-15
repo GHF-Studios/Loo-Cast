@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace LooCast.Orb
 {
-    using Core;
+    using LooCast.Core;
+    using LooCast.System;
     using Util;
     using Experience;
     using Sound;

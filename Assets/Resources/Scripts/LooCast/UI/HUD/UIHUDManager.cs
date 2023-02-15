@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.HUD
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UIHUDManager : SubModuleManager
     {
         #region Static Properties

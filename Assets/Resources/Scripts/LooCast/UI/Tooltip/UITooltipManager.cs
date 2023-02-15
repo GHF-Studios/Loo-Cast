@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Tooltip
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UITooltipManager : SubModuleManager
     {
         #region Static Properties

@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.UI.Bar
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class UIBarManager : SubModuleManager
     {
         #region Static Properties

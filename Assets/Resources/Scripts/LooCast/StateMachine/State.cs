@@ -1,6 +1,8 @@
+using CSSystem = System;
+
 namespace LooCast.StateMachine
 {
-    public class State<StateEnumType> where StateEnumType : System.Enum
+    public class State<StateEnumType> where StateEnumType : CSSystem.Enum
     {
         public StateEnumType ID { get; private set; }
         public string Name { get; private set; }

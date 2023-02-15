@@ -3,12 +3,13 @@ using System.Linq;
 
 namespace LooCast.AI
 {
-    using Core;
-    using Random;
-    using Movement;
-    using StateMachine;
-    using Util;
-    using Target;
+    using LooCast.Core;
+    using LooCast.System;
+    using LooCast.Random;
+    using LooCast.Movement;
+    using LooCast.StateMachine;
+    using LooCast.Util;
+    using LooCast.Target;
     using LooCast.Game;
 
     public class EnemyAI : ExtendedMonoBehaviour

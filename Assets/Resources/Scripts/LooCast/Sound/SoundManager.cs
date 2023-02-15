@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Sound
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class SoundManager : ModuleManager
     {
         #region Static Properties

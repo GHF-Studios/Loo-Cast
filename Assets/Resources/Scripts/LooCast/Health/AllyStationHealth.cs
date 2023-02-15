@@ -5,6 +5,7 @@ using UnityEngine.Events;
 
 namespace LooCast.Health
 {
+    using LooCast.System;
     using Data;
     using LooCast.Core;
     using LooCast.Variable;

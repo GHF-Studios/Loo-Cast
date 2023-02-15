@@ -1,3 +1,4 @@
+using CSSystem = System;
 using UnityEngine;
 
 namespace LooCast.Test
@@ -93,7 +94,7 @@ namespace LooCast.Test
         }
     } 
 
-    [System.Serializable]
+    [CSSystem.Serializable]
     public struct TerrainType
     {
         public string name;

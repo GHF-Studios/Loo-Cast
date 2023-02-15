@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Spawner
 {
+    using LooCast.System;
+    using LooCast.System.Management;
+
     public class SpawnerManager : ModuleManager
     {
         #region Static Properties

@@ -1,11 +1,11 @@
-using System;
+using CSSystem = System;
 using UnityEngine;
 
 namespace LooCast.Chance
 {
     public sealed class Chance
     {
-        public Seed<IComparable> seed
+        public Seed<CSSystem.IComparable> seed
         {
             get
             {
@@ -17,24 +17,24 @@ namespace LooCast.Chance
                 _seed = value;
             }
         }
-        private Seed<IComparable> _seed;
+        private Seed<CSSystem.IComparable> _seed;
         private AnimationCurve distribution;
-        private System.Random random;
+        private CSSystem.Random random;
 
         public Chance(AnimationCurve distribution) : base()
         {
-            seed = new Seed<int>(DateTime.Now.Millisecond);
+            seed = new Seed<int>(CSSystem.DateTime.Now.Millisecond);
             this.distribution = distribution;
-            random = new System.Random((int)seed.seed);
+            random = new CSSystem.Random((int)seed.seed);
         }
 
-        public Chance(IComparable seed, AnimationCurve distribution) : base()
+        public Chance(CSSystem.IComparable seed, AnimationCurve distribution) : base()
         {
-            this.seed = new Seed<IComparable>(seed);
+            this.seed = new Seed<CSSystem.IComparable>(seed);
             this.distribution = distribution;
             if (seed is int || seed is float || seed is double)
             {
-                random = new System.Random((int)seed);
+                random = new CSSystem.Random((int)seed);
             }
         }
 
