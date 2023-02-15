@@ -1,8 +1,8 @@
 namespace LooCast.StateMachine
 {
-    public class State<T>
+    public class State<StateEnumType> where StateEnumType : System.Enum
     {
-        public T ID { get; private set; }
+        public StateEnumType ID { get; private set; }
         public string Name { get; private set; }
 
         public delegate void DelegateNoArg();
@@ -11,19 +11,19 @@ namespace LooCast.StateMachine
         public DelegateNoArg OnUpdate;
         public DelegateNoArg OnFixedUpdate;
 
-        public State(T id)
+        public State(StateEnumType id)
         {
             ID = id;
         }
 
-        public State(T id, string name) : this(id)
+        public State(StateEnumType id, string name) : this(id)
         {
             Name = name;
         }
 
         public State
         (
-            T id, 
+            StateEnumType id, 
             DelegateNoArg onEnter, 
             DelegateNoArg onExit = null, 
             DelegateNoArg onUpdate = null, 
@@ -38,7 +38,7 @@ namespace LooCast.StateMachine
 
         public State
         (
-            T id, 
+            StateEnumType id, 
             string name, 
             DelegateNoArg onEnter, 
             DelegateNoArg onExit = null, 

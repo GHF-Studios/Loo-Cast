@@ -1,9 +1,11 @@
 ﻿namespace LooCast
 {
-    public interface ITypeIdentifier : IGenericIdentifier<Namespace>
+    public interface INamespaceIdentifier : IGenericIdentifier<Namespace>
     {
         #region Properties
-        System.Type SystemType { get; }
+        string ParentNamespaceID { get; }
+        string Name { get; }
+        string NamespaceID { get; }
         #endregion
     }
 }

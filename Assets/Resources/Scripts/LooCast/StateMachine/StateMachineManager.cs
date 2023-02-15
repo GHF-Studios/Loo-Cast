@@ -57,8 +57,8 @@ namespace LooCast.StateMachine
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
             
-            Type finiteStateMachineType = new Type(typeof(FiniteStateMachine<State<object>>), looCastNamespace);
-            Type stateType = new Type(typeof(State<object>), looCastNamespace);
+            Type finiteStateMachineType = new Type(typeof(FiniteStateMachine<Enum>), looCastNamespace);
+            Type stateType = new Type(typeof(State<Enum>), looCastNamespace);
 
             typeManager.RegisterType(finiteStateMachineType);
             typeManager.RegisterType(stateType);

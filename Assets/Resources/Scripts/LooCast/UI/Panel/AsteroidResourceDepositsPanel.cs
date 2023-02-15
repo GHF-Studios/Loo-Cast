@@ -59,8 +59,8 @@ namespace LooCast.UI.Panel
         }
         private Asteroid currentAsteroid;
 
-        [SerializeField] private Transform resourceDepositLabelParent;
-        [SerializeField] private Transform resourceDepositValueParent;
+        [SerializeField] private UnityEngine.Transform resourceDepositLabelParent;
+        [SerializeField] private UnityEngine.Transform resourceDepositValueParent;
         [SerializeField] private GameObject textPrefab;
 
         private void Update()
@@ -76,7 +76,7 @@ namespace LooCast.UI.Panel
             //Refresh Resource Deposit Labels
             for (int i = 0; i < CurrentAsteroid.ResourceDeposits.Length; i++)
             {
-                Transform resourceDepositLabelTransform = resourceDepositLabelParent.GetChild(i);
+                UnityEngine.Transform resourceDepositLabelTransform = resourceDepositLabelParent.GetChild(i);
                 Text resourceDepositLabel = resourceDepositLabelTransform.gameObject.GetComponent<Text>();
                 resourceDepositLabel.text = CurrentAsteroid.ResourceDeposits[i].Resource.ResourceName;
             }
@@ -84,7 +84,7 @@ namespace LooCast.UI.Panel
             //Refresh Resource Deposit Values
             for (int i = 0; i < CurrentAsteroid.ResourceDeposits.Length; i++)
             {
-                Transform resourceDepositValueTransform = resourceDepositValueParent.GetChild(i);
+                UnityEngine.Transform resourceDepositValueTransform = resourceDepositValueParent.GetChild(i);
                 Text resourceDepositValue = resourceDepositValueTransform.gameObject.GetComponent<Text>();
                 resourceDepositValue.text = string.Format("{0:n0}", CurrentAsteroid.ResourceDeposits[i].Deposit) + "t";
             }

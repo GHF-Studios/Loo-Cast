@@ -6,18 +6,18 @@ namespace LooCast.MainMenu
     public class MainMenuManager : ModuleManager
     {
         #region Static Properties
-        public static DataManager Instance
+        public static MainMenuManager Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[CoreManager]");
+                    GameObject instanceObject = new GameObject("[MainMenuManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
-                    return instanceObject.AddComponent<DataManager>();
+                    return instanceObject.AddComponent<MainMenuManager>();
                 }
                 else
                 {
@@ -28,7 +28,7 @@ namespace LooCast.MainMenu
         #endregion
 
         #region Static Fields
-        private static DataManager instance;
+        private static MainMenuManager instance;
         #endregion
 
         #region Fields

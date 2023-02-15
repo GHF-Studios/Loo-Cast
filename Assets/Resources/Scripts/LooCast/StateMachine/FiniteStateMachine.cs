@@ -2,14 +2,14 @@ using System.Collections.Generic;
 
 namespace LooCast.StateMachine
 {
-    public class FiniteStateMachine<T> where T : State<object>
+    public class FiniteStateMachine<StateEnumType> where StateEnumType : System.Enum
     {
-        protected Dictionary<T, State<T>> states;
-        protected State<T> currentState;
+        protected Dictionary<StateEnumType, State<StateEnumType>> states;
+        protected State<StateEnumType> currentState;
 
         public FiniteStateMachine()
         {
-            states = new Dictionary<T, State<T>>();
+            states = new Dictionary<StateEnumType, State<StateEnumType>>();
         }
 
         public void Update()
@@ -22,17 +22,17 @@ namespace LooCast.StateMachine
             currentState?.FixedUpdate();
         }
 
-        public void Add(State<T> state)
+        public void Add(State<StateEnumType> state)
         {
             states.Add(state.ID, state);
         }
 
-        public void Add(T stateID, State<T> state)
+        public void Add(StateEnumType stateID, State<StateEnumType> state)
         {
             states.Add(stateID, state);
         }
 
-        public State<T> GetState(T stateID)
+        public State<StateEnumType> GetState(StateEnumType stateID)
         {
             if (states.ContainsKey(stateID))
             {
@@ -41,18 +41,18 @@ namespace LooCast.StateMachine
             return null;
         }
 
-        public void SetCurrentState(T stateID)
+        public void SetCurrentState(StateEnumType stateID)
         {
-            State<T> state = states[stateID];
+            State<StateEnumType> state = states[stateID];
             SetCurrentState(state);
         }
 
-        public State<T> GetCurrentState()
+        public State<StateEnumType> GetCurrentState()
         {
             return currentState;
         }
 
-        public void SetCurrentState(State<T> state)
+        public void SetCurrentState(State<StateEnumType> state)
         {
             if (currentState == state)
             {

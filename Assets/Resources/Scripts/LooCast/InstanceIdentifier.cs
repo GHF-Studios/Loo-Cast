@@ -4,12 +4,11 @@ using UnityEngine;
 namespace LooCast
 {
     [Serializable]
-    public record InstanceIdentifier : IGenericIdentifier<Instance>
+    public class InstanceIdentifier : IInstanceIdentifier
     {
         #region Properties
         public string InstanceTypeID => instanceTypeID;
         public string InstanceGUID => instanceGUID;
-        
         public string InstanceID => $"{instanceTypeID}[{instanceGUID}]";
         public string ID => InstanceID;
         #endregion

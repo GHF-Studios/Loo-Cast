@@ -4,13 +4,12 @@ using UnityEngine;
 namespace LooCast
 {
     [Serializable]
-    public record TypeIdentifier : IGenericIdentifier<Type>
+    public class TypeIdentifier : ITypeIdentifier
     {
         #region Properties
         public string ParentNamespaceID => parentNamespaceID;
         public string ParentTypeID => parentTypeID;
         public System.Type SystemType => systemType;
-        
         public string TypeID => parentTypeID == null ? $"{parentNamespaceID}:{systemType.FullName}" : $"{parentTypeID}.{systemType.FullName}";
         public string ID => TypeID;
         #endregion

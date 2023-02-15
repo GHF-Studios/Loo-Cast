@@ -10,7 +10,7 @@ namespace LooCast.Target
     public class Target : IEquatable<Target>
     {
         public GameObject GameObject { get { return collider.gameObject; } }
-        public Transform Transform { get { return collider.gameObject.transform; } }
+        public UnityEngine.Transform Transform { get { return collider.gameObject.transform; } }
         public IHealth Health { get { return health; } }
         public Collider2D Collider { get { return collider; } }
         public UnityEvent OnInvalidated { get { return onInvalidated; } }

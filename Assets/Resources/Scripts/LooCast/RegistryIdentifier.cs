@@ -4,12 +4,11 @@ using UnityEngine;
 namespace LooCast
 {
     [Serializable]
-    public record RegistryIdentifier : IGenericIdentifier<Registry<IIdentifier, IIdentifiable>>
+    public class RegistryIdentifier : IRegistryIdentifier
     {
         #region Properties
         public string KeyTypeID => keyTypeID;
         public string ValueTypeID => valuetypeID;
-
         public string RegistryID => $"{KeyTypeID}_{ValueTypeID}";
         public string ID => RegistryID;
         #endregion
