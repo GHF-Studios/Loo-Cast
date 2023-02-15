@@ -48,19 +48,21 @@ namespace LooCast.Noise
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Noise", rootNamespace);
+            looCastType = new Type(typeof(NoiseManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type fastNoiseLiteType = new Type(typeof(FastNoiseLite), looCastNamespace);
+            Type perlinNoiseType = new Type(typeof(PerlinNoise), looCastNamespace);
+            Type voronoiNoiseType = new Type(typeof(VoronoiNoise), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(fastNoiseLiteType);
+            typeManager.RegisterType(perlinNoiseType);
+            typeManager.RegisterType(voronoiNoiseType);
             #endregion
         }
         #endregion

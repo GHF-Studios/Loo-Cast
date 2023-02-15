@@ -48,19 +48,17 @@ namespace LooCast.Indicator
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Indicator", rootNamespace);
+            looCastType = new Type(typeof(IndicatorManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type damageIndicatorType = new Type(typeof(DamageIndicator), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(damageIndicatorType);
             #endregion
         }
         #endregion

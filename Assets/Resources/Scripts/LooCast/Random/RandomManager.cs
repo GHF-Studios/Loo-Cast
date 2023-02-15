@@ -48,19 +48,19 @@ namespace LooCast.Random
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Random", rootNamespace);
+            looCastType = new Type(typeof(RandomManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type randomType = new Type(typeof(Random), looCastNamespace);
+            Type seededRandomType = new Type(typeof(SeededRandom), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(randomType);
+            typeManager.RegisterType(seededRandomType);
             #endregion
         }
         #endregion

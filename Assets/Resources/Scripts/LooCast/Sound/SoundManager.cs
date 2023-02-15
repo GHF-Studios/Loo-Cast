@@ -48,19 +48,23 @@ namespace LooCast.Sound
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Sound", rootNamespace);
+            looCastType = new Type(typeof(SoundManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type gameSoundHandlerType = new Type(typeof(GameSoundHandler), looCastNamespace);
+            Type menuSoundHandlerType = new Type(typeof(MenuSoundHandler), looCastNamespace);
+            Type soundType = new Type(typeof(Sound), looCastNamespace);
+            Type soundHandlerType = new Type(typeof(SoundHandler), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(gameSoundHandlerType);
+            typeManager.RegisterType(menuSoundHandlerType);
+            typeManager.RegisterType(soundType);
+            typeManager.RegisterType(soundHandlerType);
             #endregion
         }
         #endregion

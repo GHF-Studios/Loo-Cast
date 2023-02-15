@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LooCast.Scene
 {
     using Game;
-    using System.Collections.Generic;
     using UI.Screen;
     
     public class SceneManager : ModuleManager
@@ -45,14 +45,6 @@ namespace LooCast.Scene
 
         #region Fields
         private Queue<Action> postSceneLoadActionQueue;
-        #endregion
-
-        #region Static Methods
-        public override void InitializeInstance()
-        {
-            base.InitializeInstance();
-            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
-        }
         #endregion
 
         #region Callbacks
@@ -114,6 +106,30 @@ namespace LooCast.Scene
             {
                 postSceneLoadActionQueue.Dequeue().Invoke();
             }
+        }
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
+        {
+            base.PreInitializeInstance();
+
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
+
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Scene", rootNamespace);
+            looCastType = new Type(typeof(SceneManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
+
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
+            #endregion
+
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
         }
         #endregion
 

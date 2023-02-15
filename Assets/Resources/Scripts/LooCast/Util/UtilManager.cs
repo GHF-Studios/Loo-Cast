@@ -3,6 +3,9 @@ using UnityEngine;
 
 namespace LooCast.Util
 {
+    using Collections.Concurrent;
+    using Collections.Generic;
+    
     public class UtilManager : ModuleManager
     {
         #region Static Properties
@@ -48,19 +51,49 @@ namespace LooCast.Util
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Util", rootNamespace);
+            Namespace collectionsNamespace = new Namespace("Collections", looCastNamespace);
+            Namespace collectionsConcurrentNamespace = new Namespace("Concurrent", collectionsNamespace);
+            Namespace collectionsGenericNamespace = new Namespace("Generic", collectionsNamespace);
+            looCastType = new Type(typeof(UtilManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
+            namespaceManager.RegisterNamespace(collectionsNamespace);
+            namespaceManager.RegisterNamespace(collectionsConcurrentNamespace);
+            namespaceManager.RegisterNamespace(collectionsGenericNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type colorUtilType = new Type(typeof(ColorUtil), looCastNamespace);
+            Type constantsType = new Type(typeof(Constants), looCastNamespace);
+            Type extensionMethodsType = new Type(typeof(ExtensionMethods), looCastNamespace);
+            Type lerpFollowerType = new Type(typeof(LerpFollower), looCastNamespace);
+            Type rectTransformUtilType = new Type(typeof(RectTransformUtil), looCastNamespace);
+            Type screenShakeType = new Type(typeof(ScreenShake), looCastNamespace);
+            Type serializationUtilType = new Type(typeof(SerializationUtil), looCastNamespace);
+            Type targetingUtilType = new Type(typeof(TargetingUtil), looCastNamespace);
+            Type teamUtilType = new Type(typeof(TeamUtil), looCastNamespace);
+            Type textureUtilType = new Type(typeof(TextureUtil), looCastNamespace);
+            Type timerUtilType = new Type(typeof(TimerUtil), looCastNamespace);
+            Type concurrentSerializableDictionaryType = new Type(typeof(ConcurrentSerializableDictionary<object, object>), collectionsConcurrentNamespace);
+            Type serializableDictionaryType = new Type(typeof(SerializableDictionary<object, object>), collectionsGenericNamespace);
+            Type serializableListType = new Type(typeof(SerializableList<object>), collectionsGenericNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(colorUtilType);
+            typeManager.RegisterType(constantsType);
+            typeManager.RegisterType(extensionMethodsType);
+            typeManager.RegisterType(lerpFollowerType);
+            typeManager.RegisterType(rectTransformUtilType);
+            typeManager.RegisterType(screenShakeType);
+            typeManager.RegisterType(serializationUtilType);
+            typeManager.RegisterType(targetingUtilType);
+            typeManager.RegisterType(teamUtilType);
+            typeManager.RegisterType(textureUtilType);
+            typeManager.RegisterType(timerUtilType);
+            typeManager.RegisterType(concurrentSerializableDictionaryType);
+            typeManager.RegisterType(serializableDictionaryType);
+            typeManager.RegisterType(serializableListType);
             #endregion
         }
         #endregion

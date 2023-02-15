@@ -3,6 +3,8 @@ using UnityEngine;
 
 namespace LooCast.Movement
 {
+    using Effect;
+    
     public class MovementManager : ModuleManager
     {
         #region Static Properties
@@ -48,19 +50,28 @@ namespace LooCast.Movement
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Movement", rootNamespace);
+            Namespace effectNamespace = new Namespace("Effect", rootNamespace);
+            looCastType = new Type(typeof(MovementManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type iMovementType = new Type(typeof(IMovement), looCastNamespace);
+            Type allyMovementType = new Type(typeof(AllyMovement), looCastNamespace);
+            Type enemyMovementType = new Type(typeof(EnemyMovement), looCastNamespace);
+            Type playerMovementType = new Type(typeof(PlayerMovement), looCastNamespace);
+            Type freezeMovementEffectType = new Type(typeof(FreezeMovementEffect), effectNamespace);
+            Type movementEffectType = new Type(typeof(MovementEffect), effectNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(iMovementType);
+            typeManager.RegisterType(allyMovementType);
+            typeManager.RegisterType(enemyMovementType);
+            typeManager.RegisterType(playerMovementType);
+            typeManager.RegisterType(freezeMovementEffectType);
+            typeManager.RegisterType(movementEffectType);
             #endregion
         }
         #endregion

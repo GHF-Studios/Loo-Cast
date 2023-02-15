@@ -48,19 +48,25 @@ namespace LooCast.Projectile
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Projectile", rootNamespace);
+            looCastType = new Type(typeof(ProjectileManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type projectileType = new Type(typeof(Projectile), looCastNamespace);
+            Type chargedPlasmaProjectileType = new Type(typeof(ChargedPlasmaProjectile), looCastNamespace);
+            Type laserProjectileType = new Type(typeof(LaserProjectile), looCastNamespace);
+            Type multiplexerProjectileType = new Type(typeof(MultiplexerProjectile), looCastNamespace);
+            Type multiplexerFragmentProjectileType = new Type(typeof(MultiplexerFragmentProjectile), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(projectileType);
+            typeManager.RegisterType(chargedPlasmaProjectileType);
+            typeManager.RegisterType(laserProjectileType);
+            typeManager.RegisterType(multiplexerProjectileType);
+            typeManager.RegisterType(multiplexerFragmentProjectileType);
             #endregion
         }
         #endregion

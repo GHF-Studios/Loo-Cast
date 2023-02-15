@@ -48,19 +48,21 @@ namespace LooCast.Spawner
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Spawner", rootNamespace);
+            looCastType = new Type(typeof(SpawnerManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type allySpawnerType = new Type(typeof(AllySpawner), looCastNamespace);
+            Type enemySpawnerType = new Type(typeof(EnemySpawner), looCastNamespace);
+            Type spawnerType = new Type(typeof(Spawner), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(allySpawnerType);
+            typeManager.RegisterType(enemySpawnerType);
+            typeManager.RegisterType(spawnerType);
             #endregion
         }
         #endregion

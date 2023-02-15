@@ -48,19 +48,19 @@ namespace LooCast.StateMachine
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("StateMachine", rootNamespace);
+            looCastType = new Type(typeof(StateMachineManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
+            
+            Type finiteStateMachineType = new Type(typeof(FiniteStateMachine<State<object>>), looCastNamespace);
+            Type stateType = new Type(typeof(State<object>), looCastNamespace);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
-
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(finiteStateMachineType);
+            typeManager.RegisterType(stateType);
             #endregion
         }
         #endregion

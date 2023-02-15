@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace LooCast.StateMachine
 {
-    public class FiniteStateMachine<T>
+    public class FiniteStateMachine<T> where T : State<object>
     {
         protected Dictionary<T, State<T>> states;
         protected State<T> currentState;

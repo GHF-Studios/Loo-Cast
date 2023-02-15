@@ -48,19 +48,25 @@ namespace LooCast.Test
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Test", rootNamespace);
+            looCastType = new Type(typeof(TestManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type mapDisplayType = new Type(typeof(MapDisplay), looCastNamespace);
+            Type perlinMapGeneratorType = new Type(typeof(PerlinMapGenerator), looCastNamespace);
+            Type perlinMapGeneratorGPUType = new Type(typeof(PerlinMapGeneratorGPU), looCastNamespace);
+            Type voronoiMapGeneratorType = new Type(typeof(VoronoiMapGenerator), looCastNamespace);
+            Type voronoiMapGeneratorGPUType = new Type(typeof(VoronoiMapGeneratorGPU), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(mapDisplayType);
+            typeManager.RegisterType(perlinMapGeneratorType);
+            typeManager.RegisterType(perlinMapGeneratorGPUType);
+            typeManager.RegisterType(voronoiMapGeneratorType);
+            typeManager.RegisterType(voronoiMapGeneratorGPUType);
             #endregion
         }
         #endregion

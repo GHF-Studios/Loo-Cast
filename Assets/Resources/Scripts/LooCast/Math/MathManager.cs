@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LooCast.Math.Map;
+using System;
 using UnityEngine;
 
 namespace LooCast.Math
@@ -48,19 +49,19 @@ namespace LooCast.Math
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Math", rootNamespace);
+            Namespace mapNamespace = new Namespace("Map", looCastNamespace);
+            looCastType = new Type(typeof(MathManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
+            namespaceManager.RegisterNamespace(mapNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type floatMap2DType = new Type(typeof(FloatMap2D), mapNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(floatMap2DType);
             #endregion
         }
         #endregion

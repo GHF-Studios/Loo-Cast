@@ -48,19 +48,21 @@ namespace LooCast.Station
             InstanceManager instanceManager = InstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            looCastNamespace = new Namespace("Station", rootNamespace);
+            looCastType = new Type(typeof(StationManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type allyStationType = new Type(typeof(AllyStation), looCastNamespace);
+            Type enemyStationType = new Type(typeof(EnemyStation), looCastNamespace);
+            Type stationType = new Type(typeof(Station), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(allyStationType);
+            typeManager.RegisterType(enemyStationType);
+            typeManager.RegisterType(stationType);
             #endregion
         }
         #endregion
