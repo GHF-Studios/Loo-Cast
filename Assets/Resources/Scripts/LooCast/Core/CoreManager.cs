@@ -88,6 +88,7 @@ namespace LooCast.Core
                     GameObject instanceObject = new GameObject("[CoreManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = MainManager.Instance.transform;
                     return instanceObject.AddComponent<CoreManager>();
                 }
                 else
@@ -256,7 +257,6 @@ namespace LooCast.Core
                     MathManager.Instance,
                     MissionManager.Instance,
                     MovementManager.Instance,
-                    EffectManager.Instance,
                     NoiseManager.Instance,
                     ObserverManager.Instance,
                     OrbManager.Instance,

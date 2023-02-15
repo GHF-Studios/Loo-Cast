@@ -14,7 +14,7 @@ namespace LooCast.Universe
     using Util;
     using Util.Collections.Generic;
 
-    // OPTIMIZATION PLAN TODO
+    // TODO: OPTIMIZATION PLAN
     // A. Maybe Use a single thread to load all the data
     // B. Optimize IsFilament*Generated & IsFilament*ChunkGenerated
     // C. Optimize IsFilament*Loaded & IsFilament*ChunkLoaded

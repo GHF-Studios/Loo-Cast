@@ -15,6 +15,7 @@ namespace LooCast.Currency
                     GameObject instanceObject = new GameObject("[CurrencyManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<CurrencyManager>();
                 }
                 else

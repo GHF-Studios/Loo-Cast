@@ -15,6 +15,7 @@ namespace LooCast.Asteroid
                     GameObject instanceObject = new GameObject("[AsteroidManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<AsteroidManager>();
                 }
                 else

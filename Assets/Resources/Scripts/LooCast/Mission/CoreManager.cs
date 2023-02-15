@@ -1,21 +1,22 @@
 ﻿using System;
 using UnityEngine;
 
-namespace LooCast.Core
+namespace LooCast.Mission
 {
-    public class DataManager : ModuleManager
+    public class MissionManager : ModuleManager
     {
         #region Static Properties
-        public static DataManager Instance
+        public static MissionManager Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[CoreManager]");
+                    GameObject instanceObject = new GameObject("[MissionManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
-                    return instanceObject.AddComponent<DataManager>();
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
+                    return instanceObject.AddComponent<MissionManager>();
                 }
                 else
                 {
@@ -26,7 +27,7 @@ namespace LooCast.Core
         #endregion
 
         #region Static Fields
-        private static DataManager instance;
+        private static MissionManager instance;
         #endregion
 
         #region Fields

@@ -17,6 +17,7 @@ namespace LooCast.Attribute
                     GameObject instanceObject = new GameObject("[AttributeManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<AttributeManager>();
                 }
                 else

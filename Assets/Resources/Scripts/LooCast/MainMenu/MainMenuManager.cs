@@ -1,70 +1,65 @@
 ﻿using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace LooCast.MainMenu
 {
-    public class MainMenuManager : MonoBehaviour
+    public class MainMenuManager : ModuleManager
     {
-        #region Static Fields
-        private static Queue<Action> postInitializationActionQueue;
+        #region Static Properties
+        public static DataManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    GameObject instanceObject = new GameObject("[CoreManager]");
+                    instanceObject.layer = 31;
+                    instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
+                    return instanceObject.AddComponent<DataManager>();
+                }
+                else
+                {
+                    return instance;
+                }
+            }
+        }
         #endregion
 
-        #region Properties
-        public static MainMenuManager Instance { get; private set; }
+        #region Static Fields
+        private static DataManager instance;
         #endregion
 
         #region Fields
-        #endregion
 
-        #region Unity Callbacks
-        private void Awake()
-        {
-            if (Instance != null)
-            {
-                throw new Exception("Cannot have multiple instances of MainMenuManager!");
-            }
-
-            #region Initialization
-            Instance = this;
-            #endregion
-
-            Debug.Log($"[MainMenuManager] Initialized.");
-
-            if (postInitializationActionQueue != null)
-            {
-                while (postInitializationActionQueue.Count > 0)
-                {
-                    Action postInitializationAction = postInitializationActionQueue.Dequeue();
-                    postInitializationAction.Invoke();
-                }
-            }
-
-            Debug.Log($"[MainMenuManager] Post-Initialized.");
-        }
-        #endregion
-
-        #region Static Methods
-        public static void AddPostInitializationAction(Action postInitializationAction)
-        {
-            if (postInitializationAction == null)
-            {
-                return;
-            }
-
-            if (postInitializationActionQueue == null)
-            {
-                postInitializationActionQueue = new Queue<Action>();
-            }
-
-            postInitializationActionQueue.Enqueue(postInitializationAction);
-        }
         #endregion
 
         #region Methods
         public void Quit()
         {
             Application.Quit();
+        }
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
+        {
+            base.PreInitializeInstance();
+
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
+
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("MainMenu", rootNamespace);
+            looCastType = new Type(typeof(MainMenuManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
+
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
+            #endregion
         }
         #endregion
     }

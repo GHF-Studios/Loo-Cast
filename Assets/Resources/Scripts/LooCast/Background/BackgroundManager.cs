@@ -15,6 +15,7 @@ namespace LooCast.Background
                     GameObject instanceObject = new GameObject("[BackgroundManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<BackgroundManager>();
                 }
                 else

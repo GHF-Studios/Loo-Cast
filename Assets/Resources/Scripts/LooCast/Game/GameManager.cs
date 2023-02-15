@@ -23,6 +23,7 @@ namespace LooCast.Game
                     GameObject instanceObject = new GameObject("[GameManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<GameManager>();
                 }
                 else

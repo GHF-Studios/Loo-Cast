@@ -15,6 +15,7 @@ namespace LooCast.Arc
                     GameObject instanceObject = new GameObject("[ArcManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<ArcManager>();
                 }
                 else

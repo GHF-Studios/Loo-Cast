@@ -15,6 +15,7 @@ namespace LooCast.Enemy
                     GameObject instanceObject = new GameObject("[EnemyManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<EnemyManager>();
                 }
                 else

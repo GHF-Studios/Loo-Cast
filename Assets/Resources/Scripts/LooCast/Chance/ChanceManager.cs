@@ -15,6 +15,7 @@ namespace LooCast.Chance
                     GameObject instanceObject = new GameObject("[ChanceManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<ChanceManager>();
                 }
                 else

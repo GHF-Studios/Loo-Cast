@@ -15,6 +15,7 @@ namespace LooCast.Core
                     GameObject instanceObject = new GameObject("[EditorManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<EditorManager>();
                 }
                 else

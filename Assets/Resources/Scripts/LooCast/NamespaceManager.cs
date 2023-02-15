@@ -15,6 +15,7 @@ namespace LooCast
                     GameObject instanceObject = new GameObject("[NamespaceManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<NamespaceManager>();
                 }
                 else

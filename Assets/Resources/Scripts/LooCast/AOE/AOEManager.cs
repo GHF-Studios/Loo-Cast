@@ -15,6 +15,7 @@ namespace LooCast.AOE
                     GameObject instanceObject = new GameObject("[AOEManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<AOEManager>();
                 }
                 else

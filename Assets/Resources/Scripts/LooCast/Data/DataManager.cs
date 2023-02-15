@@ -18,6 +18,7 @@ namespace LooCast.Data
                     GameObject instanceObject = new GameObject("[DataManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<DataManager>();
                 }
                 else

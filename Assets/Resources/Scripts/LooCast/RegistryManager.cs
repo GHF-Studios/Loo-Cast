@@ -16,6 +16,7 @@ namespace LooCast
                     GameObject instanceObject = new GameObject("[RegistryManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<RegistryManager>();
                 }
                 else
