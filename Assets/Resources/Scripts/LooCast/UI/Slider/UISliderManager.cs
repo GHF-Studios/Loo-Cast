@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Slider
 {
-    public class UISliderManager : ModuleManager
+    public class UISliderManager : SubModuleManager
     {
         #region Static Properties
         public static UISliderManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Slider
                     GameObject instanceObject = new GameObject("[UISliderManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UISliderManager>();
                 }
@@ -47,20 +48,30 @@ namespace LooCast.UI.Slider
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Slider", rootNamespace);
+            looCastType = new Type(typeof(UISliderManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type difficultySliderType = new Type(typeof(DifficultySlider), looCastNamespace);
+            Type effectVolumeSliderType = new Type(typeof(EffectVolumeSlider), looCastNamespace);
+            Type masterVolumeSliderType = new Type(typeof(MasterVolumeSlider), looCastNamespace);
+            Type musicVolumeSliderType = new Type(typeof(MusicVolumeSlider), looCastNamespace);
+            Type sliderType = new Type(typeof(Slider), looCastNamespace);
+            Type uiVolumeSliderType = new Type(typeof(UIVolumeSlider), looCastNamespace);
+            Type volumeSliderType = new Type(typeof(VolumeSlider), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(difficultySliderType);
+            typeManager.RegisterType(effectVolumeSliderType);
+            typeManager.RegisterType(masterVolumeSliderType);
+            typeManager.RegisterType(musicVolumeSliderType);
+            typeManager.RegisterType(sliderType);
+            typeManager.RegisterType(uiVolumeSliderType);
+            typeManager.RegisterType(volumeSliderType);
             #endregion
         }
         #endregion

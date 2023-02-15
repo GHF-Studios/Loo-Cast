@@ -15,6 +15,7 @@ namespace LooCast.Ally
                     GameObject instanceObject = new GameObject("[AllyManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<AllyManager>();
                 }

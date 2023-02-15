@@ -15,6 +15,7 @@ namespace LooCast.Random
                     GameObject instanceObject = new GameObject("[RandomManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<RandomManager>();
                 }

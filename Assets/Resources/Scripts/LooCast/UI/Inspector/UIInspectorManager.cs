@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Inspector
 {
-    public class UIInspectorManager : ModuleManager
+    public class UIInspectorManager : SubModuleManager
     {
         #region Static Properties
         public static UIInspectorManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Inspector
                     GameObject instanceObject = new GameObject("[UIInspectorManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UIInspectorManager>();
                 }
@@ -47,20 +48,20 @@ namespace LooCast.UI.Inspector
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Inspector", rootNamespace);
+            looCastType = new Type(typeof(UIInspectorManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type activeMissionInspectorType = new Type(typeof(ActiveMissionInspector), looCastNamespace);
+            Type asteroidInspectorType = new Type(typeof(AsteroidInspector), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(activeMissionInspectorType);
+            typeManager.RegisterType(asteroidInspectorType);
             #endregion
         }
         #endregion

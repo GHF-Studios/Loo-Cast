@@ -15,6 +15,7 @@ namespace LooCast.Event
                     GameObject instanceObject = new GameObject("[EventManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<EventManager>();
                 }

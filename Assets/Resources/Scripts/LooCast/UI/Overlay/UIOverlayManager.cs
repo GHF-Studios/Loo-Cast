@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Overlay
 {
-    public class UIOverlayManager : ModuleManager
+    public class UIOverlayManager : SubModuleManager
     {
         #region Static Properties
         public static UIOverlayManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Overlay
                     GameObject instanceObject = new GameObject("[UIOverlayManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UIOverlayManager>();
                 }
@@ -47,20 +48,14 @@ namespace LooCast.UI.Overlay
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Overlay", rootNamespace);
+            looCastType = new Type(typeof(UIOverlayManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
-
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
-
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
             #endregion
         }
         #endregion

@@ -15,6 +15,7 @@ namespace LooCast
                     GameObject instanceObject = new GameObject("[NamespaceManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<NamespaceManager>();
                 }
@@ -34,18 +35,17 @@ namespace LooCast
         #endregion
 
         #region Fields
+        private Registry<IIdentifier, IIdentifiable> namespaceRegistry;
         #endregion
 
         #region Methods
         public void RegisterNamespace(Namespace @namespace)
         {
-            Registry<IIdentifier, IIdentifiable> namespaceRegistry = RegistryManager.Instance.GetRegistry("LooCast:NamespaceIdentifier_LooCast:Namespace");
             namespaceRegistry.Register(@namespace.NamespaceIdentifier, @namespace);
         }
 
         public Namespace GetNamespace(NamespaceIdentifier namespaceIdentifier)
         {
-            Registry<IIdentifier, IIdentifiable> namespaceRegistry = RegistryManager.Instance.GetRegistry("LooCast:NamespaceIdentifier_LooCast:Namespace");
             return (Namespace)namespaceRegistry.Get(namespaceIdentifier);
         }
         #endregion
@@ -66,6 +66,17 @@ namespace LooCast
             RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
+            #endregion
+        }
+
+        public override void PostInitializeInstance()
+        {
+            base.PostInitializeInstance();
+
+            #region Registry Registration
+            RegistryManager registryManager = RegistryManager.Instance;
+            namespaceRegistry = new Registry<IIdentifier, IIdentifiable>("LooCast:NamespaceIdentifier_LooCast:Namespace");
+            registryManager.RegisterRegistry(namespaceRegistry);
             #endregion
         }
         #endregion

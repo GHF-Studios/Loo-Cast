@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Reward
 {
-    public class UIRewardManager : ModuleManager
+    public class UIRewardManager : SubModuleManager
     {
         #region Static Properties
         public static UIRewardManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Reward
                     GameObject instanceObject = new GameObject("[UIRewardManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UIRewardManager>();
                 }
@@ -47,20 +48,24 @@ namespace LooCast.UI.Reward
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Reward", rootNamespace);
+            looCastType = new Type(typeof(UIRewardManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type creditsMissionRewardType = new Type(typeof(CreditsMissionReward), looCastNamespace);
+            Type itemMissionRewardType = new Type(typeof(ItemMissionReward), looCastNamespace);
+            Type missionRewardType = new Type(typeof(MissionReward), looCastNamespace);
+            Type reputationMissionRewardType = new Type(typeof(ReputationMissionReward), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(creditsMissionRewardType);
+            typeManager.RegisterType(itemMissionRewardType);
+            typeManager.RegisterType(missionRewardType);
+            typeManager.RegisterType(reputationMissionRewardType);
             #endregion
         }
         #endregion

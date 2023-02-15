@@ -15,6 +15,7 @@ namespace LooCast.Health
                     GameObject instanceObject = new GameObject("[HealthManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<HealthManager>();
                 }

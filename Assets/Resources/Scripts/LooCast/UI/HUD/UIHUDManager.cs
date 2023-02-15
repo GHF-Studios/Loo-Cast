@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.HUD
 {
-    public class UIHUDManager : ModuleManager
+    public class UIHUDManager : SubModuleManager
     {
         #region Static Properties
         public static UIHUDManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.HUD
                     GameObject instanceObject = new GameObject("[UIHUDManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UIHUDManager>();
                 }
@@ -47,20 +48,18 @@ namespace LooCast.UI.HUD
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("HUD", rootNamespace);
+            looCastType = new Type(typeof(UIHUDManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type hudType = new Type(typeof(HUD), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(hudType);
             #endregion
         }
         #endregion

@@ -37,6 +37,7 @@ namespace LooCast.Steamworks
                     GameObject instanceObject = new GameObject("[SteamworksManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = CoreManager.Instance.transform;
                     return instanceObject.AddComponent<SteamworksManager>();
                 }

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Button
 {
-    public class UIButtonManager : ModuleManager
+    public class UIButtonManager : SubModuleManager
     {
         #region Static Properties
         public static UIButtonManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Button
                     GameObject instanceObject = new GameObject("[UIButtonManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UIButtonManager>();
                 }
@@ -47,20 +48,34 @@ namespace LooCast.UI.Button
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Button", rootNamespace);
+            looCastType = new Type(typeof(UIButtonManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type attributeSetButtonType = new Type(typeof(AttributeSetButton), looCastNamespace);
+            Type buttonType = new Type(typeof(Button), looCastNamespace);
+            Type createGameButtonType = new Type(typeof(CreateGameButton), looCastNamespace);
+            Type hardresetButtonType = new Type(typeof(HardresetButton), looCastNamespace);
+            Type loadGameButtonType = new Type(typeof(LoadGameButton), looCastNamespace);
+            Type loadMainMenuButtonType = new Type(typeof(LoadMainMenuButton), looCastNamespace);
+            Type missionButtonType = new Type(typeof(MissionButton), looCastNamespace);
+            Type statSetButtonType = new Type(typeof(StatSetButton), looCastNamespace);
+            Type tabButtonType = new Type(typeof(TabButton), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(attributeSetButtonType);
+            typeManager.RegisterType(buttonType);
+            typeManager.RegisterType(createGameButtonType);
+            typeManager.RegisterType(hardresetButtonType);
+            typeManager.RegisterType(loadGameButtonType);
+            typeManager.RegisterType(loadMainMenuButtonType);
+            typeManager.RegisterType(missionButtonType);
+            typeManager.RegisterType(statSetButtonType);
+            typeManager.RegisterType(tabButtonType);
             #endregion
         }
         #endregion

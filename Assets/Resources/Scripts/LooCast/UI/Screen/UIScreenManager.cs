@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Screen
 {
-    public class UIScreenManager : ModuleManager
+    public class UIScreenManager : SubModuleManager
     {
         #region Static Properties
         public static UIScreenManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Screen
                     GameObject instanceObject = new GameObject("[UIScreenManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UIScreenManager>();
                 }
@@ -47,20 +48,36 @@ namespace LooCast.UI.Screen
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Screen", rootNamespace);
+            looCastType = new Type(typeof(UIScreenManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type deathScreenType = new Type(typeof(DeathScreen), looCastNamespace);
+            Type loadGameScreenType = new Type(typeof(LoadGameScreen), looCastNamespace);
+            Type loadingScreenType = new Type(typeof(LoadingScreen), looCastNamespace);
+            Type mainScreenType = new Type(typeof(MainScreen), looCastNamespace);
+            Type newGameScreenType = new Type(typeof(NewGameScreen), looCastNamespace);
+            Type pauseScreenType = new Type(typeof(PauseScreen), looCastNamespace);
+            Type screenType = new Type(typeof(Screen), looCastNamespace);
+            Type settingsScreenType = new Type(typeof(SettingsScreen), looCastNamespace);
+            Type stationScreenType = new Type(typeof(StationScreen), looCastNamespace);
+            Type statsScreenType = new Type(typeof(StatsScreen), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(deathScreenType);
+            typeManager.RegisterType(loadGameScreenType);
+            typeManager.RegisterType(loadingScreenType);
+            typeManager.RegisterType(mainScreenType);
+            typeManager.RegisterType(newGameScreenType);
+            typeManager.RegisterType(pauseScreenType);
+            typeManager.RegisterType(screenType);
+            typeManager.RegisterType(settingsScreenType);
+            typeManager.RegisterType(stationScreenType);
+            typeManager.RegisterType(statsScreenType);
             #endregion
         }
         #endregion

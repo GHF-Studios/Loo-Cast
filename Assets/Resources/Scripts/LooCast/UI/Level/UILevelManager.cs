@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Level
 {
-    public class UILevelManager : ModuleManager
+    public class UILevelManager : SubModuleManager
     {
         #region Static Properties
         public static UILevelManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Level
                     GameObject instanceObject = new GameObject("[UILevelManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UILevelManager>();
                 }
@@ -47,20 +48,22 @@ namespace LooCast.UI.Level
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Level", rootNamespace);
+            looCastType = new Type(typeof(UILevelManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type attributeLevelType = new Type(typeof(AttributeLevel), looCastNamespace);
+            Type levelType = new Type(typeof(Level), looCastNamespace);
+            Type statLevelType = new Type(typeof(StatLevel), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(attributeLevelType);
+            typeManager.RegisterType(levelType);
+            typeManager.RegisterType(statLevelType);
             #endregion
         }
         #endregion

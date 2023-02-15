@@ -15,6 +15,7 @@ namespace LooCast.Particle
                     GameObject instanceObject = new GameObject("[ParticleManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<ParticleManager>();
                 }

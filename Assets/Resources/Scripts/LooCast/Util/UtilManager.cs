@@ -18,6 +18,7 @@ namespace LooCast.Util
                     GameObject instanceObject = new GameObject("[UtilManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<UtilManager>();
                 }

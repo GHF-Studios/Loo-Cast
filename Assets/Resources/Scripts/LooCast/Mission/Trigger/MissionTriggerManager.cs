@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Mission.Trigger
 {
-    public class MissionTriggerManager : ModuleManager
+    public class MissionTriggerManager : SubModuleManager
     {
         #region Static Properties
         public static MissionTriggerManager Instance
@@ -15,7 +15,8 @@ namespace LooCast.Mission.Trigger
                     GameObject instanceObject = new GameObject("[MissionTriggerManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
-                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
+                    DontDestroyOnLoad(instanceObject);
+                    instanceObject.transform.parent = MissionManager.Instance.transform;
                     return instanceObject.AddComponent<MissionTriggerManager>();
                 }
                 else
@@ -47,20 +48,18 @@ namespace LooCast.Mission.Trigger
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.Mission");
+            looCastNamespace = new Namespace("Trigger", rootNamespace);
+            looCastType = new Type(typeof(MissionTriggerManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type missionTriggerType = new Type(typeof(MissionTrigger), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(missionTriggerType);
             #endregion
         }
         #endregion

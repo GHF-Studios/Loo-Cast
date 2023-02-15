@@ -23,6 +23,7 @@ namespace LooCast.Game
                     GameObject instanceObject = new GameObject("[GameManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<GameManager>();
                 }
@@ -133,6 +134,13 @@ namespace LooCast.Game
             Game.Save(Instance.currentGame);
 
             // TODO: Save all loaded Chunks
+        }
+        #endregion
+
+        #region Callbacks
+        private void OnInitialize()
+        {
+            games = Games.Load();
         }
         #endregion
 
@@ -254,6 +262,8 @@ namespace LooCast.Game
             typeManager.RegisterType(gameType);
             typeManager.RegisterType(gamesType);
             #endregion
+
+            RegisterInitializationAction(OnInitialize);
         }
         #endregion
     }

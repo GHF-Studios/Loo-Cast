@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Tab
 {
-    public class UITabManager : ModuleManager
+    public class UITabManager : SubModuleManager
     {
         #region Static Properties
         public static UITabManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Tab
                     GameObject instanceObject = new GameObject("[UITabManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UITabManager>();
                 }
@@ -47,20 +48,20 @@ namespace LooCast.UI.Tab
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Tab", rootNamespace);
+            looCastType = new Type(typeof(UITabManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type tabType = new Type(typeof(Tab), looCastNamespace);
+            Type tabGroupType = new Type(typeof(TabGroup), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(tabType);
+            typeManager.RegisterType(tabGroupType);
             #endregion
         }
         #endregion

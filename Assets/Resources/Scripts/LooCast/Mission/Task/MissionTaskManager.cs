@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Mission.Task
 {
-    public class MissionTaskManager : ModuleManager
+    public class MissionTaskManager : SubModuleManager
     {
         #region Static Properties
         public static MissionTaskManager Instance
@@ -15,7 +15,8 @@ namespace LooCast.Mission.Task
                     GameObject instanceObject = new GameObject("[MissionTaskManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
-                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
+                    DontDestroyOnLoad(instanceObject);
+                    instanceObject.transform.parent = MissionManager.Instance.transform;
                     return instanceObject.AddComponent<MissionTaskManager>();
                 }
                 else
@@ -47,20 +48,24 @@ namespace LooCast.Mission.Task
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.Mission");
+            looCastNamespace = new Namespace("Task", rootNamespace);
+            looCastType = new Type(typeof(MissionTaskManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type iMissionTaskLockStateType = new Type(typeof(IMissionTaskLockState), looCastNamespace);
+            Type lockedMissionTaskLockStateType = new Type(typeof(LockedMissionTaskLockState), looCastNamespace);
+            Type missionTaskType = new Type(typeof(MissionTask), looCastNamespace);
+            Type unlockedMissionTaskLockStateType = new Type(typeof(UnlockedMissionTaskLockState), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(iMissionTaskLockStateType);
+            typeManager.RegisterType(lockedMissionTaskLockStateType);
+            typeManager.RegisterType(missionTaskType);
+            typeManager.RegisterType(unlockedMissionTaskLockStateType);
             #endregion
         }
         #endregion

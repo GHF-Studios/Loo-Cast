@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Task
 {
-    public class UITaskManager : ModuleManager
+    public class UITaskManager : SubModuleManager
     {
         #region Static Properties
         public static UITaskManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Task
                     GameObject instanceObject = new GameObject("[UITaskManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UITaskManager>();
                 }
@@ -47,20 +48,20 @@ namespace LooCast.UI.Task
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Task", rootNamespace);
+            looCastType = new Type(typeof(UITaskManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type missionTaskType = new Type(typeof(MissionTask), looCastNamespace);
+            Type missionTaskContainerType = new Type(typeof(MissionTaskContainer), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(missionTaskType);
+            typeManager.RegisterType(missionTaskContainerType);
             #endregion
         }
         #endregion

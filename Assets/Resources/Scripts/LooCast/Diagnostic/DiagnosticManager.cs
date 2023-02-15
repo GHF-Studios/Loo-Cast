@@ -15,6 +15,7 @@ namespace LooCast.Diagnostic
                     GameObject instanceObject = new GameObject("[DiagnosticManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<DiagnosticManager>();
                 }

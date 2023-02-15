@@ -41,7 +41,7 @@ namespace LooCast.UI.Inspector
         private void Start()
         {
             ActiveMission = null;
-            MissionManager.Instance.OnActiveMissionChange.AddListener((activeMission) => { ActiveMission = activeMission; });
+            MissionReceiver.Instance.OnActiveMissionChange.AddListener((activeMission) => { ActiveMission = activeMission; });
         }
     }
 }

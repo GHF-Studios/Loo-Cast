@@ -15,6 +15,7 @@ namespace LooCast
                     GameObject instanceObject = new GameObject("[TypeManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<TypeManager>();
                 }
@@ -34,18 +35,17 @@ namespace LooCast
         #endregion
 
         #region Fields
+        private Registry<IIdentifier, IIdentifiable> typeRegistry;
         #endregion
 
         #region Methods
         public void RegisterType(Type type)
         {
-            Registry<IIdentifier, IIdentifiable> typeRegistry = RegistryManager.Instance.GetRegistry("LooCast:TypeIdentifier_LooCast:Type");
             typeRegistry.Register(type.TypeIdentifier, type);
         }
 
         public Type GetType(TypeIdentifier typeIdentifier)
         {
-            Registry<IIdentifier, IIdentifiable> typeRegistry = RegistryManager.Instance.GetRegistry("LooCast:TypeIdentifier_LooCast:Type");
             return (Type)typeRegistry.Get(typeIdentifier);
         }
         #endregion
@@ -65,6 +65,17 @@ namespace LooCast
 
             RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
+            #endregion
+        }
+
+        public override void PostInitializeInstance()
+        {
+            base.PostInitializeInstance();
+
+            #region Registry Registration
+            RegistryManager registryManager = RegistryManager.Instance;
+            typeRegistry = new Registry<IIdentifier, IIdentifiable>("LooCast:TypeIdentifier_LooCast:Type");
+            registryManager.RegisterRegistry(typeRegistry);
             #endregion
         }
         #endregion

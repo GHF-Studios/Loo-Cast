@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Animation
 {
-    public class UIAnimationManager : ModuleManager
+    public class UIAnimationManager : SubModuleManager
     {
         #region Static Properties
         public static UIAnimationManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Animation
                     GameObject instanceObject = new GameObject("[UIAnimationManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UIAnimationManager>();
                 }
@@ -47,20 +48,14 @@ namespace LooCast.UI.Animation
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Animation", rootNamespace);
+            looCastType = new Type(typeof(UIAnimationManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
-
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
-
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
             #endregion
         }
         #endregion

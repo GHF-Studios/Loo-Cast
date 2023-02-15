@@ -15,6 +15,7 @@ namespace LooCast.Statistic
                     GameObject instanceObject = new GameObject("[StatisticManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<StatisticManager>();
                 }

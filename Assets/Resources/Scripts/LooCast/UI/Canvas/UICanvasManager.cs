@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Canvas
 {
-    public class UICanvasManager : ModuleManager
+    public class UICanvasManager : SubModuleManager
     {
         #region Static Properties
         public static UICanvasManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Canvas
                     GameObject instanceObject = new GameObject("[UICanvasManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UICanvasManager>();
                 }
@@ -47,20 +48,30 @@ namespace LooCast.UI.Canvas
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Canvas", rootNamespace);
+            looCastType = new Type(typeof(UICanvasManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type canvasType = new Type(typeof(Canvas), looCastNamespace);
+            Type gameCanvasType = new Type(typeof(GameCanvas), looCastNamespace);
+            Type interfaceCanvasType = new Type(typeof(InterfaceCanvas), looCastNamespace);
+            Type mainMenuCanvasType = new Type(typeof(MainMenuCanvas), looCastNamespace);
+            Type screenSpaceCameraCanvasType = new Type(typeof(ScreenSpaceCameraCanvas), looCastNamespace);
+            Type screenSpaceOverlayCanvasType = new Type(typeof(ScreenSpaceOverlayCanvas), looCastNamespace);
+            Type worldSpaceCanvasType = new Type(typeof(WorldSpaceCanvas), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(canvasType);
+            typeManager.RegisterType(gameCanvasType);
+            typeManager.RegisterType(interfaceCanvasType);
+            typeManager.RegisterType(mainMenuCanvasType);
+            typeManager.RegisterType(screenSpaceCameraCanvasType);
+            typeManager.RegisterType(screenSpaceOverlayCanvasType);
+            typeManager.RegisterType(worldSpaceCanvasType);
             #endregion
         }
         #endregion

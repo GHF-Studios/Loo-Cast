@@ -15,6 +15,7 @@ namespace LooCast.Item
                     GameObject instanceObject = new GameObject("[ItemManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<ItemManager>();
                 }

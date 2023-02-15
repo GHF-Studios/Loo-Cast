@@ -15,6 +15,7 @@ namespace LooCast.Sound
                     GameObject instanceObject = new GameObject("[SoundManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<SoundManager>();
                 }

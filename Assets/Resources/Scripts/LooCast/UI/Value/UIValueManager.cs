@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Value
 {
-    public class UIValueManager : ModuleManager
+    public class UIValueManager : SubModuleManager
     {
         #region Static Properties
         public static UIValueManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Value
                     GameObject instanceObject = new GameObject("[UIValueManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UIValueManager>();
                 }
@@ -47,20 +48,26 @@ namespace LooCast.UI.Value
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Value", rootNamespace);
+            looCastType = new Type(typeof(UIValueManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type coinsValueType = new Type(typeof(CoinsValue), looCastNamespace);
+            Type experienceLevelValueType = new Type(typeof(ExperienceLevelValue), looCastNamespace);
+            Type statValueType = new Type(typeof(StatValue), looCastNamespace);
+            Type tokensValueType = new Type(typeof(TokensValue), looCastNamespace);
+            Type valueType = new Type(typeof(Value), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(coinsValueType);
+            typeManager.RegisterType(experienceLevelValueType);
+            typeManager.RegisterType(statValueType);
+            typeManager.RegisterType(tokensValueType);
+            typeManager.RegisterType(valueType);
             #endregion
         }
         #endregion

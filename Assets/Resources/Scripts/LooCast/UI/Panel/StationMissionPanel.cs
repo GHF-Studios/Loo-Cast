@@ -61,7 +61,7 @@ namespace LooCast.UI.Panel
                     missionAcceptButton.onClick.RemoveAllListeners();
                     missionAcceptButton.onClick.AddListener(() =>
                     {
-                        bool acceptMissionSuccess = MissionManager.Instance.TryAcceptMission(missionProvider, selectedMission);
+                        bool acceptMissionSuccess = MissionReceiver.Instance.TryAcceptMission(missionProvider, selectedMission);
                         if (acceptMissionSuccess)
                         {
                             selectedMissionButton.transform.SetParent(acceptedMissionsParent, false);
@@ -71,7 +71,7 @@ namespace LooCast.UI.Panel
                             throw new InvalidOperationException("Could not accept Mission!");
                         }
                     });
-                    MissionManager.Instance.OnAcceptMission.AddListener((mission) => 
+                    MissionReceiver.Instance.OnAcceptMission.AddListener((mission) => 
                     { 
                         RefreshAcceptedMissionCount();
                         RefreshMissionAcceptButton();
@@ -167,24 +167,24 @@ namespace LooCast.UI.Panel
             switch (selectedMission.MissionRarity)
             {
                 case MissionRarity.Common:
-                    acceptedMissionCount = MissionManager.Instance.AcceptedCommonMissions.Count;
-                    maxAcceptedMissionCount = MissionManager.Instance.MaxCommonMissions;
+                    acceptedMissionCount = MissionReceiver.Instance.AcceptedCommonMissions.Count;
+                    maxAcceptedMissionCount = MissionReceiver.Instance.MaxCommonMissions;
                     break;
                 case MissionRarity.Uncommon:
-                    acceptedMissionCount = MissionManager.Instance.AcceptedUncommonMissions.Count;
-                    maxAcceptedMissionCount = MissionManager.Instance.MaxUncommonMissions;
+                    acceptedMissionCount = MissionReceiver.Instance.AcceptedUncommonMissions.Count;
+                    maxAcceptedMissionCount = MissionReceiver.Instance.MaxUncommonMissions;
                     break;
                 case MissionRarity.Rare:
-                    acceptedMissionCount = MissionManager.Instance.AcceptedRareMissions.Count;
-                    maxAcceptedMissionCount = MissionManager.Instance.MaxRareMissions;
+                    acceptedMissionCount = MissionReceiver.Instance.AcceptedRareMissions.Count;
+                    maxAcceptedMissionCount = MissionReceiver.Instance.MaxRareMissions;
                     break;
                 case MissionRarity.Epic:
-                    acceptedMissionCount = MissionManager.Instance.AcceptedEpicMissions.Count;
-                    maxAcceptedMissionCount = MissionManager.Instance.MaxEpicMissions;
+                    acceptedMissionCount = MissionReceiver.Instance.AcceptedEpicMissions.Count;
+                    maxAcceptedMissionCount = MissionReceiver.Instance.MaxEpicMissions;
                     break;
                 case MissionRarity.Legendary:
-                    acceptedMissionCount = MissionManager.Instance.AcceptedLegendaryMissions.Count;
-                    maxAcceptedMissionCount = MissionManager.Instance.MaxLegendaryMissions;
+                    acceptedMissionCount = MissionReceiver.Instance.AcceptedLegendaryMissions.Count;
+                    maxAcceptedMissionCount = MissionReceiver.Instance.MaxLegendaryMissions;
                     break;
                 default:
                     throw new Exception("Selected Mission: Invalid Mission Rarity!");
@@ -192,12 +192,12 @@ namespace LooCast.UI.Panel
 
             acceptedRarityMissionsLabel.text = $"{selectedMission.MissionRarity}:";
             acceptedRarityMissionsValue.text = $"{acceptedMissionCount}/{maxAcceptedMissionCount}";
-            acceptedTotalMissionsValue.text = $"{MissionManager.Instance.AcceptedMissions.Count}/{MissionManager.Instance.MaxMissions}";
+            acceptedTotalMissionsValue.text = $"{MissionReceiver.Instance.AcceptedMissions.Count}/{MissionReceiver.Instance.MaxMissions}";
         }
 
         private void RefreshMissionAcceptButton()
         {
-            if (!MissionManager.Instance.CanAcceptMission(selectedMission) || selectedMission.MissionState != MissionState.Offered)
+            if (!MissionReceiver.Instance.CanAcceptMission(selectedMission) || selectedMission.MissionState != MissionState.Offered)
             {
                 missionAcceptButton.interactable = false;
                 if (selectedMission.MissionState == MissionState.Accepted)

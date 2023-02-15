@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Inventory
 {
-    public class UIInventoryManager : ModuleManager
+    public class UIInventoryManager : SubModuleManager
     {
         #region Static Properties
         public static UIInventoryManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Inventory
                     GameObject instanceObject = new GameObject("[UIInventoryManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UIInventoryManager>();
                 }
@@ -47,20 +48,24 @@ namespace LooCast.UI.Inventory
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Inventory", rootNamespace);
+            looCastType = new Type(typeof(UIInventoryManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type inventoryHotbarType = new Type(typeof(InventoryHotbar), looCastNamespace);
+            Type inventoryItemType = new Type(typeof(InventoryItem), looCastNamespace);
+            Type inventorySlotType = new Type(typeof(InventorySlot), looCastNamespace);
+            Type inventorySlotCursorType = new Type(typeof(InventorySlotCursor), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(inventoryHotbarType);
+            typeManager.RegisterType(inventoryItemType);
+            typeManager.RegisterType(inventorySlotType);
+            typeManager.RegisterType(inventorySlotCursorType);
             #endregion
         }
         #endregion

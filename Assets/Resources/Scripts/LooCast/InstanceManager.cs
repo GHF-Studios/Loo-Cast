@@ -15,6 +15,7 @@ namespace LooCast
                     GameObject instanceObject = new GameObject("[InstanceManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<InstanceManager>();
                 }
@@ -34,24 +35,22 @@ namespace LooCast
         #endregion
 
         #region Fields
+        private Registry<IIdentifier, IIdentifiable> instanceRegistry;
         #endregion
 
         #region Methods
         public void RegisterInstance(Instance instance)
         {
-            Registry<IIdentifier, IIdentifiable> instanceRegistry = RegistryManager.Instance.GetRegistry("LooCast:InstanceIdentifier_LooCast:Instance");
             instanceRegistry.Register(instance.InstanceIdentifier, instance);
         }
 
         public void UnregisterInstance(Instance instance)
         {
-            Registry<IIdentifier, IIdentifiable> instanceRegistry = RegistryManager.Instance.GetRegistry("LooCast:InstanceIdentifier_LooCast:Instance");
             instanceRegistry.Unregister(instance.InstanceIdentifier);
         }
 
         public Instance GetInstance(InstanceIdentifier instanceIdentifier)
         {
-            Registry<IIdentifier, IIdentifiable> instanceRegistry = RegistryManager.Instance.GetRegistry("LooCast:InstanceIdentifier_LooCast:Instance");
             return (Instance)instanceRegistry.Get(instanceIdentifier);
         }
         #endregion
@@ -71,6 +70,17 @@ namespace LooCast
 
             typeManager.RegisterType(looCastType);
             RegisterInstance(looCastInstance);
+            #endregion
+        }
+
+        public override void PostInitializeInstance()
+        {
+            base.PostInitializeInstance();
+
+            #region Registry Registration
+            RegistryManager registryManager = RegistryManager.Instance;
+            instanceRegistry = new Registry<IIdentifier, IIdentifiable>("LooCast:InstanceIdentifier_LooCast:Instance");
+            registryManager.RegisterRegistry(instanceRegistry);
             #endregion
         }
         #endregion

@@ -126,6 +126,7 @@ namespace LooCast
                     GameObject instanceObject = new GameObject("[MainManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     return instanceObject.AddComponent<MainManager>();
                 }
                 else
@@ -300,179 +301,18 @@ namespace LooCast
 
             IsEarlyPreInitializing = true;
             Debug.Log($"[MainManager] Starting Early Pre-Initialization in Scene '{activeSceneName}'.");
-            
+
             #region Early Pre-Initialization
+
+            #region Main Manager
+
+            #endregion
 
             #region Core Module Managers
             foreach (CoreModuleManager coreModuleManager in CoreModuleManagers)
             {
                 coreModuleManager.EarlyPreInitialize();
             }
-            #endregion
-
-            #region DEPRECATED! [TO BE MOVED!]
-            Namespace missionNamespace = new Namespace("Mission", rootNamespace);
-            Namespace missionRewardNamespace = new Namespace("Reward", missionNamespace);
-            Namespace missionTargetNamespace = new Namespace("Target", missionNamespace);
-            Namespace missionTaskNamespace = new Namespace("Task", missionNamespace);
-            Namespace missionTriggerNamespace = new Namespace("Trigger", missionNamespace);
-            Type conquerStationMissionType = new Type(typeof(ConquerStationMission), missionNamespace);
-            Type missionType = new Type(typeof(Mission.Mission), missionNamespace);
-            Type missionManagerType = new Type(typeof(MissionManager), missionNamespace);
-            Type missionProviderType = new Type(typeof(MissionProvider), missionNamespace);
-            Type missionRarityType = new Type(typeof(MissionRarity), missionNamespace);
-            Type missionStateType = new Type(typeof(MissionState), missionNamespace);
-            Type creditsMissionRewardType = new Type(typeof(Mission.Reward.CreditsMissionReward), missionRewardNamespace);
-            Type itemMissionRewardType = new Type(typeof(Mission.Reward.ItemMissionReward), missionRewardNamespace);
-            Type missionRewardType = new Type(typeof(Mission.Reward.MissionReward), missionRewardNamespace);
-            Type reputationMissionRewardType = new Type(typeof(Mission.Reward.ReputationMissionReward), missionRewardNamespace);
-            Type missionTargetType = new Type(typeof(MissionTarget), missionTargetNamespace);
-            Type iMissionTaskLockStateType = new Type(typeof(IMissionTaskLockState), missionTaskNamespace);
-            Type lockedMissionTaskLockStateType = new Type(typeof(LockedMissionTaskLockState), missionTaskNamespace);
-            Type missionTaskType = new Type(typeof(Mission.Task.MissionTask), missionTaskNamespace);
-            Type unlockedMissionTaskLockStateType = new Type(typeof(UnlockedMissionTaskLockState), missionTaskNamespace);
-            Type missionTriggerType = new Type(typeof(MissionTrigger), missionTriggerNamespace);
-
-            Namespace randomNamespace = new Namespace("Random", rootNamespace);
-            Type randomType = new Type(typeof(Random.Random), randomNamespace);
-            Type seededRandomType = new Type(typeof(SeededRandom), randomNamespace);
-
-            Namespace resourceNamespace = new Namespace("Resource", rootNamespace);
-            Type resourceType = new Type(typeof(Resource.Resource), resourceNamespace);
-
-            Namespace soundNamespace = new Namespace("Sound", rootNamespace);
-            Type soundType = new Type(typeof(Sound.Sound), soundNamespace);
-            Type soundHandlerType = new Type(typeof(SoundHandler), soundNamespace);
-            Type gameSoundHandlerType = new Type(typeof(GameSoundHandler), soundNamespace);
-            Type menuSoundHandlerType = new Type(typeof(MenuSoundHandler), soundNamespace);
-
-            Namespace spawnerNamespace = new Namespace("Spawner", rootNamespace);
-            Type spawnerType = new Type(typeof(Spawner.Spawner), spawnerNamespace);
-            Type allySpawnerType = new Type(typeof(AllySpawner), spawnerNamespace);
-            Type enemySpawnerType = new Type(typeof(EnemySpawner), spawnerNamespace);
-
-            Namespace stateMachineNamespace = new Namespace("StateMachine", rootNamespace);
-            Type finiteStateMachineType = new Type(typeof(FiniteStateMachine<object>), stateMachineNamespace);
-            Type stateType = new Type(typeof(State<object>), stateMachineNamespace);
-
-            Namespace stationNamespace = new Namespace("Station", rootNamespace);
-            Type stationType = new Type(typeof(Station.Station), stationNamespace);
-            Type allyStationType = new Type(typeof(AllyStation), stationNamespace);
-            Type enemyStationType = new Type(typeof(EnemyStation), stationNamespace);
-
-            Namespace statisticNamespace = new Namespace("Statistic", rootNamespace);
-            Type killsStatisticType = new Type(typeof(KillsStatistic), statisticNamespace);
-
-            Namespace steamworksNamespace = new Namespace("Steamworks", rootNamespace);
-            Type steamManagerType = new Type(typeof(SteamManager), steamworksNamespace);
-
-            Namespace targetNamespace = new Namespace("Target", rootNamespace);
-            Type targetType = new Type(typeof(Target.Target), targetNamespace);
-
-            Namespace testNamespace = new Namespace("Test", rootNamespace);
-            Type mapDisplayType = new Type(typeof(MapDisplay), testNamespace);
-            Type perlinMapGeneratorType = new Type(typeof(PerlinMapGenerator), testNamespace);
-            Type perlinMapGeneratorGPUType = new Type(typeof(PerlinMapGeneratorGPU), testNamespace);
-            Type voronoiMapGeneratorType = new Type(typeof(VoronoiMapGenerator), testNamespace);
-            Type voronoiMapGeneratorGPUType = new Type(typeof(VoronoiMapGeneratorGPU), testNamespace);
-
-            Namespace uiNamespace = new Namespace("UI", rootNamespace);
-            Namespace uiBarNamespace = new Namespace("Bar", uiNamespace);
-            Namespace uiButtonNamespace = new Namespace("Button", uiNamespace);
-            Namespace uiCanvasNamespace = new Namespace("Canvas", uiNamespace);
-            Namespace uiCursorNamespace = new Namespace("Cursor", uiNamespace);
-            Namespace uiHudNamespace = new Namespace("HUD", uiNamespace);
-            Namespace uiInspectorNamespace = new Namespace("Inspector", uiNamespace);
-            Namespace uiInventoryNamespace = new Namespace("Inventory", uiNamespace);
-            Namespace uiLevelNamespace = new Namespace("Level", uiNamespace);
-            Namespace uiPanelNamespace = new Namespace("Panel", uiNamespace);
-            Namespace uiRewardNamespace = new Namespace("Reward", uiNamespace);
-            Namespace uiScreenNamespace = new Namespace("Screen", uiNamespace);
-            Namespace uiSliderNamespace = new Namespace("Slider", uiNamespace);
-            Namespace uiTabNamespace = new Namespace("Tab", uiNamespace);
-            Namespace uiTaskNamespace = new Namespace("Task", uiNamespace);
-            Namespace uiTimerNamespace = new Namespace("Timer", uiNamespace);
-            Namespace uiTitleNamespace = new Namespace("Title", uiNamespace);
-            Namespace uiValueNamespace = new Namespace("Value", uiNamespace);
-            Type uiVersionInfoType = new Type(typeof(VersionInfo), uiNamespace);
-            Type uiBarType = new Type(typeof(Bar), uiBarNamespace);
-            Type uiEnergyBarType = new Type(typeof(EnergyBar), uiBarNamespace);
-            Type uiExperienceBarType = new Type(typeof(ExperienceBar), uiBarNamespace);
-            Type uiHealthBarType = new Type(typeof(HealthBar), uiBarNamespace);
-            Type uiButtonType = new Type(typeof(Button), uiButtonNamespace);
-            Type uiAttributeSetButtonType = new Type(typeof(AttributeSetButton), uiButtonNamespace);
-            Type uiCreateGameButtonType = new Type(typeof(CreateGameButton), uiButtonNamespace);
-            Type uiHardresetButtonType = new Type(typeof(HardresetButton), uiButtonNamespace);
-            Type uiLoadGameButtonType = new Type(typeof(LoadGameButton), uiButtonNamespace);
-            Type uiLoadMainMenuButtonType = new Type(typeof(LoadMainMenuButton), uiButtonNamespace);
-            Type uiMissionButtonType = new Type(typeof(MissionButton), uiButtonNamespace);
-            Type uiStatSetButtonType = new Type(typeof(StatSetButton), uiButtonNamespace);
-            Type uiTabButtonType = new Type(typeof(TabButton), uiButtonNamespace);
-            Type uiCanvasType = new Type(typeof(Canvas), uiCanvasNamespace);
-            Type uiGameCanvasType = new Type(typeof(GameCanvas), uiCanvasNamespace);
-            Type uiInterfaceCanvasType = new Type(typeof(InterfaceCanvas), uiCanvasNamespace);
-            Type uiMainMenuCanvasType = new Type(typeof(MainMenuCanvas), uiCanvasNamespace);
-            Type uiScreenSpaceCameraCanvasType = new Type(typeof(ScreenSpaceCameraCanvas), uiCanvasNamespace);
-            Type uiScreenSpaceOverlayCanvasType = new Type(typeof(ScreenSpaceOverlayCanvas), uiCanvasNamespace);
-            Type uiWorldSpaceCanvasType = new Type(typeof(WorldSpaceCanvas), uiCanvasNamespace);
-            Type uiAsteroidCursorType = new Type(typeof(AsteroidCursor), uiCursorNamespace);
-            Type uiMissionButtonCursorType = new Type(typeof(MissionButtonCursor), uiCursorNamespace);
-            Type uiHUDType = new Type(typeof(HUD), uiHudNamespace);
-            Type uiActiveMissionInspectorType = new Type(typeof(ActiveMissionInspector), uiInspectorNamespace);
-            Type uiAsteroidInspectorType = new Type(typeof(AsteroidInspector), uiInspectorNamespace);
-            Type uiInventoryHotbarType = new Type(typeof(InventoryHotbar), uiInventoryNamespace);
-            Type uiInventoryItemType = new Type(typeof(InventoryItem), uiInventoryNamespace);
-            Type uiInventorySlotType = new Type(typeof(InventorySlot), uiInventoryNamespace);
-            Type uiInventorySlotCursorType = new Type(typeof(InventorySlotCursor), uiInventoryNamespace);
-            Type uiLevelType = new Type(typeof(Level), uiLevelNamespace);
-            Type uiAttributeLevelType = new Type(typeof(AttributeLevel), uiLevelNamespace);
-            Type uiStatLeveltype = new Type(typeof(StatLevel), uiLevelNamespace);
-            Type uiPanelType = new Type(typeof(Panel), uiPanelNamespace);
-            Type uiAsteroidInfoPanelType = new Type(typeof(AsteroidInfoPanel), uiPanelNamespace);
-            Type uiAsteroidResourceDeposistsPanelType = new Type(typeof(AsteroidResourceDepositsPanel), uiPanelNamespace);
-            Type uiStationBlackmarketPanelType = new Type(typeof(StationBlackmarketPanel), uiPanelNamespace);
-            Type uiStationHUBPanelType = new Type(typeof(StationHUBPanel), uiPanelNamespace);
-            Type uiStationManufacturingPanelType = new Type(typeof(StationManufacturingPanel), uiPanelNamespace);
-            Type uiStationMarketPanelType = new Type(typeof(StationMarketPanel), uiPanelNamespace);
-            Type uiStationMissionPanelType = new Type(typeof(StationMissionPanel), uiPanelNamespace);
-            Type uiStationUpgradesPanelType = new Type(typeof(StationUpgradesPanel), uiPanelNamespace);
-            Type uiMissionRewardType = new Type(typeof(UI.Reward.MissionReward), uiRewardNamespace);
-            Type uiCreditsMissionRewardType = new Type(typeof(UI.Reward.CreditsMissionReward), uiRewardNamespace);
-            Type uiItemMissionRewardType = new Type(typeof(UI.Reward.ItemMissionReward), uiRewardNamespace);
-            Type uiReputationMissionRewardType = new Type(typeof(UI.Reward.ReputationMissionReward), uiRewardNamespace);
-            Type uiScreenType = new Type(typeof(Screen), uiScreenNamespace);
-            Type uiDeathScreenType = new Type(typeof(DeathScreen), uiScreenNamespace);
-            Type uiLoadGameScreenType = new Type(typeof(LoadGameScreen), uiScreenNamespace);
-            Type uiLoadingScreenType = new Type(typeof(LoadingScreen), uiScreenNamespace);
-            Type uiMainScreenType = new Type(typeof(MainScreen), uiScreenNamespace);
-            Type uiNewGameScreenType = new Type(typeof(NewGameScreen), uiScreenNamespace);
-            Type uiPauseScreenType = new Type(typeof(PauseScreen), uiScreenNamespace);
-            Type uiSettingsScreenType = new Type(typeof(SettingsScreen), uiScreenNamespace);
-            Type uiStationScreenType = new Type(typeof(StationScreen), uiScreenNamespace);
-            Type uiStatsScreenType = new Type(typeof(StatsScreen), uiScreenNamespace);
-            Type uiSliderType = new Type(typeof(Slider), uiSliderNamespace);
-            Type uiDifficultySliderType = new Type(typeof(DifficultySlider), uiSliderNamespace);
-            Type uiVolumeSliderType = new Type(typeof(VolumeSlider), uiSliderNamespace);
-            Type uiEffectVolumeSliderType = new Type(typeof(EffectVolumeSlider), uiSliderNamespace);
-            Type uiMasterVolumeSliderType = new Type(typeof(MasterVolumeSlider), uiSliderNamespace);
-            Type uiMusicVolumeSliderType = new Type(typeof(MusicVolumeSlider), uiSliderNamespace);
-            Type uiUIVolumeSliderType = new Type(typeof(UIVolumeSlider), uiSliderNamespace);
-            Type uiTabType = new Type(typeof(Tab), uiTabNamespace);
-            Type uiTabGroupType = new Type(typeof(TabGroup), uiTabNamespace);
-            Type uiMissionTaskType = new Type(typeof(UI.Task.MissionTask), uiTaskNamespace);
-            Type uiMissionTaskContainerType = new Type(typeof(UI.Task.MissionTaskContainer), uiTaskNamespace);
-            Type uiRoundTimerType = new Type(typeof(RoundTimer), uiTimerNamespace);
-            Type uiTitleType = new Type(typeof(Title), uiTitleNamespace);
-            Type uiValueType = new Type(typeof(Value), uiValueNamespace);
-            Type uiCoinsValueType = new Type(typeof(CoinsValue), uiValueNamespace);
-            Type uiExperienceLevelValueType = new Type(typeof(ExperienceLevelValue), uiValueNamespace);
-            Type uiStatValueType = new Type(typeof(StatValue), uiValueNamespace);
-            Type uiTokensValueType = new Type(typeof(TokensValue), uiValueNamespace);
-
-            Namespace universeNamespace = new Namespace("Universe", rootNamespace);
-            Type universeType = new Type(typeof(Universe.Universe), universeNamespace);
-            
-            
             #endregion
 
             #endregion
@@ -493,6 +333,7 @@ namespace LooCast
             #region Pre-Initialization
 
             #region Main Manager
+
             #endregion
 
             #region Core Module Managers
@@ -575,15 +416,6 @@ namespace LooCast
             #region Initialization
 
             #region MainManager
-            if (instance != null)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            instance = this;
-            DontDestroyOnLoad(this);
-
-            games = Games.Load();
             #endregion
 
             #region Core Module Managers

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Tooltip
 {
-    public class UITooltipManager : ModuleManager
+    public class UITooltipManager : SubModuleManager
     {
         #region Static Properties
         public static UITooltipManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Tooltip
                     GameObject instanceObject = new GameObject("[UITooltipManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UITooltipManager>();
                 }
@@ -47,20 +48,14 @@ namespace LooCast.UI.Tooltip
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Tooltip", rootNamespace);
+            looCastType = new Type(typeof(UITooltipManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
-
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
-
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
             #endregion
         }
         #endregion

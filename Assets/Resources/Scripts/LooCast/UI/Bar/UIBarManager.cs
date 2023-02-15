@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Bar
 {
-    public class UIBarManager : ModuleManager
+    public class UIBarManager : SubModuleManager
     {
         #region Static Properties
         public static UIBarManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Bar
                     GameObject instanceObject = new GameObject("[UIBarManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UIBarManager>();
                 }
@@ -47,20 +48,24 @@ namespace LooCast.UI.Bar
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Bar", rootNamespace);
+            looCastType = new Type(typeof(UIBarManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type barType = new Type(typeof(Bar), looCastNamespace);
+            Type energyBarType = new Type(typeof(EnergyBar), looCastNamespace);
+            Type experienceBarType = new Type(typeof(ExperienceBar), looCastNamespace);
+            Type healthBarType = new Type(typeof(HealthBar), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(barType);
+            typeManager.RegisterType(energyBarType);
+            typeManager.RegisterType(experienceBarType);
+            typeManager.RegisterType(healthBarType);
             #endregion
         }
         #endregion

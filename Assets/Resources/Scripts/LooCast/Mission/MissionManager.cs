@@ -1,193 +1,93 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace LooCast.Mission
 {
-    using Data;
-
-    public class MissionManager : MonoBehaviour
+    using Reward;
+    using Target;
+    using Task;
+    using Trigger;
+    
+    public class MissionManager : ModuleManager
     {
-        public static MissionManager Instance { get; private set;}
-
-        [SerializeField] private MissionManagerData data;
-
-        public UnityEvent<Mission> OnActiveMissionChange { get; private set; }
-        public UnityEvent<Mission> OnAcceptMission { get; private set; }
-
-        public int MaxMissions { get; private set; }
-        public int MaxCommonMissions { get; private set; }
-        public int MaxUncommonMissions { get; private set; }
-        public int MaxRareMissions { get; private set; }
-        public int MaxEpicMissions { get; private set; }
-        public int MaxLegendaryMissions { get; private set; }
-        public List<Mission> AcceptedMissions
+        #region Static Properties
+        public static MissionReceiver Instance
         {
             get
             {
-                return acceptedMissions;
-            }
-        }
-        public List<Mission> AcceptedCommonMissions
-        {
-            get
-            {
-                return AcceptedMissions.Where((mission) => { return mission.MissionRarity == MissionRarity.Common; }).ToList();
-            }
-        }
-        public List<Mission> AcceptedUncommonMissions
-        {
-            get
-            {
-                return AcceptedMissions.Where((mission) => { return mission.MissionRarity == MissionRarity.Uncommon; }).ToList();
-            }
-        }
-        public List<Mission> AcceptedRareMissions
-        {
-            get
-            {
-                return AcceptedMissions.Where((mission) => { return mission.MissionRarity == MissionRarity.Rare; }).ToList();
-            }
-        }
-        public List<Mission> AcceptedEpicMissions
-        {
-            get
-            {
-                return AcceptedMissions.Where((mission) => { return mission.MissionRarity == MissionRarity.Epic; }).ToList();
-            }
-        }
-        public List<Mission> AcceptedLegendaryMissions
-        {
-            get
-            {
-                return AcceptedMissions.Where((mission) => { return mission.MissionRarity == MissionRarity.Legendary; }).ToList();
-            }
-        }
-        public List<Mission> CompletedMissions
-        {
-            get
-            {
-                return completedMissions;
-            }
-        }
-        public Mission ActiveMission
-        {
-            get
-            {
-                return activeMission;
-            }
-
-            set
-            {
-                switch (value.MissionState)
+                if (instance == null)
                 {
-                    case MissionState.Offered:
-                        throw new ArgumentException("Cannot set Mission active: Mission has not yet been accepted!");
-                    case MissionState.Completed:
-                        throw new ArgumentException("Cannot set Mission active: Mission has already been completed!");
-                    default:
-                        break;
+                    GameObject instanceObject = new GameObject("[MissionManager]");
+                    instanceObject.layer = 31;
+                    instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
+                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
+                    return instanceObject.AddComponent<MissionReceiver>();
                 }
-                activeMission = value;
-                OnActiveMissionChange.Invoke(activeMission);
+                else
+                {
+                    return instance;
+                }
             }
         }
+        #endregion
 
-        private List<Mission> acceptedMissions;
-        private List<Mission> completedMissions;
-        private Mission activeMission;
+        #region Static Fields
+        private static MissionReceiver instance;
+        #endregion
 
-        private void Awake()
+        #region Fields
+
+        #endregion
+
+        #region Methods
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-            }
-            else
-            {
-                Instance = this;
-            }
+            base.PreInitializeInstance();
 
-            OnActiveMissionChange = new UnityEvent<Mission>();
-            OnAcceptMission = new UnityEvent<Mission>();
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-            MaxMissions = data.MaxMissions.Value;
-            MaxCommonMissions = data.MaxCommonMissions.Value;
-            MaxUncommonMissions = data.MaxUncommonMissions.Value;
-            MaxRareMissions = data.MaxRareMissions.Value;
-            MaxEpicMissions = data.MaxEpicMissions.Value;
-            MaxLegendaryMissions = data.MaxLegendaryMissions.Value;
-            acceptedMissions = new List<Mission>();
-            completedMissions = new List<Mission>();
-            activeMission = null;
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Mission", rootNamespace);
+            looCastType = new Type(typeof(MissionManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
+
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
+
+            Type conquerStationMissionType = new Type(typeof(ConquerStationMission), looCastNamespace);
+            Type missionType = new Type(typeof(Mission), looCastNamespace);
+            Type missionProviderType = new Type(typeof(MissionProvider), looCastNamespace);
+            Type missionRarityType = new Type(typeof(MissionRarity), looCastNamespace);
+            Type missionReceiverType = new Type(typeof(MissionReceiver), looCastNamespace);
+            Type missionStateType = new Type(typeof(MissionState), looCastNamespace);
+
+            typeManager.RegisterType(missionType);
+            typeManager.RegisterType(missionProviderType);
+            typeManager.RegisterType(missionRarityType);
+            typeManager.RegisterType(missionReceiverType);
+            typeManager.RegisterType(missionStateType);
+            typeManager.RegisterType(conquerStationMissionType);
+            #endregion
         }
 
-        public bool CanAcceptMission(Mission mission)
+        protected override SubModuleManager[] GetSubModuleManagers()
         {
-            if (AcceptedMissions.Count >= MaxMissions)
+            return new SubModuleManager[]
             {
-                return false;
-            }
-            switch (mission.MissionRarity)
-            {
-                case MissionRarity.Common:
-                    if (AcceptedCommonMissions.Count >= MaxCommonMissions)
-                    {
-                        return false;
-                    }
-                    return true;
-                case MissionRarity.Uncommon:
-                    if (AcceptedUncommonMissions.Count >= MaxUncommonMissions)
-                    {
-                        return false;
-                    }
-                    return true;
-                case MissionRarity.Rare:
-                    if (AcceptedRareMissions.Count >= MaxRareMissions)
-                    {
-                        return false;
-                    }
-                    return true;
-                case MissionRarity.Epic:
-                    if (AcceptedEpicMissions.Count >= MaxEpicMissions)
-                    {
-                        return false;
-                    }
-                    return true;
-                case MissionRarity.Legendary:
-                    if (AcceptedLegendaryMissions.Count >= MaxLegendaryMissions)
-                    {
-                        return false;
-                    }
-                    return true;
-                default:
-                    throw new NotImplementedException($"Mission Rarity '{mission.MissionRarity}' is not implemented!");
-            }
+                MissionRewardManager.Instance,
+                MissionTargetManager.Instance,
+                MissionTaskManager.Instance,
+                MissionTriggerManager.Instance
+            };
         }
-
-        public bool TryAcceptMission(MissionProvider missionProvider, Mission mission)
-        {
-            if (AcceptedMissions.Contains(mission))
-            {
-                throw new ArgumentException("Already accepted mission!");
-            }
-            
-            if (!CanAcceptMission(mission) || !missionProvider.CanProvideMission(mission))
-            {
-                return false;
-            }
-            AcceptMission(mission);
-            return true;
-        }
-
-        private void AcceptMission(Mission mission)
-        {
-            acceptedMissions.Add(mission);
-            mission.Accept();
-            ActiveMission = mission;
-            OnAcceptMission.Invoke(mission);
-        }
+        #endregion
     }
 }

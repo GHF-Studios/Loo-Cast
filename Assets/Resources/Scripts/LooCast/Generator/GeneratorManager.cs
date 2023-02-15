@@ -15,6 +15,7 @@ namespace LooCast.Generator
                     GameObject instanceObject = new GameObject("[GeneratorManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<GeneratorManager>();
                 }

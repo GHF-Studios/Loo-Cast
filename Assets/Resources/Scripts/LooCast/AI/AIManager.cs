@@ -15,6 +15,7 @@ namespace LooCast.AI
                     GameObject instanceObject = new GameObject("[AIManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<AIManager>();
                 }

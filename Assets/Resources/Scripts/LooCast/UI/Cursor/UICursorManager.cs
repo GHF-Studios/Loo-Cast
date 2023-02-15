@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.UI.Cursor
 {
-    public class UICursorManager : ModuleManager
+    public class UICursorManager : SubModuleManager
     {
         #region Static Properties
         public static UICursorManager Instance
@@ -15,6 +15,7 @@ namespace LooCast.UI.Cursor
                     GameObject instanceObject = new GameObject("[UICursorManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = UIManager.Instance.transform;
                     return instanceObject.AddComponent<UICursorManager>();
                 }
@@ -47,20 +48,20 @@ namespace LooCast.UI.Cursor
             TypeManager typeManager = TypeManager.Instance;
             InstanceManager instanceManager = InstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Data", rootNamespace);
-            looCastType = new Type(typeof(DataManager), looCastNamespace);
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
+            looCastNamespace = new Namespace("Cursor", rootNamespace);
+            looCastType = new Type(typeof(UICursorManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
 
-            Type dataType1 = new Type(typeof(DataType1), looCastNamespace);
-            Type dataType2 = new Type(typeof(DataType2), looCastNamespace);
+            Type asteroidCursorType = new Type(typeof(AsteroidCursor), looCastNamespace);
+            Type missionButtonCursorType = new Type(typeof(MissionButtonCursor), looCastNamespace);
 
-            typeManager.RegisterType(dataType1);
-            typeManager.RegisterType(dataType2);
+            typeManager.RegisterType(asteroidCursorType);
+            typeManager.RegisterType(missionButtonCursorType);
             #endregion
         }
         #endregion

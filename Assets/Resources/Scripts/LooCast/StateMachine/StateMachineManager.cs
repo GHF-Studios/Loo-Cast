@@ -15,6 +15,7 @@ namespace LooCast.StateMachine
                     GameObject instanceObject = new GameObject("[StateMachineManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
                     return instanceObject.AddComponent<StateMachineManager>();
                 }

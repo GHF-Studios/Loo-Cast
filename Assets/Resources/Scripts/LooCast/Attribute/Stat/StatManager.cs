@@ -15,6 +15,7 @@ namespace LooCast.Attribute.Stat
                     GameObject instanceObject = new GameObject("[StatManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
+                    DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = AttributeManager.Instance.transform;
                     return instanceObject.AddComponent<StatManager>();
                 }
