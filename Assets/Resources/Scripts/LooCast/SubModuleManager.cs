@@ -105,9 +105,9 @@ namespace LooCast
         #endregion
 
         #region Methods
-        public override void InitializeInstance()
+        public override void PreInitializeInstance()
         {
-            base.InitializeInstance();
+            base.PreInitializeInstance();
 
             RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
             RegisterPreInitializationAction(OnPreInitialize);

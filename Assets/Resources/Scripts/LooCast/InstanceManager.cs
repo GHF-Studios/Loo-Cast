@@ -30,15 +30,9 @@ namespace LooCast
         #endregion
 
         #region Properties
-        public override Namespace LooCastNamespace => looCastNamespace;
-        public override Type LooCastType => looCastType;
-        public override Instance LooCastInstance => looCastInstance;
         #endregion
 
         #region Fields
-        private Namespace looCastNamespace;
-        private Type looCastType;
-        private Instance looCastInstance;
         #endregion
 
         #region Methods
@@ -66,6 +60,7 @@ namespace LooCast
         {
             base.InitializeInstance();
 
+            #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
 
@@ -75,6 +70,7 @@ namespace LooCast
 
             typeManager.RegisterType(looCastType);
             RegisterInstance(looCastInstance);
+            #endregion
         }
         #endregion
     }

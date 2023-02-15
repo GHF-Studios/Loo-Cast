@@ -1,11 +1,8 @@
 ﻿using System;
 using UnityEngine;
 
-namespace LooCast.Core
+namespace LooCast.Event
 {
-    using Core;
-    using Identifier;
-    
     public class EventManager : ModuleManager
     {
         #region Static Properties
@@ -37,19 +34,33 @@ namespace LooCast.Core
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Event", rootNamespace);
+            looCastType = new Type(typeof(EventManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
 
-        public override void PostInitialize()
-        {
+            Type eventType = new Type(typeof(Event), looCastNamespace);
+            Type eventListenerType = new Type(typeof(EventListener), looCastNamespace);
 
+            typeManager.RegisterType(eventType);
+            typeManager.RegisterType(eventListenerType);
+            #endregion
         }
         #endregion
     }

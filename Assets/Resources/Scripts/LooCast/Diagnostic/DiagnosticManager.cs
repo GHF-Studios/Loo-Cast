@@ -1,11 +1,8 @@
 ﻿using System;
 using UnityEngine;
 
-namespace LooCast.Core
+namespace LooCast.Diagnostic
 {
-    using Core;
-    using Identifier;
-    
     public class DiagnosticManager : ModuleManager
     {
         #region Static Properties
@@ -37,19 +34,31 @@ namespace LooCast.Core
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Diagnostic", rootNamespace);
+            looCastType = new Type(typeof(DiagnosticManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
+            
+            Type benchmarkType = new Type(typeof(Benchmark), looCastNamespace);
 
-        public override void PostInitialize()
-        {
-
+            typeManager.RegisterType(benchmarkType);
+            #endregion
         }
         #endregion
     }

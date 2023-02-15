@@ -3,8 +3,6 @@ using UnityEngine;
 
 namespace LooCast.Attribute
 {
-    using Core;
-    using Identifier;
     using Stat;
     
     public class AttributeManager : ModuleManager
@@ -34,30 +32,67 @@ namespace LooCast.Attribute
         #endregion
 
         #region Properties
-        public override SubModuleManager[] SubModuleManagers => subModuleManagers;
         #endregion
 
         #region Fields
-        private SubModuleManager[] subModuleManagers;
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
-            subModuleManagers = new SubModuleManager[]
+            base.PreInitializeInstance();
+
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
+
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Attribute", rootNamespace);
+            looCastType = new Type(typeof(AttributeManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
+
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
+
+            Type attributeType = new Type(typeof(Attribute), looCastNamespace);
+            Type attributesType = new Type(typeof(Attributes), looCastNamespace);
+            Type charismaAttributeType = new Type(typeof(CharismaAttribute), looCastNamespace);
+            Type constitutionAttributeType = new Type(typeof(ConstitutionAttribute), looCastNamespace);
+            Type defenseAttributeType = new Type(typeof(DefenseAttribute), looCastNamespace);
+            Type dexterityAttributeType = new Type(typeof(DexterityAttribute), looCastNamespace);
+            Type intelligenceAttributeType = new Type(typeof(IntelligenceAttribute), looCastNamespace);
+            Type luckAttributeType = new Type(typeof(LuckAttribute), looCastNamespace);
+            Type perceptionAttributeType = new Type(typeof(PerceptionAttribute), looCastNamespace);
+            Type strengthAttributeType = new Type(typeof(StrengthAttribute), looCastNamespace);
+            Type willpowerAttributeType = new Type(typeof(WillpowerAttribute), looCastNamespace);
+            Type wisdomAttributeType = new Type(typeof(WisdomAttribute), looCastNamespace);
+
+            typeManager.RegisterType(attributeType);
+            typeManager.RegisterType(attributesType);
+            typeManager.RegisterType(charismaAttributeType);
+            typeManager.RegisterType(constitutionAttributeType);
+            typeManager.RegisterType(defenseAttributeType);
+            typeManager.RegisterType(dexterityAttributeType);
+            typeManager.RegisterType(intelligenceAttributeType);
+            typeManager.RegisterType(luckAttributeType);
+            typeManager.RegisterType(perceptionAttributeType);
+            typeManager.RegisterType(strengthAttributeType);
+            typeManager.RegisterType(willpowerAttributeType);
+            typeManager.RegisterType(wisdomAttributeType);
+            #endregion
+        }
+
+        protected override SubModuleManager[] GetSubModuleManagers()
+        {
+            return new SubModuleManager[]
             {
                 StatManager.Instance
             };
-        }
-
-        public override void Initialize()
-        {
-
-        }
-
-        public override void PostInitialize()
-        {
-
         }
         #endregion
     }

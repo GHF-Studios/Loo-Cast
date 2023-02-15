@@ -30,15 +30,9 @@ namespace LooCast
         #endregion
 
         #region Properties
-        public override Namespace LooCastNamespace => looCastNamespace;
-        public override Type LooCastType => looCastType;
-        public override Instance LooCastInstance => looCastInstance;
         #endregion
 
         #region Fields
-        private Namespace looCastNamespace;
-        private Type looCastType;
-        private Instance looCastInstance;
         #endregion
 
         #region Methods

@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,10 +7,7 @@ namespace LooCast.Game
     using Data.Runtime;
     using UI.Screen;
     using Sound;
-    using Core;
     using Statistic;
-    using System;
-    using Util;
     using Universe;
     using Scene;
 
@@ -228,6 +225,34 @@ namespace LooCast.Game
             LoadGame(game);
 
             Debug.Log($"[GameManager] Initialized Game.");
+        }
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
+        {
+            base.PreInitializeInstance();
+
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
+
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Game", rootNamespace);
+            looCastType = new Type(typeof(GameManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
+
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
+
+            Type gameType = new Type(typeof(Game), looCastNamespace);
+            Type gamesType = new Type(typeof(Games), looCastNamespace);
+
+            typeManager.RegisterType(gameType);
+            typeManager.RegisterType(gamesType);
+            #endregion
         }
         #endregion
     }

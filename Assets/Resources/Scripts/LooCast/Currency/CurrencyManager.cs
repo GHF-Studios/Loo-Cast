@@ -3,9 +3,6 @@ using UnityEngine;
 
 namespace LooCast.Currency
 {
-    using Core;
-    using Identifier;
-    
     public class CurrencyManager : ModuleManager
     {
         #region Static Properties
@@ -37,19 +34,35 @@ namespace LooCast.Currency
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Currency", rootNamespace);
+            looCastType = new Type(typeof(CurrencyManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
 
-        public override void PostInitialize()
-        {
+            Type coinsType = new Type(typeof(Coins), looCastNamespace);
+            Type tokensType = new Type(typeof(Tokens), looCastNamespace);
+            Type creditsType = new Type(typeof(Credits), looCastNamespace);
 
+            typeManager.RegisterType(coinsType);
+            typeManager.RegisterType(tokensType);
+            typeManager.RegisterType(creditsType);
+            #endregion
         }
         #endregion
     }

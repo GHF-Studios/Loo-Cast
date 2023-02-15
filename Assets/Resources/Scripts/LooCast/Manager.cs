@@ -119,13 +119,17 @@ namespace LooCast
         #endregion
 
         #region Properties
-        public abstract Namespace LooCastNamespace { get; }
-        public abstract Type LooCastType { get; }
-        public abstract Instance LooCastInstance { get; }
+        public Namespace LooCastNamespace => looCastNamespace;
+        public Type LooCastType => looCastType;
+        public Instance LooCastInstance => looCastInstance;
+
         public Manager[] Dependencies { get; private set; }
         #endregion
 
         #region Fields
+        protected Namespace looCastNamespace;
+        protected Type looCastType;
+        protected Instance looCastInstance;
 
         private List<Action> earlyPreInitializationActions;
         private List<Action> preInitializationActions;
@@ -700,11 +704,6 @@ namespace LooCast
 
         public virtual void PreInitializeInstance()
         {
-            
-        }
-
-        public virtual void InitializeInstance()
-        {
             Dependencies = GetDependencies();
 
             earlyPreInitializationActions = new List<Action>();
@@ -728,13 +727,18 @@ namespace LooCast
             latePostTerminationActions = new List<Action>();
         }
 
+        public virtual void InitializeInstance()
+        {
+            
+        }
+
         public virtual void PostInitializeInstance()
         {
             
         }
 
         /// <summary>
-        /// Returns the core module managers in no particular order.
+        /// Returns the dependencies in no particular order.
         /// </summary>
         protected virtual Manager[] GetDependencies()
         {

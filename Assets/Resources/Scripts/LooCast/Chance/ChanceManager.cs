@@ -3,9 +3,6 @@ using UnityEngine;
 
 namespace LooCast.Chance
 {
-    using Core;
-    using Identifier;
-    
     public class ChanceManager : ModuleManager
     {
         #region Static Properties
@@ -37,19 +34,33 @@ namespace LooCast.Chance
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Chance", rootNamespace);
+            looCastType = new Type(typeof(ChanceManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
+            
+            Type chanceType = new Type(typeof(Chance), looCastNamespace);
+            Type seedType = new Type(typeof(Seed<IComparable>), looCastNamespace);
 
-        public override void PostInitialize()
-        {
-
+            typeManager.RegisterType(chanceType);
+            typeManager.RegisterType(seedType);
+            #endregion
         }
         #endregion
     }

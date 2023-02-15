@@ -1,11 +1,8 @@
 ﻿using System;
 using UnityEngine;
 
-namespace LooCast.Core
+namespace LooCast.Experience
 {
-    using Core;
-    using Identifier;
-    
     public class ExperienceManager : ModuleManager
     {
         #region Static Properties
@@ -37,19 +34,33 @@ namespace LooCast.Core
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Experience", rootNamespace);
+            looCastType = new Type(typeof(ExperienceManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
+            
+            Type iExperienceType = new Type(typeof(IExperience), looCastNamespace);
+            Type playerExperienceType = new Type(typeof(PlayerExperience), looCastNamespace);
 
-        public override void PostInitialize()
-        {
-
+            typeManager.RegisterType(iExperienceType);
+            typeManager.RegisterType(playerExperienceType);
+            #endregion
         }
         #endregion
     }

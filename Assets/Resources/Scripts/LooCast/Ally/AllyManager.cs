@@ -3,9 +3,6 @@ using UnityEngine;
 
 namespace LooCast.Ally
 {
-    using Core;
-    using Identifier;
-    
     public class AllyManager : ModuleManager
     {
         #region Static Properties
@@ -37,19 +34,33 @@ namespace LooCast.Ally
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Ally", rootNamespace);
+            looCastType = new Type(typeof(AllyManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
 
-        public override void PostInitialize()
-        {
+            Type allyType = new Type(typeof(Ally), looCastNamespace);
+            Type smolAllyType = new Type(typeof(SmolAlly), looCastNamespace);
 
+            typeManager.RegisterType(allyType);
+            typeManager.RegisterType(smolAllyType);
+            #endregion
         }
         #endregion
     }

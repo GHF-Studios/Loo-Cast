@@ -3,9 +3,6 @@ using UnityEngine;
 
 namespace LooCast.AOE
 {
-    using Core;
-    using Identifier;
-    
     public class AOEManager : ModuleManager
     {
         #region Static Properties
@@ -37,19 +34,31 @@ namespace LooCast.AOE
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("AOE", rootNamespace);
+            looCastType = new Type(typeof(AOEManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
 
-        public override void PostInitialize()
-        {
+            Type freezeZoneType = new Type(typeof(FreezeZone), looCastNamespace);
 
+            typeManager.RegisterType(freezeZoneType);
+            #endregion
         }
         #endregion
     }

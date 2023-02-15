@@ -3,9 +3,6 @@ using UnityEngine;
 
 namespace LooCast.AI
 {
-    using Core;
-    using Identifier;
-    
     public class AIManager : ModuleManager
     {
         #region Static Properties
@@ -33,23 +30,36 @@ namespace LooCast.AI
         #endregion
 
         #region Fields
-
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("AI", rootNamespace);
+            looCastType = new Type(typeof(AIManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
 
-        public override void PostInitialize()
-        {
+            Type allyAIType = new Type(typeof(AllyAI), looCastNamespace);
+            Type enemyAIType = new Type(typeof(EnemyAI), looCastNamespace);
 
+            typeManager.RegisterType(allyAIType);
+            typeManager.RegisterType(enemyAIType);
+            #endregion
         }
         #endregion
     }

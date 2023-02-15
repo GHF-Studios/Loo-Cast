@@ -3,9 +3,6 @@ using UnityEngine;
 
 namespace LooCast.Background
 {
-    using Core;
-    using Identifier;
-    
     public class BackgroundManager : ModuleManager
     {
         #region Static Properties
@@ -37,19 +34,31 @@ namespace LooCast.Background
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Background", rootNamespace);
+            looCastType = new Type(typeof(BackgroundManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
 
-        public override void PostInitialize()
-        {
+            Type backgroundType = new Type(typeof(Background), looCastNamespace);
 
+            typeManager.RegisterType(backgroundType);
+            #endregion
         }
         #endregion
     }

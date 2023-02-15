@@ -3,9 +3,6 @@ using UnityEngine;
 
 namespace LooCast.Asteroid
 {
-    using Core;
-    using Identifier;
-    
     public class AsteroidManager : ModuleManager
     {
         #region Static Properties
@@ -37,19 +34,31 @@ namespace LooCast.Asteroid
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Asteroid", rootNamespace);
+            looCastType = new Type(typeof(AsteroidManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
 
-        public override void PostInitialize()
-        {
+            Type asteroidType = new Type(typeof(Asteroid), looCastNamespace);
 
+            typeManager.RegisterType(asteroidType);
+            #endregion
         }
         #endregion
     }

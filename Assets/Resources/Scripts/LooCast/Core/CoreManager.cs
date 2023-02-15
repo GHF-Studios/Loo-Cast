@@ -103,15 +103,9 @@ namespace LooCast.Core
         #endregion
 
         #region Properties
-        public override Namespace LooCastNamespace => looCastNamespace;
-        public override Type LooCastType => looCastType;
-        public override Instance LooCastInstance => looCastInstance;
         #endregion
 
         #region Fields
-        private Namespace looCastNamespace;
-        private Type looCastType;
-        private Instance looCastInstance;
         #endregion
 
         #region Callbacks
@@ -213,9 +207,9 @@ namespace LooCast.Core
         #endregion
 
         #region Methods
-        public override void InitializeInstance()
+        public override void PreInitializeInstance()
         {
-            base.InitializeInstance();
+            base.PreInitializeInstance();
 
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
@@ -227,7 +221,6 @@ namespace LooCast.Core
             looCastType = new Type(typeof(CoreManager), looCastNamespace);
             looCastInstance = new Instance(this, looCastType);
             
-            namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
             #endregion

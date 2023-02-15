@@ -1,11 +1,8 @@
 ﻿using System;
 using UnityEngine;
 
-namespace LooCast.Core
+namespace LooCast.Enemy
 {
-    using Core;
-    using Identifier;
-    
     public class EnemyManager : ModuleManager
     {
         #region Static Properties
@@ -37,19 +34,33 @@ namespace LooCast.Core
         #endregion
 
         #region Methods
-        public override void PreInitialize()
+        #endregion
+
+        #region Overrides
+        public override void PreInitializeInstance()
         {
+            base.PreInitializeInstance();
 
-        }
+            #region Namespace/Type/Instance Registration
+            NamespaceManager namespaceManager = NamespaceManager.Instance;
+            TypeManager typeManager = TypeManager.Instance;
+            InstanceManager instanceManager = InstanceManager.Instance;
 
-        public override void Initialize()
-        {
+            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            looCastNamespace = new Namespace("Enemy", rootNamespace);
+            looCastType = new Type(typeof(EnemyManager), looCastNamespace);
+            looCastInstance = new Instance(this, looCastType);
 
-        }
+            namespaceManager.RegisterNamespace(looCastNamespace);
+            typeManager.RegisterType(looCastType);
+            instanceManager.RegisterInstance(looCastInstance);
 
-        public override void PostInitialize()
-        {
+            Type enemyType = new Type(typeof(Enemy), looCastNamespace);
+            Type smolEnemyType = new Type(typeof(SmolEnemy), looCastNamespace);
 
+            typeManager.RegisterType(enemyType);
+            typeManager.RegisterType(smolEnemyType);
+            #endregion
         }
         #endregion
     }
