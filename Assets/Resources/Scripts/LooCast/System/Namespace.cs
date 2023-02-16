@@ -5,10 +5,10 @@ namespace LooCast.System
 {
     using Identification;
     
-    public class Namespace : IGenericIdentifiable<Namespace>
+    public class Namespace : INamespace
     {
         #region Properties
-        public NamespaceIdentifier NamespaceIdentifier => namespaceIdentifier;
+        public INamespaceIdentifier NamespaceIdentifier => namespaceIdentifier;
         public IIdentifier Identifier => namespaceIdentifier;
         public Namespace ParentNamespace => parentNamespace;
         public List<Namespace> ChildNamespaces => childNamespaces;

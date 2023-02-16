@@ -5,10 +5,10 @@ namespace LooCast.System
 {
     using Identification;
     
-    public class Registry<KeyType, ValueType> : IGenericIdentifiable<Registry<IIdentifier, IIdentifiable>> where KeyType : IIdentifier where ValueType : IIdentifiable
+    public class Registry<KeyType, ValueType> : IRegistry where KeyType : IIdentifier where ValueType : IIdentifiable
     {
         #region Properties
-        public RegistryIdentifier RegistryIdentifier => registryIdentifier;
+        public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
         public IIdentifier Identifier => RegistryIdentifier;
         public Dictionary<KeyType, ValueType> RegistryDictionary => registryDictionary;
         #endregion

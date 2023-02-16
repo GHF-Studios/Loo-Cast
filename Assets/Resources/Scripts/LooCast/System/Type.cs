@@ -5,10 +5,10 @@ namespace LooCast.System
 {
     using Identification;
     
-    public class Type : IGenericIdentifiable<Type>
+    public class Type : IType
     {
         #region Properties
-        public TypeIdentifier TypeIdentifier => typeIdentifier;
+        public ITypeIdentifier TypeIdentifier => typeIdentifier;
         public IIdentifier Identifier => typeIdentifier;
         public Type ParentType => parentType;
         public List<Type> ChildTypes => childTypes;

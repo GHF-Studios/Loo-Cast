@@ -5,11 +5,11 @@ namespace LooCast.System
 {
     using Identification;
     
-    public class Instance : IGenericIdentifiable<Instance>
+    public class Instance : IInstance
     {
         #region Properties
         public object RootObject => rootObject;
-        public InstanceIdentifier InstanceIdentifier => instanceIdentifier;
+        public IInstanceIdentifier InstanceIdentifier => instanceIdentifier;
         public IIdentifier Identifier => instanceIdentifier;
         public Instance ParentInstance => parentInstance;
         public List<Instance> ChildInstances => childInstances;
