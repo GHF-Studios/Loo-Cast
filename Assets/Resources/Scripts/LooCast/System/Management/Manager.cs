@@ -120,7 +120,7 @@ namespace LooCast.System.Management
         #region Properties
         public Namespace LooCastNamespace => looCastNamespace;
         public Type LooCastType => looCastType;
-        public Instance LooCastInstance => looCastInstance;
+        public CSharpInstance LooCastInstance => looCastInstance;
 
         public Manager[] Dependencies { get; private set; }
         #endregion
@@ -128,7 +128,7 @@ namespace LooCast.System.Management
         #region Fields
         protected Namespace looCastNamespace;
         protected Type looCastType;
-        protected Instance looCastInstance;
+        protected CSharpInstance looCastInstance;
 
         private List<Action> earlyPreInitializationActions;
         private List<Action> preInitializationActions;

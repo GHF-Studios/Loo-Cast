@@ -1,6 +1,6 @@
 namespace LooCast.System
 {
-    public abstract class Resource : Instance, IResource
+    public abstract class Resource : CSharpInstance, IResource
     {
         
     }

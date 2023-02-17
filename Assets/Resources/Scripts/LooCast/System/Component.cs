@@ -1,6 +1,6 @@
 namespace LooCast.System
 {
-    public abstract class Component : Instance, IComponent
+    public abstract class Component : CSharpInstance, IComponent
     {
         
     }

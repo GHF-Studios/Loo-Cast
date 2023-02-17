@@ -7,7 +7,7 @@ namespace LooCast.System.Identification
         #region Properties
         string ParentNamespaceID { get; }
         string ParentTypeID { get; }
-        CSSystem.Type SystemType { get; }
+        CSSystem.Type CSSystemType { get; }
         string TypeID { get; }
         #endregion
     }

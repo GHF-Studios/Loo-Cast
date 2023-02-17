@@ -5,7 +5,7 @@
     public interface IInstanceRegistryProvider
     {
         #region Properties
-        Registry<InstanceIdentifier, Instance> LooCastInstances { get; }
+        Registry<InstanceIdentifier, CSharpInstance> LooCastInstances { get; }
         #endregion
     }
 }

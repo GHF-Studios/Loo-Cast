@@ -8,36 +8,39 @@ namespace LooCast.System
     public class Type : IType
     {
         #region Properties
-        public ITypeIdentifier TypeIdentifier => typeIdentifier;
         public IIdentifier Identifier => typeIdentifier;
-        public Type ParentType => parentType;
-        public List<Type> ChildTypes => childTypes;
+        public ITypeIdentifier TypeIdentifier => typeIdentifier;
+        public INamespace TypeNamespace => typeNamespace;
+        public CSSystem.Type CSSystemType => typeIdentifier.CSSystemType;
+        public IType ParentType => parentType;
+        public List<IType> ChildTypes => childTypes;
         #endregion
 
         #region Fields
-        private TypeIdentifier typeIdentifier;
+        private ITypeIdentifier typeIdentifier;
+        private INamespace typeNamespace;
         private Type parentType;
-        private List<Type> childTypes;
+        private List<IType> childTypes;
         #endregion
 
         #region Constructors
-        internal Type(CSSystem.Type systemType, Namespace rootNamespace)
+        public Type(CSSystem.Type cssystemType, Namespace rootNamespace)
         {
-            typeIdentifier = new TypeIdentifier((NamespaceIdentifier)rootNamespace.Identifier, systemType);
+            typeIdentifier = new TypeIdentifier((NamespaceIdentifier)rootNamespace.Identifier, cssystemType);
             parentType = null;
-            childTypes = new List<Type>();
+            childTypes = new List<IType>();
         }
-        
-        internal Type(CSSystem.Type systemType, Namespace rootNamespace, Type parentType)
+
+        public Type(CSSystem.Type systemType, Namespace rootNamespace, Type parentType)
         {
             typeIdentifier = new TypeIdentifier((NamespaceIdentifier)rootNamespace.Identifier, systemType);
             this.parentType = parentType;
-            childTypes = new List<Type>();
+            childTypes = new List<IType>();
         }
         #endregion
 
         #region Methods
-        internal void AddChildType(Type childType)
+        public void AddChildType(Type childType)
         {
             childTypes.Add(childType);
         }

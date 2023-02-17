@@ -85,7 +85,7 @@ namespace LooCast.Diagnostic
         {
             if (benchmarkDictionaries.ContainsKey(name))
             {
-                throw new ArgumentException($"A benchmark with the name '{name}' already exists.");
+                throw new ArgumentException($"A benchmark with the namespaceName '{name}' already exists.");
             }
 
             benchmarkDictionaries.TryAdd(name, new ConcurrentDictionary<int, Benchmark>());

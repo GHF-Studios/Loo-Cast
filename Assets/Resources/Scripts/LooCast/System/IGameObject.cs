@@ -1,11 +1,11 @@
 namespace LooCast.System
 {
     using System.Identification;
-    
-    public interface IGameObject : IInstance
+
+    public interface IGameObject : IObject, IGameObjectIdentifiable
     {
         #region Properties
-        IGameObjectIdentifier GameObjectIdentifier { get; }
+        IUnityInstance GameObjectInstance { get; }
         #endregion
     }
 }

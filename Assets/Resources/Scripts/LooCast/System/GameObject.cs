@@ -1,6 +1,6 @@
 namespace LooCast.System
 {
-    public abstract class GameObject : Instance, IGameObject
+    public abstract class GameObject : CSharpInstance, IGameObject
     {
 
     }

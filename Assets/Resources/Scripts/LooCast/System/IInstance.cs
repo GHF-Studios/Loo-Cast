@@ -1,11 +1,16 @@
+using System.Collections.Generic;
+
 namespace LooCast.System
 {
     using System.Identification;
-    
-    public interface IInstance
+
+    public interface IInstance : IInstanceIdentifiable
     {
         #region Properties
-        IInstanceIdentifier InstanceIdentifier { get; }
+        public IInstanceType InstanceType { get; }
+        public object InstanceObject { get; }
+        public IInstance ParentInstance { get; }
+        public List<IInstance> ChildInstances { get; }
         #endregion
     }
 }

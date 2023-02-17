@@ -14,46 +14,35 @@ namespace LooCast.System.Identification
         #endregion
 
         #region Fields
-        [SerializeField] private string instanceTypeID;
-        [SerializeField] private string instanceGUID;
+        [SerializeField] protected string instanceTypeID;
+        [SerializeField] protected string instanceGUID;
         #endregion
 
         #region Constructors
-        internal InstanceIdentifier(TypeIdentifier instanceType)
+        public InstanceIdentifier(ITypeIdentifier instanceTypeIdentifier, string instanceGUID)
         {
-            instanceTypeID = instanceType.TypeID;
-            instanceGUID = new Guid().ToString();
+            instanceTypeID = instanceTypeIdentifier.TypeID;
+            this.instanceGUID = instanceGUID;
         }
 
-        internal InstanceIdentifier(string instanceID)
+        public InstanceIdentifier(string instanceTypeID, string instanceGUID)
         {
-            string[] instanceIDParts = instanceID.Split('[');
+            this.instanceTypeID = instanceTypeID;
+            this.instanceGUID = instanceGUID;
+        }
+
+        protected InstanceIdentifier(string instanceID)
+        {
+            string[] instanceIDParts = instanceID.Split(new char[] { '[', '('});
             instanceTypeID = instanceIDParts[0];
             instanceGUID = instanceIDParts[1].Substring(0, instanceIDParts[1].Length - 1);
         }
         #endregion
 
-        #region Operators
-        public static implicit operator InstanceIdentifier(string instanceID)
-        {
-            return new InstanceIdentifier(instanceID);
-        }
-        #endregion
-
         #region Overrides
-        public override bool Equals(object obj)
+        public override string ToString()
         {
-            if (!(obj is InstanceIdentifier))
-            {
-                return false;
-            }
-            InstanceIdentifier otherInstanceIdentifier = (InstanceIdentifier)obj;
-            return this.Equals(otherInstanceIdentifier);
-        }
-
-        public bool Equals(InstanceIdentifier other)
-        {
-            return InstanceID == other.InstanceID;
+            return InstanceID;
         }
 
         public override int GetHashCode()
@@ -61,19 +50,9 @@ namespace LooCast.System.Identification
             return InstanceID.GetHashCode();
         }
 
-        public static bool operator ==(InstanceIdentifier left, InstanceIdentifier right)
+        public bool Equals(IInstanceIdentifier other)
         {
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(InstanceIdentifier left, InstanceIdentifier right)
-        {
-            return !(left == right);
-        }
-
-        public override string ToString()
-        {
-            return InstanceID;
+            return InstanceID == other.InstanceID;
         }
         #endregion
     }

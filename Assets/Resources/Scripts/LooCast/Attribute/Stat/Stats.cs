@@ -202,7 +202,7 @@ namespace LooCast.Attribute.Stat
                 case "Stamina": return Stamina;
                 case "Vitality": return Vitality;
                 case "Wits": return Wits;
-                default: throw new ArgumentException("Invalid stat name!");
+                default: throw new ArgumentException("Invalid stat namespaceName!");
             }
         }
 

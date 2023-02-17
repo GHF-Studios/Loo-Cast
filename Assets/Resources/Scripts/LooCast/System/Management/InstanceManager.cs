@@ -41,19 +41,19 @@ namespace LooCast.System.Management
         #endregion
 
         #region Methods
-        public void RegisterInstance(Instance instance)
+        public void RegisterInstance(CSharpInstance instance)
         {
             instanceRegistry.Register(instance.InstanceIdentifier, instance);
         }
 
-        public void UnregisterInstance(Instance instance)
+        public void UnregisterInstance(CSharpInstance instance)
         {
             instanceRegistry.Unregister(instance.InstanceIdentifier);
         }
 
-        public Instance GetInstance(InstanceIdentifier instanceIdentifier)
+        public CSharpInstance GetInstance(InstanceIdentifier instanceIdentifier)
         {
-            return (Instance)instanceRegistry.Get(instanceIdentifier);
+            return (CSharpInstance)instanceRegistry.Get(instanceIdentifier);
         }
         #endregion
 
@@ -81,7 +81,7 @@ namespace LooCast.System.Management
 
             #region Registry Registration
             RegistryManager registryManager = RegistryManager.Instance;
-            instanceRegistry = new Registry<IIdentifier, IIdentifiable>("LooCast:InstanceIdentifier_LooCast:Instance");
+            instanceRegistry = new Registry<IIdentifier, IIdentifiable>("LooCast:InstanceIdentifier_LooCast:CSharpInstance");
             registryManager.RegisterRegistry(instanceRegistry);
             #endregion
         }

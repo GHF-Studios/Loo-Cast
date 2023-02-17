@@ -1,6 +1,6 @@
 ﻿namespace LooCast.System.Identification
 {
-    public interface IInstanceIdentifier : IGenericIdentifier<Instance>
+    public interface IInstanceIdentifier : IGenericIdentifier<CSharpInstance>
     {
         #region Properties
         string InstanceTypeID { get; }

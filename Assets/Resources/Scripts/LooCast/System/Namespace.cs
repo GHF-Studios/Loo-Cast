@@ -4,48 +4,46 @@ using System.Collections.Generic;
 namespace LooCast.System
 {
     using Identification;
-    
+    using LooCast.System.Management;
+
     public class Namespace : INamespace
     {
         #region Properties
-        public INamespaceIdentifier NamespaceIdentifier => namespaceIdentifier;
         public IIdentifier Identifier => namespaceIdentifier;
-        public Namespace ParentNamespace => parentNamespace;
-        public List<Namespace> ChildNamespaces => childNamespaces;
+        public INamespaceIdentifier NamespaceIdentifier => namespaceIdentifier;
+        public string NamespaceName => namespaceName;
+        public INamespace ParentNamespace => parentNamespace;
+        public List<INamespace> ChildNamespaces => childNamespaces;
         #endregion
 
         #region Fields
-        private NamespaceIdentifier namespaceIdentifier;
-        private Namespace parentNamespace;
-        private List<Namespace> childNamespaces;
+        protected NamespaceIdentifier namespaceIdentifier;
+        protected string namespaceName;
+        protected INamespace parentNamespace;
+        protected List<INamespace> childNamespaces;
         #endregion
 
         #region Constructors
-        internal Namespace(string name)
+        public Namespace(string namespaceName)
         {
-            namespaceIdentifier = new NamespaceIdentifier(name);
+            namespaceIdentifier = new NamespaceIdentifier(namespaceName);
+            this.namespaceName = namespaceName;
             parentNamespace = null;
-            childNamespaces = new List<Namespace>();
+            childNamespaces = new List<INamespace>();
         }
 
-        internal Namespace(string name, Namespace parentNamespace)
+        public Namespace(string namespaceName, Namespace parentNamespace)
         {
             NamespaceIdentifier parentNamespaceIdentifier = (NamespaceIdentifier)parentNamespace.Identifier;
-            namespaceIdentifier = new NamespaceIdentifier(name, parentNamespaceIdentifier.NamespaceID);
+            namespaceIdentifier = new NamespaceIdentifier(namespaceName, parentNamespaceIdentifier.NamespaceID);
+            this.namespaceName = namespaceName;
             this.parentNamespace = parentNamespace;
-            childNamespaces = new List<Namespace>();
-        }
-
-        internal Namespace(NamespaceIdentifier namespaceIdentifier)
-        {
-            this.namespaceIdentifier = namespaceIdentifier;
-            parentNamespace = null;
-            childNamespaces = new List<Namespace>();
+            childNamespaces = new List<INamespace>();
         }
         #endregion
 
         #region Methods
-        internal void AddChildNamespace(Namespace childNamespace)
+        public void AddChildNamespace(Namespace childNamespace)
         {
             childNamespaces.Add(childNamespace);
         }

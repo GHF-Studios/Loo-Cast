@@ -1,11 +1,17 @@
+using CSSystem = System;
+using System.Collections.Generic;
+
 namespace LooCast.System
 {
     using System.Identification;
     
-    public interface IType
+    public interface IType : ITypeIdentifiable
     {
         #region Properties
-        ITypeIdentifier TypeIdentifier { get; }
+        public INamespace TypeNamespace { get; }
+        public CSSystem.Type CSSystemType { get; }
+        public IType ParentType { get; }
+        public List<IType> ChildTypes { get; }
         #endregion
     }
 }

@@ -72,7 +72,7 @@ namespace LooCast.Attribute
                 case "Strength": return Strength;
                 case "Willpower": return Willpower;
                 case "Wisdom": return Wisdom;
-                default: throw new ArgumentException("Invalid attribute name!");
+                default: throw new ArgumentException("Invalid attribute namespaceName!");
             }
         }
 

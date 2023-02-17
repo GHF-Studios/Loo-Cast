@@ -179,13 +179,13 @@ namespace LooCast
         #region Properties
         public Namespace LooCastNamespace => looCastNamespace;
         public Type LooCastType => looCastType;
-        public Instance LooCastInstance => looCastInstance;
+        public CSharpInstance LooCastInstance => looCastInstance;
         #endregion
 
         #region Fields
         private Namespace looCastNamespace;
         private Type looCastType;
-        private Instance looCastInstance;
+        private CSharpInstance looCastInstance;
         #endregion
 
         #region Unity Callbacks

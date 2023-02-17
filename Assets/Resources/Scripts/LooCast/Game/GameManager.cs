@@ -151,7 +151,7 @@ namespace LooCast.Game
         {
             if (games.Contains(gameName))
             {
-                throw new Exception("Cannot create new Game, because another Game with the same Name already exists!");
+                throw new Exception("Cannot create new Game, because another Game with the same NamespaceName already exists!");
             }
 
             SceneManager.Instance.LoadScene(SceneManager.SceneType.Game, () =>
@@ -165,7 +165,7 @@ namespace LooCast.Game
         {
             if (games.Contains(gameName))
             {
-                throw new Exception("Cannot create new Game, because another Game with the same Name already exists!");
+                throw new Exception("Cannot create new Game, because another Game with the same NamespaceName already exists!");
             }
 
             SceneManager.Instance.LoadScene(SceneManager.SceneType.Game, () =>

@@ -199,7 +199,7 @@ namespace LooCast.Item
         /// <summary>
         /// Tries to remove an Item from the ItemContainer
         /// </summary>
-        /// <param name="slotID">The ID of the slot to remove the Item from</param>
+        /// <param namespaceName="slotID">The ID of the slot to remove the Item from</param>
         /// <returns>The removed Item. Null if there was no item to begin with.</returns>
         public Item TryRemoveItem(int slotID)
         {

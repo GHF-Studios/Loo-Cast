@@ -1,11 +1,13 @@
+using System.Collections.Generic;
+
 namespace LooCast.System
 {
     using System.Identification;
     
-    public interface INamespace
+    public interface INamespace : IIdentifiable
     {
-        #region Properties
-        INamespaceIdentifier NamespaceIdentifier { get; }
-        #endregion
+        public string NamespaceName { get; }
+        public INamespace ParentNamespace { get; }
+        public List<INamespace> ChildNamespaces { get; }
     }
 }

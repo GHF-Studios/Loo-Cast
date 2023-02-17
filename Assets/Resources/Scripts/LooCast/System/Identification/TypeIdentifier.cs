@@ -9,38 +9,38 @@ namespace LooCast.System.Identification
         #region Properties
         public string ParentNamespaceID => parentNamespaceID;
         public string ParentTypeID => parentTypeID;
-        public CSSystem.Type SystemType => systemType;
-        public string TypeID => parentTypeID == null ? $"{parentNamespaceID}:{systemType.FullName}" : $"{parentTypeID}.{systemType.FullName}";
+        public CSSystem.Type CSSystemType => cssystemType;
+        public string TypeID => parentTypeID == null ? $"{parentNamespaceID}:{cssystemType.FullName}" : $"{parentTypeID}.{cssystemType.FullName}";
         public string ID => TypeID;
         #endregion
 
         #region Fields
-        [SerializeField] private string parentNamespaceID;
-        [SerializeField] private string parentTypeID;
-        [SerializeField] private CSSystem.Type systemType; // TODO: Use serializable Type instead of System.Type
+        [SerializeField] protected string parentNamespaceID;
+        [SerializeField] protected string parentTypeID;
+        [SerializeField] protected CSSystem.Type cssystemType; // TODO: Use serializable Type instead of CSSystem.Type
         #endregion
 
         #region Constructors
-        internal TypeIdentifier(NamespaceIdentifier parentNamespace, CSSystem.Type systemType)
+        public TypeIdentifier(NamespaceIdentifier parentNamespace, CSSystem.Type systemType)
         {
             parentNamespaceID = parentNamespace.NamespaceID;
             parentTypeID = null;
-            this.systemType = systemType;
+            this.cssystemType = systemType;
         }
 
-        internal TypeIdentifier(TypeIdentifier parentType, CSSystem.Type systemType)
+        public TypeIdentifier(TypeIdentifier parentType, CSSystem.Type systemType)
         {
             parentNamespaceID = parentType.parentNamespaceID;
             parentTypeID = parentType.TypeID;
-            this.systemType = systemType;
+            this.cssystemType = systemType;
         }
 
-        internal TypeIdentifier(string typeID)
+        public TypeIdentifier(string typeID)
         {
             string[] typeIDParts = typeID.Split(':');
             string[] typeIDParts2 = typeIDParts[1].Split('.');
             parentNamespaceID = typeIDParts[0];
-            systemType = CSSystem.Type.GetType($"{typeIDParts[0]}.{typeIDParts[1]}");
+            cssystemType = CSSystem.Type.GetType($"{typeIDParts[0]}.{typeIDParts[1]}");
             parentTypeID = typeIDParts2.Length > 1 ? $"{typeIDParts[0]}:{typeID.Substring(0, typeID.Length - typeIDParts2[typeIDParts2.Length - 1].Length - 1)}" : null;
         }
         #endregion
