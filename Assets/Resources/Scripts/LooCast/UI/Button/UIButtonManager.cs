@@ -15,7 +15,7 @@ namespace LooCast.UI.Button
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[UIButtonManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[UIButtonManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.UI.Button
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Button", rootNamespace);
             looCastType = new Type(typeof(UIButtonManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type attributeSetButtonType = new Type(typeof(AttributeSetButton), looCastNamespace);
             Type buttonType = new Type(typeof(Button), looCastNamespace);

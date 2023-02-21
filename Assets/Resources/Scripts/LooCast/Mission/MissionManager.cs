@@ -19,7 +19,7 @@ namespace LooCast.Mission
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[MissionManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[MissionManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -53,16 +53,16 @@ namespace LooCast.Mission
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Mission", rootNamespace);
             looCastType = new Type(typeof(MissionManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type conquerStationMissionType = new Type(typeof(ConquerStationMission), looCastNamespace);
             Type missionType = new Type(typeof(Mission), looCastNamespace);

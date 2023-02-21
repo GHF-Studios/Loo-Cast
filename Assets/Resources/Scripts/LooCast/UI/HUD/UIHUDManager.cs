@@ -15,7 +15,7 @@ namespace LooCast.UI.HUD
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[UIHUDManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[UIHUDManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.UI.HUD
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("HUD", rootNamespace);
             looCastType = new Type(typeof(UIHUDManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type hudType = new Type(typeof(HUD), looCastNamespace);
 

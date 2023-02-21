@@ -15,7 +15,7 @@ namespace LooCast.Health
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[HealthManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[HealthManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.Health
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Health", rootNamespace);
             looCastType = new Type(typeof(HealthManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type allyHealthType = new Type(typeof(AllyHealth), looCastNamespace);
             Type allyStationHealthType = new Type(typeof(AllyStationHealth), looCastNamespace);

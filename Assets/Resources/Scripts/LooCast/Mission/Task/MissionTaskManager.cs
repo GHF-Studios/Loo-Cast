@@ -15,7 +15,7 @@ namespace LooCast.Mission.Task
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[MissionTaskManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[MissionTaskManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.Mission.Task
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.Mission");
             looCastNamespace = new Namespace("Task", rootNamespace);
             looCastType = new Type(typeof(MissionTaskManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type iMissionTaskLockStateType = new Type(typeof(IMissionTaskLockState), looCastNamespace);
             Type lockedMissionTaskLockStateType = new Type(typeof(LockedMissionTaskLockState), looCastNamespace);

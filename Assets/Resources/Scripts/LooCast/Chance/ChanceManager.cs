@@ -15,7 +15,7 @@ namespace LooCast.Chance
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[ChanceManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[ChanceManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.Chance
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Chance", rootNamespace);
             looCastType = new Type(typeof(ChanceManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
             
             Type chanceType = new Type(typeof(Chance), looCastNamespace);
             Type seedType = new Type(typeof(Seed<IComparable>), looCastNamespace);

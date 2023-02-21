@@ -15,7 +15,7 @@ namespace LooCast.Spawner
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[SpawnerManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[SpawnerManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.Spawner
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            IINamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Spawner", rootNamespace);
             looCastType = new Type(typeof(SpawnerManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type allySpawnerType = new Type(typeof(AllySpawner), looCastNamespace);
             Type enemySpawnerType = new Type(typeof(EnemySpawner), looCastNamespace);

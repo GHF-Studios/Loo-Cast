@@ -40,7 +40,7 @@ namespace LooCast.System
         #endregion
 
         #region Methods
-        public void AddChildType(Type childType)
+        public void AddChildType(IType childType)
         {
             childTypes.Add(childType);
         }

@@ -12,7 +12,7 @@ namespace LooCast.Core
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[EditorManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[EditorManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -46,12 +46,12 @@ namespace LooCast.Core
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Data", rootNamespace);
             looCastType = new Type(typeof(DataManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastInstance = new UnityInstance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);

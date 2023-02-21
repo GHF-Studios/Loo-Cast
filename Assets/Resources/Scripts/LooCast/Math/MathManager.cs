@@ -16,7 +16,7 @@ namespace LooCast.Math
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[MathManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[MathManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -50,18 +50,18 @@ namespace LooCast.Math
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Math", rootNamespace);
             Namespace mapNamespace = new Namespace("Map", looCastNamespace);
             looCastType = new Type(typeof(MathManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             namespaceManager.RegisterNamespace(mapNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type floatMap2DType = new Type(typeof(FloatMap2D), mapNamespace);
 

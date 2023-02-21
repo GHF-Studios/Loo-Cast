@@ -4,22 +4,22 @@ using UnityEngine;
 namespace LooCast.System.Management
 {
     using LooCast.System.Identification;
-    
-    public class InstanceManager : InternalManager
+
+    public class UnityInstanceManager : InternalManager
     {
         #region Static Properties
-        public static InstanceManager Instance
+        public static UnityInstanceManager Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[InstanceManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[UnityInstanceManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
-                    return instanceObject.AddComponent<InstanceManager>();
+                    return instanceObject.AddComponent<UnityInstanceManager>();
                 }
                 else
                 {
@@ -30,30 +30,30 @@ namespace LooCast.System.Management
         #endregion
 
         #region Static Fields
-        private static InstanceManager instance;
+        private static UnityInstanceManager instance;
         #endregion
 
         #region Properties
         #endregion
 
         #region Fields
-        private Registry<IInstanceIdentifier, IInstanceIdentifiable> instanceRegistry;
+        private Registry<IUnityInstanceIdentifier, IUnityInstance> unityInstanceRegistry;
         #endregion
 
         #region Methods
-        public void RegisterInstance(IInstance instance)
+        public void RegisterUnityInstance(IUnityInstance instance)
         {
-            instanceRegistry.Register(instance.InstanceIdentifier, instance);
+            unityInstanceRegistry.Register(instance.UnityInstanceIdentifier, instance);
         }
 
-        public void UnregisterInstance(IInstance instance)
+        public void UnregisterUnityInstance(IUnityInstance instance)
         {
-            instanceRegistry.Unregister(instance.InstanceIdentifier);
+            unityInstanceRegistry.Unregister(instance.UnityInstanceIdentifier);
         }
 
-        public IInstance GetInstance(IInstanceIdentifier instanceIdentifier)
+        public IUnityInstance GetUnityInstance(IUnityInstanceIdentifier unityInstanceIdentifier)
         {
-            return (IInstance)instanceRegistry.Get(instanceIdentifier);
+            return unityInstanceRegistry.Get(unityInstanceIdentifier);
         }
         #endregion
 
@@ -65,13 +65,14 @@ namespace LooCast.System.Management
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             looCastNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastType = new Type(typeof(InstanceManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastType = new UnityInstanceType(typeof(UnityInstanceManager), looCastNamespace);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             typeManager.RegisterType(looCastType);
-            RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
             #endregion
         }
 
@@ -82,10 +83,12 @@ namespace LooCast.System.Management
             #region Registry Registration
             RegistryManager registryManager = RegistryManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            IType keyType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:IInstanceIdentifier"));
-            IType valueType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:IInstanceIdentifiable"));
-            instanceRegistry = new Registry<IInstanceIdentifier, IInstanceIdentifiable>(keyType, valueType);
-            registryManager.RegisterRegistry(instanceRegistry);
+            
+            IType keyType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:IUnityInstanceIdentifier"));
+            IType valueType = typeManager.GetType(new TypeIdentifier("LooCast.System:IUnityInstance"));
+            unityInstanceRegistry = new Registry<IUnityInstanceIdentifier, IUnityInstance>(keyType, valueType);
+            
+            registryManager.RegisterRegistry(unityInstanceRegistry);
             #endregion
         }
         #endregion

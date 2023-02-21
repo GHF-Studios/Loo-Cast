@@ -15,7 +15,7 @@ namespace LooCast.UI.Task
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[UITaskManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[UITaskManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.UI.Task
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Task", rootNamespace);
             looCastType = new Type(typeof(UITaskManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type missionTaskType = new Type(typeof(MissionTask), looCastNamespace);
             Type missionTaskContainerType = new Type(typeof(MissionTaskContainer), looCastNamespace);

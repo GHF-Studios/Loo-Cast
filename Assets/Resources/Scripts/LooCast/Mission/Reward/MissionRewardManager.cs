@@ -15,7 +15,7 @@ namespace LooCast.Mission.Reward
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[MissionRewardManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[MissionRewardManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.Mission.Reward
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.Mission");
             looCastNamespace = new Namespace("Reward", rootNamespace);
             looCastType = new Type(typeof(MissionRewardManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type creditsMissionRewardType = new Type(typeof(CreditsMissionReward), looCastNamespace);
             Type itemMissionRewardType = new Type(typeof(ItemMissionReward), looCastNamespace);

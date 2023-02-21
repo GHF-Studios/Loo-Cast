@@ -15,7 +15,7 @@ namespace LooCast.UI.Inspector
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[UIInspectorManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[UIInspectorManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.UI.Inspector
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Inspector", rootNamespace);
             looCastType = new Type(typeof(UIInspectorManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type activeMissionInspectorType = new Type(typeof(ActiveMissionInspector), looCastNamespace);
             Type asteroidInspectorType = new Type(typeof(AsteroidInspector), looCastNamespace);

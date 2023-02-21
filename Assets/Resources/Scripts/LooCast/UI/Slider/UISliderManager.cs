@@ -15,7 +15,7 @@ namespace LooCast.UI.Slider
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[UISliderManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[UISliderManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.UI.Slider
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Slider", rootNamespace);
             looCastType = new Type(typeof(UISliderManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type difficultySliderType = new Type(typeof(DifficultySlider), looCastNamespace);
             Type effectVolumeSliderType = new Type(typeof(EffectVolumeSlider), looCastNamespace);

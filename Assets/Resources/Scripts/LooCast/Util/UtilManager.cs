@@ -17,7 +17,7 @@ namespace LooCast.Util
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[UtilManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[UtilManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -51,22 +51,22 @@ namespace LooCast.Util
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Util", rootNamespace);
             Namespace collectionsNamespace = new Namespace("Collections", looCastNamespace);
             Namespace collectionsConcurrentNamespace = new Namespace("Concurrent", collectionsNamespace);
             Namespace collectionsGenericNamespace = new Namespace("Generic", collectionsNamespace);
             looCastType = new Type(typeof(UtilManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             namespaceManager.RegisterNamespace(collectionsNamespace);
             namespaceManager.RegisterNamespace(collectionsConcurrentNamespace);
             namespaceManager.RegisterNamespace(collectionsGenericNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type colorUtilType = new Type(typeof(ColorUtil), looCastNamespace);
             Type constantsType = new Type(typeof(Constants), looCastNamespace);

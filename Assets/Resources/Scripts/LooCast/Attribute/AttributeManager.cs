@@ -16,7 +16,7 @@ namespace LooCast.Attribute
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[AttributeManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[AttributeManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -52,16 +52,16 @@ namespace LooCast.Attribute
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Attribute", rootNamespace);
             looCastType = new Type(typeof(AttributeManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type attributeType = new Type(typeof(Attribute), looCastNamespace);
             Type attributesType = new Type(typeof(Attributes), looCastNamespace);

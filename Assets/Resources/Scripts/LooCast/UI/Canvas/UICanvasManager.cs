@@ -15,7 +15,7 @@ namespace LooCast.UI.Canvas
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[UICanvasManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[UICanvasManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.UI.Canvas
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Canvas", rootNamespace);
             looCastType = new Type(typeof(UICanvasManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type canvasType = new Type(typeof(Canvas), looCastNamespace);
             Type gameCanvasType = new Type(typeof(GameCanvas), looCastNamespace);

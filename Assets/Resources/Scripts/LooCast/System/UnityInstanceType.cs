@@ -17,13 +17,13 @@ namespace LooCast.System
         private IUnityInstanceType parentUnityInstanceType;
         private List<IUnityInstanceType> childUnityInstanceTypes;
 
-        public UnityInstanceType(CSSystem.Type cssystemType, Namespace rootNamespace) : base(cssystemType, rootNamespace)
+        public UnityInstanceType(CSSystem.Type cssystemType, INamespace rootNamespace) : base(cssystemType, rootNamespace)
         {
             parentUnityInstanceType = null;
             childUnityInstanceTypes = new List<IUnityInstanceType>();
         }
 
-        public UnityInstanceType(CSSystem.Type systemType, Namespace rootNamespace, UnityInstanceType parentType) : base(systemType, rootNamespace, parentType)
+        public UnityInstanceType(CSSystem.Type systemType, INamespace rootNamespace, IUnityInstanceType parentType) : base(systemType, rootNamespace, parentType)
         {
             parentUnityInstanceType = parentType;
             childUnityInstanceTypes = new List<IUnityInstanceType>();
@@ -31,7 +31,7 @@ namespace LooCast.System
         #endregion
 
         #region Methods
-        public void AddChildUnityInstanceType(UnityInstanceType childUnityInstanceType)
+        public void AddChildUnityInstanceType(IUnityInstanceType childUnityInstanceType)
         {
             AddChildType(childUnityInstanceType);
             childUnityInstanceTypes.Add(childUnityInstanceType);

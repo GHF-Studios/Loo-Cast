@@ -15,7 +15,7 @@ namespace LooCast.Attribute.Stat
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[StatManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[StatManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.Attribute.Stat
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             Namespace attributeNamespace = namespaceManager.GetNamespace("LooCast.Attribute");
             looCastNamespace = new Namespace("Stat", attributeNamespace);
             looCastType = new Type(typeof(StatManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
             
             Type statType = new Type(typeof(Stat), looCastNamespace);
             Type statsType = new Type(typeof(Stats), looCastNamespace);

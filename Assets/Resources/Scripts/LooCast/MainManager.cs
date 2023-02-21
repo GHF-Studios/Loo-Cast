@@ -131,7 +131,7 @@ namespace LooCast
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[MainManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[MainManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -256,11 +256,11 @@ namespace LooCast
 
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
             
             looCastNamespace = namespaceManager.GetNamespace("LooCast");
             looCastType = new Type(typeof(MainManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastInstance = new UnityInstance(this, looCastType);
             
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);

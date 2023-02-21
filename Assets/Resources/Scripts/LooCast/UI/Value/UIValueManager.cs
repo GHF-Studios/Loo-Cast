@@ -15,7 +15,7 @@ namespace LooCast.UI.Value
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[UIValueManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[UIValueManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.UI.Value
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Value", rootNamespace);
             looCastType = new Type(typeof(UIValueManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type coinsValueType = new Type(typeof(CoinsValue), looCastNamespace);
             Type experienceLevelValueType = new Type(typeof(ExperienceLevelValue), looCastNamespace);

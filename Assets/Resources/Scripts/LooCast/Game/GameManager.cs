@@ -22,7 +22,7 @@ namespace LooCast.Game
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[GameManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[GameManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -247,16 +247,16 @@ namespace LooCast.Game
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Game", rootNamespace);
             looCastType = new Type(typeof(GameManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type gameType = new Type(typeof(Game), looCastNamespace);
             Type gamesType = new Type(typeof(Games), looCastNamespace);

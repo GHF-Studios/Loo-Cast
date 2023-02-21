@@ -15,7 +15,7 @@ namespace LooCast.Orb
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[OrbManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[OrbManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.Orb
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Orb", rootNamespace);
             looCastType = new Type(typeof(OrbManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type experienceOrbType = new Type(typeof(ExperienceOrb), looCastNamespace);
             Type magnetOrbType = new Type(typeof(MagnetOrb), looCastNamespace);

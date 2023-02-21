@@ -15,7 +15,7 @@ namespace LooCast.Test
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[TestManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[TestManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -49,16 +49,16 @@ namespace LooCast.Test
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Test", rootNamespace);
             looCastType = new Type(typeof(TestManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             Type mapDisplayType = new Type(typeof(MapDisplay), looCastNamespace);
             Type perlinMapGeneratorType = new Type(typeof(PerlinMapGenerator), looCastNamespace);

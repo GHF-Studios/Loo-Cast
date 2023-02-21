@@ -14,7 +14,7 @@ namespace LooCast.Universe
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[UniverseManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[UniverseManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -48,16 +48,16 @@ namespace LooCast.Universe
             #region Namespace/Type/Instance Registration
             NamespaceManager namespaceManager = NamespaceManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            InstanceManager instanceManager = InstanceManager.Instance;
+            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
 
-            Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
+            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Universe", rootNamespace);
             looCastType = new Type(typeof(UniverseManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastUnityInstance);
+            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
 
             #region Universe
             Type universeType = new Type(typeof(Universe), looCastNamespace);
