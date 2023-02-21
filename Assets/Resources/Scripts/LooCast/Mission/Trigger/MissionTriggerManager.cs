@@ -54,11 +54,11 @@ namespace LooCast.Mission.Trigger
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.Mission");
             looCastNamespace = new Namespace("Trigger", rootNamespace);
             looCastType = new Type(typeof(MissionTriggerManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type missionTriggerType = new Type(typeof(MissionTrigger), looCastNamespace);
 

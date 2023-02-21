@@ -56,12 +56,12 @@ namespace LooCast.Math
             looCastNamespace = new Namespace("Math", rootNamespace);
             Namespace mapNamespace = new Namespace("Map", looCastNamespace);
             looCastType = new Type(typeof(MathManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             namespaceManager.RegisterNamespace(mapNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type floatMap2DType = new Type(typeof(FloatMap2D), mapNamespace);
 

@@ -54,11 +54,11 @@ namespace LooCast.UI.Title
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Title", rootNamespace);
             looCastType = new Type(typeof(UITitleManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type titleType = new Type(typeof(Title), looCastNamespace);
 

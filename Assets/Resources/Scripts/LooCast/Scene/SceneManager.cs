@@ -125,11 +125,11 @@ namespace LooCast.Scene
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Scene", rootNamespace);
             looCastType = new Type(typeof(SceneManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             #endregion
 
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;

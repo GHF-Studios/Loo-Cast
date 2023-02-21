@@ -54,11 +54,11 @@ namespace LooCast.Inventory
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Inventory", rootNamespace);
             looCastType = new Type(typeof(InventoryManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type allyStationInventoryType = new Type(typeof(AllyStationInventory), looCastNamespace);
             Type enemyStationInventoryType = new Type(typeof(EnemyStationInventory), looCastNamespace);

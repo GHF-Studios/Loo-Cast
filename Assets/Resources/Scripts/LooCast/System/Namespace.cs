@@ -17,7 +17,7 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        protected NamespaceIdentifier namespaceIdentifier;
+        protected INamespaceIdentifier namespaceIdentifier;
         protected string namespaceName;
         protected INamespace parentNamespace;
         protected List<INamespace> childNamespaces;
@@ -32,7 +32,7 @@ namespace LooCast.System
             childNamespaces = new List<INamespace>();
         }
 
-        public Namespace(string namespaceName, Namespace parentNamespace)
+        public Namespace(string namespaceName, INamespace parentNamespace)
         {
             NamespaceIdentifier parentNamespaceIdentifier = (NamespaceIdentifier)parentNamespace.Identifier;
             namespaceIdentifier = new NamespaceIdentifier(namespaceName, parentNamespaceIdentifier.NamespaceID);
@@ -43,7 +43,7 @@ namespace LooCast.System
         #endregion
 
         #region Methods
-        public void AddChildNamespace(Namespace childNamespace)
+        public void AddChildNamespace(INamespace childNamespace)
         {
             childNamespaces.Add(childNamespace);
         }

@@ -179,7 +179,7 @@ namespace LooCast
         #region Properties
         public Namespace LooCastNamespace => looCastNamespace;
         public Type LooCastType => looCastType;
-        public CSharpInstance LooCastInstance => looCastInstance;
+        public CSharpInstance LooCastUnityInstance => looCastInstance;
         #endregion
 
         #region Fields
@@ -265,6 +265,8 @@ namespace LooCast
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
             instanceManager.RegisterInstance(looCastInstance);
+
+            // TODO: Register everything, that's internal
 
             #region Post-Initialization
             Debug.Log($"[MainManager] Post-Initializing internal manager instances.");

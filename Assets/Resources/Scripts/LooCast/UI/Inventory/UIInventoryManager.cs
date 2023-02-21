@@ -54,11 +54,11 @@ namespace LooCast.UI.Inventory
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Inventory", rootNamespace);
             looCastType = new Type(typeof(UIInventoryManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type inventoryHotbarType = new Type(typeof(InventoryHotbar), looCastNamespace);
             Type inventoryItemType = new Type(typeof(InventoryItem), looCastNamespace);

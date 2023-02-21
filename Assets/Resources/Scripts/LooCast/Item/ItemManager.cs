@@ -54,11 +54,11 @@ namespace LooCast.Item
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Item", rootNamespace);
             looCastType = new Type(typeof(ItemManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type itemType = new Type(typeof(Item), looCastNamespace);
             Type itemObjectType = new Type(typeof(ItemObject), looCastNamespace);

@@ -54,11 +54,11 @@ namespace LooCast.Observer
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Observer", rootNamespace);
             looCastType = new Type(typeof(ObserverManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type universeObserverType = new Type(typeof(UniverseObserver), looCastNamespace);
 

@@ -54,11 +54,11 @@ namespace LooCast.Asteroid
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Asteroid", rootNamespace);
             looCastType = new Type(typeof(AsteroidManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type asteroidType = new Type(typeof(Asteroid), looCastNamespace);
 

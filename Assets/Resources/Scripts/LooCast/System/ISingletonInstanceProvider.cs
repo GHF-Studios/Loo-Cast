@@ -3,7 +3,7 @@
     public interface ISingletonInstanceProvider
     {
         #region Properties
-        CSharpInstance LooCastInstance { get; }
+        IUnityInstance LooCastUnityInstance { get; }
         #endregion
     }
 }

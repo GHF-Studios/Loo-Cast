@@ -54,11 +54,11 @@ namespace LooCast.UI.Task
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Task", rootNamespace);
             looCastType = new Type(typeof(UITaskManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type missionTaskType = new Type(typeof(MissionTask), looCastNamespace);
             Type missionTaskContainerType = new Type(typeof(MissionTaskContainer), looCastNamespace);

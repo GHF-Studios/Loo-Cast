@@ -59,14 +59,14 @@ namespace LooCast.Util
             Namespace collectionsConcurrentNamespace = new Namespace("Concurrent", collectionsNamespace);
             Namespace collectionsGenericNamespace = new Namespace("Generic", collectionsNamespace);
             looCastType = new Type(typeof(UtilManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             namespaceManager.RegisterNamespace(collectionsNamespace);
             namespaceManager.RegisterNamespace(collectionsConcurrentNamespace);
             namespaceManager.RegisterNamespace(collectionsGenericNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type colorUtilType = new Type(typeof(ColorUtil), looCastNamespace);
             Type constantsType = new Type(typeof(Constants), looCastNamespace);

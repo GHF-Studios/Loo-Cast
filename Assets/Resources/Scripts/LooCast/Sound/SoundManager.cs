@@ -54,11 +54,11 @@ namespace LooCast.Sound
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Sound", rootNamespace);
             looCastType = new Type(typeof(SoundManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type gameSoundHandlerType = new Type(typeof(GameSoundHandler), looCastNamespace);
             Type menuSoundHandlerType = new Type(typeof(MenuSoundHandler), looCastNamespace);

@@ -54,11 +54,11 @@ namespace LooCast.Ally
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Ally", rootNamespace);
             looCastType = new Type(typeof(AllyManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type allyType = new Type(typeof(Ally), looCastNamespace);
             Type smolAllyType = new Type(typeof(SmolAlly), looCastNamespace);

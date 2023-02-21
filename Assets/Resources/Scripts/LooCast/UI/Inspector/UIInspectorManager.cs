@@ -54,11 +54,11 @@ namespace LooCast.UI.Inspector
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Inspector", rootNamespace);
             looCastType = new Type(typeof(UIInspectorManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type activeMissionInspectorType = new Type(typeof(ActiveMissionInspector), looCastNamespace);
             Type asteroidInspectorType = new Type(typeof(AsteroidInspector), looCastNamespace);

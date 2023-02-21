@@ -54,11 +54,11 @@ namespace LooCast.Mission.Reward
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.Mission");
             looCastNamespace = new Namespace("Reward", rootNamespace);
             looCastType = new Type(typeof(MissionRewardManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type creditsMissionRewardType = new Type(typeof(CreditsMissionReward), looCastNamespace);
             Type itemMissionRewardType = new Type(typeof(ItemMissionReward), looCastNamespace);

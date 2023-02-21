@@ -54,11 +54,11 @@ namespace LooCast.Random
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Random", rootNamespace);
             looCastType = new Type(typeof(RandomManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type randomType = new Type(typeof(Random), looCastNamespace);
             Type seededRandomType = new Type(typeof(SeededRandom), looCastNamespace);

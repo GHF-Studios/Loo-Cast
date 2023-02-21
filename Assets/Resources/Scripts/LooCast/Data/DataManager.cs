@@ -57,12 +57,12 @@ namespace LooCast.Data
             looCastNamespace = new Namespace("Data", rootNamespace);
             Namespace runtimeNamespace = new Namespace("Runtime", looCastNamespace);
             looCastType = new Type(typeof(DataManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             namespaceManager.RegisterNamespace(runtimeNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             
             Type boolDataType = new Type(typeof(BoolData), looCastNamespace);
             Type boolDataReferenceType = new Type(typeof(BoolDataReference), looCastNamespace);

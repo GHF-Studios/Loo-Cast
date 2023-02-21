@@ -3,7 +3,7 @@
     public interface ITypeProvider
     {
         #region Properties
-        Type LooCastType { get; }
+        IType LooCastType { get; }
         #endregion
     }
 }

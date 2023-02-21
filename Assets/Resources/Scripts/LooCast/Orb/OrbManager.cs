@@ -54,11 +54,11 @@ namespace LooCast.Orb
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Orb", rootNamespace);
             looCastType = new Type(typeof(OrbManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type experienceOrbType = new Type(typeof(ExperienceOrb), looCastNamespace);
             Type magnetOrbType = new Type(typeof(MagnetOrb), looCastNamespace);

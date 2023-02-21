@@ -54,11 +54,11 @@ namespace LooCast.Event
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Event", rootNamespace);
             looCastType = new Type(typeof(EventManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type eventType = new Type(typeof(Event), looCastNamespace);
             Type eventListenerType = new Type(typeof(EventListener), looCastNamespace);

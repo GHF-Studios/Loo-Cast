@@ -54,11 +54,11 @@ namespace LooCast.Noise
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Noise", rootNamespace);
             looCastType = new Type(typeof(NoiseManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type fastNoiseLiteType = new Type(typeof(FastNoiseLite), looCastNamespace);
             Type perlinNoiseType = new Type(typeof(PerlinNoise), looCastNamespace);

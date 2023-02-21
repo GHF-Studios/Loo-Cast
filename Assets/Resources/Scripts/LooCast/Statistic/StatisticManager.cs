@@ -54,11 +54,11 @@ namespace LooCast.Statistic
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Statistic", rootNamespace);
             looCastType = new Type(typeof(StatisticManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type killsStatisticType = new Type(typeof(KillsStatistic), looCastNamespace);
 

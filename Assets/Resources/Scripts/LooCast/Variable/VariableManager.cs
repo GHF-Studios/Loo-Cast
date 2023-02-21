@@ -54,11 +54,11 @@ namespace LooCast.Variable
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Variable", rootNamespace);
             looCastType = new Type(typeof(VariableManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type variableType = new Type(typeof(Variable<object>), looCastNamespace);
             Type computedVariableType = new Type(typeof(ComputedVariable<object>), looCastNamespace);

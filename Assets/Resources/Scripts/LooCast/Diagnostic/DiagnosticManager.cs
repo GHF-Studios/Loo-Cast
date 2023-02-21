@@ -54,11 +54,11 @@ namespace LooCast.Diagnostic
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Diagnostic", rootNamespace);
             looCastType = new Type(typeof(DiagnosticManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             
             Type benchmarkType = new Type(typeof(Benchmark), looCastNamespace);
 

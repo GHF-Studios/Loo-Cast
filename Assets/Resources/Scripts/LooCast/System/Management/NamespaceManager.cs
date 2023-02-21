@@ -14,7 +14,7 @@ namespace LooCast.System.Management
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[NamespaceManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[NamespaceManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -37,18 +37,23 @@ namespace LooCast.System.Management
         #endregion
 
         #region Fields
-        private Registry<IIdentifier, IIdentifiable> namespaceRegistry;
+        private Registry<INamespaceIdentifier, INamespace> namespaceRegistry;
         #endregion
 
         #region Methods
-        public void RegisterNamespace(Namespace @namespace)
+        public void RegisterNamespace(INamespace @namespace)
         {
             namespaceRegistry.Register(@namespace.NamespaceIdentifier, @namespace);
         }
 
-        public Namespace GetNamespace(NamespaceIdentifier namespaceIdentifier)
+        public INamespace GetNamespace(INamespaceIdentifier namespaceIdentifier)
         {
-            return (Namespace)namespaceRegistry.Get(namespaceIdentifier);
+            return namespaceRegistry.Get(namespaceIdentifier);
+        }
+
+        public INamespace GetNamespace(NamespaceIdentifier namespaceIdentifier)
+        {
+            return GetNamespace((INamespaceIdentifier)namespaceIdentifier);
         }
         #endregion
 
@@ -63,11 +68,11 @@ namespace LooCast.System.Management
 
             looCastNamespace = new Namespace("LooCast");
             looCastType = new Type(typeof(NamespaceManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             #endregion
         }
 
@@ -77,7 +82,10 @@ namespace LooCast.System.Management
 
             #region Registry Registration
             RegistryManager registryManager = RegistryManager.Instance;
-            namespaceRegistry = new Registry<IIdentifier, IIdentifiable>("LooCast:NamespaceIdentifier_LooCast:Namespace");
+            TypeManager typeManager = TypeManager.Instance;
+            IType keyType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:INamespaceIdentifier"));
+            IType valueType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:INamespaceIdentifiable"));
+            namespaceRegistry = new Registry<INamespaceIdentifier, INamespace>(keyType, valueType);
             registryManager.RegisterRegistry(namespaceRegistry);
             #endregion
         }

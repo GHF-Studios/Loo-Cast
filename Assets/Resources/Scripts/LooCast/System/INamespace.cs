@@ -6,6 +6,7 @@ namespace LooCast.System
     
     public interface INamespace : IIdentifiable
     {
+        public INamespaceIdentifier NamespaceIdentifier { get; }
         public string NamespaceName { get; }
         public INamespace ParentNamespace { get; }
         public List<INamespace> ChildNamespaces { get; }

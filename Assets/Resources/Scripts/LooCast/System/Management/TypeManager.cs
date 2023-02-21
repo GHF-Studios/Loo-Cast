@@ -14,7 +14,7 @@ namespace LooCast.System.Management
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[TypeManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[TypeManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -37,18 +37,23 @@ namespace LooCast.System.Management
         #endregion
 
         #region Fields
-        private Registry<IIdentifier, IIdentifiable> typeRegistry;
+        private Registry<ITypeIdentifier, ITypeIdentifiable> typeRegistry;
         #endregion
 
         #region Methods
-        public void RegisterType(Type type)
+        public void RegisterType(IType type)
         {
             typeRegistry.Register(type.TypeIdentifier, type);
         }
 
-        public Type GetType(TypeIdentifier typeIdentifier)
+        public IType GetType(ITypeIdentifier typeIdentifier)
         {
-            return (Type)typeRegistry.Get(typeIdentifier);
+            return (IType)typeRegistry.Get(typeIdentifier);
+        }
+
+        public IType GetType(TypeIdentifier typeIdentifier)
+        {
+            return GetType((ITypeIdentifier)typeIdentifier);
         }
         #endregion
 
@@ -63,10 +68,10 @@ namespace LooCast.System.Management
 
             looCastNamespace = namespaceManager.GetNamespace("LooCast");
             looCastType = new Type(typeof(TypeManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             #endregion
         }
 
@@ -76,7 +81,9 @@ namespace LooCast.System.Management
 
             #region Registry Registration
             RegistryManager registryManager = RegistryManager.Instance;
-            typeRegistry = new Registry<IIdentifier, IIdentifiable>("LooCast:TypeIdentifier_LooCast:Type");
+            IType keyType = GetType(new TypeIdentifier("LooCast.System.Identification:ITypeIdentifier"));
+            IType valueType = GetType(new TypeIdentifier("LooCast.System:IType"));
+            typeRegistry = new Registry<ITypeIdentifier, ITypeIdentifiable>(keyType, valueType);
             registryManager.RegisterRegistry(typeRegistry);
             #endregion
         }

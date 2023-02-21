@@ -54,11 +54,11 @@ namespace LooCast.Experience
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Experience", rootNamespace);
             looCastType = new Type(typeof(ExperienceManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             
             Type iExperienceType = new Type(typeof(IExperience), looCastNamespace);
             Type playerExperienceType = new Type(typeof(PlayerExperience), looCastNamespace);

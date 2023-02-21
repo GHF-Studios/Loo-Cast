@@ -54,11 +54,11 @@ namespace LooCast.Enemy
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Enemy", rootNamespace);
             looCastType = new Type(typeof(EnemyManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type enemyType = new Type(typeof(Enemy), looCastNamespace);
             Type smolEnemyType = new Type(typeof(SmolEnemy), looCastNamespace);

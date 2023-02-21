@@ -54,11 +54,11 @@ namespace LooCast.Indicator
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Indicator", rootNamespace);
             looCastType = new Type(typeof(IndicatorManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type damageIndicatorType = new Type(typeof(DamageIndicator), looCastNamespace);
 

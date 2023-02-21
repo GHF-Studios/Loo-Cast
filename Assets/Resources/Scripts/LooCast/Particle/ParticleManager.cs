@@ -54,11 +54,11 @@ namespace LooCast.Particle
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Particle", rootNamespace);
             looCastType = new Type(typeof(ParticleManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type particleSystemType = new Type(typeof(ParticleSystem), looCastNamespace);
 

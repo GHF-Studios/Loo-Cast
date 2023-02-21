@@ -15,7 +15,7 @@ namespace LooCast.System.Management
             {
                 if (instance == null)
                 {
-                    GameObject instanceObject = new GameObject("[RegistryManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[RegistryManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
@@ -39,13 +39,13 @@ namespace LooCast.System.Management
 
         #region Fields
         
-        private Dictionary<RegistryIdentifier, Registry<IIdentifier, IIdentifiable>> registries;
+        private Dictionary<IRegistryIdentifier, IRegistry> registries;
         #endregion
 
         #region Methods
-        public void RegisterRegistry(Registry<IIdentifier, IIdentifiable> registry)
+        public void RegisterRegistry(IRegistry registry)
         {
-            RegistryIdentifier registryIdentifier = registry.RegistryIdentifier;
+            IRegistryIdentifier registryIdentifier = registry.RegistryIdentifier;
             if (registries.ContainsKey(registryIdentifier))
             {
                 throw new Exception($"[RegistryManager] Registry '{registryIdentifier}' already exists!");
@@ -54,7 +54,7 @@ namespace LooCast.System.Management
             registries.Add(registryIdentifier, registry);
         }
 
-        public Registry<IIdentifier, IIdentifiable> GetRegistry(RegistryIdentifier registryIdentifier)
+        public IRegistry GetRegistry(IRegistryIdentifier registryIdentifier)
         {
             if (registries.ContainsKey(registryIdentifier))
             {
@@ -65,6 +65,11 @@ namespace LooCast.System.Management
                 throw new Exception($"[RegistryManager] Registry '{registryIdentifier}' does not exist!");
             }
         }
+
+        public IRegistry GetRegistry(RegistryIdentifier registryIdentifier)
+        {
+            return GetRegistry((IRegistryIdentifier)registryIdentifier);
+        }
         #endregion
 
         #region Overrides
@@ -72,7 +77,7 @@ namespace LooCast.System.Management
         {
             base.PreInitializeInstance();
 
-            registries = new Dictionary<RegistryIdentifier, Registry<IIdentifier, IIdentifiable>>();
+            registries = new Dictionary<IRegistryIdentifier, IRegistry>();
         }
 
         public override void PostInitializeInstance()
@@ -86,10 +91,10 @@ namespace LooCast.System.Management
             
             looCastNamespace = namespaceManager.GetNamespace("LooCast");
             looCastType = new Type(typeof(RegistryManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             #endregion
         }
         #endregion

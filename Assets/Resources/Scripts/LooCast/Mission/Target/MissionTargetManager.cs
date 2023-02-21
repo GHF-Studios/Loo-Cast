@@ -54,11 +54,11 @@ namespace LooCast.Mission.Target
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.Mission");
             looCastNamespace = new Namespace("Target", rootNamespace);
             looCastType = new Type(typeof(MissionTargetManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type missionTargetType = new Type(typeof(MissionTarget), looCastNamespace);
 

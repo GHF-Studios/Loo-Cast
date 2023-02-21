@@ -54,11 +54,11 @@ namespace LooCast.UI.Level
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Level", rootNamespace);
             looCastType = new Type(typeof(UILevelManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type attributeLevelType = new Type(typeof(AttributeLevel), looCastNamespace);
             Type levelType = new Type(typeof(Level), looCastNamespace);

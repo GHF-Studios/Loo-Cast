@@ -54,11 +54,11 @@ namespace LooCast.StateMachine
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("StateMachine", rootNamespace);
             looCastType = new Type(typeof(StateMachineManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             
             Type finiteStateMachineType = new Type(typeof(FiniteStateMachine<CSSystem.Enum>), looCastNamespace);
             Type stateType = new Type(typeof(State<CSSystem.Enum>), looCastNamespace);

@@ -54,11 +54,11 @@ namespace LooCast.Chance
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Chance", rootNamespace);
             looCastType = new Type(typeof(ChanceManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             
             Type chanceType = new Type(typeof(Chance), looCastNamespace);
             Type seedType = new Type(typeof(Seed<IComparable>), looCastNamespace);

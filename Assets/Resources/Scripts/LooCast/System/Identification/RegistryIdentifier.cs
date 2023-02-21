@@ -19,13 +19,13 @@ namespace LooCast.System.Identification
         #endregion
 
         #region Constructors
-        internal RegistryIdentifier(string keyTypeID, string valuetypeID)
+        public RegistryIdentifier(string keyTypeID, string valuetypeID)
         {
             this.keyTypeID = keyTypeID;
             this.valuetypeID = valuetypeID;
         }
-        
-        internal RegistryIdentifier(string registryID)
+
+        public RegistryIdentifier(string registryID)
         {
             string[] registryIDParts = registryID.Split('_');
             if (registryIDParts.Length != 2)

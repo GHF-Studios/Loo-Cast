@@ -54,11 +54,11 @@ namespace LooCast.Generator
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Generator", rootNamespace);
             looCastType = new Type(typeof(GeneratorManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type allyStationGeneratorType = new Type(typeof(AllyStationGenerator), looCastNamespace);
             Type asteroidGeneratorType = new Type(typeof(AsteroidGenerator), looCastNamespace);

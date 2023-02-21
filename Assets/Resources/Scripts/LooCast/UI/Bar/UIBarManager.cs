@@ -54,11 +54,11 @@ namespace LooCast.UI.Bar
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Bar", rootNamespace);
             looCastType = new Type(typeof(UIBarManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type barType = new Type(typeof(Bar), looCastNamespace);
             Type energyBarType = new Type(typeof(EnergyBar), looCastNamespace);

@@ -54,11 +54,11 @@ namespace LooCast.Mission.Task
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.Mission");
             looCastNamespace = new Namespace("Task", rootNamespace);
             looCastType = new Type(typeof(MissionTaskManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type iMissionTaskLockStateType = new Type(typeof(IMissionTaskLockState), looCastNamespace);
             Type lockedMissionTaskLockStateType = new Type(typeof(LockedMissionTaskLockState), looCastNamespace);

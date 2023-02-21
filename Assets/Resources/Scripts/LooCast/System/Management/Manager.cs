@@ -118,17 +118,17 @@ namespace LooCast.System.Management
         #endregion
 
         #region Properties
-        public Namespace LooCastNamespace => looCastNamespace;
-        public Type LooCastType => looCastType;
-        public CSharpInstance LooCastInstance => looCastInstance;
+        public INamespace LooCastNamespace => looCastNamespace;
+        public IType LooCastType => looCastType;
+        public IUnityInstance LooCastUnityInstance => looCastUnityInstance;
 
         public Manager[] Dependencies { get; private set; }
         #endregion
 
         #region Fields
-        protected Namespace looCastNamespace;
-        protected Type looCastType;
-        protected CSharpInstance looCastInstance;
+        protected INamespace looCastNamespace;
+        protected IType looCastType;
+        protected IUnityInstance looCastUnityInstance;
 
         private List<Action> earlyPreInitializationActions;
         private List<Action> preInitializationActions;

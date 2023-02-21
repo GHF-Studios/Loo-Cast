@@ -4,22 +4,23 @@ using UnityEngine;
 namespace LooCast.System.Management
 {
     using LooCast.System.Identification;
-    
-    public class InstanceManager : InternalManager
+    using LooCast.Util;
+
+    public class CSharpInstanceManager : InternalManager
     {
         #region Static Properties
-        public static InstanceManager Instance
+        public static CSharpInstanceManager Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[InstanceManager]");
+                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[CSharpInstanceManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
                     DontDestroyOnLoad(instanceObject);
                     instanceObject.transform.parent = Core.CoreManager.Instance.transform;
-                    return instanceObject.AddComponent<InstanceManager>();
+                    return instanceObject.AddComponent<CSharpInstanceManager>();
                 }
                 else
                 {
@@ -30,30 +31,30 @@ namespace LooCast.System.Management
         #endregion
 
         #region Static Fields
-        private static InstanceManager instance;
+        private static CSharpInstanceManager instance;
         #endregion
 
         #region Properties
         #endregion
 
         #region Fields
-        private Registry<IInstanceIdentifier, IInstanceIdentifiable> instanceRegistry;
+        private Registry<ICSharpInstanceIdentifier, ICSharpInstanceIdentifiable> csharpInstanceRegistry;
         #endregion
 
         #region Methods
-        public void RegisterInstance(IInstance instance)
+        public void RegisterInstance(CSharpInstance instance)
         {
-            instanceRegistry.Register(instance.InstanceIdentifier, instance);
+            csharpInstanceRegistry.Register(instance.CSharpInstanceIdentifier, instance);
         }
 
-        public void UnregisterInstance(IInstance instance)
+        public void UnregisterInstance(CSharpInstance instance)
         {
-            instanceRegistry.Unregister(instance.InstanceIdentifier);
+            csharpInstanceRegistry.Unregister(instance.CSharpInstanceIdentifier);
         }
 
-        public IInstance GetInstance(IInstanceIdentifier instanceIdentifier)
+        public CSharpInstance GetInstance(CSharpInstanceIdentifier csharpInstanceIdentifier)
         {
-            return (IInstance)instanceRegistry.Get(instanceIdentifier);
+            return (CSharpInstance)csharpInstanceRegistry.Get(csharpInstanceIdentifier);
         }
         #endregion
 
@@ -67,8 +68,8 @@ namespace LooCast.System.Management
             TypeManager typeManager = TypeManager.Instance;
 
             looCastNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastType = new Type(typeof(InstanceManager), looCastNamespace);
-            looCastUnityInstance = new Instance(this, looCastType);
+            looCastType = new CSharpInstanceType(typeof(CSharpInstanceManager), looCastNamespace);
+            looCastUnityInstance = new CSharpInstance(this, (CSharpInstanceType)looCastType);
 
             typeManager.RegisterType(looCastType);
             RegisterInstance(looCastUnityInstance);
@@ -82,10 +83,10 @@ namespace LooCast.System.Management
             #region Registry Registration
             RegistryManager registryManager = RegistryManager.Instance;
             TypeManager typeManager = TypeManager.Instance;
-            IType keyType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:IInstanceIdentifier"));
-            IType valueType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:IInstanceIdentifiable"));
-            instanceRegistry = new Registry<IInstanceIdentifier, IInstanceIdentifiable>(keyType, valueType);
-            registryManager.RegisterRegistry(instanceRegistry);
+            Type keyType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:ICSharpInstanceIdentifier"));
+            Type valueType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:ICSharpInstanceIdentifiable"));
+            csharpInstanceRegistry = new Registry<ICSharpInstanceIdentifier, ICSharpInstanceIdentifiable>(keyType, valueType);
+            registryManager.RegisterRegistry(csharpInstanceRegistry);
             #endregion
         }
         #endregion

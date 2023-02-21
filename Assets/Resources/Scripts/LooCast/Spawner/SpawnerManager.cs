@@ -54,11 +54,11 @@ namespace LooCast.Spawner
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Spawner", rootNamespace);
             looCastType = new Type(typeof(SpawnerManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type allySpawnerType = new Type(typeof(AllySpawner), looCastNamespace);
             Type enemySpawnerType = new Type(typeof(EnemySpawner), looCastNamespace);

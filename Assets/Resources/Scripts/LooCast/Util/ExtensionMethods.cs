@@ -5,7 +5,10 @@ using UnityEngine;
 namespace LooCast.Util
 {
     using LooCast.Item;
+    using LooCast.System;
+    using LooCast.System.Identification;
 
+    // TODO: Move to System namespace
     public static class ExtensionMethods
     {
         public static float Map(this float value, float fromMin, float fromMax, float toMin, float toMax)

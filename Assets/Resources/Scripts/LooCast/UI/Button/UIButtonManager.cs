@@ -54,11 +54,11 @@ namespace LooCast.UI.Button
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Button", rootNamespace);
             looCastType = new Type(typeof(UIButtonManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type attributeSetButtonType = new Type(typeof(AttributeSetButton), looCastNamespace);
             Type buttonType = new Type(typeof(Button), looCastNamespace);

@@ -54,11 +54,11 @@ namespace LooCast.Currency
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Currency", rootNamespace);
             looCastType = new Type(typeof(CurrencyManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type coinsType = new Type(typeof(Coins), looCastNamespace);
             Type tokensType = new Type(typeof(Tokens), looCastNamespace);

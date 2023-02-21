@@ -54,11 +54,11 @@ namespace LooCast.UI.Timer
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Timer", rootNamespace);
             looCastType = new Type(typeof(UITimerManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type roundTimerType = new Type(typeof(RoundTimer), looCastNamespace);
 

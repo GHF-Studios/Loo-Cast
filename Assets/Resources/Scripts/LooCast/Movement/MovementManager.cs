@@ -56,11 +56,11 @@ namespace LooCast.Movement
             looCastNamespace = new Namespace("Movement", rootNamespace);
             Namespace effectNamespace = new Namespace("Effect", rootNamespace);
             looCastType = new Type(typeof(MovementManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type iMovementType = new Type(typeof(IMovement), looCastNamespace);
             Type allyMovementType = new Type(typeof(AllyMovement), looCastNamespace);

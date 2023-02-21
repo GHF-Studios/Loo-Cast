@@ -54,11 +54,11 @@ namespace LooCast.Arc
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Arc", rootNamespace);
             looCastType = new Type(typeof(ArcManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type arcType = new Type(typeof(Arc), looCastNamespace);
             Type arcSegmentType = new Type(typeof(ArcSegment), looCastNamespace);

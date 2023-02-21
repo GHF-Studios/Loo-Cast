@@ -54,11 +54,11 @@ namespace LooCast.Health
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Health", rootNamespace);
             looCastType = new Type(typeof(HealthManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type allyHealthType = new Type(typeof(AllyHealth), looCastNamespace);
             Type allyStationHealthType = new Type(typeof(AllyStationHealth), looCastNamespace);

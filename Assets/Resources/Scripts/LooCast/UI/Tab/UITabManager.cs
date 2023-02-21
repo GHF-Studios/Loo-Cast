@@ -54,11 +54,11 @@ namespace LooCast.UI.Tab
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Tab", rootNamespace);
             looCastType = new Type(typeof(UITabManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type tabType = new Type(typeof(Tab), looCastNamespace);
             Type tabGroupType = new Type(typeof(TabGroup), looCastNamespace);

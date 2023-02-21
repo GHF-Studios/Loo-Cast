@@ -54,11 +54,11 @@ namespace LooCast.UI.Screen
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Screen", rootNamespace);
             looCastType = new Type(typeof(UIScreenManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type deathScreenType = new Type(typeof(DeathScreen), looCastNamespace);
             Type loadGameScreenType = new Type(typeof(LoadGameScreen), looCastNamespace);

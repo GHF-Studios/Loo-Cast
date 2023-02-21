@@ -54,11 +54,11 @@ namespace LooCast.UI.Canvas
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Canvas", rootNamespace);
             looCastType = new Type(typeof(UICanvasManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type canvasType = new Type(typeof(Canvas), looCastNamespace);
             Type gameCanvasType = new Type(typeof(GameCanvas), looCastNamespace);

@@ -3,7 +3,7 @@
     public interface INamespaceProvider
     {
         #region Properties
-        Namespace LooCastNamespace { get; }
+        INamespace LooCastNamespace { get; }
         #endregion
     }
 }

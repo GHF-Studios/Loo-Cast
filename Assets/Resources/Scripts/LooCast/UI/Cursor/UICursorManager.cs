@@ -54,11 +54,11 @@ namespace LooCast.UI.Cursor
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Cursor", rootNamespace);
             looCastType = new Type(typeof(UICursorManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type asteroidCursorType = new Type(typeof(AsteroidCursor), looCastNamespace);
             Type missionButtonCursorType = new Type(typeof(MissionButtonCursor), looCastNamespace);

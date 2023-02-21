@@ -54,11 +54,11 @@ namespace LooCast.UI.Panel
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Panel", rootNamespace);
             looCastType = new Type(typeof(UIPanelManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             
             Type asteroidInfoPanelType = new Type(typeof(AsteroidInfoPanel), looCastNamespace);
             Type asteroidResourceDepositsPanelType = new Type(typeof(AsteroidResourceDepositsPanel), looCastNamespace);

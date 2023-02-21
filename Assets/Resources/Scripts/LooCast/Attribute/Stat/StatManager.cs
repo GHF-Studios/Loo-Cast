@@ -54,11 +54,11 @@ namespace LooCast.Attribute.Stat
             Namespace attributeNamespace = namespaceManager.GetNamespace("LooCast.Attribute");
             looCastNamespace = new Namespace("Stat", attributeNamespace);
             looCastType = new Type(typeof(StatManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
             
             Type statType = new Type(typeof(Stat), looCastNamespace);
             Type statsType = new Type(typeof(Stats), looCastNamespace);

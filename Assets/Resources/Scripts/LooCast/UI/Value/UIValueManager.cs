@@ -54,11 +54,11 @@ namespace LooCast.UI.Value
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast.UI");
             looCastNamespace = new Namespace("Value", rootNamespace);
             looCastType = new Type(typeof(UIValueManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type coinsValueType = new Type(typeof(CoinsValue), looCastNamespace);
             Type experienceLevelValueType = new Type(typeof(ExperienceLevelValue), looCastNamespace);

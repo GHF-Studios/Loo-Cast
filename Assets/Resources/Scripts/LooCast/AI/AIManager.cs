@@ -53,11 +53,11 @@ namespace LooCast.AI
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("AI", rootNamespace);
             looCastType = new Type(typeof(AIManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type allyAIType = new Type(typeof(AllyAI), looCastNamespace);
             Type enemyAIType = new Type(typeof(EnemyAI), looCastNamespace);

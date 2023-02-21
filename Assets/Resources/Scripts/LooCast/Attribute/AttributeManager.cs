@@ -57,11 +57,11 @@ namespace LooCast.Attribute
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Attribute", rootNamespace);
             looCastType = new Type(typeof(AttributeManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type attributeType = new Type(typeof(Attribute), looCastNamespace);
             Type attributesType = new Type(typeof(Attributes), looCastNamespace);

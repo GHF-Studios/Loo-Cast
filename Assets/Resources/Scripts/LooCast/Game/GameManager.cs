@@ -252,11 +252,11 @@ namespace LooCast.Game
             Namespace rootNamespace = namespaceManager.GetNamespace("LooCast");
             looCastNamespace = new Namespace("Game", rootNamespace);
             looCastType = new Type(typeof(GameManager), looCastNamespace);
-            looCastInstance = new Instance(this, looCastType);
+            looCastUnityInstance = new Instance(this, looCastType);
 
             namespaceManager.RegisterNamespace(looCastNamespace);
             typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            instanceManager.RegisterInstance(looCastUnityInstance);
 
             Type gameType = new Type(typeof(Game), looCastNamespace);
             Type gamesType = new Type(typeof(Games), looCastNamespace);
