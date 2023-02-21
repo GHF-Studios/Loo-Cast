@@ -5,7 +5,7 @@ namespace LooCast.System.Management
 {
     using LooCast.System.Identification;
 
-    public class UnityInstanceManager : InternalManager
+    public sealed class UnityInstanceManager : InternalManager
     {
         #region Static Properties
         public static UnityInstanceManager Instance

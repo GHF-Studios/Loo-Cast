@@ -23,11 +23,11 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        private ICSharpInstanceIdentifier csharpInstanceIdentifier;
-        private ICSharpInstanceType csharpInstanceType;
-        private object csharpInstanceObject;
-        private ICSharpInstance parentCSharpInstance;
-        private List<ICSharpInstance> childCSharpInstances;
+        protected ICSharpInstanceIdentifier csharpInstanceIdentifier;
+        protected ICSharpInstanceType csharpInstanceType;
+        protected object csharpInstanceObject;
+        protected ICSharpInstance parentCSharpInstance;
+        protected List<ICSharpInstance> childCSharpInstances;
         #endregion
 
         #region Constructors

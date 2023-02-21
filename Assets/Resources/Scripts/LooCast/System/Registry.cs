@@ -4,7 +4,6 @@ using System.Collections.Generic;
 namespace LooCast.System
 {
     using Identification;
-    using LooCast.Util;
 
     public class Registry<KeyType, ValueType> : IRegistry where KeyType : IIdentifier where ValueType : IIdentifiable
     {
@@ -15,8 +14,8 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        private IRegistryIdentifier registryIdentifier;
-        private Dictionary<KeyType, ValueType> registryDictionary;
+        protected IRegistryIdentifier registryIdentifier;
+        protected Dictionary<KeyType, ValueType> registryDictionary;
         #endregion
 
         #region Constructors

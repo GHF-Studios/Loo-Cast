@@ -23,11 +23,11 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        private IUnityInstanceIdentifier unityInstanceIdentifier;
-        private IUnityInstanceType unityInstanceType;
-        private UnityEngine.Object unityInstanceObject;
-        private IUnityInstance parentUnityInstance;
-        private List<IUnityInstance> childUnityInstances;
+        protected IUnityInstanceIdentifier unityInstanceIdentifier;
+        protected IUnityInstanceType unityInstanceType;
+        protected UnityEngine.Object unityInstanceObject;
+        protected IUnityInstance parentUnityInstance;
+        protected List<IUnityInstance> childUnityInstances;
         #endregion
 
         #region Constructors

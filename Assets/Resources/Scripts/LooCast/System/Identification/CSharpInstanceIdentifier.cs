@@ -13,8 +13,8 @@ namespace LooCast.System.Identification
         #endregion
 
         #region Fields
-        [SerializeField] private string csharpInstanceTypeID;
-        [SerializeField] private string csharpInstanceGUID;
+        [SerializeField] protected string csharpInstanceTypeID;
+        [SerializeField] protected string csharpInstanceGUID;
 
         public CSharpInstanceIdentifier(ICSharpInstanceTypeIdentifier csharpInstanceTypeIdentifier) : base(csharpInstanceTypeIdentifier, new CSSystem.Guid().ToString())
         {

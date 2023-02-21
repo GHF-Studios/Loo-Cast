@@ -5,7 +5,7 @@ namespace LooCast.System.Management
 {
     using LooCast.System.Identification;
     
-    public class NamespaceManager : InternalManager
+    public sealed class NamespaceManager : InternalManager
     {
         #region Static Properties
         public static NamespaceManager Instance

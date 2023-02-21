@@ -17,10 +17,10 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        private ITypeIdentifier typeIdentifier;
-        private INamespace typeNamespace;
-        private IType parentType;
-        private List<IType> childTypes;
+        protected ITypeIdentifier typeIdentifier;
+        protected INamespace typeNamespace;
+        protected IType parentType;
+        protected List<IType> childTypes;
         #endregion
 
         #region Constructors

@@ -14,8 +14,8 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        private IUnityInstanceType parentUnityInstanceType;
-        private List<IUnityInstanceType> childUnityInstanceTypes;
+        protected IUnityInstanceType parentUnityInstanceType;
+        protected List<IUnityInstanceType> childUnityInstanceTypes;
 
         public UnityInstanceType(CSSystem.Type cssystemType, INamespace rootNamespace) : base(cssystemType, rootNamespace)
         {

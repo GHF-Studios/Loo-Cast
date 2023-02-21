@@ -1,13 +1,17 @@
-﻿namespace LooCast.System
+﻿using System.Collections.Generic;
+
+namespace LooCast.System
 {
-    using global::System.Collections.Generic;
     using LooCast.System.Identification;
 
     public interface IUnityInstance : IInstance, IUnityInstanceIdentifiable
     {
+        #region Properties
         public IUnityInstanceType UnityInstanceType { get; }
         public UnityEngine.Object UnityInstanceObject { get; }
         public IUnityInstance ParentUnityInstance { get; }
         public List<IUnityInstance> ChildUnityInstances { get; }
+        public IUnityInstanceRegistry UnityInstanceRegistry { get; }
+        #endregion
     }
 }

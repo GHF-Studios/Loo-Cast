@@ -1,6 +1,6 @@
 ﻿namespace LooCast.System.Identification
 {
-    public interface IRegistryIdentifier : IGenericIdentifier<Registry<IIdentifier, IIdentifiable>>
+    public interface IRegistryIdentifier : IIdentifier
     {
         #region Properties
         string KeyTypeID { get; }

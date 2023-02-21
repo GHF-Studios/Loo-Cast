@@ -14,8 +14,8 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        private ICSharpInstanceType parentCSharpInstanceType;
-        private List<ICSharpInstanceType> childCSharpInstanceTypes;
+        protected ICSharpInstanceType parentCSharpInstanceType;
+        protected List<ICSharpInstanceType> childCSharpInstanceTypes;
 
         public CSharpInstanceType(CSSystem.Type cssystemType, Namespace rootNamespace) : base(cssystemType, rootNamespace)
         {

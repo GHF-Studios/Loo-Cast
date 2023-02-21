@@ -2,10 +2,8 @@ namespace LooCast.System
 {
     using System.Identification;
     
-    public interface IRegistry : IIdentifiable
+    public interface IRegistry : IRegistryIdentifiable
     {
-        #region Properties
-        IRegistryIdentifier RegistryIdentifier { get; }
-        #endregion
+        
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace LooCast.System.Identification
 {
-    public interface INamespaceIdentifier : IGenericIdentifier<Namespace>
+    public interface INamespaceIdentifier : IIdentifier
     {
         #region Properties
         string ParentNamespaceID { get; }

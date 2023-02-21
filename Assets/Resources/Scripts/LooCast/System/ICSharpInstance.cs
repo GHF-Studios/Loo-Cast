@@ -2,7 +2,7 @@
 
 namespace LooCast.System
 {
-    using System.Identification;
+    using LooCast.System.Identification;
 
     public interface ICSharpInstance : IInstance, ICSharpInstanceIdentifiable
     {
@@ -11,6 +11,7 @@ namespace LooCast.System
         public object CSharpInstanceObject { get; }
         public ICSharpInstance ParentCSharpInstance { get; }
         public List<ICSharpInstance> ChildCSharpInstances { get; }
+        public ICSharpInstanceRegistry CSharpInstanceRegistry { get; }
         #endregion
     }
 }

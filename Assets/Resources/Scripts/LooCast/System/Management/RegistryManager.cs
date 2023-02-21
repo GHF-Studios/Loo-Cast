@@ -6,7 +6,7 @@ namespace LooCast.System.Management
 {
     using LooCast.System.Identification;
     
-    public class RegistryManager : InternalManager
+    public sealed class RegistryManager : InternalManager
     {
         #region Static Properties
         public static RegistryManager Instance

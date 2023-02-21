@@ -4,8 +4,8 @@ using UnityEngine;
 namespace LooCast.System.Management
 {
     using LooCast.System.Identification;
-    
-    public class TypeManager : InternalManager
+
+    public sealed class TypeManager : InternalManager
     {
         #region Static Properties
         public static TypeManager Instance

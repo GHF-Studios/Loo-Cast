@@ -5,7 +5,7 @@ namespace LooCast.System.Management
 {
     using LooCast.System.Identification;
 
-    public class CSharpInstanceManager : InternalManager
+    public sealed class CSharpInstanceManager : InternalManager
     {
         #region Static Properties
         public static CSharpInstanceManager Instance

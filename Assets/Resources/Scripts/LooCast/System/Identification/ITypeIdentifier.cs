@@ -2,7 +2,7 @@
 
 namespace LooCast.System.Identification
 {
-    public interface ITypeIdentifier : IGenericIdentifier<Type>
+    public interface ITypeIdentifier : IIdentifier
     {
         #region Properties
         string ParentNamespaceID { get; }
