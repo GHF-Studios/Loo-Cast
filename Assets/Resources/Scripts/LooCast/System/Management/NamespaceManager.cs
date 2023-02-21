@@ -37,7 +37,7 @@ namespace LooCast.System.Management
         #endregion
 
         #region Fields
-        private Registry<INamespaceIdentifier, INamespace> namespaceRegistry;
+        private NamespaceRegistry namespaceRegistry;
         #endregion
 
         #region Methods
@@ -48,12 +48,12 @@ namespace LooCast.System.Management
 
         public INamespace GetNamespace(INamespaceIdentifier namespaceIdentifier)
         {
-            return namespaceRegistry.Get(namespaceIdentifier);
+            return (INamespace)namespaceRegistry.Get(namespaceIdentifier);
         }
 
         public INamespace GetNamespace(NamespaceIdentifier namespaceIdentifier)
         {
-            return GetNamespace((INamespaceIdentifier)namespaceIdentifier);
+            return GetNamespace(namespaceIdentifier);
         }
         #endregion
 
@@ -85,7 +85,7 @@ namespace LooCast.System.Management
             TypeManager typeManager = TypeManager.Instance;
             IType keyType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:INamespaceIdentifier"));
             IType valueType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:INamespaceIdentifiable"));
-            namespaceRegistry = new Registry<INamespaceIdentifier, INamespace>(keyType, valueType);
+            namespaceRegistry = new NamespaceRegistry(keyType, valueType);
             registryManager.RegisterRegistry(namespaceRegistry);
             #endregion
         }

@@ -4,11 +4,12 @@ namespace LooCast.System
 {
     using System.Identification;
     
-    public interface INamespace : IIdentifiable
+    public interface INamespace : INamespaceIdentifiable
     {
-        public INamespaceIdentifier NamespaceIdentifier { get; }
+        #region Properties
         public string NamespaceName { get; }
         public INamespace ParentNamespace { get; }
         public List<INamespace> ChildNamespaces { get; }
+        #endregion
     }
 }

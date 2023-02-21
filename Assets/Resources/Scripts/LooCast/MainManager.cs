@@ -155,7 +155,8 @@ namespace LooCast
                     RegistryManager.Instance,
                     NamespaceManager.Instance,
                     TypeManager.Instance,
-                    InstanceManager.Instance,
+                    CSharpInstanceManager.Instance,
+                    UnityInstanceManager.Instance
                 };
             }
         }

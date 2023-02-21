@@ -37,7 +37,7 @@ namespace LooCast.System.Management
         #endregion
 
         #region Fields
-        private Registry<IUnityInstanceIdentifier, IUnityInstance> unityInstanceRegistry;
+        private UnityInstanceRegistry unityInstanceRegistry;
         #endregion
 
         #region Methods
@@ -53,7 +53,12 @@ namespace LooCast.System.Management
 
         public IUnityInstance GetUnityInstance(IUnityInstanceIdentifier unityInstanceIdentifier)
         {
-            return unityInstanceRegistry.Get(unityInstanceIdentifier);
+            return (IUnityInstance)unityInstanceRegistry.Get(unityInstanceIdentifier);
+        }
+
+        public IUnityInstance GetUnityInstance(UnityInstanceIdentifier unityInstanceIdentifier)
+        {
+            return GetUnityInstance(unityInstanceIdentifier);
         }
         #endregion
 
@@ -85,8 +90,8 @@ namespace LooCast.System.Management
             TypeManager typeManager = TypeManager.Instance;
             
             IType keyType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:IUnityInstanceIdentifier"));
-            IType valueType = typeManager.GetType(new TypeIdentifier("LooCast.System:IUnityInstance"));
-            unityInstanceRegistry = new Registry<IUnityInstanceIdentifier, IUnityInstance>(keyType, valueType);
+            IType valueType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:IUnityInstanceIdentifiable"));
+            unityInstanceRegistry = new UnityInstanceRegistry(keyType, valueType);
             
             registryManager.RegisterRegistry(unityInstanceRegistry);
             #endregion

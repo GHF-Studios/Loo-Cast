@@ -37,7 +37,7 @@ namespace LooCast.System.Management
         #endregion
 
         #region Fields
-        private Registry<ICSharpInstanceIdentifier, ICSharpInstance> csharpInstanceRegistry;
+        private CSharpInstanceRegistry csharpInstanceRegistry;
         #endregion
 
         #region Methods
@@ -53,7 +53,12 @@ namespace LooCast.System.Management
 
         public ICSharpInstance GetCSharpInstance(ICSharpInstanceIdentifier csharpInstanceIdentifier)
         {
-            return csharpInstanceRegistry.Get(csharpInstanceIdentifier);
+            return (ICSharpInstance)csharpInstanceRegistry.Get(csharpInstanceIdentifier);
+        }
+
+        public ICSharpInstance GetCSharpInstance(CSharpInstanceIdentifier csharpInstanceIdentifier)
+        {
+            return GetCSharpInstance(csharpInstanceIdentifier);
         }
         #endregion
 
@@ -85,8 +90,8 @@ namespace LooCast.System.Management
             TypeManager typeManager = TypeManager.Instance;
             
             IType keyType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:ICSharpInstanceIdentifier"));
-            IType valueType = typeManager.GetType(new TypeIdentifier("LooCast.System:ICSharpInstance"));
-            csharpInstanceRegistry = new Registry<ICSharpInstanceIdentifier, ICSharpInstance>(keyType, valueType);
+            IType valueType = typeManager.GetType(new TypeIdentifier("LooCast.System.Identification:ICSharpInstanceIdentifiable"));
+            csharpInstanceRegistry = new CSharpInstanceRegistry(keyType, valueType);
             
             registryManager.RegisterRegistry(csharpInstanceRegistry);
             #endregion

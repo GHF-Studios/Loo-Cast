@@ -37,7 +37,7 @@ namespace LooCast.System.Management
         #endregion
 
         #region Fields
-        private Registry<ITypeIdentifier, IType> typeRegistry;
+        private TypeRegistry typeRegistry;
         #endregion
 
         #region Methods
@@ -53,7 +53,7 @@ namespace LooCast.System.Management
 
         public IType GetType(TypeIdentifier typeIdentifier)
         {
-            return GetType((ITypeIdentifier)typeIdentifier);
+            return GetType(typeIdentifier);
         }
         #endregion
 
@@ -82,8 +82,8 @@ namespace LooCast.System.Management
             #region Registry Registration
             RegistryManager registryManager = RegistryManager.Instance;
             IType keyType = GetType(new TypeIdentifier("LooCast.System.Identification:ITypeIdentifier"));
-            IType valueType = GetType(new TypeIdentifier("LooCast.System:IType"));
-            typeRegistry = new Registry<ITypeIdentifier, IType>(keyType, valueType);
+            IType valueType = GetType(new TypeIdentifier("LooCast.System.Identification:ITypeIdentifiable"));
+            typeRegistry = new TypeRegistry(keyType, valueType);
             registryManager.RegisterRegistry(typeRegistry);
             #endregion
         }

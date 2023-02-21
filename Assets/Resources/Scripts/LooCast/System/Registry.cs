@@ -5,7 +5,7 @@ namespace LooCast.System
 {
     using Identification;
 
-    public class Registry<KeyType, ValueType> : IRegistry where KeyType : IIdentifier where ValueType : IIdentifiable
+    public class Registry<KeyType, ValueType> : IRegistry<KeyType, ValueType> where KeyType : IIdentifier where ValueType : IIdentifiable
     {
         #region Properties
         public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
@@ -65,12 +65,12 @@ namespace LooCast.System
             return registryDictionary[key];
         }
 
-        public virtual bool ValidateKeyType(IType keyType)
+        public bool ValidateKeyType(IType keyType)
         {
             return keyType.CSSystemType.IsSubclassOf(typeof(KeyType));
         }
 
-        public virtual bool ValidateValueType(IType valueType)
+        public bool ValidateValueType(IType valueType)
         {
             return valueType.CSSystemType.IsSubclassOf(typeof(ValueType));
         }

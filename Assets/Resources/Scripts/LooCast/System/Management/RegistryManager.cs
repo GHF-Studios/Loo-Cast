@@ -39,11 +39,11 @@ namespace LooCast.System.Management
 
         #region Fields
         
-        private Dictionary<IRegistryIdentifier, IRegistry> registries;
+        private Dictionary<IRegistryIdentifier, IRegistryIdentifiable> registries;
         #endregion
 
         #region Methods
-        public void RegisterRegistry(IRegistry registry)
+        public void RegisterRegistry(IRegistryIdentifiable registry)
         {
             IRegistryIdentifier registryIdentifier = registry.RegistryIdentifier;
             if (registries.ContainsKey(registryIdentifier))
@@ -54,11 +54,11 @@ namespace LooCast.System.Management
             registries.Add(registryIdentifier, registry);
         }
 
-        public IRegistry GetRegistry(IRegistryIdentifier registryIdentifier)
+        public IRegistry<KeyType, ValueType> GetRegistry<KeyType, ValueType>(IRegistryIdentifier registryIdentifier) where KeyType : IIdentifier where ValueType : IIdentifiable
         {
             if (registries.ContainsKey(registryIdentifier))
             {
-                return registries[registryIdentifier];
+                return (IRegistry<KeyType, ValueType>)registries[registryIdentifier];
             }
             else
             {
@@ -66,9 +66,9 @@ namespace LooCast.System.Management
             }
         }
 
-        public IRegistry GetRegistry(RegistryIdentifier registryIdentifier)
+        public IRegistry<IIdentifier, IIdentifiable> GetRegistry(RegistryIdentifier registryIdentifier)
         {
-            return GetRegistry((IRegistryIdentifier)registryIdentifier);
+            return GetRegistry(registryIdentifier);
         }
         #endregion
 
@@ -77,7 +77,7 @@ namespace LooCast.System.Management
         {
             base.PreInitializeInstance();
 
-            registries = new Dictionary<IRegistryIdentifier, IRegistry>();
+            registries = new Dictionary<IRegistryIdentifier, IRegistryIdentifiable>();
         }
 
         public override void PostInitializeInstance()
