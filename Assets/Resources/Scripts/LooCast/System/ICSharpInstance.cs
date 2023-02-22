@@ -11,7 +11,6 @@ namespace LooCast.System
         public object CSharpInstanceObject { get; }
         public ICSharpInstance ParentCSharpInstance { get; }
         public List<ICSharpInstance> ChildCSharpInstances { get; }
-        public ICSharpInstanceRegistry CSharpInstanceRegistry { get; }
         #endregion
     }
 }

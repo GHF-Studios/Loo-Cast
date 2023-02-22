@@ -11,7 +11,6 @@ namespace LooCast.System
         public UnityEngine.Object UnityInstanceObject { get; }
         public IUnityInstance ParentUnityInstance { get; }
         public List<IUnityInstance> ChildUnityInstances { get; }
-        public IUnityInstanceRegistry UnityInstanceRegistry { get; }
         #endregion
     }
 }
