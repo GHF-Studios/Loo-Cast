@@ -59,19 +59,27 @@ IComponentRegistry
 	
 IPersistable
 
+	IMod
+	IModData
+	IModMetaData
+	
+	IModule
+	IModuleData
+	IModuleMetaData
+	
 IData
-	IDataIdentifier
-	IDataIdentifiable
-	IDataType
-	IDataTypeIdentifier
-	IDataRegistry
+IDataIdentifier
+IDataIdentifiable
+IDataType
+IDataTypeIdentifier
+IDataRegistry
 	
 IMetaData
-	IMetaDataIdentifier
-	IMetaDataIdentifiable
-	IMetaDataType
-	IMetaDataTypeIdentifier
-	IMetaDataRegistry
+IMetaDataIdentifier
+IMetaDataIdentifiable
+IMetaDataType
+IMetaDataTypeIdentifier
+IMetaDataRegistry
 	
 IDataObject
 	IDataObjectIdentifier
@@ -94,36 +102,33 @@ IDataFolder
 	IDataFolderTypeIdentifier
 	IDataFolderRegistry
 	
-  IResource
+IResource
+	IResourceIdentifier
+	IResourceIdentifiable
+	IResourceType
+	IResourceTypeIdentifier
+	IResourceRegistry
 	IResourceData
 	IResourceMetaData
 	
-  IResourceObject
+IResourceObject
 	IResourceObjectIdentifier
 	IResourceObjectIdentifiable
 	IResourceObjectType
 	IResourceObjectTypeIdentifier
 	IResourceObjectRegistry
 	
-  IResourceFile
+IResourceFile
 	IResourceFileIdentifier
 	IResourceFileIdentifiable
 	IResourceFileType
 	IResourceFileTypeIdentifier
 	IResourceFileRegistry
 	
-  IResourceFolder
+IResourceFolder
 	IResourceFolderIdentifier
 	IResourceFolderIdentifiable
 	IResourceFolderType
 	IResourceFolderTypeIdentifier
 	IResourceFolderRegistry
-	
-	IMod
-	IModData
-	IModMetaData
-	
-	IModule
-	IModuleData
-	IModuleMetaData
 	

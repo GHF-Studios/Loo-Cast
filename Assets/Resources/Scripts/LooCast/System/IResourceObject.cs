@@ -7,11 +7,11 @@ namespace LooCast.System
     public interface IResourceObject : IResource, IResourceObjectIdentifiable
     {
         #region Properties
+        public string ResourceObjectPath { get; }
         public IResourceObjectType ResourceObjectType { get; }
         public IResourceObject? ParentResourceObject { get; }
         public IResourceFile? ParentResourceFile { get; }
         public SerializableList<IResourceObject> ChildResourceObjects { get; }
-        public string ResourceObjectPath { get; }
         #endregion
     }
 }

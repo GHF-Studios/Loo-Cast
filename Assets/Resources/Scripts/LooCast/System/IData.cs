@@ -8,7 +8,7 @@ namespace LooCast.System
     {
         #region Properties
         public IDataType DataType { get; }
-        public IData ParentData { get; }
+        public IData? ParentData { get; }
         public SerializableList<IData> ChildData { get; }
         #endregion
 
