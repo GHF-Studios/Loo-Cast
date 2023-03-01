@@ -10,7 +10,6 @@ namespace LooCast.System
         public IGameObjectType GameObjectType { get; }
         public IGameObject ParentGameObject { get; }
         public List<IGameObject> ChildGameObjects { get; }
-        public ITransform Transform { get; }
         #endregion
     }
 }

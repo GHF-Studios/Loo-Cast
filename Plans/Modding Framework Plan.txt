@@ -1,0 +1,109 @@
+IIdentifier
+IIdentifiable
+
+IRegistry
+IRegistryIdentifier
+IRegistryIdentifiable
+
+INamespace
+INamespaceIdentifier
+INamespaceIdentifiable
+INamespaceRegistry
+
+IType
+ITypeIdentifier
+ITypeIdentifiable
+ITypeRegistry
+
+IInstance
+IInstanceIdentifier
+IInstanceIdentifiable
+IInstanceType
+IInstanceTypeIdentifier
+IInstanceRegistry
+
+ICSharpInstance
+ICSharpInstanceIdentifier
+ICSharpInstanceIdentifiable
+ICSharpInstanceType
+ICSharpInstanceTypeIdentifier
+ICSharpInstanceRegistry
+
+IUnityInstance
+IUnityInstanceIdentifier
+IUnityInstanceIdentifiable
+IUnityInstanceType
+IUnityInstanceTypeIdentifier
+IUnityInstanceRegistry
+
+IObject
+IObjectIdentifier
+IObjectIdentifiable
+IObjectType
+IObjectTypeIdentifier
+IObjectRegistry
+	
+IGameObject
+IGameObjectIdentifier
+IGameObjectIdentifiable
+IGameObjectType
+IGameObjectTypeIdentifier
+IGameObjectRegistry
+	
+IComponent
+IComponentIdentifier
+IComponentIdentifiable
+IComponentType
+IComponentTypeIdentifier
+IComponentRegistry
+	
+IPersistable
+
+IData
+IMetaData
+	
+IDataObject
+	IDataObjectIdentifier
+	IDataObjectIdentifiable
+	IDataObjectType
+	IDataObjectTypeIdentifier
+	IDataObjectRegistry
+	
+IDataFile
+	IDataFileIdentifier
+	IDataFileIdentifiable
+	IDataFileType
+	IDataFileTypeIdentifier
+	IDataFileRegistry
+	
+IDataFolder
+	IDataFolderIdentifier
+	IDataFolderIdentifiable
+	IDataFolderType
+	IDataFolderTypeIdentifier
+	IDataFolderRegistry
+	
+	IResource
+	IResourceData
+	IResourceMetaData
+	
+	IResourceObject
+	IResourceObjectIdentifier
+	IResourceObjectIdentifiable
+	IResourceObjectType
+	IResourceObjectTypeIdentifier
+	IResourceObjectRegistry
+	
+	IResourceFile
+	IResourceFileIdentifier
+	IResourceFileIdentifiable
+	IResourceFileType
+	IResourceFileTypeIdentifier
+	IResourceFileRegistry
+	
+	IResourceFolder
+	IResourceFolderIdentifier
+	IResourceFolderIdentifiable
+	IResourceFolderType
+	IResourceFolderTypeIdentifier
+	IResourceFolderRegistry

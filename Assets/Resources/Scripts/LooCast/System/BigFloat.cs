@@ -259,9 +259,43 @@ namespace LooCast.System
             return rounded * scale;
         }
 
-        public static BigFloat Root(BigFloat value, BigFloat radicand)
+        public static BigFloat Root(BigFloat value, int n)
         {
+            if (n == 0)
+            {
+                throw new ArgumentException("Root degree cannot be zero.");
+            }
 
+            if (value < 0 && n % 2 == 0)
+            {
+                throw new ArgumentException("Cannot take even root of a negative number.");
+            }
+
+            if (value == 0)
+            {
+                return 0;
+            }
+
+            BigInteger resultMantissa = BigInteger.Pow(BigInteger.Abs(value.mantissa), (int)(1.0 / n));
+            int resultExponent = value.exponent / n;
+
+            // Adjust mantissa and exponent to account for rounding errors
+            while (BigInteger.Pow(resultMantissa, n) > BigInteger.Abs(value.mantissa))
+            {
+                resultMantissa--;
+            }
+
+            while (BigInteger.Pow(resultMantissa + 1, n) <= BigInteger.Abs(value.mantissa))
+            {
+                resultMantissa++;
+            }
+
+            if (value.mantissa < 0 && n % 2 == 1)
+            {
+                resultMantissa = -resultMantissa;
+            }
+
+            return new BigFloat(resultMantissa, resultExponent);
         }
 
         public static BigFloat Sqrt(BigFloat value)
