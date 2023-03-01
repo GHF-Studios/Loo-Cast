@@ -2,7 +2,7 @@
 {
     using LooCast.System.Collections.Generic;
 
-    public interface IMetaData
+    public interface IMetaData : IObject, IDataIdentifiable
     {
         #region Properties
         public string Name { get; }
