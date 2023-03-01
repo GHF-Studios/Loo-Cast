@@ -107,3 +107,14 @@ IDataFolder
 	IResourceFolderType
 	IResourceFolderTypeIdentifier
 	IResourceFolderRegistry
+	
+	
+	IMod
+	IModData
+	IModMetaData
+	
+	IModule
+	IModuleData
+	IModuleMetaData
+	// continue interface list
+	
