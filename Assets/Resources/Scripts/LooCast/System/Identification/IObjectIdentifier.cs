@@ -1,6 +1,6 @@
 ﻿namespace LooCast.System.Identification
 {
-    public interface IObjectIdentifier : IInstanceIdentifier
+    public interface IObjectIdentifier : ICSharpInstanceIdentifier
     {
         #region Properties
         string ObjectTypeID { get; }

@@ -15,57 +15,7 @@ ITypeIdentifier
 ITypeIdentifiable
 ITypeRegistry
 
-IInstance
-IInstanceIdentifier
-IInstanceIdentifiable
-IInstanceType
-IInstanceTypeIdentifier
-IInstanceRegistry
-
-ICSharpInstance
-ICSharpInstanceIdentifier
-ICSharpInstanceIdentifiable
-ICSharpInstanceType
-ICSharpInstanceTypeIdentifier
-ICSharpInstanceRegistry
-
-IUnityInstance
-IUnityInstanceIdentifier
-IUnityInstanceIdentifiable
-IUnityInstanceType
-IUnityInstanceTypeIdentifier
-IUnityInstanceRegistry
-
-IObject
-IObjectIdentifier
-IObjectIdentifiable
-IObjectType
-IObjectTypeIdentifier
-IObjectRegistry
-	
-IGameObject
-IGameObjectIdentifier
-IGameObjectIdentifiable
-IGameObjectType
-IGameObjectTypeIdentifier
-IGameObjectRegistry
-	
-IComponent
-IComponentIdentifier
-IComponentIdentifiable
-IComponentType
-IComponentTypeIdentifier
-IComponentRegistry
-	
 IPersistable
-
-	IMod
-	IModData
-	IModMetaData
-	
-	IModule
-	IModuleData
-	IModuleMetaData
 	
 IData
 IDataIdentifier
@@ -82,53 +32,195 @@ IMetaDataTypeIdentifier
 IMetaDataRegistry
 	
 IDataObject
-	IDataObjectIdentifier
-	IDataObjectIdentifiable
-	IDataObjectType
-	IDataObjectTypeIdentifier
-	IDataObjectRegistry
+IDataObjectIdentifier
+IDataObjectIdentifiable
+IDataObjectType
+IDataObjectTypeIdentifier
+IDataObjectRegistry
+	IDataObjectMetaData
+	IDataObjectMetaDataIdentifier
+	IDataObjectMetaDataIdentifiable
+	IDataObjectMetaDataType
+	IDataObjectMetaDataTypeIdentifier
+	IDataObjectMetaDataRegistry
 	
 IDataFile
-	IDataFileIdentifier
-	IDataFileIdentifiable
-	IDataFileType
-	IDataFileTypeIdentifier
-	IDataFileRegistry
+IDataFileIdentifier
+IDataFileIdentifiable
+IDataFileType
+IDataFileTypeIdentifier
+IDataFileRegistry
+	IDataFileMetaData
+	IDataFileMetaDataIdentifier
+	IDataFileMetaDataIdentifiable
+	IDataFileMetaDataType
+	IDataFileMetaDataTypeIdentifier
+	IDataFileMetaDataRegistry
 	
 IDataFolder
-	IDataFolderIdentifier
-	IDataFolderIdentifiable
-	IDataFolderType
-	IDataFolderTypeIdentifier
-	IDataFolderRegistry
+IDataFolderIdentifier
+IDataFolderIdentifiable
+IDataFolderType
+IDataFolderTypeIdentifier
+IDataFolderRegistry
+	IDataFolderMetaData
+	IDataFolderMetaDataIdentifier
+	IDataFolderMetaDataIdentifiable
+	IDataFolderMetaDataType
+	IDataFolderMetaDataTypeIdentifier
+	IDataFolderMetaDataRegistry
+
+IInstance
+IInstanceIdentifier
+IInstanceIdentifiable
+IInstanceType
+IInstanceTypeIdentifier
+IInstanceRegistry
+	IInstanceData
+	IInstanceDataIdentifier
+	IInstanceDataIdentifiable
+	IInstanceDataType
+	IInstanceDataTypeIdentifier
+	IInstanceDataRegistry
+	IInstanceMetaData
+	IInstanceMetaDataIdentifier
+	IInstanceMetaDataIdentifiable
+	IInstanceMetaDataType
+	IInstanceMetaDataTypeIdentifier
+	IInstanceMetaDataRegistry
+
+ICSharpInstance
+ICSharpInstanceIdentifier
+ICSharpInstanceIdentifiable
+ICSharpInstanceType
+ICSharpInstanceTypeIdentifier
+ICSharpInstanceRegistry
+	ICSharpInstanceData
+	ICSharpInstanceDataIdentifier
+	ICSharpInstanceDataIdentifiable
+	ICSharpInstanceDataType
+	ICSharpInstanceDataTypeIdentifier
+	ICSharpInstanceDataRegistry
+	ICSharpInstanceMetaData
+	ICSharpInstanceMetaDataIdentifier
+	ICSharpInstanceMetaDataIdentifiable
+	ICSharpInstanceMetaDataType
+	ICSharpInstanceMetaDataTypeIdentifier
+	ICSharpInstanceMetaDataRegistry
+
+IUnityInstance
+IUnityInstanceIdentifier
+IUnityInstanceIdentifiable
+IUnityInstanceType
+IUnityInstanceTypeIdentifier
+IUnityInstanceRegistry
+	IUnityInstanceData
+	IUnityInstanceDataIdentifier
+	IUnityInstanceDataIdentifiable
+	IUnityInstanceDataType
+	IUnityInstanceDataTypeIdentifier
+	IUnityInstanceDataRegistry
+	IUnityInstanceMetaData
+	IUnityInstanceMetaDataIdentifier
+	IUnityInstanceMetaDataIdentifiable
+	IUnityInstanceMetaDataType
+	IUnityInstanceMetaDataTypeIdentifier
+	IUnityInstanceMetaDataRegistry
+
+IObject
+IObjectIdentifier
+IObjectIdentifiable
+IObjectType
+IObjectTypeIdentifier
+IObjectRegistry
+	IObjectData
+	IObjectDataIdentifier
+	IObjectDataIdentifiable
+	IObjectDataType
+	IObjectDataTypeIdentifier
+	IObjectDataRegistry
+	IObjectMetaData
+	IObjectMetaDataIdentifier
+	IObjectMetaDataIdentifiable
+	IObjectMetaDataType
+	IObjectMetaDataTypeIdentifier
+	IObjectMetaDataRegistry
+	
+IGameObject
+IGameObjectIdentifier
+IGameObjectIdentifiable
+IGameObjectType
+IGameObjectTypeIdentifier
+IGameObjectRegistry
+	IGameObjectData
+	IGameObjectDataIdentifier
+	IGameObjectDataIdentifiable
+	IGameObjectDataType
+	IGameObjectDataTypeIdentifier
+	IGameObjectDataRegistry
+	IGameObjectMetaData
+	IGameObjectMetaDataIdentifier
+	IGameObjectMetaDataIdentifiable
+	IGameObjectMetaDataType
+	IGameObjectMetaDataTypeIdentifier
+	IGameObjectMetaDataRegistry
+	
+IComponent
+IComponentIdentifier
+IComponentIdentifiable
+IComponentType
+IComponentTypeIdentifier
+IComponentRegistry
+	IComponentData
+	IComponentDataIdentifier
+	IComponentDataIdentifiable
+	IComponentDataType
+	IComponentDataTypeIdentifier
+	IComponentDataRegistry
+	IComponentMetaData
+	IComponentMetaDataIdentifier
+	IComponentMetaDataIdentifiable
+	IComponentMetaDataType
+	IComponentMetaDataTypeIdentifier
+	IComponentMetaDataRegistry
 	
 IResource
-	IResourceIdentifier
-	IResourceIdentifiable
-	IResourceType
-	IResourceTypeIdentifier
-	IResourceRegistry
-	IResourceData
+IResourceIdentifier
+IResourceIdentifiable
+IResourceType
+IResourceTypeIdentifier
+IResourceRegistry
+IResourceData
+	IResourceDataIdentifier
+	IResourceDataIdentifiable
+	IResourceDataFolderType
+	IResourceDataFolderTypeIdentifier
+	IResourceDataFolderRegistry
 	IResourceMetaData
+	IResourceMetaDataIdentifier
+	IResourceMetaDataIdentifiable
+	IResourceMetaDataFolderType
+	IResourceMetaDataFolderTypeIdentifier
+	IResourceMetaDataFolderRegistry
 	
 IResourceObject
-	IResourceObjectIdentifier
-	IResourceObjectIdentifiable
-	IResourceObjectType
-	IResourceObjectTypeIdentifier
-	IResourceObjectRegistry
+IResourceObjectIdentifier
+IResourceObjectIdentifiable
+IResourceObjectType
+IResourceObjectTypeIdentifier
+IResourceObjectRegistry
 	
 IResourceFile
-	IResourceFileIdentifier
-	IResourceFileIdentifiable
-	IResourceFileType
-	IResourceFileTypeIdentifier
-	IResourceFileRegistry
+IResourceFileIdentifier
+IResourceFileIdentifiable
+IResourceFileType
+IResourceFileTypeIdentifier
+IResourceFileRegistry
 	
 IResourceFolder
-	IResourceFolderIdentifier
-	IResourceFolderIdentifiable
-	IResourceFolderType
-	IResourceFolderTypeIdentifier
-	IResourceFolderRegistry
+IResourceFolderIdentifier
+IResourceFolderIdentifiable
+IResourceFolderType
+IResourceFolderTypeIdentifier
+IResourceFolderRegistry
 	

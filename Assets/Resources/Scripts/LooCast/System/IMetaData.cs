@@ -12,8 +12,6 @@
         public IMetaData? ParentMetaData { get; }
         public SerializableList<IMetaData> ChildMetaData { get; }
         public IDataIdentifier DataIdentifier { get; set; }
-        public IDataTypeIdentifier DataTypeIdentifier { get; }
-        public IDataObjectIdentifier DataObjectIdentifier { get; }
         #endregion
     }
 }

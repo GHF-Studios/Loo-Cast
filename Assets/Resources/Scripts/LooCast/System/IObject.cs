@@ -4,7 +4,7 @@ namespace LooCast.System
 {
     using LooCast.System.Identification;
 
-    public interface IObject : IInstance, IObjectIdentifiable
+    public interface IObject : ICSharpInstance, IObjectIdentifiable
     {
         #region Properties
         public IObjectType ObjectType { get; }

@@ -2,7 +2,7 @@
 
 namespace LooCast.System.Identification
 {
-    public interface IObjectIdentifiable : IInstanceIdentifiable
+    public interface IObjectIdentifiable : ICSharpInstanceIdentifiable
     {
         #region Properties
         IObjectIdentifier ObjectIdentifier { get; }

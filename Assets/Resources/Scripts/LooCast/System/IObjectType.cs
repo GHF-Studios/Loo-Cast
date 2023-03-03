@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    public interface IObjectType : IInstanceType
+    public interface IObjectType : ICSharpInstanceType
     {
         #region Properties
         public IObjectType ParentObjectType { get; }
