@@ -1,6 +1,6 @@
 ﻿namespace LooCast.System
 {
-    using LooCast.System.Collections.Generic;
+    using LooCast.System.Identification;
 
     public interface IResourceMetaData : IObject, IResourceMetaDataIdentifiable
     {
