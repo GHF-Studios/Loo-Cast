@@ -17,9 +17,9 @@ namespace LooCast.System
         public IUnityInstance ParentUnityInstance => parentUnityInstance;
         public List<IInstance> ChildInstances => childUnityInstances.Cast<IInstance>().ToList();
         public List<IUnityInstance> ChildUnityInstances => childUnityInstances;
-        public IUnityInstanceIdentifier UnityInstanceIdentifier => unityInstanceIdentifier;
-        public IInstanceIdentifier InstanceIdentifier => unityInstanceIdentifier;
         public IIdentifier Identifier => unityInstanceIdentifier;
+        public IInstanceIdentifier InstanceIdentifier => unityInstanceIdentifier;
+        public IUnityInstanceIdentifier UnityInstanceIdentifier => unityInstanceIdentifier;
         #endregion
 
         #region Fields

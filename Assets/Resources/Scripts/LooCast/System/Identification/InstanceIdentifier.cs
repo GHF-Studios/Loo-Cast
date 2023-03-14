@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.System.Identification
 {
     [Serializable]
-    public class InstanceIdentifier : IInstanceIdentifier
+    public class InstanceIdentifier : IInstanceIdentifier, IInstanceTypeIdentifier
     {
         #region Properties
         public string InstanceTypeID => instanceTypeID;

@@ -4,13 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace LooCast.Util.Collections.Generic
+namespace LooCast.System.Collections.Generic
 {
     [Serializable]
     public class SerializableDictionary<KeyType, ValueType> : IDictionary<KeyType, ValueType>, ISerializationCallbackReceiver
     {
-        [SerializeField] private List<KeyType> keys = new List<KeyType>();
-        [SerializeField] private List<ValueType> values = new List<ValueType>();
+        [SerializeField] private SerializableList<KeyType> keys = new SerializableList<KeyType>();
+        [SerializeField] private SerializableList<ValueType> values = new SerializableList<ValueType>();
         
         private Dictionary<KeyType, ValueType> hashTable = new Dictionary<KeyType, ValueType>();
 

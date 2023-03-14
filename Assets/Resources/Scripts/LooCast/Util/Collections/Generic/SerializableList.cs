@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace LooCast.Util.Collections.Generic
+namespace LooCast.System.Collections.Generic
 {
     [Serializable]
     public class SerializableList<T>
     {
         public List<T> Values
         {
-            get
+            get 
             {
                 if (values == null)
                 {
@@ -56,6 +56,25 @@ namespace LooCast.Util.Collections.Generic
         public bool Contains(T value)
         {
             return Values.Contains(value);
+        }
+
+        public void Clear()
+        {
+            Values.Clear();
+        }
+
+        public T this[int index]
+        {
+            get
+            {
+                return Values[index];
+            }
+            set
+            {
+                List<T> valueList = Values;
+                valueList[index] = value;
+                values = valueList.ToArray();
+            }
         }
     }
 }

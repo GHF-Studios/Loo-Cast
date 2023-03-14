@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace LooCast.Util
 {
-    using LooCast.Util.Collections.Concurrent;
-    using LooCast.Util.Collections.Generic;
+    using LooCast.System.Collections.Concurrent;
+    using LooCast.System.Collections.Generic;
     using LooCast.System;
     using LooCast.System.Management;
 
