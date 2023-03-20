@@ -5,7 +5,7 @@ namespace LooCast.System.Types
 {
     using Identification;
     
-    public class Type : IType
+    public abstract class Type : IType
     {
         #region Properties
         public IIdentifier Identifier => typeIdentifier;
@@ -24,14 +24,14 @@ namespace LooCast.System.Types
         #endregion
 
         #region Constructors
-        public Type(CSSystem.Type cssystemType, INamespace rootNamespace)
+        protected Type(CSSystem.Type cssystemType, INamespace rootNamespace)
         {
             typeIdentifier = new TypeIdentifier((NamespaceIdentifier)rootNamespace.Identifier, cssystemType);
             parentType = null;
             childTypes = new List<IType>();
         }
 
-        public Type(CSSystem.Type systemType, INamespace rootNamespace, IType parentType)
+        protected Type(CSSystem.Type systemType, INamespace rootNamespace, IType parentType)
         {
             typeIdentifier = new TypeIdentifier((NamespaceIdentifier)rootNamespace.Identifier, systemType);
             this.parentType = parentType;
