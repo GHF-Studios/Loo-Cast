@@ -54,6 +54,11 @@ namespace LooCast.System.Identification
             return this.Equals(otherUnityInstanceIdentifier);
         }
 
+        public override int GetHashCode()
+        {
+            return ID.GetHashCode();
+        }
+
         public static bool operator ==(UnityInstanceIdentifier left, IUnityInstanceIdentifier right)
         {
             return left.Equals(right);

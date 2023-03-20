@@ -4,7 +4,8 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using Identification;
+    using LooCast.System.Identification;
+    using LooCast.System.Types;
 
     public class UnityInstance : IUnityInstance
     {

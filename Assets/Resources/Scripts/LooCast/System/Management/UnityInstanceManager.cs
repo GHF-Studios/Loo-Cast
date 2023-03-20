@@ -4,6 +4,7 @@ using UnityEngine;
 namespace LooCast.System.Management
 {
     using LooCast.System.Identification;
+    using LooCast.System.Registration;
 
     public sealed class UnityInstanceManager : InternalManager
     {

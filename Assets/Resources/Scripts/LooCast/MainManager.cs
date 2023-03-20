@@ -8,16 +8,17 @@ using UnityEngine.SceneManagement;
 namespace LooCast
 {
     using LooCast.System;
+    using LooCast.System.Exceptions;
     using LooCast.System.Identification;
     using LooCast.System.Management;
+    using LooCast.System.Registration;
+    using LooCast.System.Types;
     using LooCast.Game;
     using LooCast.Scene;
     using LooCast.Steamworks;
     using LooCast.Util;
-    using LooCast.Data;
-    using LooCast.Universe;
 
-    public class MainManager : MonoBehaviour, INamespaceProvider, ITypeProvider, ISingletonInstanceProvider
+    public class MainManager : MonoBehaviour, IUnityInstanceIdentifiable
     {
         #region Static Properties
         
@@ -178,15 +179,13 @@ namespace LooCast
         #endregion
 
         #region Properties
-        public Namespace LooCastNamespace => looCastNamespace;
-        public Type LooCastType => looCastType;
-        public CSharpInstance LooCastUnityInstance => looCastInstance;
+        public IIdentifier Identifier => unityInstanceIdentifier;
+        public IInstanceIdentifier InstanceIdentifier => unityInstanceIdentifier;
+        public IUnityInstanceIdentifier UnityInstanceIdentifier => unityInstanceIdentifier;
         #endregion
 
         #region Fields
-        private Namespace looCastNamespace;
-        private Type looCastType;
-        private CSharpInstance looCastInstance;
+        private IUnityInstanceIdentifier unityInstanceIdentifier;
         #endregion
 
         #region Unity Callbacks
@@ -259,15 +258,190 @@ namespace LooCast
             TypeManager typeManager = TypeManager.Instance;
             UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
             
-            looCastNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastType = new Type(typeof(MainManager), looCastNamespace);
-            looCastInstance = new UnityInstance(this, looCastType);
-            
+            #region Loo Cast Registration
+            Namespace looCastNamespace = new Namespace("LooCast");
             namespaceManager.RegisterNamespace(looCastNamespace);
-            typeManager.RegisterType(looCastType);
-            instanceManager.RegisterInstance(looCastInstance);
+            
+            UnityInstanceType mainManagerType = new UnityInstanceType(typeof(MainManager), looCastNamespace);
+            typeManager.RegisterType(mainManagerType);
+            
+            UnityInstance mainManagerInstance = new UnityInstance(this, mainManagerType);
+            unityInstanceManager.RegisterUnityInstance(mainManagerInstance);
+            
+            #region System
+            Namespace looCastSystemNamespace = new Namespace("System", looCastNamespace);
+            namespaceManager.RegisterNamespace(looCastSystemNamespace);
 
-            // TODO: Register everything, that's internal
+            CSharpInstanceType iPersistableType = new CSharpInstanceType(typeof(IPersistable), looCastSystemNamespace);
+            CSharpInstanceType iNamespaceType = new CSharpInstanceType(typeof(INamespace), looCastSystemNamespace);
+            CSharpInstanceType iInstanceType = new CSharpInstanceType(typeof(IInstance), looCastSystemNamespace);
+            CSharpInstanceType iCSharpInstanceType = new CSharpInstanceType(typeof(ICSharpInstance), looCastSystemNamespace);
+            CSharpInstanceType iUnityInstanceType = new CSharpInstanceType(typeof(IUnityInstance), looCastSystemNamespace);
+            CSharpInstanceType iObjectType = new CSharpInstanceType(typeof(IObject), looCastSystemNamespace);
+            CSharpInstanceType iGameObjectType = new CSharpInstanceType(typeof(IGameObject), looCastSystemNamespace);
+            CSharpInstanceType iComponentType = new CSharpInstanceType(typeof(IComponent), looCastSystemNamespace);
+            CSharpInstanceType namespaceType = new CSharpInstanceType(typeof(Namespace), looCastSystemNamespace);
+            CSharpInstanceType csharpInstanceType = new CSharpInstanceType(typeof(CSharpInstance), looCastSystemNamespace);
+            CSharpInstanceType unityInstanceType = new CSharpInstanceType(typeof(UnityInstance), looCastSystemNamespace);
+            CSharpInstanceType extendedMonoBehaviourType = new CSharpInstanceType(typeof(ExtendedMonoBehaviour), looCastSystemNamespace);
+            CSharpInstanceType bigFloatType = new CSharpInstanceType(typeof(BigFloat), looCastSystemNamespace);
+            CSharpInstanceType bigVector3Type = new CSharpInstanceType(typeof(BigVector3), looCastSystemNamespace);
+            typeManager.RegisterType(iPersistableType);
+            typeManager.RegisterType(iNamespaceType);
+            typeManager.RegisterType(iInstanceType);
+            typeManager.RegisterType(iCSharpInstanceType);
+            typeManager.RegisterType(iUnityInstanceType);
+            typeManager.RegisterType(iObjectType);
+            typeManager.RegisterType(iGameObjectType);
+            typeManager.RegisterType(iComponentType);
+            typeManager.RegisterType(namespaceType);
+            typeManager.RegisterType(csharpInstanceType);
+            typeManager.RegisterType(unityInstanceType);
+            typeManager.RegisterType(extendedMonoBehaviourType);
+            typeManager.RegisterType(bigFloatType);
+            typeManager.RegisterType(bigVector3Type);
+
+            #region Data
+            Namespace looCastSystemDataNamespace = new Namespace("Data", looCastSystemNamespace);
+            namespaceManager.RegisterNamespace(looCastSystemDataNamespace);
+            #endregion
+
+            #region Exceptions
+            Namespace looCastSystemExceptionsNamespace = new Namespace("Exceptions", looCastSystemNamespace);
+            namespaceManager.RegisterNamespace(looCastSystemExceptionsNamespace);
+            #endregion
+
+            #region Identification
+            Namespace looCastSystemIdentificationNamespace = new Namespace("Identification", looCastSystemNamespace);
+            namespaceManager.RegisterNamespace(looCastSystemIdentificationNamespace);
+
+            CSharpInstanceType iIdentifierType = new CSharpInstanceType(typeof(IIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iIdentifiableType = new CSharpInstanceType(typeof(IIdentifiable), looCastSystemIdentificationNamespace);
+            typeManager.RegisterType(iIdentifierType);
+            typeManager.RegisterType(iIdentifiableType);
+            
+            CSharpInstanceType iRegistryIdentifierType = new CSharpInstanceType(typeof(IRegistryIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iRegistryIdentifiableType = new CSharpInstanceType(typeof(IRegistryIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType registryIdentifierType = new CSharpInstanceType(typeof(RegistryIdentifier), looCastSystemIdentificationNamespace);
+            typeManager.RegisterType(iRegistryIdentifierType);
+            typeManager.RegisterType(iRegistryIdentifiableType);
+            typeManager.RegisterType(registryIdentifierType);
+
+            CSharpInstanceType iNamespaceIdentifierType = new CSharpInstanceType(typeof(INamespaceIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iNamespaceIdentifiableType = new CSharpInstanceType(typeof(INamespaceIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType namespaceIdentifierType = new CSharpInstanceType(typeof(NamespaceIdentifier), looCastSystemIdentificationNamespace);
+            typeManager.RegisterType(iNamespaceIdentifierType);
+            typeManager.RegisterType(iNamespaceIdentifiableType);
+            typeManager.RegisterType(namespaceIdentifierType);
+
+            CSharpInstanceType iTypeIdentifierType = new CSharpInstanceType(typeof(ITypeIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iTypeIdentifiableType = new CSharpInstanceType(typeof(ITypeIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType typeIdentifierType = new CSharpInstanceType(typeof(TypeIdentifier), looCastSystemIdentificationNamespace);
+            typeManager.RegisterType(iTypeIdentifierType);
+            typeManager.RegisterType(iTypeIdentifiableType);
+            typeManager.RegisterType(typeIdentifierType);
+
+            CSharpInstanceType iMetaDataIdentifier = new CSharpInstanceType(typeof(IMetaDataIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iMetaDataIdentifiable = new CSharpInstanceType(typeof(IMetaDataIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iMetaDataTypeIdentifier = new CSharpInstanceType(typeof(IMetaDataTypeIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType metaDataIdentifier = new CSharpInstanceType(typeof(MetaDataIdentifier), looCastSystemIdentificationNamespace);
+            typeManager.RegisterType(iMetaDataIdentifier);
+            typeManager.RegisterType(iMetaDataIdentifiable);
+            typeManager.RegisterType(iMetaDataTypeIdentifier);
+            typeManager.RegisterType(metaDataIdentifier);
+
+            CSharpInstanceType iDataIdentifier = new CSharpInstanceType(typeof(IDataIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataIdentifiable = new CSharpInstanceType(typeof(IDataIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataTypeIdentifier = new CSharpInstanceType(typeof(IDataTypeIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType dataIdentifier = new CSharpInstanceType(typeof(DataIdentifier), looCastSystemIdentificationNamespace);
+            typeManager.RegisterType(iDataIdentifier);
+            typeManager.RegisterType(iDataIdentifiable);
+            typeManager.RegisterType(iDataTypeIdentifier);
+            typeManager.RegisterType(dataIdentifier);
+
+            CSharpInstanceType iDataObjectIdentifier = new CSharpInstanceType(typeof(IDataObjectIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataObjectIdentifiable = new CSharpInstanceType(typeof(IDataObjectIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataObjectTypeIdentifier = new CSharpInstanceType(typeof(IDataObjectTypeIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataObjectMetaDataIdentifier = new CSharpInstanceType(typeof(IDataObjectMetaDataIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataObjectMetaDataIdentifiable = new CSharpInstanceType(typeof(IDataObjectMetaDataIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataObjectMetaDataTypeIdentifier = new CSharpInstanceType(typeof(IDataObjectMetaDataTypeIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType dataObjectIdentifier = new CSharpInstanceType(typeof(DataObjectIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType dataObjectMetaDataIdentifier = new CSharpInstanceType(typeof(DataObjectMetaDataIdentifier), looCastSystemIdentificationNamespace);
+            typeManager.RegisterType(iDataObjectIdentifier);
+            typeManager.RegisterType(iDataObjectIdentifiable);
+            typeManager.RegisterType(iDataObjectTypeIdentifier);
+            typeManager.RegisterType(iDataObjectMetaDataIdentifier);
+            typeManager.RegisterType(iDataObjectMetaDataIdentifiable);
+            typeManager.RegisterType(iDataObjectMetaDataTypeIdentifier);
+            typeManager.RegisterType(dataObjectIdentifier);
+            typeManager.RegisterType(dataObjectMetaDataIdentifier);
+
+            CSharpInstanceType iDataFileIdentifier = new CSharpInstanceType(typeof(IDataFileIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataFileIdentifiable = new CSharpInstanceType(typeof(IDataFileIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataFileTypeIdentifier = new CSharpInstanceType(typeof(IDataFileTypeIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataFileMetaDataIdentifier = new CSharpInstanceType(typeof(IDataFileMetaDataIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataFileMetaDataIdentifiable = new CSharpInstanceType(typeof(IDataFileMetaDataIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataFileMetaDataTypeIdentifier = new CSharpInstanceType(typeof(IDataFileMetaDataTypeIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType dataFileIdentifier = new CSharpInstanceType(typeof(DataFileIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType dataFileMetaDataIdentifier = new CSharpInstanceType(typeof(DataFileMetaDataIdentifier), looCastSystemIdentificationNamespace);
+            typeManager.RegisterType(iDataFileIdentifier);
+            typeManager.RegisterType(iDataFileIdentifiable);
+            typeManager.RegisterType(iDataFileTypeIdentifier);
+            typeManager.RegisterType(iDataFileMetaDataIdentifier);
+            typeManager.RegisterType(iDataFileMetaDataIdentifiable);
+            typeManager.RegisterType(iDataFileMetaDataTypeIdentifier);
+            typeManager.RegisterType(dataFileIdentifier);
+            typeManager.RegisterType(dataFileMetaDataIdentifier);
+
+            CSharpInstanceType iDataFolderIdentifier = new CSharpInstanceType(typeof(IDataFolderIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataFolderIdentifiable = new CSharpInstanceType(typeof(IDataFolderIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataFolderTypeIdentifier = new CSharpInstanceType(typeof(IDataFolderTypeIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataFolderMetaDataIdentifier = new CSharpInstanceType(typeof(IDataFolderMetaDataIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataFolderMetaDataIdentifiable = new CSharpInstanceType(typeof(IDataFolderMetaDataIdentifiable), looCastSystemIdentificationNamespace);
+            CSharpInstanceType iDataFolderMetaDataTypeIdentifier = new CSharpInstanceType(typeof(IDataFolderMetaDataTypeIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType dataFolderIdentifier = new CSharpInstanceType(typeof(DataFolderIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType dataFolderMetaDataIdentifier = new CSharpInstanceType(typeof(DataFolderMetaDataIdentifier), looCastSystemIdentificationNamespace);
+            typeManager.RegisterType(iDataFolderIdentifier);
+            typeManager.RegisterType(iDataFolderIdentifiable);
+            typeManager.RegisterType(iDataFolderTypeIdentifier);
+            typeManager.RegisterType(iDataFolderMetaDataIdentifier);
+            typeManager.RegisterType(iDataFolderMetaDataIdentifiable);
+            typeManager.RegisterType(iDataFolderMetaDataTypeIdentifier);
+            typeManager.RegisterType(dataFolderIdentifier);
+            typeManager.RegisterType(dataFolderMetaDataIdentifier);
+
+            
+
+            #endregion
+
+            #region Management
+            Namespace looCastSystemManagementNamespace = new Namespace("Management", looCastSystemNamespace);
+            namespaceManager.RegisterNamespace(looCastSystemManagementNamespace);
+            #endregion
+
+            #region MetaData
+            Namespace looCastSystemMetaDataNamespace = new Namespace("MetaData", looCastSystemNamespace);
+            namespaceManager.RegisterNamespace(looCastSystemMetaDataNamespace);
+            #endregion
+
+            #region Registration
+            Namespace looCastSystemRegistrationNamespace = new Namespace("Registration", looCastSystemNamespace);
+            namespaceManager.RegisterNamespace(looCastSystemRegistrationNamespace);
+            #endregion
+
+            #region Resources
+            Namespace looCastSystemResourcesNamespace = new Namespace("Resources", looCastSystemNamespace);
+            namespaceManager.RegisterNamespace(looCastSystemResourcesNamespace);
+            #endregion
+
+            #region Types
+            Namespace looCastSystemTypesNamespace = new Namespace("Types", looCastSystemNamespace);
+            namespaceManager.RegisterNamespace(looCastSystemTypesNamespace);
+            #endregion
+
+            #endregion
+
+            #endregion
 
             #region Post-Initialization
             Debug.Log($"[MainManager] Post-Initializing internal manager instances.");

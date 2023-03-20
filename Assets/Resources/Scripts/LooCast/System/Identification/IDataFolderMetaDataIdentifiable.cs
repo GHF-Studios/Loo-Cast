@@ -2,10 +2,10 @@
 
 namespace LooCast.System.Identification
 {
-    public interface IDataFileMetaDataIdentifiable : IDataObjectMetaDataIdentifiable
+    public interface IDataFolderMetaDataIdentifiable : IDataObjectMetaDataIdentifiable
     {
         #region Properties
-        IDataFileMetaDataIdentifier DataFileMetaDataIdentifier { get; }
+        IDataFolderMetaDataIdentifier DataFolderMetaDataIdentifier { get; }
         #endregion
     }
 }

@@ -6,8 +6,10 @@ using UnityEngine.SceneManagement;
 namespace LooCast.System.Management
 {
     using LooCast.System.Exceptions;
-    
-    public abstract class Manager : MonoBehaviour, INamespaceProvider, ITypeProvider, ISingletonInstanceProvider
+    using LooCast.System.Identification;
+    using LooCast.System.Registration;
+
+    public abstract class Manager : MonoBehaviour, INamespaceIdentifiable, ITypeIdentifiable, IUnityInstanceIdentifiable
     {
         #region Static Properties
 
@@ -118,18 +120,11 @@ namespace LooCast.System.Management
         #endregion
 
         #region Properties
-        public INamespace LooCastNamespace => looCastNamespace;
-        public IType LooCastType => looCastType;
-        public IUnityInstance LooCastUnityInstance => looCastUnityInstance;
 
         public Manager[] Dependencies { get; private set; }
         #endregion
 
         #region Fields
-        protected INamespace looCastNamespace;
-        protected IType looCastType;
-        protected IUnityInstance looCastUnityInstance;
-
         private List<Action> earlyPreInitializationActions;
         private List<Action> preInitializationActions;
         private List<Action> latePreInitializationActions;

@@ -2,11 +2,11 @@
 
 namespace LooCast.System.Identification
 {
-    public interface IDataFileMetaDataTypeIdentifier : IDataObjectMetaDataTypeIdentifier
+    public interface IDataFolderMetaDataTypeIdentifier : IDataObjectMetaDataTypeIdentifier
     {
         #region Properties
-        string ParentDataFileMetaDataTypeID { get; }
-        string DataFileMetaDataTypeID { get; }
+        string ParentDataFolderMetaDataTypeID { get; }
+        string DataFolderMetaDataTypeID { get; }
         #endregion
     }
 }

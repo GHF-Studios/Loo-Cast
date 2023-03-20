@@ -4,6 +4,8 @@ using UnityEngine;
 namespace LooCast.System.Management
 {
     using LooCast.System.Identification;
+    using LooCast.System.Registration;
+    using LooCast.System.Types;
 
     public sealed class TypeManager : InternalManager
     {
