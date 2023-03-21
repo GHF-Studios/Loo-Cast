@@ -7,14 +7,9 @@ namespace LooCast.System.Data
     public interface IData : IObject, IDataIdentifiable
     {
         #region Properties
-        public IDataType DataType { get; }
+        public string ResourcePath { get; }
         public IData? ParentData { get; }
         public SerializableList<IData> ChildData { get; }
-        #endregion
-
-        #region Methods
-        public string SerializeRecursively();
-        public void DeserializeRecursively(string serializedData);
         #endregion
     }
 }

@@ -7,10 +7,14 @@ namespace LooCast.System.Data
     public interface IDataObject : IData, IDataObjectIdentifiable
     {
         #region Properties
-        public IDataObjectType DataObjectType { get; }
+        public string ResourceObjectPath { get; }
         public IDataObject? ParentDataObject { get; }
         public IDataFile? ParentDataFile { get; }
         public SerializableList<IDataObject> ChildDataObjects { get; }
+        #endregion
+
+        #region Methods
+        public IResourceObject Serialize();
         #endregion
     }
 }

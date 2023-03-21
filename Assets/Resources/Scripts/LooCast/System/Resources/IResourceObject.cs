@@ -8,10 +8,13 @@ namespace LooCast.System.Resources
     {
         #region Properties
         public string ResourceObjectPath { get; }
-        public IResourceObjectType ResourceObjectType { get; }
         public IResourceObject? ParentResourceObject { get; }
         public IResourceFile? ParentResourceFile { get; }
         public SerializableList<IResourceObject> ChildResourceObjects { get; }
+        #endregion
+
+        #region Methods
+        public IDataObject Deserialize();
         #endregion
     }
 }

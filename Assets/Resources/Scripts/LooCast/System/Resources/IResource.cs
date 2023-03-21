@@ -4,7 +4,7 @@ namespace LooCast.System.Resources
 {
     using LooCast.System.Identification;
 
-    public interface IResource : IObject, IResourceType, IResourceIdentifiable
+    public interface IResource : IObject, IResourceIdentifiable
     {
         #region Properties
         public string ResourcePath { get; }
@@ -13,10 +13,8 @@ namespace LooCast.System.Resources
         #endregion
 
         #region Methods
-        // TODO:    These two methods are likely only abstractions at best, and probably need to 
-        //          parse more information, like what Serializer is used, what Type it serializes into, etc.
-        public string SerializeRecursively();
-        public void DeserializeRecursively(string serializedResource);
+        public void Load();
+        public void Save();
         #endregion
     }
 }
