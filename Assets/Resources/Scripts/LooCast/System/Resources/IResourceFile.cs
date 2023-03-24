@@ -2,12 +2,15 @@
 
 namespace LooCast.System.Resources
 {
+    using LooCast.System.Collections.Generic;
+    using LooCast.System.Data;
     using LooCast.System.Identification;
 
-    public interface IResourceFile : IResourceObject, IResourceFileIdentifiable
+    public interface IResourceFile : IResource, IResourceFileIdentifiable
     {
         #region Properties
         public string ResourceFilePath { get; }
+        public global::System.IO.FileInfo ResourceFileInfo { get; }
         public IResourceFolder? ParentResourceFolder { get; }
         public SerializableList<IResourceObject> ChildResourceObjects { get; }
         #endregion

@@ -2,9 +2,11 @@
 
 namespace LooCast.System.Data
 {
+    using LooCast.System.Collections.Generic;
     using LooCast.System.Identification;
+    using LooCast.System.Resources;
 
-    public interface IDataFolder : IDataObject, IDataFolderIdentifiable
+    public interface IDataFolder : IData, IDataFolderIdentifiable
     {
         #region Properties
         public string ResourceFolderPath { get; }

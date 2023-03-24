@@ -3,6 +3,7 @@
 namespace LooCast.System.Registration
 {
     using LooCast.System.Identification;
+    using LooCast.System.Types;
 
     public class InstanceRegistry : Registry<IInstanceIdentifier, IInstanceIdentifiable>, IInstanceRegistry<IInstanceIdentifier, IInstanceIdentifiable>
     {

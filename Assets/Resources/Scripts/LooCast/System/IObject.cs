@@ -3,6 +3,7 @@ using System.Collections.Generic;
 namespace LooCast.System
 {
     using LooCast.System.Identification;
+    using LooCast.System.Types;
 
     public interface IObject : ICSharpInstance, IObjectIdentifiable
     {

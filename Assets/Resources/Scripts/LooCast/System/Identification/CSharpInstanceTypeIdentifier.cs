@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace LooCast.System.Identification
 {
+    [CSSystem.Serializable]
     public class CSharpInstanceTypeIdentifier : InstanceTypeIdentifier, ICSharpInstanceTypeIdentifier
     {
         #region Properties

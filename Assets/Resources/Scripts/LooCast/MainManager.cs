@@ -176,17 +176,29 @@ namespace LooCast
 
         #region Static Fields
         private static MainManager instance;
-        public static float saveInterval = 30.0f;
         #endregion
 
         #region Properties
         public IIdentifier Identifier => unityInstanceIdentifier;
         public IInstanceIdentifier InstanceIdentifier => unityInstanceIdentifier;
         public IUnityInstanceIdentifier UnityInstanceIdentifier => unityInstanceIdentifier;
+        
+        public string RootPersistentPath
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(rootPersistentPath))
+                {
+                    rootPersistentPath = Application.persistentDataPath;
+                }
+                return rootPersistentPath;
+            }
+        }
         #endregion
 
         #region Fields
         private IUnityInstanceIdentifier unityInstanceIdentifier;
+        private string rootPersistentPath;
         #endregion
 
         #region Unity Callbacks

@@ -3,15 +3,12 @@ using UnityEngine;
 
 namespace LooCast.System.Identification
 {
+    [CSSystem.Serializable]
     public class UnityInstanceTypeIdentifier : InstanceTypeIdentifier, IUnityInstanceTypeIdentifier
     {
         #region Properties
-        public string ParentUnityInstanceTypeID => parentUnityInstanceTypeID;
-        public string UnityInstanceTypeID => parentUnityInstanceTypeID == null ? $"{parentNamespaceID}:{cssystemType.FullName}" : $"{parentUnityInstanceTypeID}.{cssystemType.FullName}";
-        #endregion
-
-        #region Fields
-        [SerializeField] private string parentUnityInstanceTypeID;
+        public string ParentUnityInstanceTypeID => ParentTypeID;
+        public string UnityInstanceTypeID => TypeID;
         #endregion
 
         #region Constructors

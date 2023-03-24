@@ -12,20 +12,14 @@ namespace LooCast.System.Identification
         public string CSharpInstanceID => $"{csharpInstanceTypeID}[{csharpInstanceGUID}]";
         #endregion
 
-        #region Fields
-        [SerializeField] protected string csharpInstanceTypeID;
-        [SerializeField] protected string csharpInstanceGUID;
-
         public CSharpInstanceIdentifier(ICSharpInstanceTypeIdentifier csharpInstanceTypeIdentifier) : base(csharpInstanceTypeIdentifier, new CSSystem.Guid().ToString())
         {
-            csharpInstanceTypeID = csharpInstanceTypeIdentifier.TypeID;
-            csharpInstanceGUID = instanceGUID;
+
         }
 
         public CSharpInstanceIdentifier(string csharpInstanceTypeID, string csharpInstanceGUID) : base(csharpInstanceTypeID, csharpInstanceGUID)
         {
-            csharpInstanceTypeID = instanceTypeID;
-            csharpInstanceGUID = instanceGUID;
+
         }
 
         public CSharpInstanceIdentifier(string csharpInstanceID) : base(csharpInstanceID)
@@ -52,6 +46,11 @@ namespace LooCast.System.Identification
             }
             ICSharpInstanceIdentifier otherCSharpInstanceIdentifier = (ICSharpInstanceIdentifier)obj;
             return this.Equals(otherCSharpInstanceIdentifier);
+        }
+
+        public override int GetHashCode()
+        {
+            return csharpInstanceTypeID.GetHashCode() ^ csharpInstanceGUID.GetHashCode();
         }
 
         public static bool operator ==(CSharpInstanceIdentifier left, ICSharpInstanceIdentifier right)

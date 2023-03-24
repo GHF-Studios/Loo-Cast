@@ -1,5 +1,4 @@
-﻿using CSSystem = System;
-using System.Linq;
+﻿using System.Linq;
 using System.Collections.Generic;
 
 namespace LooCast.System
@@ -12,8 +11,8 @@ namespace LooCast.System
         #region Properties
         public IInstanceType InstanceType => unityInstanceType;
         public IUnityInstanceType UnityInstanceType => unityInstanceType;
-        public object InstanceObject => unityInstanceObject;
-        public UnityEngine.Object UnityInstanceObject => unityInstanceObject;
+        public object InstanceObject => unityObject;
+        public UnityEngine.Object UnityObject => unityObject;
         public IInstance ParentInstance => parentUnityInstance;
         public IUnityInstance ParentUnityInstance => parentUnityInstance;
         public List<IInstance> ChildInstances => childUnityInstances.Cast<IInstance>().ToList();
@@ -24,26 +23,28 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        protected IUnityInstanceIdentifier unityInstanceIdentifier;
-        protected IUnityInstanceType unityInstanceType;
-        protected UnityEngine.Object unityInstanceObject;
-        protected IUnityInstance parentUnityInstance;
-        protected List<IUnityInstance> childUnityInstances;
+        private IUnityInstanceIdentifier unityInstanceIdentifier;
+        private IUnityInstanceType unityInstanceType;
+        private UnityEngine.Object unityObject;
+        private IUnityInstance parentUnityInstance;
+        private List<IUnityInstance> childUnityInstances;
         #endregion
 
         #region Constructors
-        public UnityInstance(UnityEngine.Object unityInstanceObject, IUnityInstanceType unityInstanceType)
+        public UnityInstance(UnityEngine.Object unityObject, IUnityInstanceType unityInstanceType)
         {
             unityInstanceIdentifier = new UnityInstanceIdentifier((IUnityInstanceTypeIdentifier)unityInstanceType.TypeIdentifier);
             this.unityInstanceType = unityInstanceType;
-            this.unityInstanceObject = unityInstanceObject;
+            this.unityObject = unityObject;
             parentUnityInstance = null;
             childUnityInstances = new List<IUnityInstance>();
         }
 
-        public UnityInstance(UnityEngine.Object unityInstanceObject, IUnityInstanceType unityInstanceType, IUnityInstance parentUnityInstance)
+        public UnityInstance(UnityEngine.Object unityObject, IUnityInstanceType unityInstanceType, IUnityInstance parentUnityInstance)
         {
-            unityInstanceIdentifier = new UnityInstanceIdentifier((IUnityInstanceTypeIdentifier)unityInstanceType.Identifier);
+            unityInstanceIdentifier = new UnityInstanceIdentifier((IUnityInstanceTypeIdentifier)unityInstanceType.TypeIdentifier);
+            this.unityInstanceType = unityInstanceType;
+            this.unityObject = unityObject;
             this.parentUnityInstance = parentUnityInstance;
             childUnityInstances = new List<IUnityInstance>();
         }

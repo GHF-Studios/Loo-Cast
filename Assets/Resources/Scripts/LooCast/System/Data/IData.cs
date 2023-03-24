@@ -2,6 +2,7 @@
 
 namespace LooCast.System.Data
 {
+    using LooCast.System.Collections.Generic;
     using LooCast.System.Identification;
 
     public interface IData : IObject, IDataIdentifiable
@@ -10,6 +11,7 @@ namespace LooCast.System.Data
         public string ResourcePath { get; }
         public IData? ParentData { get; }
         public SerializableList<IData> ChildData { get; }
+        public DataKind DataKind { get; }
         #endregion
     }
 }

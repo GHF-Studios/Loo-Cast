@@ -36,7 +36,7 @@ IMetaDataTypeIdentifier
 IMetaDataRegistry
 	MetaData
 	MetaDataIdentifier
-	MetaDataRegistry
+MetaDataRegistry
 	MetaDataManager
 	
 IData
@@ -47,7 +47,7 @@ IDataTypeIdentifier
 IDataRegistry
 	Data
 	DataIdentifier
-	DataRegistry
+DataRegistry
 	DataManager
 	
 IDataObject
@@ -64,7 +64,7 @@ IDataObjectMetaDataTypeIdentifier
 IDataObjectMetaDataRegistry
 	DataObject
 	DataObjectIdentifier
-	DataObjectRegistry
+DataObjectRegistry
 	DataObjectMetaData
 	DataObjectMetaDataIdentifier
 	DataObjectMetaDataRegistry
@@ -83,7 +83,7 @@ IDataFileMetaDataTypeIdentifier
 IDataFileMetaDataRegistry
 	DataFile
 	DataFileIdentifier
-	DataFileRegistry
+DataFileRegistry
 	DataFileMetaData
 	DataFileMetaDataIdentifier
 	DataFileMetaDataRegistry
@@ -102,7 +102,7 @@ IDataFolderMetaDataTypeIdentifier
 IDataFolderMetaDataRegistry
 	DataFolder
 	DataFolderIdentifier
-	DataFolderRegistry
+DataFolderRegistry
 	DataFolderMetaData
 	DataFolderMetaDataIdentifier
 	DataFolderMetaDataRegistry
@@ -126,7 +126,7 @@ IInstanceMetaDataType
 IInstanceMetaDataTypeIdentifier
 IInstanceMetaDataRegistry
 	InstanceIdentifier
-	InstanceRegistry
+InstanceRegistry
 	InstanceData
 	InstanceDataIdentifier
 	InstanceDataRegistry
@@ -154,7 +154,7 @@ ICSharpInstanceMetaDataTypeIdentifier
 ICSharpInstanceMetaDataRegistry
 	CSharpInstance
 	CSharpInstanceIdentifier
-	CSharpInstanceRegistry
+CSharpInstanceRegistry
 	CSharpInstanceData
 	CSharpInstanceDataIdentifier
 	CSharpInstanceDataRegistry
@@ -183,7 +183,7 @@ IUnityInstanceMetaDataTypeIdentifier
 IUnityInstanceMetaDataRegistry
 	UnityInstance
 	UnityInstanceIdentifier
-	UnityInstanceRegistry
+UnityInstanceRegistry
 	UnityInstanceData
 	UnityInstanceDataIdentifier
 	UnityInstanceDataRegistry
@@ -212,7 +212,7 @@ IObjectMetaDataTypeIdentifier
 IObjectMetaDataRegistry
 	Object
 	ObjectIdentifier
-	ObjectRegistry
+ObjectRegistry
 	ObjectData
 	ObjectDataIdentifier
 	ObjectDataRegistry
@@ -241,7 +241,7 @@ IGameObjectMetaDataTypeIdentifier
 IGameObjectMetaDataRegistry
 	GameObject
 	GameObjectIdentifier
-	GameObjectRegistry
+GameObjectRegistry
 	GameObjectData
 	GameObjectDataIdentifier
 	GameObjectDataRegistry
@@ -270,7 +270,7 @@ IComponentMetaDataTypeIdentifier
 IComponentMetaDataRegistry
 	Component
 	ComponentIdentifier
-	ComponentRegistry
+ComponentRegistry
 	ComponentData
 	ComponentDataIdentifier
 	ComponentDataRegistry
@@ -299,7 +299,7 @@ IResourceMetaDataTypeIdentifier
 IResourceMetaDataRegistry
 	Resource
 	ResourceIdentifier
-	ResourceRegistry
+ResourceRegistry
 	ResourceData
 	ResourceDataIdentifier
 	ResourceDataRegistry
@@ -328,7 +328,7 @@ IResourceObjectMetaDataTypeIdentifier
 IResourceObjectMetaDataRegistry
 	ResourceObject
 	ResourceObjectIdentifier
-	ResourceObjectRegistry
+ResourceObjectRegistry
 	ResourceObjectData
 	ResourceObjectDataIdentifier
 	ResourceObjectDataRegistry
@@ -356,7 +356,7 @@ IResourceFileMetaDataTypeIdentifier
 IResourceFileMetaDataRegistry
 	ResourceFile
 	ResourceFileIdentifier
-	ResourceFileRegistry
+ResourceFileRegistry
 	ResourceFileData
 	ResourceFileDataIdentifier
 	ResourceFileDataRegistry
@@ -384,7 +384,7 @@ IResourceFolderMetaDataTypeIdentifier
 IResourceFolderMetaDataRegistry
 	ResourceFolder
 	ResourceFolderIdentifier
-	ResourceFolderRegistry
+ResourceFolderRegistry
 	ResourceFolderData
 	ResourceFolderDataIdentifier
 	ResourceFolderDataRegistry

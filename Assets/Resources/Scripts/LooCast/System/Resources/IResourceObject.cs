@@ -2,6 +2,8 @@
 
 namespace LooCast.System.Resources
 {
+    using LooCast.System.Collections.Generic;
+    using LooCast.System.Data;
     using LooCast.System.Identification;
 
     public interface IResourceObject : IResource, IResourceObjectIdentifiable
