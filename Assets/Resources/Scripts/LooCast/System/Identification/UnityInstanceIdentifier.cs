@@ -24,7 +24,7 @@ namespace LooCast.System.Identification
 
         public UnityInstanceIdentifier(string unityInstanceTypeID, string unityInstanceGUID) : base(unityInstanceTypeID, unityInstanceGUID)
         {
-            unityInstanceTypeID = instanceTypeID;
+            unityInstanceTypeID = typeID;
             unityInstanceGUID = instanceGUID;
         }
 

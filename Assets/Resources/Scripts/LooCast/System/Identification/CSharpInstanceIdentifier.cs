@@ -12,6 +12,7 @@ namespace LooCast.System.Identification
         public string CSharpInstanceID => $"{csharpInstanceTypeID}[{csharpInstanceGUID}]";
         #endregion
 
+        #region Constructors
         public CSharpInstanceIdentifier(ICSharpInstanceTypeIdentifier csharpInstanceTypeIdentifier) : base(csharpInstanceTypeIdentifier, new CSSystem.Guid().ToString())
         {
 

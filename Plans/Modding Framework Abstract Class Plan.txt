@@ -25,114 +25,53 @@ Type
 TypeIdentifier
 TypeRegistry
 TypeManager
-
-IPersistable
 	
 IMetaData
-IMetaDataIdentifier
-IMetaDataIdentifiable
 IMetaDataType
-IMetaDataTypeIdentifier
 IMetaDataRegistry
 	MetaData
-	MetaDataIdentifier
 MetaDataRegistry
 	MetaDataManager
 	
 IData
-IDataIdentifier
-IDataIdentifiable
 IDataType
-IDataTypeIdentifier
 IDataRegistry
 	Data
-	DataIdentifier
 DataRegistry
 	DataManager
 	
 IDataObject
-IDataObjectIdentifier
-IDataObjectIdentifiable
 IDataObjectType
-IDataObjectTypeIdentifier
 IDataObjectRegistry
 IDataObjectMetaData
-IDataObjectMetaDataIdentifier
-IDataObjectMetaDataIdentifiable
 IDataObjectMetaDataType
-IDataObjectMetaDataTypeIdentifier
 IDataObjectMetaDataRegistry
 	DataObject
-	DataObjectIdentifier
 DataObjectRegistry
 	DataObjectMetaData
-	DataObjectMetaDataIdentifier
 	DataObjectMetaDataRegistry
 	
 IDataFile
-IDataFileIdentifier
-IDataFileIdentifiable
 IDataFileType
-IDataFileTypeIdentifier
 IDataFileRegistry
 IDataFileMetaData
-IDataFileMetaDataIdentifier
-IDataFileMetaDataIdentifiable
 IDataFileMetaDataType
-IDataFileMetaDataTypeIdentifier
 IDataFileMetaDataRegistry
 	DataFile
-	DataFileIdentifier
 DataFileRegistry
 	DataFileMetaData
-	DataFileMetaDataIdentifier
 	DataFileMetaDataRegistry
 	
 IDataFolder
-IDataFolderIdentifier
-IDataFolderIdentifiable
 IDataFolderType
-IDataFolderTypeIdentifier
 IDataFolderRegistry
 IDataFolderMetaData
-IDataFolderMetaDataIdentifier
-IDataFolderMetaDataIdentifiable
 IDataFolderMetaDataType
-IDataFolderMetaDataTypeIdentifier
 IDataFolderMetaDataRegistry
 	DataFolder
-	DataFolderIdentifier
 DataFolderRegistry
 	DataFolderMetaData
-	DataFolderMetaDataIdentifier
 	DataFolderMetaDataRegistry
-
-IInstance
-IInstanceIdentifier
-IInstanceIdentifiable
-IInstanceType
-IInstanceTypeIdentifier
-IInstanceRegistry
-IInstanceData
-IInstanceDataIdentifier
-IInstanceDataIdentifiable
-IInstanceDataType
-IInstanceDataTypeIdentifier
-IInstanceDataRegistry
-IInstanceMetaData
-IInstanceMetaDataIdentifier
-IInstanceMetaDataIdentifiable
-IInstanceMetaDataType
-IInstanceMetaDataTypeIdentifier
-IInstanceMetaDataRegistry
-	InstanceIdentifier
-InstanceRegistry
-	InstanceData
-	InstanceDataIdentifier
-	InstanceDataRegistry
-	InstanceMetaData
-	InstanceMetaDataIdentifier
-	InstanceMetaDataRegistry
 
 ICSharpInstance
 ICSharpInstanceIdentifier
