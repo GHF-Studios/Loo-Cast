@@ -1,15 +1,9 @@
-﻿using System;
-
-namespace LooCast.System.Registration
+﻿namespace LooCast.System.Registration
 {
     using LooCast.System.Identification;
-    using LooCast.System.Types;
 
-    public class GameObjectRegistry : Registry<IGameObjectIdentifier, IGameObjectIdentifiable>, IGameObjectRegistry<IGameObjectIdentifier, IGameObjectIdentifiable>
+    public class GameObjectRegistry : Registry<GameObjectIdentifier, GameObject>
     {
-        public GameObjectRegistry(IType keyType, IType valueType) : base(keyType, valueType)
-        {
-            
-        }
+        
     }
 }

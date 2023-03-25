@@ -4,14 +4,14 @@ namespace LooCast.System
 {
     using LooCast.System.Identification;
     
-    public class Namespace
+    public class Type
     {
         #region Properties
-        public NamespaceIdentifier Identifier => identifier;
+        public TypeIdentifier Identifier => identifier;
         #endregion
 
         #region Fields
-        private NamespaceIdentifier identifier;
+        private TypeIdentifier identifier;
         #endregion
     }
 }

@@ -2,7 +2,7 @@
 {
     using LooCast.System.Identification;
 
-    public class TypeRegistry : Registry<TypeIdentifier, Type>
+    public class SystemObjectRegistry : Registry<SystemObjectIdentifier, SystemObject>
     {
         
     }

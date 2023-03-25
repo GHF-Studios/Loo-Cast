@@ -1,79 +1,88 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LooCast.System.Registration
 {
     using LooCast.System.Identification;
-    using LooCast.System.Types;
 
-    public class Registry<KeyType, ValueType> : IRegistry<KeyType, ValueType> where KeyType : IIdentifier where ValueType : IIdentifiable
+    public abstract class Registry<KeyType, ValueType> : IDictionary<KeyType, ValueType> where KeyType : IIdentifier
     {
         #region Properties
-        public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
-        public IIdentifier Identifier => RegistryIdentifier;
-        public Dictionary<KeyType, ValueType> RegistryDictionary => registryDictionary;
+        public ValueType this[KeyType key] 
+        { 
+            get => ((IDictionary<KeyType, ValueType>)dictionary)[key]; 
+            set => ((IDictionary<KeyType, ValueType>)dictionary)[key] = value; 
+        }
+        public ICollection<KeyType> Keys => ((IDictionary<KeyType, ValueType>)dictionary).Keys;
+        public ICollection<ValueType> Values => ((IDictionary<KeyType, ValueType>)dictionary).Values;
+        public int Count => ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Count;
+        public bool IsReadOnly => ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).IsReadOnly;
         #endregion
 
         #region Fields
-        protected IRegistryIdentifier registryIdentifier;
-        protected Dictionary<KeyType, ValueType> registryDictionary;
+        private Dictionary<KeyType, ValueType> dictionary;
         #endregion
 
         #region Constructors
-        public Registry(IType keyType, IType valueType)
+        public Registry()
         {
-            if (!ValidateKeyType(keyType))
-            {
-                throw new Exception($"[Registry] Key type '{keyType.TypeIdentifier}' is not a subclass of '{typeof(KeyType).Name}'!");
-            }
-            if (!ValidateValueType(valueType))
-            {
-                throw new Exception($"[Registry] Value type '{valueType.TypeIdentifier}' is not a subclass of '{typeof(ValueType).Name}'!");
-            }
-
-            registryIdentifier = new RegistryIdentifier(keyType.TypeIdentifier.TypeID, valueType.TypeIdentifier.TypeID);
-            registryDictionary = new Dictionary<KeyType, ValueType>();
-        }
-        #endregion
-
-        #region Operators
-        public ValueType this[KeyType key]
-        {
-            get
-            {
-                return registryDictionary[key];
-            }
-            set
-            {
-                registryDictionary[key] = value;
-            }
+            dictionary = new Dictionary<KeyType, ValueType>();
         }
         #endregion
 
         #region Methods
-        public void Register(KeyType key, ValueType value)
+        public void Add(KeyType key, ValueType value)
         {
-            registryDictionary.Add(key, value);
+            ((IDictionary<KeyType, ValueType>)dictionary).Add(key, value);
         }
 
-        public void Unregister(KeyType key)
+        public void Add(KeyValuePair<KeyType, ValueType> item)
         {
-            registryDictionary.Remove(key);
+            ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Add(item);
         }
 
-        public ValueType Get(KeyType key)
+        public void Clear()
         {
-            return registryDictionary[key];
+            ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Clear();
         }
 
-        public bool ValidateKeyType(IType keyType)
+        public bool Contains(KeyValuePair<KeyType, ValueType> item)
         {
-            return keyType.CSSystemType.IsSubclassOf(typeof(KeyType));
+            return ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Contains(item);
         }
 
-        public bool ValidateValueType(IType valueType)
+        public bool ContainsKey(KeyType key)
         {
-            return valueType.CSSystemType.IsSubclassOf(typeof(ValueType));
+            return ((IDictionary<KeyType, ValueType>)dictionary).ContainsKey(key);
+        }
+
+        public void CopyTo(KeyValuePair<KeyType, ValueType>[] array, int arrayIndex)
+        {
+            ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).CopyTo(array, arrayIndex);
+        }
+
+        public IEnumerator<KeyValuePair<KeyType, ValueType>> GetEnumerator()
+        {
+            return ((IEnumerable<KeyValuePair<KeyType, ValueType>>)dictionary).GetEnumerator();
+        }
+
+        public bool Remove(KeyType key)
+        {
+            return ((IDictionary<KeyType, ValueType>)dictionary).Remove(key);
+        }
+
+        public bool Remove(KeyValuePair<KeyType, ValueType> item)
+        {
+            return ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Remove(item);
+        }
+
+        public bool TryGetValue(KeyType key, out ValueType value)
+        {
+            return ((IDictionary<KeyType, ValueType>)dictionary).TryGetValue(key, out value);
+        }
+
+        global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator()
+        {
+            return ((global::System.Collections.IEnumerable)dictionary).GetEnumerator();
         }
         #endregion
     }

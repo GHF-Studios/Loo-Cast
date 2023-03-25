@@ -1,14 +1,9 @@
-﻿using System;
-
-namespace LooCast.System.Registration
+﻿namespace LooCast.System.Registration
 {
     using LooCast.System.Identification;
 
-    public class NamespaceRegistry : Registry<INamespaceIdentifier, INamespaceIdentifiable>, INamespaceRegistry<INamespaceIdentifier, INamespaceIdentifiable>
+    public class NamespaceRegistry : Registry<NamespaceIdentifier, Namespace>
     {
-        public NamespaceRegistry(IType keyType, IType valueType) : base(keyType, valueType)
-        {
-            
-        }
+        
     }
 }
