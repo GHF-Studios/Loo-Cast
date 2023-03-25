@@ -458,7 +458,7 @@ namespace LooCast
             CSharpInstanceType iCSharpInstanceMetaDataIdentifier = new CSharpInstanceType(typeof(ICSharpInstanceMetaDataIdentifier), looCastSystemIdentificationNamespace);
             CSharpInstanceType iCSharpInstanceMetaDataIdentifiable = new CSharpInstanceType(typeof(ICSharpInstanceMetaDataIdentifiable), looCastSystemIdentificationNamespace);
             CSharpInstanceType iCSharpInstanceMetaDataTypeIdentifier = new CSharpInstanceType(typeof(ICSharpInstanceMetaDataTypeIdentifier), looCastSystemIdentificationNamespace);
-            CSharpInstanceType csharpInstanceIdentifier = new CSharpInstanceType(typeof(CSharpInstanceIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType csharpInstanceIdentifier = new CSharpInstanceType(typeof(SystemObjectIdentifier), looCastSystemIdentificationNamespace);
             CSharpInstanceType csharpInstanceDataIdentifier = new CSharpInstanceType(typeof(CSharpInstanceDataIdentifier), looCastSystemIdentificationNamespace);
             CSharpInstanceType csharpInstanceMetaDataIdentifier = new CSharpInstanceType(typeof(CSharpInstanceMetaDataIdentifier), looCastSystemIdentificationNamespace);
             typeManager.RegisterType(iCSharpInstanceIdentifier);
@@ -483,7 +483,7 @@ namespace LooCast
             CSharpInstanceType iUnityInstanceMetaDataIdentifier = new CSharpInstanceType(typeof(IUnityInstanceMetaDataIdentifier), looCastSystemIdentificationNamespace);
             CSharpInstanceType iUnityInstanceMetaDataIdentifiable = new CSharpInstanceType(typeof(IUnityInstanceMetaDataIdentifiable), looCastSystemIdentificationNamespace);
             CSharpInstanceType iUnityInstanceMetaDataTypeIdentifier = new CSharpInstanceType(typeof(IUnityInstanceMetaDataTypeIdentifier), looCastSystemIdentificationNamespace);
-            CSharpInstanceType unityInstanceIdentifier = new CSharpInstanceType(typeof(UnityInstanceIdentifier), looCastSystemIdentificationNamespace);
+            CSharpInstanceType unityInstanceIdentifier = new CSharpInstanceType(typeof(GameObjectIdentifier), looCastSystemIdentificationNamespace);
             CSharpInstanceType unityInstanceDataIdentifier = new CSharpInstanceType(typeof(UnityInstanceDataIdentifier), looCastSystemIdentificationNamespace);
             CSharpInstanceType unityInstanceMetaDataIdentifier = new CSharpInstanceType(typeof(UnityInstanceMetaDataIdentifier), looCastSystemIdentificationNamespace);
             typeManager.RegisterType(iUnityInstanceIdentifier);
