@@ -11,22 +11,22 @@ namespace LooCast.System.Identification
         {
             get
             {
-                return $"{TypeIdentifier}[{InstanceGUID}]";
+                return $"{ContainingTypeIdentifier}[{InstanceGUID}]";
             }
         }
-        public TypeIdentifier TypeIdentifier => typeIdentifier;
+        public TypeIdentifier ContainingTypeIdentifier => containingTypeIdentifier;
         public Guid InstanceGUID => instanceGUID;
         #endregion
 
         #region Fields
-        [SerializeField] private TypeIdentifier typeIdentifier;
+        [SerializeField] private TypeIdentifier containingTypeIdentifier;
         [SerializeField] private Guid instanceGUID;
         #endregion
 
         #region Constructors
-        public SystemObjectIdentifier(TypeIdentifier typeIdentifier, Guid instanceGUID = new Guid())
+        public SystemObjectIdentifier(TypeIdentifier containingTypeIdentifier, Guid instanceGUID)
         {
-            this.typeIdentifier = typeIdentifier;
+            this.containingTypeIdentifier = containingTypeIdentifier;
             this.instanceGUID = instanceGUID;
         }
         #endregion

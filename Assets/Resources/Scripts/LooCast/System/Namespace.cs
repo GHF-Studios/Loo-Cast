@@ -1,51 +1,53 @@
-﻿using System.Collections.Generic;
+﻿
 
 namespace LooCast.System
 {
     using LooCast.System.Identification;
+    using LooCast.System.Registration;
 
     public class Namespace
     {
         #region Properties
-        public NamespaceIdentifier Identifier => new NamespaceIdentifier(namespaceName, parentNamespace.Identifier);
-        public Namespace ParentNamespace => parentNamespace;
+        public NamespaceIdentifier Identifier
+        {
+            get
+            {
+                if (identifier == null)
+                {
+                    identifier = new NamespaceIdentifier(NamespaceName, ParentNamespace?.Identifier);
+                }
+                return identifier.Value;
+            }
+        }
+        
         public string NamespaceName => namespaceName;
-        public List<Namespace> ChildNamespaces => childNamespaces;
-        public List<Type> ContainedTypes => containedTypes;
+        
+        public Namespace ParentNamespace => parentNamespace;
+        public NamespaceRegistry ChildNamespaces => childNamespaces;
+        
+        public TypeRegistry ContainedTypes => containedTypes;
         #endregion
 
         #region Fields
-        private Namespace parentNamespace;
+        private NamespaceIdentifier? identifier;
+        
         private string namespaceName;
-        private List<Namespace> childNamespaces;
-        private List<Type> containedTypes;
+        
+        private Namespace parentNamespace;
+        private NamespaceRegistry childNamespaces;
+        
+        private TypeRegistry containedTypes;
         #endregion
 
         #region Constructors
         public Namespace(string namespaceName, Namespace parentNamespace = null)
         {
             this.namespaceName = namespaceName;
+            
             this.parentNamespace = parentNamespace;
-        }
-        #endregion
-
-        #region Methods
-        public void RegisterChildNamespace(Namespace childNamespace)
-        {
-            if (childNamespaces.Contains(childNamespace))
-            {
-                throw new global::System.Exception($"Child Namespace '{childNamespace}' is already registered!");
-            }
-            childNamespaces.Add(childNamespace);
-        }
-
-        public void RegisterContainedType(Type containedType)
-        {
-            if (containedTypes.Contains(containedType))
-            {
-                throw new global::System.Exception($"Contained Type '{containedType}' is already registered!");
-            }
-            containedTypes.Add(containedType);
+            childNamespaces = new NamespaceRegistry();
+            
+            containedTypes = new TypeRegistry();
         }
         #endregion
 
