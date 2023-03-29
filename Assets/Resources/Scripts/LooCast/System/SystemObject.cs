@@ -25,19 +25,25 @@ namespace LooCast.System
 
         public Type ContainingType => containingType;
 
+#nullable enable
         public SystemObject? ParentSystemObject => parentSystemObject;
+#nullable disable
         public SystemObjectRegistry ChildSystemObjects => childSystemObjects;
         #endregion
 
         #region Fields
+#nullable enable
         private SystemObjectIdentifier? identifier;
-        
+#nullable disable
+
         private Guid instanceGUID;
         private object instance;
 
         private Type containingType;
 
+#nullable enable
         private SystemObject? parentSystemObject;
+#nullable disable
         private SystemObjectRegistry childSystemObjects;
         #endregion
 

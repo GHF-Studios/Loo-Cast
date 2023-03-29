@@ -11,27 +11,27 @@ namespace LooCast.System.Identification
         {
             get
             {
-                return $"{NamespaceIdentifier}:{TypeName}";
+                return $"{ContainingNamespaceIdentifier}:{TypeName}";
             }
         }
-        public NamespaceIdentifier NamespaceIdentifier => namespaceIdentifier;
+        public NamespaceIdentifier ContainingNamespaceIdentifier => containingNamespaceIdentifier;
         public string TypeName => typeName;
         #endregion
 
         #region Fields
-        [SerializeField] private NamespaceIdentifier namespaceIdentifier;
+        [SerializeField] private NamespaceIdentifier containingNamespaceIdentifier;
         [SerializeField] private string typeName;
         #endregion
-
+        
         #region Constructors
-        public TypeIdentifier(NamespaceIdentifier namespaceIdentifier, string typeName)
+        public TypeIdentifier(NamespaceIdentifier containingNamespaceIdentifier, string typeName)
         {
             if (!IsValidTypeName(typeName))
             {
                 throw new ArgumentException($"Invalid Type Name: '{typeName}'");
             }
 
-            this.namespaceIdentifier = namespaceIdentifier;
+            this.containingNamespaceIdentifier = containingNamespaceIdentifier;
             this.typeName = typeName;
         }
         #endregion
@@ -48,10 +48,10 @@ namespace LooCast.System.Identification
                 return false;
             }
 
-            string namespaceIdentifierString = parts[0];
+            string containingNamespaceIdentifierString = parts[0];
             string typeName = parts[1];
 
-            if (!NamespaceIdentifier.TryParse(namespaceIdentifierString, out NamespaceIdentifier? namespaceIdentifier))
+            if (!NamespaceIdentifier.TryParse(containingNamespaceIdentifierString, out NamespaceIdentifier? containingNamespaceIdentifier))
             {
                 return false;
             }
@@ -61,7 +61,7 @@ namespace LooCast.System.Identification
                 return false;
             }
 
-            typeIdentifier = new TypeIdentifier(namespaceIdentifier.Value, typeName);
+            typeIdentifier = new TypeIdentifier(containingNamespaceIdentifier.Value, typeName);
             return true;
         }
 
@@ -90,6 +90,11 @@ namespace LooCast.System.Identification
         #endregion
 
         #region Overrides
+        public override string ToString()
+        {
+            return GUSID;
+        }
+        
         public override bool Equals(object obj)
         {
             if (obj is TypeIdentifier)
@@ -110,11 +115,6 @@ namespace LooCast.System.Identification
         public override int GetHashCode()
         {
             return GUSID.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return GUSID;
         }
         #endregion
 

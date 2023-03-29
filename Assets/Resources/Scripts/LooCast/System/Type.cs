@@ -24,7 +24,9 @@ namespace LooCast.System
         
         public Namespace ContainingNamespace => containingNamespace;
         
+#nullable enable
         public Type? ParentType => parentType;
+#nullable disable
         public TypeRegistry ChildTypes => childTypes;
         
         public GameObjectRegistry ContainedGameObjects => containedGameObjects;
@@ -32,13 +34,17 @@ namespace LooCast.System
         #endregion
 
         #region Fields
+#nullable enable
         private TypeIdentifier? identifier;
-        
+#nullable disable
+
         private string typeName;
         
         private Namespace containingNamespace;
-        
+
+#nullable enable
         private Type? parentType;
+#nullable disable
         private TypeRegistry childTypes;
         
         private GameObjectRegistry containedGameObjects;

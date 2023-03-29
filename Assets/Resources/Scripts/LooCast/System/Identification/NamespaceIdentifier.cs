@@ -99,6 +99,11 @@ namespace LooCast.System.Identification
         #endregion
 
         #region Overrides
+        public override string ToString()
+        {
+            return GUSID;
+        }
+
         public override bool Equals(object obj)
         {
             if (obj is NamespaceIdentifier)
@@ -119,11 +124,6 @@ namespace LooCast.System.Identification
         public override int GetHashCode()
         {
             return GUSID.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return GUSID;
         }
         #endregion
 

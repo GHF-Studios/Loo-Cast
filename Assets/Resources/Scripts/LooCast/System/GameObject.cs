@@ -25,21 +25,27 @@ namespace LooCast.System
         
         public Type ContainingType => containingType;
         
+#nullable enable 
         public GameObject? ParentGameObject => parentGameObject;
+#nullable disable
         public GameObjectRegistry ChildGameObjects => childGameObjects;
         
         public ComponentRegistry ContainedComponents => containedComponents;
         #endregion
 
         #region Fields
+#nullable enable 
         private GameObjectIdentifier? identifier;
-        
+#nullable disable
+
         private Guid instanceGUID;
         private UnityEngine.Object instance;
 
         private Type containingType;
 
+#nullable enable
         private GameObject? parentGameObject;
+#nullable disable
         private GameObjectRegistry childGameObjects;
 
         private ComponentRegistry containedComponents;

@@ -21,8 +21,10 @@ namespace LooCast.System
         }
         
         public string NamespaceName => namespaceName;
-        
-        public Namespace ParentNamespace => parentNamespace;
+
+#nullable enable
+        public Namespace? ParentNamespace => parentNamespace;
+#nullable disable
         public NamespaceRegistry ChildNamespaces => childNamespaces;
         
         public TypeRegistry ContainedTypes => containedTypes;
@@ -32,8 +34,10 @@ namespace LooCast.System
         private NamespaceIdentifier? identifier;
         
         private string namespaceName;
-        
-        private Namespace parentNamespace;
+
+#nullable enable
+        private Namespace? parentNamespace;
+#nullable disable
         private NamespaceRegistry childNamespaces;
         
         private TypeRegistry containedTypes;

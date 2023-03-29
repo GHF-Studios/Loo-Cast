@@ -11,23 +11,23 @@ namespace LooCast.System.Identification
         {
             get
             {
-                return $"{ContainingTypeIdentifier}[{InstanceGUID}]";
+                return $"{ContainingTypeIdentifier}[{SystemObjectInstanceGUID}]";
             }
         }
         public TypeIdentifier ContainingTypeIdentifier => containingTypeIdentifier;
-        public Guid InstanceGUID => instanceGUID;
+        public Guid SystemObjectInstanceGUID => systemObjectInstanceGUID;
         #endregion
 
         #region Fields
         [SerializeField] private TypeIdentifier containingTypeIdentifier;
-        [SerializeField] private Guid instanceGUID;
+        [SerializeField] private Guid systemObjectInstanceGUID;
         #endregion
 
         #region Constructors
-        public SystemObjectIdentifier(TypeIdentifier containingTypeIdentifier, Guid instanceGUID)
+        public SystemObjectIdentifier(TypeIdentifier containingTypeIdentifier, Guid systemObjectInstanceGUID)
         {
             this.containingTypeIdentifier = containingTypeIdentifier;
-            this.instanceGUID = instanceGUID;
+            this.systemObjectInstanceGUID = systemObjectInstanceGUID;
         }
         #endregion
 
@@ -44,24 +44,29 @@ namespace LooCast.System.Identification
             }
 
             string typeIdentifierString = parts[0];
-            string instanceGUIDString = parts[1];
+            string systemObjectInstanceGUIDString = parts[1];
 
-            if (!TypeIdentifier.TryParse(typeIdentifierString, out TypeIdentifier? typeIdentifier))
+            if (!TypeIdentifier.TryParse(typeIdentifierString, out TypeIdentifier? containingTypeIdentifier))
             {
                 return false;
             }
 
-            if (!Guid.TryParse(instanceGUIDString, out Guid instanceGUID))
+            if (!Guid.TryParse(systemObjectInstanceGUIDString, out Guid systemObjectInstanceGUID))
             {
                 return false;
             }
 
-            systemObjectIdentifier = new SystemObjectIdentifier(typeIdentifier.Value, instanceGUID);
+            systemObjectIdentifier = new SystemObjectIdentifier(containingTypeIdentifier.Value, systemObjectInstanceGUID);
             return true;
         }
         #endregion
 
         #region Overrides
+        public override string ToString()
+        {
+            return GUSID;
+        }
+        
         public override bool Equals(object obj)
         {
             if (obj is SystemObjectIdentifier)
@@ -82,11 +87,6 @@ namespace LooCast.System.Identification
         public override int GetHashCode()
         {
             return GUSID.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return GUSID;
         }
         #endregion
 

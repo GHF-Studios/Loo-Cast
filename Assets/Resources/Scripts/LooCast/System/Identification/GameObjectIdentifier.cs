@@ -11,23 +11,23 @@ namespace LooCast.System.Identification
         {
             get
             {
-                return $"{ContainingTypeIdentifier}({InstanceGUID})";
+                return $"{ContainingTypeIdentifier}({GameObjectInstanceGUID})";
             }
         }
         public TypeIdentifier ContainingTypeIdentifier => containingTypeIdentifier;
-        public Guid InstanceGUID => instanceGUID;
+        public Guid GameObjectInstanceGUID => gameObjectinstanceGUID;
         #endregion
 
         #region Fields
         [SerializeField] private TypeIdentifier containingTypeIdentifier;
-        [SerializeField] private Guid instanceGUID;
+        [SerializeField] private Guid gameObjectinstanceGUID;
         #endregion
 
         #region Constructors
-        public GameObjectIdentifier(TypeIdentifier containingTypeIdentifier, Guid instanceGUID)
+        public GameObjectIdentifier(TypeIdentifier containingTypeIdentifier, Guid gameObjectinstanceGUID)
         {
             this.containingTypeIdentifier = containingTypeIdentifier;
-            this.instanceGUID = instanceGUID;
+            this.gameObjectinstanceGUID = gameObjectinstanceGUID;
         }
         #endregion
 
@@ -43,25 +43,30 @@ namespace LooCast.System.Identification
                 return false;
             }
 
-            string typeIdentifierString = parts[0];
-            string instanceGUIDString = parts[1];
+            string containingTypeIdentifierString = parts[0];
+            string gameObjectInstanceGUIDString = parts[1];
 
-            if (!TypeIdentifier.TryParse(typeIdentifierString, out TypeIdentifier? typeIdentifier))
+            if (!TypeIdentifier.TryParse(containingTypeIdentifierString, out TypeIdentifier? containingTypeIdentifier))
             {
                 return false;
             }
 
-            if (!Guid.TryParse(instanceGUIDString, out Guid instanceGUID))
+            if (!Guid.TryParse(gameObjectInstanceGUIDString, out Guid gameObjectinstanceGUID))
             {
                 return false;
             }
 
-            gameObjectIdentifier = new GameObjectIdentifier(typeIdentifier.Value, instanceGUID);
+            gameObjectIdentifier = new GameObjectIdentifier(containingTypeIdentifier.Value, gameObjectinstanceGUID);
             return true;
         }
         #endregion
 
         #region Overrides
+        public override string ToString()
+        {
+            return GUSID;
+        }
+        
         public override bool Equals(object obj)
         {
             if (obj is GameObjectIdentifier)
@@ -82,11 +87,6 @@ namespace LooCast.System.Identification
         public override int GetHashCode()
         {
             return GUSID.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return GUSID;
         }
         #endregion
 
