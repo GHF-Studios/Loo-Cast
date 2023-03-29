@@ -91,7 +91,7 @@ namespace LooCast.Steamworks
         #region Unity Callbacks
         private void Awake()
 		{
-			// Only one instance of SteamManager at a time!
+			// Only one gameObjectInstance of SteamManager at a time!
 			if (instance != null)
 			{
 				Destroy(gameObject);

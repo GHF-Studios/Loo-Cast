@@ -14,14 +14,14 @@ namespace LooCast.System
             {
                 if (identifier == null)
                 {
-                    identifier = new SystemObjectIdentifier(ContainingType.Identifier, InstanceGUID);
+                    identifier = new SystemObjectIdentifier(ContainingType.Identifier, SystemObjectInstanceGUID);
                 }
                 return identifier.Value;
             }
         }
         
-        public Guid InstanceGUID => instanceGUID;
-        public object Instance => instance;
+        public Guid SystemObjectInstanceGUID => systemObjectInstanceGUID;
+        public object SystemObjectInstance => systemObjectInstance;
 
         public Type ContainingType => containingType;
 
@@ -36,8 +36,8 @@ namespace LooCast.System
         private SystemObjectIdentifier? identifier;
 #nullable disable
 
-        private Guid instanceGUID;
-        private object instance;
+        private Guid systemObjectInstanceGUID;
+        private object systemObjectInstance;
 
         private Type containingType;
 
@@ -48,10 +48,10 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public SystemObject(Guid instanceGUID, object instance, Type containingType)
+        public SystemObject(Guid systemObjectInstanceGUID, object systemObjectInstance, Type containingType)
         {
-            this.instanceGUID = instanceGUID;
-            this.instance = instance;
+            this.systemObjectInstanceGUID = systemObjectInstanceGUID;
+            this.systemObjectInstance = systemObjectInstance;
 
             this.containingType = containingType;
 
@@ -59,10 +59,10 @@ namespace LooCast.System
             childSystemObjects = new SystemObjectRegistry();
         }
 
-        public SystemObject(Guid instanceGUID, object instance, SystemObject parentSystemObject)
+        public SystemObject(Guid systemObjectInstanceGUID, object systemObjectInstance, SystemObject parentSystemObject)
         {
-            this.instanceGUID = instanceGUID;
-            this.instance = instance;
+            this.systemObjectInstanceGUID = systemObjectInstanceGUID;
+            this.systemObjectInstance = systemObjectInstance;
 
             this.containingType = parentSystemObject.ContainingType;
 

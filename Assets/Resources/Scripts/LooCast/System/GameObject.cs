@@ -14,14 +14,14 @@ namespace LooCast.System
             {
                 if (identifier == null)
                 {
-                    identifier = new GameObjectIdentifier(ContainingType.Identifier, InstanceGUID);
+                    identifier = new GameObjectIdentifier(ContainingType.Identifier, GameObjectInstanceGUID);
                 }
                 return identifier.Value;
             }
         }
         
-        public Guid InstanceGUID => instanceGUID;
-        public UnityEngine.Object Instance => instance;
+        public Guid GameObjectInstanceGUID => gameObjectInstanceGUID;
+        public UnityEngine.Object GameObjectInstance => gameObjectInstance;
         
         public Type ContainingType => containingType;
         
@@ -38,8 +38,8 @@ namespace LooCast.System
         private GameObjectIdentifier? identifier;
 #nullable disable
 
-        private Guid instanceGUID;
-        private UnityEngine.Object instance;
+        private Guid gameObjectInstanceGUID;
+        private UnityEngine.Object gameObjectInstance;
 
         private Type containingType;
 
@@ -52,10 +52,10 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public GameObject(Guid instanceGUID, UnityEngine.Object instance, Type containingType)
+        public GameObject(Guid gameObjectInstanceGUID, UnityEngine.Object gameObjectInstance, Type containingType)
         {
-            this.instanceGUID = instanceGUID;
-            this.instance = instance;
+            this.gameObjectInstanceGUID = gameObjectInstanceGUID;
+            this.gameObjectInstance = gameObjectInstance;
             
             this.containingType = containingType;
 
@@ -65,10 +65,10 @@ namespace LooCast.System
             containedComponents = new ComponentRegistry();
         }
 
-        public GameObject(Guid instanceGUID, UnityEngine.Object instance, GameObject parentGameObject)
+        public GameObject(Guid gameObjectInstanceGUID, UnityEngine.Object gameObjectInstance, GameObject parentGameObject)
         {
-            this.instanceGUID = instanceGUID;
-            this.instance = instance;
+            this.gameObjectInstanceGUID = gameObjectInstanceGUID;
+            this.gameObjectInstance = gameObjectInstance;
 
             containingType = parentGameObject.containingType;
 
