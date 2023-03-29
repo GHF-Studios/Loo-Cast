@@ -52,25 +52,12 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public GameObject(Guid gameObjectInstanceGUID, UnityEngine.Object gameObjectInstance, Type containingType)
+        public GameObject(Guid gameObjectInstanceGUID, UnityEngine.Object gameObjectInstance, Type containingType, GameObject parentGameObject = null)
         {
             this.gameObjectInstanceGUID = gameObjectInstanceGUID;
             this.gameObjectInstance = gameObjectInstance;
             
             this.containingType = containingType;
-
-            parentGameObject = null;
-            childGameObjects = new GameObjectRegistry();
-
-            containedComponents = new ComponentRegistry();
-        }
-
-        public GameObject(Guid gameObjectInstanceGUID, UnityEngine.Object gameObjectInstance, GameObject parentGameObject)
-        {
-            this.gameObjectInstanceGUID = gameObjectInstanceGUID;
-            this.gameObjectInstance = gameObjectInstance;
-
-            containingType = parentGameObject.containingType;
 
             this.parentGameObject = parentGameObject;
             childGameObjects = new GameObjectRegistry();

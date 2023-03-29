@@ -21,7 +21,7 @@ namespace LooCast.System
         }
 
         public Guid ComponentInstanceGUID => componentInstanceGUID;
-        public UnityEngine.Object ComponentInstance => componentInstance;
+        public UnityEngine.Component ComponentInstance => componentInstance;
 
         public Type ContainingType => containingType;
         public GameObject ContainingGameObject => containingGameObject;
@@ -33,10 +33,47 @@ namespace LooCast.System
 #nullable disable
 
         private Guid componentInstanceGUID;
-        private UnityEngine.Object componentInstance;
+        private UnityEngine.Component componentInstance;
 
         private Type containingType;
-        private GameObject? containingGameObject;
+        private GameObject containingGameObject;
+        #endregion
+
+        #region Constructors
+        public Component(Guid componentInstanceGUID, UnityEngine.Component componentInstance, Type containingType, GameObject containingGameObject)
+        {
+            this.componentInstanceGUID = componentInstanceGUID;
+            this.componentInstance = componentInstance;
+
+            this.containingType = containingType;
+            this.containingGameObject = containingGameObject;
+        }
+        #endregion
+
+        #region Overrides
+        public override bool Equals(object obj)
+        {
+            if (obj is Component otherComponent)
+            {
+                return Equals(otherComponent);
+            }
+            return false;
+        }
+
+        public bool Equals(Component otherComponent)
+        {
+            return Identifier.Equals(otherComponent.Identifier);
+        }
+
+        public override int GetHashCode()
+        {
+            return Identifier.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return Identifier.ToString();
+        }
         #endregion
     }
 }

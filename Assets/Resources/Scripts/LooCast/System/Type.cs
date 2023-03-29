@@ -30,6 +30,7 @@ namespace LooCast.System
         public TypeRegistry ChildTypes => childTypes;
         
         public GameObjectRegistry ContainedGameObjects => containedGameObjects;
+        public ComponentRegistry ContainedComponents => containedComponents;
         public SystemObjectRegistry ContainedSystemObjects => containedSystemObjects;
         #endregion
 
@@ -48,33 +49,22 @@ namespace LooCast.System
         private TypeRegistry childTypes;
         
         private GameObjectRegistry containedGameObjects;
+        private ComponentRegistry containedComponents;
         private SystemObjectRegistry containedSystemObjects;
         #endregion
 
         #region Constructors
-        public Type(string typeName, Namespace containingNamespace)
+        public Type(string typeName, Namespace containingNamespace, Type parentType = null)
         {
             this.typeName = typeName;
             
             this.containingNamespace = containingNamespace;
-            
-            parentType = null;
-            childTypes = new TypeRegistry();
-            
-            containedGameObjects = new GameObjectRegistry();
-            containedSystemObjects = new SystemObjectRegistry();
-        }
-         
-        public Type(string typeName, Type parentType)
-        {
-            this.typeName = typeName;
-            
-            containingNamespace = parentType.ContainingNamespace;
-            
+
             this.parentType = parentType;
             childTypes = new TypeRegistry();
             
             containedGameObjects = new GameObjectRegistry();
+            containedComponents = new ComponentRegistry();
             containedSystemObjects = new SystemObjectRegistry();
         }
         #endregion

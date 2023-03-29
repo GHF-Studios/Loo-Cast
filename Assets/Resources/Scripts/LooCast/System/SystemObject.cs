@@ -48,23 +48,12 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public SystemObject(Guid systemObjectInstanceGUID, object systemObjectInstance, Type containingType)
+        public SystemObject(Guid systemObjectInstanceGUID, object systemObjectInstance, Type containingType, SystemObject parentSystemObject = null)
         {
             this.systemObjectInstanceGUID = systemObjectInstanceGUID;
             this.systemObjectInstance = systemObjectInstance;
 
             this.containingType = containingType;
-
-            parentSystemObject = null;
-            childSystemObjects = new SystemObjectRegistry();
-        }
-
-        public SystemObject(Guid systemObjectInstanceGUID, object systemObjectInstance, SystemObject parentSystemObject)
-        {
-            this.systemObjectInstanceGUID = systemObjectInstanceGUID;
-            this.systemObjectInstance = systemObjectInstance;
-
-            this.containingType = parentSystemObject.ContainingType;
 
             this.parentSystemObject = parentSystemObject;
             childSystemObjects = new SystemObjectRegistry();
