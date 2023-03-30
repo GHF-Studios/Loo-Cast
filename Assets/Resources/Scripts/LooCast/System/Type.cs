@@ -54,9 +54,17 @@ namespace LooCast.System
 
         #region Constructors
 #nullable enable
-        public Type(string fullTypeName, Namespace containingNamespace, Type parentType = null, Type[]? genericTypeArguments = null)
+        public Type(string fullTypeName, Namespace containingNamespace, Type? parentType = null, Type[]? genericTypeArguments = null)
         {
-            typeIdentifier = $"{containingNamespace.Identifier.GUSID}:{fullTypeName}";
+            TypeIdentifier? tempTypeIdentifier = $"{containingNamespace.Identifier.GUSID}:{fullTypeName}";
+            if (tempTypeIdentifier == null)
+            {
+                throw new global::System.Exception("TypeIdentifier could not be parsed!");
+            }
+            else
+            {
+                typeIdentifier = tempTypeIdentifier;
+            }
 
             this.fullTypeName = fullTypeName;
             cssystemType = typeIdentifier.CSSystemType;
