@@ -2,7 +2,9 @@
 
 namespace LooCast.System
 {
-    public interface IHierarchyElement
+    using LooCast.System.Identifiers;
+    
+    public interface IHierarchyElement : IIdentifiable
     {
         public string HierarchyName { get; }
         public HierarchyPath HierarchyPath { get; }
@@ -10,5 +12,6 @@ namespace LooCast.System
         public IHierarchyElement? Parent { get; set; }
 #nullable disable
         public List<IHierarchyElement> Children { get; }
+        public Registry<TypeIdentifier, Registry<Identifier, IHierarchyElement>> SubHierarchies { get; }
     }
 }

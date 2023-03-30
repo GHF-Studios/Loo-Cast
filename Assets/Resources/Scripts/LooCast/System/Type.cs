@@ -1,17 +1,22 @@
-﻿
+﻿using CSSystem = System;
 
 namespace LooCast.System
 {
     using LooCast.System.Identifiers;
     using LooCast.System.Registries;
 
-    public class Type
+    public class Type : IIdentifiable
     {
         #region Properties
-        public TypeIdentifier Identifier => identifier;
+        public Identifier Identifier => typeIdentifier;
+        public TypeIdentifier TypeIdentifier => typeIdentifier;
 
-        public string TypeName => typeName;
-        
+        public string FullTypeName => fullTypeName;
+        public CSSystem.Type CSSystemType => cssystemType;
+#nullable enable
+        public Type[]? GenericTypeArguments => genericTypeArguments;
+#nullable disable
+
         public Namespace ContainingNamespace => containingNamespace;
         
 #nullable enable
@@ -26,11 +31,15 @@ namespace LooCast.System
 
         #region Fields
 #nullable enable
-        private TypeIdentifier? identifier;
+        private TypeIdentifier typeIdentifier;
 #nullable disable
 
-        private string typeName;
-        
+        private string fullTypeName;
+        private CSSystem.Type cssystemType;
+#nullable enable
+        private Type[]? genericTypeArguments;
+#nullable disable
+
         private Namespace containingNamespace;
 
 #nullable enable
@@ -44,12 +53,15 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public Type(string typeName, Namespace containingNamespace, Type parentType = null)
+#nullable enable
+        public Type(string fullTypeName, Namespace containingNamespace, Type parentType = null, Type[]? genericTypeArguments = null)
         {
-            identifier = new TypeIdentifier(TypeName, ContainingNamespace.Identifier);
-            
-            this.typeName = typeName;
-            
+            typeIdentifier = $"{containingNamespace.Identifier.GUSID}:{fullTypeName}";
+
+            this.fullTypeName = fullTypeName;
+            cssystemType = typeIdentifier.CSSystemType;
+            this.genericTypeArguments = genericTypeArguments;
+
             this.containingNamespace = containingNamespace;
 
             this.parentType = parentType;
@@ -59,6 +71,7 @@ namespace LooCast.System
             containedComponents = new ComponentRegistry();
             containedSystemObjects = new SystemObjectRegistry();
         }
+#nullable disable
         #endregion
 
         #region Overrides
@@ -73,17 +86,17 @@ namespace LooCast.System
 
         public bool Equals(Type otherType)
         {
-            return Identifier.Equals(otherType.Identifier);
+            return TypeIdentifier.Equals(otherType.TypeIdentifier);
         }
 
         public override int GetHashCode()
         {
-            return Identifier.GetHashCode();
+            return TypeIdentifier.GetHashCode();
         }
 
         public override string ToString()
         {
-            return Identifier.ToString();
+            return TypeIdentifier.ToString();
         }
         #endregion
     }

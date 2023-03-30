@@ -42,17 +42,17 @@ namespace LooCast.System.Managers
         #endregion
 
         #region Methods
-        public void RegisterType(IType type)
+        public void RegisterType(Type type)
         {
             typeRegistry.Register(type.TypeIdentifier, type);
         }
 
-        public IType GetType(ITypeIdentifier typeIdentifier)
+        public Type GetType(ITypeIdentifier typeIdentifier)
         {
-            return (IType)typeRegistry.Get(typeIdentifier);
+            return (Type)typeRegistry.Get(typeIdentifier);
         }
 
-        public IType GetType(TypeIdentifier typeIdentifier)
+        public Type GetType(TypeIdentifier typeIdentifier)
         {
             return GetType(typeIdentifier);
         }

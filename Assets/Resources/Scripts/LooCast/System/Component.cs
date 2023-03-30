@@ -5,10 +5,11 @@ namespace LooCast.System
     using LooCast.System.Identifiers;
     using LooCast.System.Registries;
 
-    public class Component
+    public class Component : IIdentifiable
     {
         #region Properties
-        public ComponentIdentifier Identifier => identifier;
+        public Identifier Identifier => componentIdentifier;
+        public ComponentIdentifier ComponentIdentifier => componentIdentifier;
 
         public Guid ComponentInstanceGUID => componentInstanceGUID;
         public UnityEngine.Component ComponentInstance => componentInstance;
@@ -19,7 +20,7 @@ namespace LooCast.System
 
         #region Fields
 #nullable enable 
-        private ComponentIdentifier? identifier;
+        private ComponentIdentifier? componentIdentifier;
 #nullable disable
 
         private Guid componentInstanceGUID;
@@ -32,7 +33,7 @@ namespace LooCast.System
         #region Constructors
         public Component(Guid componentInstanceGUID, UnityEngine.Component componentInstance, Type containingType, GameObject containingGameObject)
         {
-            identifier = new ComponentIdentifier(containingGameObject.Identifier, containingType.Identifier, componentInstanceGUID);
+            componentIdentifier = new ComponentIdentifier(containingGameObject.GameObjectIdentifier, containingType.TypeIdentifier, componentInstanceGUID);
             
             this.componentInstanceGUID = componentInstanceGUID;
             this.componentInstance = componentInstance;
@@ -54,17 +55,17 @@ namespace LooCast.System
 
         public bool Equals(Component otherComponent)
         {
-            return Identifier.Equals(otherComponent.Identifier);
+            return ComponentIdentifier.Equals(otherComponent.ComponentIdentifier);
         }
 
         public override int GetHashCode()
         {
-            return Identifier.GetHashCode();
+            return ComponentIdentifier.GetHashCode();
         }
 
         public override string ToString()
         {
-            return Identifier.ToString();
+            return ComponentIdentifier.ToString();
         }
         #endregion
     }

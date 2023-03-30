@@ -5,10 +5,11 @@ namespace LooCast.System
     using LooCast.System.Identifiers;
     using LooCast.System.Registries;
 
-    public class SystemObject
+    public class SystemObject : IIdentifiable
     {
         #region Properties
-        public SystemObjectIdentifier Identifier => identifier;
+        public Identifier Identifier => systemObjectIdentifier;
+        public SystemObjectIdentifier SystemObjectIdentifier => systemObjectIdentifier;
 
         public Guid SystemObjectInstanceGUID => systemObjectInstanceGUID;
         public object SystemObjectInstance => systemObjectInstance;
@@ -23,7 +24,7 @@ namespace LooCast.System
 
         #region Fields
 #nullable enable
-        private SystemObjectIdentifier? identifier;
+        private SystemObjectIdentifier? systemObjectIdentifier;
 #nullable disable
 
         private Guid systemObjectInstanceGUID;
@@ -40,7 +41,7 @@ namespace LooCast.System
         #region Constructors
         public SystemObject(Guid systemObjectInstanceGUID, object systemObjectInstance, Type containingType, SystemObject parentSystemObject = null)
         {
-            identifier = new SystemObjectIdentifier(ContainingType.Identifier, SystemObjectInstanceGUID);
+            systemObjectIdentifier = new SystemObjectIdentifier(ContainingType.TypeIdentifier, SystemObjectInstanceGUID);
             
             this.systemObjectInstanceGUID = systemObjectInstanceGUID;
             this.systemObjectInstance = systemObjectInstance;
@@ -64,17 +65,17 @@ namespace LooCast.System
 
         public bool Equals(SystemObject otherSystemObject)
         {
-            return Identifier.Equals(otherSystemObject.Identifier);
+            return SystemObjectIdentifier.Equals(otherSystemObject.SystemObjectIdentifier);
         }
 
         public override int GetHashCode()
         {
-            return Identifier.GetHashCode();
+            return SystemObjectIdentifier.GetHashCode();
         }
 
         public override string ToString()
         {
-            return Identifier.ToString();
+            return SystemObjectIdentifier.ToString();
         }
         #endregion
     }

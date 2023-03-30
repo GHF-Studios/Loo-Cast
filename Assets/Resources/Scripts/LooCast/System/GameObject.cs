@@ -5,10 +5,11 @@ namespace LooCast.System
     using LooCast.System.Identifiers;
     using LooCast.System.Registries;
 
-    public class GameObject
+    public class GameObject : IIdentifiable
     {
         #region Properties
-        public GameObjectIdentifier Identifier => identifier;
+        public Identifier Identifier => gameObjectIdentifier;
+        public GameObjectIdentifier GameObjectIdentifier => gameObjectIdentifier;
 
         public Guid GameObjectInstanceGUID => gameObjectInstanceGUID;
         public UnityEngine.Object GameObjectInstance => gameObjectInstance;
@@ -25,7 +26,7 @@ namespace LooCast.System
 
         #region Fields
 #nullable enable 
-        private GameObjectIdentifier? identifier;
+        private GameObjectIdentifier? gameObjectIdentifier;
 #nullable disable
 
         private Guid gameObjectInstanceGUID;
@@ -44,7 +45,7 @@ namespace LooCast.System
         #region Constructors
         public GameObject(Guid gameObjectInstanceGUID, UnityEngine.Object gameObjectInstance, Type containingType, GameObject parentGameObject = null)
         {
-            identifier = new GameObjectIdentifier(ContainingType.Identifier, GameObjectInstanceGUID);
+            gameObjectIdentifier = new GameObjectIdentifier(ContainingType.TypeIdentifier, GameObjectInstanceGUID);
             
             this.gameObjectInstanceGUID = gameObjectInstanceGUID;
             this.gameObjectInstance = gameObjectInstance;
@@ -70,17 +71,17 @@ namespace LooCast.System
 
         public bool Equals(GameObject otherGameObject)
         {
-            return Identifier.Equals(otherGameObject.Identifier);
+            return GameObjectIdentifier.Equals(otherGameObject.GameObjectIdentifier);
         }
 
         public override int GetHashCode()
         {
-            return Identifier.GetHashCode();
+            return GameObjectIdentifier.GetHashCode();
         }
 
         public override string ToString()
         {
-            return Identifier.ToString();
+            return GameObjectIdentifier.ToString();
         }
         #endregion
     }

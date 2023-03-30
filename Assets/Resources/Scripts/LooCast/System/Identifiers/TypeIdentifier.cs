@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEditor;
 using UnityEngine;
 
 namespace LooCast.System.Identifiers
@@ -8,29 +9,98 @@ namespace LooCast.System.Identifiers
     {
         #region Properties
         public NamespaceIdentifier TypeNamespaceIdentifier => typeNamespaceIdentifier;
-        public string TypeName => typeName;
+        public string FullTypeName => fullTypeName;
+        public global::System.Type CSSystemType => cssystemType;
+#nullable enable
+        public TypeIdentifier[]? GenericTypeArgumentIdentifiers => genericTypeArgumentIdentifiers;
+#nullable disable
         #endregion
 
         #region Fields
         [SerializeField] private readonly NamespaceIdentifier typeNamespaceIdentifier;
-        [SerializeField] private readonly string typeName;
+        [SerializeField] private readonly string fullTypeName;
+        private readonly global::System.Type cssystemType;
+#nullable enable
+        private readonly TypeIdentifier[]? genericTypeArgumentIdentifiers;
+#nullable disable
         #endregion
-        
-        #region Constructors
-        public TypeIdentifier(NamespaceIdentifier typeNamespaceIdentifier, string typeName, string gusid = null) : base(gusid == null ? $"{typeNamespaceIdentifier}:{typeName}" : gusid)
-        {
-            if (!IsValidTypeName(typeName))
-            {
-                throw new ArgumentException($"Invalid Type Name: '{typeName}'");
-            }
 
+        #region Constructors
+#nullable enable
+        private TypeIdentifier(NamespaceIdentifier typeNamespaceIdentifier, string fullTypeName, global::System.Type cssystemType, TypeIdentifier[]? genericTypeArgumentIdentifiers) : base($"{typeNamespaceIdentifier}:{fullTypeName}")
+        {
             this.typeNamespaceIdentifier = typeNamespaceIdentifier;
-            this.typeName = typeName;
+            this.fullTypeName = fullTypeName;
+            this.cssystemType = cssystemType;
+            this.genericTypeArgumentIdentifiers = genericTypeArgumentIdentifiers;
         }
+#nullable disable
         #endregion
 
         #region Static Methods
 #nullable enable
+        public static bool TryParse(global::System.Type cssystemType, out TypeIdentifier? typeIdentifier)
+        {
+            typeIdentifier = null;
+
+            if (!NamespaceIdentifier.TryParse(cssystemType.Namespace, out NamespaceIdentifier? typeNamespaceIdentifier))
+            {
+                return false;
+            }
+
+            string fullTypeName = cssystemType.Name;
+            if (string.IsNullOrEmpty(fullTypeName))
+            {
+                return false;
+            }
+
+            fullTypeName = fullTypeName.Replace("+", ".");
+            string[] typeParts = fullTypeName.Split('`');
+            fullTypeName = typeParts[0];
+
+            TypeIdentifier[]? genericTypeArguments = null;
+                
+            if (typeParts.Length > 1)
+            {
+                fullTypeName += "<";
+                int numTypeArgs;
+                if (!int.TryParse(typeParts[1], out numTypeArgs))
+                {
+                    return false;
+                }
+
+                global::System.Type[] genericArgumentTypes = cssystemType.GetGenericArguments();
+                genericTypeArguments = new TypeIdentifier[genericArgumentTypes.Length];
+                
+                for (int i = 0; i < numTypeArgs; i++)
+                {
+                    if (i > 0)
+                    {
+                        fullTypeName += ", ";
+                    }
+
+                    int argIndex = i + 1;
+                    if (!TryParse(genericArgumentTypes[i], out TypeIdentifier? genericArgumentTypeIdentifier))
+                    {
+                        return false;
+                    }
+
+                    fullTypeName += genericArgumentTypeIdentifier!.ToString();
+                    genericTypeArguments[i] = genericArgumentTypeIdentifier;
+                }
+
+                fullTypeName += ">";
+            }
+
+            if (!IsValidFullTypeName(fullTypeName))
+            {
+                return false;
+            }
+
+            typeIdentifier = new TypeIdentifier(typeNamespaceIdentifier, fullTypeName, cssystemType, genericTypeArguments);
+            return true;
+        }
+
         public static bool TryParse(string gusid, out TypeIdentifier? typeIdentifier)
         {
             typeIdentifier = null;
@@ -43,19 +113,55 @@ namespace LooCast.System.Identifiers
             }
 
             string typeNamespaceIdentifierString = parts[0];
-            string typeName = parts[1];
+            string fullTypeName = parts[1];
 
             if (!NamespaceIdentifier.TryParse(typeNamespaceIdentifierString, out NamespaceIdentifier? typeNamespaceIdentifier))
             {
                 return false;
             }
 
-            if (!IsValidTypeName(typeName))
+            if (!IsValidFullTypeName(fullTypeName))
             {
                 return false;
             }
 
-            typeIdentifier = new TypeIdentifier(typeNamespaceIdentifier, typeName);
+            global::System.Type? cssystemType = null;
+            TypeIdentifier[]? genericTypeArguments = null;
+
+            int genericTypeStartIndex = fullTypeName.IndexOf("<");
+            if (genericTypeStartIndex >= 0)
+            {
+                int genericTypeEndIndex = fullTypeName.LastIndexOf(">");
+                if (genericTypeEndIndex > genericTypeStartIndex)
+                {
+                    string genericTypeArgsString = fullTypeName.Substring(genericTypeStartIndex + 1, genericTypeEndIndex - genericTypeStartIndex - 1);
+                    string[] genericTypeArgumentStrings = genericTypeArgsString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    genericTypeArguments = new TypeIdentifier[genericTypeArgumentStrings.Length];
+                    for (int i = 0; i < genericTypeArgumentStrings.Length; i++)
+                    {
+                        string genericTypeArgumentString = genericTypeArgumentStrings[i].Trim();
+                        if (!TryParse(genericTypeArgumentString, out TypeIdentifier? genericTypeArgumentType))
+                        {
+                            return false;
+                        }
+                        genericTypeArguments[i] = genericTypeArgumentType!;
+                    }
+
+                    fullTypeName = fullTypeName.Substring(0, genericTypeStartIndex);
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            cssystemType = global::System.Type.GetType($"{typeNamespaceIdentifier}.{fullTypeName.Replace(".", "+")}");
+            if (cssystemType == null)
+            {
+                return false;
+            }
+
+            typeIdentifier = new TypeIdentifier(typeNamespaceIdentifier, fullTypeName, cssystemType, genericTypeArguments);
             return true;
         }
 #nullable disable
@@ -74,10 +180,72 @@ namespace LooCast.System.Identifiers
 
             foreach (char c in typeName)
             {
-                if (!char.IsLetterOrDigit(c) && c != '_')
+                if (!char.IsLetterOrDigit(c) && c != '_' && c != '<' && c != '>')
                 {
                     return false;
                 }
+            }
+
+            return true;
+        }
+
+        private static bool IsValidFullTypeName(string fullTypeName)
+        {
+            if (string.IsNullOrEmpty(fullTypeName) || string.IsNullOrWhiteSpace(fullTypeName))
+            {
+                return false;
+            }
+
+            string[] parts = fullTypeName.Split(new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (string part in parts)
+            {
+                if (!IsValidTypeName(part))
+                {
+                    return false;
+                }
+            }
+
+            int genericStartIndex = fullTypeName.IndexOf('<');
+            int genericEndIndex = fullTypeName.LastIndexOf('>');
+
+            if (genericStartIndex > -1 && genericEndIndex > -1 && genericStartIndex < genericEndIndex)
+            {
+                string genericTypeArguments = fullTypeName.Substring(genericStartIndex + 1, genericEndIndex - genericStartIndex - 1);
+
+                foreach (string genericTypeArgument in genericTypeArguments.Split(','))
+                {
+                    if (!IsValidFullTypeName(genericTypeArgument.Trim()))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            int nestedStartIndex = fullTypeName.IndexOf('+');
+
+            while (nestedStartIndex > -1)
+            {
+                int nestedEndIndex = fullTypeName.IndexOf(',', nestedStartIndex);
+
+                if (nestedEndIndex == -1)
+                {
+                    nestedEndIndex = fullTypeName.Length;
+                }
+
+                string nestedTypeName = fullTypeName.Substring(nestedStartIndex + 1, nestedEndIndex - nestedStartIndex - 1);
+
+                if (!IsValidFullTypeName(nestedTypeName))
+                {
+                    return false;
+                }
+
+                nestedStartIndex = fullTypeName.IndexOf('+', nestedEndIndex);
             }
 
             return true;
@@ -138,7 +306,19 @@ namespace LooCast.System.Identifiers
             }
             else
             {
-                throw new ArgumentException($"The string '{gusid}' is not a valid Type GUSID.");
+                throw new ArgumentException($"The string '{gusid}' could not be parsed!");
+            }
+        }
+        
+        public static implicit operator TypeIdentifier?(global::System.Type cssystemType)
+        {
+            if (TryParse(cssystemType, out TypeIdentifier? typeIdentifier))
+            {
+                return typeIdentifier;
+            }
+            else
+            {
+                throw new ArgumentException($"The type '{cssystemType}' could not be parsed!");
             }
         }
 #nullable disable

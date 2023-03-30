@@ -3,10 +3,13 @@
 namespace LooCast.System
 {
     using LooCast.System.Identifiers;
+    using LooCast.System.Managers;
 
-    public abstract class Registry<KeyType, ValueType> : IDictionary<KeyType, ValueType> where KeyType : Identifier
+    public abstract class Registry<KeyType, ValueType> : IIdentifiable, IDictionary<KeyType, ValueType> where KeyType : Identifier where ValueType : IIdentifiable
     {
         #region Properties
+        public Identifier Identifier => systemObject.Identifier;
+        
         public ValueType this[KeyType key] 
         { 
             get => ((IDictionary<KeyType, ValueType>)dictionary)[key]; 
@@ -19,6 +22,8 @@ namespace LooCast.System
         #endregion
 
         #region Fields
+        private SystemObject systemObject;
+        
         private Dictionary<KeyType, ValueType> dictionary;
         #endregion
 
@@ -26,6 +31,14 @@ namespace LooCast.System
         public Registry()
         {
             dictionary = new Dictionary<KeyType, ValueType>();
+            
+            if (!TypeIdentifier.TryParse("LooCast.System:Registry<LooCast.System:Identifier, LooCast.System:IIdentifiable>", out TypeIdentifier? systemObjectContainingTypeIdentifier))
+            {
+                throw new global::System.Exception("Could not parse TypeIdentifier from string.");
+            }
+            
+            TypeManager typeManager = TypeManager.Instance;
+            systemObject = new SystemObject(new global::System.Guid(), this, TypeManager.Instance.GetType(systemObjectContainingTypeIdentifier));
         }
         #endregion
 

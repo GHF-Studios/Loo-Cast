@@ -5,10 +5,11 @@ namespace LooCast.System
     using LooCast.System.Identifiers;
     using LooCast.System.Registries;
 
-    public class Namespace
+    public class Namespace : IIdentifiable
     {
         #region Properties
-        public NamespaceIdentifier Identifier => identifier;
+        public Identifier Identifier => namespaceIdentifier;
+        public NamespaceIdentifier NamespaceIdentifier => namespaceIdentifier;
 
         public string NamespaceName => namespaceName;
 
@@ -22,7 +23,7 @@ namespace LooCast.System
 
         #region Fields
 #nullable enable
-        private NamespaceIdentifier? identifier;
+        private NamespaceIdentifier? namespaceIdentifier;
 #nullable disable
         
         private string namespaceName;
@@ -38,7 +39,7 @@ namespace LooCast.System
         #region Constructors
         public Namespace(string namespaceName, Namespace parentNamespace = null)
         {
-            identifier = new NamespaceIdentifier(namespaceName, parentNamespace?.Identifier);
+            namespaceIdentifier = new NamespaceIdentifier(namespaceName, parentNamespace?.NamespaceIdentifier);
             
             this.namespaceName = namespaceName;
             
@@ -61,17 +62,17 @@ namespace LooCast.System
 
         public bool Equals(Namespace otherNamespace)
         {
-            return Identifier.Equals(otherNamespace.Identifier);
+            return NamespaceIdentifier.Equals(otherNamespace.NamespaceIdentifier);
         }
 
         public override int GetHashCode()
         {
-            return Identifier.GetHashCode();
+            return NamespaceIdentifier.GetHashCode();
         }
 
         public override string ToString()
         {
-            return Identifier.ToString();
+            return NamespaceIdentifier.ToString();
         }
         #endregion
     }
