@@ -2,8 +2,8 @@
 
 namespace LooCast.System
 {
-    using LooCast.System.Identification;
-    using LooCast.System.Registration;
+    using LooCast.System.Identifiers;
+    using LooCast.System.Registries;
 
     public class Component
     {

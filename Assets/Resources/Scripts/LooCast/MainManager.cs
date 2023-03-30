@@ -9,8 +9,8 @@ namespace LooCast
 {
     using LooCast.System;
     using LooCast.System.Exceptions;
-    using LooCast.System.Identification;
-    using LooCast.System.Management;
+    using LooCast.System.Identifiers;
+    using LooCast.System.Managers;
     using LooCast.System.Registration;
     using LooCast.System.Types;
     using LooCast.Game;

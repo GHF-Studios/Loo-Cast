@@ -6,7 +6,7 @@ using UnityEngine;
 namespace LooCast.Scene
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
     using LooCast.Game;
     using LooCast.UI.Screen;
 

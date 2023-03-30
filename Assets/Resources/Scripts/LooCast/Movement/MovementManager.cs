@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.Movement
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
     using LooCast.Movement.Effect;
 
     public class MovementManager : ModuleManager

@@ -6,7 +6,7 @@ namespace LooCast.Util
 {
     using LooCast.Item;
     using LooCast.System;
-    using LooCast.System.Identification;
+    using LooCast.System.Identifiers;
 
     // TODO: Move to System namespace
     public static class ExtensionMethods

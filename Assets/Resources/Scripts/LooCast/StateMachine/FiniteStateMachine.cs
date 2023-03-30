@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LooCast.StateMachine
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
     
     public class FiniteStateMachine<StateEnumType> where StateEnumType : CSSystem.Enum
     {

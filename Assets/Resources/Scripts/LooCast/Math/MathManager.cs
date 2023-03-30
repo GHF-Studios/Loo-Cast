@@ -5,7 +5,7 @@ using UnityEngine;
 namespace LooCast.Math
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
     
     public class MathManager : ModuleManager
     {

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace LooCast.Game
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
     using LooCast.Data.Runtime;
     using LooCast.UI.Screen;
     using LooCast.Sound;

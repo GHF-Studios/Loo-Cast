@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.UI
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
     using LooCast.UI.Animation;
     using LooCast.UI.Bar;
     using LooCast.UI.Button;

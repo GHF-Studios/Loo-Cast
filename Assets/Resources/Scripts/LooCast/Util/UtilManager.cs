@@ -6,7 +6,7 @@ namespace LooCast.Util
     using LooCast.System.Collections.Concurrent;
     using LooCast.System.Collections.Generic;
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
 
     public class UtilManager : ModuleManager
     {

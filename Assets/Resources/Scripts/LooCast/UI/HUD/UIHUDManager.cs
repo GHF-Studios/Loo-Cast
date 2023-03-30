@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.UI.HUD
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
 
     public class UIHUDManager : SubModuleManager
     {

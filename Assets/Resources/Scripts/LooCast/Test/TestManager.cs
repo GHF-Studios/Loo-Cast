@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.Test
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
 
     public class TestManager : ModuleManager
     {

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.Mission
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
     using LooCast.Mission.Reward;
     using LooCast.Mission.Target;
     using LooCast.Mission.Task;

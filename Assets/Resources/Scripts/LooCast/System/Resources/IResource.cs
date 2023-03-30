@@ -3,7 +3,7 @@
 namespace LooCast.System.Resources
 {
     using LooCast.System.Collections.Generic;
-    using LooCast.System.Identification;
+    using LooCast.System.Identifiers;
 
     public interface IResource : IObject, IResourceIdentifiable
     {

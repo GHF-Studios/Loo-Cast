@@ -3,7 +3,7 @@
 namespace LooCast.Universe
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
 
     public class UniverseManager : ModuleManager
     {

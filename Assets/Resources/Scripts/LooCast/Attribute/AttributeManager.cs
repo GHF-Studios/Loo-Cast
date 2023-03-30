@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.Attribute
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
     using LooCast.Attribute.Stat;
 
     public class AttributeManager : ModuleManager

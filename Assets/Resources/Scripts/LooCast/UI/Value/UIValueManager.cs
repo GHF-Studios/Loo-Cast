@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.UI.Value
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
 
     public class UIValueManager : SubModuleManager
     {

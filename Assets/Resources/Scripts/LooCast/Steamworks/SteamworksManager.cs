@@ -19,7 +19,7 @@ using CSSystem = System;
 namespace LooCast.Steamworks
 {
     using LooCast.System;
-    using LooCast.System.Management;
+    using LooCast.System.Managers;
 	using LooCast.Core;
 
     //

@@ -4,7 +4,7 @@ namespace LooCast.System.Resources
 {
     using LooCast.System.Collections.Generic;
     using LooCast.System.Data;
-    using LooCast.System.Identification;
+    using LooCast.System.Identifiers;
 
     public interface IResourceFile : IResource, IResourceFileIdentifiable
     {
