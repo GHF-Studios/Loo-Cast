@@ -8,18 +8,8 @@ namespace LooCast.System
     public class GameObject
     {
         #region Properties
-        public GameObjectIdentifier Identifier
-        {
-            get
-            {
-                if (identifier == null)
-                {
-                    identifier = new GameObjectIdentifier(ContainingType.Identifier, GameObjectInstanceGUID);
-                }
-                return identifier.Value;
-            }
-        }
-        
+        public GameObjectIdentifier Identifier => identifier;
+
         public Guid GameObjectInstanceGUID => gameObjectInstanceGUID;
         public UnityEngine.Object GameObjectInstance => gameObjectInstance;
         
@@ -54,6 +44,8 @@ namespace LooCast.System
         #region Constructors
         public GameObject(Guid gameObjectInstanceGUID, UnityEngine.Object gameObjectInstance, Type containingType, GameObject parentGameObject = null)
         {
+            identifier = new GameObjectIdentifier(ContainingType.Identifier, GameObjectInstanceGUID);
+            
             this.gameObjectInstanceGUID = gameObjectInstanceGUID;
             this.gameObjectInstance = gameObjectInstance;
             

@@ -4,7 +4,7 @@ namespace LooCast.System
 {
     using LooCast.System.Identifiers;
 
-    public abstract class Registry<KeyType, ValueType> : IDictionary<KeyType, ValueType> where KeyType : IIdentifier
+    public abstract class Registry<KeyType, ValueType> : IDictionary<KeyType, ValueType> where KeyType : Identifier
     {
         #region Properties
         public ValueType this[KeyType key] 

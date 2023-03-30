@@ -8,18 +8,8 @@ namespace LooCast.System
     public class SystemObject
     {
         #region Properties
-        public SystemObjectIdentifier Identifier
-        {
-            get
-            {
-                if (identifier == null)
-                {
-                    identifier = new SystemObjectIdentifier(ContainingType.Identifier, SystemObjectInstanceGUID);
-                }
-                return identifier.Value;
-            }
-        }
-        
+        public SystemObjectIdentifier Identifier => identifier;
+
         public Guid SystemObjectInstanceGUID => systemObjectInstanceGUID;
         public object SystemObjectInstance => systemObjectInstance;
 
@@ -50,6 +40,8 @@ namespace LooCast.System
         #region Constructors
         public SystemObject(Guid systemObjectInstanceGUID, object systemObjectInstance, Type containingType, SystemObject parentSystemObject = null)
         {
+            identifier = new SystemObjectIdentifier(ContainingType.Identifier, SystemObjectInstanceGUID);
+            
             this.systemObjectInstanceGUID = systemObjectInstanceGUID;
             this.systemObjectInstance = systemObjectInstance;
 

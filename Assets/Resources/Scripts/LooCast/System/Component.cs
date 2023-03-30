@@ -8,17 +8,7 @@ namespace LooCast.System
     public class Component
     {
         #region Properties
-        public ComponentIdentifier Identifier
-        {
-            get
-            {
-                if (identifier == null)
-                {
-                    identifier = new ComponentIdentifier(ContainingType.Identifier, ContainingGameObject.Identifier, ComponentInstanceGUID);
-                }
-                return identifier.Value;
-            }
-        }
+        public ComponentIdentifier Identifier => identifier;
 
         public Guid ComponentInstanceGUID => componentInstanceGUID;
         public UnityEngine.Component ComponentInstance => componentInstance;
@@ -42,6 +32,8 @@ namespace LooCast.System
         #region Constructors
         public Component(Guid componentInstanceGUID, UnityEngine.Component componentInstance, Type containingType, GameObject containingGameObject)
         {
+            identifier = new ComponentIdentifier(containingGameObject.Identifier, containingType.Identifier, componentInstanceGUID);
+            
             this.componentInstanceGUID = componentInstanceGUID;
             this.componentInstance = componentInstance;
 

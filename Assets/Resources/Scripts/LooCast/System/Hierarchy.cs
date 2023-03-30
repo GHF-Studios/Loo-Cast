@@ -1,21 +1,47 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace LooCast.System
 {
-    public abstract class Hierarchy<ElementType> where ElementType : IHierarchyElement
+    public abstract class Hierarchy<ElementType> : IHierarchyElement where ElementType : IHierarchyElement
     {
         #region Properties
         public ElementType Root => root;
+
+        public string HierarchyName => hierarchyName;
+        public HierarchyPath HierarchyPath => hierarchyPath;
+        public IHierarchyElement Parent
+        {
+            get
+            {
+                return parentHierarchy;
+            }
+
+            set
+            {
+                parentHierarchy = (Hierarchy<IHierarchyElement>)value;
+            }
+        }
+        public List<IHierarchyElement> Children => childHierarchies;
         #endregion
 
         #region Fields
         private readonly ElementType root;
+        
+        private readonly string hierarchyName;
+        private readonly HierarchyPath hierarchyPath;
+        private Hierarchy<IHierarchyElement> parentHierarchy;
+        private List<IHierarchyElement> childHierarchies;
         #endregion
 
         #region Constructors
-        public Hierarchy(ElementType root)
+        public Hierarchy(ElementType root, string hierarchyName, HierarchyPath hierarchyPath, Hierarchy<IHierarchyElement> parentHierarchy = null)
         {
             this.root = root;
+            this.hierarchyName = hierarchyName;
+            this.hierarchyPath = hierarchyPath;
+            this.parentHierarchy = parentHierarchy;
+            childHierarchies = new List<IHierarchyElement>();
         }
         #endregion
 

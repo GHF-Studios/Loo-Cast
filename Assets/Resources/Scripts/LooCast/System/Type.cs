@@ -8,18 +8,8 @@ namespace LooCast.System
     public class Type
     {
         #region Properties
-        public TypeIdentifier Identifier
-        {
-            get
-            {
-                if (identifier == null)
-                {
-                    identifier = new TypeIdentifier(TypeName, ContainingNamespace.Identifier);
-                }
-                return identifier.Value;
-            }
-        }
-        
+        public TypeIdentifier Identifier => identifier;
+
         public string TypeName => typeName;
         
         public Namespace ContainingNamespace => containingNamespace;
@@ -56,6 +46,8 @@ namespace LooCast.System
         #region Constructors
         public Type(string typeName, Namespace containingNamespace, Type parentType = null)
         {
+            identifier = new TypeIdentifier(TypeName, ContainingNamespace.Identifier);
+            
             this.typeName = typeName;
             
             this.containingNamespace = containingNamespace;

@@ -8,18 +8,8 @@ namespace LooCast.System
     public class Namespace
     {
         #region Properties
-        public NamespaceIdentifier Identifier
-        {
-            get
-            {
-                if (identifier == null)
-                {
-                    identifier = new NamespaceIdentifier(NamespaceName, ParentNamespace?.Identifier);
-                }
-                return identifier.Value;
-            }
-        }
-        
+        public NamespaceIdentifier Identifier => identifier;
+
         public string NamespaceName => namespaceName;
 
 #nullable enable
@@ -31,7 +21,9 @@ namespace LooCast.System
         #endregion
 
         #region Fields
+#nullable enable
         private NamespaceIdentifier? identifier;
+#nullable disable
         
         private string namespaceName;
 
@@ -46,6 +38,8 @@ namespace LooCast.System
         #region Constructors
         public Namespace(string namespaceName, Namespace parentNamespace = null)
         {
+            identifier = new NamespaceIdentifier(namespaceName, parentNamespace?.Identifier);
+            
             this.namespaceName = namespaceName;
             
             this.parentNamespace = parentNamespace;
