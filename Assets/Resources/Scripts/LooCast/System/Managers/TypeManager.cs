@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace LooCast.System.Managers
 {
-    using LooCast.System.Identifiers;
-    using LooCast.System.Registries;
+    using global::LooCast.System.Identifiers;
+    using global::LooCast.System.Registries;
 
     public sealed class TypeManager : InternalManager
     {
@@ -18,14 +18,11 @@ namespace LooCast.System.Managers
                     UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[TypeManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
-                    DontDestroyOnLoad(instanceObject);
-                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
-                    return instanceObject.AddComponent<TypeManager>();
+                    UnityEngine.GameObject.DontDestroyOnLoad(instanceObject);
+                    instanceObject.transform.parent = MainManager.Instance.GameObjectInstance.transform;
+                    instance = new TypeManager();
                 }
-                else
-                {
-                    return instance;
-                }
+                return instance;
             }
         }
         #endregion
@@ -41,20 +38,26 @@ namespace LooCast.System.Managers
         private TypeRegistry typeRegistry;
         #endregion
 
+        #region Constructors
+        public TypeManager() : base("LooCast.System.Managers:TypeManager", MainManager.Instance)
+        {
+            
+        }
+        #endregion
+
         #region Methods
         public void RegisterType(Type type)
         {
-            typeRegistry.Register(type.TypeIdentifier, type);
-        }
-
-        public Type GetType(ITypeIdentifier typeIdentifier)
-        {
-            return (Type)typeRegistry.Get(typeIdentifier);
+            typeRegistry.Add(type.TypeIdentifier, type);
         }
 
         public Type GetType(TypeIdentifier typeIdentifier)
         {
-            return GetType(typeIdentifier);
+            if (!typeRegistry.TryGetValue(typeIdentifier, out Type type))
+            {
+                throw new Exception("Type not found.");
+            }
+            return type;
         }
         #endregion
 

@@ -183,7 +183,7 @@ namespace LooCast.Arc
         {
             subArcs = new List<Arc>();
 
-            GameObject newSegmentObject = new GameObject();
+            UnityEngine.GameObject newSegmentObject = new UnityEngine.GameObject();
             if (isMainSegment)
             {
                 newSegmentObject.name = "Spread Arc";

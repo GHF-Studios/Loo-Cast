@@ -1,9 +1,11 @@
 ﻿namespace LooCast.System.Registries
 {
-    using LooCast.System.Identifiers;
+    using global::LooCast.System.Identifiers;
 
-    public class SystemObjectRegistry : Registry<SystemObjectIdentifier, SystemObject>
+    public sealed class SystemObjectRegistry : Registry<SystemObjectIdentifier, SystemObject>
     {
-        
+        public SystemObjectRegistry() : base("LooCast.System.Registries.SystemObjectRegistry")
+        {
+        }
     }
 }

@@ -1,9 +1,12 @@
 ﻿namespace LooCast.System.Registries
 {
-    using LooCast.System.Identifiers;
+    using global::LooCast.System.Identifiers;
 
-    public class ComponentRegistry : Registry<ComponentIdentifier, Component>
+    public sealed class ComponentRegistry : Registry<ComponentIdentifier, Component>
     {
-        
+        public ComponentRegistry() : base("LooCast.System.Registries.ComponentRegistry")
+        {
+            
+        }
     }
 }

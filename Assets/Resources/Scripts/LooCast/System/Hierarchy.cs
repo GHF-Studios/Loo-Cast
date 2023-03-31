@@ -3,14 +3,19 @@ using System.Linq;
 
 namespace LooCast.System
 {
-    public abstract class Hierarchy<ElementType> : IHierarchyElement where ElementType : IHierarchyElement
+    using global::LooCast.System.Identifiers;
+    using global::LooCast.System.Managers;
+    using global::LooCast.System.Registries;
+
+    public abstract class Hierarchy<ElementType> : SystemObject, IHierarchyElement where ElementType : IHierarchyElement
     {
         #region Properties
+        
         public ElementType Root => root;
 
         public string HierarchyName => hierarchyName;
         public HierarchyPath HierarchyPath => hierarchyPath;
-        public IHierarchyElement Parent
+        public Hierarchy<IHierarchyElement> ParentHierarchy
         {
             get
             {
@@ -19,10 +24,15 @@ namespace LooCast.System
 
             set
             {
-                parentHierarchy = (Hierarchy<IHierarchyElement>)value;
+                parentHierarchy = value;
             }
         }
-        public List<IHierarchyElement> Children => childHierarchies;
+        public List<Hierarchy<IHierarchyElement>> ChildHierarchies => childHierarchies;
+
+        
+        public HierarchyElementRegistryRegistry SubHierarchies => throw new global::System.NotImplementedException();
+        public HierarchyElementRegistryRegistry SuperHierarchies => throw new global::System.NotImplementedException();
+
         #endregion
 
         #region Fields
@@ -31,17 +41,18 @@ namespace LooCast.System
         private readonly string hierarchyName;
         private readonly HierarchyPath hierarchyPath;
         private Hierarchy<IHierarchyElement> parentHierarchy;
-        private List<IHierarchyElement> childHierarchies;
+        private List<Hierarchy<IHierarchyElement>> childHierarchies;
         #endregion
 
         #region Constructors
-        public Hierarchy(ElementType root, string hierarchyName, HierarchyPath hierarchyPath, Hierarchy<IHierarchyElement> parentHierarchy = null)
+        public Hierarchy(TypeIdentifier typeIdentifier, ElementType root, string hierarchyName, HierarchyPath hierarchyPath, Hierarchy<IHierarchyElement> parentHierarchy = null) : base(typeIdentifier, parentHierarchy)
         {
             this.root = root;
+            
             this.hierarchyName = hierarchyName;
             this.hierarchyPath = hierarchyPath;
             this.parentHierarchy = parentHierarchy;
-            childHierarchies = new List<IHierarchyElement>();
+            childHierarchies = new List<Hierarchy<IHierarchyElement>>();
         }
         #endregion
 
@@ -59,18 +70,18 @@ namespace LooCast.System
                 return false;
             }
 
-            if (element.Parent != null)
+            if (element.ParentHierarchy != null)
             {
                 return false;
             }
 
-            if (parentElement.Children.Any(childElement => childElement.HierarchyName == element.HierarchyName))
+            if (parentElement.ChildHierarchies.Any(childElement => childElement.HierarchyName == element.HierarchyName))
             {
                 return false;
             }
 
-            parentElement.Children.Add(element);
-            element.Parent = parentElement;
+            parentElement.ChildHierarchies.Add(element);
+            element.ParentHierarchy = parentElement;
             return true;
         }
 
@@ -81,17 +92,17 @@ namespace LooCast.System
                 return false;
             }
 
-            if (element.Parent == null)
+            if (element.ParentHierarchy == null)
             {
                 return false;
             }
 
-            if (!element.Parent.Children.Remove(element))
+            if (!element.ParentHierarchy.ChildHierarchies.Remove(element))
             {
                 return false;
             }
 
-            element.Parent = null;
+            element.ParentHierarchy = null;
             return true;
         }
 
@@ -119,7 +130,7 @@ namespace LooCast.System
             {
                 string subElementName = elementHierarchyPath.PathSubStrings[i];
 
-                ElementType? childElement = (ElementType?)parentElement.Children.FirstOrDefault(e => e.HierarchyName == subElementName);
+                ElementType? childElement = (ElementType?)parentElement.ChildHierarchies.FirstOrDefault(e => e.HierarchyName == subElementName);
 
                 if (childElement == null)
                 {

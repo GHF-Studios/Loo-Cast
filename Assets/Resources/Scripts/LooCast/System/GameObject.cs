@@ -2,8 +2,9 @@
 
 namespace LooCast.System
 {
-    using LooCast.System.Identifiers;
-    using LooCast.System.Registries;
+    using global::LooCast.System.Identifiers;
+    using global::LooCast.System.Managers;
+    using global::LooCast.System.Registries;
 
     public class GameObject : IIdentifiable
     {
@@ -12,7 +13,7 @@ namespace LooCast.System
         public GameObjectIdentifier GameObjectIdentifier => gameObjectIdentifier;
 
         public Guid GameObjectInstanceGUID => gameObjectInstanceGUID;
-        public UnityEngine.Object GameObjectInstance => gameObjectInstance;
+        public UnityEngine.GameObject GameObjectInstance => gameObjectInstance;
         
         public Type ContainingType => containingType;
         
@@ -30,7 +31,7 @@ namespace LooCast.System
 #nullable disable
 
         private Guid gameObjectInstanceGUID;
-        private UnityEngine.Object gameObjectInstance;
+        private UnityEngine.GameObject gameObjectInstance;
 
         private Type containingType;
 
@@ -43,14 +44,14 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public GameObject(Guid gameObjectInstanceGUID, UnityEngine.Object gameObjectInstance, Type containingType, GameObject parentGameObject = null)
+        public GameObject(TypeIdentifier typeIdentifier, GameObject parentGameObject = null)
         {
-            gameObjectIdentifier = new GameObjectIdentifier(ContainingType.TypeIdentifier, GameObjectInstanceGUID);
-            
-            this.gameObjectInstanceGUID = gameObjectInstanceGUID;
-            this.gameObjectInstance = gameObjectInstance;
-            
-            this.containingType = containingType;
+            TypeManager typeManager = TypeManager.Instance;
+
+            gameObjectInstanceGUID = Guid.NewGuid();
+            gameObjectInstance = new UnityEngine.GameObject();
+
+            containingType = typeManager.GetType(typeIdentifier);
 
             this.parentGameObject = parentGameObject;
             childGameObjects = new GameObjectRegistry();

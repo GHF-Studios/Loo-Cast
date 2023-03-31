@@ -1,9 +1,11 @@
 ﻿namespace LooCast.System.Registries
 {
-    using LooCast.System.Identifiers;
+    using global::LooCast.System.Identifiers;
 
-    public class TypeRegistry : Registry<TypeIdentifier, Type>
+    public sealed class TypeRegistry : Registry<TypeIdentifier, Type>
     {
-        
+        public TypeRegistry() : base("LooCast.System.Registries.TypeRegistry")
+        {
+        }
     }
 }

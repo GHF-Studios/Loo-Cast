@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace LooCast.System.Managers
 {
-    using LooCast.System.Identifiers;
+    using global::LooCast.System.Identifiers;
     
     public sealed class RegistryManager : InternalManager
     {
@@ -18,14 +18,11 @@ namespace LooCast.System.Managers
                     UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[RegistryManager]");
                     instanceObject.layer = 31;
                     instanceObject.tag = "INTERNAL";
-                    DontDestroyOnLoad(instanceObject);
-                    instanceObject.transform.parent = Core.CoreManager.Instance.transform;
-                    return instanceObject.AddComponent<RegistryManager>();
+                    UnityEngine.GameObject.DontDestroyOnLoad(instanceObject);
+                    instanceObject.transform.parent = MainManager.Instance.GameObjectInstance.transform;
+                    instance = new RegistryManager();
                 }
-                else
-                {
-                    return instance;
-                }
+                return instance;
             }
         }
         #endregion
@@ -34,11 +31,18 @@ namespace LooCast.System.Managers
         private static RegistryManager instance;
         #endregion
 
+        #region Constructors
+        public RegistryManager() : base("LooCast.System.Managers.RegistryManager", MainManager.Instance)
+        {
+
+        }
+        #endregion
+
         #region Properties
         #endregion
 
         #region Fields
-        
+
         private Dictionary<IRegistryIdentifier, IRegistryIdentifiable> registries;
         #endregion
 

@@ -8,6 +8,8 @@ namespace LooCast.System.Identifiers
     {
         #region Properties
         public GameObjectIdentifier ComponentGameObjectIdentifier => componentGameObjectIdentifier;
+        public TypeIdentifier ComponentTypeIdentifier => GameObjectTypeIdentifier;
+        public Guid ComponentInstanceGUID => GameObjectInstanceGUID;
         #endregion
 
         #region Fields

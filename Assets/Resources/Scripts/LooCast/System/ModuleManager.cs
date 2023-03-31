@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using LooCast;
+using LooCast.System.Identifiers;
 
 namespace LooCast.System
 { 
@@ -8,6 +9,13 @@ namespace LooCast.System
     {
         #region Properties
         public SubModuleManager[] SubModuleManagers { get; private set; }
+        #endregion
+
+        #region Constructors
+        protected ModuleManager(TypeIdentifier typeIdentifier, GameObject parentGameObject = null) : base(typeIdentifier, parentGameObject)
+        {
+            
+        }
         #endregion
 
         #region Callbacks

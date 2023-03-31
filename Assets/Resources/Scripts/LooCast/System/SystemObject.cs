@@ -2,8 +2,9 @@
 
 namespace LooCast.System
 {
-    using LooCast.System.Identifiers;
-    using LooCast.System.Registries;
+    using global::LooCast.System.Identifiers;
+    using global::LooCast.System.Managers;
+    using global::LooCast.System.Registries;
 
     public class SystemObject : IIdentifiable
     {
@@ -39,14 +40,14 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public SystemObject(Guid systemObjectInstanceGUID, object systemObjectInstance, Type containingType, SystemObject parentSystemObject = null)
+        public SystemObject(TypeIdentifier typeIdentifier, SystemObject parentSystemObject = null)
         {
-            systemObjectIdentifier = new SystemObjectIdentifier(ContainingType.TypeIdentifier, SystemObjectInstanceGUID);
-            
-            this.systemObjectInstanceGUID = systemObjectInstanceGUID;
-            this.systemObjectInstance = systemObjectInstance;
+            TypeManager typeManager = TypeManager.Instance;
 
-            this.containingType = containingType;
+            systemObjectInstanceGUID = Guid.NewGuid();
+            systemObjectInstance = new object();
+
+            containingType = typeManager.GetType(typeIdentifier);
 
             this.parentSystemObject = parentSystemObject;
             childSystemObjects = new SystemObjectRegistry();

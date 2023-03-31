@@ -5,11 +5,10 @@ using UnityEngine.SceneManagement;
 
 namespace LooCast.System
 {
-    using LooCast.System.Exceptions;
-    using LooCast.System.Identifiers;
-    using LooCast.System.Registries;
+    using global::LooCast.System.Exceptions;
+    using global::LooCast.System.Identifiers;
 
-    public abstract class Manager : MonoBehaviour, INamespaceIdentifiable, ITypeIdentifiable, IUnityInstanceIdentifiable
+    public abstract class Manager : GameObject
     {
         #region Static Properties
 
@@ -144,6 +143,31 @@ namespace LooCast.System
         private List<Action> earlyPostTerminationActions;
         private List<Action> postTerminationActions;
         private List<Action> latePostTerminationActions;
+        #endregion
+
+        #region Constructors
+        protected Manager(TypeIdentifier typeIdentifier, GameObject parentGameObject = null) : base(typeIdentifier, parentGameObject)
+        {
+            earlyPreInitializationActions = new List<Action>();
+            preInitializationActions = new List<Action>();
+            latePreInitializationActions = new List<Action>();
+            earlyInitializationActions = new List<Action>();
+            initializationActions = new List<Action>();
+            lateInitializationActions = new List<Action>();
+            earlyPostInitializationActions = new List<Action>();
+            postInitializationActions = new List<Action>();
+            latePostInitializationActions = new List<Action>();
+
+            earlyPreTerminationActions = new List<Action>();
+            preTerminationActions = new List<Action>();
+            latePreTerminationActions = new List<Action>();
+            earlyTerminationActions = new List<Action>();
+            terminationActions = new List<Action>();
+            lateTerminationActions = new List<Action>();
+            earlyPostTerminationActions = new List<Action>();
+            postTerminationActions = new List<Action>();
+            latePostTerminationActions = new List<Action>();
+        }
         #endregion
 
         #region Methods
@@ -699,26 +723,6 @@ namespace LooCast.System
         public virtual void PreInitializeInstance()
         {
             Dependencies = GetDependencies();
-
-            earlyPreInitializationActions = new List<Action>();
-            preInitializationActions = new List<Action>();
-            latePreInitializationActions = new List<Action>();
-            earlyInitializationActions = new List<Action>();
-            initializationActions = new List<Action>();
-            lateInitializationActions = new List<Action>();
-            earlyPostInitializationActions = new List<Action>();
-            postInitializationActions = new List<Action>();
-            latePostInitializationActions = new List<Action>();
-
-            earlyPreTerminationActions = new List<Action>();
-            preTerminationActions = new List<Action>();
-            latePreTerminationActions = new List<Action>();
-            earlyTerminationActions = new List<Action>();
-            terminationActions = new List<Action>();
-            lateTerminationActions = new List<Action>();
-            earlyPostTerminationActions = new List<Action>();
-            postTerminationActions = new List<Action>();
-            latePostTerminationActions = new List<Action>();
         }
 
         public virtual void InitializeInstance()

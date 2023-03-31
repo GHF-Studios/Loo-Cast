@@ -1,9 +1,12 @@
 ﻿namespace LooCast.System.Registries
 {
-    using LooCast.System.Identifiers;
+    using global::LooCast.System.Identifiers;
 
-    public class HierarchyElementRegistry : Registry<Identifier, IHierarchyElement>
+    public sealed class HierarchyElementRegistry : Registry<Identifier, IHierarchyElement>
     {
-        
+        public HierarchyElementRegistry() : base("LooCast.System.Registries:HierarchyElementRegistry")
+        {
+            
+        }
     }
 }

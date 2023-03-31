@@ -24,7 +24,7 @@ namespace LooCast.System.Identifiers
         private readonly TypeIdentifier[]? genericTypeArgumentIdentifiers;
 #nullable disable
         #endregion
-
+         
         #region Constructors
 #nullable enable
         private TypeIdentifier(NamespaceIdentifier typeNamespaceIdentifier, string fullTypeName, global::System.Type cssystemType, TypeIdentifier[]? genericTypeArgumentIdentifiers) : base($"{typeNamespaceIdentifier}:{fullTypeName}")
@@ -89,7 +89,7 @@ namespace LooCast.System.Identifiers
                     genericTypeArguments[i] = genericArgumentTypeIdentifier;
                 }
 
-                fullTypeName += ">";
+                fullTypeName += ">"; 
             }
 
             if (!IsValidFullTypeName(fullTypeName))
@@ -97,7 +97,7 @@ namespace LooCast.System.Identifiers
                 return false;
             }
 
-            typeIdentifier = new TypeIdentifier(typeNamespaceIdentifier, fullTypeName, cssystemType, genericTypeArguments);
+            typeIdentifier = new TypeIdentifier(typeNamespaceIdentifier!, fullTypeName, cssystemType, genericTypeArguments);
             return true;
         }
 
@@ -161,7 +161,7 @@ namespace LooCast.System.Identifiers
                 return false;
             }
 
-            typeIdentifier = new TypeIdentifier(typeNamespaceIdentifier, fullTypeName, cssystemType, genericTypeArguments);
+            typeIdentifier = new TypeIdentifier(typeNamespaceIdentifier!, fullTypeName, cssystemType, genericTypeArguments);
             return true;
         }
 #nullable disable

@@ -1,9 +1,12 @@
 ﻿namespace LooCast.System.Registries
 {
-    using LooCast.System.Identifiers;
+    using global::LooCast.System.Identifiers;
 
-    public class GameObjectRegistry : Registry<GameObjectIdentifier, GameObject>
+    public sealed class GameObjectRegistry : Registry<GameObjectIdentifier, GameObject>
     {
-        
+        public GameObjectRegistry() : base("LooCast.System.Registries.GameObjectRegistry")
+        {
+            
+        }
     }
 }

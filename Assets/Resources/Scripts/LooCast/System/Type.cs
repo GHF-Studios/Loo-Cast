@@ -3,6 +3,7 @@
 namespace LooCast.System
 {
     using LooCast.System.Identifiers;
+    using LooCast.System.Managers;
     using LooCast.System.Registries;
 
     public class Type : IIdentifiable
@@ -54,24 +55,27 @@ namespace LooCast.System
 
         #region Constructors
 #nullable enable
-        public Type(string fullTypeName, Namespace containingNamespace, Type? parentType = null, Type[]? genericTypeArguments = null)
+        public Type(global::System.Type cssystemType, Type? parentType = null)
         {
-            TypeIdentifier? tempTypeIdentifier = $"{containingNamespace.Identifier.GUSID}:{fullTypeName}";
-            if (tempTypeIdentifier == null)
+            TypeIdentifier.TryParse(cssystemType, out typeIdentifier!);
+
+            fullTypeName = typeIdentifier.FullTypeName;
+            this.cssystemType = cssystemType;
+
+            Type[] genericTypeArguments = new Type[typeIdentifier.GenericTypeArgumentIdentifiers!.Length];
+            TypeManager typeManager = TypeManager.Instance;
+            for (int i = 0; i < genericTypeArguments.Length; i++)
             {
-                throw new global::System.Exception("TypeIdentifier could not be parsed!");
+                genericTypeArguments[i] = typeManager.GetType(typeIdentifier.GenericTypeArgumentIdentifiers[i]);
             }
-            else
+
+            NamespaceIdentifier.TryParse(cssystemType.Namespace, out NamespaceIdentifier containingNamespaceIdentifier);
+            containingNamespace = NamespaceManager.Instance.GetNamespace(containingNamespaceIdentifier);
+
+            if (parentType != null)
             {
-                typeIdentifier = tempTypeIdentifier;
+                parentType.ChildTypes.Add(typeIdentifier, this);
             }
-
-            this.fullTypeName = fullTypeName;
-            cssystemType = typeIdentifier.CSSystemType;
-            this.genericTypeArguments = genericTypeArguments;
-
-            this.containingNamespace = containingNamespace;
-
             this.parentType = parentType;
             childTypes = new TypeRegistry();
             

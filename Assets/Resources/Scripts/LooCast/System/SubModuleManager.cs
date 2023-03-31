@@ -1,11 +1,19 @@
 ﻿using System;
 using UnityEngine;
 using LooCast;
+using LooCast.System.Identifiers;
 
 namespace LooCast.System
 {
     public abstract class SubModuleManager : ModuleManager
     {
+        #region Constructors
+        protected SubModuleManager(TypeIdentifier typeIdentifier, GameObject parentGameObject = null) : base(typeIdentifier, parentGameObject)
+        {
+            
+        }
+        #endregion
+        
         #region Callbacks
 
         #region Initialization Phases

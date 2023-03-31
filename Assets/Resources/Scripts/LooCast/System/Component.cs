@@ -3,7 +3,9 @@
 namespace LooCast.System
 {
     using LooCast.System.Identifiers;
+    using LooCast.System.Managers;
     using LooCast.System.Registries;
+    using Unity.VisualScripting;
 
     public class Component : IIdentifiable
     {
@@ -31,15 +33,20 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public Component(Guid componentInstanceGUID, UnityEngine.Component componentInstance, Type containingType, GameObject containingGameObject)
+        public Component(TypeIdentifier typeIdentifier, GameObject containingGameObject)
         {
-            componentIdentifier = new ComponentIdentifier(containingGameObject.GameObjectIdentifier, containingType.TypeIdentifier, componentInstanceGUID);
-            
-            this.componentInstanceGUID = componentInstanceGUID;
-            this.componentInstance = componentInstance;
+            TypeManager typeManager = TypeManager.Instance;
 
-            this.containingType = containingType;
+            componentIdentifier = new ComponentIdentifier(containingGameObject.GameObjectIdentifier, typeIdentifier, Guid.NewGuid());
+            componentInstanceGUID = componentIdentifier.ComponentInstanceGUID;
+            containingType = typeManager.GetType(typeIdentifier);
             this.containingGameObject = containingGameObject;
+
+            global::System.Reflection.MethodInfo addComponentMethod = containingGameObject.GameObjectInstance.GetType().GetMethod("AddComponent", global::System.Type.EmptyTypes);
+            global::System.Type genericTypeArgument = containingType.CSSystemType;
+            object componentTypeInstance = Activator.CreateInstance(genericTypeArgument);
+            componentInstance = (UnityEngine.Component)addComponentMethod.Invoke(containingGameObject.GameObjectInstance, new[] { componentTypeInstance });
+            containingGameObject.ContainedComponents.Add(ComponentIdentifier, this);
         }
         #endregion
 
