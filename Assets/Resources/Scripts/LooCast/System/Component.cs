@@ -2,10 +2,9 @@
 
 namespace LooCast.System
 {
-    using LooCast.System.Identifiers;
-    using LooCast.System.Managers;
-    using LooCast.System.Registries;
-    using Unity.VisualScripting;
+    using global::LooCast.System.Identifiers;
+    using global::LooCast.System.Managers;
+    using global::LooCast.System.Registries;
 
     public class Component : IIdentifiable
     {
@@ -29,23 +28,35 @@ namespace LooCast.System
         private UnityEngine.Component componentInstance;
 
         private Type containingType;
+        private Type behaviourType;
+        private Type dataType;
+        
         private GameObject containingGameObject;
         #endregion
 
         #region Constructors
-        public Component(TypeIdentifier typeIdentifier, GameObject containingGameObject)
+        public Component(TypeIdentifier typeIdentifier, TypeIdentifier behaviourTypeIdentifier, TypeIdentifier dataTypeIdentifier, GameObject containingGameObject)
         {
             TypeManager typeManager = TypeManager.Instance;
 
             componentIdentifier = new ComponentIdentifier(containingGameObject.GameObjectIdentifier, typeIdentifier, Guid.NewGuid());
             componentInstanceGUID = componentIdentifier.ComponentInstanceGUID;
+            
             containingType = typeManager.GetType(typeIdentifier);
-            this.containingGameObject = containingGameObject;
+            behaviourType = typeManager.GetType(behaviourTypeIdentifier);
+            this.dataType = typeManager.GetType(dataTypeIdentifier);
+
+            Type extendeMonoBehaviourType = typeManager.GetType("LooCast.System:ExtendedMonoBehaviour");
+            Type dataType = typeManager.GetType("LooCast.System:Data");
+
+            Type.CheckBaseType(behaviourType, extendeMonoBehaviourType);
+            Type.CheckBaseType(this.dataType, dataType);
 
             global::System.Reflection.MethodInfo addComponentMethod = containingGameObject.GameObjectInstance.GetType().GetMethod("AddComponent", global::System.Type.EmptyTypes);
-            global::System.Type genericTypeArgument = containingType.CSSystemType;
-            object componentTypeInstance = Activator.CreateInstance(genericTypeArgument);
+            object componentTypeInstance = Activator.CreateInstance(containingType.CSSystemType);
             componentInstance = (UnityEngine.Component)addComponentMethod.Invoke(containingGameObject.GameObjectInstance, new[] { componentTypeInstance });
+
+            this.containingGameObject = containingGameObject;
             containingGameObject.ContainedComponents.Add(ComponentIdentifier, this);
         }
         #endregion

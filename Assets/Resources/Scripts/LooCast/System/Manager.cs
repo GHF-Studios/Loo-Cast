@@ -167,6 +167,8 @@ namespace LooCast.System
             earlyPostTerminationActions = new List<Action>();
             postTerminationActions = new List<Action>();
             latePostTerminationActions = new List<Action>();
+            
+            UnityEngine.GameObject.DontDestroyOnLoad(GameObjectInstance);
         }
         #endregion
 

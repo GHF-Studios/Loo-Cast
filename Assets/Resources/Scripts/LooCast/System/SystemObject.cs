@@ -32,6 +32,8 @@ namespace LooCast.System
         private object systemObjectInstance;
 
         private Type containingType;
+        private Type behaviourType;
+        private Type dataType;
 
 #nullable enable
         private SystemObject? parentSystemObject;
@@ -40,7 +42,7 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public SystemObject(TypeIdentifier typeIdentifier, SystemObject parentSystemObject = null)
+        public SystemObject(TypeIdentifier typeIdentifier, TypeIdentifier behaviourTypeIdentifier, TypeIdentifier dataTypeIdentifier, SystemObject parentSystemObject = null)
         {
             TypeManager typeManager = TypeManager.Instance;
 
@@ -48,6 +50,14 @@ namespace LooCast.System
             systemObjectInstance = new object();
 
             containingType = typeManager.GetType(typeIdentifier);
+            behaviourType = typeManager.GetType(behaviourTypeIdentifier);
+            this.dataType = typeManager.GetType(dataTypeIdentifier);
+
+            Type extendeMonoBehaviourType = typeManager.GetType("LooCast.System:ExtendedMonoBehaviour");
+            Type dataType = typeManager.GetType("LooCast.System:Data");
+
+            Type.CheckBaseType(behaviourType, extendeMonoBehaviourType);
+            Type.CheckBaseType(this.dataType, dataType);
 
             this.parentSystemObject = parentSystemObject;
             childSystemObjects = new SystemObjectRegistry();

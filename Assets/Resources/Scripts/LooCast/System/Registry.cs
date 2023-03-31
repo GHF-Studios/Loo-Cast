@@ -17,6 +17,8 @@ namespace LooCast.System
         public ICollection<ValueType> Values => ((IDictionary<KeyType, ValueType>)dictionary).Values;
         public int Count => ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Count;
         public bool IsReadOnly => ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).IsReadOnly;
+
+        public SystemObjectIdentifier RegistryIdentifier => SystemObjectIdentifier;
         #endregion
 
         #region Fields

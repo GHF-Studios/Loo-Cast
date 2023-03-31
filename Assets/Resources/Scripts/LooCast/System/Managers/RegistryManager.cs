@@ -15,12 +15,11 @@ namespace LooCast.System.Managers
             {
                 if (instance == null)
                 {
-                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[RegistryManager]");
-                    instanceObject.layer = 31;
-                    instanceObject.tag = "INTERNAL";
-                    UnityEngine.GameObject.DontDestroyOnLoad(instanceObject);
-                    instanceObject.transform.parent = MainManager.Instance.GameObjectInstance.transform;
                     instance = new RegistryManager();
+                    instance.GameObjectInstance.name = "[RegistryManager]";
+                    instance.GameObjectInstance.layer = 31;
+                    instance.GameObjectInstance.tag = "INTERNAL";
+                    instance.GameObjectInstance.transform.parent = LooCast.Instance.gameObject.transform;
                 }
                 return instance;
             }
@@ -34,7 +33,7 @@ namespace LooCast.System.Managers
         #region Constructors
         public RegistryManager() : base("LooCast.System.Managers.RegistryManager", MainManager.Instance)
         {
-
+            registries = new Dictionary<SystemObjectIdentifier, Registry<Identifier, IIdentifiable>>();
         }
         #endregion
 
@@ -42,37 +41,27 @@ namespace LooCast.System.Managers
         #endregion
 
         #region Fields
-
-        private Dictionary<IRegistryIdentifier, IRegistryIdentifiable> registries;
+        private Dictionary<SystemObjectIdentifier, Registry<Identifier, IIdentifiable>> registries;
         #endregion
 
         #region Methods
-        public void RegisterRegistry(IRegistryIdentifiable registry)
+        public void RegisterRegistry(Registry<Identifier, IIdentifiable> registry)
         {
-            IRegistryIdentifier registryIdentifier = registry.RegistryIdentifier;
+            SystemObjectIdentifier registryIdentifier = registry.RegistryIdentifier;
             if (registries.ContainsKey(registryIdentifier))
             {
                 throw new Exception($"[RegistryManager] Registry '{registryIdentifier}' already exists!");
             }
-
             registries.Add(registryIdentifier, registry);
         }
 
-        public IRegistry<KeyType, ValueType> GetRegistry<KeyType, ValueType>(IRegistryIdentifier registryIdentifier) where KeyType : IIdentifier where ValueType : IIdentifiable
+        public Registry<Identifier, IIdentifiable> GetRegistry(SystemObjectIdentifier registryIdentifier)
         {
-            if (registries.ContainsKey(registryIdentifier))
+            if (!registries.TryGetValue(registryIdentifier, out Registry<Identifier, IIdentifiable> registry))
             {
-                return (IRegistry<KeyType, ValueType>)registries[registryIdentifier];
+                throw new Exception($"[RegistryManager] Registry '{registryIdentifier}' could not be found!");
             }
-            else
-            {
-                throw new Exception($"[RegistryManager] Registry '{registryIdentifier}' does not exist!");
-            }
-        }
-
-        public IRegistry<IIdentifier, IIdentifiable> GetRegistry(RegistryIdentifier registryIdentifier)
-        {
-            return GetRegistry(registryIdentifier);
+            return registry;
         }
         #endregion
 
@@ -80,26 +69,16 @@ namespace LooCast.System.Managers
         public override void PreInitializeInstance()
         {
             base.PreInitializeInstance();
+        }
 
-            registries = new Dictionary<IRegistryIdentifier, IRegistryIdentifiable>();
+        public override void InitializeInstance()
+        {
+            base.InitializeInstance();
         }
 
         public override void PostInitializeInstance()
         {
             base.PostInitializeInstance();
-
-            #region Namespace/Type/Instance Registration
-            NamespaceManager namespaceManager = NamespaceManager.Instance;
-            TypeManager typeManager = TypeManager.Instance;
-            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
-            
-            looCastNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastType = new Type(typeof(RegistryManager), looCastNamespace);
-            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
-
-            typeManager.RegisterType(looCastType);
-            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
-            #endregion
         }
         #endregion
     }

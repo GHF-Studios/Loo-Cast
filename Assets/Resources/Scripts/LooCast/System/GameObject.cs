@@ -16,12 +16,13 @@ namespace LooCast.System
         public UnityEngine.GameObject GameObjectInstance => gameObjectInstance;
         
         public Type ContainingType => containingType;
+        public Type BehaviourType => behaviourType;
+        public Type DataType => dataType;
         
 #nullable enable 
         public GameObject? ParentGameObject => parentGameObject;
 #nullable disable
         public GameObjectRegistry ChildGameObjects => childGameObjects;
-        
         public ComponentRegistry ContainedComponents => containedComponents;
         #endregion
 
@@ -34,28 +35,40 @@ namespace LooCast.System
         private UnityEngine.GameObject gameObjectInstance;
 
         private Type containingType;
+        private Type behaviourType;
+        private Type dataType;
 
 #nullable enable
         private GameObject? parentGameObject;
 #nullable disable
         private GameObjectRegistry childGameObjects;
-
         private ComponentRegistry containedComponents;
         #endregion
 
         #region Constructors
-        public GameObject(TypeIdentifier typeIdentifier, GameObject parentGameObject = null)
+        public GameObject(TypeIdentifier typeIdentifier, TypeIdentifier behaviourTypeIdentifier, TypeIdentifier dataTypeIdentifier, GameObject parentGameObject = null)
         {
             TypeManager typeManager = TypeManager.Instance;
 
             gameObjectInstanceGUID = Guid.NewGuid();
             gameObjectInstance = new UnityEngine.GameObject();
-
+            
             containingType = typeManager.GetType(typeIdentifier);
+            behaviourType = typeManager.GetType(behaviourTypeIdentifier);
+            this.dataType = typeManager.GetType(dataTypeIdentifier);
+
+            Type extendeMonoBehaviourType = typeManager.GetType("LooCast.System:ExtendedMonoBehaviour");
+            Type dataType = typeManager.GetType("LooCast.System:Data");
+            
+            Type.CheckBaseType(behaviourType, extendeMonoBehaviourType);
+            Type.CheckBaseType(this.dataType, dataType);
+
+            global::System.Reflection.MethodInfo addComponentMethod = gameObjectInstance.GetType().GetMethod("AddComponent", global::System.Type.EmptyTypes);
+            object componentTypeInstance = Activator.CreateInstance(behaviourType.CSSystemType);
+            addComponentMethod.Invoke(gameObjectInstance, new[] { componentTypeInstance });
 
             this.parentGameObject = parentGameObject;
             childGameObjects = new GameObjectRegistry();
-
             containedComponents = new ComponentRegistry();
         }
         #endregion
