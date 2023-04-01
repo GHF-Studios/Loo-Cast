@@ -6,12 +6,11 @@ namespace LooCast.System
     
     public interface IHierarchyElement : IIdentifiable
     {
-        public string HierarchyName { get; }
         public HierarchyPath HierarchyPath { get; }
 #nullable enable
-        public Hierarchy<IHierarchyElement>? ParentHierarchy { get; set; }
+        public IHierarchyElement? ParentElement { get; set; }
 #nullable disable
-        public List<Hierarchy<IHierarchyElement>> ChildHierarchies { get; }
+        public List<IHierarchyElement> ChildElements { get; }
         public HierarchyElementRegistryRegistry SubHierarchies { get; }
         public HierarchyElementRegistryRegistry SuperHierarchies { get; }
     }
