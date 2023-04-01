@@ -29,7 +29,7 @@ namespace LooCast
         }
 
         /// <summary>
-        /// All internalManagers, ordered by their Dependencies(index 0 is RegistryManager, 1 is NamespaceManager, 2 is TypeManager, 3 is InstanceManager, etc.).
+        /// All internalManagers, ordered by their DependencyIdentifiers(index 0 is RegistryManager, 1 is NamespaceManager, 2 is TypeManager, 3 is InstanceManager, etc.).
         /// </summary>
         private InternalManager[] internalManagers;
 

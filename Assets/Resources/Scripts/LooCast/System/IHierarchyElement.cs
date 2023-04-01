@@ -2,7 +2,7 @@
 
 namespace LooCast.System
 {
-    using LooCast.System.Registries;
+    using global::LooCast.System.Registries;
     
     public interface IHierarchyElement : IIdentifiable
     {

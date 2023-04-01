@@ -5,6 +5,7 @@ namespace LooCast.System
     using global::LooCast.System.Identifiers;
     using global::LooCast.System.Managers;
     using global::LooCast.System.Registries;
+    using global::LooCast.System.MetaData;
 
     public class GameObject : IIdentifiable
     {
@@ -46,16 +47,16 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public GameObject(TypeIdentifier typeIdentifier, TypeIdentifier behaviourTypeIdentifier, TypeIdentifier dataTypeIdentifier, GameObject parentGameObject = null)
+        public GameObject(GameObjectMetaData gameObjectMetaData)
         {
             TypeManager typeManager = TypeManager.Instance;
 
             gameObjectInstanceGUID = Guid.NewGuid();
             gameObjectInstance = new UnityEngine.GameObject();
             
-            containingType = typeManager.GetType(typeIdentifier);
-            behaviourType = typeManager.GetType(behaviourTypeIdentifier);
-            this.dataType = typeManager.GetType(dataTypeIdentifier);
+            containingType = typeManager.GetType(gameObjectMetaData.TypeIdentifier);
+            behaviourType = typeManager.GetType(gameObjectMetaData.BehaviourTypeIdentifier);
+            this.dataType = typeManager.GetType(gameObjectMetaData.DataTypeIdentifier);
 
             Type extendeMonoBehaviourType = typeManager.GetType("LooCast.System:ExtendedMonoBehaviour");
             Type dataType = typeManager.GetType("LooCast.System:Data");
@@ -67,7 +68,7 @@ namespace LooCast.System
             object componentTypeInstance = Activator.CreateInstance(behaviourType.CSSystemType);
             addComponentMethod.Invoke(gameObjectInstance, new[] { componentTypeInstance });
 
-            this.parentGameObject = parentGameObject;
+            parentGameObject = gameObjectMetaData.ParentGameObject;
             childGameObjects = new GameObjectRegistry();
             containedComponents = new ComponentRegistry();
         }

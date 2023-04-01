@@ -13,7 +13,6 @@ namespace LooCast.Core
     using Background;
     using Chance;
     using Currency;
-    using Data;
     using Diagnostic;
     using Enemy;
     using Event;
@@ -50,9 +49,15 @@ namespace LooCast.Core
     using Statistic;
     using Steamworks;
     using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Collections.Conc;
     using System.Exceptions;
-    using System.Identification;
-    using System.Management;
+    using System.Hierarchies;
+    using System.Identifiers;
+    using System.Managers;
+    using System.Registries;
+    using System.Resources;
     using Target;
     using Test;
     using UI;
@@ -75,9 +80,6 @@ namespace LooCast.Core
     using UI.Value;
     using Universe;
     using Util;
-    using Util.Collections;
-    using Util.Collections.Concurrent;
-    using Util.Collections.Generic;
     using Variable;
 
     public class CoreManager : CoreModuleManager
@@ -106,6 +108,13 @@ namespace LooCast.Core
 
         #region Static Fields
         private static CoreManager instance;
+        #endregion
+
+        #region Constructors
+        public CoreManager(TypeIdentifier typeIdentifier, GameObject parentGameObject = null) : base(typeIdentifier, parentGameObject)
+        {
+            
+        }
         #endregion
 
         #region Properties

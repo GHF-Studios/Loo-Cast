@@ -4,6 +4,7 @@ namespace LooCast.System
 {
     using global::LooCast.System.Identifiers;
     using global::LooCast.System.Managers;
+    using global::LooCast.System.MetaData;
 
     public abstract class Registry<KeyType, ValueType> : SystemObject, IIdentifiable, IDictionary<KeyType, ValueType> where KeyType : Identifier where ValueType : IIdentifiable
     {
@@ -23,12 +24,14 @@ namespace LooCast.System
 
         #region Fields
         private Dictionary<KeyType, ValueType> dictionary;
+        private MainManager mainManager;
         #endregion
 
         #region Constructors
-        public Registry(TypeIdentifier typeIdentifier) : base(typeIdentifier)
+        public Registry(RegistryMetaData metaData) : base(metaData)
         {
             dictionary = new Dictionary<KeyType, ValueType>();
+            mainManager = MainManager.Instance;
         }
         #endregion
 
@@ -36,15 +39,21 @@ namespace LooCast.System
         public void Add(KeyType key, ValueType value)
         {
             ((IDictionary<KeyType, ValueType>)dictionary).Add(key, value);
+            mainManager.RegisterIdentifiable(value);
         }
 
         public void Add(KeyValuePair<KeyType, ValueType> item)
         {
             ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Add(item);
+            mainManager.RegisterIdentifiable(item.Value);
         }
 
         public void Clear()
         {
+            foreach (KeyValuePair<KeyType, ValueType> keyValuePair in dictionary)
+            {
+                mainManager.UnregisterIdentifiable(keyValuePair.Key);
+            }
             ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Clear();
         }
 
@@ -70,11 +79,13 @@ namespace LooCast.System
 
         public bool Remove(KeyType key)
         {
+            mainManager.UnregisterIdentifiable(key);
             return ((IDictionary<KeyType, ValueType>)dictionary).Remove(key);
         }
 
         public bool Remove(KeyValuePair<KeyType, ValueType> item)
         {
+            mainManager.UnregisterIdentifiable(item.Key);
             return ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Remove(item);
         }
 

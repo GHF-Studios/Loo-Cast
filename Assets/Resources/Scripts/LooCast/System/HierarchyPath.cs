@@ -5,47 +5,44 @@ using UnityEngine;
 namespace LooCast.System
 {
     [Serializable]
-    public class HierarchyPath
+    public abstract class HierarchyPath
     {
         #region Properties
-        public string[] PathSubStrings => pathSubStrings;
-        public bool IsRoot => PathSubStrings.Length == 1;
-        public string PathString => pathString;
-        public HierarchyPath ParentPath => parentPath;
-        #endregion
-
-        #region Fields
-        [SerializeField] private readonly string[] pathSubStrings;
-        private readonly string pathString;
-        private readonly HierarchyPath parentPath;
+        public string PathString { get; }
+        public abstract HierarchyPath ParentPath { get; }
         #endregion
 
         #region Constructors
-        public HierarchyPath(string[] pathSubStrings)
+        protected HierarchyPath(string pathString)
         {
-            this.pathSubStrings = pathSubStrings;
-            pathString = string.Join('/', PathSubStrings);
-            parentPath = new HierarchyPath(PathSubStrings.Take(PathSubStrings.Length - 1).ToArray());
+            PathString = pathString;
         }
         #endregion
 
         #region Static Methods
-#nullable enable
-        public static bool TryParse(string pathString, out HierarchyPath? hierarchyPath)
+        public static bool TryParse(string pathString, out HierarchyPath hierarchyPath)
         {
-            hierarchyPath = null;
-
-            string[] pathSubStrings = pathString.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (pathSubStrings.Length == 0)
+            if (HierarchyFolderPath.TryParse(pathString, out var folderPath))
             {
-                return false;
+                hierarchyPath = folderPath;
+                return true;
             }
 
-            hierarchyPath = new HierarchyPath(pathSubStrings);
-            return true;
+            if (HierarchyFilePath.TryParse(pathString, out var filePath))
+            {
+                hierarchyPath = filePath;
+                return true;
+            }
+
+            if (HierarchyObjectPath.TryParse(pathString, out var objectPath))
+            {
+                hierarchyPath = objectPath;
+                return true;
+            }
+
+            hierarchyPath = null;
+            return false;
         }
-#nullable disable
         #endregion
 
         #region Overrides
@@ -93,19 +90,17 @@ namespace LooCast.System
             return hierarchyPath.PathString;
         }
 
-#nullable enable
-        public static implicit operator HierarchyPath?(string hierarchyPathString)
+        public static implicit operator HierarchyPath(string pathString)
         {
-            if (TryParse(hierarchyPathString, out HierarchyPath? hierarchyPath))
+            if (TryParse(pathString, out var hierarchyPath))
             {
                 return hierarchyPath;
             }
             else
             {
-                throw new ArgumentException($"The string '{hierarchyPathString}' is not a valid HierarchyPath.");
+                throw new ArgumentException($"The string '{pathString}' is not a valid HierarchyPath.");
             }
         }
-#nullable disable
         #endregion
     }
 }

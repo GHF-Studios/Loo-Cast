@@ -5,6 +5,7 @@ namespace LooCast.System
     using global::LooCast.System.Identifiers;
     using global::LooCast.System.Managers;
     using global::LooCast.System.Registries;
+    using global::LooCast.System.MetaData;
 
     public class SystemObject : IIdentifiable
     {
@@ -32,7 +33,6 @@ namespace LooCast.System
         private object systemObjectInstance;
 
         private Type containingType;
-        private Type behaviourType;
         private Type dataType;
 
 #nullable enable
@@ -42,24 +42,21 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public SystemObject(TypeIdentifier typeIdentifier, TypeIdentifier behaviourTypeIdentifier, TypeIdentifier dataTypeIdentifier, SystemObject parentSystemObject = null)
+        public SystemObject(SystemObjectMetaData systemObjectMetaData)
         {
             TypeManager typeManager = TypeManager.Instance;
 
             systemObjectInstanceGUID = Guid.NewGuid();
             systemObjectInstance = new object();
 
-            containingType = typeManager.GetType(typeIdentifier);
-            behaviourType = typeManager.GetType(behaviourTypeIdentifier);
-            this.dataType = typeManager.GetType(dataTypeIdentifier);
+            containingType = typeManager.GetType(systemObjectMetaData.TypeIdentifier);
+            this.dataType = typeManager.GetType(systemObjectMetaData.DataTypeIdentifier);
 
-            Type extendeMonoBehaviourType = typeManager.GetType("LooCast.System:ExtendedMonoBehaviour");
             Type dataType = typeManager.GetType("LooCast.System:Data");
 
-            Type.CheckBaseType(behaviourType, extendeMonoBehaviourType);
             Type.CheckBaseType(this.dataType, dataType);
 
-            this.parentSystemObject = parentSystemObject;
+            parentSystemObject = systemObjectMetaData.ParentSystemObject;
             childSystemObjects = new SystemObjectRegistry();
         }
         #endregion

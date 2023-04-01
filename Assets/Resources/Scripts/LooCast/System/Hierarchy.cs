@@ -28,10 +28,9 @@ namespace LooCast.System
             }
         }
         public List<Hierarchy<IHierarchyElement>> ChildHierarchies => childHierarchies;
-
         
-        public HierarchyElementRegistryRegistry SubHierarchies => throw new global::System.NotImplementedException();
-        public HierarchyElementRegistryRegistry SuperHierarchies => throw new global::System.NotImplementedException();
+        public HierarchyElementRegistryRegistry SubHierarchies => subHierarchies;
+        public HierarchyElementRegistryRegistry SuperHierarchies => superHierarchies;
 
         #endregion
 
@@ -42,6 +41,9 @@ namespace LooCast.System
         private readonly HierarchyPath hierarchyPath;
         private Hierarchy<IHierarchyElement> parentHierarchy;
         private List<Hierarchy<IHierarchyElement>> childHierarchies;
+
+        private HierarchyElementRegistryRegistry subHierarchies;
+        private HierarchyElementRegistryRegistry superHierarchies;
         #endregion
 
         #region Constructors

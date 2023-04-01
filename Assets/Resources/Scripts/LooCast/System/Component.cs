@@ -5,6 +5,7 @@ namespace LooCast.System
     using global::LooCast.System.Identifiers;
     using global::LooCast.System.Managers;
     using global::LooCast.System.Registries;
+    using global::LooCast.System.MetaData;
 
     public class Component : IIdentifiable
     {
@@ -35,16 +36,16 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public Component(TypeIdentifier typeIdentifier, TypeIdentifier behaviourTypeIdentifier, TypeIdentifier dataTypeIdentifier, GameObject containingGameObject)
+        public Component(ComponentMetaData componentMetaData)
         {
             TypeManager typeManager = TypeManager.Instance;
 
-            componentIdentifier = new ComponentIdentifier(containingGameObject.GameObjectIdentifier, typeIdentifier, Guid.NewGuid());
+            componentIdentifier = new ComponentIdentifier(containingGameObject.GameObjectIdentifier, componentMetaData.TypeIdentifier, Guid.NewGuid());
             componentInstanceGUID = componentIdentifier.ComponentInstanceGUID;
             
-            containingType = typeManager.GetType(typeIdentifier);
-            behaviourType = typeManager.GetType(behaviourTypeIdentifier);
-            this.dataType = typeManager.GetType(dataTypeIdentifier);
+            containingType = typeManager.GetType(componentMetaData.TypeIdentifier);
+            behaviourType = typeManager.GetType(componentMetaData.BehaviourTypeIdentifier);
+            this.dataType = typeManager.GetType(componentMetaData.DataTypeIdentifier);
 
             Type extendeMonoBehaviourType = typeManager.GetType("LooCast.System:ExtendedMonoBehaviour");
             Type dataType = typeManager.GetType("LooCast.System:Data");
@@ -56,7 +57,7 @@ namespace LooCast.System
             object componentTypeInstance = Activator.CreateInstance(containingType.CSSystemType);
             componentInstance = (UnityEngine.Component)addComponentMethod.Invoke(containingGameObject.GameObjectInstance, new[] { componentTypeInstance });
 
-            this.containingGameObject = containingGameObject;
+            containingGameObject = componentMetaData.ContainingGameObject;
             containingGameObject.ContainedComponents.Add(ComponentIdentifier, this);
         }
         #endregion

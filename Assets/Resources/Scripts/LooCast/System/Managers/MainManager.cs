@@ -4,10 +4,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Assets.Resources.Scripts.LooCast.System.Managers;
 
 namespace LooCast.System.Managers
 {
+    using global::LooCast.System.Registries;
+    using global::LooCast.System.Hierarchies;
+    
     public sealed class MainManager : InternalManager
     {
         #region Static Properties
@@ -32,8 +34,14 @@ namespace LooCast.System.Managers
         private static MainManager instance;
         #endregion
 
+        #region Properties
+        public CoreModuleManager[] CoreModuleManagers => coreModuleManagers;
+        public MainRegistry MainRegistry => mainRegistry;
+        #endregion
+
         #region Fields
         private CoreModuleManager[] coreModuleManagers;
+        private MainRegistry mainRegistry;
         #endregion
 
         #region Constructors
@@ -43,7 +51,8 @@ namespace LooCast.System.Managers
             {
                 Core.CoreManager.Instance
             };
-            
+            mainRegistry = new MainRegistry();
+
             RegisterEarlyPreInitializationAction(() => 
             {
                 foreach (CoreModuleManager coreModuleManager in coreModuleManagers)
@@ -107,6 +116,48 @@ namespace LooCast.System.Managers
                     coreModuleManager.LatePostInitialize();
                 }
             });
+        }
+        #endregion
+
+        #region Methods
+        public void RegisterIdentifiable(IIdentifiable identifiable)
+        {
+            if (identifiable == null)
+            {
+                throw new ArgumentNullException(nameof(identifiable));
+            }
+
+            if (identifiable.Identifier == null)
+            {
+                throw new ArgumentException("The identifiable does not have an identifier.", nameof(identifiable));
+            }
+
+            mainRegistry.Add(identifiable.Identifier, identifiable);
+        }
+        
+        public void UnregisterIdentifiable(Identifier identifier)
+        {
+            if (identifier == null)
+            {
+                throw new ArgumentNullException(nameof(identifier));
+            }
+
+            mainRegistry.Remove(identifier);
+        }
+
+        public IIdentifiable GetIdentifiable(Identifier identifier)
+        {
+            if (identifier == null)
+            {
+                throw new ArgumentNullException(nameof(identifier));
+            }
+
+            if (!mainRegistry.TryGetValue(identifier, out IIdentifiable identifiable))
+            {
+                throw new ArgumentException($"The identifiable with identifier {identifier} could not be found in the main registry.");
+            }
+
+            return identifiable;
         }
         #endregion
 
