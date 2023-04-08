@@ -4,20 +4,20 @@ using UnityEngine;
 namespace LooCast.System
 {
     [Serializable]
-    public abstract class Identifier
+    public abstract class HierarchyElementPath
     {
         #region Properties
-        public string GUSID => gusid;
+        public string GUSP => gusp;
         #endregion
-        
+
         #region Fields
-        [SerializeField] private string gusid;
+        [SerializeField] private string gusp;
         #endregion
 
         #region Constructors
-        public Identifier(string gusid)
+        protected HierarchyElementPath(string gusp)
         {
-            this.gusid = gusid;
+            this.gusp = gusp;
         }
         #endregion
     }

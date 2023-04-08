@@ -230,7 +230,7 @@ namespace LooCast.System.Managers
             Type registryType = new Type(typeof(Registry<Identifier, IIdentifiable>));
             
             Type iHierarchyElementType = new Type(typeof(IHierarchyElement));
-            Type hierarchyPathType = new Type(typeof(HierarchyPath));
+            Type hierarchyElementPathType = new Type(typeof(HierarchyElementPath));
             Type hierarchyType = new Type(typeof(Hierarchy<IHierarchyElement>));
             #endregion
         }

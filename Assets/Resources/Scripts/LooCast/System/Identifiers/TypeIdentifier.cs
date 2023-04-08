@@ -21,7 +21,7 @@ namespace LooCast.System.Identifiers
         [SerializeField] private readonly string fullTypeName;
         private readonly global::System.Type cssystemType;
 #nullable enable
-        private readonly TypeIdentifier[]? genericTypeArgumentIdentifiers;
+        [SerializeField] private readonly TypeIdentifier[]? genericTypeArgumentIdentifiers;
 #nullable disable
         #endregion
          
@@ -178,9 +178,9 @@ namespace LooCast.System.Identifiers
                 return false;
             }
 
-            foreach (char c in typeName)
+            foreach (char character in typeName)
             {
-                if (!char.IsLetterOrDigit(c) && c != '_' && c != '<' && c != '>')
+                if (!char.IsLetterOrDigit(character) && character != '_' && character != '<' && character != '>')
                 {
                     return false;
                 }

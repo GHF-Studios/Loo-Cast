@@ -2,16 +2,16 @@
 
 namespace LooCast.System
 {
-    using global::LooCast.System.Registries;
-    
     public interface IHierarchyElement : IIdentifiable
     {
-        public HierarchyPath HierarchyPath { get; }
+        #region Properties
+        public HierarchyElementPath HierarchyElementPath { get; }
 #nullable enable
-        public IHierarchyElement? ParentElement { get; set; }
+        public IHierarchyElement? LocalHierarchyElementParent { get; }
+        public HashSet<IHierarchyElement>? LocalHierarchyElementChildren { get; }
+        public HashSet<IHierarchyElement>? GlobalHierarchyElementParents { get; }
+        public HashSet<IHierarchyElement>? GlobalHierarchyElementChildren { get; }
 #nullable disable
-        public List<IHierarchyElement> ChildElements { get; }
-        public HierarchyElementRegistryRegistry SubHierarchies { get; }
-        public HierarchyElementRegistryRegistry SuperHierarchies { get; }
+        #endregion
     }
 }

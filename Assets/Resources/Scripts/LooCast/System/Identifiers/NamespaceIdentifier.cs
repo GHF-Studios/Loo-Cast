@@ -7,29 +7,27 @@ namespace LooCast.System.Identifiers
     public class NamespaceIdentifier : Identifier
     {
         #region Properties
-#nullable enable
-        public NamespaceIdentifier? ParentNamespaceIdentifier
-        {
-            get
-            {
-                return TryParse(parentNamespaceGUSID, out NamespaceIdentifier? namespaceIdentifier) ? namespaceIdentifier : null;
-            }
-        }
-#nullable disable
         public string NamespaceName => namespaceName;
+#nullable enable
+        public NamespaceIdentifier? ParentNamespaceIdentifier => parentNamespaceIdentifier;
+#nullable disable
         #endregion
 
         #region Fields
-        [SerializeField] private readonly string parentNamespaceGUSID;
         [SerializeField] private readonly string namespaceName;
+#nullable enable
+        [SerializeField] private readonly NamespaceIdentifier? parentNamespaceIdentifier;
+#nullable disable
         #endregion
 
         #region Constructors
-        public NamespaceIdentifier(string namespaceName, NamespaceIdentifier parentNamespaceIdentifier = null, string gusid = null) : base(gusid == null ? parentNamespaceIdentifier == null ? $"{namespaceName}" : $"{parentNamespaceIdentifier}.{namespaceName}" : gusid)
+#nullable enable
+        public NamespaceIdentifier(string namespaceName, NamespaceIdentifier? parentNamespaceIdentifier = null, string? gusid = null) : base(gusid == null ? parentNamespaceIdentifier == null ? $"{namespaceName}" : $"{parentNamespaceIdentifier}.{namespaceName}" : gusid)
         {
             this.namespaceName = namespaceName;
-            parentNamespaceGUSID = parentNamespaceIdentifier == null ? null : parentNamespaceIdentifier.GUSID;
+            this.parentNamespaceIdentifier = parentNamespaceIdentifier;
         }
+#nullable disable
         #endregion
 
         #region Static Methods
@@ -83,9 +81,9 @@ namespace LooCast.System.Identifiers
                 return false;
             }
 
-            foreach (char c in namespaceName)
+            foreach (char character in namespaceName)
             {
-                if (!char.IsLetterOrDigit(c) && c != '_')
+                if (!char.IsLetterOrDigit(character) && character != '_')
                 {
                     return false;
                 }
