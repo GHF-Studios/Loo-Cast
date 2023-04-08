@@ -7,7 +7,7 @@ namespace LooCast.System
     using global::LooCast.System.Registries;
     using global::LooCast.System.MetaData;
 
-    public class SystemObject : IIdentifiable
+    public class SystemObject : IHierarchyElement
     {
         #region Properties
         public Identifier Identifier => systemObjectIdentifier;

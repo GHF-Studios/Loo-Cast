@@ -7,7 +7,7 @@ namespace LooCast.System
     using global::LooCast.System.Registries;
     using global::LooCast.System.MetaData;
 
-    public class Component : IIdentifiable
+    public class Component : IHierarchyElement
     {
         #region Properties
         public Identifier Identifier => componentIdentifier;
@@ -44,8 +44,6 @@ namespace LooCast.System
             componentInstanceGUID = componentIdentifier.ComponentInstanceGUID;
             
             containingType = typeManager.GetType(componentMetaData.TypeIdentifier);
-            behaviourType = typeManager.GetType(componentMetaData.BehaviourTypeIdentifier);
-            this.dataType = typeManager.GetType(componentMetaData.DataTypeIdentifier);
 
             Type extendeMonoBehaviourType = typeManager.GetType("LooCast.System:ExtendedMonoBehaviour");
             Type dataType = typeManager.GetType("LooCast.System:Data");

@@ -19,7 +19,7 @@ namespace LooCast.System
         {
             MainManager mainManager = MainManager.Instance;
             mainManager.MainRegistry.Add(Identifier, this);
-            penis
+            // penis
             // get metadata from the location that is specified by the identifer (as it is a unique identifier, it can also uniquely identify the location) and then register the metadata.
             // Effectively this means that metadata is registered in a recursive way, so this method will be called on all dependencies of this metadata, which will call this method on all dependencies of those dependencies, and so on.
             // When the metadata has been registered, it will be added to the Dependencies list of this metadata.
