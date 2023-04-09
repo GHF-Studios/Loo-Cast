@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.System
 {
     [Serializable]
-    public abstract class HierarchyElementPath
+    public abstract class HierarchyElementPath : Identifier
     {
         #region Properties
         public string GUSP => gusp;
@@ -15,7 +15,7 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        protected HierarchyElementPath(string gusp)
+        protected HierarchyElementPath(string gusp) : base(gusp)
         {
             this.gusp = gusp;
         }

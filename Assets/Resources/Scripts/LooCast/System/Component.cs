@@ -4,7 +4,7 @@ namespace LooCast.System
 {
     using global::LooCast.System.Identifiers;
 
-    public class Component : IHierarchyElement
+    public sealed class Component : IIdentifiable, IDisposable
     {
         #region Properties
         public Identifier Identifier => componentIdentifier;
@@ -25,22 +25,62 @@ namespace LooCast.System
 
         private Type componentType;
         private GameObject containingGameObject;
+
+        private bool disposed = false;
         #endregion
 
         #region Constructors
 #nullable enable 
         public Component(Type componentType, GameObject containingGameObject)
         {
+            if (!componentType.CSSystemType.IsSubclassOf(typeof(UnityEngine.MonoBehaviour)))
+            {
+                throw new ArgumentException("The componentType must be of Type UnityEngine.MonoBehaviour");
+            }
+
             this.componentType = componentType;
             this.containingGameObject = containingGameObject;
-            
+
             componentIdentifier = new ComponentIdentifier(containingGameObject.GameObjectIdentifier, componentType.TypeIdentifier, Guid.NewGuid());
             componentInstanceGUID = componentIdentifier.ComponentInstanceGUID;
-            componentInstance = containingGameObject.GameObjectInstance.AddComponent<ExtendedMonoBehaviour>();
+            componentInstance = containingGameObject.GameObjectInstance.AddComponent(componentType.CSSystemType);
 
             containingGameObject.ContainedComponents.Add(this);
         }
 #nullable disable
+        #endregion
+
+        #region Finalizer
+        ~Component()
+        {
+            Dispose(false);
+        }
+        #endregion
+
+        #region Methods
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources here, if any.
+                    containingGameObject.ContainedComponents.Remove(this);
+                    UnityEngine.Object.Destroy(componentInstance);
+                    componentInstance = null;
+                }
+
+                // Dispose unmanaged resources here, if any.
+                disposed = true;
+            }
+        }
+
         #endregion
 
         #region Overrides

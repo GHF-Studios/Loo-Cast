@@ -1,9 +1,9 @@
 ﻿namespace LooCast.System
 {
-    public interface IHierarchyObject
+    public interface ISystemObject
     {
         #region Properties
-        HierarchyObject HierarchyObject { get; }
+        SystemObject SystemObject { get; }
         #endregion
     }
 }

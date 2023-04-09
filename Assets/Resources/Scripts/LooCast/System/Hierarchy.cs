@@ -2,7 +2,7 @@
 
 namespace LooCast.System
 {
-    public abstract class Hierarchy<ElementType> : SystemObject, IHierarchyElement where ElementType : class, IHierarchyElement
+    public abstract class Hierarchy<ElementType> : SystemObject, HierarchyElement where ElementType : class, HierarchyElement
     {
         #region Properties
         #endregion

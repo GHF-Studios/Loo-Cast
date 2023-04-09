@@ -25,7 +25,7 @@ namespace LooCast.System
             // Effectively this means that metadata is registered in a recursive way, so this method will be called on all dependencies of this metadata, which will call this method on all dependencies of those dependencies, and so on.
             // When the metadata has been registered, it will be added to the Dependencies list of this metadata.
 
-            // But before doing so, I am required to create HierarchyElementPath, HierarchyFolderPath, HierarchyFilePath, HierarchyObjectPath, and IHierarchyElement
+            // But before doing so, I am required to create HierarchyElementPath, HierarchyFolderPath, HierarchyFilePath, HierarchyObjectPath, and HierarchyElement
             // basically acting as another identifier system but for paths in a hierarchy
             // Also make this interface be an abstract class, somehow
         }

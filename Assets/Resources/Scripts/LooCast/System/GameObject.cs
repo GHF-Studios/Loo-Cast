@@ -5,7 +5,7 @@ namespace LooCast.System
 {
     using global::LooCast.System.Identifiers;
 
-    public class GameObject : IHierarchyElement
+    public class GameObject : IIdentifiable, IDisposable
     {
         #region Properties
         public Identifier Identifier => gameObjectIdentifier;
@@ -13,7 +13,7 @@ namespace LooCast.System
 
         public Guid GameObjectInstanceGUID => gameObjectInstanceGUID;
         public UnityEngine.GameObject GameObjectInstance => gameObjectInstance;
-        public UnityEngine.Component GameObjectComponentInstance => gameObjectComponentInstance;
+        public UnityEngine.Component CoreComponentInstance => coreComponentInstance;
         
         public Type GameObjectType => gameObjectType;
 #nullable enable 
@@ -28,7 +28,7 @@ namespace LooCast.System
         
         private Guid gameObjectInstanceGUID;
         private UnityEngine.GameObject gameObjectInstance;
-        private UnityEngine.Component gameObjectComponentInstance;
+        private UnityEngine.Component coreComponentInstance;
 
         private Type gameObjectType;
 #nullable enable
@@ -36,6 +36,8 @@ namespace LooCast.System
 #nullable disable
         private HashSet<GameObject> childGameObjects;
         private HashSet<Component> containedComponents;
+
+        private bool disposed = false;
         #endregion
 
         #region Constructors
@@ -51,9 +53,51 @@ namespace LooCast.System
             gameObjectIdentifier = new GameObjectIdentifier(gameObjectType.TypeIdentifier, Guid.NewGuid());
             gameObjectInstanceGUID = gameObjectIdentifier.GameObjectInstanceGUID;
             gameObjectInstance = new UnityEngine.GameObject();
-            gameObjectComponentInstance = gameObjectInstance.AddComponent<ExtendedMonoBehaviour>();
+            coreComponentInstance = gameObjectInstance.AddComponent<ExtendedMonoBehaviour>();
         }
 #nullable disable
+        #endregion
+
+        #region Finalizer
+        ~GameObject()
+        {
+            Dispose(false);
+        }
+        #endregion
+
+        #region Methods
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources here, if any.
+                    foreach (Component component in containedComponents)
+                    {
+                        component.Dispose();
+                    }
+                    containedComponents.Clear();
+
+                    foreach (GameObject childGameObject in childGameObjects)
+                    {
+                        childGameObject.Dispose();
+                    }
+                    childGameObjects.Clear();
+
+                    UnityEngine.Object.Destroy(gameObjectInstance);
+                }
+
+                // Dispose unmanaged resources here, if any.
+                disposed = true;
+            }
+        }
         #endregion
 
         #region Overrides

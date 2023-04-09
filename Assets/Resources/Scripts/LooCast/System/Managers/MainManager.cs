@@ -229,9 +229,9 @@ namespace LooCast.System.Managers
             Type iIdentifiableType = new Type(typeof(IIdentifiable));
             Type registryType = new Type(typeof(Registry<Identifier, IIdentifiable>));
             
-            Type iHierarchyElementType = new Type(typeof(IHierarchyElement));
+            Type iHierarchyElementType = new Type(typeof(HierarchyElement));
             Type hierarchyElementPathType = new Type(typeof(HierarchyElementPath));
-            Type hierarchyType = new Type(typeof(Hierarchy<IHierarchyElement>));
+            Type hierarchyType = new Type(typeof(Hierarchy<HierarchyElement>));
             #endregion
         }
 

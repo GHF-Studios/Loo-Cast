@@ -5,7 +5,7 @@ namespace LooCast.System
 {
     using global::LooCast.System.Identifiers;
 
-    public class SystemObject : IHierarchyElement
+    public class SystemObject
     {
         #region Properties
         public Identifier Identifier => systemObjectIdentifier;
