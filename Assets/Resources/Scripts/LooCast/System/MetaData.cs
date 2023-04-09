@@ -4,13 +4,14 @@ using System.Collections.Generic;
 namespace LooCast.System
 {
     using global::LooCast.System.Managers;
-    
-    public interface IMetaData : IIdentifiable
+
+    [Serializable]
+    public abstract class MetaData : IIdentifiable
     {
         #region Fields
 #nullable enable
-        public List<Identifier>? DependencyIdentifiers { get; set; }
-        public List<IMetaData>? Dependencies { get; protected set; }
+        public List<Identifier>? DependencyIdentifiers { get; }
+        public List<System.MetaData>? Dependencies { get; }
 #nullable disable
         #endregion
 

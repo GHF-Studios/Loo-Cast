@@ -4,7 +4,6 @@ namespace LooCast.System
 {
     using global::LooCast.System.Identifiers;
     using global::LooCast.System.Managers;
-    using global::LooCast.System.MetaData;
 
     public abstract class Registry<KeyType, ValueType> : SystemObject, IIdentifiable, IDictionary<KeyType, ValueType> where KeyType : Identifier where ValueType : IIdentifiable
     {

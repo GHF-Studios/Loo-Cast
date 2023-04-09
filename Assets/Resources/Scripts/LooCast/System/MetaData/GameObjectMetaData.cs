@@ -7,19 +7,19 @@ namespace LooCast.System.MetaData
     using global::LooCast.System.Identifiers;
     
     [Serializable]
-    public class GameObjectMetaData : IMetaData
+    public class GameObjectMetaData : MetaData
     {
         #region Properties
         public TypeIdentifier TypeIdentifier => typeIdentifier;
 #nullable enable
         public GameObject? ParentGameObject => parentGameObject;
-        public global::System.Collections.Generic.List<IMetaData>? Dependencies
+        public global::System.Collections.Generic.List<MetaData>? Dependencies
         {
             get
             {
                 return dependencies;
             }
-            set
+            protected set
             {
                 dependencies = value;
             }
@@ -31,13 +31,13 @@ namespace LooCast.System.MetaData
         [SerializeField] private TypeIdentifier typeIdentifier;
 #nullable enable
         [SerializeField] private GameObject? parentGameObject;
-        [SerializeField] private global::System.Collections.Generic.List<IMetaData>? dependencies;
+        [SerializeField] private global::System.Collections.Generic.List<MetaData>? dependencies;
 #nullable disable
         #endregion
 
         #region Constructors
 #nullable enable
-        public GameObjectMetaData(TypeIdentifier typeIdentifier, GameObject? parentGameObject = null, global::System.Collections.Generic.List<IMetaData>? dependencies = null)
+        public GameObjectMetaData(TypeIdentifier typeIdentifier, GameObject? parentGameObject = null, global::System.Collections.Generic.List<MetaData>? dependencies = null)
         {
             this.typeIdentifier = typeIdentifier;
             this.parentGameObject = parentGameObject;

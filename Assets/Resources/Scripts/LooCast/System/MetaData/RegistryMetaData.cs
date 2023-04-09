@@ -9,7 +9,7 @@ namespace LooCast.System.MetaData
     [Serializable]
     public class RegistryMetaData : SystemObjectMetaData
     {
-        public RegistryMetaData(TypeIdentifier typeIdentifier, SystemObject parentSystemObject = null, global::System.Collections.Generic.List<IMetaData> dependencies = null) : base(typeIdentifier, parentSystemObject, dependencies)
+        public RegistryMetaData(TypeIdentifier typeIdentifier, SystemObject parentSystemObject = null, global::System.Collections.Generic.List<MetaData> dependencies = null) : base(typeIdentifier, parentSystemObject, dependencies)
         {
             
         }

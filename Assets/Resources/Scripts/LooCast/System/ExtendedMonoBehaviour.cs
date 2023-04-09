@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace LooCast.System
 {
-    public abstract class ExtendedMonoBehaviour : MonoBehaviour
+    public sealed class ExtendedMonoBehaviour : MonoBehaviour
     {
         public static List<ExtendedMonoBehaviour> Instances = new List<ExtendedMonoBehaviour>();
         public static int nextInstanceID = 0;

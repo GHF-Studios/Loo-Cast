@@ -1,13 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace LooCast.System
 {
     using global::LooCast.System.Identifiers;
-    using global::LooCast.System.Managers;
-    using global::LooCast.System.Registries;
-    using global::LooCast.System.MetaData;
 
-    public class GameObject : IIdentifiable
+    public class GameObject : IHierarchyElement
     {
         #region Properties
         public Identifier Identifier => gameObjectIdentifier;
@@ -15,63 +13,47 @@ namespace LooCast.System
 
         public Guid GameObjectInstanceGUID => gameObjectInstanceGUID;
         public UnityEngine.GameObject GameObjectInstance => gameObjectInstance;
+        public UnityEngine.Component GameObjectComponentInstance => gameObjectComponentInstance;
         
-        public Type ContainingType => containingType;
-        public Type BehaviourType => behaviourType;
-        public Type DataType => dataType;
-        
+        public Type GameObjectType => gameObjectType;
 #nullable enable 
         public GameObject? ParentGameObject => parentGameObject;
 #nullable disable
-        public GameObjectRegistry ChildGameObjects => childGameObjects;
-        public ComponentRegistry ContainedComponents => containedComponents;
+        public HashSet<GameObject> ChildGameObjects => childGameObjects;
+        public HashSet<Component> ContainedComponents => containedComponents;
         #endregion
 
         #region Fields
-#nullable enable 
-        private GameObjectIdentifier? gameObjectIdentifier;
-#nullable disable
-
+        private GameObjectIdentifier gameObjectIdentifier;
+        
         private Guid gameObjectInstanceGUID;
         private UnityEngine.GameObject gameObjectInstance;
+        private UnityEngine.Component gameObjectComponentInstance;
 
-        private Type containingType;
-        private Type behaviourType;
-        private Type dataType;
-
+        private Type gameObjectType;
 #nullable enable
         private GameObject? parentGameObject;
 #nullable disable
-        private GameObjectRegistry childGameObjects;
-        private ComponentRegistry containedComponents;
+        private HashSet<GameObject> childGameObjects;
+        private HashSet<Component> containedComponents;
         #endregion
 
         #region Constructors
-        public GameObject(GameObjectMetaData gameObjectMetaData)
+#nullable enable
+        public GameObject(Type gameObjectType, GameObject? parentGameObject = null)
         {
-            TypeManager typeManager = TypeManager.Instance;
+            this.gameObjectType = gameObjectType;
+            this.parentGameObject = parentGameObject;
 
-            gameObjectInstanceGUID = Guid.NewGuid();
+            childGameObjects = new HashSet<GameObject>();
+            containedComponents = new HashSet<Component>();
+
+            gameObjectIdentifier = new GameObjectIdentifier(gameObjectType.TypeIdentifier, Guid.NewGuid());
+            gameObjectInstanceGUID = gameObjectIdentifier.GameObjectInstanceGUID;
             gameObjectInstance = new UnityEngine.GameObject();
-            
-            containingType = typeManager.GetType(gameObjectMetaData.TypeIdentifier);
-            behaviourType = typeManager.GetType(gameObjectMetaData.BehaviourTypeIdentifier);
-            this.dataType = typeManager.GetType(gameObjectMetaData.DataTypeIdentifier);
-
-            Type extendeMonoBehaviourType = typeManager.GetType("LooCast.System:ExtendedMonoBehaviour");
-            Type dataType = typeManager.GetType("LooCast.System:Data");
-            
-            Type.CheckBaseType(behaviourType, extendeMonoBehaviourType);
-            Type.CheckBaseType(this.dataType, dataType);
-
-            global::System.Reflection.MethodInfo addComponentMethod = gameObjectInstance.GetType().GetMethod("AddComponent", global::System.Type.EmptyTypes);
-            object componentTypeInstance = Activator.CreateInstance(behaviourType.CSSystemType);
-            addComponentMethod.Invoke(gameObjectInstance, new[] { componentTypeInstance });
-
-            parentGameObject = gameObjectMetaData.ParentGameObject;
-            childGameObjects = new GameObjectRegistry();
-            containedComponents = new ComponentRegistry();
+            gameObjectComponentInstance = gameObjectInstance.AddComponent<ExtendedMonoBehaviour>();
         }
+#nullable disable
         #endregion
 
         #region Overrides

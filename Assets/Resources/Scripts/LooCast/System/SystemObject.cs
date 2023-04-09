@@ -1,11 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace LooCast.System
 {
     using global::LooCast.System.Identifiers;
-    using global::LooCast.System.Managers;
-    using global::LooCast.System.Registries;
-    using global::LooCast.System.MetaData;
 
     public class SystemObject : IHierarchyElement
     {
@@ -14,51 +12,39 @@ namespace LooCast.System
         public SystemObjectIdentifier SystemObjectIdentifier => systemObjectIdentifier;
 
         public Guid SystemObjectInstanceGUID => systemObjectInstanceGUID;
-        public object SystemObjectInstance => systemObjectInstance;
 
-        public Type ContainingType => containingType;
-
+        public Type SystemObjectType => systemObjectType;
 #nullable enable
         public SystemObject? ParentSystemObject => parentSystemObject;
 #nullable disable
-        public SystemObjectRegistry ChildSystemObjects => childSystemObjects;
+        public HashSet<SystemObject> ChildSystemObjects => childSystemObjects;
         #endregion
 
         #region Fields
-#nullable enable
-        private SystemObjectIdentifier? systemObjectIdentifier;
-#nullable disable
+        private SystemObjectIdentifier systemObjectIdentifier;
 
         private Guid systemObjectInstanceGUID;
-        private object systemObjectInstance;
 
-        private Type containingType;
-        private Type dataType;
-
+        private Type systemObjectType;
 #nullable enable
         private SystemObject? parentSystemObject;
 #nullable disable
-        private SystemObjectRegistry childSystemObjects;
+        private HashSet<SystemObject> childSystemObjects;
         #endregion
 
         #region Constructors
-        public SystemObject(SystemObjectMetaData systemObjectMetaData)
+#nullable enable
+        public SystemObject(Type systemObjectType, SystemObject? parentSystemObject = null)
         {
-            TypeManager typeManager = TypeManager.Instance;
+            this.systemObjectType = systemObjectType;
+            this.parentSystemObject = parentSystemObject;
 
-            systemObjectInstanceGUID = Guid.NewGuid();
-            systemObjectInstance = new object();
+            childSystemObjects = new HashSet<SystemObject>();
 
-            containingType = typeManager.GetType(systemObjectMetaData.TypeIdentifier);
-            this.dataType = typeManager.GetType(systemObjectMetaData.DataTypeIdentifier);
-
-            Type dataType = typeManager.GetType("LooCast.System:Data");
-
-            Type.CheckBaseType(this.dataType, dataType);
-
-            parentSystemObject = systemObjectMetaData.ParentSystemObject;
-            childSystemObjects = new SystemObjectRegistry();
+            systemObjectIdentifier = new SystemObjectIdentifier(systemObjectType.TypeIdentifier, Guid.NewGuid());
+            systemObjectInstanceGUID = systemObjectIdentifier.SystemObjectInstanceGUID;
         }
+#nullable disable
         #endregion
 
         #region Overrides
