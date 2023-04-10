@@ -9,7 +9,7 @@ namespace LooCast.Enemy
         [MetaDataInstance]
         public EnemyMovementMetaData MovementMetaData;
 
-        [PersistableDataInstance]
+        [MetaDataInstance]
         public EnemyHealthMetaData HealthMetaData;
     }
 }
