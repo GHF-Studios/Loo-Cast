@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.Core
 {
     [ModManager]
-    public class BaseModManager : ModManager
+    public class LooCastModManager : ModManager
     {
         #region Manager Types
 
