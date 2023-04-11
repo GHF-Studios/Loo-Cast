@@ -1,52 +1,37 @@
 using System;
 using UnityEngine;
 using LooCast.Core;
+using LooCast.Enemy.Health;
+using LooCast.Enemy.Movement;
 
 namespace LooCast.Enemy
 {
     [ModuleManager]
     public class EnemyModuleManager : ModuleManager
     {
-        #region Types
+        #region Sub Module Managers
+        [SubModuleManagerInstance]
+        public static EnemyHealthSubModuleManager EnemyHealthSubModuleManager;
+
+        [SubModuleManagerInstance]
+        public static EnemyMovementSubModuleManager EnemyMovementSubModuleManager;
+        #endregion
+
+        #region Entity Types
+        [PersistableEntityTypeInstance]
+        public static EnemyPersistableEntityType<EnemyPersistableEntity> EnemyPersistableEntityType;
+        #endregion
+
+        #region Component Types
+        #endregion
 
         #region MetaData Types
-        [MetaDataTypeInstance]
-        public static EnemyMetaDataType EnemyMetaDataType;
         #endregion
 
-        #region Persistable Entity Types
-        [PersistableEntityTypeInstance]
-        public static EnemyPersistableEntityType EnemyPersistableEntityType;
-        #endregion
-
-        #region Non-Persistable Entity Types
-        #endregion
-
-        #region Persistable Data Types
-        [PersistableDataTypeInstance]
-        public static EnemyPersistableDataType EnemyPersistableDataType;
-
-        [PersistableDataTypeInstance]
-        public static EnemyHealthPersistableDataType EnemyHealthPersistableDataType;
-
-        [PersistableDataTypeInstance]
-        public static EnemyMovementPersistableDataType EnemyMovementPersistableDataType;
-        #endregion
-
-        #region Non-Persistable Data Types
+        #region Data Types
         #endregion
 
         #region Logic Types
-        [LogicTypeInstance]
-        public static EnemyLogicType EnemyLogicType;
-
-        [LogicTypeInstance]
-        public static EnemyHealthLogicType EnemyHealthLogicType;
-
-        [LogicTypeInstance]
-        public static EnemyMovementLogicType EnemyMovementLogicType;
-        #endregion
-
         #endregion
     } 
 }

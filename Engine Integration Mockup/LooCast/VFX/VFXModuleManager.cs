@@ -8,38 +8,25 @@ namespace LooCast.VFX
     [ModuleManager]
     public class VFXModuleManager : ModuleManager
     {
-        #region Types
+        #region Sub Module Managers
+
+        #endregion
+
+        #region Entity Types
+        [EntityTypeInstance]
+        public static ExplosionEntityType<ExplosionEntity> ExplosionEntityType;
+        #endregion
+
+        #region Component Types
+        #endregion
 
         #region MetaData Types
         #endregion
 
-        #region Persistable Entity Types
-        #endregion
-
-        #region Non-Persistable Entity Types
-        [EntityTypeInstance]
-        public static ExplosionEntityType ExplosionEntityType;
-        #endregion
-
-        #region Persistable Data Types
-        #endregion
-
-        #region Non-Persistable Data Types
-        [DataTypeInstance]
-        public static ExplosionDataType ExplosionDataType;
-
-        [DataTypeInstance]
-        public static ExplosionParticleSystemDataType ExplosionParticleSystemDataType;
+        #region Data Types
         #endregion
 
         #region Logic Types
-        [LogicTypeInstance]
-        public static ExplosionLogicType ExplosionLogicType;
-
-        [LogicTypeInstance]
-        public static ExplosionParticleSystemLogicType ExplosionParticleSystemLogicType;
-        #endregion
-
         #endregion
     } 
 }
