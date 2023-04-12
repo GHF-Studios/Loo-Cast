@@ -4,10 +4,10 @@ using LooCast.Core;
 
 namespace LooCast.Health
 {
-    [ModuleManager]
-    public class HealthModuleManager : ModuleManager
+    [Module]
+    public class HealthModule : Module
     {
-        #region Sub Module Managers
+        #region Sub Modules
 
         #endregion
 

@@ -5,10 +5,10 @@ using LooCast.Particle;
 
 namespace LooCast.VFX
 {
-    [ModuleManager]
-    public class VFXModuleManager : ModuleManager
+    [Module]
+    public class VFXModule : Module
     {
-        #region Sub Module Managers
+        #region Sub Modules
 
         #endregion
 

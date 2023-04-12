@@ -4,8 +4,8 @@ using LooCast.Core;
 
 namespace LooCast.Enemy.Health
 {
-    [SubModuleManager]
-    public class EnemyHealthSubModuleManager : SubModuleManager
+    [SubModule]
+    public class EnemyHealthSubModule : SubModule
     {
         #region Entity Types
         #endregion

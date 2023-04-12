@@ -6,15 +6,15 @@ using LooCast.Enemy.Movement;
 
 namespace LooCast.Enemy
 {
-    [ModuleManager]
-    public class EnemyModuleManager : ModuleManager
+    [Module]
+    public class EnemyModule : Module
     {
-        #region Sub Module Managers
-        [SubModuleManagerInstance]
-        public static EnemyHealthSubModuleManager EnemyHealthSubModuleManager;
+        #region Sub Modules
+        [SubModuleInstance]
+        public static EnemyHealthSubModule EnemyHealthSubModule;
 
-        [SubModuleManagerInstance]
-        public static EnemyMovementSubModuleManager EnemyMovementSubModuleManager;
+        [SubModuleInstance]
+        public static EnemyMovementSubModule EnemyMovementSubModule;
         #endregion
 
         #region Entity Types

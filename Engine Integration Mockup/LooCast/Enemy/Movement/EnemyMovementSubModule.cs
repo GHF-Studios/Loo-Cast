@@ -4,8 +4,8 @@ using LooCast.Core;
 
 namespace LooCast.Enemy.Movement
 {
-    [SubModuleManager]
-    public class EnemyMovementSubModuleManager : SubModuleManager
+    [SubModule]
+    public class EnemyMovementSubModule : SubModule
     {
         #region Entity Types
         #endregion

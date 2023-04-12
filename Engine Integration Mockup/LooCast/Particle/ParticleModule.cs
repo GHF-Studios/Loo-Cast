@@ -4,10 +4,10 @@ using LooCast.Core;
 
 namespace LooCast.Particle
 {
-    [ModuleManager]
-    public class ParticleModuleManager : ModuleManager
+    [Module]
+    public class ParticleModule : Module
     {
-        #region Sub Module Managers
+        #region Sub Modules
 
         #endregion
 

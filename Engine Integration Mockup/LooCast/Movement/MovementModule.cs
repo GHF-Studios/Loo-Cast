@@ -4,10 +4,10 @@ using LooCast.Core;
 
 namespace LooCast.Movement
 {
-    [ModuleManager]
-    public class MovementModuleManager : ModuleManager
+    [Module]
+    public class MovementModule : Module
     {
-        #region Sub Module Managers
+        #region Sub Modules
 
         #endregion
 
