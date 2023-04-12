@@ -31,25 +31,25 @@ namespace LooCast.System
             component.containingGameObject = containingGameObject;
             component.componentIdentifier = new ComponentIdentifier(containingGameObject.GameObjectIdentifier, component.componentType.TypeIdentifier, component.componentInstanceGUID);
             containingGameObject.ContainedComponents.Add(component);
-            component.OnPreConstruct();
-            component.OnConstruct();
-            component.OnPostConstruct();
+            component.PreConstruct();
+            component.Construct();
+            component.PostConstruct();
             return (T)component;
         }
         #endregion
 
         #region Methods
-        protected virtual void OnPreConstruct()
+        protected virtual void PreConstruct()
         {
 
         }
 
-        protected virtual void OnConstruct()
+        protected virtual void Construct()
         {
 
         }
 
-        protected virtual void OnPostConstruct()
+        protected virtual void PostConstruct()
         {
 
         }

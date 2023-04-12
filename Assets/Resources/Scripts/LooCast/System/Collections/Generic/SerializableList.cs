@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -6,7 +7,7 @@ using UnityEngine;
 namespace LooCast.System.Collections.Generic
 {
     [Serializable]
-    public class SerializableList<T>
+    public class SerializableList<T> : IEnumerable<T>
     {
         public List<T> Values
         {
@@ -61,6 +62,16 @@ namespace LooCast.System.Collections.Generic
         public void Clear()
         {
             Values.Clear();
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            return ((IEnumerable<T>)Values).GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable)Values).GetEnumerator();
         }
 
         public T this[int index]

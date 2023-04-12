@@ -44,26 +44,26 @@ namespace LooCast.System
             gameObject.parentGameObject = parentGameObject;
             gameObject.childGameObjects = new HashSet<GameObject>();
             gameObject.containedComponents = new HashSet<Component>();
-            gameObject.OnPreConstruct();
-            gameObject.OnConstruct();
-            gameObject.OnPostConstruct();
+            gameObject.PreConstruct();
+            gameObject.Construct();
+            gameObject.PostConstruct();
             return gameObject;
         }
 #nullable disable
         #endregion
 
         #region Methods
-        protected virtual void OnPreConstruct()
+        protected virtual void PreConstruct()
         {
 
         }
 
-        protected virtual void OnConstruct()
+        protected virtual void Construct()
         {
 
         }
 
-        protected virtual void OnPostConstruct()
+        protected virtual void PostConstruct()
         {
 
         }

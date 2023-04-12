@@ -5,7 +5,7 @@ namespace LooCast.System
     using global::LooCast.System.Identifiers;
     using global::LooCast.System.Managers;
 
-    public abstract class Registry<KeyType, ValueType> : SystemObject, ILooCastObject, IDictionary<KeyType, ValueType> where KeyType : Identifier where ValueType : ILooCastObject
+    public abstract class Registry<KeyType, ValueType> : SystemObject, IDictionary<KeyType, ValueType> where KeyType : Identifier where ValueType : ILooCastObject
     {
         #region Properties
         public ValueType this[KeyType key] 
@@ -17,21 +17,11 @@ namespace LooCast.System
         public ICollection<ValueType> Values => ((IDictionary<KeyType, ValueType>)dictionary).Values;
         public int Count => ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Count;
         public bool IsReadOnly => ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).IsReadOnly;
-
-        public SystemObjectIdentifier RegistryIdentifier => SystemObjectIdentifier;
         #endregion
 
         #region Fields
         private Dictionary<KeyType, ValueType> dictionary;
         private MainManager mainManager;
-        #endregion
-
-        #region Constructors
-        public Registry(RegistryMetaData metaData) : base(metaData)
-        {
-            dictionary = new Dictionary<KeyType, ValueType>();
-            mainManager = MainManager.Instance;
-        }
         #endregion
 
         #region Methods

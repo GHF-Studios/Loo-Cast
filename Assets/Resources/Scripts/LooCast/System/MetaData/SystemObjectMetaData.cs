@@ -6,11 +6,37 @@ namespace LooCast.System.MetaData
 {
     using global::LooCast.System.Identifiers;
     using global::LooCast.System.Managers;
-    
+    using global::LooCast.System.Collections.Generic;
+
     [Serializable]
-    public class SystemObjectMetaData<T> where T : SystemObject
+    public class SystemObjectMetaData
     {
         #region Properties
+        public SystemObjectIdentifier SystemObjectIdentifier
+        {
+            get
+            {
+                return systemObjectIdentifier;
+            }
+            set
+            {
+                systemObjectIdentifier = value;
+            }
+        }
+        public Guid SystemObjectInstanceGUID
+        {
+            get
+            {
+                return systemObjectIdentifier.SystemObjectInstanceGUID;
+            }
+        }
+        public Type SystemObjectType
+        {
+            get
+            {
+                return TypeManager.Instance.GetType(systemObjectIdentifier.SystemObjectTypeIdentifier);
+            }
+        }
 #nullable enable
         public SystemObject? ParentSystemObject
         {
@@ -28,17 +54,18 @@ namespace LooCast.System.MetaData
             set
             {
                 parentSystemObject = value;
+                parentSystemObjectIdentifier = parentSystemObject == null ? null : parentSystemObject.SystemObjectMetaData.SystemObjectIdentifier;
             }
         }
 #nullable disable
-        public HashSet<SystemObject> ChildSystemObjects
+        public List<SystemObject> ChildSystemObjects
         {
             get
             {
                 if (childSystemObjects == null)
                 {
-                    childSystemObjects = new HashSet<SystemObject>();
-                    if (childSystemObjectIdentifiers.Length > 0)
+                    childSystemObjects = new List<SystemObject>();
+                    if (childSystemObjectIdentifiers.Count > 0)
                     {
                         foreach (SystemObjectIdentifier childSystemObjectIdentifier in childSystemObjectIdentifiers)
                         {
@@ -52,20 +79,44 @@ namespace LooCast.System.MetaData
             set
             {
                 childSystemObjects = value;
+                childSystemObjectIdentifiers = new SerializableList<SystemObjectIdentifier>();
+                if (childSystemObjects != null && childSystemObjects.Count > 0)
+                {
+                    for (int i = 0; i < childSystemObjects.Count; i++)
+                    {
+                        childSystemObjectIdentifiers.Add(childSystemObjects[i].SystemObjectMetaData.SystemObjectIdentifier);
+                    }
+                }
             }
         }
         #endregion
 
         #region Fields
+        [SerializeField] private SystemObjectIdentifier systemObjectIdentifier;
 #nullable enable
         [SerializeField] private SystemObjectIdentifier? parentSystemObjectIdentifier;
 #nullable disable
-        [SerializeField] private SystemObjectIdentifier[] childSystemObjectIdentifiers;
+        [SerializeField] private SerializableList<SystemObjectIdentifier> childSystemObjectIdentifiers;
 
 #nullable enable
         private SystemObject? parentSystemObject;
-        private HashSet<SystemObject>? childSystemObjects;
+        private List<SystemObject>? childSystemObjects;
 #nullable disable
+        #endregion
+
+        #region Methods
+        public virtual bool Validate()
+        {
+            if (systemObjectIdentifier == null)
+            {
+                return false;
+            }
+            if (childSystemObjectIdentifiers == null)
+            {
+                return false;
+            }
+            return true;
+        }
         #endregion
     }
 }
