@@ -4,6 +4,7 @@ using System.Collections.Generic;
 namespace LooCast.System
 {
     using global::LooCast.System.Identifiers;
+    using global::LooCast.System.Managers;
     using global::LooCast.System.MetaData;
 
     public class SystemObject : ILooCastObject
@@ -19,17 +20,17 @@ namespace LooCast.System
 
         #region Static Methods
 #nullable enable
-        public static ObjectType CreateObject<ObjectType, MetaDataType>(MetaDataType? metaData = default(MetaDataType)) 
-            where ObjectType : SystemObject, new() 
-            where MetaDataType : SystemObjectMetaData, new()
+        public static SystemObjectType CreateObject<SystemObjectType, SystemObjectMetaDataType>(SystemObjectMetaDataType? systemObjectMetaData = default(SystemObjectMetaDataType)) 
+            where SystemObjectType : SystemObject, new() 
+            where SystemObjectMetaDataType : SystemObjectMetaData, new()
         {
-            ObjectType systemObject = Activator.CreateInstance<ObjectType>();
-            if (metaData == null)
+            SystemObjectType systemObject = Activator.CreateInstance<SystemObjectType>();
+            if (systemObjectMetaData == null)
             {
-                metaData = Activator.CreateInstance<MetaDataType>();
-                systemObject.CreateMetaData<ObjectType, MetaDataType>(ref metaData);
+                systemObjectMetaData = Activator.CreateInstance<SystemObjectMetaDataType>();
+                systemObject.CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref systemObjectMetaData);
             }
-            systemObject.SetMetaData(metaData);
+            systemObject.SetMetaData(systemObjectMetaData);
             systemObject.PreConstruct();
             systemObject.Construct();
             systemObject.PostConstruct();
@@ -39,13 +40,13 @@ namespace LooCast.System
         #endregion
 
         #region Methods
-        protected virtual void CreateMetaData<ObjectType, MetaDataType>(ref MetaDataType metaData)
-            where ObjectType : SystemObject, new()
-            where MetaDataType : SystemObjectMetaData, new()
+        protected virtual void CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref SystemObjectMetaDataType systemObjectMetaData)
+            where SystemObjectType : SystemObject, new()
+            where SystemObjectMetaDataType : SystemObjectMetaData, new()
         {
-            metaData.SystemObjectIdentifier = new SystemObjectIdentifier(new Type<ObjectType>().TypeIdentifier, Guid.NewGuid());
-            metaData.ParentSystemObject = null;
-            metaData.ChildSystemObjects = new List<SystemObject>();
+            systemObjectMetaData.SystemObjectIdentifier = new SystemObjectIdentifier(TypeManager.Instance.GetType<SystemObjectType>().TypeIdentifier, Guid.NewGuid());
+            systemObjectMetaData.ParentSystemObject = null;
+            systemObjectMetaData.ChildSystemObjects = new List<SystemObject>();
         }
 
         public virtual void SetMetaData(SystemObjectMetaData systemObjectMetaData)

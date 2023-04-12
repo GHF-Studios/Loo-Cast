@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace LooCast.System.Collections.Concurrent
 {
-    using LooCast.System.Collections.Generic;
+    using global::LooCast.System.Collections.Generic;
 
     public class ConcurrentSerializableDictionary<KeyType, ValueType> : IDictionary<KeyType, ValueType>
     {

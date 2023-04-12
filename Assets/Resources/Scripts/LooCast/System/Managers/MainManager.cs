@@ -8,7 +8,6 @@ using UnityEngine.SceneManagement;
 namespace LooCast.System.Managers
 {
     using global::LooCast.System.Registries;
-    using global::LooCast.System.Hierarchies;
     
     public sealed class MainManager : InternalManager
     {

@@ -7,19 +7,19 @@ namespace LooCast.System.Identifiers
     public class ComponentIdentifier : GameObjectIdentifier
     {
         #region Properties
-        public GameObjectIdentifier ComponentGameObjectIdentifier => componentGameObjectIdentifier;
+        public GameObjectIdentifier ContainingGameObjectIdentifier => containingGameObjectIdentifier;
         public TypeIdentifier ComponentTypeIdentifier => GameObjectTypeIdentifier;
         public Guid ComponentInstanceGUID => GameObjectInstanceGUID;
         #endregion
 
         #region Fields
-        [SerializeField] private readonly GameObjectIdentifier componentGameObjectIdentifier;
+        [SerializeField] private readonly GameObjectIdentifier containingGameObjectIdentifier;
         #endregion
 
         #region Constructors
-        public ComponentIdentifier(GameObjectIdentifier componentGameObjectIdentifier, TypeIdentifier componentTypeIdentifier, Guid componentInstanceGUID, string gusid = null) : base(componentTypeIdentifier, componentInstanceGUID, gusid == null ? $"{componentGameObjectIdentifier}{{{componentTypeIdentifier}({componentInstanceGUID})}}" : gusid)
+        public ComponentIdentifier(GameObjectIdentifier containingGameObjectIdentifier, TypeIdentifier componentTypeIdentifier, Guid componentInstanceGUID, string gusid = null) : base(componentTypeIdentifier, componentInstanceGUID, gusid == null ? $"{containingGameObjectIdentifier}{{{componentTypeIdentifier}({componentInstanceGUID})}}" : gusid)
         {
-            this.componentGameObjectIdentifier = componentGameObjectIdentifier;
+            this.containingGameObjectIdentifier = containingGameObjectIdentifier;
         }
         #endregion
 
