@@ -2,10 +2,10 @@
 
 namespace LooCast.System
 {
-    using LooCast.System.Identifiers;
-    using LooCast.System.Registries;
+    using global::LooCast.System.Identifiers;
+    using global::LooCast.System.Registries;
 
-    public class Namespace : IIdentifiable
+    public class Namespace : ILooCastObject
     {
         #region Properties
         public Identifier Identifier => namespaceIdentifier;

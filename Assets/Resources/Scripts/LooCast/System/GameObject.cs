@@ -5,16 +5,13 @@ namespace LooCast.System
 {
     using global::LooCast.System.Identifiers;
 
-    public class GameObject : IIdentifiable, IDisposable
+    public class GameObject : ILooCastObject
     {
         #region Properties
         public Identifier Identifier => gameObjectIdentifier;
         public GameObjectIdentifier GameObjectIdentifier => gameObjectIdentifier;
-
         public Guid GameObjectInstanceGUID => gameObjectInstanceGUID;
-        public UnityEngine.GameObject GameObjectInstance => gameObjectInstance;
-        public UnityEngine.Component CoreComponentInstance => coreComponentInstance;
-        
+        public UnityEngine.GameObject UnityEngineGameObject => unityEngineGameObject;
         public Type GameObjectType => gameObjectType;
 #nullable enable 
         public GameObject? ParentGameObject => parentGameObject;
@@ -25,104 +22,50 @@ namespace LooCast.System
 
         #region Fields
         private GameObjectIdentifier gameObjectIdentifier;
-        
         private Guid gameObjectInstanceGUID;
-        private UnityEngine.GameObject gameObjectInstance;
-        private UnityEngine.Component coreComponentInstance;
-
+        private UnityEngine.GameObject unityEngineGameObject;
         private Type gameObjectType;
 #nullable enable
         private GameObject? parentGameObject;
 #nullable disable
         private HashSet<GameObject> childGameObjects;
         private HashSet<Component> containedComponents;
-
-        private bool disposed = false;
         #endregion
 
-        #region Constructors
+        #region Static Methods
 #nullable enable
-        public GameObject(Type gameObjectType, GameObject? parentGameObject = null)
+        public static T Create<T>(GameObject? parentGameObject = null) where T : GameObject
         {
-            this.gameObjectType = gameObjectType;
-            this.parentGameObject = parentGameObject;
-
-            childGameObjects = new HashSet<GameObject>();
-            containedComponents = new HashSet<Component>();
-
-            gameObjectIdentifier = new GameObjectIdentifier(gameObjectType.TypeIdentifier, Guid.NewGuid());
-            gameObjectInstanceGUID = gameObjectIdentifier.GameObjectInstanceGUID;
-            gameObjectInstance = new UnityEngine.GameObject();
-            coreComponentInstance = gameObjectInstance.AddComponent<ExtendedMonoBehaviour>();
+            T gameObject = Activator.CreateInstance<T>();
+            gameObject.unityEngineGameObject = new UnityEngine.GameObject();
+            gameObject.gameObjectInstanceGUID = Guid.NewGuid();
+            gameObject.gameObjectType = new Type<T>();
+            gameObject.gameObjectIdentifier = new GameObjectIdentifier(gameObject.gameObjectType.TypeIdentifier, gameObject.gameObjectInstanceGUID);
+            gameObject.parentGameObject = parentGameObject;
+            gameObject.childGameObjects = new HashSet<GameObject>();
+            gameObject.containedComponents = new HashSet<Component>();
+            gameObject.OnPreConstruct();
+            gameObject.OnConstruct();
+            gameObject.OnPostConstruct();
+            return gameObject;
         }
 #nullable disable
         #endregion
 
-        #region Finalizer
-        ~GameObject()
-        {
-            Dispose(false);
-        }
-        #endregion
-
         #region Methods
-        public void Dispose()
+        protected virtual void OnPreConstruct()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+
         }
 
-        private void Dispose(bool disposing)
+        protected virtual void OnConstruct()
         {
-            if (!disposed)
-            {
-                if (disposing)
-                {
-                    // Dispose managed resources here, if any.
-                    foreach (Component component in containedComponents)
-                    {
-                        component.Dispose();
-                    }
-                    containedComponents.Clear();
 
-                    foreach (GameObject childGameObject in childGameObjects)
-                    {
-                        childGameObject.Dispose();
-                    }
-                    childGameObjects.Clear();
-
-                    UnityEngine.Object.Destroy(gameObjectInstance);
-                }
-
-                // Dispose unmanaged resources here, if any.
-                disposed = true;
-            }
-        }
-        #endregion
-
-        #region Overrides
-        public override bool Equals(object obj)
-        {
-            if (obj is GameObject otherGameObject)
-            {
-                return Equals(otherGameObject);
-            }
-            return false;
         }
 
-        public bool Equals(GameObject otherGameObject)
+        protected virtual void OnPostConstruct()
         {
-            return GameObjectIdentifier.Equals(otherGameObject.GameObjectIdentifier);
-        }
 
-        public override int GetHashCode()
-        {
-            return GameObjectIdentifier.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return GameObjectIdentifier.ToString();
         }
         #endregion
     }

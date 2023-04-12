@@ -7,7 +7,7 @@ namespace LooCast.System
     using global::LooCast.System.Managers;
     using global::LooCast.System.Registries;
 
-    public class Type : IIdentifiable
+    public class Type : ILooCastObject
     {
         #region Properties
         public Identifier Identifier => typeIdentifier;

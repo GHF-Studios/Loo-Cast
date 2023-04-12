@@ -6,7 +6,7 @@ namespace LooCast.System.Registries
     using global::LooCast.System.MetaData;
     using global::LooCast.System.Managers;
 
-    public class MainRegistry : Registry<Identifier, IIdentifiable>
+    public class MainRegistry : Registry<Identifier, ILooCastObject>
     {
         public MainRegistry() : base(new RegistryMetaData("LooCast.System.Registries"))
         {

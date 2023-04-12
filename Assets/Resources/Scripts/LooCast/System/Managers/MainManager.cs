@@ -20,10 +20,10 @@ namespace LooCast.System.Managers
                 if (instance == null)
                 {
                     instance = new MainManager();
-                    instance.GameObjectInstance.name = "[MainManager]";
-                    instance.GameObjectInstance.layer = 31;
-                    instance.GameObjectInstance.tag = "INTERNAL";
-                    instance.GameObjectInstance.transform.parent = LooCast.Instance.gameObject.transform;
+                    instance.UnityEngineGameObject.name = "[MainManager]";
+                    instance.UnityEngineGameObject.layer = 31;
+                    instance.UnityEngineGameObject.tag = "INTERNAL";
+                    instance.UnityEngineGameObject.transform.parent = LooCast.Instance.gameObject.transform;
                 }
                 return instance;
             }
@@ -120,7 +120,7 @@ namespace LooCast.System.Managers
         #endregion
 
         #region Methods
-        public void RegisterIdentifiable(IIdentifiable identifiable)
+        public void RegisterIdentifiable(ILooCastObject identifiable)
         {
             if (identifiable == null)
             {
@@ -145,14 +145,14 @@ namespace LooCast.System.Managers
             mainRegistry.Remove(identifier);
         }
 
-        public IIdentifiable GetIdentifiable(Identifier identifier)
+        public ILooCastObject GetIdentifiable(Identifier identifier)
         {
             if (identifier == null)
             {
                 throw new ArgumentNullException(nameof(identifier));
             }
 
-            if (!mainRegistry.TryGetValue(identifier, out IIdentifiable identifiable))
+            if (!mainRegistry.TryGetValue(identifier, out ILooCastObject identifiable))
             {
                 throw new ArgumentException($"The identifiable with identifier {identifier} could not be found in the main registry.");
             }
@@ -226,8 +226,8 @@ namespace LooCast.System.Managers
             Type coreModuleManagerType = new Type(typeof(CoreModuleManager));
 
             Type identifierType = new Type(typeof(Identifier));
-            Type iIdentifiableType = new Type(typeof(IIdentifiable));
-            Type registryType = new Type(typeof(Registry<Identifier, IIdentifiable>));
+            Type iIdentifiableType = new Type(typeof(ILooCastObject));
+            Type registryType = new Type(typeof(Registry<Identifier, ILooCastObject>));
             
             Type iHierarchyElementType = new Type(typeof(HierarchyElement));
             Type hierarchyElementPathType = new Type(typeof(HierarchyElementPath));

@@ -16,10 +16,10 @@ namespace LooCast.System.Managers
                 if (instance == null)
                 {
                     instance = new RegistryManager();
-                    instance.GameObjectInstance.name = "[RegistryManager]";
-                    instance.GameObjectInstance.layer = 31;
-                    instance.GameObjectInstance.tag = "INTERNAL";
-                    instance.GameObjectInstance.transform.parent = LooCast.Instance.gameObject.transform;
+                    instance.UnityEngineGameObject.name = "[RegistryManager]";
+                    instance.UnityEngineGameObject.layer = 31;
+                    instance.UnityEngineGameObject.tag = "INTERNAL";
+                    instance.UnityEngineGameObject.transform.parent = LooCast.Instance.gameObject.transform;
                 }
                 return instance;
             }
@@ -33,7 +33,7 @@ namespace LooCast.System.Managers
         #region Constructors
         public RegistryManager() : base("LooCast.System.Managers.RegistryManager", MainManager.Instance)
         {
-            registries = new Dictionary<SystemObjectIdentifier, Registry<Identifier, IIdentifiable>>();
+            registries = new Dictionary<SystemObjectIdentifier, Registry<Identifier, ILooCastObject>>();
         }
         #endregion
 
@@ -41,11 +41,11 @@ namespace LooCast.System.Managers
         #endregion
 
         #region Fields
-        private Dictionary<SystemObjectIdentifier, Registry<Identifier, IIdentifiable>> registries;
+        private Dictionary<SystemObjectIdentifier, Registry<Identifier, ILooCastObject>> registries;
         #endregion
 
         #region Methods
-        public void RegisterRegistry(Registry<Identifier, IIdentifiable> registry)
+        public void RegisterRegistry(Registry<Identifier, ILooCastObject> registry)
         {
             SystemObjectIdentifier registryIdentifier = registry.RegistryIdentifier;
             if (registries.ContainsKey(registryIdentifier))
@@ -55,9 +55,9 @@ namespace LooCast.System.Managers
             registries.Add(registryIdentifier, registry);
         }
 
-        public Registry<Identifier, IIdentifiable> GetRegistry(SystemObjectIdentifier registryIdentifier)
+        public Registry<Identifier, ILooCastObject> GetRegistry(SystemObjectIdentifier registryIdentifier)
         {
-            if (!registries.TryGetValue(registryIdentifier, out Registry<Identifier, IIdentifiable> registry))
+            if (!registries.TryGetValue(registryIdentifier, out Registry<Identifier, ILooCastObject> registry))
             {
                 throw new Exception($"[RegistryManager] Registry '{registryIdentifier}' could not be found!");
             }

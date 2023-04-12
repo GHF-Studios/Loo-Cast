@@ -17,10 +17,10 @@ namespace LooCast.System.Managers
                 if (instance == null)
                 {
                     instance = new TypeManager();
-                    instance.GameObjectInstance.name = "[TypeManager]";
-                    instance.GameObjectInstance.layer = 31;
-                    instance.GameObjectInstance.tag = "INTERNAL";
-                    instance.GameObjectInstance.transform.parent = LooCast.Instance.gameObject.transform;
+                    instance.UnityEngineGameObject.name = "[TypeManager]";
+                    instance.UnityEngineGameObject.layer = 31;
+                    instance.UnityEngineGameObject.tag = "INTERNAL";
+                    instance.UnityEngineGameObject.transform.parent = LooCast.Instance.gameObject.transform;
                 }
                 return instance;
             }

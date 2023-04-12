@@ -16,10 +16,10 @@ namespace LooCast.System.Managers
                 if (instance == null)
                 {
                     instance = new NamespaceManager();
-                    instance.GameObjectInstance.name = "[NamespaceManager]";
-                    instance.GameObjectInstance.layer = 31;
-                    instance.GameObjectInstance.tag = "INTERNAL";
-                    instance.GameObjectInstance.transform.parent = LooCast.Instance.gameObject.transform;
+                    instance.UnityEngineGameObject.name = "[NamespaceManager]";
+                    instance.UnityEngineGameObject.layer = 31;
+                    instance.UnityEngineGameObject.tag = "INTERNAL";
+                    instance.UnityEngineGameObject.transform.parent = LooCast.Instance.gameObject.transform;
                 }
                 return instance;
             }

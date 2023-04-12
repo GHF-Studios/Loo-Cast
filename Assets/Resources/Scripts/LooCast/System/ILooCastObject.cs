@@ -1,6 +1,6 @@
 ﻿namespace LooCast.System
 {
-    public interface IIdentifiable
+    public interface ILooCastObject
     {
         public Identifier Identifier { get; }
     }

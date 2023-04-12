@@ -5,14 +5,12 @@ namespace LooCast.System
 {
     using global::LooCast.System.Identifiers;
 
-    public class SystemObject
+    public class SystemObject : ILooCastObject
     {
         #region Properties
         public Identifier Identifier => systemObjectIdentifier;
         public SystemObjectIdentifier SystemObjectIdentifier => systemObjectIdentifier;
-
         public Guid SystemObjectInstanceGUID => systemObjectInstanceGUID;
-
         public Type SystemObjectType => systemObjectType;
 #nullable enable
         public SystemObject? ParentSystemObject => parentSystemObject;
@@ -22,9 +20,7 @@ namespace LooCast.System
 
         #region Fields
         private SystemObjectIdentifier systemObjectIdentifier;
-
         private Guid systemObjectInstanceGUID;
-
         private Type systemObjectType;
 #nullable enable
         private SystemObject? parentSystemObject;
@@ -32,44 +28,38 @@ namespace LooCast.System
         private HashSet<SystemObject> childSystemObjects;
         #endregion
 
-        #region Constructors
+        #region Static Methods
 #nullable enable
-        public SystemObject(Type systemObjectType, SystemObject? parentSystemObject = null)
+        public static T Create<T>(SystemObject? parentSystemObject = null) where T : SystemObject
         {
-            this.systemObjectType = systemObjectType;
-            this.parentSystemObject = parentSystemObject;
-
-            childSystemObjects = new HashSet<SystemObject>();
-
-            systemObjectIdentifier = new SystemObjectIdentifier(systemObjectType.TypeIdentifier, Guid.NewGuid());
-            systemObjectInstanceGUID = systemObjectIdentifier.SystemObjectInstanceGUID;
+            T systemObject = Activator.CreateInstance<T>();
+            systemObject.systemObjectInstanceGUID = Guid.NewGuid();
+            systemObject.systemObjectType = new Type<T>();
+            systemObject.systemObjectIdentifier = new SystemObjectIdentifier(systemObject.systemObjectType.TypeIdentifier, systemObject.systemObjectInstanceGUID);
+            systemObject.parentSystemObject = parentSystemObject;
+            systemObject.childSystemObjects = new HashSet<SystemObject>();
+            systemObject.OnPreConstruct();
+            systemObject.OnConstruct();
+            systemObject.OnPostConstruct();
+            return systemObject;
         }
 #nullable disable
         #endregion
 
-        #region Overrides
-        public override bool Equals(object obj)
+        #region Methods
+        protected virtual void OnPreConstruct()
         {
-            if (obj is SystemObject otherSystemObject)
-            {
-                return Equals(otherSystemObject);
-            }
-            return false;
+            
         }
 
-        public bool Equals(SystemObject otherSystemObject)
+        protected virtual void OnConstruct()
         {
-            return SystemObjectIdentifier.Equals(otherSystemObject.SystemObjectIdentifier);
+            
         }
 
-        public override int GetHashCode()
+        protected virtual void OnPostConstruct()
         {
-            return SystemObjectIdentifier.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return SystemObjectIdentifier.ToString();
+            
         }
         #endregion
     }

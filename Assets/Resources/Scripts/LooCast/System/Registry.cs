@@ -5,7 +5,7 @@ namespace LooCast.System
     using global::LooCast.System.Identifiers;
     using global::LooCast.System.Managers;
 
-    public abstract class Registry<KeyType, ValueType> : SystemObject, IIdentifiable, IDictionary<KeyType, ValueType> where KeyType : Identifier where ValueType : IIdentifiable
+    public abstract class Registry<KeyType, ValueType> : SystemObject, ILooCastObject, IDictionary<KeyType, ValueType> where KeyType : Identifier where ValueType : ILooCastObject
     {
         #region Properties
         public ValueType this[KeyType key] 
