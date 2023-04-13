@@ -1,147 +1,172 @@
-﻿using UnityEngine;
+﻿using System;
 
-namespace LooCast
+namespace LooCast.System
 {
-    using global::LooCast.System;
-    using global::LooCast.System.Managers;
-    using global::LooCast.Steamworks;
+    using global::LooCast.System.Hierarchies;
+    using global::LooCast.System.MetaData;
+    using global::LooCast.System.Registries;
+    using UnityEngine;
 
-    public sealed class LooCast : MonoBehaviour
+    public sealed class MainManager : Manager<MainManager, MainManagerMetaData>
     {
-        #region Static Properties
-        public static LooCast Instance
+        #region Properties
+        public ICoreModuleManager[] CoreModuleManagers { get; private set; }
+        public MainRegistry MainRegistry { get; private set; }
+        public MainHierarchy MainHierarchy { get; private set; }
+        #endregion
+
+        #region Callbacks
+
+        #region Initialization Phases
+        private void OnEarlyPreInitialize()
         {
-            get
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
             {
-                if (instance == null)
-                {
-                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[LooCast]");
-                    instanceObject.layer = 31;
-                    instanceObject.tag = "INTERNAL";
-                    DontDestroyOnLoad(instanceObject);
-                    return instanceObject.AddComponent<LooCast>();
-                }
-                else
-                {
-                    return instance;
-                }
+                coreModuleManager.EarlyPreInitialize();
             }
         }
 
-        /// <summary>
-        /// All internalManagers, ordered by their DependencyIdentifiers(index 0 is RegistryManager, 1 is NamespaceManager, 2 is TypeManager, 3 is InstanceManager, etc.).
-        /// </summary>
-        private InternalManager[] internalManagers;
-
-        #region Initialization Phase Flags
-        public static bool IsEarlyPreInitializing { get; private set; }
-        public static bool IsPreInitializing { get; private set; }
-        public static bool IsLatePreInitializing { get; private set; }
-        public static bool IsEarlyPreInitialized { get; private set; }
-        public static bool IsPreInitialized { get; private set; }
-        public static bool IsLatePreInitialized { get; private set; }
-
-        public static bool IsEarlyInitializing { get; private set; }
-        public static bool IsInitializing { get; private set; }
-        public static bool IsLateInitializing { get; private set; }
-        public static bool IsEarlyInitialized { get; private set; }
-        public static bool IsInitialized { get; private set; }
-        public static bool IsLateInitialized { get; private set; }
-
-        public static bool IsEarlyPostInitializing { get; private set; }
-        public static bool IsPostInitializing { get; private set; }
-        public static bool IsLatePostInitializing { get; private set; }
-        public static bool IsEarlyPostInitialized { get; private set; }
-        public static bool IsPostInitialized { get; private set; }
-        public static bool IsLatePostInitialized { get; private set; }
-
-        public static bool IsFullyPreInitialized
+        private void OnPreInitialize()
         {
-            get
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
             {
-                return IsEarlyPreInitialized && IsPreInitialized && IsLatePreInitialized;
+                coreModuleManager.PreInitialize();
             }
         }
-        public static bool IsFullyInitialized
+
+        private void OnLatePreInitialize()
         {
-            get
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
             {
-                return IsEarlyInitialized && IsInitialized && IsLateInitialized;
+                coreModuleManager.LatePreInitialize();
             }
         }
-        public static bool IsFullyPostInitialized
+
+        private void OnEarlyInitialize()
         {
-            get
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
             {
-                return IsEarlyPostInitialized && IsPostInitialized && IsLatePostInitialized;
+                coreModuleManager.EarlyInitialize();
             }
         }
-        public static bool IsCompletelyInitialized
+
+        private void OnInitialize()
         {
-            get
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
             {
-                return IsFullyPreInitialized && IsFullyInitialized && IsPostInitialized;
+                coreModuleManager.Initialize();
+            }
+        }
+
+        private void OnLateInitialize()
+        {
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.LateInitialize();
+            }
+        }
+
+        private void OnEarlyPostInitialize()
+        {
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.EarlyPostInitalize();
+            }
+        }
+
+        private void OnPostInitialize()
+        {
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.PostInitialize();
+            }
+        }
+
+        private void OnLatePostInitialize()
+        {
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.LatePostInitialize();
             }
         }
         #endregion
 
-        #region Termination Phase Flags
-        public static bool IsEarlyPreTerminating { get; private set; }
-        public static bool IsPreTerminating { get; private set; }
-        public static bool IsLatePreTerminating { get; private set; }
-        public static bool IsEarlyPreTerminated { get; private set; }
-        public static bool IsPreTerminated { get; private set; }
-        public static bool IsLatePreTerminated { get; private set; }
-
-        public static bool IsEarlyTerminating { get; private set; }
-        public static bool IsTerminating { get; private set; }
-        public static bool IsLateTerminating { get; private set; }
-        public static bool IsEarlyTerminated { get; private set; }
-        public static bool IsTerminated { get; private set; }
-        public static bool IsLateTerminated { get; private set; }
-
-        public static bool IsEarlyPostTerminating { get; private set; }
-        public static bool IsPostTerminating { get; private set; }
-        public static bool IsLatePostTerminating { get; private set; }
-        public static bool IsEarlyPostTerminated { get; private set; }
-        public static bool IsPostTerminated { get; private set; }
-        public static bool IsLatePostTerminated { get; private set; }
-
-        public static bool IsFullyPreTerminated
+        #region Termination Phases
+        private void OnEarlyPreTerminate()
         {
-            get
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
             {
-                return IsEarlyPreTerminated && IsPreTerminated && IsLatePreTerminated;
+                coreModuleManager.EarlyPreTerminate();
             }
         }
-        public static bool IsFullyTerminated
+
+        private void OnPreTerminate()
         {
-            get
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
             {
-                return IsEarlyTerminated && IsTerminated && IsLateTerminated;
+                coreModuleManager.PreTerminate();
             }
         }
-        public static bool IsFullyPostTerminated
+
+        private void OnLatePreTerminate()
         {
-            get
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
             {
-                return IsEarlyPostTerminated && IsPostTerminated && IsLatePostTerminated;
+                coreModuleManager.LatePreTerminate();
             }
         }
-        public static bool IsCompletelyTerminated
+
+        private void OnEarlyTerminate()
         {
-            get
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
             {
-                return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
+                coreModuleManager.EarlyTerminate();
+            }
+        }
+
+        private void OnTerminate()
+        {
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.Terminate();
+            }
+        }
+
+        private void OnLateTerminate()
+        {
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.LateTerminate();
+            }
+        }
+
+        private void OnEarlyPostTerminate()
+        {
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.EarlyPostTerminate();
+            }
+        }
+
+        private void OnPostTerminate()
+        {
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.PostTerminate();
+            }
+        }
+
+        private void OnLatePostTerminate()
+        {
+            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            {
+                coreModuleManager.LatePostTerminate();
             }
         }
         #endregion
-        #endregion
 
-        #region Static Fields
-        private static LooCast instance;
         #endregion
-
+        
         #region Unity Callbacks
 
         #region Initialization
@@ -183,6 +208,7 @@ namespace LooCast
         #endregion
 
         #region Methods
+        // Add methods for managing foundational types of Loo Cast Objects
 
         #region Initialization Phases
         private void EarlyPreInitialize()
@@ -343,7 +369,7 @@ namespace LooCast
                 internalManager.Initialize();
             }
             #endregion
-            
+
             // TODO: SteamManager, Utilities and Scene should not be initialized here!
             #region SteamManager
             _ = SteamworksManager.Initialized;
@@ -692,7 +718,67 @@ namespace LooCast
             Debug.Log($"[LooCast] Finished Late Post-Termination in Scene '{activeSceneName}'.");
         }
         #endregion
+        
+        /// <summary>
+        /// Returns the core module managers in the order they should be initialized.
+        /// </summary>
+        private ICoreModuleManager[] GetCoreModuleManagers()
+        {
+            return new ICoreModuleManager[]
+            {
+                // Read the mod folder for valid core module managers and load them
+                global::LooCast.Core.CoreManager.Instance
+            };
+        }
+        #endregion
 
+        #region Overrides
+        protected override void PreConstruct()
+        {
+            base.PreConstruct();
+
+            CoreModuleManagers = GetCoreModuleManagers();
+
+            RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
+            RegisterPreInitializationAction(OnPreInitialize);
+            RegisterLatePreInitializationAction(OnLatePreInitialize);
+            RegisterEarlyInitializationAction(OnEarlyInitialize);
+            RegisterInitializationAction(OnInitialize);
+            RegisterLateInitializationAction(OnLateInitialize);
+            RegisterEarlyPostInitializationAction(OnEarlyPostInitialize);
+            RegisterPostInitializationAction(OnPostInitialize);
+            RegisterLatePostInitializationAction(OnLatePostInitialize);
+
+            RegisterEarlyPreTerminationAction(OnEarlyPreTerminate);
+            RegisterPreTerminationAction(OnPreTerminate);
+            RegisterLatePreTerminationAction(OnLatePreTerminate);
+            RegisterEarlyTerminationAction(OnEarlyTerminate);
+            RegisterTerminationAction(OnTerminate);
+            RegisterLateTerminationAction(OnLateTerminate);
+            RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
+            RegisterPostTerminationAction(OnPostTerminate);
+            RegisterLatePostTerminationAction(OnLatePostTerminate);
+
+            // Register all system registries
+            // Register all system hierarchies
+            // Register everything that's part of the core system in the respective registries and hierarchies
+            
+            // Pre-Initialize all core module managers
+        }
+
+        protected override void Construct()
+        {
+            base.Construct();
+
+            // Initialize all core module managers
+        }
+
+        protected override void PostConstruct()
+        {
+            base.PostConstruct();
+
+            // Post-Initialize all core module managers
+        }
         #endregion
     }
 }

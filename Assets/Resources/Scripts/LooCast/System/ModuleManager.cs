@@ -170,7 +170,7 @@ namespace LooCast.System
         /// <summary>
         /// Returns the sub-module managers in the order they should be initialized.
         /// </summary>
-        protected virtual ISubModuleManager[] GetISubModuleManagers()
+        protected virtual ISubModuleManager[] GetSubModuleManagers()
         {
             return new ISubModuleManager[0];
         }
@@ -181,7 +181,7 @@ namespace LooCast.System
         {
             base.PreConstruct();
 
-            SubModuleManagers = GetISubModuleManagers();
+            SubModuleManagers = GetSubModuleManagers();
             ParentCoreModuleManager = (ICoreModuleManager)ParentManager;
 
             RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
