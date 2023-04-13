@@ -7,7 +7,7 @@ namespace LooCast.System
     using global::LooCast.System.Managers;
     using global::LooCast.System.MetaData;
 
-    public class SystemObject : ILooCastObject
+    public abstract class SystemObject : ILooCastObject
     {
         #region Properties
         public Identifier Identifier => systemObjectMetaData.SystemObjectIdentifier;
@@ -20,7 +20,7 @@ namespace LooCast.System
 
         #region Static Methods
 #nullable enable
-        public static SystemObjectType CreateObject<SystemObjectType, SystemObjectMetaDataType>(SystemObjectMetaDataType? systemObjectMetaData = default(SystemObjectMetaDataType)) 
+        public static SystemObjectType CreateSystemObject<SystemObjectType, SystemObjectMetaDataType>(SystemObjectMetaDataType? systemObjectMetaData = default(SystemObjectMetaDataType)) 
             where SystemObjectType : SystemObject, new() 
             where SystemObjectMetaDataType : SystemObjectMetaData, new()
         {

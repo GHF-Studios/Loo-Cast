@@ -7,7 +7,7 @@ namespace LooCast.System
     using global::LooCast.System.Managers;
     using global::LooCast.System.MetaData;
 
-    public class GameObject : ILooCastObject
+    public abstract class GameObject : ILooCastObject
     {
         #region Properties
         public Identifier Identifier => gameObjectMetaData.GameObjectIdentifier;
@@ -23,7 +23,7 @@ namespace LooCast.System
 
         #region Static Methods
 #nullable enable
-        public static GameObjectType CreateObject<GameObjectType, GameObjectMetaDataType>(GameObjectMetaDataType? gameObjectMetaData = default(GameObjectMetaDataType))
+        public static GameObjectType CreateGameObject<GameObjectType, GameObjectMetaDataType>(GameObjectMetaDataType? gameObjectMetaData = default(GameObjectMetaDataType))
             where GameObjectType : GameObject, new()
             where GameObjectMetaDataType : GameObjectMetaData, new()
         {

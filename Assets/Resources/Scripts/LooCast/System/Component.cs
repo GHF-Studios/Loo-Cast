@@ -7,7 +7,7 @@ namespace LooCast.System
     using global::LooCast.System.Managers;
     using global::LooCast.System.MetaData;
 
-    public class Component : UnityEngine.MonoBehaviour, ILooCastObject
+    public abstract class Component : UnityEngine.MonoBehaviour, ILooCastObject
     {
         #region Properties
         public Identifier Identifier => componentMetaData.ComponentIdentifier;

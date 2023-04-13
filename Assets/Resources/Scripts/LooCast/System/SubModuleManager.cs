@@ -1,141 +1,24 @@
 ﻿using System;
 using UnityEngine;
-using LooCast;
-using LooCast.System.Identifiers;
 
 namespace LooCast.System
 {
-    public abstract class SubModuleManager : ModuleManager
+    using global::LooCast.System.MetaData;
+    
+    public abstract class SubModuleManager<SubModuleManagerType, SubModuleManagerMetaDataType> : ModuleManager<SubModuleManagerType, SubModuleManagerMetaDataType>, ISubModuleManager
+        where SubModuleManagerType : SubModuleManager<SubModuleManagerType, SubModuleManagerMetaDataType>, new()
+        where SubModuleManagerMetaDataType : SubModuleManagerMetaData, new()
     {
-        #region Constructors
-        protected SubModuleManager(TypeIdentifier typeIdentifier, GameObject parentGameObject = null) : base(typeIdentifier, parentGameObject)
-        {
-            
-        }
-        #endregion
-        
-        #region Callbacks
-
-        #region Initialization Phases
-        private void OnEarlyPreInitialize()
-        {
-            
-        }
-
-        private void OnPreInitialize()
-        {
-
-        }
-
-        private void OnLatePreInitialize()
-        {
-
-        }
-
-        private void OnEarlyInitialize()
-        {
-
-        }
-
-        private void OnInitialize()
-        {
-
-        }
-
-        private void OnLateInitialize()
-        {
-
-        }
-
-        private void OnEarlyPostInitialize()
-        {
-
-        }
-
-        private void OnPostInitialize()
-        {
-
-        }
-
-        private void OnLatePostInitialize()
-        {
-
-        }
+        #region Properties
+        public IModuleManager ParentModuleManager { get; private set; }
         #endregion
 
-        #region Termination Phases
-        private void OnEarlyPreTerminate()
+        #region Overrides
+        protected override void PreConstruct()
         {
+            base.PreConstruct();
 
-        }
-
-        private void OnPreTerminate()
-        {
-
-        }
-
-        private void OnLatePreTerminate()
-        {
-
-        }
-
-        private void OnEarlyTerminate()
-        {
-
-        }
-
-        private void OnTerminate()
-        {
-
-        }
-
-        private void OnLateTerminate()
-        {
-
-        }
-
-        private void OnEarlyPostTerminate()
-        {
-
-        }
-
-        private void OnPostTerminate()
-        {
-
-        }
-
-        private void OnLatePostTerminate()
-        {
-
-        }
-        #endregion
-
-        #endregion
-
-        #region Methods
-        public override void PreInitializeInstance()
-        {
-            base.PreInitializeInstance();
-
-            RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
-            RegisterPreInitializationAction(OnPreInitialize);
-            RegisterLatePreInitializationAction(OnLatePreInitialize);
-            RegisterEarlyInitializationAction(OnEarlyInitialize);
-            RegisterInitializationAction(OnInitialize);
-            RegisterLateInitializationAction(OnLateInitialize);
-            RegisterEarlyPostInitializationAction(OnEarlyPostInitialize);
-            RegisterPostInitializationAction(OnPostInitialize);
-            RegisterLatePostInitializationAction(OnLatePostInitialize);
-
-            RegisterEarlyPreTerminationAction(OnEarlyPreTerminate);
-            RegisterPreTerminationAction(OnPreTerminate);
-            RegisterLatePreTerminationAction(OnLatePreTerminate);
-            RegisterEarlyTerminationAction(OnEarlyTerminate);
-            RegisterTerminationAction(OnTerminate);
-            RegisterLateTerminationAction(OnLateTerminate);
-            RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
-            RegisterPostTerminationAction(OnPostTerminate);
-            RegisterLatePostTerminationAction(OnLatePostTerminate);
+            ParentModuleManager = (IModuleManager)ParentManager;
         }
         #endregion
     }

@@ -1,21 +1,17 @@
 ﻿using System;
 using UnityEngine;
-using LooCast;
-using LooCast.System.Identifiers;
 
 namespace LooCast.System
 {
-    public abstract class CoreModuleManager : ModuleManager
+    using global::LooCast.System.MetaData;
+    
+    public abstract class CoreModuleManager<CoreModuleManagerType, CoreModuleManagerMetaDataType> : ModuleManager<CoreModuleManagerType, CoreModuleManagerMetaDataType>, ICoreModuleManager
+        where CoreModuleManagerType : CoreModuleManager<CoreModuleManagerType, CoreModuleManagerMetaDataType>, new()
+        where CoreModuleManagerMetaDataType : CoreModuleManagerMetaData, new()
     {
         #region Properties
-        public ModuleManager[] ModuleManagers { get; private set; }
-        #endregion
-
-        #region Constructors
-        protected CoreModuleManager(TypeIdentifier typeIdentifier, GameObject parentGameObject = null) : base(typeIdentifier, parentGameObject)
-        {
-            
-        }
+        public IModuleManager[] ModuleManagers { get; private set; }
+        public MainManager ParentMainManager { get; private set; }
         #endregion
 
         #region Callbacks
@@ -23,7 +19,7 @@ namespace LooCast.System
         #region Initialization Phases
         private void OnEarlyPreInitialize()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.EarlyPreInitialize();
             }
@@ -31,7 +27,7 @@ namespace LooCast.System
 
         private void OnPreInitialize()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.PreInitialize();
             }
@@ -39,7 +35,7 @@ namespace LooCast.System
 
         private void OnLatePreInitialize()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.LatePreInitialize();
             }
@@ -47,7 +43,7 @@ namespace LooCast.System
 
         private void OnEarlyInitialize()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.EarlyInitialize();
             }
@@ -55,7 +51,7 @@ namespace LooCast.System
 
         private void OnInitialize()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.Initialize();
             }
@@ -63,7 +59,7 @@ namespace LooCast.System
 
         private void OnLateInitialize()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.LateInitialize();
             }
@@ -71,7 +67,7 @@ namespace LooCast.System
 
         private void OnEarlyPostInitialize()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.EarlyPostInitalize();
             }
@@ -79,7 +75,7 @@ namespace LooCast.System
 
         private void OnPostInitialize()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.PostInitialize();
             }
@@ -87,7 +83,7 @@ namespace LooCast.System
 
         private void OnLatePostInitialize()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.LatePostInitialize();
             }
@@ -97,7 +93,7 @@ namespace LooCast.System
         #region Termination Phases
         private void OnEarlyPreTerminate()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.EarlyPreTerminate();
             }
@@ -105,7 +101,7 @@ namespace LooCast.System
 
         private void OnPreTerminate()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.PreTerminate();
             }
@@ -113,7 +109,7 @@ namespace LooCast.System
 
         private void OnLatePreTerminate()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.LatePreTerminate();
             }
@@ -121,7 +117,7 @@ namespace LooCast.System
 
         private void OnEarlyTerminate()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.EarlyTerminate();
             }
@@ -129,7 +125,7 @@ namespace LooCast.System
 
         private void OnTerminate()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.Terminate();
             }
@@ -137,7 +133,7 @@ namespace LooCast.System
 
         private void OnLateTerminate()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.LateTerminate();
             }
@@ -145,7 +141,7 @@ namespace LooCast.System
 
         private void OnEarlyPostTerminate()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.EarlyPostTerminate();
             }
@@ -153,7 +149,7 @@ namespace LooCast.System
 
         private void OnPostTerminate()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.PostTerminate();
             }
@@ -161,7 +157,7 @@ namespace LooCast.System
 
         private void OnLatePostTerminate()
         {
-            foreach (ModuleManager moduleManager in ModuleManagers)
+            foreach (IModuleManager moduleManager in ModuleManagers)
             {
                 moduleManager.LatePostTerminate();
             }
@@ -171,11 +167,22 @@ namespace LooCast.System
         #endregion
 
         #region Methods
-        public override void PreInitializeInstance()
+        /// <summary>
+        /// Returns the module managers in the order they should be initialized.
+        /// </summary>
+        protected virtual IModuleManager[] GetModuleManagers()
         {
-            base.PreInitializeInstance();
+            return new IModuleManager[0];
+        }
+        #endregion
+
+        #region Overrides
+        protected override void PreConstruct()
+        {
+            base.PreConstruct();
 
             ModuleManagers = GetModuleManagers();
+            ParentMainManager = (MainManager)ParentManager;
 
             RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
             RegisterPreInitializationAction(OnPreInitialize);
@@ -198,12 +205,9 @@ namespace LooCast.System
             RegisterLatePostTerminationAction(OnLatePostTerminate);
         }
 
-        /// <summary>
-        /// Returns the module managers in the order they should be initialized.
-        /// </summary>
-        protected virtual ModuleManager[] GetModuleManagers()
+        protected override IManager GetParentManager()
         {
-            return new ModuleManager[0];
+            return MainManager.Instance;
         }
         #endregion
     }

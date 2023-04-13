@@ -20,36 +20,18 @@ namespace LooCast.Steamworks
 {
     using global::LooCast.System;
     using global::LooCast.System.Managers;
+	using global::LooCast.System.MetaData;
 
-    //
-    // The SteamManager provides a base implementation of Steamworks.NET on which you can build upon.
-    // It handles the basics of starting up and shutting down the SteamAPI for use.
-    //
-    [DisallowMultipleComponent]
-	public class SteamworksManager : ModuleManager
+	//
+	// The SteamManager provides a base implementation of Steamworks.NET on which you can build upon.
+	// It handles the basics of starting up and shutting down the SteamAPI for use.
+	//
+	[DisallowMultipleComponent]
+	public sealed class SteamworksManager : ModuleManager<SteamworksManager, SteamworksManagerMetaData>
 	{
 #if !DISABLESTEAMWORKS
 		
         #region Static Properties
-        public static SteamworksManager Instance
-        {
-            get
-            {
-                if (instance == null)
-                {
-                    UnityEngine.GameObject instanceObject = new UnityEngine.GameObject("[SteamworksManager]");
-                    instanceObject.layer = 31;
-                    instanceObject.tag = "INTERNAL";
-                    DontDestroyOnLoad(instanceObject);
-                    instanceObject.transform.parent = CoreManager.Instance.transform;
-                    return instanceObject.AddComponent<SteamworksManager>();
-                }
-                else
-                {
-                    return instance;
-                }
-            }
-        }
         public static bool Initialized
         {
             get
@@ -104,7 +86,7 @@ namespace LooCast.Steamworks
 				// The most common case where this happens is when SteamManager gets destroyed because of Application.Quit(),
 				// and then some Steamworks code in some other OnDestroy gets called afterwards, creating a new SteamManager.
 				// You should never call Steamworks functions in OnDestroy, always prefer OnDisable if possible.
-				throw new System.Exception("Tried to Initialize the SteamAPI twice in one session!");
+				throw new global::System.Exception("Tried to Initialize the SteamAPI twice in one session!");
 			}
 
 			// We want our SteamManager CSharpInstance to persist across scenes.
@@ -134,7 +116,7 @@ namespace LooCast.Steamworks
 					return;
 				}
 			}
-			catch (System.DllNotFoundException e)
+			catch (global::System.DllNotFoundException e)
 			{
 				// We catch this exception here, as it will be the first occurrence of it.
 				Debug.LogError("[SteamManager] Could not load [lib]steam_api.dll/so/dylib. It's likely not in the correct location. Refer to the README for more details.\n" + e, this);
@@ -220,24 +202,9 @@ namespace LooCast.Steamworks
         #endregion
 
         #region Overrides
-        public override void PreInitializeInstance()
+        protected override IManager GetParentManager()
         {
-            base.PreInitializeInstance();
-
-            #region Namespace/Type/Instance Registration
-            NamespaceManager namespaceManager = NamespaceManager.Instance;
-            TypeManager typeManager = TypeManager.Instance;
-            UnityInstanceManager unityInstanceManager = UnityInstanceManager.Instance;
-
-            INamespace rootNamespace = namespaceManager.GetNamespace("LooCast");
-            looCastNamespace = new Namespace("Steamworks", rootNamespace);
-            looCastType = new Type(typeof(SteamworksManager), looCastNamespace);
-            looCastUnityInstance = new UnityInstance(this, (UnityInstanceType)looCastType);
-
-            namespaceManager.RegisterNamespace(looCastNamespace);
-            typeManager.RegisterType(looCastType);
-            unityInstanceManager.RegisterUnityInstance(looCastUnityInstance);
-            #endregion
+			return global::LooCast.Core.CoreManager.Instance;
         }
         #endregion
 

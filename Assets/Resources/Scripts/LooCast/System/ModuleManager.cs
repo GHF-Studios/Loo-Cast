@@ -1,21 +1,17 @@
 ﻿using System;
 using UnityEngine;
-using LooCast;
-using LooCast.System.Identifiers;
 
 namespace LooCast.System
-{ 
-    public abstract class ModuleManager : Manager
+{
+    using global::LooCast.System.MetaData;
+    
+    public abstract class ModuleManager<ModuleManagerType, ModuleManagerMetaDataType> : Manager<ModuleManagerType, ModuleManagerMetaDataType>, IModuleManager
+        where ModuleManagerType : ModuleManager<ModuleManagerType, ModuleManagerMetaDataType>, new()
+        where ModuleManagerMetaDataType : ModuleManagerMetaData, new()
     {
         #region Properties
-        public SubModuleManager[] SubModuleManagers { get; private set; }
-        #endregion
-
-        #region Constructors
-        protected ModuleManager(TypeIdentifier typeIdentifier, GameObject parentGameObject = null) : base(typeIdentifier, parentGameObject)
-        {
-            
-        }
+        public ISubModuleManager[] SubModuleManagers { get; private set; }
+        public ICoreModuleManager ParentCoreModuleManager { get; private set; }
         #endregion
 
         #region Callbacks
@@ -23,7 +19,7 @@ namespace LooCast.System
         #region Initialization Phases
         private void OnEarlyPreInitialize()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.EarlyPreInitialize();
             }
@@ -31,7 +27,7 @@ namespace LooCast.System
 
         private void OnPreInitialize()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.PreInitialize();
             }
@@ -39,7 +35,7 @@ namespace LooCast.System
 
         private void OnLatePreInitialize()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.LatePreInitialize();
             }
@@ -47,7 +43,7 @@ namespace LooCast.System
 
         private void OnEarlyInitialize()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.EarlyInitialize();
             }
@@ -55,7 +51,7 @@ namespace LooCast.System
 
         private void OnInitialize()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.Initialize();
             }
@@ -63,7 +59,7 @@ namespace LooCast.System
 
         private void OnLateInitialize()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.LateInitialize();
             }
@@ -71,7 +67,7 @@ namespace LooCast.System
 
         private void OnEarlyPostInitialize()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.EarlyPostInitalize();
             }
@@ -79,7 +75,7 @@ namespace LooCast.System
 
         private void OnPostInitialize()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.PostInitialize();
             }
@@ -87,7 +83,7 @@ namespace LooCast.System
 
         private void OnLatePostInitialize()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.LatePostInitialize();
             }
@@ -97,7 +93,7 @@ namespace LooCast.System
         #region Termination Phases
         private void OnEarlyPreTerminate()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.EarlyPreTerminate();
             }
@@ -105,7 +101,7 @@ namespace LooCast.System
 
         private void OnPreTerminate()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.PreTerminate();
             }
@@ -113,7 +109,7 @@ namespace LooCast.System
 
         private void OnLatePreTerminate()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.LatePreTerminate();
             }
@@ -121,7 +117,7 @@ namespace LooCast.System
 
         private void OnEarlyTerminate()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.EarlyTerminate();
             }
@@ -129,7 +125,7 @@ namespace LooCast.System
 
         private void OnTerminate()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.Terminate();
             }
@@ -137,7 +133,7 @@ namespace LooCast.System
 
         private void OnLateTerminate()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.LateTerminate();
             }
@@ -145,7 +141,7 @@ namespace LooCast.System
 
         private void OnEarlyPostTerminate()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.EarlyPostTerminate();
             }
@@ -153,7 +149,7 @@ namespace LooCast.System
 
         private void OnPostTerminate()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.PostTerminate();
             }
@@ -161,7 +157,7 @@ namespace LooCast.System
 
         private void OnLatePostTerminate()
         {
-            foreach (SubModuleManager subModuleManager in SubModuleManagers)
+            foreach (ISubModuleManager subModuleManager in SubModuleManagers)
             {
                 subModuleManager.LatePostTerminate();
             }
@@ -171,11 +167,22 @@ namespace LooCast.System
         #endregion
 
         #region Methods
-        public override void PreInitializeInstance()
+        /// <summary>
+        /// Returns the sub-module managers in the order they should be initialized.
+        /// </summary>
+        protected virtual ISubModuleManager[] GetISubModuleManagers()
         {
-            base.PreInitializeInstance();
+            return new ISubModuleManager[0];
+        }
+        #endregion
 
-            SubModuleManagers = GetSubModuleManagers();
+        #region Overrides
+        protected override void PreConstruct()
+        {
+            base.PreConstruct();
+
+            SubModuleManagers = GetISubModuleManagers();
+            ParentCoreModuleManager = (ICoreModuleManager)ParentManager;
 
             RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
             RegisterPreInitializationAction(OnPreInitialize);
@@ -196,14 +203,6 @@ namespace LooCast.System
             RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
             RegisterPostTerminationAction(OnPostTerminate);
             RegisterLatePostTerminationAction(OnLatePostTerminate);
-        }
-
-        /// <summary>
-        /// Returns the sub-module managers in the order they should be initialized.
-        /// </summary>
-        protected virtual SubModuleManager[] GetSubModuleManagers()
-        {
-            return new SubModuleManager[0];
         }
         #endregion
     }

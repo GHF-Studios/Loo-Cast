@@ -6,11 +6,41 @@ using UnityEngine.SceneManagement;
 namespace LooCast.System
 {
     using global::LooCast.System.Exceptions;
-    using global::LooCast.System.Identifiers;
+    using global::LooCast.System.MetaData;
 
-    public abstract class Manager : GameObject
+    public abstract class Manager<ManagerType, ManagerMetaDataType> : Component, IManager
+        where ManagerType : Manager<ManagerType, ManagerMetaDataType>, new()
+        where ManagerMetaDataType : ManagerMetaData, new()
     {
         #region Static Properties
+        public static ManagerType Instance
+        {
+            get
+            {
+                global::System.Type type = typeof(ManagerType);
+                if (!instances.ContainsKey(type))
+                {
+                    ManagerObject managerObject = ManagerObject.CreateManagerObject();
+                    managerObject.UnityEngineGameObject.name = $"[{type.Name}]";
+                    managerObject.UnityEngineGameObject.layer = 31;
+                    managerObject.UnityEngineGameObject.tag = "INTERNAL";
+                    instances[type] = CreateComponent<ManagerType, ManagerMetaDataType>(managerObject);
+                }
+                return instances[type];
+            }
+        }
+
+        #endregion
+
+        #region Static Fields
+        private static readonly Dictionary<global::System.Type, ManagerType> instances = new Dictionary<global::System.Type, ManagerType>();
+        #endregion
+
+        #region Properties
+        public ManagerObject ManagerObject { get; private set; }
+#nullable enable
+        public IManager? ParentManager { get; private set; }
+#nullable disable
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -33,35 +63,6 @@ namespace LooCast.System
         public bool IsEarlyPostInitialized { get; private set; }
         public bool IsPostInitialized { get; private set; }
         public bool IsLatePostInitialized { get; private set; }
-
-        public bool IsFullyPreInitialized
-        {
-            get
-            {
-                return IsEarlyPreInitialized && IsPreInitialized && IsLatePreInitialized;
-            }
-        }
-        public bool IsFullyInitialized
-        {
-            get
-            {
-                return IsEarlyInitialized && IsInitialized && IsLateInitialized;
-            }
-        }
-        public bool IsFullyPostInitialized
-        {
-            get
-            {
-                return IsEarlyPostInitialized && IsPostInitialized && IsLatePostInitialized;
-            }
-        }
-        public bool IsCompletelyInitialized
-        {
-            get
-            {
-                return IsFullyPreInitialized && IsFullyInitialized && IsPostInitialized;
-            }
-        }
         #endregion
 
         #region Termination Phase Flags
@@ -85,42 +86,8 @@ namespace LooCast.System
         public bool IsEarlyPostTerminated { get; private set; }
         public bool IsPostTerminated { get; private set; }
         public bool IsLatePostTerminated { get; private set; }
-
-        public bool IsFullyPreTerminated
-        {
-            get
-            {
-                return IsEarlyPreTerminated && IsPreTerminated && IsLatePreTerminated;
-            }
-        }
-        public bool IsFullyTerminated
-        {
-            get
-            {
-                return IsEarlyTerminated && IsTerminated && IsLateTerminated;
-            }
-        }
-        public bool IsFullyPostTerminated
-        {
-            get
-            {
-                return IsEarlyPostTerminated && IsPostTerminated && IsLatePostTerminated;
-            }
-        }
-        public bool IsCompletelyTerminated
-        {
-            get
-            {
-                return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
-            }
-        }
         #endregion
-
-        #endregion
-
-        #region Properties
-
-        public Manager[] Dependencies { get; private set; }
+        
         #endregion
 
         #region Fields
@@ -145,34 +112,16 @@ namespace LooCast.System
         private List<Action> latePostTerminationActions;
         #endregion
 
-        #region Constructors
-        protected Manager(TypeIdentifier typeIdentifier, GameObject parentGameObject = null) : base(typeIdentifier, parentGameObject)
-        {
-            earlyPreInitializationActions = new List<Action>();
-            preInitializationActions = new List<Action>();
-            latePreInitializationActions = new List<Action>();
-            earlyInitializationActions = new List<Action>();
-            initializationActions = new List<Action>();
-            lateInitializationActions = new List<Action>();
-            earlyPostInitializationActions = new List<Action>();
-            postInitializationActions = new List<Action>();
-            latePostInitializationActions = new List<Action>();
-
-            earlyPreTerminationActions = new List<Action>();
-            preTerminationActions = new List<Action>();
-            latePreTerminationActions = new List<Action>();
-            earlyTerminationActions = new List<Action>();
-            terminationActions = new List<Action>();
-            lateTerminationActions = new List<Action>();
-            earlyPostTerminationActions = new List<Action>();
-            postTerminationActions = new List<Action>();
-            latePostTerminationActions = new List<Action>();
-            
-            UnityEngine.GameObject.DontDestroyOnLoad(UnityEngineGameObject);
-        }
-        #endregion
-
         #region Methods
+        /// <summary>
+        /// Returns the parent manager, if there is one.
+        /// </summary>
+#nullable enable
+        protected virtual IManager? GetParentManager()
+        {
+            return null;
+        }
+#nullable disable
 
         #region Initialization Phases
         public void EarlyPreInitialize()
@@ -181,14 +130,6 @@ namespace LooCast.System
             string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Early Pre-Initialization in Scene '{activeSceneName}'.");
-
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsEarlyPreInitialized)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Early Pre-Initialized in time!");
-                }
-            }
 
             foreach (Action action in earlyPreInitializationActions)
             {
@@ -207,14 +148,6 @@ namespace LooCast.System
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Pre-Initialization in Scene '{activeSceneName}'.");
 
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsPreInitialized)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Pre-Initialized in time!");
-                }
-            }
-
             foreach (Action action in preInitializationActions)
             {
                 action.Invoke();
@@ -231,14 +164,6 @@ namespace LooCast.System
             string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Late Pre-Initialization in Scene '{activeSceneName}'.");
-
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsLatePreInitialized)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Late Pre-Initialized in time!");
-                }
-            }
 
             foreach (Action action in latePreInitializationActions)
             {
@@ -257,14 +182,6 @@ namespace LooCast.System
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Early Initialization in Scene '{activeSceneName}'.");
 
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsEarlyInitialized)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Early Initialized in time!");
-                }
-            }
-
             foreach (Action action in earlyInitializationActions)
             {
                 action.Invoke();
@@ -281,14 +198,6 @@ namespace LooCast.System
             string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Initialization in Scene '{activeSceneName}'.");
-
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsInitialized)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Initialized in time!");
-                }
-            }
 
             foreach (Action action in initializationActions)
             {
@@ -307,14 +216,6 @@ namespace LooCast.System
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Late Initialization in Scene '{activeSceneName}'.");
 
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsLateInitialized)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Late Initialized in time!");
-                }
-            }
-
             foreach (Action action in lateInitializationActions)
             {
                 action.Invoke();
@@ -331,14 +232,6 @@ namespace LooCast.System
             string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Early Post-Initialization in Scene '{activeSceneName}'.");
-
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsEarlyPostInitialized)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Early Post-Initialized in time!");
-                }
-            }
 
             foreach (Action action in earlyPostInitializationActions)
             {
@@ -357,14 +250,6 @@ namespace LooCast.System
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Post-Initialization in Scene '{activeSceneName}'.");
 
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsPostInitialized)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Post-Initialized in time!");
-                }
-            }
-
             foreach (Action action in postInitializationActions)
             {
                 action.Invoke();
@@ -381,14 +266,6 @@ namespace LooCast.System
             string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Late Post-Initialization in Scene '{activeSceneName}'.");
-
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsLatePostInitialized)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Late Post-Initialized in time!");
-                }
-            }
 
             foreach (Action action in latePostInitializationActions)
             {
@@ -409,14 +286,6 @@ namespace LooCast.System
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Early Pre-Termination in Scene '{activeSceneName}'.");
 
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsEarlyPreTerminated)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Early Pre-Terminated in time!");
-                }
-            }
-
             foreach (Action action in earlyPreTerminationActions)
             {
                 action.Invoke();
@@ -433,14 +302,6 @@ namespace LooCast.System
             string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Pre-Termination in Scene '{activeSceneName}'.");
-
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsPreTerminated)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Pre-Terminated in time!");
-                }
-            }
 
             foreach (Action action in preTerminationActions)
             {
@@ -459,14 +320,6 @@ namespace LooCast.System
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Late Pre-Termination in Scene '{activeSceneName}'.");
 
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsLatePreTerminated)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Late Pre-Terminated in time!");
-                }
-            }
-
             foreach (Action action in latePreTerminationActions)
             {
                 action.Invoke();
@@ -483,14 +336,6 @@ namespace LooCast.System
             string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Early Termination in Scene '{activeSceneName}'.");
-
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsEarlyTerminated)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Early Terminated in time!");
-                }
-            }
 
             foreach (Action action in earlyTerminationActions)
             {
@@ -509,14 +354,6 @@ namespace LooCast.System
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Termination in Scene '{activeSceneName}'.");
 
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsTerminated)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Terminated in time!");
-                }
-            }
-
             foreach (Action action in terminationActions)
             {
                 action.Invoke();
@@ -533,14 +370,6 @@ namespace LooCast.System
             string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Late Termination in Scene '{activeSceneName}'.");
-
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsLateTerminated)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Late Terminated in time!");
-                }
-            }
 
             foreach (Action action in lateTerminationActions)
             {
@@ -559,14 +388,6 @@ namespace LooCast.System
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Early Post-Termination in Scene '{activeSceneName}'.");
 
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsEarlyPostTerminated)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Early Post-Terminated in time!");
-                }
-            }
-
             foreach (Action action in earlyPostTerminationActions)
             {
                 action.Invoke();
@@ -583,14 +404,6 @@ namespace LooCast.System
             string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Post-Termination in Scene '{activeSceneName}'.");
-
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsPostTerminated)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Post-Terminated in time!");
-                }
-            }
 
             foreach (Action action in postTerminationActions)
             {
@@ -609,14 +422,6 @@ namespace LooCast.System
             string managerTypeName = GetType().Name;
             Debug.Log($"[{managerTypeName}] Starting Late Post-Termination in Scene '{activeSceneName}'.");
 
-            foreach (Manager dependency in Dependencies)
-            {
-                if (!dependency.IsLatePostTerminated)
-                {
-                    throw new ExecutionOrderException($"[{managerTypeName}] Dependency '{dependency.GetType().Name}' in Scene '{activeSceneName}' has not been Late Post-Terminated in time!");
-                }
-            }
-
             foreach (Action action in latePostTerminationActions)
             {
                 action.Invoke();
@@ -629,120 +434,129 @@ namespace LooCast.System
         #endregion
 
         #region Initialization Action Registration
-        protected void RegisterEarlyPreInitializationAction(Action action)
+        public void RegisterEarlyPreInitializationAction(Action action)
         {
             earlyPreInitializationActions.Add(action);
         }
 
-        protected void RegisterPreInitializationAction(Action action)
+        public void RegisterPreInitializationAction(Action action)
         {
             preInitializationActions.Add(action);
         }
 
-        protected void RegisterLatePreInitializationAction(Action action)
+        public void RegisterLatePreInitializationAction(Action action)
         {
             latePreInitializationActions.Add(action);
         }
 
-        protected void RegisterEarlyInitializationAction(Action action)
+        public void RegisterEarlyInitializationAction(Action action)
         {
             earlyInitializationActions.Add(action);
         }
 
-        protected void RegisterInitializationAction(Action action)
+        public void RegisterInitializationAction(Action action)
         {
             initializationActions.Add(action);
         }
 
-        protected void RegisterLateInitializationAction(Action action)
+        public void RegisterLateInitializationAction(Action action)
         {
             lateInitializationActions.Add(action);
         }
 
-        protected void RegisterEarlyPostInitializationAction(Action action)
+        public void RegisterEarlyPostInitializationAction(Action action)
         {
             earlyPostInitializationActions.Add(action);
         }
 
-        protected void RegisterPostInitializationAction(Action action)
+        public void RegisterPostInitializationAction(Action action)
         {
             postInitializationActions.Add(action);
         }
 
-        protected void RegisterLatePostInitializationAction(Action action)
+        public void RegisterLatePostInitializationAction(Action action)
         {
             latePostInitializationActions.Add(action);
         }
         #endregion
 
         #region Termination Action Registration
-        protected void RegisterEarlyPreTerminationAction(Action action)
+        public void RegisterEarlyPreTerminationAction(Action action)
         {
             earlyPreTerminationActions.Add(action);
         }
 
-        protected void RegisterPreTerminationAction(Action action)
+        public void RegisterPreTerminationAction(Action action)
         {
             preTerminationActions.Add(action);
         }
 
-        protected void RegisterLatePreTerminationAction(Action action)
+        public void RegisterLatePreTerminationAction(Action action)
         {
             latePreTerminationActions.Add(action);
         }
 
-        protected void RegisterEarlyTerminationAction(Action action)
+        public void RegisterEarlyTerminationAction(Action action)
         {
             earlyTerminationActions.Add(action);
         }
 
-        protected void RegisterTerminationAction(Action action)
+        public void RegisterTerminationAction(Action action)
         {
             terminationActions.Add(action);
         }
 
-        protected void RegisterLateTerminationAction(Action action)
+        public void RegisterLateTerminationAction(Action action)
         {
             lateTerminationActions.Add(action);
         }
 
-        protected void RegisterEarlyPostTerminationAction(Action action)
+        public void RegisterEarlyPostTerminationAction(Action action)
         {
             earlyPostTerminationActions.Add(action);
         }
 
-        protected void RegisterPostTerminationAction(Action action)
+        public void RegisterPostTerminationAction(Action action)
         {
             postTerminationActions.Add(action);
         }
 
-        protected void RegisterLatePostTerminationAction(Action action)
+        public void RegisterLatePostTerminationAction(Action action)
         {
             latePostTerminationActions.Add(action);
         }
         #endregion
 
-        public virtual void PreInitializeInstance()
+        protected override void PreConstruct()
         {
-            Dependencies = GetDependencies();
-        }
+            base.PreConstruct();
 
-        public virtual void InitializeInstance()
-        {
-            
-        }
+            ManagerObject = (ManagerObject)ContainingGameObject;
+            ParentManager = GetParentManager();
+            if (ParentManager != null)
+            {
+                ManagerObject.UnityEngineGameObject.transform.SetParent(ParentManager.ManagerObject.UnityEngineGameObject.transform);
+            }
 
-        public virtual void PostInitializeInstance()
-        {
-            
-        }
+            earlyPreInitializationActions = new List<Action>();
+            preInitializationActions = new List<Action>();
+            latePreInitializationActions = new List<Action>();
+            earlyInitializationActions = new List<Action>();
+            initializationActions = new List<Action>();
+            lateInitializationActions = new List<Action>();
+            earlyPostInitializationActions = new List<Action>();
+            postInitializationActions = new List<Action>();
+            latePostInitializationActions = new List<Action>();
 
-        /// <summary>
-        /// Returns the dependencies in no particular order.
-        /// </summary>
-        protected virtual Manager[] GetDependencies()
-        {
-            return new Manager[0];
+            earlyPreTerminationActions = new List<Action>();
+            preTerminationActions = new List<Action>();
+            latePreTerminationActions = new List<Action>();
+            earlyTerminationActions = new List<Action>();
+            terminationActions = new List<Action>();
+            lateTerminationActions = new List<Action>();
+            earlyPostTerminationActions = new List<Action>();
+            postTerminationActions = new List<Action>();
+            latePostTerminationActions = new List<Action>();
         }
         #endregion
     }
