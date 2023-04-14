@@ -41,6 +41,7 @@ namespace LooCast.System
 #nullable enable
         public IManager? ParentManager { get; private set; }
 #nullable disable
+        public ManagerMetaData ManagerMetaData { get; private set; }
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -566,6 +567,30 @@ namespace LooCast.System
         protected override void PostConstruct()
         {
             base.PostConstruct();
+        }
+
+        protected override void CreateMetaData<ComponentType, ComponentMetaDataType>(GameObject containingGameObject, ref ComponentMetaDataType componentMetaData)
+        {
+            base.CreateMetaData<ComponentType, ComponentMetaDataType>(containingGameObject, ref componentMetaData);
+
+            if (!(componentMetaData is ManagerMetaData))
+            {
+                throw new global::System.Exception("ComponentMetaData is not of type ManagerMetaData!");
+            }
+            
+            ManagerMetaData managerMetaData = (ManagerMetaData)(ComponentMetaData)componentMetaData;
+        }
+
+        public override void SetMetaData(ComponentMetaData componentMetaData)
+        {
+            base.SetMetaData(componentMetaData);
+
+            if (!(componentMetaData is ManagerMetaData))
+            {
+                throw new global::System.Exception("ComponentMetaData is not of type ManagerMetaData!");
+            }
+            
+            ManagerMetaData = (ManagerMetaData)componentMetaData;
         }
         #endregion
     }

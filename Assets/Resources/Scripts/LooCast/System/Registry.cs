@@ -1,23 +1,23 @@
 ﻿using LooCast.System.MetaData;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace LooCast.System
 {
-    public abstract class Registry<KeyType, ValueType> : SystemObject, IRegistry, IDictionary<KeyType, ValueType> 
+    public abstract class Registry<KeyType, ValueType> : SystemObject, IEnumerable<KeyValuePair<KeyType, ValueType>>
         where KeyType : Identifier 
         where ValueType : ILooCastObject
     {
         #region Properties
-        public ValueType this[KeyType key] 
-        { 
-            get => ((IDictionary<KeyType, ValueType>)dictionary)[key]; 
-            set => ((IDictionary<KeyType, ValueType>)dictionary)[key] = value; 
-        }
-        public ICollection<KeyType> Keys => ((IDictionary<KeyType, ValueType>)dictionary).Keys;
-        public ICollection<ValueType> Values => ((IDictionary<KeyType, ValueType>)dictionary).Values;
-        public int Count => ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Count;
-        public bool IsReadOnly => ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).IsReadOnly;
         public RegistryMetaData RegistryMetaData { get; private set; }
+#nullable enable
+        public Registry<KeyType, ValueType>? BaseRegistry { get; private set; }
+
+        public ICollection<KeyType> Keys => dictionary.Keys;
+        public ICollection<ValueType> Values => dictionary.Values;
+        public int Count => dictionary.Count;
+#nullable disable
         #endregion
 
         #region Fields
@@ -27,84 +27,98 @@ namespace LooCast.System
         #region Methods
         public void Add(KeyType key, ValueType value)
         {
-            ((IDictionary<KeyType, ValueType>)dictionary).Add(key, value);
-        }
-
-        public void Add(KeyValuePair<KeyType, ValueType> item)
-        {
-            ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Add(item);
-        }
-
-        public void Clear()
-        {
-            ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Clear();
-        }
-
-        public bool Contains(KeyValuePair<KeyType, ValueType> item)
-        {
-            return ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Contains(item);
+            dictionary.Add(key, value);
+            BaseRegistry?.Add(key, value);
         }
 
         public bool ContainsKey(KeyType key)
         {
-            return ((IDictionary<KeyType, ValueType>)dictionary).ContainsKey(key);
-        }
-
-        public void CopyTo(KeyValuePair<KeyType, ValueType>[] array, int arrayIndex)
-        {
-            ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).CopyTo(array, arrayIndex);
-        }
-
-        public IEnumerator<KeyValuePair<KeyType, ValueType>> GetEnumerator()
-        {
-            return ((IEnumerable<KeyValuePair<KeyType, ValueType>>)dictionary).GetEnumerator();
+            return dictionary.ContainsKey(key);
         }
 
         public bool Remove(KeyType key)
         {
-            return ((IDictionary<KeyType, ValueType>)dictionary).Remove(key);
-        }
-
-        public bool Remove(KeyValuePair<KeyType, ValueType> item)
-        {
-            return ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Remove(item);
+            bool removed = dictionary.Remove(key);
+            if (BaseRegistry != null)
+            {
+                removed &= BaseRegistry.Remove(key);
+            }
+            return removed;
         }
 
         public bool TryGetValue(KeyType key, out ValueType value)
         {
-            return ((IDictionary<KeyType, ValueType>)dictionary).TryGetValue(key, out value);
+            return dictionary.TryGetValue(key, out value);
         }
 
-        global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator()
+        public void Add(KeyValuePair<KeyType, ValueType> item)
         {
-            return ((global::System.Collections.IEnumerable)dictionary).GetEnumerator();
+            Add(item.Key, item.Value);
         }
 
-        protected virtual IRegistry? GetBaseRegistry()
+        public void Clear()
+        {
+            dictionary.Clear();
+            BaseRegistry?.Clear();
+        }
+
+        public bool Contains(KeyValuePair<KeyType, ValueType> item)
+        {
+            return dictionary.Contains(item);
+        }
+
+        public bool Remove(KeyValuePair<KeyType, ValueType> item)
+        {
+            return Remove(item.Key);
+        }
+
+        public IEnumerator<KeyValuePair<KeyType, ValueType>> GetEnumerator()
+        {
+            return dictionary.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return dictionary.GetEnumerator();
+        }
+
+#nullable enable
+        protected virtual Registry<KeyType, ValueType>? GetBaseRegistry()
         {
             return null;
         }
+#nullable disable
         #endregion
 
         #region Overrides
         protected override void PreConstruct()
         {
             base.PreConstruct();
+
+            BaseRegistry = GetBaseRegistry();
         }
 
         protected override void CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref SystemObjectMetaDataType systemObjectMetaData)
         {
             base.CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref systemObjectMetaData);
 
+            if (!(systemObjectMetaData is RegistryMetaData))
+            {
+                throw new global::System.Exception("SystemObjectMetaData is not of type RegistryMetaData!");
+            }
+
             RegistryMetaData registryMetaData = (RegistryMetaData)(SystemObjectMetaData)systemObjectMetaData;
-            registryMetaData.BaseRegistry = GetBaseRegistry();
         }
 
         public override void SetMetaData(SystemObjectMetaData systemObjectMetaData)
         {
             base.SetMetaData(systemObjectMetaData);
 
-            // check if systemObjectMetaData is actually RegistryMetaData and if not, throw an exception
+            if (!(systemObjectMetaData is RegistryMetaData))
+            {
+                throw new global::System.Exception("SystemObjectMetaData is not of type RegistryMetaData!");
+            }
+            
             RegistryMetaData = (RegistryMetaData)systemObjectMetaData;
         }
         #endregion
