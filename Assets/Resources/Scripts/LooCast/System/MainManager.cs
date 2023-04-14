@@ -173,43 +173,61 @@ namespace LooCast.System
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void PreAwake()
         {
+            // Pre-Initialize the Main Manager
             Instance.EarlyPreInitialize();
+
+            // Pre-Initialize all the core module managers
+            foreach (ICoreModuleManager coreModuleManager in Instance.CoreModuleManagers)
+            {
+                coreModuleManager.EarlyPreInitialize();
+            }
         }
 
         private void Awake()
         {
             EarlyInitialize();
+
+            // Pre-Initialize all the core module managers
+            foreach (ICoreModuleManager coreModuleManager in Instance.CoreModuleManagers)
+            {
+                coreModuleManager.EarlyInitialize();
+            }
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void PostAwake()
         {
             Instance.EarlyPostInitalize();
+
+            // Pre-Initialize all the core module managers
+            foreach (ICoreModuleManager coreModuleManager in Instance.CoreModuleManagers)
+            {
+                coreModuleManager.EarlyPostInitalize();
+            }
         }
         #endregion
 
         #region Termination
         private void OnDisable()
         {
-            EarlyPreTerminate();
-        }
-
-        private void OnDestroy()
-        {
-            EarlyPreTerminate();
+            if (!IsEarlyTerminating && !IsTerminating && !IsPostTerminating && !IsEarlyTerminated && !IsTerminated && !IsPostTerminated)
+            {
+                EarlyPreTerminate();
+            }
         }
 
         private void OnApplicationQuit()
         {
-            EarlyPreTerminate();
+            if (!IsEarlyTerminating && !IsTerminating && !IsPostTerminating && !IsEarlyTerminated && !IsTerminated && !IsPostTerminated)
+            {
+                EarlyPreTerminate();
+            }
         }
         #endregion
 
         #endregion
 
         #region Methods
-        // Add methods for managing foundational types of Loo Cast Objects
-        
         /// <summary>
         /// Returns the core module managers in the order they should be initialized.
         /// </summary>
@@ -217,7 +235,7 @@ namespace LooCast.System
         {
             return new ICoreModuleManager[]
             {
-                // Read the mod folder for valid core module managers and load them
+                // TODO: Read the mod folder for valid core module managers and load them
                 global::LooCast.Core.CoreManager.Instance
             };
         }
@@ -227,8 +245,6 @@ namespace LooCast.System
         protected override void PreConstruct()
         {
             base.PreConstruct();
-
-            CoreModuleManagers = GetCoreModuleManagers();
 
             RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
             RegisterPreInitializationAction(OnPreInitialize);
@@ -250,9 +266,13 @@ namespace LooCast.System
             RegisterPostTerminationAction(OnPostTerminate);
             RegisterLatePostTerminationAction(OnLatePostTerminate);
 
-            // Register all system registries
-            // Register all system hierarchies
-            // Register everything that's part of the core system in the respective registries and hierarchies
+            CoreModuleManagers = GetCoreModuleManagers();
+            MainRegistry = new MainRegistry();
+            MainHierarchy = new MainHierarchy();
+            
+            // TODO: 1. Register all system registries
+            // TODO: 2. Register all system hierarchies
+            // TODO: 3. Register every Namespace & Type that's part of the core system in the respective registries and hierarchies
         }
 
         protected override void Construct()
@@ -263,8 +283,6 @@ namespace LooCast.System
         protected override void PostConstruct()
         {
             base.PostConstruct();
-
-            // Pre-Initialize all core module managers, as the entire construction of the MainManager happens during it's Pre-Initialization phase
         }
         #endregion
     }

@@ -1,11 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using LooCast.System.MetaData;
+using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using global::LooCast.System.Identifiers;
-    using global::LooCast.System.Managers;
-
-    public abstract class Registry<KeyType, ValueType> : SystemObject, IDictionary<KeyType, ValueType> where KeyType : Identifier where ValueType : ILooCastObject
+    public abstract class Registry<KeyType, ValueType> : SystemObject, IRegistry, IDictionary<KeyType, ValueType> 
+        where KeyType : Identifier 
+        where ValueType : ILooCastObject
     {
         #region Properties
         public ValueType this[KeyType key] 
@@ -17,32 +17,26 @@ namespace LooCast.System
         public ICollection<ValueType> Values => ((IDictionary<KeyType, ValueType>)dictionary).Values;
         public int Count => ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Count;
         public bool IsReadOnly => ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).IsReadOnly;
+        public RegistryMetaData RegistryMetaData { get; private set; }
         #endregion
 
         #region Fields
         private Dictionary<KeyType, ValueType> dictionary;
-        private MainManager mainManager;
         #endregion
 
         #region Methods
         public void Add(KeyType key, ValueType value)
         {
             ((IDictionary<KeyType, ValueType>)dictionary).Add(key, value);
-            mainManager.RegisterIdentifiable(value);
         }
 
         public void Add(KeyValuePair<KeyType, ValueType> item)
         {
             ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Add(item);
-            mainManager.RegisterIdentifiable(item.Value);
         }
 
         public void Clear()
         {
-            foreach (KeyValuePair<KeyType, ValueType> keyValuePair in dictionary)
-            {
-                mainManager.UnregisterIdentifiable(keyValuePair.Key);
-            }
             ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Clear();
         }
 
@@ -68,13 +62,11 @@ namespace LooCast.System
 
         public bool Remove(KeyType key)
         {
-            mainManager.UnregisterIdentifiable(key);
             return ((IDictionary<KeyType, ValueType>)dictionary).Remove(key);
         }
 
         public bool Remove(KeyValuePair<KeyType, ValueType> item)
         {
-            mainManager.UnregisterIdentifiable(item.Key);
             return ((ICollection<KeyValuePair<KeyType, ValueType>>)dictionary).Remove(item);
         }
 
@@ -86,6 +78,34 @@ namespace LooCast.System
         global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator()
         {
             return ((global::System.Collections.IEnumerable)dictionary).GetEnumerator();
+        }
+
+        protected virtual IRegistry? GetBaseRegistry()
+        {
+            return null;
+        }
+        #endregion
+
+        #region Overrides
+        protected override void PreConstruct()
+        {
+            base.PreConstruct();
+        }
+
+        protected override void CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref SystemObjectMetaDataType systemObjectMetaData)
+        {
+            base.CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref systemObjectMetaData);
+
+            RegistryMetaData registryMetaData = (RegistryMetaData)(SystemObjectMetaData)systemObjectMetaData;
+            registryMetaData.BaseRegistry = GetBaseRegistry();
+        }
+
+        public override void SetMetaData(SystemObjectMetaData systemObjectMetaData)
+        {
+            base.SetMetaData(systemObjectMetaData);
+
+            // check if systemObjectMetaData is actually RegistryMetaData and if not, throw an exception
+            RegistryMetaData = (RegistryMetaData)systemObjectMetaData;
         }
         #endregion
     }

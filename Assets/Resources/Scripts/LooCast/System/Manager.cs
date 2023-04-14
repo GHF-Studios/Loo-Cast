@@ -87,7 +87,7 @@ namespace LooCast.System
         public bool IsPostTerminated { get; private set; }
         public bool IsLatePostTerminated { get; private set; }
         #endregion
-        
+
         #endregion
 
         #region Fields
