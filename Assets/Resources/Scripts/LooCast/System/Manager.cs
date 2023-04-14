@@ -115,6 +115,7 @@ namespace LooCast.System
         #region Methods
         /// <summary>
         /// Returns the parent manager, if there is one.
+        /// Note: The only manager that is allowed (and required) to not have a parent manager is the built-in main manager
         /// </summary>
 #nullable enable
         protected virtual IManager? GetParentManager()
@@ -127,50 +128,49 @@ namespace LooCast.System
         public void EarlyPreInitialize()
         {
             IsEarlyPreInitializing = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Pre-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Early Pre-Initialization.");
 
             foreach (Action action in earlyPreInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Pre-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Early Pre-Initialization.");
             IsEarlyPreInitializing = false;
             IsEarlyPreInitialized = true;
+            PreInitialize();
         }
 
         public void PreInitialize()
         {
             IsPreInitializing = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Pre-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Pre-Initialization.");
 
             foreach (Action action in preInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Pre-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Pre-Initialization.");
             IsPreInitializing = false;
             IsPreInitialized = true;
+            LatePreInitialize();
         }
 
         public void LatePreInitialize()
         {
             IsLatePreInitializing = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Pre-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Late Pre-Initialization.");
 
             foreach (Action action in latePreInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Pre-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Late Pre-Initialization.");
             IsLatePreInitializing = false;
             IsLatePreInitialized = true;
         }
@@ -178,50 +178,49 @@ namespace LooCast.System
         public void EarlyInitialize()
         {
             IsEarlyInitializing = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Early Initialization.");
 
             foreach (Action action in earlyInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Early Initialization.");
             IsEarlyInitializing = false;
             IsEarlyInitialized = true;
+            Initialize();
         }
 
         public void Initialize()
         {
             IsInitializing = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Initialization.");
 
             foreach (Action action in initializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Initialization.");
             IsInitializing = false;
             IsInitialized = true;
+            LateInitialize();
         }
 
         public void LateInitialize()
         {
             IsLateInitializing = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Late Initialization.");
 
             foreach (Action action in lateInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Late Initialization.");
             IsLateInitializing = false;
             IsLateInitialized = true;
         }
@@ -229,50 +228,49 @@ namespace LooCast.System
         public void EarlyPostInitalize()
         {
             IsEarlyPostInitializing = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Post-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Early Post-Initialization.");
 
             foreach (Action action in earlyPostInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Post-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Early Post-Initialization.");
             IsEarlyPostInitializing = false;
             IsEarlyPostInitialized = true;
+            PostInitialize();
         }
 
         public void PostInitialize()
         {
             IsPostInitializing = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Post-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Post-Initialization.");
 
             foreach (Action action in postInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Post-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Post-Initialization.");
             IsPostInitializing = false;
             IsPostInitialized = true;
+            LatePostInitialize();
         }
 
         public void LatePostInitialize()
         {
             IsLatePostInitializing = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Post-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Late Post-Initialization.");
 
             foreach (Action action in latePostInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Post-Initialization in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Late Post-Initialization.");
             IsLatePostInitializing = false;
             IsLatePostInitialized = true;
         }
@@ -282,152 +280,151 @@ namespace LooCast.System
         public void EarlyPreTerminate()
         {
             IsEarlyPreTerminating = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Pre-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Early Pre-Termination.");
 
             foreach (Action action in earlyPreTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Pre-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Early Pre-Termination.");
             IsEarlyPreTerminating = false;
             IsEarlyPreTerminated = true;
+            PreTerminate();
         }
 
         public void PreTerminate()
         {
             IsPreTerminating = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Pre-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Pre-Termination.");
 
             foreach (Action action in preTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Pre-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Pre-Termination.");
             IsPreTerminating = false;
             IsPreTerminated = true;
+            LatePreTerminate();
         }
 
         public void LatePreTerminate()
         {
             IsLatePreTerminating = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Pre-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Late Pre-Termination.");
 
             foreach (Action action in latePreTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Pre-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Late Pre-Termination.");
             IsLatePreTerminating = false;
             IsLatePreTerminated = true;
+            EarlyTerminate();
         }
 
         public void EarlyTerminate()
         {
             IsEarlyTerminating = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Early Termination.");
 
             foreach (Action action in earlyTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Early Termination.");
             IsEarlyTerminating = false;
             IsEarlyTerminated = true;
+            Terminate();
         }
 
         public void Terminate()
         {
             IsTerminating = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Termination.");
 
             foreach (Action action in terminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Termination.");
             IsTerminating = false;
             IsTerminated = true;
+            LateTerminate();
         }
 
         public void LateTerminate()
         {
             IsLateTerminating = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Late Termination.");
 
             foreach (Action action in lateTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Late Termination.");
             IsLateTerminating = false;
             IsLateTerminated = true;
+            EarlyPostTerminate();
         }
 
         public void EarlyPostTerminate()
         {
             IsEarlyPostTerminating = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Post-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Early Post-Termination.");
 
             foreach (Action action in earlyPostTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Post-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Early Post-Termination.");
             IsEarlyPostTerminating = false;
             IsEarlyPostTerminated = true;
+            PostTerminate();
         }
 
         public void PostTerminate()
         {
             IsPostTerminating = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Post-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Post-Termination.");
 
             foreach (Action action in postTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Post-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Post-Termination.");
             IsPostTerminating = false;
             IsPostTerminated = true;
+            LatePostTerminate();
         }
 
         public void LatePostTerminate()
         {
             IsLatePostTerminating = true;
-            string activeSceneName = SceneManager.GetActiveScene().name;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Post-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Starting Late Post-Termination.");
 
             foreach (Action action in latePostTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Post-Termination in Scene '{activeSceneName}'.");
+            Debug.Log($"[{managerTypeName}] Finished Late Post-Termination.");
             IsLatePostTerminating = false;
             IsLatePostTerminated = true;
         }
@@ -526,7 +523,9 @@ namespace LooCast.System
             latePostTerminationActions.Add(action);
         }
         #endregion
+        #endregion
 
+        #region Overrides
         protected override void PreConstruct()
         {
             base.PreConstruct();
@@ -557,6 +556,16 @@ namespace LooCast.System
             earlyPostTerminationActions = new List<Action>();
             postTerminationActions = new List<Action>();
             latePostTerminationActions = new List<Action>();
+        }
+
+        protected override void Construct()
+        {
+            base.Construct();
+        }
+
+        protected override void PostConstruct()
+        {
+            base.PostConstruct();
         }
         #endregion
     }
