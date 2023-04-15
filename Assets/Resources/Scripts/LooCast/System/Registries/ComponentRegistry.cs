@@ -4,9 +4,11 @@
 
     public sealed class ComponentRegistry : Registry<ComponentIdentifier, Component>
     {
-        public ComponentRegistry() : base("LooCast.System.Registries.ComponentRegistry")
+        #region Overides
+        protected override IRegistry GetBaseRegistry()
         {
-            
+            return MainManager.Instance.MainRegistry;
         }
+        #endregion
     }
 }

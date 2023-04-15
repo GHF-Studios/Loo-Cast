@@ -39,39 +39,24 @@ namespace LooCast.System.Identifiers
 
         #region Static Methods
 #nullable enable
-        public static bool TryParse(global::System.Type cssystemType, out TypeIdentifier? typeIdentifier)
+        public static TypeIdentifier Parse(global::System.Type cssystemType)
         {
-            typeIdentifier = null;
+            NamespaceIdentifier typeNamespaceIdentifier = NamespaceIdentifier.Parse(cssystemType.Namespace);
 
-            if (!NamespaceIdentifier.TryParse(cssystemType.Namespace, out NamespaceIdentifier? typeNamespaceIdentifier))
-            {
-                return false;
-            }
-
-            string fullTypeName = cssystemType.Name;
-            if (string.IsNullOrEmpty(fullTypeName))
-            {
-                return false;
-            }
-
-            fullTypeName = fullTypeName.Replace("+", ".");
+            string fullTypeName = cssystemType.Name.Replace("+", ".");
             string[] typeParts = fullTypeName.Split('`');
             fullTypeName = typeParts[0];
 
             TypeIdentifier[]? genericTypeArguments = null;
-                
+
             if (typeParts.Length > 1)
             {
                 fullTypeName += "<";
-                int numTypeArgs;
-                if (!int.TryParse(typeParts[1], out numTypeArgs))
-                {
-                    return false;
-                }
+                int numTypeArgs = int.Parse(typeParts[1]);
 
                 global::System.Type[] genericArgumentTypes = cssystemType.GetGenericArguments();
                 genericTypeArguments = new TypeIdentifier[genericArgumentTypes.Length];
-                
+
                 for (int i = 0; i < numTypeArgs; i++)
                 {
                     if (i > 0)
@@ -79,26 +64,16 @@ namespace LooCast.System.Identifiers
                         fullTypeName += ", ";
                     }
 
-                    int argIndex = i + 1;
-                    if (!TryParse(genericArgumentTypes[i], out TypeIdentifier? genericArgumentTypeIdentifier))
-                    {
-                        return false;
-                    }
+                    TypeIdentifier genericArgumentTypeIdentifier = Parse(genericArgumentTypes[i]);
 
-                    fullTypeName += genericArgumentTypeIdentifier!.ToString();
+                    fullTypeName += genericArgumentTypeIdentifier.ToString();
                     genericTypeArguments[i] = genericArgumentTypeIdentifier;
                 }
 
-                fullTypeName += ">"; 
+                fullTypeName += ">";
             }
 
-            if (!IsValidFullTypeName(fullTypeName))
-            {
-                return false;
-            }
-
-            typeIdentifier = new TypeIdentifier(typeNamespaceIdentifier!, fullTypeName, cssystemType, genericTypeArguments);
-            return true;
+            return new TypeIdentifier(typeNamespaceIdentifier, fullTypeName, cssystemType, genericTypeArguments);
         }
 
         public static bool TryParse(string gusid, out TypeIdentifier? typeIdentifier)
@@ -312,14 +287,7 @@ namespace LooCast.System.Identifiers
         
         public static implicit operator TypeIdentifier?(global::System.Type cssystemType)
         {
-            if (TryParse(cssystemType, out TypeIdentifier? typeIdentifier))
-            {
-                return typeIdentifier;
-            }
-            else
-            {
-                throw new ArgumentException($"The type '{cssystemType}' could not be parsed!");
-            }
+            return Parse(cssystemType);
         }
 #nullable disable
         #endregion

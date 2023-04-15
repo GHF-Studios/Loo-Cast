@@ -4,9 +4,11 @@
 
     public sealed class NamespaceRegistry : Registry<NamespaceIdentifier, Namespace>
     {
-        public NamespaceRegistry() : base("LooCast.System.Registries.NamespaceRegistry")
+        #region Overides
+        protected override IRegistry GetBaseRegistry()
         {
-            
+            return MainManager.Instance.MainRegistry;
         }
+        #endregion
     }
 }

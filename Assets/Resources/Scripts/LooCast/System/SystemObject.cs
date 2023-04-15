@@ -24,12 +24,12 @@ namespace LooCast.System
             where SystemObjectType : SystemObject, new() 
             where SystemObjectMetaDataType : SystemObjectMetaData, new()
         {
-            SystemObjectType systemObject = Activator.CreateInstance<SystemObjectType>();
             if (systemObjectMetaData == null)
             {
-                systemObjectMetaData = Activator.CreateInstance<SystemObjectMetaDataType>();
-                systemObject.CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref systemObjectMetaData);
+                return CreateSystemObject<SystemObjectType>();
             }
+            
+            SystemObjectType systemObject = Activator.CreateInstance<SystemObjectType>();
             systemObject.SetMetaData(systemObjectMetaData);
             systemObject.PreConstruct();
             systemObject.Construct();
@@ -37,6 +37,19 @@ namespace LooCast.System
             return systemObject;
         }
 #nullable disable
+
+        public static SystemObjectType CreateSystemObject<SystemObjectType>()
+            where SystemObjectType : SystemObject, new()
+        {
+            SystemObjectType systemObject = Activator.CreateInstance<SystemObjectType>();
+            SystemObjectMetaData systemObjectMetaData = Activator.CreateInstance<SystemObjectMetaData>();
+            systemObject.CreateMetaData<SystemObjectType, SystemObjectMetaData>(ref systemObjectMetaData);
+            systemObject.SetMetaData(systemObjectMetaData);
+            systemObject.PreConstruct();
+            systemObject.Construct();
+            systemObject.PostConstruct();
+            return systemObject;
+        }
         #endregion
 
         #region Methods

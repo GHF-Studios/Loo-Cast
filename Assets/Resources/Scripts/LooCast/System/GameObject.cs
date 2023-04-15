@@ -27,12 +27,14 @@ namespace LooCast.System
             where GameObjectType : GameObject, new()
             where GameObjectMetaDataType : GameObjectMetaData, new()
         {
-            GameObjectType gameObject = Activator.CreateInstance<GameObjectType>();
             if (gameObjectMetaData == null)
             {
-                gameObjectMetaData = Activator.CreateInstance<GameObjectMetaDataType>();
-                gameObject.CreateMetaData<GameObjectType, GameObjectMetaDataType>(ref gameObjectMetaData);
+                return CreateGameObject<GameObjectType>();
             }
+            
+            GameObjectType gameObject = Activator.CreateInstance<GameObjectType>();
+            gameObjectMetaData = Activator.CreateInstance<GameObjectMetaDataType>();
+            gameObject.CreateMetaData<GameObjectType, GameObjectMetaDataType>(ref gameObjectMetaData);
             gameObject.SetMetaData(gameObjectMetaData);
             gameObject.PreConstruct();
             gameObject.Construct();
@@ -40,6 +42,19 @@ namespace LooCast.System
             return gameObject;
         }
 #nullable disable
+
+        public static GameObjectType CreateGameObject<GameObjectType>()
+            where GameObjectType : GameObject, new()
+        {
+            GameObjectType gameObject = Activator.CreateInstance<GameObjectType>();
+            GameObjectMetaData gameObjectMetaData = new GameObjectMetaData();
+            gameObject.CreateMetaData<GameObjectType, GameObjectMetaData>(ref gameObjectMetaData);
+            gameObject.SetMetaData(gameObjectMetaData);
+            gameObject.PreConstruct();
+            gameObject.Construct();
+            gameObject.PostConstruct();
+            return gameObject;
+        }
         #endregion
 
         #region Methods

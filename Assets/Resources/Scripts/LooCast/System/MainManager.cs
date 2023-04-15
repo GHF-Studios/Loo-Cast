@@ -2,12 +2,14 @@
 
 namespace LooCast.System
 {
+    using global::LooCast.System.Identifiers;
     using global::LooCast.System.Hierarchies;
+    using global::LooCast.System.Managers;
     using global::LooCast.System.MetaData;
     using global::LooCast.System.Registries;
     using UnityEngine;
 
-    public sealed class MainManager : Manager<MainManager, MainManagerMetaData>
+    public sealed class MainManager : Manager<MainManager>
     {
         #region Properties
         public ICoreModuleManager[] CoreModuleManagers { get; private set; }
@@ -267,11 +269,19 @@ namespace LooCast.System
             RegisterLatePostTerminationAction(OnLatePostTerminate);
 
             CoreModuleManagers = GetCoreModuleManagers();
-            MainRegistry = new MainRegistry();
-            MainHierarchy = new MainHierarchy();
             
-            // TODO: 1. Register all system registries
-            // TODO: 2. Register all system hierarchies
+            MainRegistry = SystemObject.CreateSystemObject<MainRegistry>();
+            MainRegistry.Add(typeof(IRegistry), MainRegistry);
+            MainRegistry.Add(typeof(Namespace), SystemObject.CreateSystemObject<NamespaceRegistry>());
+            MainRegistry.Add(typeof(Type), SystemObject.CreateSystemObject<TypeRegistry>());
+            MainRegistry.Add(typeof(SystemObject), SystemObject.CreateSystemObject<SystemObjectRegistry>());
+            MainRegistry.Add(typeof(GameObject), SystemObject.CreateSystemObject<GameObjectRegistry>());
+            MainRegistry.Add(typeof(Component), SystemObject.CreateSystemObject<ComponentRegistry>());
+            
+            MainHierarchy = SystemObject.CreateSystemObject<MainHierarchy>();
+            // TODO: Register Main Hierarchy in itself, if that even makes sense
+            // TODO: Register all system hierarchies
+            
             // TODO: 3. Register every Namespace & Type that's part of the core system in the respective registries and hierarchies
         }
 

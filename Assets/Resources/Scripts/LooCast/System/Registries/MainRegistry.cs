@@ -3,13 +3,18 @@ using System;
 
 namespace LooCast.System.Registries
 {
-    using global::LooCast.System.MetaData;
-    using global::LooCast.System.Managers;
-
-    public class MainRegistry : Registry<Identifier, ILooCastObject>
+    public class MainRegistry : Registry<TypeIdentifier, IRegistry>
     {
-        public MainRegistry() : base(new RegistryMetaData("LooCast.System.Registries"))
+        #region Methods
+        /// <summary>
+        /// Tries to get the registry for the given managedCSSystemType.
+        /// </summary>
+        /// <param name="managedCSSystemType">The type that is managed by the registry that you are trying to get</param>
+        /// <returns>The registry, which manages the given managedCSSystemType</returns>
+        public bool TryGetRegistry(global::System.Type managedCSSystemType, out IRegistry registry)
         {
+            return TryGetValue(managedCSSystemType, out registry);
         }
+        #endregion
     }
 }

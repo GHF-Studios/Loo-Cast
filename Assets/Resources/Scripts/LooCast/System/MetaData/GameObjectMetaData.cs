@@ -9,7 +9,7 @@ namespace LooCast.System.MetaData
     using global::LooCast.System.Managers;
 
     [Serializable]
-    public abstract class GameObjectMetaData
+    public class GameObjectMetaData
     {
         #region Properties
         public GameObjectIdentifier GameObjectIdentifier

@@ -4,8 +4,11 @@
 
     public sealed class SystemObjectRegistry : Registry<SystemObjectIdentifier, SystemObject>
     {
-        public SystemObjectRegistry() : base("LooCast.System.Registries.SystemObjectRegistry")
+        #region Overides
+        protected override IRegistry GetBaseRegistry()
         {
+            return MainManager.Instance.MainRegistry;
         }
+        #endregion
     }
 }

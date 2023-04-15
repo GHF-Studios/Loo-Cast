@@ -5,12 +5,8 @@ using UnityEngine.SceneManagement;
 
 namespace LooCast.System
 {
-    using global::LooCast.System.Exceptions;
-    using global::LooCast.System.MetaData;
-
-    public abstract class Manager<ManagerType, ManagerMetaDataType> : Component, IManager
-        where ManagerType : Manager<ManagerType, ManagerMetaDataType>, new()
-        where ManagerMetaDataType : ManagerMetaData, new()
+    public abstract class Manager<ManagerType> : Component, IManager
+        where ManagerType : Manager<ManagerType>, new()
     {
         #region Static Properties
         public static ManagerType Instance
@@ -24,7 +20,7 @@ namespace LooCast.System
                     managerObject.UnityEngineGameObject.name = $"[{type.Name}]";
                     managerObject.UnityEngineGameObject.layer = 31;
                     managerObject.UnityEngineGameObject.tag = "INTERNAL";
-                    instances[type] = CreateComponent<ManagerType, ManagerMetaDataType>(managerObject);
+                    instances[type] = CreateComponent<ManagerType>(managerObject);
                 }
                 return instances[type];
             }
@@ -41,7 +37,6 @@ namespace LooCast.System
 #nullable enable
         public IManager? ParentManager { get; private set; }
 #nullable disable
-        public ManagerMetaData ManagerMetaData { get; private set; }
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -567,30 +562,6 @@ namespace LooCast.System
         protected override void PostConstruct()
         {
             base.PostConstruct();
-        }
-
-        protected override void CreateMetaData<ComponentType, ComponentMetaDataType>(GameObject containingGameObject, ref ComponentMetaDataType componentMetaData)
-        {
-            base.CreateMetaData<ComponentType, ComponentMetaDataType>(containingGameObject, ref componentMetaData);
-
-            if (!(componentMetaData is ManagerMetaData))
-            {
-                throw new global::System.Exception("ComponentMetaData is not of type ManagerMetaData!");
-            }
-            
-            ManagerMetaData managerMetaData = (ManagerMetaData)(ComponentMetaData)componentMetaData;
-        }
-
-        public override void SetMetaData(ComponentMetaData componentMetaData)
-        {
-            base.SetMetaData(componentMetaData);
-
-            if (!(componentMetaData is ManagerMetaData))
-            {
-                throw new global::System.Exception("ComponentMetaData is not of type ManagerMetaData!");
-            }
-            
-            ManagerMetaData = (ManagerMetaData)componentMetaData;
         }
         #endregion
     }

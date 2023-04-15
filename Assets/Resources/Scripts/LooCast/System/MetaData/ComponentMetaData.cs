@@ -7,7 +7,7 @@ namespace LooCast.System.MetaData
     using global::LooCast.System.Managers;
 
     [Serializable]
-    public abstract class ComponentMetaData
+    public class ComponentMetaData
     {
         #region Properties
         public ComponentIdentifier ComponentIdentifier

@@ -4,8 +4,11 @@
 
     public sealed class TypeRegistry : Registry<TypeIdentifier, Type>
     {
-        public TypeRegistry() : base("LooCast.System.Registries.TypeRegistry")
+        #region Overides
+        protected override IRegistry GetBaseRegistry()
         {
+            return MainManager.Instance.MainRegistry;
         }
+        #endregion
     }
 }

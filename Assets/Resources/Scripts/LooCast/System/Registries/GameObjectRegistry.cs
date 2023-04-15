@@ -4,9 +4,11 @@
 
     public sealed class GameObjectRegistry : Registry<GameObjectIdentifier, GameObject>
     {
-        public GameObjectRegistry() : base("LooCast.System.Registries.GameObjectRegistry")
+        #region Overides
+        protected override IRegistry GetBaseRegistry()
         {
-            
+            return MainManager.Instance.MainRegistry;
         }
+        #endregion
     }
 }

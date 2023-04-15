@@ -32,6 +32,20 @@ namespace LooCast.System.Identifiers
 
         #region Static Methods
 #nullable enable
+        public static NamespaceIdentifier Parse(string cssystemNamespace)
+        {
+            string[] parts = cssystemNamespace.Split(new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+
+            NamespaceIdentifier? currentNamespaceIdentifier = null;
+
+            for (int i = 0; i < parts.Length; i++)
+            {
+                currentNamespaceIdentifier = new NamespaceIdentifier(parts[i], currentNamespaceIdentifier);
+            }
+
+            return currentNamespaceIdentifier ?? throw new ArgumentException("Invalid namespace string provided", nameof(cssystemNamespace));
+        }
+
         public static bool TryParse(string gusid, out NamespaceIdentifier? namespaceIdentifier)
         {
             namespaceIdentifier = null;

@@ -1,23 +1,24 @@
-﻿using LooCast.System.MetaData;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace LooCast.System
 {
-    public abstract class Registry<KeyType, ValueType> : SystemObject, IEnumerable<KeyValuePair<KeyType, ValueType>>
+    using global::LooCast.System.Managers;
+    
+    public abstract class Registry<KeyType, ValueType> : SystemObject, IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
         where KeyType : Identifier 
         where ValueType : ILooCastObject
     {
         #region Properties
-        public RegistryMetaData RegistryMetaData { get; private set; }
 #nullable enable
-        public Registry<KeyType, ValueType>? BaseRegistry { get; private set; }
-
+        public IRegistry? BaseRegistry { get; private set; }
+#nullable disable
+        public Type RegistryKeyType { get; private set; }
+        public Type RegistryValueType { get; private set; }
         public ICollection<KeyType> Keys => dictionary.Keys;
         public ICollection<ValueType> Values => dictionary.Values;
         public int Count => dictionary.Count;
-#nullable disable
         #endregion
 
         #region Fields
@@ -25,6 +26,30 @@ namespace LooCast.System
         #endregion
 
         #region Methods
+        public void Add(Identifier key, ILooCastObject value)
+        {
+            if (!(key is KeyType))
+            {
+                throw new global::System.Exception($"Key type {key.GetType()} is not of type {typeof(KeyType)}");
+            }
+            if (!(value is ValueType))
+            {
+                throw new global::System.Exception($"Value type {value.GetType()} is not of type {typeof(ValueType)}");
+            }
+            
+            Add((KeyType)key, (ValueType)value);
+        }
+
+        public bool Remove(Identifier key)
+        {
+            if (!(key is KeyType))
+            {
+                throw new global::System.Exception($"Key type {key.GetType()} is not of type {typeof(KeyType)}");
+            }
+            
+            return Remove((KeyType)key);
+        }
+        
         public void Add(KeyType key, ValueType value)
         {
             dictionary.Add(key, value);
@@ -54,6 +79,7 @@ namespace LooCast.System
         public void Add(KeyValuePair<KeyType, ValueType> item)
         {
             Add(item.Key, item.Value);
+            BaseRegistry?.Add(item.Key, item.Value);
         }
 
         public void Clear()
@@ -83,7 +109,7 @@ namespace LooCast.System
         }
 
 #nullable enable
-        protected virtual Registry<KeyType, ValueType>? GetBaseRegistry()
+        protected virtual IRegistry? GetBaseRegistry()
         {
             return null;
         }
@@ -96,30 +122,8 @@ namespace LooCast.System
             base.PreConstruct();
 
             BaseRegistry = GetBaseRegistry();
-        }
-
-        protected override void CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref SystemObjectMetaDataType systemObjectMetaData)
-        {
-            base.CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref systemObjectMetaData);
-
-            if (!(systemObjectMetaData is RegistryMetaData))
-            {
-                throw new global::System.Exception("SystemObjectMetaData is not of type RegistryMetaData!");
-            }
-
-            RegistryMetaData registryMetaData = (RegistryMetaData)(SystemObjectMetaData)systemObjectMetaData;
-        }
-
-        public override void SetMetaData(SystemObjectMetaData systemObjectMetaData)
-        {
-            base.SetMetaData(systemObjectMetaData);
-
-            if (!(systemObjectMetaData is RegistryMetaData))
-            {
-                throw new global::System.Exception("SystemObjectMetaData is not of type RegistryMetaData!");
-            }
-            
-            RegistryMetaData = (RegistryMetaData)systemObjectMetaData;
+            RegistryKeyType = TypeManager.Instance.GetType<KeyType>();
+            RegistryValueType = TypeManager.Instance.GetType<ValueType>();
         }
         #endregion
     }

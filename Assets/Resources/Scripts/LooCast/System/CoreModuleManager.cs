@@ -3,11 +3,8 @@ using UnityEngine;
 
 namespace LooCast.System
 {
-    using global::LooCast.System.MetaData;
-    
-    public abstract class CoreModuleManager<CoreModuleManagerType, CoreModuleManagerMetaDataType> : ModuleManager<CoreModuleManagerType, CoreModuleManagerMetaDataType>, ICoreModuleManager
-        where CoreModuleManagerType : CoreModuleManager<CoreModuleManagerType, CoreModuleManagerMetaDataType>, new()
-        where CoreModuleManagerMetaDataType : CoreModuleManagerMetaData, new()
+    public abstract class CoreModuleManager<CoreModuleManagerType> : ModuleManager<CoreModuleManagerType>, ICoreModuleManager
+        where CoreModuleManagerType : CoreModuleManager<CoreModuleManagerType>, new()
     {
         #region Properties
         public IModuleManager[] ModuleManagers { get; private set; }

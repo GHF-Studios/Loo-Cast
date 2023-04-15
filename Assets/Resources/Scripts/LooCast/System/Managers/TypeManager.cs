@@ -66,6 +66,11 @@ namespace LooCast.System.Managers
 
             return type;
         }
+
+        public Type GetType<T>()
+        {
+            // TODO: Implement
+        }
         #endregion
 
         #region Overrides

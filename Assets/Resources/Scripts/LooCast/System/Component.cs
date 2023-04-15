@@ -37,6 +37,19 @@ namespace LooCast.System
             return component;
         }
 
+        public static ComponentType CreateComponent<ComponentType>(GameObject containingGameObject)
+            where ComponentType : Component, new()
+        {
+            ComponentType component = containingGameObject.UnityEngineGameObject.AddComponent<ComponentType>();
+            ComponentMetaData componentMetaData = new ComponentMetaData();
+            component.CreateMetaData<ComponentType, ComponentMetaData>(containingGameObject, ref componentMetaData);
+            component.SetMetaData(componentMetaData);
+            component.PreConstruct();
+            component.Construct();
+            component.PostConstruct();
+            return component;
+        }
+
         public static ComponentType CreateComponent<ComponentType, ComponentMetaDataType>(ComponentMetaDataType componentMetaData)
             where ComponentType : Component, new()
             where ComponentMetaDataType : ComponentMetaData, new()
