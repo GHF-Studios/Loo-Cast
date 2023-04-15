@@ -2,8 +2,8 @@
 
 namespace LooCast.System
 {
-    using global::LooCast.System.Identifiers;
-    using global::LooCast.System.Registries;
+    using LooCast.System.Identifiers;
+    using LooCast.System.Registries;
 
     public class Namespace : ILooCastObject
     {

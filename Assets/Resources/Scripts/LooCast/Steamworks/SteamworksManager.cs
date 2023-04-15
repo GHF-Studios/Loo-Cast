@@ -15,19 +15,16 @@ using Steamworks;
 
 using UnityEngine;
 using CSSystem = System;
+using LooCast.System;
 
 namespace LooCast.Steamworks
 {
-    using global::LooCast.System;
-    using global::LooCast.System.Managers;
-	using global::LooCast.System.MetaData;
-
 	//
 	// The SteamManager provides a base implementation of Steamworks.NET on which you can build upon.
 	// It handles the basics of starting up and shutting down the SteamAPI for use.
 	//
 	[DisallowMultipleComponent]
-	public sealed class SteamworksManager : ModuleManager<SteamworksManager, SteamworksManagerMetaData>
+	public sealed class SteamworksManager : ModuleManager<SteamworksManager>
 	{
 #if !DISABLESTEAMWORKS
 		

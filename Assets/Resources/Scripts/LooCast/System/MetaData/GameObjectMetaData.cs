@@ -4,9 +4,8 @@ using UnityEngine;
 
 namespace LooCast.System.MetaData
 {
-    using global::LooCast.System.Collections.Generic;
-    using global::LooCast.System.Identifiers;
-    using global::LooCast.System.Managers;
+    using LooCast.System.Collections.Generic;
+    using LooCast.System.Identifiers;
 
     [Serializable]
     public class GameObjectMetaData

@@ -3,9 +3,8 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using global::LooCast.System.Identifiers;
-    using global::LooCast.System.Managers;
-    using global::LooCast.System.MetaData;
+    using LooCast.System.Identifiers;
+    using LooCast.System.MetaData;
 
     public abstract class Component : UnityEngine.MonoBehaviour, ILooCastObject
     {

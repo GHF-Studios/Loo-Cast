@@ -2,17 +2,16 @@
 
 namespace LooCast.System
 {
-    using global::LooCast.System.MetaData;
-    
     public sealed class ManagerObject : GameObject
     {
         #region Static Methods
 #nullable enable
         public static ManagerObject CreateManagerObject()
         {
-            return CreateGameObject<ManagerObject, ManagerObjectMetaData>();
+            return CreateGameObject<ManagerObject>();
         }
 #nullable disable
+        #endregion
 
         #region Overrides
         protected override void PreConstruct()

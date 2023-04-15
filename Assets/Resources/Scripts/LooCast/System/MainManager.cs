@@ -2,11 +2,10 @@
 
 namespace LooCast.System
 {
-    using global::LooCast.System.Identifiers;
-    using global::LooCast.System.Hierarchies;
-    using global::LooCast.System.Managers;
-    using global::LooCast.System.MetaData;
-    using global::LooCast.System.Registries;
+    using LooCast.System.Identifiers;
+    using LooCast.System.Hierarchies;
+    using LooCast.System.MetaData;
+    using LooCast.System.Registries;
     using UnityEngine;
 
     public sealed class MainManager : Manager<MainManager>

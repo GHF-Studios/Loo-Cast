@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿
 
 namespace LooCast.System
 {
@@ -21,10 +21,12 @@ namespace LooCast.System
             
         }
 
+#nullable enable
         public bool TryGetElement(HierarchyElementPath hierarchyElementPath, out ElementType? element)
         {
             
         }
+#nullable disable
         #endregion
     }
 }

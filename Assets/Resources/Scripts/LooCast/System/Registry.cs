@@ -4,8 +4,6 @@ using System.Linq;
 
 namespace LooCast.System
 {
-    using global::LooCast.System.Managers;
-    
     public abstract class Registry<KeyType, ValueType> : SystemObject, IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
         where KeyType : Identifier 
         where ValueType : ILooCastObject

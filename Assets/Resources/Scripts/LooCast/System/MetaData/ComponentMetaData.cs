@@ -3,8 +3,7 @@ using UnityEngine;
 
 namespace LooCast.System.MetaData
 {
-    using global::LooCast.System.Identifiers;
-    using global::LooCast.System.Managers;
+    using LooCast.System.Identifiers;
 
     [Serializable]
     public class ComponentMetaData

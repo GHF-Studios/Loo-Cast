@@ -2,10 +2,9 @@
 
 namespace LooCast.System
 {
-    using global::LooCast.System.Exceptions;
-    using global::LooCast.System.Identifiers;
-    using global::LooCast.System.Managers;
-    using global::LooCast.System.Registries;
+    using LooCast.System.Exceptions;
+    using LooCast.System.Identifiers;
+    using LooCast.System.Registries;
 
     public class Type : ILooCastObject
     {
