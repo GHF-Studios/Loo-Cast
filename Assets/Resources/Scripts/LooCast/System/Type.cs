@@ -2,164 +2,89 @@
 
 namespace LooCast.System
 {
-    using LooCast.System.Exceptions;
+    using CSSystem;
     using LooCast.System.Identifiers;
     using LooCast.System.Registries;
 
     public class Type : ILooCastObject
     {
-        #region Properties
-        public Identifier Identifier => typeIdentifier;
-        public TypeIdentifier TypeIdentifier => typeIdentifier;
+        #region Classes
+        public class TypeBuilder
+        {
+            public TypeIdentifier TypeIdentifier { get; private set; }
+            public CSSystem.Type CSSystemType { get; private set; }
+            public Type ParentType { get; private set; }
 
-        public string FullTypeName => fullTypeName;
-        public CSSystem.Type CSSystemType => cssystemType;
-#nullable enable
-        public Type[]? BaseTypes => baseTypes;
-        public Type[]? GenericTypeArguments => genericTypeArguments;
-#nullable disable
+            public TypeBuilder WithCSSystemType(CSSystem.Type cssystemType)
+            {
+                CSSystemType = cssystemType;
+                TypeIdentifier = TypeIdentifier.Parse(cssystemType);
+                return this;
+            }
 
-        public Namespace ContainingNamespace => containingNamespace;
-        
-#nullable enable
-        public Type? ParentType => parentType;
-#nullable disable
-        public TypeRegistry ChildTypes => childTypes;
-        
-        public GameObjectRegistry ContainedGameObjects => containedGameObjects;
-        public ComponentRegistry ContainedComponents => containedComponents;
-        public SystemObjectRegistry ContainedSystemObjects => containedSystemObjects;
+            public TypeBuilder WithParentType(Type parentType)
+            {
+                ParentType = parentType;
+                return this;
+            }
+
+            public virtual Type Build()
+            {
+                if (CSSystemType == null)
+                {
+                    throw new InvalidOperationException("CSSystemType must be provided.");
+                }
+
+                return new Type(this);
+            }
+        }
         #endregion
-
-        #region Fields
-#nullable enable
-        private TypeIdentifier typeIdentifier;
-#nullable disable
-
-        private string fullTypeName;
-        private CSSystem.Type cssystemType;
-#nullable enable
-        private Type[]? baseTypes;
-        private Type[]? genericTypeArguments;
-#nullable disable
-
-        private Namespace containingNamespace;
-
-#nullable enable
-        private Type? parentType;
-#nullable disable
-        private TypeRegistry childTypes;
         
-        private GameObjectRegistry containedGameObjects;
-        private ComponentRegistry containedComponents;
-        private SystemObjectRegistry containedSystemObjects;
+        #region Properties
+        public Identifier Identifier => TypeIdentifier;
+        public TypeIdentifier TypeIdentifier { get; }
+        public string FullTypeName => TypeIdentifier.FullTypeName;
+        public CSSystem.Type CSSystemType { get; }
+
+        public Namespace ContainingNamespace { get; }
+
+        public Type ParentType { get; }
+        public TypeRegistry ChildTypes { get; } = new TypeRegistry();
         #endregion
 
         #region Constructors
-#nullable enable
-        public Type(CSSystem.Type cssystemType, Type[]? baseTypes = null, Type[]? genericTypeArguments = null, Type? parentType = null)
+        protected Type(TypeBuilder builder)
         {
-            typeIdentifier = TypeIdentifier.Parse(cssystemType);
-
-            fullTypeName = typeIdentifier.FullTypeName;
-
-
-            NamespaceIdentifier containingNamespaceIdentifier = NamespaceIdentifier.Parse(cssystemType.Namespace);
-            Registry<NamespaceIdentifier, Namespace> namespaceRegistry = (Registry<NamespaceIdentifier, Namespace>)MainManager.Instance.MainRegistry.GetRegistry(typeof(Namespace));
-            containingNamespace = namespaceRegistry.GetValue(containingNamespaceIdentifier);
-
-            if (parentType != null)
-            {
-                parentType.ChildTypes.Add(typeIdentifier, this);
-            }
-            this.parentType = parentType;
-            childTypes = new TypeRegistry();
-
-            this.cssystemType = cssystemType;
-            this.baseTypes = baseTypes;
-            this.genericTypeArguments = genericTypeArguments;
-            
-            CheckBaseTypes(this, baseTypes);
-            CheckGenericTypeArguments(this, genericTypeArguments);
-
-            containedGameObjects = new GameObjectRegistry();
-            containedComponents = new ComponentRegistry();
-            containedSystemObjects = new SystemObjectRegistry();
+            TypeIdentifier = builder.TypeIdentifier;
+            CSSystemType = builder.CSSystemType;
+            ParentType = builder.ParentType;
+            ContainingNamespace = (MainManager.Instance.MainRegistry.GetRegistry(typeof(Namespace)) as Registry<NamespaceIdentifier, Namespace>).GetValue(builder.CSSystemType.Namespace);
+            ParentType?.ChildTypes.Add(TypeIdentifier, this);
         }
-#nullable disable
         #endregion
 
         #region Methods
-        public static void CheckBaseType(Type type, Type expectedBaseType)
+        public bool IsSubtypeOf(Type otherType)
         {
-            if (!type.CSSystemType.IsAssignableFrom(expectedBaseType.CSSystemType))
-            {
-                throw new InvalidTypeException($"[TypeManager] Type '{type}' is not a subtype of expected basetype '{expectedBaseType}'!");
-            }
+            return CSSystemType.IsSubclassOf(otherType.CSSystemType);
         }
 
-        public static void CheckBaseTypes(Type type, Type[] expectedBaseTypes)
+        public bool HasGenericTypeArgument(Type expectedGenericArgument)
         {
-            foreach (Type expectedBaseType in expectedBaseTypes)
+            if (!CSSystemType.IsGenericType)
             {
-                CheckBaseType(type, expectedBaseType);
-            }
-        }
-
-        public static void CheckGenericTypeArgument(Type type, Type expectedGenericArgument)
-        {
-            if (!type.CSSystemType.IsGenericType || type.CSSystemType.GenericTypeArguments.Length != 1)
-            {
-                throw new InvalidTypeException($"[TypeManager] Type '{type}' does not have the expected generic type argument!");
+                return false;
             }
 
-            if (!type.CSSystemType.GenericTypeArguments[0].IsAssignableFrom(expectedGenericArgument.CSSystemType))
+            foreach (CSSystem.Type genericArgument in CSSystemType.GetGenericArguments())
             {
-                throw new InvalidTypeException($"[TypeManager] Generic type argument '{type.GenericTypeArguments[0]}' is not assignable from the expected type '{expectedGenericArgument}'!");
-            }
-        }
-
-        public static void CheckGenericTypeArguments(Type type, Type[] expectedGenericArguments)
-        {
-            if (!type.CSSystemType.IsGenericType || type.CSSystemType.GenericTypeArguments.Length != expectedGenericArguments.Length)
-            {
-                throw new InvalidTypeException($"[TypeManager] Type '{type}' does not have the expected generic type arguments!");
-            }
-
-            for (int i = 0; i < expectedGenericArguments.Length; i++)
-            {
-                if (!type.CSSystemType.GenericTypeArguments[i].IsAssignableFrom(expectedGenericArguments[i].CSSystemType))
+                if (genericArgument == expectedGenericArgument.CSSystemType)
                 {
-                    throw new InvalidTypeException($"[TypeManager] Generic type argument '{type.GenericTypeArguments[i]}' at index {i} is not assignable from the expected type '{expectedGenericArguments[i]}'!");
+                    return true;
                 }
             }
-        }
 
-        #endregion
-
-        #region Overrides
-        public override bool Equals(object obj)
-        {
-            if (obj is Type otherType)
-            {
-                return Equals(otherType);
-            }
             return false;
-        }
-
-        public bool Equals(Type otherType)
-        {
-            return TypeIdentifier.Equals(otherType.TypeIdentifier);
-        }
-
-        public override int GetHashCode()
-        {
-            return TypeIdentifier.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return TypeIdentifier.ToString();
         }
         #endregion
     }

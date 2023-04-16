@@ -1,6 +1,4 @@
-﻿
-
-namespace LooCast.System
+﻿namespace LooCast.System
 {
     using LooCast.System.Identifiers;
     using LooCast.System.Registries;
@@ -8,45 +6,22 @@ namespace LooCast.System
     public class Namespace : ILooCastObject
     {
         #region Properties
-        public Identifier Identifier => namespaceIdentifier;
-        public NamespaceIdentifier NamespaceIdentifier => namespaceIdentifier;
+        public Identifier Identifier => NamespaceIdentifier;
+        public NamespaceIdentifier NamespaceIdentifier { get; }
+        public string NamespaceName => NamespaceIdentifier.NamespaceName;
 
-        public string NamespaceName => namespaceName;
-
-#nullable enable
-        public Namespace? ParentNamespace => parentNamespace;
-#nullable disable
-        public NamespaceRegistry ChildNamespaces => childNamespaces;
-        
-        public TypeRegistry ContainedTypes => containedTypes;
-        #endregion
-
-        #region Fields
-#nullable enable
-        private NamespaceIdentifier? namespaceIdentifier;
-#nullable disable
-        
-        private string namespaceName;
-
-#nullable enable
-        private Namespace? parentNamespace;
-#nullable disable
-        private NamespaceRegistry childNamespaces;
-        
-        private TypeRegistry containedTypes;
+        public Namespace ParentNamespace { get; }
+        public NamespaceRegistry ChildNamespaces { get; } = new NamespaceRegistry();
+        public TypeRegistry ContainedTypes { get; } = new TypeRegistry();
         #endregion
 
         #region Constructors
-        public Namespace(string namespaceName, Namespace parentNamespace = null)
+        public Namespace(NamespaceIdentifier namespaceIdentifier, Namespace parentNamespace = null)
         {
-            namespaceIdentifier = new NamespaceIdentifier(namespaceName, parentNamespace?.NamespaceIdentifier);
-            
-            this.namespaceName = namespaceName;
-            
-            this.parentNamespace = parentNamespace;
-            childNamespaces = new NamespaceRegistry();
-            
-            containedTypes = new TypeRegistry();
+            NamespaceIdentifier = namespaceIdentifier;
+            ParentNamespace = parentNamespace;
+
+            parentNamespace?.ChildNamespaces.Add(namespaceIdentifier, this);
         }
         #endregion
 

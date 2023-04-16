@@ -46,16 +46,16 @@ namespace LooCast.System.Identifiers
             return currentNamespaceIdentifier ?? throw new ArgumentException("Invalid namespace string provided", nameof(cssystemNamespace));
         }
 
-        public static bool TryParse(string gusid, out NamespaceIdentifier? namespaceIdentifier)
+        public static bool TryParse(string @namespace, out NamespaceIdentifier? namespaceIdentifier)
         {
             namespaceIdentifier = null;
 
-            if (string.IsNullOrEmpty(gusid) || string.IsNullOrWhiteSpace(gusid))
+            if (string.IsNullOrEmpty(@namespace) || string.IsNullOrWhiteSpace(@namespace))
             {
                 return false;
             }
 
-            string[] parts = gusid.Split(new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] parts = @namespace.Split(new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length == 0)
             {
@@ -153,15 +153,15 @@ namespace LooCast.System.Identifiers
         }
 
 #nullable enable
-        public static implicit operator NamespaceIdentifier?(string gusid)
+        public static implicit operator NamespaceIdentifier?(string @namespace)
         {
-            if (TryParse(gusid, out NamespaceIdentifier? namespaceIdentifier))
+            if (TryParse(@namespace, out NamespaceIdentifier? namespaceIdentifier))
             {
                 return namespaceIdentifier;
             }
             else
             {
-                throw new ArgumentException($"The string '{gusid}' is not a valid Namespace GUSID.");
+                throw new ArgumentException($"The string '{@namespace}' is not a valid namespace.");
             }
         }
 #nullable disable
