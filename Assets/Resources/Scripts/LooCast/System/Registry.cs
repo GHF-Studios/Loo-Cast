@@ -74,6 +74,15 @@ namespace LooCast.System
             return dictionary.TryGetValue(key, out value);
         }
 
+        public ValueType GetValue(KeyType key)
+        {
+            if (TryGetValue(key, out ValueType value))
+            {
+                return value;
+            }
+            throw new global::System.Exception($"[Registry] Value of type '{typeof(ValueType)}' with key '{key}' not found!");
+        }
+
         public void Add(KeyValuePair<KeyType, ValueType> item)
         {
             Add(item.Key, item.Value);

@@ -15,6 +15,15 @@ namespace LooCast.System.Registries
         {
             return TryGetValue(managedCSSystemType, out registry);
         }
+
+        public IRegistry GetRegistry(global::System.Type managedCSSystemType)
+        {
+            if (TryGetRegistry(managedCSSystemType, out IRegistry registry))
+            {
+                return registry;
+            }
+            throw new global::System.Exception($"[MainRegistry] Registry of type '{managedCSSystemType}' not found!");
+        }
         #endregion
     }
 }

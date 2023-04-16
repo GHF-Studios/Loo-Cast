@@ -57,18 +57,16 @@ namespace LooCast.System
 
         #region Constructors
 #nullable enable
-        public Type(global::System.Type cssystemType, Type[]? baseTypes = null, Type[]? genericTypeArguments = null, Type? parentType = null)
+        public Type(CSSystem.Type cssystemType, Type[]? baseTypes = null, Type[]? genericTypeArguments = null, Type? parentType = null)
         {
-            if(!TypeIdentifier.TryParse(cssystemType, out typeIdentifier!))
-            {
-                throw new InvalidTypeException($"[TypeManager] Type '{cssystemType}' is not a valid type");
-            }
+            typeIdentifier = TypeIdentifier.Parse(cssystemType);
 
             fullTypeName = typeIdentifier.FullTypeName;
 
 
-            NamespaceIdentifier.TryParse(cssystemType.Namespace, out NamespaceIdentifier? containingNamespaceIdentifier);
-            containingNamespace = NamespaceManager.Instance.GetNamespace(containingNamespaceIdentifier);
+            NamespaceIdentifier containingNamespaceIdentifier = NamespaceIdentifier.Parse(cssystemType.Namespace);
+            Registry<NamespaceIdentifier, Namespace> namespaceRegistry = (Registry<NamespaceIdentifier, Namespace>)MainManager.Instance.MainRegistry.GetRegistry(typeof(Namespace));
+            containingNamespace = namespaceRegistry.GetValue(containingNamespaceIdentifier);
 
             if (parentType != null)
             {
