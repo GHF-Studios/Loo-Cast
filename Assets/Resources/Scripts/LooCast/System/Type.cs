@@ -58,7 +58,8 @@ namespace LooCast.System
             TypeIdentifier = builder.TypeIdentifier;
             CSSystemType = builder.CSSystemType;
             ParentType = builder.ParentType;
-            ContainingNamespace = (MainManager.Instance.MainRegistry.GetRegistry(typeof(Namespace)) as Registry<NamespaceIdentifier, Namespace>).GetValue(builder.CSSystemType.Namespace);
+            NamespaceRegistry namespaceRegistry = MainManager.Instance.MainRegistry.GetRegistry(typeof(Namespace)) as NamespaceRegistry;
+            ContainingNamespace = namespaceRegistry.GetValue(builder.CSSystemType.Namespace);
             ParentType?.ChildTypes.Add(TypeIdentifier, this);
         }
         #endregion
