@@ -12,8 +12,8 @@ namespace LooCast.System
 #nullable enable
         public IRegistry? BaseRegistry { get; private set; }
 #nullable disable
-        public Type RegistryKeyType { get; private set; }
-        public Type RegistryValueType { get; private set; }
+        public IType RegistryKeyType { get; private set; }
+        public IType RegistryValueType { get; private set; }
         public ICollection<KeyType> Keys => dictionary.Keys;
         public ICollection<ValueType> Values => dictionary.Values;
         public int Count => dictionary.Count;
