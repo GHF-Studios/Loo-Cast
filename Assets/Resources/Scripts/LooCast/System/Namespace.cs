@@ -6,7 +6,7 @@
     public class Namespace : ILooCastObject
     {
         #region Properties
-        public Identifier Identifier => NamespaceIdentifier;
+        public IIdentifier Identifier => NamespaceIdentifier;
         public NamespaceIdentifier NamespaceIdentifier { get; }
         public string NamespaceName => NamespaceIdentifier.NamespaceName;
 

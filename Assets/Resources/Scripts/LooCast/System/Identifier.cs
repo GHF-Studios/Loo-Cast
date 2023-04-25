@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.System
 {
     [Serializable]
-    public abstract class Identifier
+    public abstract class Identifier : IIdentifier
     {
         #region Properties
         public string GUSID => gusid;

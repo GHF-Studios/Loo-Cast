@@ -4,6 +4,8 @@ using System.Linq;
 
 namespace LooCast.System
 {
+    using LooCast.System.Registries;
+    
     public abstract class Registry<KeyType, ValueType> : SystemObject, IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
         where KeyType : Identifier 
         where ValueType : ILooCastObject
@@ -129,8 +131,11 @@ namespace LooCast.System
             base.PreConstruct();
 
             BaseRegistry = GetBaseRegistry();
-            RegistryKeyType = TypeManager.Instance.GetType<KeyType>();
-            RegistryValueType = TypeManager.Instance.GetType<ValueType>();
+            
+            TypeRegistry typeRegistry = MainManager.Instance.MainRegistry.GetRegistry(typeof(IType)) as TypeRegistry;
+            
+            RegistryKeyType = typeRegistry.GetValue(typeof(KeyType));
+            RegistryValueType = typeRegistry.GetValue(typeof(ValueType));
         }
         #endregion
     }

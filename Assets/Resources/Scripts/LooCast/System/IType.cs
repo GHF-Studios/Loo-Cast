@@ -7,6 +7,16 @@ namespace LooCast.System
     
     public interface IType : ILooCastObject
     {
+        #region Interfaces
+        public interface IInstance : ILooCastObject
+        {
+            #region Properties
+            public IType Type { get; }
+            #endregion
+        }
+        #endregion
+
+        #region Properties
         public TypeIdentifier TypeIdentifier { get; }
         public string FullTypeName => TypeIdentifier.FullTypeName;
         public Type CSSystemType { get; }
@@ -15,5 +25,6 @@ namespace LooCast.System
 
         public IType ParentType { get; }
         public HashSet<IType> ChildTypes { get; }
+        #endregion
     }
 }
