@@ -14,7 +14,8 @@ namespace LooCast.System
         public class Instance
         {
             #region Properties
-            public InstanceData Data
+            public Identifier InstanceIdentifier;
+            public virtual InstanceData Data
             {
                 get
                 {
@@ -27,11 +28,11 @@ namespace LooCast.System
                     // Set Data, if the Instance Skeleton is created, aka if the object is essentially not null.
                 }
             }
-            public InstanceMetaData MetaData
+            public virtual InstanceMetaData MetaData
             {
                 get
                 {
-                    // Get MetaData from this Instance in the same a recursive fashion as Data, just that MetaData is a different Property of this Instance, representing not the Data of the ready to use Instance, but the Skeleton of this Instance.
+                    // Get MetaData from this Instance in the same recursive fashion as Data, just that MetaData is a different Property of this Instance, representing not the Data of the ready to use Instance, but the Skeleton of this Instance.
                 }
 
                 set
