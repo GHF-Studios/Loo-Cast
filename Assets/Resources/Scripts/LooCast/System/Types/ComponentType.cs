@@ -15,21 +15,35 @@ namespace LooCast.System.Types
         public abstract class Instance : MonoBehaviour, IType.IInstance
         {
             #region Properties
-            public IIdentifier Identifier => InstanceIdentifier;
-            public IInstanceIdentifier InstanceIdentifier => ComponentIdentifier;
-            public ComponentIdentifier ComponentIdentifier => componentMetaData.ComponentIdentifier;
-
-            public IType Type => InstanceType;
-            public IInstanceType InstanceType => ComponentType;
-            public abstract ComponentType<TInstance> ComponentType { get; }
-
             public IMetaData MetaData => InstanceMetaData;
             public IInstanceMetaData InstanceMetaData => ComponentMetaData;
-            public ComponentMetaData ComponentMetaData => componentMetaData;
+            public ComponentMetaData ComponentMetaData
+            {
+                get
+                {
+
+                }
+
+                set
+                {
+
+                }
+            }
 
             public IData Data => InstanceData;
             public IInstanceData InstanceData => ComponentData;
-            public abstract ComponentData ComponentData { get; }
+            public ComponentData ComponentData
+            {
+                get
+                {
+
+                }
+
+                set
+                {
+
+                }
+            }
 
             public UnityEngine.Component UnityEngineComponent => unityEngineComponent;
             public GameObject ContainingGameObject => componentMetaData.ContainingGameObject;
@@ -37,7 +51,7 @@ namespace LooCast.System.Types
 
             #region Fields
             private ComponentMetaData componentMetaData;
-            private UnityEngine.Component unityEngineComponent;
+            private Component unityEngineComponent;
             private InstancePool<Instance> instancePool;
             #endregion
 

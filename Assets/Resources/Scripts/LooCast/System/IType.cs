@@ -10,9 +10,7 @@ namespace LooCast.System
         #region Interfaces
         public interface IInstance : ILooCastObject
         {
-            #region Properties
-            public IType Type { get; }
-            #endregion
+            
         }
         #endregion
 

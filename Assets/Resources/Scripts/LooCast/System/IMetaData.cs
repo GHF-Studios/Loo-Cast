@@ -5,6 +5,7 @@ namespace LooCast.System
     public interface IMetaData
     {
         #region Properties
+        public IIdentifier Identifier { get; }
 #nullable enable
         public IMetaData? ParentMetaData { get; }
 #nullable disable

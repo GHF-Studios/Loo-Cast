@@ -12,13 +12,12 @@ namespace LooCast.System
         where TInstance : IType.IInstance, new()
     {
         #region Properties
-        public IIdentifier Identifier => TypeIdentifier;
-        public TypeIdentifier TypeIdentifier { get; }
-        public string FullTypeName => TypeIdentifier.FullTypeName;
+        public abstract IMetaData MetaData { get; set; }
+        public abstract IData Data { get; set; }
+        
+        public string FullTypeName => TypeMetaData.TypeIdentifier.FullTypeName;
         public CSSystem.Type CSSystemType { get; }
-
         public Namespace ContainingNamespace { get; }
-
         public IType ParentType { get; }
         public HashSet<IType> ChildTypes { get; } = new HashSet<IType>();
         #endregion
@@ -28,7 +27,7 @@ namespace LooCast.System
         {
             TypeIdentifier = TypeIdentifier.Parse(cssystemType);
             CSSystemType = cssystemType;
-            // Get Parent CSSystem.Type, Parse it to a TypeIdentifier, get the Type from the TypeRegistry and assign it to the ParentType property.
+            // Get Parent CSSystem.Type(meaning the nested superclass, where this Type is the subclass), Parse it to a TypeIdentifier, get the Type from the TypeRegistry and assign it to the ParentType property.
             NamespaceRegistry namespaceRegistry = MainManager.Instance.MainRegistry.GetRegistry(typeof(Namespace)) as NamespaceRegistry;
             ContainingNamespace = namespaceRegistry.GetValue(cssystemType.Namespace);
             ParentType?.ChildTypes.Add(this);

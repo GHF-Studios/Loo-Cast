@@ -8,7 +8,7 @@ namespace LooCast.System.MetaData
     using LooCast.System.Identifiers;
 
     [Serializable]
-    public class SystemObjectMetaData : IMetaData
+    public class SystemObjectMetaData : IInstanceMetaData
     {
         #region Properties
         public SystemObjectIdentifier SystemObjectIdentifier

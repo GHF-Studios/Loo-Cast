@@ -5,10 +5,8 @@ namespace LooCast.System
     public interface ILooCastObject
     {
         #region Properties
-        public IIdentifier Identifier { get; }
-        public IType Type { get; }
-        public IMetaData MetaData { get; }
-        public IData Data { get; }
+        public IMetaData MetaData { get; set; }
+        public IData Data { get; set; }
         #endregion
 
         #region Methods

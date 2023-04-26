@@ -15,21 +15,35 @@ namespace LooCast.System.Types
         public abstract class Instance : IType.IInstance
         {
             #region Properties
-            public IIdentifier Identifier => InstanceIdentifier;
-            public IInstanceIdentifier InstanceIdentifier => SystemObjectIdentifier;
-            public SystemObjectIdentifier SystemObjectIdentifier => systemObjectMetaData.SystemObjectIdentifier;
-
-            public IType Type => InstanceType;
-            public IInstanceType InstanceType => SystemObjectType;
-            public abstract SystemObjectType<TInstance> SystemObjectType { get; }
-
             public IMetaData MetaData => InstanceMetaData;
-            public IInstanceMetaData InstanceMetaData => SystemObjectMetaData;
-            public SystemObjectMetaData SystemObjectMetaData => systemObjectMetaData;
+            public IInstanceMetaData InstanceMetaData => GameObjectMetaData;
+            public GameObjectMetaData GameObjectMetaData
+            {
+                get
+                {
+
+                }
+
+                set
+                {
+
+                }
+            }
 
             public IData Data => InstanceData;
-            public IInstanceData InstanceData => SystemObjectData;
-            public abstract SystemObjectData SystemObjectData { get; }
+            public IInstanceData InstanceData => GameObjectData;
+            public GameObjectData GameObjectData
+            {
+                get
+                {
+
+                }
+
+                set
+                {
+
+                }
+            }
 
             public GameObject UnityEngineGameObject => unityEngineGameObject;
             public List<Component> ContainedComponents => gameObjectMetaData.ContainedComponents;
