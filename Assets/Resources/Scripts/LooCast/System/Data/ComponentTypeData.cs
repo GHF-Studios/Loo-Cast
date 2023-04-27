@@ -7,8 +7,8 @@ namespace LooCast.System.Data
     public abstract class ComponentTypeData : InstanceTypeData, IComponentTypeData
     {
         #region Properties
-        public abstract ComponentTypeData ParentComponentTypeData { get; }
-        public abstract IEnumerable<ComponentTypeData> ChildComponentTypeData { get; }
+        public abstract IComponentTypeData ParentComponentTypeData { get; }
+        public abstract IEnumerable<IComponentTypeData> ChildComponentTypeData { get; }
         public abstract IPool<IComponentType.IComponent> ComponentPool { get; }
         #endregion
     }

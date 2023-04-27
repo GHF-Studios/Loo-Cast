@@ -10,10 +10,10 @@ namespace LooCast.System.Types
     using LooCast.System.MetaData;
 
     public abstract class SystemObjectType<TInstance> : InstanceType<TInstance>, ISystemObjectType
-        where TInstance : SystemObjectType<TInstance>.Instance, new()
+        where TInstance : SystemObjectType<TInstance>.SystemObject, new()
     {
         #region Classes
-        public abstract class Instance : IInstanceType.IInstance
+        public abstract class SystemObject : ISystemObjectType.ISystemObject
         {
             #region Properties
             public abstract IMetaData MetaData { get; set; }
@@ -25,49 +25,37 @@ namespace LooCast.System.Types
             public abstract SystemObjectData SystemObjectData { get; set; }
             #endregion
 
-            #region Fields
-            private SystemObjectMetaData systemObjectMetaData;
-            #endregion
-
             #region Static Methods
 #nullable enable
             public static SystemObjectType CreateSystemObject<SystemObjectType, SystemObjectMetaDataType>(SystemObjectMetaDataType? systemObjectMetaData = default(SystemObjectMetaDataType))
-                where SystemObjectType : Instance, new()
+                where SystemObjectType : SystemObject, new()
                 where SystemObjectMetaDataType : SystemObjectMetaData, new()
             {
                 if (systemObjectMetaData == null)
                 {
-                    return CreateSystemObject<SystemObjectType>();
+                    systemObjectMetaData = Activator.CreateInstance<SystemObjectMetaDataType>();
                 }
 
                 SystemObjectType systemObject = Activator.CreateInstance<SystemObjectType>();
+                
+                systemObject.CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref systemObjectMetaData);
+                
                 systemObject.SetMetaData(systemObjectMetaData);
+                
                 systemObject.PreConstruct();
                 systemObject.Construct();
                 systemObject.PostConstruct();
+                
                 return systemObject;
             }
 #nullable disable
-
-            public static SystemObjectType CreateSystemObject<SystemObjectType>()
-                where SystemObjectType : Instance, new()
-            {
-                SystemObjectType systemObject = Activator.CreateInstance<SystemObjectType>();
-                SystemObjectMetaData systemObjectMetaData = Activator.CreateInstance<SystemObjectMetaData>();
-                systemObject.CreateMetaData<SystemObjectType, SystemObjectMetaData>(ref systemObjectMetaData);
-                systemObject.SetMetaData(systemObjectMetaData);
-                systemObject.PreConstruct();
-                systemObject.Construct();
-                systemObject.PostConstruct();
-                return systemObject;
-            }
             #endregion
 
             #region Methods
             public abstract bool Validate();
 
             protected virtual void CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref SystemObjectMetaDataType systemObjectMetaData)
-                where SystemObjectType : Instance, new()
+                where SystemObjectType : SystemObject, new()
                 where SystemObjectMetaDataType : SystemObjectMetaData, new()
             {
                 systemObjectMetaData.SystemObjectIdentifier = new SystemObjectIdentifier(TypeManager.Instance.GetType<SystemObjectType>().TypeIdentifier, Guid.NewGuid());

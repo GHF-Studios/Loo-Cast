@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace LooCast.System
+namespace LooCast.System.MetaData
 {
     public interface IMetaData : IHierarchyElement
     {

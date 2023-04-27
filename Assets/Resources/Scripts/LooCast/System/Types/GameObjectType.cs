@@ -10,10 +10,10 @@ namespace LooCast.System.Types
     using LooCast.System.MetaData;
     
     public abstract class GameObjectType<TInstance> : InstanceType<TInstance>, IGameObjectType
-        where TInstance : GameObjectType<TInstance>.Instance, new()
+        where TInstance : GameObjectType<TInstance>.GameObject, new()
     {
         #region Classes
-        public abstract class Instance : IInstanceType.IInstance
+        public abstract class GameObject : IGameObjectType.IGameObject
         {
             #region Properties
             public abstract IMetaData MetaData { get; set; }
@@ -25,11 +25,6 @@ namespace LooCast.System.Types
             public abstract GameObjectData GameObjectData { get; set; }
             #endregion
 
-            #region Fields
-            private GameObjectMetaData gameObjectMetaData;
-            private UnityEngine.GameObject unityEngineGameObject;
-            #endregion
-
             #region Static Methods
 #nullable enable
             public static GameObjectType CreateGameObject<GameObjectType, GameObjectMetaDataType>(GameObjectMetaDataType? gameObjectMetaData = default(GameObjectMetaDataType))
@@ -38,44 +33,34 @@ namespace LooCast.System.Types
             {
                 if (gameObjectMetaData == null)
                 {
-                    return CreateGameObject<GameObjectType>();
+                    gameObjectMetaData = Activator.CreateInstance<GameObjectMetaDataType>();
                 }
 
                 GameObjectType gameObject = Activator.CreateInstance<GameObjectType>();
-                gameObjectMetaData = Activator.CreateInstance<GameObjectMetaDataType>();
+                
                 gameObject.CreateMetaData<GameObjectType, GameObjectMetaDataType>(ref gameObjectMetaData);
+                
                 gameObject.SetMetaData(gameObjectMetaData);
+                
                 gameObject.PreConstruct();
                 gameObject.Construct();
                 gameObject.PostConstruct();
+                
                 return gameObject;
             }
 #nullable disable
-
-            public static GameObjectType CreateGameObject<GameObjectType>()
-                where GameObjectType : GameObject, new()
-            {
-                GameObjectType gameObject = Activator.CreateInstance<GameObjectType>();
-                GameObjectMetaData gameObjectMetaData = new GameObjectMetaData();
-                gameObject.CreateMetaData<GameObjectType, GameObjectMetaData>(ref gameObjectMetaData);
-                gameObject.SetMetaData(gameObjectMetaData);
-                gameObject.PreConstruct();
-                gameObject.Construct();
-                gameObject.PostConstruct();
-                return gameObject;
-            }
             #endregion
 
             #region Methods
             public abstract bool Validate();
 
             protected virtual void CreateMetaData<GameObjectType, GameObjectMetaDataType>(ref GameObjectMetaDataType gameObjectMetaData)
-                where GameObjectType : GameObject, new()
+                where GameObjectType : UnityEngine.GameObject, new()
                 where GameObjectMetaDataType : GameObjectMetaData, new()
             {
                 gameObjectMetaData.GameObjectIdentifier = new GameObjectIdentifier(TypeManager.Instance.GetType<GameObjectType>().TypeIdentifier, Guid.NewGuid());
                 gameObjectMetaData.ParentGameObject = null;
-                gameObjectMetaData.ChildGameObjects = new List<GameObject>();
+                gameObjectMetaData.ChildGameObjects = new List<UnityEngine.GameObject>();
                 gameObjectMetaData.ContainedComponents = new List<Component>();
             }
 

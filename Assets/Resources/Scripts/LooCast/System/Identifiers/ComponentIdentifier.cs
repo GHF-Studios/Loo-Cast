@@ -4,20 +4,22 @@ using UnityEngine;
 namespace LooCast.System.Identifiers
 {
     [Serializable]
-    public class ComponentIdentifier : GameObjectIdentifier, IInstanceIdentifier
+    public class ComponentIdentifier : InstanceIdentifier, IComponentIdentifier
     {
         #region Properties
+        public TypeIdentifier ComponentTypeIdentifier => componentTypeIdentifier;
+        public Guid ComponentInstanceGUID => componentInstanceGUID;
         public GameObjectIdentifier ContainingGameObjectIdentifier => containingGameObjectIdentifier;
-        public TypeIdentifier ComponentTypeIdentifier => GameObjectTypeIdentifier;
-        public Guid ComponentInstanceGUID => GameObjectInstanceGUID;
         #endregion
 
         #region Fields
+        [SerializeField] private readonly TypeIdentifier componentTypeIdentifier;
+        [SerializeField] private readonly Guid componentInstanceGUID;
         [SerializeField] private readonly GameObjectIdentifier containingGameObjectIdentifier;
         #endregion
 
         #region Constructors
-        public ComponentIdentifier(GameObjectIdentifier containingGameObjectIdentifier, TypeIdentifier componentTypeIdentifier, Guid componentInstanceGUID, string gusid = null) : base(componentTypeIdentifier, componentInstanceGUID, gusid == null ? $"{containingGameObjectIdentifier}{{{componentTypeIdentifier}({componentInstanceGUID})}}" : gusid)
+        public ComponentIdentifier(TypeIdentifier componentTypeIdentifier, Guid componentInstanceGUID, GameObjectIdentifier containingGameObjectIdentifier, string gusid = null) : base(gusid == null ? $"{containingGameObjectIdentifier}{{{componentTypeIdentifier}({componentInstanceGUID})}}" : gusid)
         {
             this.containingGameObjectIdentifier = containingGameObjectIdentifier;
         }
@@ -40,12 +42,12 @@ namespace LooCast.System.Identifiers
             string componentIdentifierString = parts[1];
 
 #pragma warning disable CS8600
-            if (!TryParse(componentGameObjectIdentifierString, out GameObjectIdentifier componentGameObjectIdentifier))
+            if (!GameObjectIdentifier.TryParse(componentGameObjectIdentifierString, out GameObjectIdentifier componentGameObjectIdentifier))
             {
                 return false;
             }
 
-            if (!TryParse(componentIdentifierString, out GameObjectIdentifier gameObjectIdentifier))
+            if (!GameObjectIdentifier.TryParse(componentIdentifierString, out GameObjectIdentifier gameObjectIdentifier))
             {
                 return false;
             }

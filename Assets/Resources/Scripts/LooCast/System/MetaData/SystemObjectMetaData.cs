@@ -7,30 +7,13 @@ namespace LooCast.System.MetaData
     using LooCast.System.Identifiers;
 
     [Serializable]
-    public abstract class SystemObjectMetaData : IInstanceMetaData
+    public abstract class SystemObjectMetaData : InstanceMetaData, ISystemObjectMetaData
     {
         #region Properties
-        public abstract HierarchyElement HierarchyElement { get; }
-
-        public abstract IIdentifier Identifier { get; }
-        public abstract IInstanceIdentifier InstanceIdentifier { get; }
-        public abstract SystemObjectIdentifier SystemObjectIdentifier { get; }
-        
-        public abstract IMetaData MetaData { get; }
-        public abstract ITypeMetaData TypeMetaData { get; }
-        public abstract SystemObjectTypeMetaData SystemObjectTypeMetaData { get; }
-        
-        public abstract IMetaData ParentMetaData { get; }
-        public abstract IInstanceMetaData ParentInstanceMetaData { get; }
-        public abstract SystemObjectMetaData ParentSystemObjectMetaData { get; }
-        
-        public abstract IEnumerable<IMetaData> ChildMetaData { get; }
-        public abstract IEnumerable<IInstanceMetaData> ChildInstancesMetaData { get; }
-        public abstract IEnumerable<SystemObjectMetaData> ChildSystemObjectsMetaData { get; }
-        #endregion
-        
-        #region Methods
-        public abstract bool Validate();
+        public abstract ISystemObjectIdentifier SystemObjectIdentifier { get; }
+        public abstract ISystemObjectTypeMetaData SystemObjectTypeMetaData { get; }
+        public abstract ISystemObjectMetaData ParentSystemObjectMetaData { get; }
+        public abstract IEnumerable<ISystemObjectMetaData> ChildSystemObjectsMetaData { get; }
         #endregion
     }
 }

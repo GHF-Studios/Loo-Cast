@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace LooCast.System
+namespace LooCast.System.Registry
 {
     using LooCast.System.Registries;
     

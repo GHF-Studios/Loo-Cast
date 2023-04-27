@@ -10,10 +10,10 @@ namespace LooCast.System.Types
     using LooCast.System.MetaData;
 
     public abstract class ComponentType<TInstance> : InstanceType<TInstance>, IComponentType
-        where TInstance : ComponentType<TInstance>.Instance, new()
+        where TInstance : ComponentType<TInstance>.Component, new()
     {
         #region Classes
-        public abstract class Instance : MonoBehaviour, IInstanceType.IInstance
+        public abstract class Component : MonoBehaviour, IComponentType.IComponent
         {
             #region Properties
             public abstract IMetaData MetaData { get; set; }
@@ -27,27 +27,17 @@ namespace LooCast.System.Types
 
             #region Static Methods
 #nullable enable
-            public static ComponentType CreateComponent<ComponentType, ComponentMetaDataType>(GameObject containingGameObject)
+            public static ComponentType CreateComponent<ComponentType, ComponentMetaDataType>(IGameObjectType.IGameObject containingGameObject)
                 where ComponentType : Component, new()
                 where ComponentMetaDataType : ComponentMetaData, new()
             {
-                ComponentType component = containingGameObject.UnityEngineGameObject.AddComponent<ComponentType>();
+                ComponentType component = containingGameObject.GameObjectMetaData.UnityEngineGameObject.AddComponent<ComponentType>();
+                
                 ComponentMetaDataType componentMetaData = Activator.CreateInstance<ComponentMetaDataType>();
                 component.CreateMetaData<ComponentType, ComponentMetaDataType>(containingGameObject, ref componentMetaData);
+                
                 component.SetMetaData(componentMetaData);
-                component.PreConstruct();
-                component.Construct();
-                component.PostConstruct();
-                return component;
-            }
-
-            public static ComponentType CreateComponent<ComponentType>(GameObject containingGameObject)
-                where ComponentType : Component, new()
-            {
-                ComponentType component = containingGameObject.UnityEngineGameObject.AddComponent<ComponentType>();
-                ComponentMetaData componentMetaData = new ComponentMetaData();
-                component.CreateMetaData<ComponentType, ComponentMetaData>(containingGameObject, ref componentMetaData);
-                component.SetMetaData(componentMetaData);
+                
                 component.PreConstruct();
                 component.Construct();
                 component.PostConstruct();
@@ -58,11 +48,14 @@ namespace LooCast.System.Types
                 where ComponentType : Component, new()
                 where ComponentMetaDataType : ComponentMetaData, new()
             {
-                ComponentType component = componentMetaData.ContainingGameObject.UnityEngineGameObject.AddComponent<ComponentType>();
+                ComponentType component = componentMetaData.ContainingGameObject.GameObjectMetaData.UnityEngineGameObject.AddComponent<ComponentType>();
+                
                 component.SetMetaData(componentMetaData);
+                
                 component.PreConstruct();
                 component.Construct();
                 component.PostConstruct();
+                
                 return component;
             }
 #nullable disable
@@ -72,7 +65,7 @@ namespace LooCast.System.Types
             public abstract bool Validate();
 
             protected virtual void CreateMetaData<ComponentType, ComponentMetaDataType>(GameObject containingGameObject, ref ComponentMetaDataType componentMetaData)
-                where ComponentType : Component, new()
+                where ComponentType : UnityEngine.Component, new()
                 where ComponentMetaDataType : ComponentMetaData, new()
             {
                 componentMetaData.ComponentIdentifier = new ComponentIdentifier(containingGameObject.GameObjectMetaData.GameObjectIdentifier, TypeManager.Instance.GetType<ComponentType>().TypeIdentifier, Guid.NewGuid());

@@ -5,22 +5,11 @@ namespace LooCast.System.MetaData
 {
     using LooCast.System.Identifiers;
     
-    public abstract class SystemObjectTypeMetaData : IInstanceTypeMetaData
+    public abstract class SystemObjectTypeMetaData : InstanceTypeMetaData, ISystemObjectTypeMetaData
     {
         #region Properties
-        public abstract HierarchyElement HierarchyElement { get; }
-        
-        public abstract TypeIdentifier TypeIdentifier { get; }
-        
-        public abstract IMetaData ParentMetaData { get; }
-        public abstract ITypeMetaData ParentTypeMetaData { get; }
-        public abstract IInstanceTypeMetaData ParentInstanceTypeMetaData { get; }
-        
-        public abstract IEnumerable<IMetaData> ChildMetaData { get; }
-        public abstract IEnumerable<ITypeMetaData> ChildTypesMetaData { get; }
-        public abstract IEnumerable<IInstanceTypeMetaData> ChildInstanceTypesMetaData { get; }
-
-        public abstract bool Validate();
+        public abstract ISystemObjectTypeMetaData ParentSystemObjectTypeMetaData { get; }
+        public abstract IEnumerable<ISystemObjectTypeMetaData> ChildSystemObjectTypesMetaData { get; }
         #endregion
     }
 }

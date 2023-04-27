@@ -7,8 +7,8 @@ namespace LooCast.System.Data
     public abstract class SystemObjectTypeData : InstanceTypeData, ISystemObjectTypeData
     {
         #region Properties
-        public abstract SystemObjectTypeData ParentSystemObjectTypeData { get; }
-        public abstract IEnumerable<SystemObjectTypeData> ChildSystemObjectTypeData { get; }
+        public abstract ISystemObjectTypeData ParentSystemObjectTypeData { get; }
+        public abstract IEnumerable<ISystemObjectTypeData> ChildSystemObjectTypeData { get; }
         public abstract IPool<ISystemObjectType.ISystemObject> SystemObjectPool { get; }
         #endregion
     }

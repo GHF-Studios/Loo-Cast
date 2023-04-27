@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace LooCast.System
+namespace LooCast.System.Identifiers
 {
     [Serializable]
     public abstract class Identifier : IIdentifier
