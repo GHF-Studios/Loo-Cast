@@ -1,6 +1,6 @@
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using System;
 
 namespace LooCast.System.Types
@@ -8,6 +8,7 @@ namespace LooCast.System.Types
     using LooCast.System.Data;
     using LooCast.System.Identifiers;
     using LooCast.System.MetaData;
+    using LooCast.System.Registry;
 
     public abstract class ComponentType<TInstance> : InstanceType<TInstance>, IComponentType
         where TInstance : ComponentType<TInstance>.Component, new()

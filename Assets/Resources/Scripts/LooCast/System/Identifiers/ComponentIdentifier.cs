@@ -21,6 +21,8 @@ namespace LooCast.System.Identifiers
         #region Constructors
         public ComponentIdentifier(TypeIdentifier componentTypeIdentifier, Guid componentInstanceGUID, GameObjectIdentifier containingGameObjectIdentifier, string gusid = null) : base(gusid == null ? $"{containingGameObjectIdentifier}{{{componentTypeIdentifier}({componentInstanceGUID})}}" : gusid)
         {
+            this.componentTypeIdentifier = componentTypeIdentifier;
+            this.componentInstanceGUID = componentInstanceGUID;
             this.containingGameObjectIdentifier = containingGameObjectIdentifier;
         }
         #endregion
@@ -54,7 +56,7 @@ namespace LooCast.System.Identifiers
 #pragma warning restore CS8600
 
 #pragma warning disable CS8602
-            componentIdentifier = new ComponentIdentifier(componentGameObjectIdentifier, gameObjectIdentifier.GameObjectTypeIdentifier, gameObjectIdentifier.GameObjectInstanceGUID);
+            componentIdentifier = new ComponentIdentifier(gameObjectIdentifier.GameObjectTypeIdentifier, gameObjectIdentifier.GameObjectInstanceGUID, componentGameObjectIdentifier);
 #pragma warning restore CS8602
             return true;
         }
