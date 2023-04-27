@@ -5,54 +5,24 @@ using System;
 
 namespace LooCast.System.Types
 {
+    using LooCast.System.Data;
     using LooCast.System.Identifiers;
     using LooCast.System.MetaData;
 
-    public abstract class ComponentType<TInstance> : Type<TInstance>
+    public abstract class ComponentType<TInstance> : InstanceType<TInstance>, IComponentType
         where TInstance : ComponentType<TInstance>.Instance, new()
     {
         #region Classes
-        public abstract class Instance : MonoBehaviour, IType.IInstance
+        public abstract class Instance : MonoBehaviour, IInstanceType.IInstance
         {
             #region Properties
-            public IMetaData MetaData => InstanceMetaData;
-            public IInstanceMetaData InstanceMetaData => ComponentMetaData;
-            public ComponentMetaData ComponentMetaData
-            {
-                get
-                {
+            public abstract IMetaData MetaData { get; set; }
+            public abstract IInstanceMetaData InstanceMetaData { get; set; }
+            public abstract ComponentMetaData ComponentMetaData { get; set; }
 
-                }
-
-                set
-                {
-
-                }
-            }
-
-            public IData Data => InstanceData;
-            public IInstanceData InstanceData => ComponentData;
-            public ComponentData ComponentData
-            {
-                get
-                {
-
-                }
-
-                set
-                {
-
-                }
-            }
-
-            public UnityEngine.Component UnityEngineComponent => unityEngineComponent;
-            public GameObject ContainingGameObject => componentMetaData.ContainingGameObject;
-            #endregion
-
-            #region Fields
-            private ComponentMetaData componentMetaData;
-            private Component unityEngineComponent;
-            private InstancePool<Instance> instancePool;
+            public abstract IData Data { get; set; }
+            public abstract IInstanceData InstanceData { get; set; }
+            public abstract ComponentData ComponentData { get; set; }
             #endregion
 
             #region Static Methods
@@ -99,6 +69,8 @@ namespace LooCast.System.Types
             #endregion
 
             #region Methods
+            public abstract bool Validate();
+
             protected virtual void CreateMetaData<ComponentType, ComponentMetaDataType>(GameObject containingGameObject, ref ComponentMetaDataType componentMetaData)
                 where ComponentType : Component, new()
                 where ComponentMetaDataType : ComponentMetaData, new()
@@ -130,7 +102,10 @@ namespace LooCast.System.Types
         }
         #endregion
 
-        #region Constructors
+        #region Properties
+        public abstract ComponentTypeMetaData ComponentTypeMetaData { get; set; }
+
+        public abstract ComponentTypeData ComponentTypeData { get; set; }
         #endregion
     }
 }

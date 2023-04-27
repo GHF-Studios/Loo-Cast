@@ -8,7 +8,9 @@ namespace LooCast.System.MetaData
     {
         #region Properties
         public IInstanceIdentifier InstanceIdentifier { get; }
-        public IType Type { get; }
+        public ITypeMetaData TypeMetaData { get; }
+        public IInstanceMetaData ParentInstanceMetaData { get; }
+        public IEnumerable<IInstanceMetaData> ChildInstancesMetaData { get; }
         #endregion
     }
 }

@@ -6,10 +6,8 @@ namespace LooCast.System
     public interface IData
     {
         #region Properties
-#nullable enable
-        public IData? ParentData { get; }
-#nullable disable
-        public HashSet<IData> ChildData { get; }
+        public IData ParentData { get; }
+        public IEnumerable<IData> ChildData { get; }
         #endregion
 
         #region Methods

@@ -2,10 +2,12 @@
 
 namespace LooCast.System
 {
-    public class InstancePool<T> : IPool
-        where T : IType.IInstance, new()
+    using LooCast.System.Types;
+    
+    public class InstancePool<InstanceType> : IPool
+        where InstanceType : IInstanceType.IInstance, new()
     {
-        private readonly Stack<T> pool = new Stack<T>();
+        private readonly Stack<InstanceType> pool = new Stack<InstanceType>();
 
         object IPool.Get()
         {
@@ -14,15 +16,15 @@ namespace LooCast.System
 
         public void Return(object obj)
         {
-            pool.Push((T)obj);
+            pool.Push((InstanceType)obj);
         }
         
-        public T Get()
+        public InstanceType Get()
         {
-            return pool.Count > 0 ? pool.Pop() : new T();
+            return pool.Count > 0 ? pool.Pop() : new InstanceType();
         }
 
-        public void Return(T obj)
+        public void Return(InstanceType obj)
         {
             pool.Push(obj);
         }

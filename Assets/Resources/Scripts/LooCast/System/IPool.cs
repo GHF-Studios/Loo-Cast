@@ -2,11 +2,11 @@
 
 namespace LooCast.System
 {
-    public interface IPool
+    public interface IPool<T>
     {
         #region Methods
-        public object Get();
-        public void Return(object obj);
+        public T Get();
+        public void Return(T obj);
         #endregion
     }
 }

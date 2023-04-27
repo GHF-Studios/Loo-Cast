@@ -2,14 +2,11 @@
 
 namespace LooCast.System
 {
-    public interface IMetaData
+    public interface IMetaData : IHierarchyElement
     {
         #region Properties
-        public IIdentifier Identifier { get; }
-#nullable enable
-        public IMetaData? ParentMetaData { get; }
-#nullable disable
-        public HashSet<IMetaData> ChildMetaData { get; }
+        public IMetaData ParentMetaData { get; }
+        public IEnumerable<IMetaData> ChildMetaData { get; }
         #endregion
 
         #region Methods

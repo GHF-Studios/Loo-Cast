@@ -5,48 +5,24 @@ using System;
 
 namespace LooCast.System.Types
 {
+    using LooCast.System.Data;
     using LooCast.System.Identifiers;
     using LooCast.System.MetaData;
-
-    public abstract class GameObjectType<TInstance> : Type<TInstance>
+    
+    public abstract class GameObjectType<TInstance> : InstanceType<TInstance>, IGameObjectType
         where TInstance : GameObjectType<TInstance>.Instance, new()
     {
         #region Classes
-        public abstract class Instance : IType.IInstance
+        public abstract class Instance : IInstanceType.IInstance
         {
             #region Properties
-            public IMetaData MetaData => InstanceMetaData;
-            public IInstanceMetaData InstanceMetaData => GameObjectMetaData;
-            public GameObjectMetaData GameObjectMetaData
-            {
-                get
-                {
+            public abstract IMetaData MetaData { get; set; }
+            public abstract IInstanceMetaData InstanceMetaData { get; set; }
+            public abstract GameObjectMetaData GameObjectMetaData { get; set; }
 
-                }
-
-                set
-                {
-
-                }
-            }
-
-            public IData Data => InstanceData;
-            public IInstanceData InstanceData => GameObjectData;
-            public GameObjectData GameObjectData
-            {
-                get
-                {
-
-                }
-
-                set
-                {
-
-                }
-            }
-
-            public GameObject UnityEngineGameObject => unityEngineGameObject;
-            public List<Component> ContainedComponents => gameObjectMetaData.ContainedComponents;
+            public abstract IData Data { get; set; }
+            public abstract IInstanceData InstanceData { get; set; }
+            public abstract GameObjectData GameObjectData { get; set; }
             #endregion
 
             #region Fields
@@ -91,6 +67,8 @@ namespace LooCast.System.Types
             #endregion
 
             #region Methods
+            public abstract bool Validate();
+
             protected virtual void CreateMetaData<GameObjectType, GameObjectMetaDataType>(ref GameObjectMetaDataType gameObjectMetaData)
                 where GameObjectType : GameObject, new()
                 where GameObjectMetaDataType : GameObjectMetaData, new()
@@ -124,7 +102,10 @@ namespace LooCast.System.Types
         }
         #endregion
 
-        #region Constructors
+        #region Properties
+        public abstract GameObjectTypeMetaData GameObjectTypeMetaData { get; set; }
+
+        public abstract GameObjectTypeData GameObjectTypeData { get; set; }
         #endregion
     }
 }

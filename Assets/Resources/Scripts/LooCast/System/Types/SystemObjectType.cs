@@ -5,45 +5,24 @@ using System;
 
 namespace LooCast.System.Types
 {
+    using LooCast.System.Data;
     using LooCast.System.Identifiers;
     using LooCast.System.MetaData;
 
-    public abstract class SystemObjectType<TInstance> : Type<TInstance>
+    public abstract class SystemObjectType<TInstance> : InstanceType<TInstance>, ISystemObjectType
         where TInstance : SystemObjectType<TInstance>.Instance, new()
     {
         #region Classes
-        public abstract class Instance : IType.IInstance
+        public abstract class Instance : IInstanceType.IInstance
         {
             #region Properties
-            public IMetaData MetaData => InstanceMetaData;
-            public IInstanceMetaData InstanceMetaData => SystemObjectMetaData;
-            public SystemObjectMetaData SystemObjectMetaData
-            {
-                get
-                {
-                    
-                }
+            public abstract IMetaData MetaData { get; set; }
+            public abstract IInstanceMetaData InstanceMetaData { get; set; }
+            public abstract SystemObjectMetaData SystemObjectMetaData { get; set; }
 
-                set
-                {
-                    
-                }
-            }
-
-            public IData Data => InstanceData;
-            public IInstanceData InstanceData => SystemObjectData;
-            public SystemObjectData SystemObjectData
-            {
-                get
-                {
-
-                }
-
-                set
-                {
-
-                }
-            }
+            public abstract IData Data { get; set; }
+            public abstract IInstanceData InstanceData { get; set; }
+            public abstract SystemObjectData SystemObjectData { get; set; }
             #endregion
 
             #region Fields
@@ -53,7 +32,7 @@ namespace LooCast.System.Types
             #region Static Methods
 #nullable enable
             public static SystemObjectType CreateSystemObject<SystemObjectType, SystemObjectMetaDataType>(SystemObjectMetaDataType? systemObjectMetaData = default(SystemObjectMetaDataType))
-                where SystemObjectType : SystemObject, new()
+                where SystemObjectType : Instance, new()
                 where SystemObjectMetaDataType : SystemObjectMetaData, new()
             {
                 if (systemObjectMetaData == null)
@@ -71,7 +50,7 @@ namespace LooCast.System.Types
 #nullable disable
 
             public static SystemObjectType CreateSystemObject<SystemObjectType>()
-                where SystemObjectType : SystemObject, new()
+                where SystemObjectType : Instance, new()
             {
                 SystemObjectType systemObject = Activator.CreateInstance<SystemObjectType>();
                 SystemObjectMetaData systemObjectMetaData = Activator.CreateInstance<SystemObjectMetaData>();
@@ -85,13 +64,15 @@ namespace LooCast.System.Types
             #endregion
 
             #region Methods
+            public abstract bool Validate();
+
             protected virtual void CreateMetaData<SystemObjectType, SystemObjectMetaDataType>(ref SystemObjectMetaDataType systemObjectMetaData)
-                where SystemObjectType : SystemObject, new()
+                where SystemObjectType : Instance, new()
                 where SystemObjectMetaDataType : SystemObjectMetaData, new()
             {
                 systemObjectMetaData.SystemObjectIdentifier = new SystemObjectIdentifier(TypeManager.Instance.GetType<SystemObjectType>().TypeIdentifier, Guid.NewGuid());
                 systemObjectMetaData.ParentSystemObject = null;
-                systemObjectMetaData.ChildSystemObjects = new List<SystemObject>();
+                systemObjectMetaData.ChildSystemObjects = new List<SystemObjectType>();
             }
 
             public virtual void SetMetaData(SystemObjectMetaData systemObjectMetaData)
@@ -117,7 +98,10 @@ namespace LooCast.System.Types
         }
         #endregion
 
-        #region Constructors
+        #region Properties
+        public abstract SystemObjectTypeMetaData SystemObjectTypeMetaData { get; set; }
+
+        public abstract SystemObjectTypeData SystemObjectTypeData { get; set; }
         #endregion
     }
 }

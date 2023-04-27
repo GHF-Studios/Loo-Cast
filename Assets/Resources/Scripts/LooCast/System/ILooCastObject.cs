@@ -6,6 +6,7 @@ namespace LooCast.System
     {
         #region Properties
         public IMetaData MetaData { get; set; }
+        
         public IData Data { get; set; }
         #endregion
 
