@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace LooCast.System.Registry
+namespace LooCast.System.Registries
 {
-    using LooCast.System.Registries;
-    
-    public abstract class Registry<KeyType, ValueType> : SystemObject, IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
-        where KeyType : Identifier 
+    using LooCast.System.Identifiers;
+    using LooCast.System.Types;
+
+    public class Registry<KeyType, ValueType> : SystemObjectType<Registry<KeyType, ValueType>>.SystemObject, IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
+        where KeyType : IIdentifier 
         where ValueType : ILooCastObject
     {
         #region Properties
@@ -85,6 +86,11 @@ namespace LooCast.System.Registry
             throw new global::System.Exception($"[Registry] Value of type '{typeof(ValueType)}' with key '{key}' not found!");
         }
 
+        public IEnumerable<ValueType> GetValues(IEnumerable<KeyType> keys)
+        {
+            return keys.Select(key => GetValue(key));
+        }
+            
         public void Add(KeyValuePair<KeyType, ValueType> item)
         {
             Add(item.Key, item.Value);
@@ -126,16 +132,24 @@ namespace LooCast.System.Registry
         #endregion
 
         #region Overrides
-        protected override void PreConstruct()
+        public void PreConstruct()
         {
-            base.PreConstruct();
-
             BaseRegistry = GetBaseRegistry();
             
             TypeRegistry typeRegistry = MainManager.Instance.MainRegistry.GetRegistry(typeof(IType)) as TypeRegistry;
             
             RegistryKeyType = typeRegistry.GetValue(typeof(KeyType));
             RegistryValueType = typeRegistry.GetValue(typeof(ValueType));
+        }
+
+        public void Construct()
+        {
+            
+        }
+
+        public void PostConstruct()
+        {
+            
         }
         #endregion
     }

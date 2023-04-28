@@ -1,8 +1,9 @@
 ﻿namespace LooCast.System.Registries
 {
-    using global::LooCast.System.Identifiers;
+    using LooCast.System.Identifiers;
+    using LooCast.System.Types;
 
-    public sealed class GameObjectRegistry : Registry<GameObjectIdentifier, GameObject>
+    public sealed class GameObjectRegistry : Registry<IGameObjectIdentifier, IGameObjectType.IGameObject>
     {
         #region Overides
         protected override IRegistry GetBaseRegistry()

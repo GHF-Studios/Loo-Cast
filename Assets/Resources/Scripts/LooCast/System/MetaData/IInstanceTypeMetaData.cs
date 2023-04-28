@@ -5,10 +5,6 @@ namespace LooCast.System.MetaData
 {
     public interface IInstanceTypeMetaData : ITypeMetaData
     {
-        #region Properties
-        public IInstanceTypeMetaData ParentInstanceTypeMetaData { get; }
         
-        public IEnumerable<IInstanceTypeMetaData> ChildInstanceTypesMetaData { get; }
-        #endregion
     }
 }

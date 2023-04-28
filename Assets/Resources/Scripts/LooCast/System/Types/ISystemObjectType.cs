@@ -11,17 +11,17 @@ namespace LooCast.System.Types
         public interface ISystemObject : IInstanceType.IInstance
         {
             #region Properties
-            public SystemObjectMetaData SystemObjectMetaData { get; set; }
+            public ISystemObjectMetaData SystemObjectMetaData { get; set; }
 
-            public SystemObjectData SystemObjectData { get; set; }
+            public ISystemObjectData SystemObjectData { get; set; }
             #endregion
         }
         #endregion
 
         #region Properties
-        public SystemObjectTypeMetaData SystemObjectTypeMetaData { get; set; }
+        public ISystemObjectTypeMetaData SystemObjectTypeMetaData { get; set; }
 
-        public SystemObjectTypeData SystemObjectTypeData { get; set; }
+        public ISystemObjectTypeData SystemObjectTypeData { get; set; }
         #endregion
     }
 }

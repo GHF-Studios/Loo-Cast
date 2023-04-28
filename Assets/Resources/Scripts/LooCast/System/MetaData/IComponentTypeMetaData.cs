@@ -5,8 +5,6 @@ namespace LooCast.System.MetaData
 {
     public interface IComponentTypeMetaData : IInstanceTypeMetaData
     {
-        #region Properties
-        public IGameObjectTypeMetaData ParentGameObjectTypeMetaData { get; }
-        #endregion
+        
     }
 }

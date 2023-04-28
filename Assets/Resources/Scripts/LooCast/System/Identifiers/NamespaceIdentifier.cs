@@ -4,19 +4,19 @@ using UnityEngine;
 namespace LooCast.System.Identifiers
 {
     [Serializable]
-    public class NamespaceIdentifier : Identifier
+    public class NamespaceIdentifier : Identifier, INamespaceIdentifier
     {
         #region Properties
         public string NamespaceName => namespaceName;
 #nullable enable
-        public NamespaceIdentifier? ParentNamespaceIdentifier => parentNamespaceIdentifier;
+        public INamespaceIdentifier? ParentNamespaceIdentifier => parentNamespaceIdentifier;
 #nullable disable
         #endregion
 
         #region Fields
         [SerializeField] private readonly string namespaceName;
 #nullable enable
-        [SerializeField] private readonly NamespaceIdentifier? parentNamespaceIdentifier;
+        [SerializeField] private readonly INamespaceIdentifier? parentNamespaceIdentifier;
 #nullable disable
         #endregion
 

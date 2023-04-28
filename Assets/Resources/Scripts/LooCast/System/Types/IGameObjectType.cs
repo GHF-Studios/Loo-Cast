@@ -11,17 +11,17 @@ namespace LooCast.System.Types
         public interface IGameObject : IInstanceType.IInstance
         {
             #region Properties
-            public GameObjectMetaData GameObjectMetaData { get; set; }
+            public IGameObjectMetaData GameObjectMetaData { get; set; }
 
-            public GameObjectData GameObjectData { get; set; }
+            public IGameObjectData GameObjectData { get; set; }
             #endregion
         }
         #endregion
 
         #region Properties
-        public GameObjectTypeMetaData GameObjectTypeMetaData { get; set; }
+        public IGameObjectTypeMetaData GameObjectTypeMetaData { get; set; }
 
-        public GameObjectTypeData GameObjectTypeData { get; set; }
+        public IGameObjectTypeData GameObjectTypeData { get; set; }
         #endregion
     }
 }

@@ -11,17 +11,17 @@ namespace LooCast.System.Types
         public interface IComponent : IInstanceType.IInstance
         {
             #region Properties
-            public ComponentMetaData ComponentMetaData { get; set; }
+            public IComponentMetaData ComponentMetaData { get; set; }
 
-            public ComponentData ComponentData { get; set; }
+            public IComponentData ComponentData { get; set; }
             #endregion
         }
         #endregion
 
         #region Properties
-        public ComponentTypeMetaData ComponentTypeMetaData { get; set; }
+        public IComponentTypeMetaData ComponentTypeMetaData { get; set; }
 
-        public ComponentTypeData ComponentTypeData { get; set; }
+        public IComponentTypeData ComponentTypeData { get; set; }
         #endregion
     }
 }

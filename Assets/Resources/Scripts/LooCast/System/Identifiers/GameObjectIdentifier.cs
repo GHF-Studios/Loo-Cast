@@ -109,7 +109,7 @@ namespace LooCast.System.Identifiers
             }
             else
             {
-                throw new ArgumentException($"The string '{gusid}' is not a valid ContainingGameObject GUSID.");
+                throw new ArgumentException($"The string '{gusid}' is not a valid ParentGameObjectData GUSID.");
             }
         }
         #endregion

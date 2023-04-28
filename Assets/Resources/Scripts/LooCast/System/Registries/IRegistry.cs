@@ -1,5 +1,7 @@
-﻿namespace LooCast.System.Registry
+﻿namespace LooCast.System.Registries
 {
+    using LooCast.System.Identifiers;
+
     public interface IRegistry : ILooCastObject
     {
         #region Properties

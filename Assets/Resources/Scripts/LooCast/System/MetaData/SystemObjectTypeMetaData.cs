@@ -7,9 +7,6 @@ namespace LooCast.System.MetaData
     
     public abstract class SystemObjectTypeMetaData : InstanceTypeMetaData, ISystemObjectTypeMetaData
     {
-        #region Properties
-        public abstract ISystemObjectTypeMetaData ParentSystemObjectTypeMetaData { get; }
-        public abstract IEnumerable<ISystemObjectTypeMetaData> ChildSystemObjectTypesMetaData { get; }
-        #endregion
+        
     }
 }

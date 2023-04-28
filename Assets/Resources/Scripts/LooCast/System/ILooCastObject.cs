@@ -14,6 +14,14 @@ namespace LooCast.System
 
         #region Methods
         public bool Validate();
+
+        public void PreConstruct();
+        public void Construct();
+        public void PostConstruct();
+
+        public void PreDestruct();
+        public void Destruct();
+        public void PostDestruct();
         #endregion
     }
 }

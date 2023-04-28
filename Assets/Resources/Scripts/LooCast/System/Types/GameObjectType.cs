@@ -18,11 +18,11 @@ namespace LooCast.System.Types
             #region Properties
             public abstract IMetaData MetaData { get; set; }
             public abstract IInstanceMetaData InstanceMetaData { get; set; }
-            public abstract GameObjectMetaData GameObjectMetaData { get; set; }
+            public abstract IGameObjectMetaData GameObjectMetaData { get; set; }
 
             public abstract IData Data { get; set; }
             public abstract IInstanceData InstanceData { get; set; }
-            public abstract GameObjectData GameObjectData { get; set; }
+            public abstract IGameObjectData GameObjectData { get; set; }
             #endregion
 
             #region Static Methods
@@ -88,9 +88,9 @@ namespace LooCast.System.Types
         #endregion
 
         #region Properties
-        public abstract GameObjectTypeMetaData GameObjectTypeMetaData { get; set; }
+        public abstract IGameObjectTypeMetaData GameObjectTypeMetaData { get; set; }
 
-        public abstract GameObjectTypeData GameObjectTypeData { get; set; }
+        public abstract IGameObjectTypeData GameObjectTypeData { get; set; }
         #endregion
     }
 }

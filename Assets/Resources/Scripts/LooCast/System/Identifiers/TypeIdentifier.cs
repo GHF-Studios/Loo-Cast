@@ -5,29 +5,29 @@ using UnityEngine;
 namespace LooCast.System.Identifiers
 {
     [Serializable]
-    public class TypeIdentifier : Identifier
+    public class TypeIdentifier : Identifier, ITypeIdentifier
     {
         #region Properties
-        public NamespaceIdentifier TypeNamespaceIdentifier => typeNamespaceIdentifier;
+        public INamespaceIdentifier TypeNamespaceIdentifier => typeNamespaceIdentifier;
         public string FullTypeName => fullTypeName;
         public global::System.Type CSSystemType => cssystemType;
 #nullable enable
-        public TypeIdentifier[]? GenericTypeArgumentIdentifiers => genericTypeArgumentIdentifiers;
+        public ITypeIdentifier[]? GenericTypeArgumentIdentifiers => genericTypeArgumentIdentifiers;
 #nullable disable
         #endregion
 
         #region Fields
-        [SerializeField] private readonly NamespaceIdentifier typeNamespaceIdentifier;
+        [SerializeField] private readonly INamespaceIdentifier typeNamespaceIdentifier;
         [SerializeField] private readonly string fullTypeName;
         private readonly global::System.Type cssystemType;
 #nullable enable
-        [SerializeField] private readonly TypeIdentifier[]? genericTypeArgumentIdentifiers;
+        [SerializeField] private readonly ITypeIdentifier[]? genericTypeArgumentIdentifiers;
 #nullable disable
         #endregion
          
         #region Constructors
 #nullable enable
-        private TypeIdentifier(NamespaceIdentifier typeNamespaceIdentifier, string fullTypeName, global::System.Type cssystemType, TypeIdentifier[]? genericTypeArgumentIdentifiers) : base($"{typeNamespaceIdentifier}:{fullTypeName}")
+        private TypeIdentifier(NamespaceIdentifier typeNamespaceIdentifier, string fullTypeName, global::System.Type cssystemType, ITypeIdentifier[]? genericTypeArgumentIdentifiers) : base($"{typeNamespaceIdentifier}:{fullTypeName}")
         {
             this.typeNamespaceIdentifier = typeNamespaceIdentifier;
             this.fullTypeName = fullTypeName;

@@ -8,6 +8,9 @@ namespace LooCast.System.Data
         #region Properties
         public IData ParentData { get; }
         public IEnumerable<IData> ChildData { get; }
+
+        public ILooCastObject Parent { get; }
+        public IEnumerable<ILooCastObject> Children { get; }
         #endregion
 
         #region Methods

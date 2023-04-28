@@ -12,10 +12,28 @@ namespace LooCast.System.MetaData
         public abstract IIdentifier Identifier { get; }
         public abstract IMetaData ParentMetaData { get; }
         public abstract IEnumerable<IMetaData> ChildMetaData { get; }
+
+        public abstract ILooCastObject Parent { get; }
+        public abstract IEnumerable<ILooCastObject> Children { get; }
         #endregion
 
         #region Methods
         public abstract bool Validate();
+
+        public virtual void PreInitialize()
+        {
+
+        }
+
+        public virtual void Initialize()
+        {
+
+        }
+
+        public virtual void PostInitialize()
+        {
+
+        }
         #endregion
     }
 }

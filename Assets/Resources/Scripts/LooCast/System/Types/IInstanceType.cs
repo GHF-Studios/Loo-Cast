@@ -11,12 +11,14 @@ namespace LooCast.System.Types
         #region Interfaces
         public interface IInstance : ILooCastObject
         {
+            #region Properties
             public IInstanceMetaData InstanceMetaData { get; set; }
 
             public IInstanceData InstanceData { get; set; }
+            #endregion
         }
         #endregion
-        
+
         #region Properties
         public IInstanceTypeMetaData InstanceTypeMetaData { get; set; }
         

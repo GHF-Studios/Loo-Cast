@@ -8,6 +8,9 @@ namespace LooCast.System.Data
         #region Properties
         public abstract ITypeData ParentTypeData { get; }
         public abstract IEnumerable<ITypeData> ChildTypeData { get; }
+
+        public abstract IType ParentType { get; }
+        public abstract IEnumerable<IType> ChildTypes { get; }
         #endregion
     }
 }

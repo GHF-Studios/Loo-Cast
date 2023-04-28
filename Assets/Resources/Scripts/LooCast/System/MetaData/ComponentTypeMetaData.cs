@@ -7,8 +7,6 @@ namespace LooCast.System.MetaData
     
     public abstract class ComponentTypeMetaData : InstanceTypeMetaData, IComponentTypeMetaData
     {
-        #region Properties
-        public abstract IGameObjectTypeMetaData ParentGameObjectTypeMetaData { get; }
-        #endregion
+        
     }
 }

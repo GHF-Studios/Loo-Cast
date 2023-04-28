@@ -4,20 +4,16 @@ using UnityEngine;
 
 namespace LooCast.System.Data
 {
-    public abstract class ComponentData : IInstanceData
+    using LooCast.System.Types;
+
+    public abstract class ComponentData : InstanceData, IComponentData
     {
         #region Properties
-        public abstract IInstanceData ParentInstanceData { get; }
-        public abstract IEnumerable<IInstanceData> ChildInstanceData { get; }
-        public abstract IData ParentData { get; }
-        public abstract IEnumerable<IData> ChildData { get; }
+        public abstract IGameObjectData ParentGameObjectData { get; }
+
+        public abstract IGameObjectType.IGameObject ParentGameObject { get; }
 
         public abstract Component UnityEngineComponent { get; }
-        public abstract GameObject ContainingGameObject { get; }
-        #endregion
-
-        #region Fields
-        public abstract bool Validate();
         #endregion
     }
 }

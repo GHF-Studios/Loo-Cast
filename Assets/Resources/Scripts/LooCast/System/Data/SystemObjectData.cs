@@ -3,17 +3,16 @@ using System.Collections.Generic;
 
 namespace LooCast.System.Data
 {
-    public abstract class SystemObjectData : IInstanceData
+    using LooCast.System.Types;
+
+    public abstract class SystemObjectData : InstanceData, ISystemObjectData
     {
         #region Properties
-        public abstract IInstanceData ParentInstanceData { get; }
-        public abstract IEnumerable<IInstanceData> ChildInstanceData { get; }
-        public abstract IData ParentData { get; }
-        public abstract IEnumerable<IData> ChildData { get; }
-        #endregion
+        public abstract ISystemObjectData ParentSystemObjectData { get; }
+        public abstract IEnumerable<ISystemObjectData> ChildSystemObjectData { get; }
 
-        #region Fields
-        public abstract bool Validate();
+        public abstract ISystemObjectType.ISystemObject ParentSystemObject { get; }
+        public abstract IEnumerable<ISystemObjectType.ISystemObject> ChildSystemObjects { get; }
         #endregion
     }
 }
