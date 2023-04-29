@@ -9,7 +9,7 @@ namespace LooCast.System.Types
     public interface IInstanceType : IType
     {
         #region Interfaces
-        public interface IInstance : ILooCastObject
+        public interface IInstance : ILooCastInstance
         {
             #region Properties
             public IInstanceMetaData InstanceMetaData { get; set; }

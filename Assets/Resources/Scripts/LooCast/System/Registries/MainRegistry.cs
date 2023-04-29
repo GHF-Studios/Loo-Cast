@@ -16,9 +16,9 @@ namespace LooCast.System.Registries
         #endregion
 
         #region Overrides
-        public override void PostConstruct()
+        public override void PostInitialize()
         {
-            base.PostConstruct();
+            base.PostInitialize();
 
             NamespaceRegistry = GetRegistry(typeof(INamespace)) as NamespaceRegistry;
             TypeRegistry = GetRegistry(typeof(IType)) as TypeRegistry;

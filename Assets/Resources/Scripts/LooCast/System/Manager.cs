@@ -135,7 +135,7 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Early Pre-Initialization.");
             IsEarlyPreInitializing = false;
             IsEarlyPreInitialized = true;
-            PreInitialize();
+            PreConstruct();
         }
 
         public void PreInitialize()
@@ -185,7 +185,7 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Early Initialization.");
             IsEarlyInitializing = false;
             IsEarlyInitialized = true;
-            Initialize();
+            Construct();
         }
 
         public void Initialize()
@@ -235,7 +235,7 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Early Post-Initialization.");
             IsEarlyPostInitializing = false;
             IsEarlyPostInitialized = true;
-            PostInitialize();
+            PostConstruct();
         }
 
         public void PostInitialize()

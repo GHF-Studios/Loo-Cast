@@ -2,7 +2,7 @@
 {
     using LooCast.System.Identifiers;
 
-    public interface IRegistry : ILooCastObject
+    public interface IRegistry : ILooCastType
     {
         #region Properties
 #nullable enable
@@ -11,8 +11,8 @@
         #endregion
 
         #region Methods
-        public void Add(Identifier key, ILooCastObject value);
-        public bool Remove(Identifier key);
+        public void Add(IIdentifier key, ILooCastInstance value);
+        public bool Remove(IIdentifier key);
         public void Clear();
         #endregion
     }

@@ -2,7 +2,7 @@
 
 namespace LooCast.System
 {
-    public abstract class HierarchyElement : ILooCastObject
+    public abstract class HierarchyElement : ILooCastInstance
     {
         #region Properties
         public IIdentifier Identifier => HierarchyElementPath;

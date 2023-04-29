@@ -9,8 +9,8 @@ namespace LooCast.System.MetaData
         public IMetaData ParentMetaData { get; }
         public IEnumerable<IMetaData> ChildMetaData { get; }
         
-        public ILooCastObject Parent { get; }
-        public IEnumerable<ILooCastObject> Children { get; }
+        public ILooCastInstance Parent { get; }
+        public IEnumerable<ILooCastInstance> Children { get; }
         #endregion
 
         #region Methods

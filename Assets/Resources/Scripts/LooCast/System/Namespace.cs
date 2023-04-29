@@ -1,11 +1,15 @@
 ﻿namespace LooCast.System
 {
+    using LooCast.System.Data;
     using LooCast.System.Identifiers;
+    using LooCast.System.MetaData;
     using LooCast.System.Registries;
 
     public class Namespace : ILooCastObject
     {
         #region Properties
+        public IMetaData MetaData { get; set; }
+        public IData Data { get; set; }
         public IIdentifier Identifier => NamespaceIdentifier;
         public NamespaceIdentifier NamespaceIdentifier { get; }
         public string NamespaceName => NamespaceIdentifier.NamespaceName;
@@ -26,6 +30,11 @@
         #endregion
 
         #region Overrides
+        public virtual bool Validate()
+        {
+            
+        }
+
         public override bool Equals(object obj)
         {
             if (obj is Namespace otherNamespace)

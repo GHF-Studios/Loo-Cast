@@ -7,9 +7,9 @@ namespace LooCast.System.Registries
     using LooCast.System.Identifiers;
     using LooCast.System.Types;
 
-    public class Registry<KeyType, ValueType> : SystemObjectType<Registry<KeyType, ValueType>>.SystemObject, IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
-        where KeyType : IIdentifier 
-        where ValueType : ILooCastObject
+    public class Registry<KeyType, ValueType> : IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
+        where KeyType : IIdentifier, new()
+        where ValueType : ILooCastInstance, new()
     {
         #region Properties
 #nullable enable
@@ -27,7 +27,7 @@ namespace LooCast.System.Registries
         #endregion
 
         #region Methods
-        public void Add(Identifier key, ILooCastObject value)
+        public void Add(IIdentifier key, ILooCastInstance value)
         {
             if (!(key is KeyType))
             {
@@ -41,7 +41,7 @@ namespace LooCast.System.Registries
             Add((KeyType)key, (ValueType)value);
         }
 
-        public bool Remove(Identifier key)
+        public bool Remove(IIdentifier key)
         {
             if (!(key is KeyType))
             {
@@ -132,7 +132,7 @@ namespace LooCast.System.Registries
         #endregion
 
         #region Overrides
-        public void PreConstruct()
+        public virtual void PreInitialize()
         {
             BaseRegistry = GetBaseRegistry();
             
@@ -142,14 +142,29 @@ namespace LooCast.System.Registries
             RegistryValueType = typeRegistry.GetValue(typeof(ValueType));
         }
 
-        public void Construct()
+        public virtual void Initialize()
         {
             
         }
 
-        public void PostConstruct()
+        public virtual void PostInitialize()
         {
             
+        }
+
+        public virtual void PreTerminate()
+        {
+
+        }
+
+        public virtual void Terminate()
+        {
+
+        }
+
+        public virtual void PostTerminate()
+        {
+
         }
         #endregion
     }

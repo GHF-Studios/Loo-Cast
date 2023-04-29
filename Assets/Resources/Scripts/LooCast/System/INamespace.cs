@@ -2,7 +2,10 @@
 
 namespace LooCast.System
 {
-    public interface INamespace
+    using LooCast.System.Identifiers;
+    using LooCast.System.Registries;
+    
+    public interface INamespace : ILooCastObject
     {
         #region Properties
         public IIdentifier Identifier => NamespaceIdentifier;
@@ -10,8 +13,8 @@ namespace LooCast.System
         public string NamespaceName => NamespaceIdentifier.NamespaceName;
 
         public Namespace ParentNamespace { get; }
-        public NamespaceRegistry ChildNamespaces { get; } = new NamespaceRegistry();
-        public TypeRegistry ContainedTypes { get; } = new TypeRegistry();
+        public NamespaceRegistry ChildNamespaces { get; }
+        public TypeRegistry ContainedTypes { get; }
         #endregion
     }
 }

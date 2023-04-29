@@ -1,27 +1,157 @@
-﻿using System.Collections.Generic;
-
-namespace LooCast.System
+﻿namespace LooCast.System
 {
-    using LooCast.System.MetaData;
-    using LooCast.System.Data;
-    
     public interface ILooCastObject
     {
         #region Properties
-        public IMetaData MetaData { get; set; }
-        public IData Data { get; set; }
+
+        #region Initialization Phase Flags
+        public bool IsEarlyPreInitializing { get; }
+        public bool IsPreInitializing { get; }
+        public bool IsLatePreInitializing { get; }
+        public bool IsEarlyPreInitialized { get; }
+        public bool IsPreInitialized { get; }
+        public bool IsLatePreInitialized { get; }
+
+        public bool IsEarlyInitializing { get; }
+        public bool IsInitializing { get; }
+        public bool IsLateInitializing { get; }
+        public bool IsEarlyInitialized { get; }
+        public bool IsInitialized { get; }
+        public bool IsLateInitialized { get; }
+
+        public bool IsEarlyPostInitializing { get; }
+        public bool IsPostInitializing { get; }
+        public bool IsLatePostInitializing { get; }
+        public bool IsEarlyPostInitialized { get; }
+        public bool IsPostInitialized { get; }
+        public bool IsLatePostInitialized { get; }
+
+        public bool IsFullyPreInitialized
+        {
+            get
+            {
+                return IsEarlyPreInitialized && IsPreInitialized && IsLatePreInitialized;
+            }
+        }
+        public bool IsFullyInitialized
+        {
+            get
+            {
+                return IsEarlyInitialized && IsInitialized && IsLateInitialized;
+            }
+        }
+        public bool IsFullyPostInitialized
+        {
+            get
+            {
+                return IsEarlyPostInitialized && IsPostInitialized && IsLatePostInitialized;
+            }
+        }
+        public bool IsCompletelyInitialized
+        {
+            get
+            {
+                return IsFullyPreInitialized && IsFullyInitialized && IsPostInitialized;
+            }
+        }
         #endregion
 
+        #region Termination Phase Flags
+        public bool IsEarlyPreTerminating { get; }
+        public bool IsPreTerminating { get; }
+        public bool IsLatePreTerminating { get; }
+        public bool IsEarlyPreTerminated { get; }
+        public bool IsPreTerminated { get; }
+        public bool IsLatePreTerminated { get; }
+
+        public bool IsEarlyTerminating { get; }
+        public bool IsTerminating { get; }
+        public bool IsLateTerminating { get; }
+        public bool IsEarlyTerminated { get; }
+        public bool IsTerminated { get; }
+        public bool IsLateTerminated { get; }
+
+        public bool IsEarlyPostTerminating { get; }
+        public bool IsPostTerminating { get; }
+        public bool IsLatePostTerminating { get; }
+        public bool IsEarlyPostTerminated { get; }
+        public bool IsPostTerminated { get; }
+        public bool IsLatePostTerminated { get; }
+
+        public bool IsFullyPreTerminated
+        {
+            get
+            {
+                return IsEarlyPreTerminated && IsPreTerminated && IsLatePreTerminated;
+            }
+        }
+        public bool IsFullyTerminated
+        {
+            get
+            {
+                return IsEarlyTerminated && IsTerminated && IsLateTerminated;
+            }
+        }
+        public bool IsFullyPostTerminated
+        {
+            get
+            {
+                return IsEarlyPostTerminated && IsPostTerminated && IsLatePostTerminated;
+            }
+        }
+        public bool IsCompletelyTerminated
+        {
+            get
+            {
+                return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
+            }
+        }
+        #endregion
+        
+        #endregion
+        
         #region Methods
-        public bool Validate();
 
-        public void PreConstruct();
-        public void Construct();
-        public void PostConstruct();
+        #region Initialization Phases
+        void EarlyPreInitialize();
 
-        public void PreDestruct();
-        public void Destruct();
-        public void PostDestruct();
+        void PreInitialize();
+
+        void LatePreInitialize();
+
+        void EarlyInitialize();
+
+        void Initialize();
+
+        void LateInitialize();
+
+        void EarlyPostInitalize();
+
+        void PostInitialize();
+
+        void LatePostInitialize();
+        #endregion
+
+        #region Termination Phases
+        void EarlyPreTerminate();
+
+        void PreTerminate();
+
+        void LatePreTerminate();
+
+        void EarlyTerminate();
+
+        void Terminate();
+
+        void LateTerminate();
+
+        void EarlyPostTerminate();
+
+        void PostTerminate();
+
+        void LatePostTerminate();
+        #endregion
+        
         #endregion
     }
 }

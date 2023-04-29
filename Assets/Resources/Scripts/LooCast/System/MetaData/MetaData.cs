@@ -13,8 +13,8 @@ namespace LooCast.System.MetaData
         public abstract IMetaData ParentMetaData { get; }
         public abstract IEnumerable<IMetaData> ChildMetaData { get; }
 
-        public abstract ILooCastObject Parent { get; }
-        public abstract IEnumerable<ILooCastObject> Children { get; }
+        public abstract ILooCastInstance Parent { get; }
+        public abstract IEnumerable<ILooCastInstance> Children { get; }
         #endregion
 
         #region Methods

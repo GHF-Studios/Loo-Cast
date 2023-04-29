@@ -9,8 +9,8 @@ namespace LooCast.System.Data
         public abstract IData ParentData { get; }
         public abstract IEnumerable<IData> ChildData { get; }
 
-        public abstract ILooCastObject Parent { get; }
-        public abstract IEnumerable<ILooCastObject> Children { get; }
+        public abstract ILooCastInstance Parent { get; }
+        public abstract IEnumerable<ILooCastInstance> Children { get; }
         #endregion
 
         #region Fields

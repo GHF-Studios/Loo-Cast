@@ -42,9 +42,9 @@ namespace LooCast.System.Types
                 
                 systemObject.SetMetaData(systemObjectMetaData);
                 
-                systemObject.PreConstruct();
-                systemObject.Construct();
-                systemObject.PostConstruct();
+                systemObject.PreInitialize();
+                systemObject.Initialize();
+                systemObject.PostInitialize();
                 
                 return systemObject;
             }
@@ -65,20 +65,20 @@ namespace LooCast.System.Types
 
             public virtual void SetMetaData(SystemObjectMetaData systemObjectMetaData)
             {
-                this.systemObjectMetaData = systemObjectMetaData;
+                SystemObjectMetaData = systemObjectMetaData;
             }
 
-            protected virtual void PreConstruct()
+            public virtual void PreInitialize()
             {
 
             }
 
-            protected virtual void Construct()
+            public virtual void Initialize()
             {
 
             }
 
-            protected virtual void PostConstruct()
+            public virtual void PostInitialize()
             {
 
             }

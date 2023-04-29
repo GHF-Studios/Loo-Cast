@@ -9,7 +9,7 @@ namespace LooCast.System
     using LooCast.System.Registries;
 
     public abstract class Type<TInstance> : IType
-        where TInstance : ILooCastObject, new()
+        where TInstance : ILooCastInstance, new()
     {
         #region Properties
         public abstract IMetaData MetaData { get; set; }
