@@ -29,7 +29,7 @@ namespace LooCast.System
         #region Overrides
         public override bool Validate()
         {
-            throw new NotImplementedException();
+            return true;
         }
         
         protected override void PreConstruct()

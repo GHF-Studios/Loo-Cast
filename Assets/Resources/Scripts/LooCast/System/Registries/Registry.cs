@@ -8,8 +8,8 @@ namespace LooCast.System.Registries
     using LooCast.System.Types;
 
     public class Registry<KeyType, ValueType> : IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
-        where KeyType : IIdentifier, new()
-        where ValueType : ILooCastInstance, new()
+        where KeyType : IIdentifier
+        where ValueType : IInstance
     {
         #region Properties
 #nullable enable
@@ -27,7 +27,7 @@ namespace LooCast.System.Registries
         #endregion
 
         #region Methods
-        public void Add(IIdentifier key, ILooCastInstance value)
+        public void Add(IIdentifier key, IInstance value)
         {
             if (!(key is KeyType))
             {

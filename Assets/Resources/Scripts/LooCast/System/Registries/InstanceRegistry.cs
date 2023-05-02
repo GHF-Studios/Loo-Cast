@@ -1,15 +1,16 @@
 ﻿namespace LooCast.System.Registries
 {
-    using global::LooCast.System.Identifiers;
+    using LooCast.System.Identifiers;
+    using LooCast.System.Types;
 
     public class InstanceRegistry<KeyType, ValueType> : Registry<KeyType, ValueType>
-        where KeyType : Identifier
-        where ValueType : IType.IInstance
+        where KeyType : IIdentifier
+        where ValueType : IInstance
     {
         #region Overides
         protected override IRegistry GetBaseRegistry()
         {
-            return MainManager.Instance.MainRegistry.GetRegistry(typeof(IType.IInstance));
+            return MainManager.Instance.MainRegistry.GetRegistry(typeof(IInstance));
         }
         #endregion
     }

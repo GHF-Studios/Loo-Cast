@@ -1,8 +1,14 @@
-﻿namespace LooCast.System
+﻿using System.Collections.Generic;
+
+namespace LooCast.System
 {
-    public interface ILooCastObject
+    public interface ILooCastObject : IIdentifiable, IHierarchyElement
     {
         #region Properties
+        public IMetaData MetaData { get; set; }
+        public IData Data { get; set; }
+        public ILooCastObject Parent { get; }
+        public IEnumerable<ILooCastObject> Children { get; }
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; }
@@ -107,10 +113,11 @@
             }
         }
         #endregion
-        
+
         #endregion
-        
+
         #region Methods
+        public bool Validate();
 
         #region Initialization Phases
         void EarlyPreInitialize();

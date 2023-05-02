@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace LooCast.System.MetaData
 {
@@ -13,9 +14,9 @@ namespace LooCast.System.MetaData
         public IInstanceMetaData ParentInstanceMetaData { get; }
         public IEnumerable<IInstanceMetaData> ChildInstancesMetaData { get; }
 
-        public IInstanceType InstanceType { get; }
-        public IInstanceType.IInstance ParentInstance { get; }
-        public IEnumerable<IInstanceType.IInstance> ChildInstances { get; }
+        public IType InstanceType { get; }
+        public IInstance ParentInstance { get; }
+        public IEnumerable<IInstance> ChildInstances { get; }
         #endregion
     }
 }

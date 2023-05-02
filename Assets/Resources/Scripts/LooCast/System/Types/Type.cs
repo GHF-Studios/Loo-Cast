@@ -1,15 +1,13 @@
 ﻿using CSSystem = System;
 using System.Collections.Generic;
 
-namespace LooCast.System
+namespace LooCast.System.Types
 {
     using LooCast.System.Data;
-    using LooCast.System.Identifiers;
     using LooCast.System.MetaData;
-    using LooCast.System.Registries;
 
     public abstract class Type<TInstance> : IType
-        where TInstance : ILooCastInstance, new()
+        where TInstance : IInstance, new()
     {
         #region Properties
         public abstract IMetaData MetaData { get; set; }

@@ -29,7 +29,7 @@ namespace LooCast.System.MetaData
         {
             base.PreInitialize();
             
-            GameObjectType = MainManager.Instance.MainRegistry.TypeRegistry.GetValue(ComponentTypeMetaData.TypeIdentifier) as IComponentType;
+            GameObjectType = MainManager.Instance.MainRegistry.TypeRegistry.GetValue(GameObjectTypeMetaData.TypeIdentifier) as IComponentType;
             ParentGameObject = MainManager.Instance.MainRegistry.GameObjectRegistry.GetValue(ParentGameObjectMetaData.GameObjectIdentifier);
             ChildGameObjects = MainManager.Instance.MainRegistry.GameObjectRegistry.GetValues(ChildGameObjectsMetaData.Select(x => x.GameObjectIdentifier));
             ChildComponents = MainManager.Instance.MainRegistry.ComponentRegistry.GetValues(ChildComponentsMetaData.Select(x => x.ComponentIdentifier));
