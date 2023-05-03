@@ -10,8 +10,8 @@ namespace LooCast.System.MetaData
         #region Properties
         public abstract HierarchyElement HierarchyElement { get; }
         public abstract IIdentifier Identifier { get; }
-        public abstract IMetaData ParentMetaData { get; }
-        public abstract IEnumerable<IMetaData> ChildMetaData { get; }
+        public abstract IMetaData MetaDataParent { get; }
+        public abstract IEnumerable<IMetaData> MetaDataChildren { get; }
 
         public abstract ILooCastInstance Parent { get; }
         public abstract IEnumerable<ILooCastInstance> Children { get; }

@@ -6,8 +6,8 @@ namespace LooCast.System.Data
     public abstract class Data : IData
     {
         #region Properties
-        public abstract IData ParentData { get; }
-        public abstract IEnumerable<IData> ChildData { get; }
+        public abstract IData DataParent { get; }
+        public abstract IEnumerable<IData> DataChildren { get; }
 
         public abstract ILooCastInstance Parent { get; }
         public abstract IEnumerable<ILooCastInstance> Children { get; }

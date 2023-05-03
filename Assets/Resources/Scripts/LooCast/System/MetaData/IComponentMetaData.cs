@@ -11,6 +11,7 @@ namespace LooCast.System.MetaData
     {
         #region Properties
         public IComponentIdentifier ComponentIdentifier { get; }
+        
         public IComponentTypeMetaData ComponentTypeMetaData { get; }
         public IGameObjectMetaData ParentGameObjectMetaData { get; }
 

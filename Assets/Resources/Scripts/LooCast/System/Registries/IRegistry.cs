@@ -1,13 +1,14 @@
-﻿namespace LooCast.System.Registries
-{
-    using LooCast.System.Identifiers;
+﻿using System.Collections.Generic;
 
+namespace LooCast.System.Registries
+{
     public interface IRegistry : ILooCastObject
     {
         #region Properties
-#nullable enable
-        public IRegistry? BaseRegistry { get; }
-#nullable disable
+        public IRegistryData RegistryData { get; set; }
+        
+        public IRegistry RegistryParent { get; }
+        public IEnumerable<IRegistry> RegistryChildren { get; }
         #endregion
 
         #region Methods

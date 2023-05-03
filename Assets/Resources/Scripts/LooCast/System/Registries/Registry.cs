@@ -13,7 +13,7 @@ namespace LooCast.System.Registries
     {
         #region Properties
 #nullable enable
-        public IRegistry? BaseRegistry { get; private set; }
+        public IRegistry? RegistryParent { get; private set; }
 #nullable disable
         public IType RegistryKeyType { get; private set; }
         public IType RegistryValueType { get; private set; }
@@ -54,7 +54,7 @@ namespace LooCast.System.Registries
         public void Add(KeyType key, ValueType value)
         {
             dictionary.Add(key, value);
-            BaseRegistry?.Add(key, value);
+            RegistryParent?.Add(key, value);
         }
 
         public bool ContainsKey(KeyType key)
@@ -65,9 +65,9 @@ namespace LooCast.System.Registries
         public bool Remove(KeyType key)
         {
             bool removed = dictionary.Remove(key);
-            if (BaseRegistry != null)
+            if (RegistryParent != null)
             {
-                removed &= BaseRegistry.Remove(key);
+                removed &= RegistryParent.Remove(key);
             }
             return removed;
         }
@@ -94,13 +94,13 @@ namespace LooCast.System.Registries
         public void Add(KeyValuePair<KeyType, ValueType> item)
         {
             Add(item.Key, item.Value);
-            BaseRegistry?.Add(item.Key, item.Value);
+            RegistryParent?.Add(item.Key, item.Value);
         }
 
         public void Clear()
         {
             dictionary.Clear();
-            BaseRegistry?.Clear();
+            RegistryParent?.Clear();
         }
 
         public bool Contains(KeyValuePair<KeyType, ValueType> item)
@@ -134,7 +134,7 @@ namespace LooCast.System.Registries
         #region Overrides
         public virtual void PreInitialize()
         {
-            BaseRegistry = GetBaseRegistry();
+            RegistryParent = GetBaseRegistry();
             
             TypeRegistry typeRegistry = MainManager.Instance.MainRegistry.GetRegistry(typeof(IType)) as TypeRegistry;
             

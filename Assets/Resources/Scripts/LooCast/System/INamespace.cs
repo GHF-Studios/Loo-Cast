@@ -1,20 +1,21 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace LooCast.System
 {
     using LooCast.System.Identifiers;
-    using LooCast.System.Registries;
+    using LooCast.System.Data;
+    using LooCast.System.MetaData;
     
     public interface INamespace : ILooCastObject
     {
         #region Properties
-        public IIdentifier Identifier => NamespaceIdentifier;
-        public NamespaceIdentifier NamespaceIdentifier { get; }
-        public string NamespaceName => NamespaceIdentifier.NamespaceName;
+        public INamespaceMetaData NamespaceMetaData { get; set; }
+        public INamespaceData NamespaceData { get; }
 
-        public Namespace ParentNamespace { get; }
-        public NamespaceRegistry ChildNamespaces { get; }
-        public TypeRegistry ContainedTypes { get; }
+        public INamespace NamespaceParent { get; }
+        public IEnumerable<INamespace> NamespaceChildren { get; }
+        public IEnumerable<IType> TypeChildren { get; }
         #endregion
     }
 }

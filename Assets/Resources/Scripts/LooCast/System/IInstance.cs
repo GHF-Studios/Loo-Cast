@@ -8,11 +8,13 @@ namespace LooCast.System
     public interface IInstance : ILooCastObject
     {
         #region Properties
+        public IType InstanceType { get; }
+        
         public IInstanceMetaData InstanceMetaData { get; set; }
         public IInstanceData InstanceData { get; set; }
-        public IInstance ParentInstance { get; }
-        public IEnumerable<IInstance> ChildInstances { get; }
-        public IType InstanceType { get; set; }
+
+        public IInstance InstanceParent { get; }
+        public IEnumerable<IInstance> InstanceChildren { get; }
         #endregion
     }
 }

@@ -5,8 +5,8 @@ namespace LooCast.System
     public interface IMetaData : ILooCastObject
     {
         #region Properties
-        public IMetaData ParentMetaData { get; }
-        public IEnumerable<IMetaData> ChildMetaData { get; }
+        public IMetaData MetaDataParent { get; }
+        public IEnumerable<IMetaData> MetaDataChildren { get; }
         #endregion
     }
 }
