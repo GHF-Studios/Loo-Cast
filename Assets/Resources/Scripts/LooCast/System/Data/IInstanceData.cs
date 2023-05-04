@@ -8,11 +8,8 @@ namespace LooCast.System.Data
     public interface IInstanceData : IData
     {
         #region Properties
-        public IInstanceData ParentInstanceData { get; }
-        public IEnumerable<IInstanceData> ChildInstanceData { get; }
-
-        public IInstance ParentInstance { get; }
-        public IEnumerable<IInstance> ChildInstances { get; }
+        public IInstanceData InstanceDataParent { get; }
+        public IEnumerable<IInstanceData> InstanceDataChildren { get; }
         #endregion
     }
 }

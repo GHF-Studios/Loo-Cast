@@ -10,13 +10,16 @@ namespace LooCast.System.MetaData
     {
         #region Properties
         public IInstanceIdentifier InstanceIdentifier { get; }
-        public IInstanceTypeMetaData InstanceTypeMetaData { get; }
-        public IInstanceMetaData ParentInstanceMetaData { get; }
-        public IEnumerable<IInstanceMetaData> ChildInstancesMetaData { get; }
+        
+        public ITypeMetaData InstanceTypeMetaData { get; }
+        
+        public IInstanceMetaData InstanceMetaDataParent { get; }
+        public IEnumerable<IInstanceMetaData> InstancesMetaDataChildren { get; }
 
         public IType InstanceType { get; }
-        public IInstance ParentInstance { get; }
-        public IEnumerable<IInstance> ChildInstances { get; }
+        
+        public IInstance InstanceParent { get; }
+        public IEnumerable<IInstance> InstanceChildren { get; }
         #endregion
     }
 }

@@ -2,7 +2,7 @@
 
 namespace LooCast.System
 {
-    public interface IData : ILooCastObject
+    public interface IData : IIdentifiable, IHierarchyElement
     {
         #region Properties
         public IData DataParent { get; }

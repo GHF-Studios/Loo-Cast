@@ -11,11 +11,7 @@ namespace LooCast.System
     {
         #region Properties
         public INamespaceMetaData NamespaceMetaData { get; set; }
-        public INamespaceData NamespaceData { get; }
-
-        public INamespace NamespaceParent { get; }
-        public IEnumerable<INamespace> NamespaceChildren { get; }
-        public IEnumerable<IType> TypeChildren { get; }
+        public INamespaceData NamespaceData { get; set; }
         #endregion
     }
 }

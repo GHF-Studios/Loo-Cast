@@ -11,8 +11,8 @@ namespace LooCast.System.MetaData
         #region Properties
         public abstract IInstanceIdentifier InstanceIdentifier { get; }
         public abstract IInstanceTypeMetaData InstanceTypeMetaData { get; }
-        public abstract IInstanceMetaData ParentInstanceMetaData { get; }
-        public abstract IEnumerable<IInstanceMetaData> ChildInstancesMetaData { get; }
+        public abstract IInstanceMetaData InstanceMetaDataParent { get; }
+        public abstract IEnumerable<IInstanceMetaData> InstancesMetaDataChildren { get; }
 
         public abstract IInstanceType InstanceType { get; }
         public abstract IInstanceType.IInstance ParentInstance { get; }

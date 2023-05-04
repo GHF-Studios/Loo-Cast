@@ -9,11 +9,11 @@ namespace LooCast.System.MetaData
     {
         #region Properties
         public abstract ITypeIdentifier TypeIdentifier { get; }
-        public abstract ITypeMetaData ParentTypeMetaData { get; }
-        public abstract IEnumerable<ITypeMetaData> ChildTypesMetaData { get; }
+        public abstract ITypeMetaData TypeMetaDataParent { get; }
+        public abstract IEnumerable<ITypeMetaData> TypeMetaDataChildren { get; }
 
-        public abstract IType ParentType { get; }
-        public abstract IEnumerable<IType> ChildTypes { get; }
+        public abstract IType TypeParent { get; }
+        public abstract IEnumerable<IType> TypeChildren { get; }
         #endregion
     }
 }

@@ -2,13 +2,14 @@
 
 namespace LooCast.System.Registries
 {
+    using LooCast.System.MetaData;
+    using LooCast.System.Data;
+    
     public interface IRegistry : ILooCastObject
     {
         #region Properties
+        public IRegistryMetaData RegistryMetaData { get; set; }
         public IRegistryData RegistryData { get; set; }
-        
-        public IRegistry RegistryParent { get; }
-        public IEnumerable<IRegistry> RegistryChildren { get; }
         #endregion
 
         #region Methods

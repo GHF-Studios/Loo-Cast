@@ -2,14 +2,11 @@
 
 namespace LooCast.System
 {
-    public interface ILooCastObject : IIdentifiable, IHierarchyElement
+    public interface ILooCastObject
     {
         #region Properties
         public IMetaData MetaData { get; set; }
         public IData Data { get; set; }
-
-        public ILooCastObject Parent { get; }
-        public IEnumerable<ILooCastObject> Children { get; }
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; }
