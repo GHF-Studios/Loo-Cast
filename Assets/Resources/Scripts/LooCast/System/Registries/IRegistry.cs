@@ -15,6 +15,9 @@ namespace LooCast.System.Registries
         #region Methods
         public void Add(IIdentifier key, IInstance value);
         public bool Remove(IIdentifier key);
+        public IInstance Get(IIdentifier key);
+        public bool ContainsKey(IIdentifier key);
+        public bool ContainsValue(IInstance value);
         public void Clear();
         #endregion
     }

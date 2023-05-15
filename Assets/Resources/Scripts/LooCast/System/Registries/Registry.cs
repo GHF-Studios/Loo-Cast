@@ -185,6 +185,36 @@ namespace LooCast.System.Registries
             
             return Remove((KeyType)key);
         }
+
+        public IInstance Get(IIdentifier key)
+        {
+            if (!(key is KeyType))
+            {
+                throw new global::System.Exception($"Key type '{key.GetType()}' is not of type '{typeof(KeyType)}'!");
+            }
+            
+            return GetValue((KeyType)key);
+        }
+
+        public bool ContainsKey(IIdentifier key)
+        {
+            if (!(key is KeyType))
+            {
+                throw new global::System.Exception($"Key type '{key.GetType()}' is not of type '{typeof(KeyType)}'!");
+            }
+
+            return ContainsKey((KeyType)key);
+        }
+
+        public bool ContainsValue(IInstance value)
+        {
+            if (!(value is ValueType))
+            {
+                throw new global::System.Exception($"Value type '{value.GetType()}' is not of type '{typeof(ValueType)}'!");
+            }
+
+            return dictionary.ContainsValue((ValueType)value);
+        }
         
         public void Add(KeyType key, ValueType value)
         {

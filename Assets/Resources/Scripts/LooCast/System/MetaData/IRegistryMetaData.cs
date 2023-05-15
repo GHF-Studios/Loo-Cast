@@ -7,11 +7,11 @@ namespace LooCast.System.MetaData
     public interface IRegistryMetaData : IMetaData
     {
         #region Properties
-        public IRegistryMetaData RegistryMetaDataParent { get; }
-        public IEnumerable<IRegistryMetaData> RegistryMetaDataChildren { get; }
+        IRegistryMetaData RegistryMetaDataParent { get; set; }
+        IEnumerable<IRegistryMetaData> RegistryMetaDataChildren { get; set; }
         
-        public IRegistry RegistryParent { get; }
-        public IEnumerable<IRegistry> RegistryChildren { get; }
+        IRegistry RegistryParent { get; set; }
+        IEnumerable<IRegistry> RegistryChildren { get; set; }
         #endregion
     }
 }
