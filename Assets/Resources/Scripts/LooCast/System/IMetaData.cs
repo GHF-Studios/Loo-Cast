@@ -11,5 +11,15 @@ namespace LooCast.System
         ILooCastObject Parent { get; set; }
         IEnumerable<ILooCastObject> Children { get; set; }
         #endregion
+
+        #region Methods
+        bool Validate();
+        void PreInitialize();
+        void Initialize();
+        void PostInitialize();
+        void PreTerminate();
+        void Terminate();
+        void PostTerminate();
+        #endregion
     }
 }
