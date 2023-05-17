@@ -6,8 +6,7 @@ namespace LooCast.System
     using LooCast.System.Data;
     using LooCast.System.MetaData;
 
-    public abstract class Type<TInstance> : IType
-        where TInstance : IInstance, new()
+    public abstract class Type<T> : IType
     {
         #region Properties
         public abstract IMetaData MetaData { get; set; }

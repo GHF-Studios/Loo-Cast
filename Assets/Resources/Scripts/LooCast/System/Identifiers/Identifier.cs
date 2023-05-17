@@ -15,7 +15,7 @@ namespace LooCast.System.Identifiers
         #endregion
 
         #region Constructors
-        public Identifier(string gusid)
+        protected Identifier(string gusid)
         {
             this.gusid = gusid;
         }

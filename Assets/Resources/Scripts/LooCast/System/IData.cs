@@ -2,12 +2,12 @@
 
 namespace LooCast.System
 {
-    public interface IData : IIdentifiable, IHierarchyElement
+    public interface IData
     {
         #region Properties
-        IInstance Instance { get; }
+        IMetaData ContainingMetaData { get; }
+        
         IData DataParent { get; }
-        IEnumerable<IData> DataChildren { get; }
         #endregion
 
         #region Methods

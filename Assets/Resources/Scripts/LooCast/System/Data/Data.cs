@@ -8,35 +8,27 @@ namespace LooCast.System.Data
     public abstract class Data : IData
     {
         #region Properties
-        public abstract IInstance Instance { get; }
-        public abstract IIdentifier Identifier { get; }
-        public abstract HierarchyElement HierarchyElement { get; }
+        public abstract IMetaData ContainingMetaData { get; }
+        
         public abstract IData DataParent { get; }
-        public abstract IEnumerable<IData> DataChildren { get; }
         #endregion
 
         #region Fields
-        [SerializeField] private string gusid;
-        [SerializeField] private string gusp;
+        [SerializeField] protected string gusid;
+        [SerializeField] protected string gusp;
 
-        [SerializeField] private string gusidParent;
-        [SerializeField] private string guspParent;
-
-        [SerializeField] private string[] gusidChildren;
-        [SerializeField] private string[] guspChildren;
+        [SerializeField] protected string gusidParent;
+        [SerializeField] protected string guspParent;
         #endregion
 
         #region Constructors
-        protected Data(string gusid, string gusp, string gusidParent, string guspParent, string[] gusidChildren, string[] guspChildren)
+        protected Data(string gusid, string gusp, string gusidParent, string guspParent)
         {
             this.gusid = gusid;
             this.gusp = gusp;
 
             this.gusidParent = gusidParent;
             this.guspParent = guspParent;
-
-            this.gusidChildren = gusidChildren;
-            this.guspChildren = guspChildren;
 
             if (!Validate())
             {
@@ -62,15 +54,6 @@ namespace LooCast.System.Data
                 return false;
             }
             if (string.IsNullOrEmpty(guspParent) || string.IsNullOrWhiteSpace(guspParent))
-            {
-                return false;
-            }
-
-            if (gusidChildren == null || gusidChildren.Length == 0)
-            {
-                return false;
-            }
-            if (guspChildren == null || guspChildren.Length == 0)
             {
                 return false;
             }

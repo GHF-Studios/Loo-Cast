@@ -2,7 +2,7 @@
 {
     using global::LooCast.System.Identifiers;
 
-    public sealed class NamespaceRegistry : Registry<NamespaceIdentifier, Namespace>
+    public sealed class NamespaceRegistry : Registry<INamespaceIdentifier, INamespace>
     {
         #region Overides
         protected override IRegistry GetBaseRegistry()

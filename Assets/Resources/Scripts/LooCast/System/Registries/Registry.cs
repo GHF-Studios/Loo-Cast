@@ -7,13 +7,15 @@ namespace LooCast.System.Registries
     using LooCast.System.Data;
     using LooCast.System.Identifiers;
     using LooCast.System.MetaData;
-    using LooCast.System.Types;
 
     public class Registry<KeyType, ValueType> : IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
         where KeyType : IIdentifier
-        where ValueType : IInstance
+        where ValueType : IIdentifiable
     {
         #region Properties
+        public IIdentifier Identifier => RegistryIdentifier;
+        public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
+
         public IMetaData MetaData
         {
             get
@@ -41,15 +43,6 @@ namespace LooCast.System.Registries
             }
         }
         public IRegistryData RegistryData { get; set; }
-
-#nullable enable
-        public IRegistry? RegistryParent { get; private set; }
-#nullable disable
-        public IType RegistryKeyType { get; private set; }
-        public IType RegistryValueType { get; private set; }
-        public ICollection<KeyType> Keys => dictionary.Keys;
-        public ICollection<ValueType> Values => dictionary.Values;
-        public int Count => dictionary.Count;
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -158,11 +151,10 @@ namespace LooCast.System.Registries
         #endregion
 
         #region Fields
-        private Dictionary<KeyType, ValueType> dictionary;
         #endregion
 
         #region Methods
-        public void Add(IIdentifier key, IInstance value)
+        public void Add(IIdentifier key, IIdentifiable value)
         {
             if (!(key is KeyType))
             {
@@ -186,7 +178,7 @@ namespace LooCast.System.Registries
             return Remove((KeyType)key);
         }
 
-        public IInstance Get(IIdentifier key)
+        public IIdentifiable Get(IIdentifier key)
         {
             if (!(key is KeyType))
             {
@@ -206,7 +198,7 @@ namespace LooCast.System.Registries
             return ContainsKey((KeyType)key);
         }
 
-        public bool ContainsValue(IInstance value)
+        public bool ContainsValue(IIdentifiable value)
         {
             if (!(value is ValueType))
             {
@@ -309,11 +301,6 @@ namespace LooCast.System.Registries
         public virtual void PreInitialize()
         {
             RegistryParent = GetBaseRegistry();
-            
-            TypeRegistry typeRegistry = MainManager.Instance.MainRegistry.GetRegistry(typeof(IType)) as TypeRegistry;
-            
-            RegistryKeyType = typeRegistry.GetValue(typeof(KeyType));
-            RegistryValueType = typeRegistry.GetValue(typeof(ValueType));
         }
 
         public virtual void LatePreInitialize()

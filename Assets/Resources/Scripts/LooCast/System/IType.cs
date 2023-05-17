@@ -5,7 +5,7 @@ namespace LooCast.System
     using LooCast.System.MetaData;
     using LooCast.System.Data;
 
-    public interface IType : ILooCastObject
+    public interface IType : ILooCastObject, IIdentifiable
     {
         #region Properties
         public ITypeMetaData TypeMetaData { get; set; }

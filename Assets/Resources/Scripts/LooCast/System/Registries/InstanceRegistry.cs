@@ -1,11 +1,10 @@
 ﻿namespace LooCast.System.Registries
 {
     using LooCast.System.Identifiers;
-    using LooCast.System.Types;
 
     public class InstanceRegistry<KeyType, ValueType> : Registry<KeyType, ValueType>
         where KeyType : IIdentifier
-        where ValueType : IInstance
+        where ValueType : IIdentifiable
     {
         #region Overides
         protected override IRegistry GetBaseRegistry()

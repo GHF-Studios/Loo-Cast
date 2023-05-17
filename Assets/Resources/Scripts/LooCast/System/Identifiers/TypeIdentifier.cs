@@ -24,10 +24,10 @@ namespace LooCast.System.Identifiers
         [SerializeField] private readonly ITypeIdentifier[]? genericTypeArgumentIdentifiers;
 #nullable disable
         #endregion
-         
+
         #region Constructors
 #nullable enable
-        private TypeIdentifier(NamespaceIdentifier typeNamespaceIdentifier, string fullTypeName, global::System.Type cssystemType, ITypeIdentifier[]? genericTypeArgumentIdentifiers) : base($"{typeNamespaceIdentifier}:{fullTypeName}")
+        protected TypeIdentifier(NamespaceIdentifier typeNamespaceIdentifier, string fullTypeName, global::System.Type cssystemType, ITypeIdentifier[]? genericTypeArgumentIdentifiers) : base($"{typeNamespaceIdentifier}:{fullTypeName}")
         {
             this.typeNamespaceIdentifier = typeNamespaceIdentifier;
             this.fullTypeName = fullTypeName;
@@ -39,6 +39,16 @@ namespace LooCast.System.Identifiers
 
         #region Static Methods
 #nullable enable
+        public static TypeIdentifier Parse(string typeGUSID)
+        {
+            if (!TryParse(typeGUSID, out TypeIdentifier? typeIdentifier))
+            {
+                throw new ArgumentException($"'{typeGUSID}' is not a valid type GUSID!");
+            }
+
+            return typeIdentifier!;
+        }
+
         public static TypeIdentifier Parse(global::System.Type cssystemType)
         {
             NamespaceIdentifier typeNamespaceIdentifier = NamespaceIdentifier.Parse(cssystemType.Namespace);
@@ -76,11 +86,11 @@ namespace LooCast.System.Identifiers
             return new TypeIdentifier(typeNamespaceIdentifier, fullTypeName, cssystemType, genericTypeArguments);
         }
 
-        public static bool TryParse(string gusid, out TypeIdentifier? typeIdentifier)
+        public static bool TryParse(string typeGUSID, out TypeIdentifier? typeIdentifier)
         {
             typeIdentifier = null;
 
-            string[] parts = gusid.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] parts = typeGUSID.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length != 2)
             {

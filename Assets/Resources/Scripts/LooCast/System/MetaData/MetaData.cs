@@ -8,35 +8,28 @@ namespace LooCast.System.MetaData
     public abstract class MetaData : IMetaData
     {
         #region Properties
-        public abstract IInstance Instance { get; }
-        public abstract IIdentifier Identifier { get; }
-        public abstract HierarchyElement HierarchyElement { get; }
-        public abstract IMetaData MetaDataParent { get; set; }
-        public abstract IEnumerable<IMetaData> MetaDataChildren { get; set; }
+        public abstract IIdentifier ObjectIdentifier { get; }
+        public abstract HierarchyElement ObjectHierarchyElement { get; }
+        
+        public abstract IMetaData MetaDataParent { get; }
         #endregion
 
         #region Fields
-        [SerializeField] private string gusid;
-        [SerializeField] private string gusp;
-        
-        [SerializeField] private string gusidParent;
-        [SerializeField] private string guspParent;
-        
-        [SerializeField] private string[] gusidChildren;
-        [SerializeField] private string[] guspChildren;
+        [SerializeField] protected string gusid;
+        [SerializeField] protected string gusp;
+
+        [SerializeField] protected string gusidParent;
+        [SerializeField] protected string guspParent;
         #endregion
 
         #region Constructors
-        protected MetaData(string gusid, string gusp, string gusidParent, string guspParent, string[] gusidChildren, string[] guspChildren)
+        protected MetaData(string gusid, string gusp, string gusidParent, string guspParent)
         {
             this.gusid = gusid;
             this.gusp = gusp;
             
             this.gusidParent = gusidParent;
             this.guspParent = guspParent;
-            
-            this.gusidChildren = gusidChildren;
-            this.guspChildren = guspChildren;
 
             if (!Validate())
             {
@@ -62,15 +55,6 @@ namespace LooCast.System.MetaData
                 return false;
             }
             if (string.IsNullOrEmpty(guspParent) || string.IsNullOrWhiteSpace(guspParent))
-            {
-                return false;
-            }
-
-            if (gusidChildren == null || gusidChildren.Length == 0)
-            {
-                return false;
-            }
-            if (guspChildren == null || guspChildren.Length == 0)
             {
                 return false;
             }

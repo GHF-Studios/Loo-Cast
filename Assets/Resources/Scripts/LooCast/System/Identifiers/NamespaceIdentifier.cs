@@ -22,7 +22,7 @@ namespace LooCast.System.Identifiers
 
         #region Constructors
 #nullable enable
-        public NamespaceIdentifier(string namespaceName, NamespaceIdentifier? parentNamespaceIdentifier = null, string? gusid = null) : base(gusid == null ? parentNamespaceIdentifier == null ? $"{namespaceName}" : $"{parentNamespaceIdentifier}.{namespaceName}" : gusid)
+        protected NamespaceIdentifier(string namespaceName, NamespaceIdentifier? parentNamespaceIdentifier = null, string? gusid = null) : base(gusid == null ? parentNamespaceIdentifier == null ? $"{namespaceName}" : $"{parentNamespaceIdentifier}.{namespaceName}" : gusid)
         {
             this.namespaceName = namespaceName;
             this.parentNamespaceIdentifier = parentNamespaceIdentifier;
@@ -32,30 +32,26 @@ namespace LooCast.System.Identifiers
 
         #region Static Methods
 #nullable enable
-        public static NamespaceIdentifier Parse(string cssystemNamespace)
+        public static NamespaceIdentifier Parse(string namespaceGUSID)
         {
-            string[] parts = cssystemNamespace.Split(new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
-
-            NamespaceIdentifier? currentNamespaceIdentifier = null;
-
-            for (int i = 0; i < parts.Length; i++)
+            if (!TryParse(namespaceGUSID, out NamespaceIdentifier? namespaceIdentifier))
             {
-                currentNamespaceIdentifier = new NamespaceIdentifier(parts[i], currentNamespaceIdentifier);
+                throw new ArgumentException($"'{namespaceGUSID}' is not a valid namespace GUSID!");
             }
 
-            return currentNamespaceIdentifier ?? throw new ArgumentException("Invalid namespace string provided", nameof(cssystemNamespace));
+            return namespaceIdentifier!;
         }
 
-        public static bool TryParse(string @namespace, out NamespaceIdentifier? namespaceIdentifier)
+        public static bool TryParse(string namespaceGUSID, out NamespaceIdentifier? namespaceIdentifier)
         {
             namespaceIdentifier = null;
 
-            if (string.IsNullOrEmpty(@namespace) || string.IsNullOrWhiteSpace(@namespace))
+            if (string.IsNullOrEmpty(namespaceGUSID) || string.IsNullOrWhiteSpace(namespaceGUSID))
             {
                 return false;
             }
 
-            string[] parts = @namespace.Split(new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] parts = namespaceGUSID.Split(new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length == 0)
             {
