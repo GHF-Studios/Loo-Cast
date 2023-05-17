@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
 using System.Collections.Generic;
+using LooCast.System.Identifiers;
 
 namespace LooCast.System.MetaData
 {
@@ -8,9 +9,11 @@ namespace LooCast.System.MetaData
     public abstract class MetaData : IMetaData
     {
         #region Properties
-        public abstract IIdentifier ObjectIdentifier { get; }
-        public abstract HierarchyElement ObjectHierarchyElement { get; }
-        
+        public IIdentifier ObjectIdentifier => MetaDataIdentifier;
+        public abstract IMetaDataIdentifier MetaDataIdentifier { get; }
+
+        public HierarchyElement ObjectHierarchyElement { get; }
+
         public abstract IMetaData MetaDataParent { get; }
         #endregion
 

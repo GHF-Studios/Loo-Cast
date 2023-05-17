@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
 using System.Collections.Generic;
+using LooCast.System.Identifiers;
 
 namespace LooCast.System.Data
 {
@@ -8,8 +9,13 @@ namespace LooCast.System.Data
     public abstract class Data : IData
     {
         #region Properties
-        public abstract IMetaData ContainingMetaData { get; }
-        
+        public IIdentifier ObjectIdentifier => DataIdentifier;
+        public abstract IDataIdentifier DataIdentifier { get; }
+
+        public HierarchyElement ObjectHierarchyElement { get; }
+
+        public IMetaData ObjectMetaData { get; }
+
         public abstract IData DataParent { get; }
         #endregion
 

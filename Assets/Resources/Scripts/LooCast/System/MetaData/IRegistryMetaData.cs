@@ -10,6 +10,8 @@ namespace LooCast.System.MetaData
         #region Properties
         IRegistryIdentifier RegistryIdentifier { get; }
         
+        HierarchyElement RegistryHierarchyElement { get; }
+
         IRegistryMetaData RegistryMetaDataParent { get; }
         #endregion
     }

@@ -2,12 +2,16 @@
 
 namespace LooCast.System.Registries
 {
+    using LooCast.System.Identifiers;
     using LooCast.System.MetaData;
     using LooCast.System.Data;
     
-    public interface IRegistry : ILooCastObject, IIdentifiable
+    public interface IRegistry : IObject, IIdentifiable
     {
         #region Properties
+        public IRegistryIdentifier RegistryIdentifier { get; }
+        public HierarchyElement RegistryHierarchyElement { get; }
+
         public IRegistryMetaData RegistryMetaData { get; set; }
         public IRegistryData RegistryData { get; set; }
         #endregion

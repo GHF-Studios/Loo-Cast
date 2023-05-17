@@ -2,11 +2,12 @@
 
 namespace LooCast.System
 {
-    public interface IMetaData
+    using LooCast.System.Identifiers;
+    
+    public interface IMetaData : ILooCastObject
     {
         #region Properties
-        IIdentifier ObjectIdentifier { get; }
-        HierarchyElement ObjectHierarchyElement { get; }
+        IMetaDataIdentifier MetaDataIdentifier { get; }
 
         IMetaData MetaDataParent { get; }
         #endregion

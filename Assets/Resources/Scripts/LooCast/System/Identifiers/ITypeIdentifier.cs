@@ -5,6 +5,8 @@ namespace LooCast.System.Identifiers
     public interface ITypeIdentifier : IIdentifier
     {
         #region Properties
+        public string TypeGUSID { get; }
+        
         public INamespaceIdentifier TypeNamespaceIdentifier { get;  }
         public string FullTypeName { get; }
         public Type CSSystemType { get; }

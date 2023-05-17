@@ -7,6 +7,8 @@ namespace LooCast.System.Identifiers
     public class NamespaceIdentifier : Identifier, INamespaceIdentifier
     {
         #region Properties
+        public string NamespaceGUSID => GUSID;
+
         public string NamespaceName => namespaceName;
 #nullable enable
         public INamespaceIdentifier? ParentNamespaceIdentifier => parentNamespaceIdentifier;

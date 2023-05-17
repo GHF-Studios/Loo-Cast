@@ -5,7 +5,7 @@
     using LooCast.System.MetaData;
     using LooCast.System.Registries;
 
-    public class Namespace : ILooCastObject
+    public class Namespace : IObject
     {
         #region Properties
         public IMetaData MetaData { get; set; }

@@ -13,8 +13,12 @@ namespace LooCast.System.Registries
         where ValueType : IIdentifiable
     {
         #region Properties
-        public IIdentifier Identifier => RegistryIdentifier;
-        public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
+        public IIdentifier Identifier => ObjectIdentifier;
+        public IIdentifier ObjectIdentifier => RegistryIdentifier;
+        public IRegistryIdentifier RegistryIdentifier => RegistryMetaData.RegistryIdentifier;
+
+        public HierarchyElement ObjectHierarchyElement => RegistryHierarchyElement;
+        public HierarchyElement RegistryHierarchyElement => test;
 
         public IMetaData MetaData
         {
@@ -28,7 +32,18 @@ namespace LooCast.System.Registries
                 RegistryMetaData = (IRegistryMetaData)value;
             }
         }
-        public IRegistryMetaData RegistryMetaData { get; set; }
+        public IRegistryMetaData RegistryMetaData
+        {
+            get
+            {
+                return registryMetaData;
+            }
+
+            set
+            {
+                registryMetaData = (RegistryMetaData<KeyType, ValueType>)value;
+            }
+        }
 
         public IData Data
         {
@@ -42,7 +57,18 @@ namespace LooCast.System.Registries
                 RegistryData = (IRegistryData)value;
             }
         }
-        public IRegistryData RegistryData { get; set; }
+        public IRegistryData RegistryData
+        {
+            get
+            {
+                return registryData;
+            }
+
+            set
+            {
+                registryData = (RegistryData<KeyType, ValueType>)value;
+            }
+        }
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -147,10 +173,12 @@ namespace LooCast.System.Registries
             }
         }
         #endregion
-        
+
         #endregion
 
         #region Fields
+        private RegistryMetaData<KeyType, ValueType> registryMetaData;
+        private RegistryData<KeyType, ValueType> registryData;
         #endregion
 
         #region Methods

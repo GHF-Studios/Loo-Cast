@@ -14,22 +14,20 @@ namespace LooCast.System.MetaData
         where ValueType : IIdentifiable
     {
         #region Properties
-        public override IIdentifier ObjectIdentifier => RegistryIdentifier;
-        public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
-
-        public override HierarchyElement ObjectHierarchyElement => objectHierarchyElement;
+        public IRegistryIdentifier RegistryIdentifier => throw new NotImplementedException();
 
         public override IMetaData MetaDataParent => RegistryMetaDataParent;
         public IRegistryMetaData RegistryMetaDataParent => registryMetaDataParent;
 
         public IType RegistryKeyType => registryKeyType;
         public IType RegistryValueType => registryValueType;
+
         #endregion
 
         #region Fields
         private RegistryIdentifier registryIdentifier;
         
-        private HierarchyElement objectHierarchyElement;
+        private HierarchyElement registryHierarchyElement;
         
         private IRegistryMetaData registryMetaDataParent;
         
@@ -38,9 +36,9 @@ namespace LooCast.System.MetaData
         #endregion
 
         #region Constructors
-        public RegistryMetaData(HierarchyElement objectHierarchyElement, string gusid, string gusp, string gusidParent, string guspParent) : base(gusid, gusp, gusidParent, guspParent)
+        public RegistryMetaData(HierarchyElement registryHierarchyElement, string gusid, string gusp, string gusidParent, string guspParent) : base(gusid, gusp, gusidParent, guspParent)
         {
-            this.objectHierarchyElement = objectHierarchyElement;
+            this.registryHierarchyElement = registryHierarchyElement;
         }
         #endregion
 
@@ -52,7 +50,7 @@ namespace LooCast.System.MetaData
                 return false;
             }
 
-            if (objectHierarchyElement is not HierarchyFolder && objectHierarchyElement is not HierarchyFile && objectHierarchyElement is not HierarchyObject)
+            if (registryHierarchyElement is not HierarchyFolder && registryHierarchyElement is not HierarchyFile && registryHierarchyElement is not HierarchyObject)
             {
                 return false;
             }

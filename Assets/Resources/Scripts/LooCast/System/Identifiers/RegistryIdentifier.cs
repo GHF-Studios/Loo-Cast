@@ -7,6 +7,8 @@ namespace LooCast.System.Identifiers
     public class RegistryIdentifier : Identifier, IRegistryIdentifier
     {
         #region Properties
+        public string RegistryGUSID => GUSID;
+        
         public ITypeIdentifier KeyTypeIdentifier => keyTypeIdentifier;
         public ITypeIdentifier ValueTypeIdentifier => valueTypeIdentifier;
         #endregion
@@ -42,9 +44,7 @@ namespace LooCast.System.Identifiers
         where KeyType : IIdentifier
         where ValueType : IIdentifiable
         {
-            TypeIdentifier keyTypeIdentifier = TypeIdentifier.Parse(typeof(KeyType));
-            TypeIdentifier valueTypeIdentifier = TypeIdentifier.Parse(typeof(ValueType));
-            return Parse($"{keyTypeIdentifier}_{valueTypeIdentifier}");
+            return Parse(typeof(KeyType), typeof(ValueType));
         }
         
         public static RegistryIdentifier Parse(Type keyType, Type valueType)

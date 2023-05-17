@@ -2,7 +2,7 @@
 {
     using global::LooCast.System.Identifiers;
 
-    public sealed class MetaDataRegistry : Registry<IMetaDataIdentifier, IMetaData>
+    public sealed class DataRegistry : Registry<IDataIdentifier, IData>
     {
         #region Overides
         protected override IRegistry GetBaseRegistry()

@@ -8,6 +8,8 @@ namespace LooCast.System.Identifiers
     public class TypeIdentifier : Identifier, ITypeIdentifier
     {
         #region Properties
+        public string TypeGUSID => GUSID;
+
         public INamespaceIdentifier TypeNamespaceIdentifier => typeNamespaceIdentifier;
         public string FullTypeName => fullTypeName;
         public global::System.Type CSSystemType => cssystemType;

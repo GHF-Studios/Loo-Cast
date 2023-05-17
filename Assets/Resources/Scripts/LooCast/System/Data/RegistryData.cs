@@ -15,19 +15,16 @@ namespace LooCast.System.Data
         where ValueType : IIdentifiable
     {
         #region Properties
-        public override IMetaData ContainingMetaData => ContainingRegistryMetaData;
-        public IRegistryMetaData ContainingRegistryMetaData => containingRegistryMetaData;
+        public override IDataIdentifier DataIdentifier => dataIdentifier;
 
         public override IData DataParent => RegistryDataParent;
         public IRegistryData RegistryDataParent => registryDataParent;
-
-        public IEnumerable<KeyType> Keys => dictionary.Keys;
-        public IEnumerable<ValueType> Values => dictionary.Values;
-        public int EntryCount => dictionary.Count;
+        
+        public IDictionary<KeyType, ValueType> Dictionary => dictionary;
         #endregion
 
         #region Fields
-        private IRegistryMetaData containingRegistryMetaData;
+        private DataIdentifier dataIdentifier;
         
         private IRegistryData registryDataParent;
         
