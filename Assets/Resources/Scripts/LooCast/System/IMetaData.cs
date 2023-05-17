@@ -5,11 +5,9 @@ namespace LooCast.System
     public interface IMetaData : IIdentifiable, IHierarchyElement
     {
         #region Properties
-        IMetaData MetaDataParent { get; set; }
-        IEnumerable<IMetaData> MetaDataChildren { get; set; }
-
-        ILooCastObject Parent { get; set; }
-        IEnumerable<ILooCastObject> Children { get; set; }
+        IInstance Instance { get; }
+        IMetaData MetaDataParent { get; }
+        IEnumerable<IMetaData> MetaDataChildren { get; }
         #endregion
 
         #region Methods

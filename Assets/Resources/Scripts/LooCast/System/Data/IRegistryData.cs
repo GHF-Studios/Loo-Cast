@@ -6,8 +6,8 @@ namespace LooCast.System.Data
     public interface IRegistryData : IData
     {
         #region Properties
-        IRegistryData RegistryDataParent { get; set; }
-        IEnumerable<IRegistryData> RegistryDataChildren { get; set; }
+        IRegistryData RegistryDataParent { get; }
+        IEnumerable<IRegistryData> RegistryDataChildren { get; }
         #endregion
     }
 }

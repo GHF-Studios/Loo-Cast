@@ -8,44 +8,73 @@ namespace LooCast.System.MetaData
     public abstract class MetaData : IMetaData
     {
         #region Properties
+        public abstract IInstance Instance { get; }
         public abstract IIdentifier Identifier { get; }
         public abstract HierarchyElement HierarchyElement { get; }
-        
-        public abstract ILooCastObject Parent { get; set; }
         public abstract IMetaData MetaDataParent { get; set; }
-        
-        public abstract IEnumerable<ILooCastObject> Children { get; set; }
         public abstract IEnumerable<IMetaData> MetaDataChildren { get; set; }
         #endregion
 
         #region Fields
-        [SerializeField] private string metaDataGUSID;
-        [SerializeField] private string metaDataGUSP;
+        [SerializeField] private string gusid;
+        [SerializeField] private string gusp;
         
-        [SerializeField] private string metaDataGUSIDParent;
-        [SerializeField] private string metaDataGUSPParent;
+        [SerializeField] private string gusidParent;
+        [SerializeField] private string guspParent;
         
-        [SerializeField] private string[] metaDataGUSIDChildren;
-        [SerializeField] private string[] metaDataGUSPChildren;
+        [SerializeField] private string[] gusidChildren;
+        [SerializeField] private string[] guspChildren;
         #endregion
 
         #region Constructors
-        protected MetaData(string metaDataGUSID, string metaDataGUSP, string metaDataGUSIDParent, string metaDataGUSPParent, string[] metaDataGUSIDChildren, string[] metaDataGUSPChildren)
+        protected MetaData(string gusid, string gusp, string gusidParent, string guspParent, string[] gusidChildren, string[] guspChildren)
         {
-            this.metaDataGUSID = metaDataGUSID;
-            this.metaDataGUSP = metaDataGUSP;
+            this.gusid = gusid;
+            this.gusp = gusp;
             
-            this.metaDataGUSIDParent = metaDataGUSIDParent;
-            this.metaDataGUSPParent = metaDataGUSPParent;
+            this.gusidParent = gusidParent;
+            this.guspParent = guspParent;
             
-            this.metaDataGUSIDChildren = metaDataGUSIDChildren;
-            this.metaDataGUSPChildren = metaDataGUSPChildren;
+            this.gusidChildren = gusidChildren;
+            this.guspChildren = guspChildren;
+
+            if (!Validate())
+            {
+                throw new Exception("MetaData is not valid!");
+            }
         }
         #endregion
 
         #region Methods
         public virtual bool Validate()
         {
+            if (string.IsNullOrEmpty(gusid) || string.IsNullOrWhiteSpace(gusid))
+            {
+                return false;
+            }
+            if (string.IsNullOrEmpty(gusp) || string.IsNullOrWhiteSpace(gusp))
+            {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(gusidParent) || string.IsNullOrWhiteSpace(gusidParent))
+            {
+                return false;
+            }
+            if (string.IsNullOrEmpty(guspParent) || string.IsNullOrWhiteSpace(guspParent))
+            {
+                return false;
+            }
+
+            if (gusidChildren == null || gusidChildren.Length == 0)
+            {
+                return false;
+            }
+            if (guspChildren == null || guspChildren.Length == 0)
+            {
+                return false;
+            }
+
             return true;
         }
 
