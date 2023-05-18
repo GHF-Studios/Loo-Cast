@@ -41,8 +41,8 @@ namespace LooCast.System.Identifiers
         }
 
         public static RegistryIdentifier Parse<KeyType, ValueType>()
-        where KeyType : IIdentifier
-        where ValueType : IIdentifiable
+        where KeyType : IObjectIdentifier
+        where ValueType : IIdentifiableObject
         {
             return Parse(typeof(KeyType), typeof(ValueType));
         }

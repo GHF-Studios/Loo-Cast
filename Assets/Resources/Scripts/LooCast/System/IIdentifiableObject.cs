@@ -2,10 +2,10 @@
 
 namespace LooCast.System
 {
-    public interface IIdentifiable
+    public interface IIdentifiableObject
     {
         #region Properties
-        IIdentifier Identifier { get; }
+        IObjectIdentifier ObjectIdentifier { get; }
         #endregion
     }
 }

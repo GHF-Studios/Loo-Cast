@@ -2,7 +2,7 @@
 
 namespace LooCast.System.Identifiers
 {
-    public interface IInstanceIdentifier : IIdentifier
+    public interface IInstanceIdentifier : IObjectIdentifier
     {
         #region Properties
         public string InstanceGUSID => GUSID;

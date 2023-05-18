@@ -3,12 +3,10 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    public interface IObject : ILooCastObject
+    public interface IEngineObject : IIdentifiableObject
     {
         #region Properties
-        public IMetaData MetaData { get; set; }
-        public IData Data { get; set; }
-
+        
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; }
         public bool IsPreInitializing { get; }
@@ -157,7 +155,7 @@ namespace LooCast.System
 
         void LatePostTerminate();
         #endregion
-        
+
         #endregion
     }
 }

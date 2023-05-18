@@ -5,12 +5,12 @@
     using LooCast.System.MetaData;
     using LooCast.System.Registries;
 
-    public class Namespace : IObject
+    public class Namespace : ISerializableEngineObject
     {
         #region Properties
         public IMetaData MetaData { get; set; }
         public IData Data { get; set; }
-        public IIdentifier Identifier => NamespaceIdentifier;
+        public IObjectIdentifier ObjectIdentifier => NamespaceIdentifier;
         public NamespaceIdentifier NamespaceIdentifier { get; }
         public string NamespaceName => NamespaceIdentifier.NamespaceName;
 

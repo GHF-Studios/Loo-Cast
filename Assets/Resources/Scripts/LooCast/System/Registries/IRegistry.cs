@@ -6,22 +6,22 @@ namespace LooCast.System.Registries
     using LooCast.System.MetaData;
     using LooCast.System.Data;
     
-    public interface IRegistry : IObject, IIdentifiable
+    // Zu IEngineObject konvertieren
+    public interface IRegistry : ISerializableEngineObject
     {
         #region Properties
         public IRegistryIdentifier RegistryIdentifier { get; }
-        public HierarchyElement RegistryHierarchyElement { get; }
 
         public IRegistryMetaData RegistryMetaData { get; set; }
         public IRegistryData RegistryData { get; set; }
         #endregion
 
         #region Methods
-        public void Add(IIdentifier key, IIdentifiable value);
-        public bool Remove(IIdentifier key);
-        public IIdentifiable Get(IIdentifier key);
-        public bool ContainsKey(IIdentifier key);
-        public bool ContainsValue(IIdentifiable value);
+        public void Add(IObjectIdentifier key, IIdentifiableObject value);
+        public bool Remove(IObjectIdentifier key);
+        public IIdentifiableObject Get(IObjectIdentifier key);
+        public bool ContainsKey(IObjectIdentifier key);
+        public bool ContainsValue(IIdentifiableObject value);
         public void Clear();
         #endregion
     }

@@ -11,8 +11,8 @@ namespace LooCast.System.Data
     
     [Serializable]
     public sealed class RegistryData<KeyType, ValueType> : Data, IRegistryData
-        where KeyType : IIdentifier
-        where ValueType : IIdentifiable
+        where KeyType : IObjectIdentifier
+        where ValueType : IIdentifiableObject
     {
         #region Properties
         public override IDataIdentifier DataIdentifier => dataIdentifier;

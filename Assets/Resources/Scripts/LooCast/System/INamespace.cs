@@ -7,7 +7,7 @@ namespace LooCast.System
     using LooCast.System.Data;
     using LooCast.System.MetaData;
     
-    public interface INamespace : IObject, IIdentifiable
+    public interface INamespace : ISerializableEngineObject, IIdentifiableObject
     {
         #region Properties
         public INamespaceMetaData NamespaceMetaData { get; set; }

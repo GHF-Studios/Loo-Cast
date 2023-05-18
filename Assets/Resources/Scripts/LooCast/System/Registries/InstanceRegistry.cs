@@ -3,8 +3,8 @@
     using LooCast.System.Identifiers;
 
     public class InstanceRegistry<KeyType, ValueType> : Registry<KeyType, ValueType>
-        where KeyType : IIdentifier
-        where ValueType : IIdentifiable
+        where KeyType : IObjectIdentifier
+        where ValueType : IIdentifiableObject
     {
         #region Overides
         protected override IRegistry GetBaseRegistry()

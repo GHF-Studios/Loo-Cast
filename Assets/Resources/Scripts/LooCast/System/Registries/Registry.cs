@@ -9,12 +9,12 @@ namespace LooCast.System.Registries
     using LooCast.System.MetaData;
 
     public class Registry<KeyType, ValueType> : IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
-        where KeyType : IIdentifier
-        where ValueType : IIdentifiable
+        where KeyType : IObjectIdentifier
+        where ValueType : IIdentifiableObject
     {
         #region Properties
-        public IIdentifier Identifier => ObjectIdentifier;
-        public IIdentifier ObjectIdentifier => RegistryIdentifier;
+        public IObjectIdentifier ObjectIdentifier => ObjectIdentifier;
+        public IObjectIdentifier ObjectIdentifier => RegistryIdentifier;
         public IRegistryIdentifier RegistryIdentifier => RegistryMetaData.RegistryIdentifier;
 
         public HierarchyElement ObjectHierarchyElement => RegistryHierarchyElement;
@@ -182,7 +182,7 @@ namespace LooCast.System.Registries
         #endregion
 
         #region Methods
-        public void Add(IIdentifier key, IIdentifiable value)
+        public void Add(IObjectIdentifier key, IIdentifiableObject value)
         {
             if (!(key is KeyType))
             {
@@ -196,7 +196,7 @@ namespace LooCast.System.Registries
             Add((KeyType)key, (ValueType)value);
         }
 
-        public bool Remove(IIdentifier key)
+        public bool Remove(IObjectIdentifier key)
         {
             if (!(key is KeyType))
             {
@@ -206,7 +206,7 @@ namespace LooCast.System.Registries
             return Remove((KeyType)key);
         }
 
-        public IIdentifiable Get(IIdentifier key)
+        public IIdentifiableObject Get(IObjectIdentifier key)
         {
             if (!(key is KeyType))
             {
@@ -216,7 +216,7 @@ namespace LooCast.System.Registries
             return GetValue((KeyType)key);
         }
 
-        public bool ContainsKey(IIdentifier key)
+        public bool ContainsKey(IObjectIdentifier key)
         {
             if (!(key is KeyType))
             {
@@ -226,7 +226,7 @@ namespace LooCast.System.Registries
             return ContainsKey((KeyType)key);
         }
 
-        public bool ContainsValue(IIdentifiable value)
+        public bool ContainsValue(IIdentifiableObject value)
         {
             if (!(value is ValueType))
             {

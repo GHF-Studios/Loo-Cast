@@ -10,8 +10,8 @@ namespace LooCast.System.MetaData
 
     [Serializable]
     public sealed class RegistryMetaData<KeyType, ValueType> : MetaData, IRegistryMetaData
-        where KeyType : IIdentifier
-        where ValueType : IIdentifiable
+        where KeyType : IObjectIdentifier
+        where ValueType : IIdentifiableObject
     {
         #region Properties
         public IRegistryIdentifier RegistryIdentifier => throw new NotImplementedException();
