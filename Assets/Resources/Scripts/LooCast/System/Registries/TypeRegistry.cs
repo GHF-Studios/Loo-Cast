@@ -1,13 +1,13 @@
 ﻿namespace LooCast.System.Registries
 {
-    using global::LooCast.System.Identifiers;
+    using LooCast.System.Identifiers;
 
     public sealed class TypeRegistry : Registry<TypeIdentifier, IType>
     {
-        #region Overides
-        protected override IRegistry GetBaseRegistry()
+        #region Constructors
+        public TypeRegistry() : base(MainManager.Instance.MainRegistry)
         {
-            return MainManager.Instance.MainRegistry;
+
         }
         #endregion
     }

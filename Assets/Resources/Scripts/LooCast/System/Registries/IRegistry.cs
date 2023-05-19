@@ -6,14 +6,10 @@ namespace LooCast.System.Registries
     using LooCast.System.MetaData;
     using LooCast.System.Data;
     
-    // Zu IEngineObject konvertieren und alle Registry MetaData und Data Klassen und Schnittstellen löschen
-    public interface IRegistry : ISerializableEngineObject
+    public interface IRegistry : IEngineObject
     {
         #region Properties
         public IRegistryIdentifier RegistryIdentifier { get; }
-
-        public IRegistryMetaData RegistryMetaData { get; set; }
-        public IRegistryData RegistryData { get; set; }
         #endregion
 
         #region Methods

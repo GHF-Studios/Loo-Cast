@@ -13,62 +13,13 @@ namespace LooCast.System.Registries
         where ValueType : IIdentifiableObject
     {
         #region Properties
-        public IObjectIdentifier ObjectIdentifier => ObjectIdentifier;
         public IObjectIdentifier ObjectIdentifier => RegistryIdentifier;
-        public IRegistryIdentifier RegistryIdentifier => RegistryMetaData.RegistryIdentifier;
+        public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
 
-        public HierarchyElement ObjectHierarchyElement => RegistryHierarchyElement;
-        public HierarchyElement RegistryHierarchyElement => test;
+        public IRegistry RegistryParent => registryParent;
 
-        public IMetaData MetaData
-        {
-            get
-            {
-                return RegistryMetaData;
-            }
-
-            set
-            {
-                RegistryMetaData = (IRegistryMetaData)value;
-            }
-        }
-        public IRegistryMetaData RegistryMetaData
-        {
-            get
-            {
-                return registryMetaData;
-            }
-
-            set
-            {
-                registryMetaData = (RegistryMetaData<KeyType, ValueType>)value;
-            }
-        }
-
-        public IData Data
-        {
-            get
-            {
-                return RegistryData;
-            }
-
-            set
-            {
-                RegistryData = (IRegistryData)value;
-            }
-        }
-        public IRegistryData RegistryData
-        {
-            get
-            {
-                return registryData;
-            }
-
-            set
-            {
-                registryData = (RegistryData<KeyType, ValueType>)value;
-            }
-        }
+        public Type<KeyType> RegistryKeyType => registryKeyType;
+        public Type<ValueType> RegistryValueType => registryValueType;
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -177,8 +128,24 @@ namespace LooCast.System.Registries
         #endregion
 
         #region Fields
-        private RegistryMetaData<KeyType, ValueType> registryMetaData;
-        private RegistryData<KeyType, ValueType> registryData;
+        private RegistryIdentifier registryIdentifier;
+        private IRegistry registryParent;
+        private Type<KeyType> registryKeyType;
+        private Type<ValueType> registryValueType;
+        private Dictionary<KeyType, ValueType> dictionary;
+        #endregion
+        
+        #region Constructors
+        public Registry(IRegistry registryParent)
+        {
+            TypeRegistry typeRegistry = MainManager.Instance.MainRegistry.TypeRegistry;
+            
+            registryIdentifier = Identifiers.RegistryIdentifier.Parse<KeyType, ValueType>();
+            this.registryParent = registryParent;
+            registryKeyType = (Type<KeyType>)typeRegistry.GetValue(typeof(KeyType));
+            registryValueType = (Type<ValueType>)typeRegistry.GetValue(typeof(ValueType));
+            dictionary = new Dictionary<KeyType, ValueType>();
+        }
         #endregion
 
         #region Methods
@@ -308,13 +275,6 @@ namespace LooCast.System.Registries
             return dictionary.GetEnumerator();
         }
 
-#nullable enable
-        protected virtual IRegistry? GetBaseRegistry()
-        {
-            return null;
-        }
-#nullable disable
-
         public virtual bool Validate()
         {
             return true;
@@ -328,7 +288,7 @@ namespace LooCast.System.Registries
 
         public virtual void PreInitialize()
         {
-            RegistryParent = GetBaseRegistry();
+            
         }
 
         public virtual void LatePreInitialize()

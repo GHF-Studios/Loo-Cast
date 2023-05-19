@@ -1,15 +1,11 @@
-﻿using System.Collections.Generic;
-
-namespace LooCast.System
+﻿namespace LooCast.System
 {
-    using LooCast.System.MetaData;
-    using LooCast.System.Data;
+    using LooCast.System.Identifiers;
 
-    public interface IType : ISerializableEngineObject, IIdentifiableObject
+    public interface IType : IEngineObject, IIdentifiableObject
     {
         #region Properties
-        public ITypeMetaData TypeMetaData { get; set; }
-        public ITypeData TypeData { get; set; }
+        public ITypeIdentifier TypeIdentifier { get; }
         #endregion
     }
 }

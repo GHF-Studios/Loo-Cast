@@ -12,6 +12,13 @@ namespace LooCast.System.Registries
         public NamespaceRegistry NamespaceRegistry { get; private set; }
         public TypeRegistry TypeRegistry { get; private set; }
         #endregion
+        
+        #region Constructors
+        public MainRegistry() : base(null)
+        {
+
+        }
+        #endregion
 
         #region Overrides
         public override void PostInitialize()

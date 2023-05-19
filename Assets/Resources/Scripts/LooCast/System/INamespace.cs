@@ -7,11 +7,13 @@ namespace LooCast.System
     using LooCast.System.Data;
     using LooCast.System.MetaData;
     
-    public interface INamespace : ISerializableEngineObject, IIdentifiableObject
+    public interface INamespace : IEngineObject
     {
         #region Properties
-        public INamespaceMetaData NamespaceMetaData { get; set; }
-        public INamespaceData NamespaceData { get; set; }
+        public INamespaceIdentifier NamespaceIdentifier { get; }
+        public INamespace NamespaceParent { get; }
+        public IEnumerable<INamespace> NamespaceChildren { get; }
+        public IEnumerable<IType> ContainedTypes { get; }
         #endregion
     }
 }
