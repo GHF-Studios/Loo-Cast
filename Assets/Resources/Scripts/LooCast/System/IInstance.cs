@@ -9,10 +9,11 @@ namespace LooCast.System
     public interface IInstance : ISerializableEngineObject
     {
         #region Properties
-        public IInstanceIdentifier InstanceIdentifier { get; }
-        public ITypeIdentifier InstanceTypeIdentifier { get; }
-        public IInstanceMetaData InstanceMetaData { get; set; }
-        public IInstanceData InstanceData { get; set; }
+        IInstanceMetaData InstanceMetaData { get; set; }
+        IInstanceData InstanceData { get; set; }
+
+        IInstanceIdentifier InstanceIdentifier { get; }
+        ITypeIdentifier InstanceTypeIdentifier { get; }
         #endregion
     }
 }

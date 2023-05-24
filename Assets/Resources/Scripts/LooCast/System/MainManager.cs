@@ -1,12 +1,12 @@
-﻿using System;
+﻿using UnityEngine;
+using System;
 
 namespace LooCast.System
 {
-    using LooCast.System.Identifiers;
     using LooCast.System.Hierarchies;
+    using LooCast.System.Identifiers;
     using LooCast.System.MetaData;
     using LooCast.System.Registries;
-    using UnityEngine;
 
     public sealed class MainManager : Manager<MainManager>
     {

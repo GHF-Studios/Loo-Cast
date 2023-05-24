@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    public interface ISerializableEngineObject : IEngineObject, IHierarchicalObject
+    public interface ISerializableEngineObject : IEngineObject, IHierarchyElement
     {
         #region Properties
         public IMetaData MetaData { get; set; }

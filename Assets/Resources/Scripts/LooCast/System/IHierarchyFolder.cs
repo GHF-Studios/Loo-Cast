@@ -6,8 +6,14 @@ namespace LooCast.System
     public interface IHierarchyFolder : IHierarchyElement
     {
         #region Properties
-        new public HierarchyElementPath HierarchyElementPath => HierarchyFolderPath;
         HierarchyFolderPath HierarchyFolderPath { get; }
+        
+#nullable enable
+        IHierarchyFolder? HierarchyFolderParent { get; }
+#nullable disable
+
+        IEnumerable<IHierarchyFile> HierarchyFileChildren  { get; }
+        IEnumerable<IHierarchyFolder> HierarchyFolderChildren  { get; }
         #endregion
     }
 }
