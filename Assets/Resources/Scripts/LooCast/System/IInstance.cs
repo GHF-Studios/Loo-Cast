@@ -10,6 +10,7 @@ namespace LooCast.System
     {
         #region Properties
         public IInstanceIdentifier InstanceIdentifier { get; }
+        public ITypeIdentifier InstanceTypeIdentifier { get; }
         public IInstanceMetaData InstanceMetaData { get; set; }
         public IInstanceData InstanceData { get; set; }
         #endregion

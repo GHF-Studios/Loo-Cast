@@ -20,7 +20,7 @@ namespace LooCast.System.Identifiers
 
         #region Constructors
 #nullable enable
-        protected RegistryIdentifier(ITypeIdentifier keyTypeIdentifier, ITypeIdentifier valueTypeIdentifier, string? gusid = null) : base(gusid == null ? $"{keyTypeIdentifier}_{valueTypeIdentifier}" : gusid)
+        protected RegistryIdentifier(ITypeIdentifier keyTypeIdentifier, ITypeIdentifier valueTypeIdentifier) : base($"{keyTypeIdentifier}_{valueTypeIdentifier}")
         {
             this.keyTypeIdentifier = keyTypeIdentifier;
             this.valueTypeIdentifier = valueTypeIdentifier;

@@ -24,7 +24,7 @@ namespace LooCast.System.Identifiers
 
         #region Constructors
 #nullable enable
-        protected NamespaceIdentifier(string namespaceName, NamespaceIdentifier? parentNamespaceIdentifier = null, string? gusid = null) : base(gusid == null ? parentNamespaceIdentifier == null ? $"{namespaceName}" : $"{parentNamespaceIdentifier}.{namespaceName}" : gusid)
+        protected NamespaceIdentifier(string namespaceName, NamespaceIdentifier? parentNamespaceIdentifier = null) : base(parentNamespaceIdentifier == null ? $"{namespaceName}" : $"{parentNamespaceIdentifier}.{namespaceName}")
         {
             this.namespaceName = namespaceName;
             this.parentNamespaceIdentifier = parentNamespaceIdentifier;

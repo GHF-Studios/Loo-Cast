@@ -3,10 +3,10 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    public interface IHierarchicalObject
+    public interface IHierarchyElement
     {
         #region Properties
-        HierarchyElement ObjectHierarchyElement { get; }
+        HierarchyElementPath HierarchyElementPath { get; }
         #endregion
     }
 }
