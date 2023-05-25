@@ -9,11 +9,11 @@ namespace LooCast.System
         HierarchyFolderPath HierarchyFolderPath { get; }
         
 #nullable enable
-        IHierarchyFolder? HierarchyFolderParent { get; }
+        IHierarchyFolder? FolderHierarchyParent { get; }
 #nullable disable
 
-        IEnumerable<IHierarchyFile> HierarchyFileChildren  { get; }
-        IEnumerable<IHierarchyFolder> HierarchyFolderChildren  { get; }
+        IEnumerable<IHierarchyFile> FileHierarchyChildren  { get; }
+        IEnumerable<IHierarchyFolder> FolderHierarchyChildren  { get; }
         #endregion
     }
 }

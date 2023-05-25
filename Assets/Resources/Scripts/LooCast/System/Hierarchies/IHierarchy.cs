@@ -5,7 +5,7 @@ namespace LooCast.System.Hierarchies
 {
     using LooCast.System.Identifiers;
 
-    public interface IHierarchy : IIdentifiableObject, IHierarchyFolder
+    public interface IHierarchy : IIdentifiableObject, IHierarchyElement
     {
         #region Properties
         public IHierarchyIdentifier HierarchyIdentifier { get; }
@@ -14,10 +14,10 @@ namespace LooCast.System.Hierarchies
         #region Methods
         public void Add(IHierarchyElement element);
         public bool Remove(HierarchyElementPath path);
-        public IHierarchyElement Get(HierarchyElementPath path);
-        public bool ContainsPath(HierarchyElementPath path);
-        public bool ContainsElement(IHierarchyElement element);
         public void Clear();
+        public IHierarchyElement Get(HierarchyElementPath path);
+        public bool ContainsElement(IHierarchyElement element);
+        public bool ContainsPath(HierarchyElementPath path);
         #endregion
     }
 }
