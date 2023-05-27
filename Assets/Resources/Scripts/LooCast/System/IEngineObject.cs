@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    public interface IEngineObject : IIdentifiableObject
+    public interface IEngineObject : IIdentifiableObject, IHierarchyElement
     {
         #region Properties
         

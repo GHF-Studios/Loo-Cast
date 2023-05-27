@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace LooCast.System.Hierarchies
 {
-    public abstract class Hierarchy<ElementType> : IHierarchyElement<IHierarchy>, IHierarchy
+    public abstract class Hierarchy<ElementType> : IHierarchyFolder, IHierarchy
         where ElementType : IHierarchyElement
     {
         #region Properties
@@ -13,12 +13,17 @@ namespace LooCast.System.Hierarchies
 
         public HierarchyElementPath HierarchyElementPath => HierarchyFolderPath;
         public HierarchyFolderPath HierarchyFolderPath => hierarchyFolderPath;
-        public HierarchyElementType HierarchyElementType => HierarchyElementType.Dynamic;
+
+        public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
 
         public IHierarchyElement<ElementType> RootElement => rootElement;
 
         public IHierarchy HierarchyParent => hierarchyParent;
         public IEnumerable<IHierarchy> HierarchyChildren => hierarchyChildren;
+
+        public IHierarchyFolder FolderHierarchyParent => (IHierarchyFolder)HierarchyParent;
+        public IEnumerable<IHierarchyFolder> FolderHierarchyChildren => (IEnumerable<IHierarchyFolder>)HierarchyChildren;
+        public IEnumerable<IHierarchyFile> FileHierarchyChildren => null;
         #endregion
 
         #region Fields

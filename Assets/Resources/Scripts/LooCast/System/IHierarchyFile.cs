@@ -7,7 +7,7 @@ namespace LooCast.System
     {
         #region Properties
         HierarchyFilePath HierarchyFilePath { get; }
-        
+
         IHierarchyFolder HierarchyFolderParent { get; }
         IEnumerable<IHierarchyObject> HierarchyObjectChildren { get; }
         #endregion

@@ -2,9 +2,8 @@
 {
     public enum HierarchyElementType
     {
-        Dynamic = 0,
-        Folder = 1,
-        File = 2,
-        Object = 3
+        Folder = 0,
+        File = 1,
+        Object = 2
     }
 }

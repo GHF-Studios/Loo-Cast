@@ -7,7 +7,7 @@ namespace LooCast.System
     {
         #region Properties
         HierarchyFolderPath HierarchyFolderPath { get; }
-        
+
 #nullable enable
         IHierarchyFolder? FolderHierarchyParent { get; }
 #nullable disable
