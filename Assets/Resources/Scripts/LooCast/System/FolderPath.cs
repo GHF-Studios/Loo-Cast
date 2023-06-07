@@ -5,25 +5,25 @@ using UnityEngine;
 namespace LooCast.System
 {
     [Serializable]
-    public class HierarchyFolderPath : HierarchyElementPath
+    public class FolderPath : HierarchicalObjectPath
     {
         #region Properties
         public string HierarchyFolderName => hierarchyFolderName;
 #nullable enable
-        public HierarchyFolderPath? ParentHierarchyFolderPath => parentHierarchyFolderPath;
+        public FolderPath? ParentHierarchyFolderPath => parentHierarchyFolderPath;
 #nullable disable
         #endregion
 
         #region Fields
         [SerializeField] private readonly string hierarchyFolderName;
 #nullable enable
-        [SerializeField] private readonly HierarchyFolderPath? parentHierarchyFolderPath;
+        [SerializeField] private readonly FolderPath? parentHierarchyFolderPath;
 #nullable disable
         #endregion
 
         #region Constructors
 #nullable enable
-        public HierarchyFolderPath(string hierarchyFolderName, HierarchyFolderPath? parentHierarchyFolderPath, string? gusp = null) : base(gusp == null ? parentHierarchyFolderPath == null ? $"{hierarchyFolderName}" : $"{parentHierarchyFolderPath}/{hierarchyFolderName}" : gusp)
+        public FolderPath(string hierarchyFolderName, FolderPath? parentHierarchyFolderPath, string? gusp = null) : base(gusp == null ? parentHierarchyFolderPath == null ? $"{hierarchyFolderName}" : $"{parentHierarchyFolderPath}/{hierarchyFolderName}" : gusp)
         {
             if (!IsValidHierarchyFolderName(hierarchyFolderName))
             {
@@ -36,7 +36,7 @@ namespace LooCast.System
 
         #region Static Methods
 #nullable enable
-        public static bool TryParse(string gusp, out HierarchyFolderPath? hierarchyFolderPath)
+        public static bool TryParse(string gusp, out FolderPath? hierarchyFolderPath)
         {
             hierarchyFolderPath = null;
 
@@ -56,18 +56,18 @@ namespace LooCast.System
 
             if (parts.Length == 1)
             {
-                hierarchyFolderPath = new HierarchyFolderPath(hierarchyFolderName, null);
+                hierarchyFolderPath = new FolderPath(hierarchyFolderName, null);
                 return true;
             }
 
             string parentHierarchyFolderPathString = string.Join("/", parts.Take(parts.Length - 1));
 
-            if (!TryParse(parentHierarchyFolderPathString, out HierarchyFolderPath? parentHierarchyFolderPath))
+            if (!TryParse(parentHierarchyFolderPathString, out FolderPath? parentHierarchyFolderPath))
             {
                 return false;
             }
 
-            hierarchyFolderPath = new HierarchyFolderPath(hierarchyFolderName, parentHierarchyFolderPath!);
+            hierarchyFolderPath = new FolderPath(hierarchyFolderName, parentHierarchyFolderPath!);
             return true;
         }
 #nullable disable
@@ -99,9 +99,9 @@ namespace LooCast.System
 
         public override bool Equals(object obj)
         {
-            if (obj is HierarchyFolderPath)
+            if (obj is FolderPath)
             {
-                return Equals((HierarchyFolderPath)obj);
+                return Equals((FolderPath)obj);
             }
             else
             {
@@ -109,7 +109,7 @@ namespace LooCast.System
             }
         }
 
-        public bool Equals(HierarchyFolderPath otherHierarchyFolderPath)
+        public bool Equals(FolderPath otherHierarchyFolderPath)
         {
             return otherHierarchyFolderPath.GUSP.Equals(this.GUSP);
         }
@@ -121,25 +121,25 @@ namespace LooCast.System
         #endregion
 
         #region Operators
-        public static bool operator ==(HierarchyFolderPath hierarchyFolderPath1, HierarchyFolderPath hierarchyFolderPath2)
+        public static bool operator ==(FolderPath hierarchyFolderPath1, FolderPath hierarchyFolderPath2)
         {
             return hierarchyFolderPath1.Equals(hierarchyFolderPath2);
         }
 
-        public static bool operator !=(HierarchyFolderPath hierarchyFolderPath1, HierarchyFolderPath hierarchyFolderPath2)
+        public static bool operator !=(FolderPath hierarchyFolderPath1, FolderPath hierarchyFolderPath2)
         {
             return !hierarchyFolderPath1.Equals(hierarchyFolderPath2);
         }
 
-        public static implicit operator string(HierarchyFolderPath hierarchyFolderPath)
+        public static implicit operator string(FolderPath hierarchyFolderPath)
         {
             return hierarchyFolderPath.GUSP;
         }
 
 #nullable enable
-        public static implicit operator HierarchyFolderPath?(string gusp)
+        public static implicit operator FolderPath?(string gusp)
         {
-            if (TryParse(gusp, out HierarchyFolderPath? hierarchyFolderPath))
+            if (TryParse(gusp, out FolderPath? hierarchyFolderPath))
             {
                 return hierarchyFolderPath;
             }

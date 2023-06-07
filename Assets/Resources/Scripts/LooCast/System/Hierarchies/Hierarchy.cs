@@ -4,58 +4,153 @@ using System.Collections.Generic;
 
 namespace LooCast.System.Hierarchies
 {
-    public abstract class Hierarchy<ElementType> : IHierarchyFolder, IHierarchy
+    public abstract class Hierarchy<ElementType> : IHierarchy
         where ElementType : IHierarchyElement
     {
         #region Properties
         public IObjectIdentifier ObjectIdentifier => HierarchyIdentifier;
         public IHierarchyIdentifier HierarchyIdentifier => hierarchyIdentifier;
 
-        public HierarchyElementPath HierarchyElementPath => HierarchyFolderPath;
-        public HierarchyFolderPath HierarchyFolderPath => hierarchyFolderPath;
+        public HierarchicalObjectPath HierarchyElementPath => HierarchyFolderPath;
+        public FolderPath HierarchyFolderPath => hierarchyFolderPath;
 
         public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
 
-        public IHierarchyElement<ElementType> RootElement => rootElement;
+        IEngineObject IChild<IEngineObject>.Parent => ((IChild<IHierarchy>)this).Parent;
+        IHierarchy IChild<IHierarchy>.Parent => HierarchyParent;
 
-        public IHierarchy HierarchyParent => hierarchyParent;
-        public IEnumerable<IHierarchy> HierarchyChildren => hierarchyChildren;
+        IEnumerable<IEngineObject> IParent<IEngineObject>.Children => ((IParent<IHierarchy>)this).Children;
+        IEnumerable<IHierarchy> IParent<IHierarchy>.Children => HierarchyChildren;
 
-        public IHierarchyFolder FolderHierarchyParent => (IHierarchyFolder)HierarchyParent;
-        public IEnumerable<IHierarchyFolder> FolderHierarchyChildren => (IEnumerable<IHierarchyFolder>)HierarchyChildren;
-        public IEnumerable<IHierarchyFile> FileHierarchyChildren => null;
+        IEnumerable<IHierarchyElement> IParent<IHierarchyElement>.Children => HierarchyElementChildren;
+
+        #region Initialization Phase Flags
+        public bool IsEarlyPreInitializing { get; private set; }
+        public bool IsPreInitializing { get; private set; }
+        public bool IsLatePreInitializing { get; private set; }
+        public bool IsEarlyPreInitialized { get; private set; }
+        public bool IsPreInitialized { get; private set; }
+        public bool IsLatePreInitialized { get; private set; }
+
+        public bool IsEarlyInitializing { get; private set; }
+        public bool IsInitializing { get; private set; }
+        public bool IsLateInitializing { get; private set; }
+        public bool IsEarlyInitialized { get; private set; }
+        public bool IsInitialized { get; private set; }
+        public bool IsLateInitialized { get; private set; }
+
+        public bool IsEarlyPostInitializing { get; private set; }
+        public bool IsPostInitializing { get; private set; }
+        public bool IsLatePostInitializing { get; private set; }
+        public bool IsEarlyPostInitialized { get; private set; }
+        public bool IsPostInitialized { get; private set; }
+        public bool IsLatePostInitialized { get; private set; }
+
+        public bool IsFullyPreInitialized
+        {
+            get
+            {
+                return IsEarlyPreInitialized && IsPreInitialized && IsLatePreInitialized;
+            }
+        }
+        public bool IsFullyInitialized
+        {
+            get
+            {
+                return IsEarlyInitialized && IsInitialized && IsLateInitialized;
+            }
+        }
+        public bool IsFullyPostInitialized
+        {
+            get
+            {
+                return IsEarlyPostInitialized && IsPostInitialized && IsLatePostInitialized;
+            }
+        }
+        public bool IsCompletelyInitialized
+        {
+            get
+            {
+                return IsFullyPreInitialized && IsFullyInitialized && IsPostInitialized;
+            }
+        }
+        #endregion
+
+        #region Termination Phase Flags
+        public bool IsEarlyPreTerminating { get; private set; }
+        public bool IsPreTerminating { get; private set; }
+        public bool IsLatePreTerminating { get; private set; }
+        public bool IsEarlyPreTerminated { get; private set; }
+        public bool IsPreTerminated { get; private set; }
+        public bool IsLatePreTerminated { get; private set; }
+
+        public bool IsEarlyTerminating { get; private set; }
+        public bool IsTerminating { get; private set; }
+        public bool IsLateTerminating { get; private set; }
+        public bool IsEarlyTerminated { get; private set; }
+        public bool IsTerminated { get; private set; }
+        public bool IsLateTerminated { get; private set; }
+
+        public bool IsEarlyPostTerminating { get; private set; }
+        public bool IsPostTerminating { get; private set; }
+        public bool IsLatePostTerminating { get; private set; }
+        public bool IsEarlyPostTerminated { get; private set; }
+        public bool IsPostTerminated { get; private set; }
+        public bool IsLatePostTerminated { get; private set; }
+
+        public bool IsFullyPreTerminated
+        {
+            get
+            {
+                return IsEarlyPreTerminated && IsPreTerminated && IsLatePreTerminated;
+            }
+        }
+        public bool IsFullyTerminated
+        {
+            get
+            {
+                return IsEarlyTerminated && IsTerminated && IsLateTerminated;
+            }
+        }
+        public bool IsFullyPostTerminated
+        {
+            get
+            {
+                return IsEarlyPostTerminated && IsPostTerminated && IsLatePostTerminated;
+            }
+        }
+        public bool IsCompletelyTerminated
+        {
+            get
+            {
+                return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
+            }
+        }
+        #endregion
+
         #endregion
 
         #region Fields
         private HierarchyIdentifier hierarchyIdentifier;
-        private HierarchyFolderPath hierarchyFolderPath;
-        private IHierarchyElement<ElementType> rootElement;
-        private IHierarchy hierarchyParent;
-        private List<IHierarchy> hierarchyChildren;
+        private FolderPath hierarchyFolderPath;
+        
+        public IHierarchy HierarchyParent { get; private set; }
+        public List<IHierarchy> HierarchyChildren { get; private set; }
+        public List<IHierarchyElement> HierarchyElementChildren { get; private set; }
         #endregion
 
         #region Constructors
-        public Hierarchy(HierarchyIdentifier hierarchyIdentifier, HierarchyFolderPath hierarchyFolderPath, IHierarchyElement<ElementType> rootElement, IHierarchy hierarchyParent)
+        public Hierarchy(HierarchyIdentifier hierarchyIdentifier, FolderPath hierarchyFolderPath, IHierarchy hierarchyParent)
         {
             this.hierarchyIdentifier = hierarchyIdentifier;
             this.hierarchyFolderPath = hierarchyFolderPath;
-            this.rootElement = rootElement;
-            this.hierarchyParent = hierarchyParent;
-            hierarchyChildren = new List<IHierarchy>();
+            HierarchyParent = hierarchyParent;
+            HierarchyChildren = new List<IHierarchy>();
+            HierarchyElementChildren = new List<IHierarchyElement>();
         }
         #endregion
 
         #region Methods
-        public void RegisterChild(IHierarchy child)
-        {
-            hierarchyChildren.Add(child);
-        }
-
-        public void UnregisterChild(IHierarchy child)
-        {
-            hierarchyChildren.Remove(child);
-        }
-        
         public void Add(IHierarchyElement element)
         {
             // Implement the method to use the root element to traverse the hierarchy and check if the element's path is valid not occupied by another element
@@ -63,7 +158,7 @@ namespace LooCast.System.Hierarchies
             // if the path is not valid, throw an exception
         }
 
-        public bool Remove(HierarchyElementPath path)
+        public bool Remove(HierarchicalObjectPath path)
         {
             throw new NotImplementedException();
         }
@@ -73,7 +168,7 @@ namespace LooCast.System.Hierarchies
             throw new NotImplementedException();
         }
 
-        public IHierarchyElement Get(HierarchyElementPath path)
+        public IHierarchyElement Get(HierarchicalObjectPath path)
         {
             throw new NotImplementedException();
         }
@@ -83,10 +178,140 @@ namespace LooCast.System.Hierarchies
             throw new NotImplementedException();
         }
 
-        public bool ContainsPath(HierarchyElementPath path)
+        public bool ContainsPath(HierarchicalObjectPath path)
         {
             throw new NotImplementedException();
         }
+
+        void IHierarchy.Add(IHierarchyElement element)
+        {
+            throw new NotImplementedException();
+        }
+
+        bool IHierarchy.Remove(HierarchicalObjectPath path)
+        {
+            throw new NotImplementedException();
+        }
+
+        void IHierarchy.Clear()
+        {
+            throw new NotImplementedException();
+        }
+
+        IHierarchyElement IHierarchy.Get(HierarchicalObjectPath path)
+        {
+            throw new NotImplementedException();
+        }
+
+        bool IHierarchy.ContainsElement(IHierarchyElement element)
+        {
+            throw new NotImplementedException();
+        }
+
+        bool IHierarchy.ContainsPath(HierarchicalObjectPath path)
+        {
+            throw new NotImplementedException();
+        }
+
+        #region Initialization Phases
+        public virtual void EarlyPreInitialize()
+        {
+
+        }
+
+        public virtual void PreInitialize()
+        {
+
+        }
+
+        public virtual void LatePreInitialize()
+        {
+
+        }
+
+        public virtual void EarlyInitialize()
+        {
+
+        }
+
+        public virtual void Initialize()
+        {
+
+        }
+
+        public virtual void LateInitialize()
+        {
+
+        }
+
+        public virtual void EarlyPostInitalize()
+        {
+
+        }
+
+        public virtual void PostInitialize()
+        {
+
+        }
+
+        public virtual void LatePostInitialize()
+        {
+
+        }
+        #endregion
+
+        #region Termination Phases
+        public virtual void EarlyPreTerminate()
+        {
+
+        }
+
+        public virtual void PreTerminate()
+        {
+
+        }
+
+        public virtual void LatePreTerminate()
+        {
+
+        }
+
+        public virtual void EarlyTerminate()
+        {
+
+        }
+
+        public virtual void Terminate()
+        {
+
+        }
+
+        public virtual void LateTerminate()
+        {
+
+        }
+
+        public virtual void EarlyPostTerminate()
+        {
+
+        }
+
+        public virtual void PostTerminate()
+        {
+
+        }
+
+        public virtual void LatePostTerminate()
+        {
+
+        }
+
+        public bool Validate()
+        {
+            throw new NotImplementedException();
+        }
+        #endregion
+
         #endregion
     }
 }

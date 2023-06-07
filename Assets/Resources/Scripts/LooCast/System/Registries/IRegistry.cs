@@ -3,13 +3,14 @@
 namespace LooCast.System.Registries
 {
     using LooCast.System.Identifiers;
-    using LooCast.System.MetaData;
-    using LooCast.System.Data;
     
-    public interface IRegistry : IEngineObject
+    public interface IRegistry : IEngineObject, IHierarchyElement, IChild<IRegistry>, IParent<IRegistry>, IParent<IIdentifiableObject>
     {
         #region Properties
         public IRegistryIdentifier RegistryIdentifier { get; }
+        IRegistry RegistryParent { get; }
+        List<IRegistry> RegistryChildren { get; }
+        List<IEngineObject> IdentifiableObjectChildren { get; }
         #endregion
 
         #region Methods

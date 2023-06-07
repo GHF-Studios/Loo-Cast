@@ -1,23 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LooCast.System.Hierarchies
 {
     using LooCast.System.Identifiers;
 
-    public interface IHierarchy : IIdentifiableObject, IHierarchyElement
+    public interface IHierarchy : IEngineObject, IHierarchyElement, IChild<IHierarchy>, IParent<IHierarchy>, IParent<IHierarchyElement>
     {
         #region Properties
-        public IHierarchyIdentifier HierarchyIdentifier { get; }
+        IHierarchyIdentifier HierarchyIdentifier { get; }
+        IHierarchy HierarchyParent { get; }
+        List<IHierarchy> HierarchyChildren { get; }
+        List<IHierarchyElement> HierarchyElementChildren { get; }
         #endregion
 
         #region Methods
-        public void Add(IHierarchyElement element);
-        public bool Remove(HierarchyElementPath path);
-        public void Clear();
-        public IHierarchyElement Get(HierarchyElementPath path);
-        public bool ContainsElement(IHierarchyElement element);
-        public bool ContainsPath(HierarchyElementPath path);
+        void Add(IHierarchyElement element);
+        bool Remove(HierarchicalObjectPath path);
+        IHierarchyElement Get(HierarchicalObjectPath path);
+        bool ContainsElement(IHierarchyElement element);
+        bool ContainsPath(HierarchicalObjectPath path);
+        void Clear();
         #endregion
     }
 }

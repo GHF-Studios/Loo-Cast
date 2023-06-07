@@ -6,7 +6,7 @@ namespace LooCast.System
     public interface IHierarchyElement
     {
         #region Properties
-        HierarchyElementPath HierarchyElementPath { get; }
+        HierarchicalObjectPath HierarchyElementPath { get; }
         HierarchyElementType HierarchyElementType { get; }
         #endregion
     }

@@ -8,7 +8,7 @@ namespace LooCast.System.Hierarchies
 
     public class RegistryHierarchy : Hierarchy<IRegistry>
     {
-        public RegistryHierarchy(HierarchyIdentifier hierarchyIdentifier, HierarchyFolderPath hierarchyFolderPath, IHierarchyElement<IRegistry> rootElement, IHierarchy hierarchyParent) : base(hierarchyIdentifier, hierarchyFolderPath, rootElement, hierarchyParent)
+        public RegistryHierarchy(HierarchyIdentifier hierarchyIdentifier, FolderPath hierarchyFolderPath, IHierarchyElement<IRegistry> rootElement, IHierarchy hierarchyParent) : base(hierarchyIdentifier, hierarchyFolderPath, rootElement, hierarchyParent)
         {
         }
     }

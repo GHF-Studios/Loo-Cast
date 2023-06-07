@@ -5,27 +5,27 @@ using UnityEngine;
 namespace LooCast.System
 {
     [Serializable]
-    public class HierarchyObjectPath : HierarchyElementPath
+    public class ObjectPath : HierarchicalObjectPath
     {
         #region Properties
         public string HierarchyObjectName => hierarchyObjectName;
 #nullable enable
-        public HierarchyFilePath? ParentHierarchyFilePath => parentHierarchyFilePath;
-        public HierarchyObjectPath? ParentHierarchyObjectPath => parentHierarchyObjectPath;
+        public FilePath? ParentHierarchyFilePath => parentHierarchyFilePath;
+        public ObjectPath? ParentHierarchyObjectPath => parentHierarchyObjectPath;
 #nullable disable
         #endregion
 
         #region Fields
         [SerializeField] private readonly string hierarchyObjectName;
 #nullable enable
-        [SerializeField] private readonly HierarchyFilePath? parentHierarchyFilePath;
-        [SerializeField] private readonly HierarchyObjectPath? parentHierarchyObjectPath;
+        [SerializeField] private readonly FilePath? parentHierarchyFilePath;
+        [SerializeField] private readonly ObjectPath? parentHierarchyObjectPath;
 #nullable disable
         #endregion
 
         #region Constructors
 #nullable enable
-        public HierarchyObjectPath(string hierarchyObjectName, HierarchyFilePath? parentHierarchyFilePath, HierarchyObjectPath? parentHierarchyObjectPath, string? gusp = null) : base(gusp == null ? (parentHierarchyFilePath == null ? $"{parentHierarchyObjectPath}-{hierarchyObjectName}" : parentHierarchyObjectPath == null ? $"{parentHierarchyFilePath}-{hierarchyObjectName}" : null) : gusp)
+        public ObjectPath(string hierarchyObjectName, FilePath? parentHierarchyFilePath, ObjectPath? parentHierarchyObjectPath, string? gusp = null) : base(gusp == null ? (parentHierarchyFilePath == null ? $"{parentHierarchyObjectPath}-{hierarchyObjectName}" : parentHierarchyObjectPath == null ? $"{parentHierarchyFilePath}-{hierarchyObjectName}" : null) : gusp)
         {
             if (!IsValidHierarchyObjectName(hierarchyObjectName))
             {
@@ -45,7 +45,7 @@ namespace LooCast.System
 
         #region Static Methods
 #nullable enable
-        public static bool TryParse(string gusp, out HierarchyObjectPath? hierarchyObjectPath)
+        public static bool TryParse(string gusp, out ObjectPath? hierarchyObjectPath)
         {
             hierarchyObjectPath = null;
 
@@ -65,18 +65,18 @@ namespace LooCast.System
 
             string parentHierarchyElementPathString = parts[0];
 
-            HierarchyFilePath? parentHierarchyFilePath = null;
-            HierarchyObjectPath? parentHierarchyObjectPath = null;
+            FilePath? parentHierarchyFilePath = null;
+            ObjectPath? parentHierarchyObjectPath = null;
 
-            if (HierarchyFilePath.TryParse(parentHierarchyElementPathString, out parentHierarchyFilePath))
+            if (FilePath.TryParse(parentHierarchyElementPathString, out parentHierarchyFilePath))
             {
-                hierarchyObjectPath = new HierarchyObjectPath(hierarchyObjectName, parentHierarchyFilePath!, null);
+                hierarchyObjectPath = new ObjectPath(hierarchyObjectName, parentHierarchyFilePath!, null);
                 return true;
             }
 
             if (TryParse(parentHierarchyElementPathString, out parentHierarchyObjectPath))
             {
-                hierarchyObjectPath = new HierarchyObjectPath(hierarchyObjectName, null, parentHierarchyObjectPath!);
+                hierarchyObjectPath = new ObjectPath(hierarchyObjectName, null, parentHierarchyObjectPath!);
                 return true;
             }
 
@@ -103,7 +103,7 @@ namespace LooCast.System
         }
 
 #nullable enable
-        private static bool IsValidParent(HierarchyFilePath? parentHierarchyFilePath, HierarchyObjectPath? parentHierarchyObjectPath)
+        private static bool IsValidParent(FilePath? parentHierarchyFilePath, ObjectPath? parentHierarchyObjectPath)
         {
             if (parentHierarchyFilePath == null && parentHierarchyObjectPath == null)
             {
@@ -128,9 +128,9 @@ namespace LooCast.System
 
         public override bool Equals(object obj)
         {
-            if (obj is HierarchyObjectPath)
+            if (obj is ObjectPath)
             {
-                return Equals((HierarchyObjectPath)obj);
+                return Equals((ObjectPath)obj);
             }
             else
             {
@@ -138,7 +138,7 @@ namespace LooCast.System
             }
         }
 
-        public bool Equals(HierarchyObjectPath otherHierarchyObjectPath)
+        public bool Equals(ObjectPath otherHierarchyObjectPath)
         {
             return otherHierarchyObjectPath.GUSP.Equals(this.GUSP);
         }
@@ -150,25 +150,25 @@ namespace LooCast.System
         #endregion
 
         #region Operators
-        public static bool operator ==(HierarchyObjectPath hierarchyObjectPath1, HierarchyObjectPath hierarchyObjectPath2)
+        public static bool operator ==(ObjectPath hierarchyObjectPath1, ObjectPath hierarchyObjectPath2)
         {
             return hierarchyObjectPath1.Equals(hierarchyObjectPath2);
         }
 
-        public static bool operator !=(HierarchyObjectPath hierarchyObjectPath1, HierarchyObjectPath hierarchyObjectPath2)
+        public static bool operator !=(ObjectPath hierarchyObjectPath1, ObjectPath hierarchyObjectPath2)
         {
             return !hierarchyObjectPath1.Equals(hierarchyObjectPath2);
         }
 
-        public static implicit operator string(HierarchyObjectPath hierarchyObjectPath)
+        public static implicit operator string(ObjectPath hierarchyObjectPath)
         {
             return hierarchyObjectPath.GUSP;
         }
 
 #nullable enable
-        public static implicit operator HierarchyObjectPath?(string gusp)
+        public static implicit operator ObjectPath?(string gusp)
         {
-            if (TryParse(gusp, out HierarchyObjectPath? hierarchyObjectPath))
+            if (TryParse(gusp, out ObjectPath? hierarchyObjectPath))
             {
                 return hierarchyObjectPath;
             }

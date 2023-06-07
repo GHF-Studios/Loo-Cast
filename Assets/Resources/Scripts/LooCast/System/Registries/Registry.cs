@@ -16,10 +16,10 @@ namespace LooCast.System.Registries
         public IObjectIdentifier ObjectIdentifier => RegistryIdentifier;
         public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
 
-        public IRegistry RegistryParent => registryParent;
+        public HierarchicalObjectPath HierarchyElementPath => HierarchyFolderPath;
+        public FolderPath HierarchyFolderPath => registryFolderPath;
 
-        public Type<KeyType> RegistryKeyType => registryKeyType;
-        public Type<ValueType> RegistryValueType => registryValueType;
+        public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -128,11 +128,14 @@ namespace LooCast.System.Registries
         #endregion
 
         #region Fields
-        private RegistryIdentifier registryIdentifier;
-        private IRegistry registryParent;
-        private Type<KeyType> registryKeyType;
-        private Type<ValueType> registryValueType;
         private Dictionary<KeyType, ValueType> dictionary;
+        
+        private RegistryIdentifier registryIdentifier;
+        private FolderPath registryFolderPath;
+
+        public IRegistry RegistryParent { get; private set; }
+        public List<IRegistry> RegistryChildren { get; private set; }
+        public List<IIdentifiableObject> IdentifiableObjectChildren { get; private set; }
         #endregion
         
         #region Constructors
