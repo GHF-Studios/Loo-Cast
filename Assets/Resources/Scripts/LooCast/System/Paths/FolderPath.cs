@@ -1,15 +1,20 @@
 ﻿using System;
+using System.Linq;
 using UnityEngine;
 
 namespace LooCast.System.Paths
 {
     [Serializable]
-    public struct FolderPath : IFolderPath
+    public class FolderPath : IFolderPath
     {
         #region Properties
         public string GUSP { get; private set; }
 
         public string HierarchyFolderName => hierarchyFolderName;
+
+        public FolderPath FolderPathParent => throw new NotImplementedException();
+
+        public FolderPath Parent => throw new NotImplementedException();
         #endregion
 
         #region Fields

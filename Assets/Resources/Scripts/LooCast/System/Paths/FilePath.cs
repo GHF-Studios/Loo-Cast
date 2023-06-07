@@ -4,7 +4,7 @@ using UnityEngine;
 namespace LooCast.System.Paths
 {
     [Serializable]
-    public struct FilePath : IFilePath
+    public class FilePath : IFilePath
     {
         #region Properties
         public string GUSP { get; private set; }
