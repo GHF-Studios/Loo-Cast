@@ -11,7 +11,7 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        [SerializeField] private string gusp;
+        [SerializeField] private readonly string gusp;
         #endregion
 
         #region Constructors

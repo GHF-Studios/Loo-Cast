@@ -4,22 +4,37 @@ namespace LooCast.System.Registries
 {
     using LooCast.System.Identifiers;
     
-    public interface IRegistry : IEngineObject, IHierarchyElement, IChild<IRegistry>, IParent<IRegistry>, IParent<IIdentifiableObject>
+    public interface IRegistry : IEngineObject, IHierarchicalElement, IChild<IRegistry>, IParent<IRegistry>, IParent<IIdentifiableObject>
     {
         #region Properties
         public IRegistryIdentifier RegistryIdentifier { get; }
         IRegistry RegistryParent { get; }
         List<IRegistry> RegistryChildren { get; }
-        List<IEngineObject> IdentifiableObjectChildren { get; }
+        List<IIdentifiableObject> IdentifiableObjectChildren { get; }
         #endregion
 
         #region Methods
-        public void Add(IObjectIdentifier key, IIdentifiableObject value);
-        public bool Remove(IObjectIdentifier key);
-        public IIdentifiableObject Get(IObjectIdentifier key);
-        public bool ContainsKey(IObjectIdentifier key);
-        public bool ContainsValue(IIdentifiableObject value);
-        public void Clear();
+        void AddObject(IObjectIdentifier objectIdentifier, IIdentifiableObject identifiableObject);
+        bool RemoveObject(IObjectIdentifier objectIdentifier);
+        IIdentifiableObject GetObject(IObjectIdentifier objectIdentifier);
+        bool TryGetObject(IObjectIdentifier objectIdentifier, out IIdentifiableObject identifiableObject);
+        bool ContainsIdentifier(IObjectIdentifier objectIdentifier);
+        bool ContainsObject(IIdentifiableObject identifiableObject);
+        void Clear();
+        #endregion
+    }
+
+    public interface IRegistry<IdentifierType, ObjectType> : IRegistry
+        where IdentifierType : IObjectIdentifier
+        where ObjectType : IIdentifiableObject
+    {
+        #region Methods
+        void AddObject(IdentifierType objectIdentifier, ObjectType identifiableObject);
+        bool RemoveObject(IdentifierType objectIdentifier);
+        ObjectType GetObject(IdentifierType objectIdentifier);
+        bool TryGetObject(IdentifierType objectIdentifier, out ObjectType identifiableObject);
+        bool ContainsIdentifier(IdentifierType objectIdentifier);
+        bool ContainsObject(ObjectType identifiableObject);
         #endregion
     }
 }

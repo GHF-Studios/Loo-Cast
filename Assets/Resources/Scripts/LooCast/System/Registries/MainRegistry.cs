@@ -24,11 +24,11 @@ namespace LooCast.System.Registries
         public override void PostInitialize()
         {
             base.PostInitialize();
-            
-            MetaDataRegistry = Get(Identifiers.RegistryIdentifier.Parse(typeof(IMetaDataIdentifier), typeof(IMetaData))) as MetaDataRegistry;
-            DataRegistry = Get(Identifiers.RegistryIdentifier.Parse(typeof(IDataIdentifier), typeof(IData))) as DataRegistry;
-            NamespaceRegistry = Get(Identifiers.RegistryIdentifier.Parse(typeof(INamespaceIdentifier), typeof(INamespace))) as NamespaceRegistry;
-            TypeRegistry = Get(Identifiers.RegistryIdentifier.Parse(typeof(ITypeIdentifier), typeof(IType))) as TypeRegistry;
+
+            MetaDataRegistry = GetObject((IObjectIdentifier)Identifiers.RegistryIdentifier.Parse(typeof(IMetaDataIdentifier), typeof(IMetaData))) as MetaDataRegistry;
+            DataRegistry = GetObject((IObjectIdentifier)Identifiers.RegistryIdentifier.Parse(typeof(IDataIdentifier), typeof(IData))) as DataRegistry;
+            NamespaceRegistry = GetObject((IObjectIdentifier)Identifiers.RegistryIdentifier.Parse(typeof(INamespaceIdentifier), typeof(INamespace))) as NamespaceRegistry;
+            TypeRegistry = GetObject((IObjectIdentifier)Identifiers.RegistryIdentifier.Parse(typeof(ITypeIdentifier), typeof(IType))) as TypeRegistry;
         }
         #endregion
     }

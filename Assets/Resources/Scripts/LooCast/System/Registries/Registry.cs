@@ -1,25 +1,29 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 
 namespace LooCast.System.Registries
 {
-    using LooCast.System.Data;
     using LooCast.System.Identifiers;
-    using LooCast.System.MetaData;
 
-    public class Registry<KeyType, ValueType> : IRegistry, IEnumerable<KeyValuePair<KeyType, ValueType>>
-        where KeyType : IObjectIdentifier
-        where ValueType : IIdentifiableObject
+    public class Registry<IdentifierType, ObjectType> : IRegistry
+        where IdentifierType : IObjectIdentifier
+        where ObjectType : IIdentifiableObject
     {
         #region Properties
         public IObjectIdentifier ObjectIdentifier => RegistryIdentifier;
         public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
 
-        public HierarchicalObjectPath HierarchyElementPath => HierarchyFolderPath;
-        public FolderPath HierarchyFolderPath => registryFolderPath;
+        public HierarchicalObjectPath HierarchicalObjectPath => RegistryFolderPath;
+        public FolderPath RegistryFolderPath => registryFolderPath;
 
         public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
+
+        public IEngineObject Parent => ((IChild<IRegistry>)this).Parent;
+        IRegistry IChild<IRegistry>.Parent => RegistryParent;
+
+        public IEnumerable<IEngineObject> Children => ((IParent<IRegistry>)this).Children;
+        IEnumerable<IRegistry> IParent<IRegistry>.Children => RegistryChildren;
+
+        IEnumerable<IIdentifiableObject> IParent<IIdentifiableObject>.Children => IdentifiableObjectChildren;
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -128,7 +132,7 @@ namespace LooCast.System.Registries
         #endregion
 
         #region Fields
-        private Dictionary<KeyType, ValueType> dictionary;
+        private Dictionary<IdentifierType, ObjectType> dictionary;
         
         private RegistryIdentifier registryIdentifier;
         private FolderPath registryFolderPath;
@@ -137,150 +141,124 @@ namespace LooCast.System.Registries
         public List<IRegistry> RegistryChildren { get; private set; }
         public List<IIdentifiableObject> IdentifiableObjectChildren { get; private set; }
         #endregion
-        
+
         #region Constructors
         public Registry(IRegistry registryParent)
         {
-            TypeRegistry typeRegistry = MainManager.Instance.MainRegistry.TypeRegistry;
+            dictionary = new Dictionary<IdentifierType, ObjectType>();
             
-            registryIdentifier = Identifiers.RegistryIdentifier.Parse<KeyType, ValueType>();
-            this.registryParent = registryParent;
-            registryKeyType = (Type<KeyType>)typeRegistry.GetValue(typeof(KeyType));
-            registryValueType = (Type<ValueType>)typeRegistry.GetValue(typeof(ValueType));
-            dictionary = new Dictionary<KeyType, ValueType>();
+            registryIdentifier = Identifiers.RegistryIdentifier.Parse<IdentifierType, ObjectType>();
         }
         #endregion
 
         #region Methods
-        public void Add(IObjectIdentifier key, IIdentifiableObject value)
+        public virtual bool Validate()
         {
-            if (!(key is KeyType))
-            {
-                throw new global::System.Exception($"Key type {key.GetType()} is not of type {typeof(KeyType)}");
-            }
-            if (!(value is ValueType))
-            {
-                throw new global::System.Exception($"Value type {value.GetType()} is not of type {typeof(ValueType)}");
-            }
-            
-            Add((KeyType)key, (ValueType)value);
-        }
-
-        public bool Remove(IObjectIdentifier key)
-        {
-            if (!(key is KeyType))
-            {
-                throw new global::System.Exception($"Key type {key.GetType()} is not of type {typeof(KeyType)}");
-            }
-            
-            return Remove((KeyType)key);
-        }
-
-        public IIdentifiableObject Get(IObjectIdentifier key)
-        {
-            if (!(key is KeyType))
-            {
-                throw new global::System.Exception($"Key type '{key.GetType()}' is not of type '{typeof(KeyType)}'!");
-            }
-            
-            return GetValue((KeyType)key);
-        }
-
-        public bool ContainsKey(IObjectIdentifier key)
-        {
-            if (!(key is KeyType))
-            {
-                throw new global::System.Exception($"Key type '{key.GetType()}' is not of type '{typeof(KeyType)}'!");
-            }
-
-            return ContainsKey((KeyType)key);
-        }
-
-        public bool ContainsValue(IIdentifiableObject value)
-        {
-            if (!(value is ValueType))
-            {
-                throw new global::System.Exception($"Value type '{value.GetType()}' is not of type '{typeof(ValueType)}'!");
-            }
-
-            return dictionary.ContainsValue((ValueType)value);
+            return true;
         }
         
-        public void Add(KeyType key, ValueType value)
+        public void AddObject(IObjectIdentifier objectIdentifier, IIdentifiableObject identifiableObject)
         {
-            dictionary.Add(key, value);
-            RegistryParent?.Add(key, value);
+            if (!(objectIdentifier is IdentifierType))
+            {
+                throw new global::System.Exception($"Identifier type {objectIdentifier.GetType()} is not of type {typeof(IdentifierType)}");
+            }
+            if (!(identifiableObject is ObjectType))
+            {
+                throw new global::System.Exception($"Object type {identifiableObject.GetType()} is not of type {typeof(ObjectType)}");
+            }
+            
+            AddObject((IdentifierType)objectIdentifier, (ObjectType)identifiableObject);
+        }
+        public void AddObject(IdentifierType objectIdentifier, ObjectType identifiableObject)
+        {
+            dictionary.Add(objectIdentifier, identifiableObject);
+            RegistryParent?.AddObject(objectIdentifier, identifiableObject);
         }
 
-        public bool ContainsKey(KeyType key)
+        public bool RemoveObject(IObjectIdentifier objectIdentifier)
         {
-            return dictionary.ContainsKey(key);
+            if (!(objectIdentifier is IdentifierType))
+            {
+                throw new global::System.Exception($"Identifier type {objectIdentifier.GetType()} is not of type {typeof(IdentifierType)}");
+            }
+            
+            return RemoveObject((IdentifierType)objectIdentifier);
         }
-
-        public bool Remove(KeyType key)
+        public bool RemoveObject(IdentifierType objectIdentifier)
         {
-            bool removed = dictionary.Remove(key);
+            bool removed = dictionary.Remove(objectIdentifier);
             if (RegistryParent != null)
             {
-                removed &= RegistryParent.Remove(key);
+                removed &= RegistryParent.RemoveObject(objectIdentifier);
             }
             return removed;
         }
 
-        public bool TryGetValue(KeyType key, out ValueType value)
+        public IIdentifiableObject GetObject(IObjectIdentifier objectIdentifier)
         {
-            return dictionary.TryGetValue(key, out value);
+            if (!(objectIdentifier is IdentifierType))
+            {
+                throw new global::System.Exception($"Identifier type '{objectIdentifier.GetType()}' is not of type '{typeof(IdentifierType)}'!");
+            }
+            
+            return GetObject((IdentifierType)objectIdentifier);
         }
-
-        public ValueType GetValue(KeyType key)
+        public ObjectType GetObject(IdentifierType objectIdentifier)
         {
-            if (TryGetValue(key, out ValueType value))
+            if (TryGetObject(objectIdentifier, out ObjectType value))
             {
                 return value;
             }
-            throw new global::System.Exception($"[Registry] Value of type '{typeof(ValueType)}' with key '{key}' not found!");
+            throw new global::System.Exception($"Object of type '{typeof(ObjectType)}' with identifier '{objectIdentifier}' not found!");
         }
 
-        public IEnumerable<ValueType> GetValues(IEnumerable<KeyType> keys)
+        public bool TryGetObject(IObjectIdentifier objectIdentifier, out IIdentifiableObject identifiableObject)
         {
-            return keys.Select(key => GetValue(key));
+            if (!(objectIdentifier is IdentifierType))
+            {
+                throw new global::System.Exception($"Identifier type '{objectIdentifier.GetType()}' is not of type '{typeof(IdentifierType)}'!");
+            }
+
+            return TryGetObject((IdentifierType)objectIdentifier, out identifiableObject);
         }
-            
-        public void Add(KeyValuePair<KeyType, ValueType> item)
+        public bool TryGetObject(IdentifierType objectIdentifier, out ObjectType identifiableObject)
         {
-            Add(item.Key, item.Value);
-            RegistryParent?.Add(item.Key, item.Value);
+            return dictionary.TryGetValue(objectIdentifier, out identifiableObject);
+        }
+
+        public bool ContainsIdentifier(IObjectIdentifier objectIdentifier)
+        {
+            if (!(objectIdentifier is IdentifierType))
+            {
+                throw new global::System.Exception($"Identifier type '{objectIdentifier.GetType()}' is not of type '{typeof(IdentifierType)}'!");
+            }
+
+            return ContainsIdentifier((IdentifierType)objectIdentifier);
+        }
+        public bool ContainsIdentifier(IdentifierType objectIdentifier)
+        {
+            return dictionary.ContainsKey(objectIdentifier);
+        }
+
+        public bool ContainsObject(IIdentifiableObject identifiableObject)
+        {
+            if (!(identifiableObject is ObjectType))
+            {
+                throw new global::System.Exception($"Object type '{identifiableObject.GetType()}' is not of type '{typeof(ObjectType)}'!");
+            }
+
+            return ContainsObject((ObjectType)identifiableObject);
+        }
+        public bool ContainsObject(ObjectType identifiableObject)
+        {
+            return dictionary.ContainsValue(identifiableObject);
         }
 
         public void Clear()
         {
             dictionary.Clear();
             RegistryParent?.Clear();
-        }
-
-        public bool Contains(KeyValuePair<KeyType, ValueType> item)
-        {
-            return dictionary.Contains(item);
-        }
-
-        public bool Remove(KeyValuePair<KeyType, ValueType> item)
-        {
-            return Remove(item.Key);
-        }
-
-        public IEnumerator<KeyValuePair<KeyType, ValueType>> GetEnumerator()
-        {
-            return dictionary.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return dictionary.GetEnumerator();
-        }
-
-        public virtual bool Validate()
-        {
-            return true;
         }
 
         #region Initialization Phases

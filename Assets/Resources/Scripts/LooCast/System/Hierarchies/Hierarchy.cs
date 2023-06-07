@@ -4,14 +4,15 @@ using System.Collections.Generic;
 
 namespace LooCast.System.Hierarchies
 {
-    public abstract class Hierarchy<ElementType> : IHierarchy
-        where ElementType : IHierarchyElement
+    public abstract class Hierarchy<PathType, ElementType> : IHierarchy
+        where PathType : HierarchicalObjectPath
+        where ElementType : IHierarchicalElement
     {
         #region Properties
         public IObjectIdentifier ObjectIdentifier => HierarchyIdentifier;
         public IHierarchyIdentifier HierarchyIdentifier => hierarchyIdentifier;
 
-        public HierarchicalObjectPath HierarchyElementPath => HierarchyFolderPath;
+        public HierarchicalObjectPath HierarchicalObjectPath => HierarchyFolderPath;
         public FolderPath HierarchyFolderPath => hierarchyFolderPath;
 
         public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
@@ -22,7 +23,7 @@ namespace LooCast.System.Hierarchies
         IEnumerable<IEngineObject> IParent<IEngineObject>.Children => ((IParent<IHierarchy>)this).Children;
         IEnumerable<IHierarchy> IParent<IHierarchy>.Children => HierarchyChildren;
 
-        IEnumerable<IHierarchyElement> IParent<IHierarchyElement>.Children => HierarchyElementChildren;
+        IEnumerable<IHierarchicalElement> IParent<IHierarchicalElement>.Children => HierarchyElementChildren;
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -136,7 +137,7 @@ namespace LooCast.System.Hierarchies
         
         public IHierarchy HierarchyParent { get; private set; }
         public List<IHierarchy> HierarchyChildren { get; private set; }
-        public List<IHierarchyElement> HierarchyElementChildren { get; private set; }
+        public List<IHierarchicalElement> HierarchyElementChildren { get; private set; }
         #endregion
 
         #region Constructors
@@ -146,71 +147,73 @@ namespace LooCast.System.Hierarchies
             this.hierarchyFolderPath = hierarchyFolderPath;
             HierarchyParent = hierarchyParent;
             HierarchyChildren = new List<IHierarchy>();
-            HierarchyElementChildren = new List<IHierarchyElement>();
+            HierarchyElementChildren = new List<IHierarchicalElement>();
         }
         #endregion
 
         #region Methods
-        public void Add(IHierarchyElement element)
+        public bool Validate()
         {
-            // Implement the method to use the root element to traverse the hierarchy and check if the element's path is valid not occupied by another element
-            // if the path is valid, add the element to the hierarchy
-            // if the path is not valid, throw an exception
+            return true;
         }
 
-        public bool Remove(HierarchicalObjectPath path)
+        public void AddElement(IHierarchicalElement hierarchicalElement) 
         {
-            throw new NotImplementedException();
+            
         }
-
-        public void Clear()
+        public void AddElement(ElementType hierarchicalElement) 
         {
-            throw new NotImplementedException();
+            
         }
-
-        public IHierarchyElement Get(HierarchicalObjectPath path)
+        
+        public bool RemoveElement(HierarchicalObjectPath elementPath) 
         {
-            throw new NotImplementedException();
+            
         }
-
-        public bool ContainsElement(IHierarchyElement element)
+        public bool RemoveElement(PathType elementPath) 
         {
-            throw new NotImplementedException();
+            
         }
-
-        public bool ContainsPath(HierarchicalObjectPath path)
+        
+        public IHierarchicalElement GetElement(HierarchicalObjectPath elementPath) 
         {
-            throw new NotImplementedException();
+            
         }
-
-        void IHierarchy.Add(IHierarchyElement element)
+        public ElementType GetElement(PathType elementPath) 
         {
-            throw new NotImplementedException();
+            
         }
-
-        bool IHierarchy.Remove(HierarchicalObjectPath path)
+        
+        public bool TryGetElement(HierarchicalObjectPath elementPath, out IHierarchicalElement hierarchicalElement) 
         {
-            throw new NotImplementedException();
+            
         }
-
-        void IHierarchy.Clear()
+        public bool TryGetElement(PathType elementPath, out ElementType hierarchicalElement) 
         {
-            throw new NotImplementedException();
+            
         }
-
-        IHierarchyElement IHierarchy.Get(HierarchicalObjectPath path)
+        
+        public bool ContainsPath(HierarchicalObjectPath elementPath) 
         {
-            throw new NotImplementedException();
+            
         }
-
-        bool IHierarchy.ContainsElement(IHierarchyElement element)
+        public bool ContainsPath(PathType elementPath) 
         {
-            throw new NotImplementedException();
+            
         }
-
-        bool IHierarchy.ContainsPath(HierarchicalObjectPath path)
+        
+        public bool ContainsElement(IHierarchicalElement hierarchicalElement) 
         {
-            throw new NotImplementedException();
+            
+        }
+        public bool ContainsElement(ElementType hierarchicalElement) 
+        {
+            
+        }
+        
+        public void Clear() 
+        {
+            
         }
 
         #region Initialization Phases
@@ -304,11 +307,6 @@ namespace LooCast.System.Hierarchies
         public virtual void LatePostTerminate()
         {
 
-        }
-
-        public bool Validate()
-        {
-            throw new NotImplementedException();
         }
         #endregion
 

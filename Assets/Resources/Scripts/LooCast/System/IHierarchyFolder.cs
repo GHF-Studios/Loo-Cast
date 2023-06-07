@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    public interface IHierarchyFolder : IHierarchyElement
+    public interface IHierarchyFolder : IHierarchicalElement
     {
         #region Properties
         FolderPath HierarchyFolderPath { get; }

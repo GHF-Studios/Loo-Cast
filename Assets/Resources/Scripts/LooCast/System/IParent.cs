@@ -8,5 +8,12 @@ namespace LooCast.System
         #region Properties
         IEnumerable<TChild> Children { get; }
         #endregion
+
+        #region Methods
+        void AddChild(TChild child);
+        bool RemoveChild(TChild child);
+        bool ContainsChild(TChild child);
+        void ClearChildren();
+        #endregion
     }
 }
