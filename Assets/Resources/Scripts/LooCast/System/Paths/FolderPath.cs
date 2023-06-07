@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using UnityEngine;
 
 namespace LooCast.System.Paths
@@ -27,8 +26,8 @@ namespace LooCast.System.Paths
             }
             
             GUSP = parentHierarchyFolderPath == null ? $"{hierarchyFolderName}" : $"{parentHierarchyFolderPath}/{hierarchyFolderName}";
+            
             this.hierarchyFolderName = hierarchyFolderName;
-
         }
         #endregion
 
@@ -87,6 +86,10 @@ namespace LooCast.System.Paths
 
             return true;
         }
+        #endregion
+
+        #region Methods
+
         #endregion
 
         #region Overrides

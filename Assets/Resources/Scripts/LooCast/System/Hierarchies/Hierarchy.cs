@@ -11,10 +11,10 @@ namespace LooCast.System.Hierarchies
     {
         #region Properties
         public IObjectIdentifier ObjectIdentifier => HierarchyIdentifier;
-        public IHierarchyIdentifier HierarchyIdentifier => hierarchyIdentifier;
+        public IHierarchyIdentifier HierarchyIdentifier { get; private set; }
 
         public IHierarchicalElementPath HierarchicalElementPath => HierarchyFolderPath;
-        public FolderPath HierarchyFolderPath => hierarchyFolderPath;
+        public FolderPath HierarchyFolderPath { get; private set; }
 
         public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
 
@@ -136,16 +136,14 @@ namespace LooCast.System.Hierarchies
         #endregion
 
         #region Fields
-        private HierarchyIdentifier hierarchyIdentifier;
-        private FolderPath hierarchyFolderPath;
         #endregion
 
         #region Constructors
         public Hierarchy(IHierarchy hierarchyParent)
         {
-            hierarchyIdentifier = Identifiers.HierarchyIdentifier.Parse<PathType, ElementType>();
-            //hierarchyFolderPath = ;
-            
+            HierarchyIdentifier = Identifiers.HierarchyIdentifier.Parse<PathType, ElementType>();
+            //HierarchyFolderPath = ;
+
             HierarchyParent = hierarchyParent;
             HierarchyChildren = new List<IHierarchy>();
             HierarchyElementChildren = new List<IHierarchicalElement>();

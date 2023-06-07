@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace LooCast.System
+﻿namespace LooCast.System
 {
     public interface IChild<TParent>
     {

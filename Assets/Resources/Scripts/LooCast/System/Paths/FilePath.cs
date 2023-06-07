@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using UnityEngine;
 
 namespace LooCast.System.Paths
@@ -37,8 +36,6 @@ namespace LooCast.System.Paths
             
             this.hierarchyFileName = hierarchyFileName;
             this.hierarchyFileExtension = hierarchyFileExtension;
-            
-            this.parentHierarchyFolderPath = parentHierarchyFolderPath;
         }
         #endregion
 
@@ -135,6 +132,10 @@ namespace LooCast.System.Paths
 
             return true;
         }
+        #endregion
+
+        #region Methods
+
         #endregion
 
         #region Overrides

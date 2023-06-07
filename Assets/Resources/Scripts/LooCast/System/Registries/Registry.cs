@@ -11,10 +11,10 @@ namespace LooCast.System.Registries
     {
         #region Properties
         public IObjectIdentifier ObjectIdentifier => RegistryIdentifier;
-        public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
+        public IRegistryIdentifier RegistryIdentifier { get; private set; }
 
         public IHierarchicalElementPath HierarchicalElementPath => RegistryFolderPath;
-        public FolderPath RegistryFolderPath => registryFolderPath;
+        public FolderPath RegistryFolderPath { get; private set; }
 
         public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
 
@@ -137,22 +137,19 @@ namespace LooCast.System.Registries
 
         #region Fields
         private Dictionary<IdentifierType, ObjectType> dictionary;
-        
-        private RegistryIdentifier registryIdentifier;
-        private FolderPath registryFolderPath;
         #endregion
 
         #region Constructors
         public Registry(IRegistry registryParent)
         {
-            dictionary = new Dictionary<IdentifierType, ObjectType>();
-            
-            registryIdentifier = Identifiers.RegistryIdentifier.Parse<IdentifierType, ObjectType>();
-            //registryFolderPath = ;
+            RegistryIdentifier = Identifiers.RegistryIdentifier.Parse<IdentifierType, ObjectType>();
+            //RegistryFolderPath = ;
 
             RegistryParent = registryParent;
             RegistryChildren = new List<IRegistry>();
             IdentifiableObjectChildren = new List<IIdentifiableObject>();
+
+            dictionary = new Dictionary<IdentifierType, ObjectType>();
         }
         #endregion
 
