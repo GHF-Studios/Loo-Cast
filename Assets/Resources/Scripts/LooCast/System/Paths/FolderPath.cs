@@ -2,35 +2,33 @@
 using System.Linq;
 using UnityEngine;
 
-namespace LooCast.System
+namespace LooCast.System.Paths
 {
     [Serializable]
-    public class FolderPath : HierarchicalObjectPath
+    public struct FolderPath : IFolderPath
     {
         #region Properties
+        public string GUSP { get; private set; }
+
         public string HierarchyFolderName => hierarchyFolderName;
-#nullable enable
-        public FolderPath? ParentHierarchyFolderPath => parentHierarchyFolderPath;
-#nullable disable
         #endregion
 
         #region Fields
         [SerializeField] private readonly string hierarchyFolderName;
-#nullable enable
-        [SerializeField] private readonly FolderPath? parentHierarchyFolderPath;
-#nullable disable
         #endregion
 
         #region Constructors
 #nullable enable
-        public FolderPath(string hierarchyFolderName, FolderPath? parentHierarchyFolderPath, string? gusp = null) : base(gusp == null ? parentHierarchyFolderPath == null ? $"{hierarchyFolderName}" : $"{parentHierarchyFolderPath}/{hierarchyFolderName}" : gusp)
+        public FolderPath(string hierarchyFolderName, FolderPath parentHierarchyFolderPath)
         {
             if (!IsValidHierarchyFolderName(hierarchyFolderName))
             {
                 throw new ArgumentException($"Invalid hierarchy folder name: {hierarchyFolderName}");
             }
+            
+            GUSP = parentHierarchyFolderPath == null ? $"{hierarchyFolderName}" : $"{parentHierarchyFolderPath}/{hierarchyFolderName}";
             this.hierarchyFolderName = hierarchyFolderName;
-            this.parentHierarchyFolderPath = parentHierarchyFolderPath;
+
         }
         #endregion
 

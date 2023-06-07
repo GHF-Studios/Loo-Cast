@@ -4,7 +4,7 @@ namespace LooCast.System.Registries
 {
     using LooCast.System.Identifiers;
     
-    public interface IRegistry : IEngineObject, IHierarchicalElement, IChild<IRegistry>, IParent<IRegistry>, IParent<IIdentifiableObject>
+    public interface IRegistry : IEngineObject, IChild<IRegistry>, IParent<IRegistry>, IParent<IIdentifiableObject>
     {
         #region Properties
         public IRegistryIdentifier RegistryIdentifier { get; }

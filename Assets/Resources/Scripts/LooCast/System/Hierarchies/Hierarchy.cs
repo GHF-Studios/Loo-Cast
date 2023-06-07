@@ -1,29 +1,33 @@
-﻿using LooCast.System.Identifiers;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LooCast.System.Hierarchies
 {
+    using LooCast.System.Identifiers;
+    using LooCast.System.Paths;
+    
     public abstract class Hierarchy<PathType, ElementType> : IHierarchy
-        where PathType : HierarchicalObjectPath
+        where PathType : IHierarchicalElementPath
         where ElementType : IHierarchicalElement
     {
         #region Properties
         public IObjectIdentifier ObjectIdentifier => HierarchyIdentifier;
         public IHierarchyIdentifier HierarchyIdentifier => hierarchyIdentifier;
 
-        public HierarchicalObjectPath HierarchicalObjectPath => HierarchyFolderPath;
+        public IHierarchicalElementPath HierarchicalElementPath => HierarchyFolderPath;
         public FolderPath HierarchyFolderPath => hierarchyFolderPath;
 
         public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
 
         IEngineObject IChild<IEngineObject>.Parent => ((IChild<IHierarchy>)this).Parent;
         IHierarchy IChild<IHierarchy>.Parent => HierarchyParent;
+        public IHierarchy HierarchyParent { get; private set; }
 
         IEnumerable<IEngineObject> IParent<IEngineObject>.Children => ((IParent<IHierarchy>)this).Children;
         IEnumerable<IHierarchy> IParent<IHierarchy>.Children => HierarchyChildren;
+        public List<IHierarchy> HierarchyChildren { get; private set; }
 
         IEnumerable<IHierarchicalElement> IParent<IHierarchicalElement>.Children => HierarchyElementChildren;
+        public List<IHierarchicalElement> HierarchyElementChildren { get; private set; }
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -134,17 +138,13 @@ namespace LooCast.System.Hierarchies
         #region Fields
         private HierarchyIdentifier hierarchyIdentifier;
         private FolderPath hierarchyFolderPath;
-        
-        public IHierarchy HierarchyParent { get; private set; }
-        public List<IHierarchy> HierarchyChildren { get; private set; }
-        public List<IHierarchicalElement> HierarchyElementChildren { get; private set; }
         #endregion
 
         #region Constructors
         public Hierarchy(IHierarchy hierarchyParent)
         {
             hierarchyIdentifier = Identifiers.HierarchyIdentifier.Parse<PathType, ElementType>();
-            hierarchyFolderPath = ;
+            //hierarchyFolderPath = ;
             
             HierarchyParent = hierarchyParent;
             HierarchyChildren = new List<IHierarchy>();
@@ -167,7 +167,7 @@ namespace LooCast.System.Hierarchies
             
         }
         
-        public bool RemoveElement(HierarchicalObjectPath elementPath) 
+        public bool RemoveElement(IHierarchicalElementPath elementPath) 
         {
             
         }
@@ -176,7 +176,7 @@ namespace LooCast.System.Hierarchies
             
         }
         
-        public IHierarchicalElement GetElement(HierarchicalObjectPath elementPath) 
+        public IHierarchicalElement GetElement(IHierarchicalElementPath elementPath) 
         {
             
         }
@@ -185,7 +185,7 @@ namespace LooCast.System.Hierarchies
             
         }
         
-        public bool TryGetElement(HierarchicalObjectPath elementPath, out IHierarchicalElement hierarchicalElement) 
+        public bool TryGetElement(IHierarchicalElementPath elementPath, out IHierarchicalElement hierarchicalElement) 
         {
             
         }
@@ -194,7 +194,7 @@ namespace LooCast.System.Hierarchies
             
         }
         
-        public bool ContainsPath(HierarchicalObjectPath elementPath) 
+        public bool ContainsPath(IHierarchicalElementPath elementPath) 
         {
             
         }

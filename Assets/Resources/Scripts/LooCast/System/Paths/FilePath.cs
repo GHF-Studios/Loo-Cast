@@ -2,30 +2,26 @@
 using System.Linq;
 using UnityEngine;
 
-namespace LooCast.System
+namespace LooCast.System.Paths
 {
     [Serializable]
-    public class FilePath : HierarchicalObjectPath
+    public struct FilePath : IFilePath
     {
         #region Properties
+        public string GUSP { get; private set; }
+
         public string HierarchyFileName => hierarchyFileName;
         public string HierarchyFileExtension => hierarchyFileExtension;
-#nullable enable
-        public FolderPath ParentHierarchyFolderPath => parentHierarchyFolderPath;
-#nullable disable
         #endregion
 
         #region Fields
         [SerializeField] private readonly string hierarchyFileName;
         [SerializeField] private readonly string hierarchyFileExtension;
-#nullable enable
-        [SerializeField] private readonly FolderPath parentHierarchyFolderPath;
-#nullable disable
         #endregion
 
         #region Constructors
 #nullable enable
-        public FilePath(string hierarchyFileName, string hierarchyFileExtension, FolderPath parentHierarchyFolderPath, string? gusp = null) : base(gusp == null ? $"{parentHierarchyFolderPath}/{hierarchyFileName}.{hierarchyFileExtension}" : gusp)
+        public FilePath(string hierarchyFileName, string hierarchyFileExtension, FolderPath parentHierarchyFolderPath)
         {
             if (!IsValidHierarchyFileName(hierarchyFileName))
             {
@@ -36,8 +32,12 @@ namespace LooCast.System
             {
                 throw new ArgumentException($"Invalid hierarchy file extension: {hierarchyFileExtension}");
             }
+
+            GUSP = $"{parentHierarchyFolderPath}/{hierarchyFileName}.{hierarchyFileExtension}";
             
             this.hierarchyFileName = hierarchyFileName;
+            this.hierarchyFileExtension = hierarchyFileExtension;
+            
             this.parentHierarchyFolderPath = parentHierarchyFolderPath;
         }
         #endregion

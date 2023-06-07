@@ -4,7 +4,7 @@ namespace LooCast.System.Hierarchies
 {
     using LooCast.System.Identifiers;
 
-    public interface IHierarchy : IEngineObject, IHierarchicalElement, IChild<IHierarchy>, IParent<IHierarchy>, IParent<IHierarchicalElement>
+    public interface IHierarchy : IEngineObject, IChild<IHierarchy>, IParent<IHierarchy>, IParent<IHierarchicalElement>
     {
         #region Properties
         IHierarchyIdentifier HierarchyIdentifier { get; }
@@ -15,17 +15,17 @@ namespace LooCast.System.Hierarchies
 
         #region Methods
         void AddElement(IHierarchicalElement hierarchicalElement);
-        bool RemoveElement(HierarchicalObjectPath elementPath);
-        IHierarchicalElement GetElement(HierarchicalObjectPath elementPath);
-        bool TryGetElement(HierarchicalObjectPath elementPath, out IHierarchicalElement hierarchicalElement);
-        bool ContainsPath(HierarchicalObjectPath elementPath);
+        bool RemoveElement(IHierarchicalElementPath elementPath);
+        IHierarchicalElement GetElement(IHierarchicalElementPath elementPath);
+        bool TryGetElement(IHierarchicalElementPath elementPath, out IHierarchicalElement hierarchicalElement);
+        bool ContainsPath(IHierarchicalElementPath elementPath);
         bool ContainsElement(IHierarchicalElement hierarchicalElement);
         void Clear();
         #endregion
     }
 
     public interface IHierarchy<PathType, ElementType> : IHierarchy
-        where PathType : HierarchicalObjectPath
+        where PathType : IHierarchicalElementPath
         where ElementType : IHierarchicalElement
     {
         #region Methods
@@ -37,5 +37,4 @@ namespace LooCast.System.Hierarchies
         bool ContainsElement(ElementType hierarchicalElement);
         #endregion
     }
-}
 }

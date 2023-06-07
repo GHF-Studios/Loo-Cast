@@ -2,30 +2,24 @@
 using System.Linq;
 using UnityEngine;
 
-namespace LooCast.System
+namespace LooCast.System.Paths
 {
     [Serializable]
-    public class ObjectPath : HierarchicalObjectPath
+    public struct ObjectPath : IObjectPath
     {
         #region Properties
+        public string GUSP { get; private set; }
+
         public string HierarchyObjectName => hierarchyObjectName;
-#nullable enable
-        public FilePath? ParentHierarchyFilePath => parentHierarchyFilePath;
-        public ObjectPath? ParentHierarchyObjectPath => parentHierarchyObjectPath;
-#nullable disable
         #endregion
 
         #region Fields
         [SerializeField] private readonly string hierarchyObjectName;
-#nullable enable
-        [SerializeField] private readonly FilePath? parentHierarchyFilePath;
-        [SerializeField] private readonly ObjectPath? parentHierarchyObjectPath;
-#nullable disable
         #endregion
 
         #region Constructors
 #nullable enable
-        public ObjectPath(string hierarchyObjectName, FilePath? parentHierarchyFilePath, ObjectPath? parentHierarchyObjectPath, string? gusp = null) : base(gusp == null ? (parentHierarchyFilePath == null ? $"{parentHierarchyObjectPath}-{hierarchyObjectName}" : parentHierarchyObjectPath == null ? $"{parentHierarchyFilePath}-{hierarchyObjectName}" : null) : gusp)
+        public ObjectPath(string hierarchyObjectName, FilePath? parentHierarchyFilePath, ObjectPath? parentHierarchyObjectPath)
         {
             if (!IsValidHierarchyObjectName(hierarchyObjectName))
             {
@@ -37,9 +31,8 @@ namespace LooCast.System
                 throw new ArgumentException($"An object path is required to have exactly one type of parent path!");
             }
 
+            GUSP = parentHierarchyFilePath == null ? $"{parentHierarchyObjectPath}-{hierarchyObjectName}" : parentHierarchyObjectPath == null ? $"{parentHierarchyFilePath}-{hierarchyObjectName}" : null;
             this.hierarchyObjectName = hierarchyObjectName;
-            this.parentHierarchyFilePath = parentHierarchyFilePath;
-            this.parentHierarchyObjectPath = parentHierarchyObjectPath;
         }
         #endregion
 

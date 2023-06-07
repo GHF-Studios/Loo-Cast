@@ -3,6 +3,7 @@
 namespace LooCast.System.Registries
 {
     using LooCast.System.Identifiers;
+    using LooCast.System.Paths;
 
     public class Registry<IdentifierType, ObjectType> : IRegistry
         where IdentifierType : IObjectIdentifier
@@ -12,18 +13,21 @@ namespace LooCast.System.Registries
         public IObjectIdentifier ObjectIdentifier => RegistryIdentifier;
         public IRegistryIdentifier RegistryIdentifier => registryIdentifier;
 
-        public HierarchicalObjectPath HierarchicalObjectPath => RegistryFolderPath;
+        public IHierarchicalElementPath HierarchicalElementPath => RegistryFolderPath;
         public FolderPath RegistryFolderPath => registryFolderPath;
 
         public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
 
         public IEngineObject Parent => ((IChild<IRegistry>)this).Parent;
         IRegistry IChild<IRegistry>.Parent => RegistryParent;
+        public IRegistry RegistryParent { get; private set; }
 
         public IEnumerable<IEngineObject> Children => ((IParent<IRegistry>)this).Children;
         IEnumerable<IRegistry> IParent<IRegistry>.Children => RegistryChildren;
+        public List<IRegistry> RegistryChildren { get; private set; }
 
         IEnumerable<IIdentifiableObject> IParent<IIdentifiableObject>.Children => IdentifiableObjectChildren;
+        public List<IIdentifiableObject> IdentifiableObjectChildren { get; private set; }
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -136,10 +140,6 @@ namespace LooCast.System.Registries
         
         private RegistryIdentifier registryIdentifier;
         private FolderPath registryFolderPath;
-
-        public IRegistry RegistryParent { get; private set; }
-        public List<IRegistry> RegistryChildren { get; private set; }
-        public List<IIdentifiableObject> IdentifiableObjectChildren { get; private set; }
         #endregion
 
         #region Constructors
@@ -148,7 +148,7 @@ namespace LooCast.System.Registries
             dictionary = new Dictionary<IdentifierType, ObjectType>();
             
             registryIdentifier = Identifiers.RegistryIdentifier.Parse<IdentifierType, ObjectType>();
-            registryFolderPath = ;
+            //registryFolderPath = ;
 
             RegistryParent = registryParent;
             RegistryChildren = new List<IRegistry>();
