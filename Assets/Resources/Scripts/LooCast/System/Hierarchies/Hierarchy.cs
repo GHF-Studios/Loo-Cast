@@ -141,10 +141,11 @@ namespace LooCast.System.Hierarchies
         #endregion
 
         #region Constructors
-        public Hierarchy(HierarchyIdentifier hierarchyIdentifier, FolderPath hierarchyFolderPath, IHierarchy hierarchyParent)
+        public Hierarchy(IHierarchy hierarchyParent)
         {
-            this.hierarchyIdentifier = hierarchyIdentifier;
-            this.hierarchyFolderPath = hierarchyFolderPath;
+            hierarchyIdentifier = Identifiers.HierarchyIdentifier.Parse<PathType, ElementType>();
+            hierarchyFolderPath = ;
+            
             HierarchyParent = hierarchyParent;
             HierarchyChildren = new List<IHierarchy>();
             HierarchyElementChildren = new List<IHierarchicalElement>();

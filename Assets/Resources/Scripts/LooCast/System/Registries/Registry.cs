@@ -148,6 +148,11 @@ namespace LooCast.System.Registries
             dictionary = new Dictionary<IdentifierType, ObjectType>();
             
             registryIdentifier = Identifiers.RegistryIdentifier.Parse<IdentifierType, ObjectType>();
+            registryFolderPath = ;
+
+            RegistryParent = registryParent;
+            RegistryChildren = new List<IRegistry>();
+            IdentifiableObjectChildren = new List<IIdentifiableObject>();
         }
         #endregion
 
