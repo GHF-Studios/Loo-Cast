@@ -68,9 +68,45 @@ namespace LooCast.System.Paths
             return true;
         }
 #nullable disable
+        public static FolderPath Combine(FolderPath folderPath1, FolderPath folderPath2) 
+        {
+            
+        }
         #endregion
 
         #region Methods
+        public FolderPath GetParentPath() 
+        {
+            
+        }
+        public string GetFolderName() 
+        {
+            
+        }
+        public bool Equals(FolderPath other) 
+        {
+            
+        }
+        public bool StartsWith(FolderPath prefix) 
+        {
+            
+        }
+        public bool EndsWith(FolderPath suffix) 
+        {
+            
+        }
+        public bool IsSubPathOf(FolderPath basePath) 
+        {
+            
+        }
+        public bool IsParentPathOf(FolderPath childPath) 
+        {
+            
+        }
+        public bool IsChildPathOf(FolderPath parentPath) 
+        {
+            
+        }
         #endregion
 
         #region Overrides

@@ -103,9 +103,49 @@ namespace LooCast.System.Paths
             return true;
         }
 #nullable disable
+        public static FilePath Combine(FolderPath folderPath, FilePath filePath)
+        {
+
+        }
         #endregion
 
         #region Methods
+        public FilePath GetParentPath() 
+        {
+            
+        }
+        public string GetFileName() 
+        {
+            
+        }
+        public string GetFileExtension() 
+        {
+            
+        }
+        public bool Equals(FilePath other) 
+        {
+            
+        }
+        public bool StartsWith(FilePath prefix) 
+        {
+            
+        }
+        public bool EndsWith(FilePath suffix) 
+        {
+            
+        }
+        public bool IsSubPathOf(FolderPath basePath) 
+        {
+            
+        }
+        public bool IsParentPathOf(FilePath childPath) 
+        {
+            
+        }
+        public bool IsChildPathOf(FolderPath parentPath) 
+        {
+            
+        }
         #endregion
 
         #region Overrides
