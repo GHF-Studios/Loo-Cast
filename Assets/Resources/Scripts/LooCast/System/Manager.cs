@@ -13,7 +13,7 @@ namespace LooCast.System
         {
             get
             {
-                global::System.Type type = typeof(ManagerType);
+                Type type = typeof(ManagerType);
                 if (!instances.ContainsKey(type))
                 {
                     ManagerObject managerObject = ManagerObject.CreateManagerObject();
@@ -29,7 +29,7 @@ namespace LooCast.System
         #endregion
 
         #region Static Fields
-        private static readonly Dictionary<global::System.Type, ManagerType> instances = new Dictionary<global::System.Type, ManagerType>();
+        private static readonly Dictionary<Type, ManagerType> instances = new Dictionary<Type, ManagerType>();
         #endregion
 
         #region Properties
