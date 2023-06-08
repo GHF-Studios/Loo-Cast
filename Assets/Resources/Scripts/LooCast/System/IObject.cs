@@ -5,10 +5,10 @@ namespace LooCast.System
 {
     using LooCast.System.Paths;
 
-    public interface IHierarchyFile : IHierarchicalElement, IChild<IHierarchyFolder>, IParent<IHierarchyObject>
+    public interface IObject : IHierarchicalElement, IChild<IFile>, IChild<IObject>, IParent<IObject>
     {
         #region Properties
-        FilePath HierarchyFilePath { get; }
+        ObjectPath ObjectPath{ get; }
         #endregion
     }
 }

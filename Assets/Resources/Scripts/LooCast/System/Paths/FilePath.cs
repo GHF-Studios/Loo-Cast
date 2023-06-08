@@ -44,7 +44,7 @@ namespace LooCast.System.Paths
         #endregion
 
         #region Constructors
-        private FilePath(bool isRelative, string fileName, string fileExtension, FolderPath folderPathParent)
+        public FilePath(bool isRelative, string fileName, string fileExtension, FolderPath folderPathParent)
         {
             this.isRelative = isRelative;
             this.fileName = fileName;

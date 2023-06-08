@@ -4,7 +4,7 @@ namespace LooCast.System.Hierarchies
 {
     using LooCast.System.Identifiers;
 
-    public interface IHierarchy : IEngineObject, IHierarchyFolder, IChild<IHierarchy>, IParent<IHierarchy>, IParent<IHierarchicalElement>
+    public interface IHierarchy : IEngineObject, IFolder, IChild<IHierarchy>, IParent<IHierarchy>, IParent<IHierarchicalElement>
     {
         #region Properties
         IHierarchyIdentifier HierarchyIdentifier { get; }

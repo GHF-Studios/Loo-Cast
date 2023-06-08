@@ -91,6 +91,10 @@ namespace LooCast.System.Paths
 
         public PathBuilder WithFolder(string folderName)
         {
+            if (isRelative == null)
+            {
+                throw new InvalidOperationException("Must specify whether path is relative or absolute before construction!");
+            }
             if (!isFolderPath || isFilePath || isObjectPath)
             {
                 throw new InvalidOperationException("A folder can only be contained within another folder!");
@@ -102,6 +106,10 @@ namespace LooCast.System.Paths
 
         public PathBuilder WithFile(string fileName, string fileExtension)
         {
+            if (isRelative == null)
+            {
+                throw new InvalidOperationException("Must specify whether path is relative or absolute before construction!");
+            }
             if (!isFolderPath || isFilePath || isObjectPath)
             {
                 throw new InvalidOperationException("A file can only be contained within a folder!");
@@ -114,6 +122,10 @@ namespace LooCast.System.Paths
             
         public PathBuilder WithObject(string objectName)
         {
+            if (isRelative == null)
+            {
+                throw new InvalidOperationException("Must specify whether path is relative or absolute before construction!");
+            }
             if (isFolderPath || (!isFilePath && !isObjectPath))
             {
                 throw new InvalidOperationException("An object can only be contained within another object or a file!");
@@ -125,40 +137,17 @@ namespace LooCast.System.Paths
 
         public FolderPath ConstructFolderPath()
         {
-            if (isRelative == null)
-            {
-                throw new InvalidOperationException("Must specify whether path is relative or absolute before construction!");
-            }
+            return new FolderPath((bool)isRelative, folderNames.ToArray());
         }
 
         public FilePath ConstructFilePath()
         {
-            if (isRelative == null)
-            {
-                throw new InvalidOperationException("Must specify whether path is relative or absolute before construction!");
-            }
-
-            string gusp = "";
-
-            if (!(bool)isRelative)
-            {
-                gusp += "/";
-            }
+            return new FilePath((bool)isRelative, fileName, fileExtension, ConstructFolderPath()); 
         }
 
         public ObjectPath ConstructObjectPath()
         {
-            if (isRelative == null)
-            {
-                throw new InvalidOperationException("Must specify whether path is relative or absolute before construction!");
-            }
-
-            string gusp = "";
-
-            if (!(bool)isRelative)
-            {
-                gusp += "/";
-            }
+            return new ObjectPath((bool)isRelative, ConstructFilePath(), objectNames.ToArray());
         }
     }
 }

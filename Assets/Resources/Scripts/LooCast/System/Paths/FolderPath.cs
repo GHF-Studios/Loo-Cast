@@ -36,7 +36,7 @@ namespace LooCast.System.Paths
         #endregion
 
         #region Constructors
-        private FolderPath(bool isRelative, params string[] folderNames)
+        public FolderPath(bool isRelative, params string[] folderNames)
         {
             this.isRelative = isRelative;
             this.folderNames = folderNames.ToList();
