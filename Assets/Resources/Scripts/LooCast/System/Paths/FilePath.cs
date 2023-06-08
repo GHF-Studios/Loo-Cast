@@ -44,13 +44,8 @@ namespace LooCast.System.Paths
         #endregion
 
         #region Constructors
-        public FilePath(bool isRelative, string fileName, string fileExtension, FolderPath folderPathParent)
+        private FilePath(bool isRelative, string fileName, string fileExtension, FolderPath folderPathParent)
         {
-            if (isRelative && folderPathParent != null && !folderPathParent.IsRelative)
-            {
-                throw new ArgumentException($"Can not construct a relative path from an absolute parent path!");
-            }
-
             this.isRelative = isRelative;
             this.fileName = fileName;
             this.fileExtension = fileExtension;
@@ -90,6 +85,11 @@ namespace LooCast.System.Paths
                 }
 
                 if (!FolderPath.TryParse(folderGUSP, out folderPathParent))
+                {
+                    return false;
+                }
+                
+                if (isRelative && !((FolderPath)folderPathParent!).IsRelative)
                 {
                     return false;
                 }

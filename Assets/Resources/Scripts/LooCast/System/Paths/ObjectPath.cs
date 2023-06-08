@@ -34,18 +34,8 @@ namespace LooCast.System.Paths
         #endregion
 
         #region Constructors
-        public ObjectPath(bool isRelative, FilePath filePathParent, string[] objectNames)
+        private ObjectPath(bool isRelative, FilePath filePathParent, string[] objectNames)
         {
-            if (isRelative && filePathParent != null && !filePathParent.IsRelative)
-            {
-                throw new ArgumentException("Can not construct a relative path from an absolute parent path!");
-            }
-
-            if (!isRelative && filePathParent == null)
-            {
-                throw new ArgumentException("Can not construct an absolute object path without a parent path!");
-            }
-
             this.isRelative = isRelative;
             this.objectNames = objectNames.ToList();
             this.filePathParent = filePathParent;
@@ -88,9 +78,18 @@ namespace LooCast.System.Paths
                 {
                     return false;
                 }
+                if (isRelative && !((FilePath)filePathParent!).IsRelative)
+                {
+                    return false;
+                }
             }
             else
             {
+                if (!isRelative)
+                {
+                    return false;
+                }
+                
                 filePathParent = null;
             }
 
