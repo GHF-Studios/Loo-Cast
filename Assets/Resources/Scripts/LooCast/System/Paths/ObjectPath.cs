@@ -28,14 +28,27 @@ namespace LooCast.System.Paths
         #endregion
 
         #region Fields
-        [SerializeField] private bool isRelative;
-        [SerializeField] private List<string> objectNames;
-        [SerializeField] private FilePath filePathParent;
+        [SerializeField] private readonly bool isRelative;
+        [SerializeField] private readonly List<string> objectNames;
+        [SerializeField] private readonly FilePath filePathParent;
         #endregion
 
         #region Constructors
         public ObjectPath(bool isRelative, FilePath filePathParent, string[] objectNames)
         {
+            if (objectNames == null || objectNames.Length == 0)
+            {
+                throw new Exception("At least one object name must be provided!");
+            }
+            if (objectNames.Any(objectName => !StringUtil.IsAlphaNumeric(objectName)))
+            {
+                throw new Exception("Object names must be alphanumeric!");
+            }
+            if (isRelative && !filePathParent.IsRelative)
+            {
+                throw new Exception("Relative object paths must have a relative file path parent!");
+            }
+            
             this.isRelative = isRelative;
             this.objectNames = objectNames.ToList();
             this.filePathParent = filePathParent;
@@ -97,44 +110,40 @@ namespace LooCast.System.Paths
             return true;
         }
 #nullable disable
-        public static ObjectPath Combine(FilePath filePath, ObjectPath objectPath)
-        {
-
-        }
         #endregion
 
         #region Methods
-        public ObjectPath GetParentPath() 
+        public bool IsChildOf(FilePath filePathParent)
         {
-            
+            return this.FilePathParent == filePathParent;
         }
-        public string GetObjectName() 
+        
+        public bool IsChildOf(ObjectPath objectPathParent)
         {
-            
+            if (objectPathParent.IsRelative && !IsRelative)
+            {
+                return false;
+            }
+
+            if (objectPathParent.ObjectNames.Count >= ObjectNames.Count)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < objectPathParent.ObjectNames.Count; i++)
+            {
+                if (objectPathParent.ObjectNames[i] != ObjectNames[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
-        public bool Equals(ObjectPath other) 
+
+        public bool IsParentOf(ObjectPath objectPathChild)
         {
-            
-        }
-        public bool StartsWith(ObjectPath prefix) 
-        {
-            
-        }
-        public bool EndsWith(ObjectPath suffix) 
-        {
-            
-        }
-        public bool IsSubPathOf(FilePath basePath) 
-        {
-            
-        }
-        public bool IsParentPathOf(ObjectPath childPath) 
-        {
-            
-        }
-        public bool IsChildPathOf(FilePath parentPath) 
-        {
-            
+            return objectPathChild.IsChildOf(this);
         }
         #endregion
 

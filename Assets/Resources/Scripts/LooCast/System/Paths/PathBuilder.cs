@@ -55,13 +55,31 @@ namespace LooCast.System.Paths
             isRelative = null;
         }
 
-        private PathBuilder(string gusp)
+        private PathBuilder(FolderPath folderPath)
         {
-            folderNames = new List<string>();
+            folderNames = folderPath.FolderNames;
             fileName = null;
             fileExtension = null;
             objectNames = new List<string>();
-            isRelative = null;
+            isRelative = folderPath.IsRelative;
+        }
+
+        private PathBuilder(FilePath filePath)
+        {
+            folderNames = filePath.FolderPathParent.FolderNames;
+            fileName = filePath.FileName;
+            fileExtension = filePath.FileExtension;
+            objectNames = new List<string>();
+            isRelative = filePath.IsRelative;
+        }
+
+        private PathBuilder(ObjectPath objectPath)
+        {
+            folderNames = objectPath.FilePathParent.FolderPathParent.FolderNames;
+            fileName = objectPath.FilePathParent.FileName;
+            fileExtension = objectPath.FilePathParent.FileExtension;
+            objectNames = objectPath.ObjectNames;
+            isRelative = objectPath.IsRelative;
         }
         #endregion
 
@@ -71,12 +89,23 @@ namespace LooCast.System.Paths
             return new PathBuilder();
         }
 
-        public static PathBuilder Load(string gusp)
+        public static PathBuilder Load(FolderPath folderPath)
         {
-            return new PathBuilder(gusp);
+            return new PathBuilder(folderPath);
+        }
+
+        public static PathBuilder Load(FilePath filePath)
+        {
+            return new PathBuilder(filePath);
+        }
+
+        public static PathBuilder Load(ObjectPath objectPath)
+        {
+            return new PathBuilder(objectPath);
         }
         #endregion
 
+        #region Methods
         public PathBuilder AsRelativePath()
         {
             isRelative = true;
@@ -103,6 +132,20 @@ namespace LooCast.System.Paths
             folderNames.Add(folderName);
             return this;
         }
+        public PathBuilder WithFolder(FolderPath folderPath)
+        {
+            if (isRelative == null)
+            {
+                throw new InvalidOperationException("Must specify whether path is relative or absolute before construction!");
+            }
+            if (!isFolderPath || isFilePath || isObjectPath)
+            {
+                throw new InvalidOperationException("A folder can only be contained within another folder!");
+            }
+
+            folderNames.AddRange(folderPath.FolderNames);
+            return this;
+        }
 
         public PathBuilder WithFile(string fileName, string fileExtension)
         {
@@ -119,7 +162,22 @@ namespace LooCast.System.Paths
             this.fileExtension = fileExtension;
             return this;
         }
-            
+        public PathBuilder WithFile(FilePath filePath)
+        {
+            if (isRelative == null)
+            {
+                throw new InvalidOperationException("Must specify whether path is relative or absolute before construction!");
+            }
+            if (!isFolderPath || isFilePath || isObjectPath)
+            {
+                throw new InvalidOperationException("A file can only be contained within a folder!");
+            }
+
+            fileName = filePath.FileName;
+            fileExtension = filePath.FileExtension;
+            return this;
+        }
+
         public PathBuilder WithObject(string objectName)
         {
             if (isRelative == null)
@@ -132,6 +190,20 @@ namespace LooCast.System.Paths
             }
 
             objectNames.Add(objectName);
+            return this;
+        }
+        public PathBuilder WithObject(ObjectPath objectPath)
+        {
+            if (isRelative == null)
+            {
+                throw new InvalidOperationException("Must specify whether path is relative or absolute before construction!");
+            }
+            if (isFolderPath || (!isFilePath && !isObjectPath))
+            {
+                throw new InvalidOperationException("An object can only be contained within another object or a file!");
+            }
+
+            objectNames.AddRange(objectPath.ObjectNames);
             return this;
         }
 
@@ -149,5 +221,6 @@ namespace LooCast.System.Paths
         {
             return new ObjectPath((bool)isRelative, ConstructFilePath(), objectNames.ToArray());
         }
+        #endregion
     }
 }

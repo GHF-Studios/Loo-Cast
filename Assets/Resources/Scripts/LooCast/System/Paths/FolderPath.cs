@@ -31,13 +31,22 @@ namespace LooCast.System.Paths
         #endregion
 
         #region Fields
-        [SerializeField] private bool isRelative;
-        [SerializeField] private List<string> folderNames;
+        [SerializeField] private readonly bool isRelative;
+        [SerializeField] private readonly List<string> folderNames;
         #endregion
 
         #region Constructors
         public FolderPath(bool isRelative, params string[] folderNames)
         {
+            if (folderNames == null || folderNames.Length == 0)
+            {
+                throw new Exception("At least one folder name must be provided!");
+            }
+            if (folderNames.Any(folderName => !StringUtil.IsAlphaNumeric(folderName)))
+            {
+                throw new Exception("Folder names must be alphanumeric!");
+            }
+            
             this.isRelative = isRelative;
             this.folderNames = folderNames.ToList();
         }
@@ -68,44 +77,40 @@ namespace LooCast.System.Paths
             return true;
         }
 #nullable disable
-        public static FolderPath Combine(FolderPath folderPath1, FolderPath folderPath2) 
-        {
-            
-        }
         #endregion
 
         #region Methods
-        public FolderPath GetParentPath() 
+        public bool IsChildOf(FolderPath folderPathParent)
         {
+            if (folderPathParent.IsRelative && !IsRelative)
+            {
+                return false;
+            }
+
+            if (folderPathParent.FolderNames.Count >= FolderNames.Count)
+            {
+                return false;
+            }
             
+            for (int i = 0; i < folderPathParent.FolderNames.Count; i++)
+            {
+                if (folderPathParent.FolderNames[i] != FolderNames[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
-        public string GetFolderName() 
+
+        public bool IsParentOf(FolderPath folderPathChild)
         {
-            
+            return folderPathChild.IsChildOf(this);
         }
-        public bool Equals(FolderPath other) 
+
+        public bool IsParentOf(FilePath filePathChild)
         {
-            
-        }
-        public bool StartsWith(FolderPath prefix) 
-        {
-            
-        }
-        public bool EndsWith(FolderPath suffix) 
-        {
-            
-        }
-        public bool IsSubPathOf(FolderPath basePath) 
-        {
-            
-        }
-        public bool IsParentPathOf(FolderPath childPath) 
-        {
-            
-        }
-        public bool IsChildPathOf(FolderPath parentPath) 
-        {
-            
+            return filePathChild.IsChildOf(this);
         }
         #endregion
 

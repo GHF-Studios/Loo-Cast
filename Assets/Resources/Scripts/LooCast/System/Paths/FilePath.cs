@@ -37,15 +37,24 @@ namespace LooCast.System.Paths
         #endregion
 
         #region Fields
-        [SerializeField] private bool isRelative;
-        [SerializeField] private string fileName;
-        [SerializeField] private string fileExtension;
-        [SerializeField] private FolderPath folderPathParent;
+        [SerializeField] private readonly bool isRelative;
+        [SerializeField] private readonly string fileName;
+        [SerializeField] private readonly string fileExtension;
+        [SerializeField] private readonly FolderPath folderPathParent;
         #endregion
 
         #region Constructors
         public FilePath(bool isRelative, string fileName, string fileExtension, FolderPath folderPathParent)
         {
+            if (!StringUtil.IsAlphaNumeric(fileName) || !StringUtil.IsAlphaNumeric(fileExtension))
+            {
+                throw new Exception("File name and extension must be alphanumeric!");
+            }
+            if (isRelative && !folderPathParent.IsRelative)
+            {
+                throw new Exception("Relative file paths must have a relative folder path parent!");
+            }
+            
             this.isRelative = isRelative;
             this.fileName = fileName;
             this.fileExtension = fileExtension;
@@ -103,48 +112,17 @@ namespace LooCast.System.Paths
             return true;
         }
 #nullable disable
-        public static FilePath Combine(FolderPath folderPath, FilePath filePath)
-        {
-
-        }
         #endregion
 
         #region Methods
-        public FilePath GetParentPath() 
+        public bool IsChildOf(FolderPath folderPathParent)
         {
-            
+            return this.FolderPathParent == folderPathParent;
         }
-        public string GetFileName() 
+
+        public bool IsParentOf(ObjectPath objectPathChild)
         {
-            
-        }
-        public string GetFileExtension() 
-        {
-            
-        }
-        public bool Equals(FilePath other) 
-        {
-            
-        }
-        public bool StartsWith(FilePath prefix) 
-        {
-            
-        }
-        public bool EndsWith(FilePath suffix) 
-        {
-            
-        }
-        public bool IsSubPathOf(FolderPath basePath) 
-        {
-            
-        }
-        public bool IsParentPathOf(FilePath childPath) 
-        {
-            
-        }
-        public bool IsChildPathOf(FolderPath parentPath) 
-        {
-            
+            return objectPathChild.IsChildOf(this);
         }
         #endregion
 
