@@ -1,6 +1,6 @@
 ﻿namespace LooCast.System
 {
-    public enum HierarchyElementType
+    public enum HierarchicalElementType
     {
         Folder = 0,
         File = 1,

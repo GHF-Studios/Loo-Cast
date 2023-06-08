@@ -6,7 +6,8 @@ namespace LooCast.System
     public interface IHierarchicalElementPath
     {
         #region Properties
-        public string GUSP { get; }
+        string GUSP { get; }
+        bool IsRelative { get; }
         #endregion
     }
 }

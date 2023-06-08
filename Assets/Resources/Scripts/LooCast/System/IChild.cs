@@ -5,9 +5,5 @@
         #region Properties
         TParent Parent { get; }
         #endregion
-
-        #region Methods
-        void SetParent(TParent parent);
-        #endregion
     }
 }

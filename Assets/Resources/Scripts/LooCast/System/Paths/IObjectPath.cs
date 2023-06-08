@@ -1,10 +1,12 @@
-﻿namespace LooCast.System.Paths
+﻿using System.Collections.Generic;
+
+namespace LooCast.System.Paths
 {
-    public interface IObjectPath : IHierarchicalElementPath, IChild<FilePath>, IChild<ObjectPath>
+    public interface IObjectPath : IHierarchicalElementPath
     {
         #region Properties
+        List<string> ObjectNames { get; }
         FilePath FilePathParent { get; }
-        ObjectPath ObjectPathParent { get; }
         #endregion
     }
 }

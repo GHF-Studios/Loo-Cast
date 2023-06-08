@@ -1,120 +1,106 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using UnityEngine;
 
 namespace LooCast.System.Paths
 {
     [Serializable]
-    public class ObjectPath : IObjectPath
+    public struct ObjectPath : IObjectPath
     {
         #region Properties
-        public string GUSP { get; private set; }
+        public string GUSP
+        {
+            get
+            {
+                StringBuilder guspBuilder = new StringBuilder();
+                guspBuilder.Append(filePathParent);
+                guspBuilder.Append(':');
+                guspBuilder.Append(string.Join("+", objectNames));
 
-        public string HierarchyObjectName => hierarchyObjectName;
+                return guspBuilder.ToString();
+            }
+        }
+        public bool IsRelative => isRelative;
+        public List<string> ObjectNames => objectNames;
+        public FilePath FilePathParent => filePathParent;
         #endregion
 
         #region Fields
-        [SerializeField] private readonly string hierarchyObjectName;
+        [SerializeField] private bool isRelative;
+        [SerializeField] private List<string> objectNames;
+        [SerializeField] private FilePath filePathParent;
         #endregion
 
         #region Constructors
-#nullable enable
-        public ObjectPath(string hierarchyObjectName, FilePath? parentHierarchyFilePath, ObjectPath? parentHierarchyObjectPath)
+        public ObjectPath(bool isRelative, FilePath filePathParent, string[] objectNames)
         {
-            if (!IsValidHierarchyObjectName(hierarchyObjectName))
+            if (isRelative && filePathParent != null && !filePathParent.IsRelative)
             {
-                throw new ArgumentException($"Invalid hierarchy object name: {hierarchyObjectName}");
+                throw new ArgumentException("Can not construct a relative path from an absolute parent path!");
             }
 
-            if (!IsValidParent(parentHierarchyFilePath, parentHierarchyObjectPath))
+            if (!isRelative && filePathParent == null)
             {
-                throw new ArgumentException($"An object path is required to have exactly one type of parent path!");
+                throw new ArgumentException("Can not construct an absolute object path without a parent path!");
             }
 
-            GUSP = parentHierarchyFilePath == null ? $"{parentHierarchyObjectPath}-{hierarchyObjectName}" : parentHierarchyObjectPath == null ? $"{parentHierarchyFilePath}-{hierarchyObjectName}" : null;
-            
-            this.hierarchyObjectName = hierarchyObjectName;
+            this.isRelative = isRelative;
+            this.objectNames = objectNames.ToList();
+            this.filePathParent = filePathParent;
         }
         #endregion
 
         #region Static Methods
 #nullable enable
-        public static bool TryParse(string gusp, out ObjectPath? hierarchyObjectPath)
+        public static bool TryParse(string objectGUSP, out ObjectPath? objectPath)
         {
-            hierarchyObjectPath = null;
+            objectPath = null;
 
-            string[] parts = gusp.Split(new char[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
+            bool isRelative = objectGUSP[0] == '/';
 
-            if (parts.Length != 2)
+            string[] parts = objectGUSP.Split(':', '+');
+
+            if (parts.Length < 1)
             {
                 return false;
             }
 
-            string hierarchyObjectName = parts[1];
+            string[] objectNames = parts.Skip(1).ToArray();
 
-            if (!IsValidHierarchyObjectName(hierarchyObjectName))
+            if (objectNames == null || objectNames.Length == 0 || objectNames.Any(objectName => !StringUtil.IsAlphaNumeric(objectName)))
             {
                 return false;
             }
 
-            string parentHierarchyElementPathString = parts[0];
+            FilePath? filePathParent;
 
-            FilePath? parentHierarchyFilePath = null;
-            ObjectPath? parentHierarchyObjectPath = null;
-
-            if (FilePath.TryParse(parentHierarchyElementPathString, out parentHierarchyFilePath))
+            if (parts.Length > 1)
             {
-                hierarchyObjectPath = new ObjectPath(hierarchyObjectName, parentHierarchyFilePath!, null);
-                return true;
-            }
-
-            if (TryParse(parentHierarchyElementPathString, out parentHierarchyObjectPath))
-            {
-                hierarchyObjectPath = new ObjectPath(hierarchyObjectName, null, parentHierarchyObjectPath!);
-                return true;
-            }
-
-            return false;
-        }
-#nullable disable
-
-        private static bool IsValidHierarchyObjectName(string hierarchyObjectName)
-        {
-            if (string.IsNullOrEmpty(hierarchyObjectName) || string.IsNullOrWhiteSpace(hierarchyObjectName))
-            {
-                return false;
-            }
-
-            foreach (char character in hierarchyObjectName)
-            {
-                if (!char.IsLetterOrDigit(character) && character != '_')
+                string fileParentGUSP = parts[0];
+                if (!isRelative)
+                {
+                    fileParentGUSP = "/" + fileParentGUSP;
+                }
+                
+                if (!FilePath.TryParse(fileParentGUSP, out filePathParent))
                 {
                     return false;
                 }
             }
-
-            return true;
-        }
-
-#nullable enable
-        private static bool IsValidParent(FilePath? parentHierarchyFilePath, ObjectPath? parentHierarchyObjectPath)
-        {
-            if (parentHierarchyFilePath == null && parentHierarchyObjectPath == null)
+            else
             {
-                return false;
+                filePathParent = null;
             }
 
-            if (parentHierarchyFilePath != null && parentHierarchyObjectPath != null)
-            {
-                return false;
-            }
-
+            objectPath = new ObjectPath(isRelative, (FilePath)filePathParent!, objectNames);
             return true;
         }
 #nullable disable
         #endregion
 
         #region Methods
-
         #endregion
 
         #region Overrides

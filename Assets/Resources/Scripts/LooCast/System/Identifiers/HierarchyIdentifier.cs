@@ -34,15 +34,15 @@ namespace LooCast.System.Identifiers
             return hierarchyIdentifier!;
         }
 
-        public static HierarchyIdentifier Parse<HierarchyType>()
-        where HierarchyType : IHierarchy
+        public static HierarchyIdentifier Parse<ElementType>()
+        where ElementType : IHierarchy
         {
-            return Parse(typeof(HierarchyType));
+            return Parse(typeof(ElementType));
         }
 
-        public static HierarchyIdentifier Parse(Type hierarchyType)
+        public static HierarchyIdentifier Parse(Type elementType)
         {
-            return Parse(TypeIdentifier.Parse(hierarchyType));
+            return Parse(TypeIdentifier.Parse(elementType));
         }
 
         public static bool TryParse(string hierarchyGUSID, out HierarchyIdentifier? hierarchyIdentifier)

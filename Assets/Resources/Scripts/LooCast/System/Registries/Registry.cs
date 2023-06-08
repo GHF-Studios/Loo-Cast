@@ -16,7 +16,7 @@ namespace LooCast.System.Registries
         public IHierarchicalElementPath HierarchicalElementPath => RegistryFolderPath;
         public FolderPath RegistryFolderPath { get; private set; }
 
-        public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
+        public HierarchicalElementType HierarchyElementType => HierarchicalElementType.Folder;
 
         public IEngineObject Parent => ((IChild<IRegistry>)this).Parent;
         IRegistry IChild<IRegistry>.Parent => RegistryParent;

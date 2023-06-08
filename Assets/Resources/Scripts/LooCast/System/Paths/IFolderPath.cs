@@ -1,9 +1,11 @@
-﻿namespace LooCast.System.Paths
+﻿using System.Collections.Generic;
+
+namespace LooCast.System.Paths
 {
-    public interface IFolderPath : IHierarchicalElementPath, IChild<FolderPath>
+    public interface IFolderPath : IHierarchicalElementPath
     {
         #region Properties
-        FolderPath FolderPathParent { get; }
+        List<string> FolderNames { get; }
         #endregion
     }
 }

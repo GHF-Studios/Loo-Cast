@@ -1,100 +1,76 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
+using System.Text;
 
 namespace LooCast.System.Paths
 {
     [Serializable]
-    public class FolderPath : IFolderPath
+    public struct FolderPath : IFolderPath
     {
         #region Properties
-        public string GUSP { get; private set; }
+        public string GUSP
+        {
+            get
+            {
+                StringBuilder guspBuilder = new StringBuilder();
 
-        public string HierarchyFolderName => hierarchyFolderName;
+                if (!IsRelative)
+                {
+                    guspBuilder.Append("/");
+                }
 
-        public FolderPath FolderPathParent => throw new NotImplementedException();
+                guspBuilder.Append(string.Join("/", folderNames));
 
-        public FolderPath Parent => throw new NotImplementedException();
+                return guspBuilder.ToString();
+            }
+        }
+        public bool IsRelative => isRelative;
+        public List<string> FolderNames => folderNames;
         #endregion
 
         #region Fields
-        [SerializeField] private readonly string hierarchyFolderName;
+        [SerializeField] private bool isRelative;
+        [SerializeField] private List<string> folderNames;
         #endregion
 
         #region Constructors
-#nullable enable
-        public FolderPath(string hierarchyFolderName, FolderPath parentHierarchyFolderPath)
+        public FolderPath(bool isRelative, params string[] folderNames)
         {
-            if (!IsValidHierarchyFolderName(hierarchyFolderName))
-            {
-                throw new ArgumentException($"Invalid hierarchy folder name: {hierarchyFolderName}");
-            }
-            
-            GUSP = parentHierarchyFolderPath == null ? $"{hierarchyFolderName}" : $"{parentHierarchyFolderPath}/{hierarchyFolderName}";
-            
-            this.hierarchyFolderName = hierarchyFolderName;
+            this.isRelative = isRelative;
+            this.folderNames = folderNames.ToList();
         }
         #endregion
 
         #region Static Methods
 #nullable enable
-        public static bool TryParse(string gusp, out FolderPath? hierarchyFolderPath)
+        public static bool TryParse(string folderGUSP, out FolderPath? folderPath)
         {
-            hierarchyFolderPath = null;
-
-            string[] parts = gusp.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length == 0)
+            if (folderGUSP == "/")
             {
-                return false;
-            }
-
-            string hierarchyFolderName = parts.Last();
-            
-            if (!IsValidHierarchyFolderName(hierarchyFolderName))
-            {
-                return false;
-            }
-
-            if (parts.Length == 1)
-            {
-                hierarchyFolderPath = new FolderPath(hierarchyFolderName, null);
+                folderPath = new FolderPath(true, Array.Empty<string>());
                 return true;
             }
+            
+            folderPath = null;
 
-            string parentHierarchyFolderPathString = string.Join("/", parts.Take(parts.Length - 1));
+            bool isRelative = folderGUSP[0] != '/';
 
-            if (!TryParse(parentHierarchyFolderPathString, out FolderPath? parentHierarchyFolderPath))
+            string[] folderNames = folderGUSP.Split('/');
+
+            if (folderNames == null || folderNames.Length == 0 || folderNames.Any(folderName => !StringUtil.IsAlphaNumeric(folderName)))
             {
                 return false;
             }
 
-            hierarchyFolderPath = new FolderPath(hierarchyFolderName, parentHierarchyFolderPath!);
+            folderPath = new FolderPath(isRelative, folderNames);
             return true;
         }
 #nullable disable
-
-        private static bool IsValidHierarchyFolderName(string hierarchyFolderName)
-        {
-            if (string.IsNullOrEmpty(hierarchyFolderName) || string.IsNullOrWhiteSpace(hierarchyFolderName))
-            {
-                return false;
-            }
-
-            foreach (char character in hierarchyFolderName)
-            {
-                if (!char.IsLetterOrDigit(character) && character != '_')
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
         #endregion
 
         #region Methods
-
         #endregion
 
         #region Overrides

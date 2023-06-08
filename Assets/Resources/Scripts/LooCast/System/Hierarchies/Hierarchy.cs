@@ -16,7 +16,7 @@ namespace LooCast.System.Hierarchies
         public IHierarchicalElementPath HierarchicalElementPath => HierarchyFolderPath;
         public FolderPath HierarchyFolderPath { get; private set; }
 
-        public HierarchyElementType HierarchyElementType => HierarchyElementType.Folder;
+        public HierarchicalElementType HierarchyElementType => HierarchicalElementType.Folder;
 
         IEngineObject IChild<IEngineObject>.Parent => ((IChild<IHierarchy>)this).Parent;
         IHierarchy IChild<IHierarchy>.Parent => HierarchyParent;

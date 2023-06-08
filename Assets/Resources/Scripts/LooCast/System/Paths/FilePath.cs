@@ -1,141 +1,111 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using UnityEngine;
 
 namespace LooCast.System.Paths
 {
     [Serializable]
-    public class FilePath : IFilePath
+    public struct FilePath : IFilePath
     {
         #region Properties
-        public string GUSP { get; private set; }
+        public string GUSP
+        {
+            get
+            {
+                StringBuilder guspBuilder = new StringBuilder();
 
-        public string HierarchyFileName => hierarchyFileName;
-        public string HierarchyFileExtension => hierarchyFileExtension;
+                if (folderPathParent != null)
+                {
+                    guspBuilder.Append($"{folderPathParent}/");
+                }
+                else if (!isRelative)
+                {
+                    guspBuilder.Append("/");
+                }
+
+                guspBuilder.Append($"{fileName}.{fileExtension}");
+
+                return guspBuilder.ToString();
+            }
+        }
+        public bool IsRelative => isRelative;
+        public string FileName => fileName;
+        public string FileExtension => fileExtension;
+        public FolderPath FolderPathParent => folderPathParent;
         #endregion
 
         #region Fields
-        [SerializeField] private readonly string hierarchyFileName;
-        [SerializeField] private readonly string hierarchyFileExtension;
+        [SerializeField] private bool isRelative;
+        [SerializeField] private string fileName;
+        [SerializeField] private string fileExtension;
+        [SerializeField] private FolderPath folderPathParent;
         #endregion
 
         #region Constructors
-#nullable enable
-        public FilePath(string hierarchyFileName, string hierarchyFileExtension, FolderPath parentHierarchyFolderPath)
+        public FilePath(bool isRelative, string fileName, string fileExtension, FolderPath folderPathParent)
         {
-            if (!IsValidHierarchyFileName(hierarchyFileName))
+            if (isRelative && folderPathParent != null && !folderPathParent.IsRelative)
             {
-                throw new ArgumentException($"Invalid hierarchy file name: {hierarchyFileName}");
+                throw new ArgumentException($"Can not construct a relative path from an absolute parent path!");
             }
 
-            if (!IsValidHierarchyFileExtension(hierarchyFileExtension))
-            {
-                throw new ArgumentException($"Invalid hierarchy file extension: {hierarchyFileExtension}");
-            }
-
-            GUSP = $"{parentHierarchyFolderPath}/{hierarchyFileName}.{hierarchyFileExtension}";
-            
-            this.hierarchyFileName = hierarchyFileName;
-            this.hierarchyFileExtension = hierarchyFileExtension;
+            this.isRelative = isRelative;
+            this.fileName = fileName;
+            this.fileExtension = fileExtension;
+            this.folderPathParent = folderPathParent;
         }
         #endregion
 
         #region Static Methods
 #nullable enable
-        public static bool TryParse(string gusp, out FilePath? hierarchyFilePath)
+        public static bool TryParse(string fileGUSP, out FilePath? filePath)
         {
-            hierarchyFilePath = null;
+            filePath = null;
+            bool isRelative = (fileGUSP[0] != '/');
+            string[] parts = fileGUSP.Split('/', '.');
 
-            string[] parts = gusp.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length == 0)
+            if (parts.Length < 1)
             {
                 return false;
             }
 
-            string hierarchyFileNameWithExtension = parts.Last();
+            string fileName = parts[parts.Length - 2];
+            string fileExtension = parts[parts.Length - 1];
 
-            if (string.IsNullOrEmpty(hierarchyFileNameWithExtension))
+            if (!StringUtil.IsAlphaNumeric(fileName) || !StringUtil.IsAlphaNumeric(fileExtension))
             {
                 return false;
             }
+            
+            FolderPath? folderPathParent;
 
-            int lastDotIndex = hierarchyFileNameWithExtension.LastIndexOf('.');
-
-            if (lastDotIndex == -1)
+            if (parts.Length > 1)
             {
-                return false;
+                string folderGUSP = string.Join("/", parts.Take(parts.Length - 2));
+                if (!isRelative)
+                {
+                    folderGUSP = "/" + folderGUSP;
+                }
+
+                if (!FolderPath.TryParse(folderGUSP, out folderPathParent))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                folderPathParent = null;
             }
 
-            string hierarchyFileName = hierarchyFileNameWithExtension.Substring(0, lastDotIndex);
-            string hierarchyFileExtension = hierarchyFileNameWithExtension.Substring(lastDotIndex + 1);
-
-            if (!IsValidHierarchyFileName(hierarchyFileName))
-            {
-                return false;
-            }
-
-            if (!IsValidHierarchyFileExtension(hierarchyFileExtension))
-            {
-                return false;
-            }
-
-            if (parts.Length == 1)
-            {
-                hierarchyFilePath = new FilePath(hierarchyFileName, hierarchyFileExtension, new FolderPath(string.Empty, null));
-                return true;
-            }
-
-            string parentHierarchyFolderPathString = string.Join("/", parts.Take(parts.Length - 1));
-
-            if (!FolderPath.TryParse(parentHierarchyFolderPathString, out FolderPath? parentHierarchyFolderPath))
-            {
-                return false;
-            }
-
-            hierarchyFilePath = new FilePath(hierarchyFileName, hierarchyFileExtension, parentHierarchyFolderPath!);
+            filePath = new FilePath(isRelative, fileName, fileExtension, (FolderPath)folderPathParent!);
             return true;
         }
 #nullable disable
-
-        private static bool IsValidHierarchyFileName(string hierarchyFolderName)
-        {
-            if (string.IsNullOrEmpty(hierarchyFolderName) || string.IsNullOrWhiteSpace(hierarchyFolderName))
-            {
-                return false;
-            }
-
-            foreach (char character in hierarchyFolderName)
-            {
-                if (!char.IsLetterOrDigit(character) && character != '_')
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        private static bool IsValidHierarchyFileExtension(string fileExtension)
-        {
-            if (string.IsNullOrEmpty(fileExtension) || string.IsNullOrWhiteSpace(fileExtension))
-            {
-                return false;
-            }
-
-            foreach (char character in fileExtension)
-            {
-                if (!char.IsLetterOrDigit(character) && character != '_')
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
         #endregion
 
         #region Methods
-
         #endregion
 
         #region Overrides

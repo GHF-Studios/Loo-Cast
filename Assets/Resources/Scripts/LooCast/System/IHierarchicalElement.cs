@@ -7,7 +7,7 @@ namespace LooCast.System
     {
         #region Properties
         IHierarchicalElementPath HierarchicalElementPath { get; }
-        HierarchyElementType HierarchyElementType { get; }
+        HierarchicalElementType HierarchyElementType { get; }
         #endregion
     }
 }
