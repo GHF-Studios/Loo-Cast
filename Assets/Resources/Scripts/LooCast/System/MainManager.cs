@@ -5,7 +5,6 @@ namespace LooCast.System
 {
     using LooCast.System.Hierarchies;
     using LooCast.System.Identifiers;
-    using LooCast.System.MetaData;
     using LooCast.System.Registries;
 
     public sealed class MainManager : Manager<MainManager>

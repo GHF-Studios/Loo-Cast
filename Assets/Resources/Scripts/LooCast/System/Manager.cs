@@ -5,8 +5,8 @@ using UnityEngine.SceneManagement;
 
 namespace LooCast.System
 {
-    public abstract class Manager<ManagerType> : Component, IManager
-        where ManagerType : Manager<ManagerType>, new()
+    public abstract class Manager<ManagerType> : IManager
+        where ManagerType : Manager<ManagerType>
     {
         #region Static Properties
         public static ManagerType Instance
@@ -16,10 +16,7 @@ namespace LooCast.System
                 Type type = typeof(ManagerType);
                 if (!instances.ContainsKey(type))
                 {
-                    ManagerObject managerObject = ManagerObject.CreateManagerObject();
-                    managerObject.UnityEngineGameObject.name = $"[{type.Name}]";
-                    managerObject.UnityEngineGameObject.layer = 31;
-                    managerObject.UnityEngineGameObject.tag = "INTERNAL";
+                    ManagerObject managerObject = ManagerObject.CreateManagerObject($"[{type.Name}]", 31, "INTERNAL");
                     instances[type] = CreateComponent<ManagerType>(managerObject);
                 }
                 return instances[type];

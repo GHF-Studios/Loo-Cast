@@ -5,29 +5,14 @@ namespace LooCast.System
 {
     public sealed class ManagerObject : MonoBehaviour
     {
-        #region Properties
-        #endregion
-
         #region Static Methods
-#nullable enable
-        public static ManagerObject CreateManagerObject()
+        public static ManagerObject CreateManagerObject(string name, int layer, string tag)
         {
-
-        }
-#nullable disable
-        #endregion
-
-        #region Overrides
-        public override bool Validate()
-        {
-            return true;
-        }
-        
-        protected override void PreConstruct()
-        {
-            base.PreConstruct();
-
-            UnityEngine.GameObject.DontDestroyOnLoad(UnityEngineGameObject);
+            ManagerObject managerObject = new GameObject(name).AddComponent<ManagerObject>();
+            managerObject.gameObject.layer = layer;
+            managerObject.gameObject.tag = tag;
+            DontDestroyOnLoad(managerObject);
+            return managerObject;
         }
         #endregion
     }
