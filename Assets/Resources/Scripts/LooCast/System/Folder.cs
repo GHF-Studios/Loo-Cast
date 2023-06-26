@@ -5,10 +5,11 @@ namespace LooCast.System
     using global::System;
     using LooCast.System.Paths;
 
-    public abstract class Folder : IFolder
+    public class Folder : IFolder
     {
         #region Properties
         public string FolderName { get; private set; }
+        public bool IsRoot { get; private set; }
 
         public IHierarchicalElementPath HierarchicalElementPath => FolderPath;
         public FolderPath FolderPath { get; private set; }
@@ -25,26 +26,26 @@ namespace LooCast.System
         public IEnumerable<IFile> FileChildren => FileChildrenList;
 
         #region Initialization Phase Flags
-        public bool IsEarlyPreInitializing { get; private set; }
-        public bool IsPreInitializing { get; private set; }
-        public bool IsLatePreInitializing { get; private set; }
-        public bool IsEarlyPreInitialized { get; private set; }
-        public bool IsPreInitialized { get; private set; }
-        public bool IsLatePreInitialized { get; private set; }
+        public bool IsEarlyPreInitializing { get; protected set; }
+        public bool IsPreInitializing { get; protected set; }
+        public bool IsLatePreInitializing { get; protected set; }
+        public bool IsEarlyPreInitialized { get; protected set; }
+        public bool IsPreInitialized { get; protected set; }
+        public bool IsLatePreInitialized { get; protected set; }
 
-        public bool IsEarlyInitializing { get; private set; }
-        public bool IsInitializing { get; private set; }
-        public bool IsLateInitializing { get; private set; }
-        public bool IsEarlyInitialized { get; private set; }
-        public bool IsInitialized { get; private set; }
-        public bool IsLateInitialized { get; private set; }
+        public bool IsEarlyInitializing { get; protected set; }
+        public bool IsInitializing { get; protected set; }
+        public bool IsLateInitializing { get; protected set; }
+        public bool IsEarlyInitialized { get; protected set; }
+        public bool IsInitialized { get; protected set; }
+        public bool IsLateInitialized { get; protected set; }
 
-        public bool IsEarlyPostInitializing { get; private set; }
-        public bool IsPostInitializing { get; private set; }
-        public bool IsLatePostInitializing { get; private set; }
-        public bool IsEarlyPostInitialized { get; private set; }
-        public bool IsPostInitialized { get; private set; }
-        public bool IsLatePostInitialized { get; private set; }
+        public bool IsEarlyPostInitializing { get; protected set; }
+        public bool IsPostInitializing { get; protected set; }
+        public bool IsLatePostInitializing { get; protected set; }
+        public bool IsEarlyPostInitialized { get; protected set; }
+        public bool IsPostInitialized { get; protected set; }
+        public bool IsLatePostInitialized { get; protected set; }
 
         public bool IsFullyPreInitialized
         {
@@ -77,26 +78,26 @@ namespace LooCast.System
         #endregion
 
         #region Termination Phase Flags
-        public bool IsEarlyPreTerminating { get; private set; }
-        public bool IsPreTerminating { get; private set; }
-        public bool IsLatePreTerminating { get; private set; }
-        public bool IsEarlyPreTerminated { get; private set; }
-        public bool IsPreTerminated { get; private set; }
-        public bool IsLatePreTerminated { get; private set; }
+        public bool IsEarlyPreTerminating { get; protected set; }
+        public bool IsPreTerminating { get; protected set; }
+        public bool IsLatePreTerminating { get; protected set; }
+        public bool IsEarlyPreTerminated { get; protected set; }
+        public bool IsPreTerminated { get; protected set; }
+        public bool IsLatePreTerminated { get; protected set; }
 
-        public bool IsEarlyTerminating { get; private set; }
-        public bool IsTerminating { get; private set; }
-        public bool IsLateTerminating { get; private set; }
-        public bool IsEarlyTerminated { get; private set; }
-        public bool IsTerminated { get; private set; }
-        public bool IsLateTerminated { get; private set; }
+        public bool IsEarlyTerminating { get; protected set; }
+        public bool IsTerminating { get; protected set; }
+        public bool IsLateTerminating { get; protected set; }
+        public bool IsEarlyTerminated { get; protected set; }
+        public bool IsTerminated { get; protected set; }
+        public bool IsLateTerminated { get; protected set; }
 
-        public bool IsEarlyPostTerminating { get; private set; }
-        public bool IsPostTerminating { get; private set; }
-        public bool IsLatePostTerminating { get; private set; }
-        public bool IsEarlyPostTerminated { get; private set; }
-        public bool IsPostTerminated { get; private set; }
-        public bool IsLatePostTerminated { get; private set; }
+        public bool IsEarlyPostTerminating { get; protected set; }
+        public bool IsPostTerminating { get; protected set; }
+        public bool IsLatePostTerminating { get; protected set; }
+        public bool IsEarlyPostTerminated { get; protected set; }
+        public bool IsPostTerminated { get; protected set; }
+        public bool IsLatePostTerminated { get; protected set; }
 
         public bool IsFullyPreTerminated
         {
@@ -136,23 +137,27 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public Folder(string folderName, IFolder parentFolder)
+        public Folder()
         {
-            PathBuilder folderPathBuilder;
-            if (parentFolder == null)
-            {
-                folderPathBuilder = PathBuilder.Create();
-            }
-            else
-            {
-                folderPathBuilder = PathBuilder.Load(parentFolder.FolderPath);
-            }
+            IsRoot = true;
             
+            FolderName = "Root";
+            FolderPath = new FolderPath(false);
+            FolderParent = null;
+            FolderChildrenList = new List<IFolder>();
+            FileChildrenList = new List<IFile>();
+        }
+
+        public Folder(string folderName, IFolder folderParent)
+        {
+            IsRoot = false;
+
+            PathBuilder folderPathBuilder = PathBuilder.Load(folderParent.FolderPath);
             folderPathBuilder.WithFolder(folderName);
 
             FolderName = folderName;
             FolderPath = folderPathBuilder.ConstructFolderPath();
-            FolderParent = parentFolder;
+            FolderParent = folderParent;
             FolderChildrenList = new List<IFolder>();
             FileChildrenList = new List<IFile>();
         }

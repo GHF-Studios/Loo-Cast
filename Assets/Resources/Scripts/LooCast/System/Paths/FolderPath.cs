@@ -38,9 +38,9 @@ namespace LooCast.System.Paths
         #region Constructors
         public FolderPath(bool isRelative, params string[] folderNames)
         {
-            if (folderNames == null || folderNames.Length == 0)
+            if (folderNames == null || folderNames.Length == 0 && isRelative)
             {
-                throw new Exception("At least one folder name must be provided!");
+                throw new Exception("At least one folder name must be provided when the path is relative!");
             }
             if (folderNames.Any(folderName => !StringUtil.IsAlphaNumeric(folderName)))
             {

@@ -3,16 +3,64 @@ using System;
 
 namespace LooCast.System
 {
-    using LooCast.System.Hierarchies;
-    using LooCast.System.Identifiers;
-    using LooCast.System.Registries;
-
-    public sealed class MainManager : Manager<MainManager>
+    public sealed class MainManager : Manager
     {
+        #region Static Properties
+        public static MainManager Instance
+        {
+            get
+            {
+                if (Instance == null)
+                {
+                    instance = new MainManager();
+                }
+                return instance;
+            }
+        }
+        #endregion
+        
+        #region Static Fields
+        private static MainManager instance;
+        #endregion
+        
         #region Properties
+        public IFolder RootFolder { get; private set; }
         public ICoreModuleManager[] CoreModuleManagers { get; private set; }
-        public MainRegistry MainRegistry { get; private set; }
-        public MainHierarchy MainHierarchy { get; private set; }
+        #endregion
+
+        #region Constructors
+        private MainManager() : base("MainManager", null, ManagerMonoBehaviour.CreateManagerObject("MainManager"))
+        {
+            RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
+            RegisterPreInitializationAction(OnPreInitialize);
+            RegisterLatePreInitializationAction(OnLatePreInitialize);
+            RegisterEarlyInitializationAction(OnEarlyInitialize);
+            RegisterInitializationAction(OnInitialize);
+            RegisterLateInitializationAction(OnLateInitialize);
+            RegisterEarlyPostInitializationAction(OnEarlyPostInitialize);
+            RegisterPostInitializationAction(OnPostInitialize);
+            RegisterLatePostInitializationAction(OnLatePostInitialize);
+
+            RegisterEarlyPreTerminationAction(OnEarlyPreTerminate);
+            RegisterPreTerminationAction(OnPreTerminate);
+            RegisterLatePreTerminationAction(OnLatePreTerminate);
+            RegisterEarlyTerminationAction(OnEarlyTerminate);
+            RegisterTerminationAction(OnTerminate);
+            RegisterLateTerminationAction(OnLateTerminate);
+            RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
+            RegisterPostTerminationAction(OnPostTerminate);
+            RegisterLatePostTerminationAction(OnLatePostTerminate);
+            
+            RootFolder = new Folder();
+            CoreModuleManagers = new ICoreModuleManager[]
+            {
+                // TODO: Read the mod folder for valid core module managers and load them.
+                // LooCast.Core.CoreManager.Instance,
+                // ThermalDynamics.Core.CoreManager.Instance,
+                // ThermalExpansion.Core.CoreManager.Instance,
+                // CrazySexMod.Core.CoreManager.Instance
+            };
+        }
         #endregion
 
         #region Callbacks
@@ -225,73 +273,6 @@ namespace LooCast.System
         }
         #endregion
 
-        #endregion
-
-        #region Methods
-        /// <summary>
-        /// Returns the core module managers in the order they should be initialized.
-        /// </summary>
-        private ICoreModuleManager[] GetCoreModuleManagers()
-        {
-            return new ICoreModuleManager[]
-            {
-                // TODO: Read the mod folder for valid core module managers and load them
-                global::LooCast.Core.CoreManager.Instance
-            };
-        }
-        #endregion
-
-        #region Overrides
-        protected override void PreConstruct()
-        {
-            base.PreConstruct();
-
-            RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
-            RegisterPreInitializationAction(OnPreInitialize);
-            RegisterLatePreInitializationAction(OnLatePreInitialize);
-            RegisterEarlyInitializationAction(OnEarlyInitialize);
-            RegisterInitializationAction(OnInitialize);
-            RegisterLateInitializationAction(OnLateInitialize);
-            RegisterEarlyPostInitializationAction(OnEarlyPostInitialize);
-            RegisterPostInitializationAction(OnPostInitialize);
-            RegisterLatePostInitializationAction(OnLatePostInitialize);
-
-            RegisterEarlyPreTerminationAction(OnEarlyPreTerminate);
-            RegisterPreTerminationAction(OnPreTerminate);
-            RegisterLatePreTerminationAction(OnLatePreTerminate);
-            RegisterEarlyTerminationAction(OnEarlyTerminate);
-            RegisterTerminationAction(OnTerminate);
-            RegisterLateTerminationAction(OnLateTerminate);
-            RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
-            RegisterPostTerminationAction(OnPostTerminate);
-            RegisterLatePostTerminationAction(OnLatePostTerminate);
-
-            CoreModuleManagers = GetCoreModuleManagers();
-            
-            MainRegistry = SystemObject.CreateSystemObject<MainRegistry>();
-            MainRegistry.Add(typeof(IRegistry), MainRegistry);
-            MainRegistry.Add(typeof(Namespace), SystemObject.CreateSystemObject<NamespaceRegistry>());
-            MainRegistry.Add(typeof(Type), SystemObject.CreateSystemObject<TypeRegistry>());
-            MainRegistry.Add(typeof(SystemObject), SystemObject.CreateSystemObject<SystemObjectRegistry>());
-            MainRegistry.Add(typeof(GameObject), SystemObject.CreateSystemObject<GameObjectRegistry>());
-            MainRegistry.Add(typeof(Component), SystemObject.CreateSystemObject<ComponentRegistry>());
-            
-            MainHierarchy = SystemObject.CreateSystemObject<MainHierarchy>();
-            // TODO: Register Main Folder in itself, if that even makes sense
-            // TODO: Register all system hierarchies
-            
-            // TODO: 3. Register every Namespace & Type that's part of the core system in the respective registries and hierarchies
-        }
-
-        protected override void Construct()
-        {
-            base.Construct();
-        }
-
-        protected override void PostConstruct()
-        {
-            base.PostConstruct();
-        }
         #endregion
     }
 }

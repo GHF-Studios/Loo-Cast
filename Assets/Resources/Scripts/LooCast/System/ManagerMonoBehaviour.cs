@@ -6,11 +6,11 @@ namespace LooCast.System
     public sealed class ManagerMonoBehaviour : MonoBehaviour
     {
         #region Static Methods
-        public static ManagerMonoBehaviour CreateManagerObject(string name, int layer, string tag)
+        public static ManagerMonoBehaviour CreateManagerObject(string managerName)
         {
-            ManagerMonoBehaviour managerMonoBehaviour = new GameObject(name).AddComponent<ManagerMonoBehaviour>();
-            managerMonoBehaviour.gameObject.layer = layer;
-            managerMonoBehaviour.gameObject.tag = tag;
+            ManagerMonoBehaviour managerMonoBehaviour = new GameObject($"[{managerName}]").AddComponent<ManagerMonoBehaviour>();
+            managerMonoBehaviour.gameObject.layer = 31;
+            managerMonoBehaviour.gameObject.tag = "INTERNAL";
             DontDestroyOnLoad(managerMonoBehaviour);
             return managerMonoBehaviour;
         }

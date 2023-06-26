@@ -13,19 +13,19 @@ namespace LooCast.System
         #endregion
 
         #region Methods
-        public bool TryAddChildObject(IObject childObject);
-        public void AddChildObject(IObject childObject);
+        bool TryAddChildObject(IObject childObject);
+        void AddChildObject(IObject childObject);
 
-        public bool TryRemoveChildObject(IObject childObject);
-        public void RemoveChildObject(IObject childObject);
+        bool TryRemoveChildObject(IObject childObject);
+        void RemoveChildObject(IObject childObject);
 
-        public bool TryGetChildObject(string childObjectName, out IObject childObject);
-        public IObject GetChildObject(string childObjectName);
+        bool TryGetChildObject(string childObjectName, out IObject childObject);
+        IObject GetChildObject(string childObjectName);
 
-        public bool ContainsChildObject(string childObjectName);
-        public bool ContainsChildObject(IObject childObject);
+        bool ContainsChildObject(string childObjectName);
+        bool ContainsChildObject(IObject childObject);
 
-        public void ClearChildObjects();
+        void ClearChildObjects();
         #endregion
     }
 }

@@ -1,86 +1,18 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace LooCast.System
 {
-    public abstract class Manager<ManagerType> : Folder, IManager
-        where ManagerType : Manager<ManagerType>
+    public abstract class Manager : Folder, IManager
     {
-        #region Static Properties
-        public static ManagerType Instance
-        {
-            get
-            {
-                Type type = typeof(ManagerType);
-                if (!instances.ContainsKey(type))
-                {
-                    ManagerMonoBehaviour managerMonoBehaviour = ManagerMonoBehaviour.CreateManagerObject($"[{type.Name}]", 31, "INTERNAL");
-                    instances[type] = CreateComponent<ManagerType>(managerMonoBehaviour);
-                }
-                return instances[type];
-            }
-        }
-
-        #endregion
-
-        #region Static Fields
-        private static readonly Dictionary<Type, ManagerType> instances = new Dictionary<Type, ManagerType>();
-        #endregion
-
         #region Properties
+        public string ManagerName => FolderName;
         public ManagerMonoBehaviour ManagerMonoBehaviour { get; private set; }
-#nullable enable
-        public IManager? ParentManager { get; private set; }
-#nullable disable
 
-        #region Initialization Phase Flags
-        public bool IsEarlyPreInitializing { get; private set; }
-        public bool IsPreInitializing { get; private set; }
-        public bool IsLatePreInitializing { get; private set; }
-        public bool IsEarlyPreInitialized { get; private set; }
-        public bool IsPreInitialized { get; private set; }
-        public bool IsLatePreInitialized { get; private set; }
+        IManager IChild<IManager>.Parent => (IManager)FolderParent;
 
-        public bool IsEarlyInitializing { get; private set; }
-        public bool IsInitializing { get; private set; }
-        public bool IsLateInitializing { get; private set; }
-        public bool IsEarlyInitialized { get; private set; }
-        public bool IsInitialized { get; private set; }
-        public bool IsLateInitialized { get; private set; }
-
-        public bool IsEarlyPostInitializing { get; private set; }
-        public bool IsPostInitializing { get; private set; }
-        public bool IsLatePostInitializing { get; private set; }
-        public bool IsEarlyPostInitialized { get; private set; }
-        public bool IsPostInitialized { get; private set; }
-        public bool IsLatePostInitialized { get; private set; }
-        #endregion
-
-        #region Termination Phase Flags
-        public bool IsEarlyPreTerminating { get; private set; }
-        public bool IsPreTerminating { get; private set; }
-        public bool IsLatePreTerminating { get; private set; }
-        public bool IsEarlyPreTerminated { get; private set; }
-        public bool IsPreTerminated { get; private set; }
-        public bool IsLatePreTerminated { get; private set; }
-
-        public bool IsEarlyTerminating { get; private set; }
-        public bool IsTerminating { get; private set; }
-        public bool IsLateTerminating { get; private set; }
-        public bool IsEarlyTerminated { get; private set; }
-        public bool IsTerminated { get; private set; }
-        public bool IsLateTerminated { get; private set; }
-
-        public bool IsEarlyPostTerminating { get; private set; }
-        public bool IsPostTerminating { get; private set; }
-        public bool IsLatePostTerminating { get; private set; }
-        public bool IsEarlyPostTerminated { get; private set; }
-        public bool IsPostTerminated { get; private set; }
-        public bool IsLatePostTerminated { get; private set; }
-        #endregion
-
+        IEnumerable<IManager> IParent<IManager>.Children => (IEnumerable<IManager>)FolderChildren;
         #endregion
 
         #region Fields
@@ -105,17 +37,39 @@ namespace LooCast.System
         private List<Action> latePostTerminationActions;
         #endregion
 
-        #region Methods
-        /// <summary>
-        /// Returns the parent manager, if there is one.
-        /// Note: The only manager that is allowed (and required) to not have a parent manager is the built-in main manager
-        /// </summary>
-#nullable enable
-        protected virtual IManager? GetParentManager()
+        #region Constructors
+        protected Manager(string managerName, IManager managerParent, ManagerMonoBehaviour managerMonoBehaviour) : base(managerName, managerParent)
         {
-            return null;
+            if (managerParent != null)
+            {
+                managerMonoBehaviour.transform.SetParent(managerParent.ManagerMonoBehaviour.transform);
+            }
+            
+            ManagerMonoBehaviour = managerMonoBehaviour;
+
+            earlyPreInitializationActions = new List<Action>();
+            preInitializationActions = new List<Action>();
+            latePreInitializationActions = new List<Action>();
+            earlyInitializationActions = new List<Action>();
+            initializationActions = new List<Action>();
+            lateInitializationActions = new List<Action>();
+            earlyPostInitializationActions = new List<Action>();
+            postInitializationActions = new List<Action>();
+            latePostInitializationActions = new List<Action>();
+
+            earlyPreTerminationActions = new List<Action>();
+            preTerminationActions = new List<Action>();
+            latePreTerminationActions = new List<Action>();
+            earlyTerminationActions = new List<Action>();
+            terminationActions = new List<Action>();
+            lateTerminationActions = new List<Action>();
+            earlyPostTerminationActions = new List<Action>();
+            postTerminationActions = new List<Action>();
+            latePostTerminationActions = new List<Action>();
         }
-#nullable disable
+        #endregion
+
+        #region Methods
 
         #region Initialization Phases
         public void EarlyPreInitialize()
@@ -132,7 +86,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Early Pre-Initialization.");
             IsEarlyPreInitializing = false;
             IsEarlyPreInitialized = true;
-            PreConstruct();
         }
 
         public void PreInitialize()
@@ -182,7 +135,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Early Initialization.");
             IsEarlyInitializing = false;
             IsEarlyInitialized = true;
-            Construct();
         }
 
         public void Initialize()
@@ -232,7 +184,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Early Post-Initialization.");
             IsEarlyPostInitializing = false;
             IsEarlyPostInitialized = true;
-            PostConstruct();
         }
 
         public void PostInitialize()
@@ -516,50 +467,7 @@ namespace LooCast.System
             latePostTerminationActions.Add(action);
         }
         #endregion
-        #endregion
-
-        #region Overrides
-        protected override void PreConstruct()
-        {
-            base.PreConstruct();
-
-            ManagerMonoBehaviour = (ManagerMonoBehaviour)ContainingGameObject;
-            ParentManager = GetParentManager();
-            if (ParentManager != null)
-            {
-                ManagerMonoBehaviour.UnityEngineGameObject.transform.SetParent(ParentManager.ManagerMonoBehaviour.UnityEngineGameObject.transform);
-            }
-
-            earlyPreInitializationActions = new List<Action>();
-            preInitializationActions = new List<Action>();
-            latePreInitializationActions = new List<Action>();
-            earlyInitializationActions = new List<Action>();
-            initializationActions = new List<Action>();
-            lateInitializationActions = new List<Action>();
-            earlyPostInitializationActions = new List<Action>();
-            postInitializationActions = new List<Action>();
-            latePostInitializationActions = new List<Action>();
-
-            earlyPreTerminationActions = new List<Action>();
-            preTerminationActions = new List<Action>();
-            latePreTerminationActions = new List<Action>();
-            earlyTerminationActions = new List<Action>();
-            terminationActions = new List<Action>();
-            lateTerminationActions = new List<Action>();
-            earlyPostTerminationActions = new List<Action>();
-            postTerminationActions = new List<Action>();
-            latePostTerminationActions = new List<Action>();
-        }
-
-        protected override void Construct()
-        {
-            base.Construct();
-        }
-
-        protected override void PostConstruct()
-        {
-            base.PostConstruct();
-        }
+        
         #endregion
     }
 }

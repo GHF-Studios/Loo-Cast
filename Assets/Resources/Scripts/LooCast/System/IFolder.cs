@@ -13,28 +13,28 @@ namespace LooCast.System
         #endregion
 
         #region Methods
-        public bool TryAddChildFolder(IFolder childFolder);
-        public bool TryAddChildFile(IFile childFile);
-        public void AddChildFolder(IFolder childFolder);
-        public void AddChildFile(IFile childFile);
+        bool TryAddChildFolder(IFolder childFolder);
+        bool TryAddChildFile(IFile childFile);
+        void AddChildFolder(IFolder childFolder);
+        void AddChildFile(IFile childFile);
 
-        public bool TryRemoveChildFolder(IFolder childFolder);
-        public bool TryRemoveChildFile(IFile childFile);
-        public void RemoveChildFolder(IFolder childFolder);
-        public void RemoveChildFile(IFile childFile);
+        bool TryRemoveChildFolder(IFolder childFolder);
+        bool TryRemoveChildFile(IFile childFile);
+        void RemoveChildFolder(IFolder childFolder);
+        void RemoveChildFile(IFile childFile);
 
-        public bool TryGetChildFolder(string childFolderName, out IFolder childFolder);
-        public bool TryGetChildFile(string childFileName, string childFileExtension, out IFile childFile);
-        public IFolder GetChildFolder(string childFolderName);
-        public IFile GetChildFile(string childFileName, string childFileExtension);
+        bool TryGetChildFolder(string childFolderName, out IFolder childFolder);
+        bool TryGetChildFile(string childFileName, string childFileExtension, out IFile childFile);
+        IFolder GetChildFolder(string childFolderName);
+        IFile GetChildFile(string childFileName, string childFileExtension);
 
-        public bool ContainsChildFolder(string childFolderName);
-        public bool ContainsChildFolder(IFolder childFolder);
-        public bool ContainsChildFile(string childFileName, string childFileExtension);
-        public bool ContainsChildFile(IFile childFile);
+        bool ContainsChildFolder(string childFolderName);
+        bool ContainsChildFolder(IFolder childFolder);
+        bool ContainsChildFile(string childFileName, string childFileExtension);
+        bool ContainsChildFile(IFile childFile);
 
-        public void ClearChildFolders();
-        public void ClearChildFiles();
+        void ClearChildFolders();
+        void ClearChildFiles();
         #endregion
     }
 }
