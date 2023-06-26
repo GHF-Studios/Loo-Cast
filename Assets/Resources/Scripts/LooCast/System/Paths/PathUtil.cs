@@ -2,6 +2,7 @@
 {
     public static class PathUtil
     {
+        #region Methods
         public static bool IsValidSubPath(string subPath)
         {
             return !string.IsNullOrEmpty(subPath) && !string.IsNullOrWhiteSpace(subPath) && StringUtil.IsAlphaNumeric(subPath);
@@ -26,5 +27,6 @@
         {
             return !StringUtil.IsEmpty(objectPath) && StringUtil.IsAlphaNumericWithExceptions(objectPath, '/', '.', ':', '+');
         }
+        #endregion
     }
 }

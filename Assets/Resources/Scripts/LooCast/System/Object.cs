@@ -1,33 +1,28 @@
 ﻿using System.Collections.Generic;
+using System;
 
-namespace LooCast.System.Hierarchies
+namespace LooCast.System
 {
-    using LooCast.System.Identifiers;
     using LooCast.System.Paths;
-    
-    public abstract class Hierarchy<PathType, ElementType> : IHierarchy
-        where PathType : IHierarchicalElementPath
-        where ElementType : IHierarchicalElement
+
+    public abstract class Object : IObject
     {
         #region Properties
-        public IObjectIdentifier ObjectIdentifier => HierarchyIdentifier;
-        public IHierarchyIdentifier HierarchyIdentifier { get; private set; }
+        public string ObjectName { get; private set; }
 
-        public IHierarchicalElementPath HierarchicalElementPath => FolderPath;
-        public FolderPath FolderPath { get; private set; }
+        public IHierarchicalElementPath HierarchicalElementPath => ObjectPath;
+        public ObjectPath ObjectPath { get; private set; }
 
-        public HierarchicalElementType HierarchyElementType => HierarchicalElementType.Folder;
+        public HierarchicalElementType HierarchyElementType => HierarchicalElementType.Object;
 
-        IEngineObject IChild<IEngineObject>.Parent => ((IChild<IHierarchy>)this).Parent;
-        IHierarchy IChild<IHierarchy>.Parent => HierarchyParent;
-        public IHierarchy HierarchyParent { get; private set; }
+        IFile IChild<IFile>.Parent => FileParent;
+        public IFile FileParent { get; private set; }
 
-        IEnumerable<IEngineObject> IParent<IEngineObject>.Children => ((IParent<IHierarchy>)this).Children;
-        IEnumerable<IHierarchy> IParent<IHierarchy>.Children => HierarchyChildren;
-        public List<IHierarchy> HierarchyChildren { get; private set; }
+        IObject IChild<IObject>.Parent => ObjectParent;
+        public IObject ObjectParent { get; private set; }
 
-        IEnumerable<IHierarchicalElement> IParent<IHierarchicalElement>.Children => HierarchyElementChildren;
-        public List<IHierarchicalElement> HierarchyElementChildren { get; private set; }
+        IEnumerable<IObject> IParent<IObject>.Children => ObjectChildren;
+        public IEnumerable<IObject> ObjectChildren => ObjectChildrenList;
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; private set; }
@@ -136,17 +131,42 @@ namespace LooCast.System.Hierarchies
         #endregion
 
         #region Fields
+        protected List<IObject> ObjectChildrenList;
         #endregion
 
         #region Constructors
-        public Hierarchy(IHierarchy hierarchyParent)
+        public Object(string objectName, IFile parentFile)
         {
-            HierarchyIdentifier = Identifiers.HierarchyIdentifier.Parse<PathType, ElementType>();
-            //FolderPath = ;
+            if (parentFile == null)
+            {
+                throw new ArgumentException("Parent File may not be null here, as this would imply the existence of the Parent Object, but the opposite is implied by the choice of this costructor, instead of the constructor, which sets the Parent Object!");
+            }
+            
+            PathBuilder objectPathBuilder = PathBuilder.Load(parentFile.FilePath);
+            objectPathBuilder.WithObject(objectName);
 
-            HierarchyParent = hierarchyParent;
-            HierarchyChildren = new List<IHierarchy>();
-            HierarchyElementChildren = new List<IHierarchicalElement>();
+            ObjectName = objectName;
+            ObjectPath = objectPathBuilder.ConstructObjectPath();
+            FileParent = parentFile;
+            ObjectParent = null;
+            ObjectChildrenList = new List<IObject>();
+        }
+        
+        public Object(string objectName, IObject parentObject)
+        {
+            if (parentObject == null)
+            {
+                throw new ArgumentException("Parent Object may not be null here, as this would imply the existence of the Parent File, but the opposite is implied by the choice of this costructor, instead of the constructor, which sets the Parent File!");
+            }
+
+            PathBuilder objectPathBuilder = PathBuilder.Load(parentObject.ObjectPath);
+            objectPathBuilder.WithObject(objectName);
+
+            ObjectName = objectName;
+            ObjectPath = objectPathBuilder.ConstructObjectPath();
+            ObjectParent = parentObject;
+            ObjectParent = null;
+            ObjectChildrenList = new List<IObject>();
         }
         #endregion
 
@@ -156,63 +176,71 @@ namespace LooCast.System.Hierarchies
             return true;
         }
 
-        public void AddElement(IHierarchicalElement hierarchicalElement) 
+        public bool TryAddChildObject(IObject childObject)
         {
-            
+            if (ContainsChildObject(childObject.ObjectName))
+            {
+                return false;
+            }
+            else
+            {
+                AddChildObject(childObject);
+                return true;
+            }
         }
-        public void AddElement(ElementType hierarchicalElement) 
+        public void AddChildObject(IObject childObject)
         {
-            
+            ObjectChildrenList.Add(childObject);
         }
-        
-        public bool RemoveElement(IHierarchicalElementPath elementPath) 
+
+        public bool TryRemoveChildObject(IObject childObject)
         {
-            
+            if (!ContainsChildObject(childObject))
+            {
+                return false;
+            }
+            else
+            {
+                RemoveChildObject(childObject);
+                return true;
+            }
         }
-        public bool RemoveElement(PathType elementPath) 
+        public void RemoveChildObject(IObject childObject)
         {
-            
+            ObjectChildrenList.Remove(childObject);
         }
-        
-        public IHierarchicalElement GetElement(IHierarchicalElementPath elementPath) 
+
+        public bool TryGetChildObject(string childObjectName, out IObject childObject)
         {
-            
+            if (!ContainsChildObject(childObjectName))
+            {
+                childObject = null;
+                return false;
+            }
+            else
+            {
+                childObject = GetChildObject(childObjectName);
+                return true;
+            }
         }
-        public ElementType GetElement(PathType elementPath) 
+        public IObject GetChildObject(string childObjectName)
         {
-            
+            return ObjectChildrenList.Find((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
-        
-        public bool TryGetElement(IHierarchicalElementPath elementPath, out IHierarchicalElement hierarchicalElement) 
+
+        public bool ContainsChildObject(string childObjectName)
         {
-            
+            return ObjectChildrenList.Exists((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
-        public bool TryGetElement(PathType elementPath, out ElementType hierarchicalElement) 
+
+        public bool ContainsChildObject(IObject childObject)
         {
-            
+            return ObjectChildrenList.Contains(childObject);
         }
-        
-        public bool ContainsPath(IHierarchicalElementPath elementPath) 
+
+        public void ClearChildObjects()
         {
-            
-        }
-        public bool ContainsPath(PathType elementPath) 
-        {
-            
-        }
-        
-        public bool ContainsElement(IHierarchicalElement hierarchicalElement) 
-        {
-            
-        }
-        public bool ContainsElement(ElementType hierarchicalElement) 
-        {
-            
-        }
-        
-        public void Clear() 
-        {
-            
+            ObjectChildrenList.Clear();
         }
 
         #region Initialization Phases
@@ -309,6 +337,52 @@ namespace LooCast.System.Hierarchies
         }
         #endregion
 
+        #endregion
+
+        #region Overrides
+        public override string ToString()
+        {
+            return ObjectPath;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Object)
+            {
+                return Equals((Object)obj);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public bool Equals(Object otherObject)
+        {
+            return otherObject.ObjectPath == this.ObjectPath;
+        }
+
+        public override int GetHashCode()
+        {
+            return ObjectPath.GetHashCode();
+        }
+        #endregion
+
+        #region Operators
+        public static bool operator ==(Object object1, Object object2)
+        {
+            return object1.Equals(object2);
+        }
+
+        public static bool operator !=(Object object1, Object object2)
+        {
+            return !object1.Equals(object2);
+        }
+
+        public static implicit operator string(Object _object)
+        {
+            return _object.ObjectPath;
+        }
         #endregion
     }
 }

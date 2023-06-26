@@ -277,7 +277,7 @@ namespace LooCast.System
             MainRegistry.Add(typeof(Component), SystemObject.CreateSystemObject<ComponentRegistry>());
             
             MainHierarchy = SystemObject.CreateSystemObject<MainHierarchy>();
-            // TODO: Register Main Hierarchy in itself, if that even makes sense
+            // TODO: Register Main Folder in itself, if that even makes sense
             // TODO: Register all system hierarchies
             
             // TODO: 3. Register every Namespace & Type that's part of the core system in the respective registries and hierarchies

@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 
 namespace LooCast.System
 {
-    public abstract class Manager<ManagerType> : IManager
+    public abstract class Manager<ManagerType> : Folder, IManager
         where ManagerType : Manager<ManagerType>
     {
         #region Static Properties
@@ -16,8 +16,8 @@ namespace LooCast.System
                 Type type = typeof(ManagerType);
                 if (!instances.ContainsKey(type))
                 {
-                    ManagerObject managerObject = ManagerObject.CreateManagerObject($"[{type.Name}]", 31, "INTERNAL");
-                    instances[type] = CreateComponent<ManagerType>(managerObject);
+                    ManagerMonoBehaviour managerMonoBehaviour = ManagerMonoBehaviour.CreateManagerObject($"[{type.Name}]", 31, "INTERNAL");
+                    instances[type] = CreateComponent<ManagerType>(managerMonoBehaviour);
                 }
                 return instances[type];
             }
@@ -30,7 +30,7 @@ namespace LooCast.System
         #endregion
 
         #region Properties
-        public ManagerObject ManagerObject { get; private set; }
+        public ManagerMonoBehaviour ManagerMonoBehaviour { get; private set; }
 #nullable enable
         public IManager? ParentManager { get; private set; }
 #nullable disable
@@ -523,11 +523,11 @@ namespace LooCast.System
         {
             base.PreConstruct();
 
-            ManagerObject = (ManagerObject)ContainingGameObject;
+            ManagerMonoBehaviour = (ManagerMonoBehaviour)ContainingGameObject;
             ParentManager = GetParentManager();
             if (ParentManager != null)
             {
-                ManagerObject.UnityEngineGameObject.transform.SetParent(ParentManager.ManagerObject.UnityEngineGameObject.transform);
+                ManagerMonoBehaviour.UnityEngineGameObject.transform.SetParent(ParentManager.ManagerMonoBehaviour.UnityEngineGameObject.transform);
             }
 
             earlyPreInitializationActions = new List<Action>();

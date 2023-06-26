@@ -144,9 +144,9 @@ namespace LooCast.System.Paths
             }
         }
 
-        public bool Equals(FilePath otherHierarchyFilePath)
+        public bool Equals(FilePath otherFilePath)
         {
-            return otherHierarchyFilePath.GUSP.Equals(this.GUSP);
+            return otherFilePath.GUSP.Equals(this.GUSP);
         }
 
         public override int GetHashCode()
@@ -156,31 +156,31 @@ namespace LooCast.System.Paths
         #endregion
 
         #region Operators
-        public static bool operator ==(FilePath hierarchyFilePath1, FilePath hierarchyFilePath2)
+        public static bool operator ==(FilePath filePath1, FilePath filePath2)
         {
-            return hierarchyFilePath1.Equals(hierarchyFilePath2);
+            return filePath1.Equals(filePath2);
         }
 
-        public static bool operator !=(FilePath hierarchyFilePath1, FilePath hierarchyFilePath2)
+        public static bool operator !=(FilePath filePath1, FilePath filePath2)
         {
-            return !hierarchyFilePath1.Equals(hierarchyFilePath2);
+            return !filePath1.Equals(filePath2);
         }
 
-        public static implicit operator string(FilePath hierarchyFilePath)
+        public static implicit operator string(FilePath filePath)
         {
-            return hierarchyFilePath.GUSP;
+            return filePath.GUSP;
         }
 
 #nullable enable
         public static implicit operator FilePath?(string gusp)
         {
-            if (TryParse(gusp, out FilePath? hierarchyFilePath))
+            if (TryParse(gusp, out FilePath? filePath))
             {
-                return hierarchyFilePath;
+                return filePath;
             }
             else
             {
-                throw new ArgumentException($"The string '{gusp}' is not a valid Namespace GUSP.");
+                throw new ArgumentException($"The string '{gusp}' is not a valid File GUSP.");
             }
         }
 #nullable disable

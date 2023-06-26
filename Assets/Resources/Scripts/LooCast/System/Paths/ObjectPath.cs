@@ -165,9 +165,9 @@ namespace LooCast.System.Paths
             }
         }
 
-        public bool Equals(ObjectPath otherHierarchyObjectPath)
+        public bool Equals(ObjectPath otherObjectPath)
         {
-            return otherHierarchyObjectPath.GUSP.Equals(this.GUSP);
+            return otherObjectPath.GUSP.Equals(this.GUSP);
         }
 
         public override int GetHashCode()
@@ -177,31 +177,31 @@ namespace LooCast.System.Paths
         #endregion
 
         #region Operators
-        public static bool operator ==(ObjectPath hierarchyObjectPath1, ObjectPath hierarchyObjectPath2)
+        public static bool operator ==(ObjectPath objectPath1, ObjectPath objectPath2)
         {
-            return hierarchyObjectPath1.Equals(hierarchyObjectPath2);
+            return objectPath1.Equals(objectPath2);
         }
 
-        public static bool operator !=(ObjectPath hierarchyObjectPath1, ObjectPath hierarchyObjectPath2)
+        public static bool operator !=(ObjectPath objectPath1, ObjectPath objectPath2)
         {
-            return !hierarchyObjectPath1.Equals(hierarchyObjectPath2);
+            return !objectPath1.Equals(objectPath2);
         }
 
-        public static implicit operator string(ObjectPath hierarchyObjectPath)
+        public static implicit operator string(ObjectPath objectPath)
         {
-            return hierarchyObjectPath.GUSP;
+            return objectPath.GUSP;
         }
 
 #nullable enable
         public static implicit operator ObjectPath?(string gusp)
         {
-            if (TryParse(gusp, out ObjectPath? hierarchyObjectPath))
+            if (TryParse(gusp, out ObjectPath? objectPath))
             {
-                return hierarchyObjectPath;
+                return objectPath;
             }
             else
             {
-                throw new ArgumentException($"The string '{gusp}' is not a valid Namespace GUSP.");
+                throw new ArgumentException($"The string '{gusp}' is not a valid Object GUSP.");
             }
         }
 #nullable disable

@@ -2,12 +2,10 @@
 
 namespace LooCast.System
 {
-    using LooCast.System.Types;
-    
-    public interface IManager : IComponentType.IComponent
+    public interface IManager : IFolder
     {
         #region Properties
-        public ManagerObject ManagerObject { get; }
+        public ManagerMonoBehaviour ManagerMonoBehaviour { get; }
 #nullable enable
         public IManager? ParentManager { get; }
 #nullable disable
