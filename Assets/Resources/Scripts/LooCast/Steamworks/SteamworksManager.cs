@@ -24,7 +24,7 @@ namespace LooCast.Steamworks
 	// It handles the basics of starting up and shutting down the SteamAPI for use.
 	//
 	[DisallowMultipleComponent]
-	public sealed class SteamworksManager : ModuleManager<SteamworksManager>
+	public sealed class SteamworksManager : ModuleManager
 	{
 #if !DISABLESTEAMWORKS
 		
@@ -33,7 +33,7 @@ namespace LooCast.Steamworks
         {
             get
             {
-                return Instance.initialized;
+                return instance.initialized;
             }
         }
         #endregion

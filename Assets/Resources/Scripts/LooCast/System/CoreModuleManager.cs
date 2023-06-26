@@ -3,12 +3,9 @@ using UnityEngine;
 
 namespace LooCast.System
 {
-    public abstract class CoreModuleManager<CoreModuleManagerType> : ModuleManager<CoreModuleManagerType>, ICoreModuleManager
-        where CoreModuleManagerType : CoreModuleManager<CoreModuleManagerType>, new()
+    public abstract class CoreModuleManager : ModuleManager, ICoreModuleManager
     {
         #region Properties
-        public IModuleManager[] ModuleManagers { get; private set; }
-        public MainManager ParentMainManager { get; private set; }
         #endregion
 
         #region Callbacks
