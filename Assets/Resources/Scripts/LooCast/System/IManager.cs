@@ -2,7 +2,7 @@
 
 namespace LooCast.System
 {
-    public interface IManager : IFolder, IChild<IManager>, IParent<IManager>
+    public interface IManager : IFolder, IChild<IManager>, IParent<IManager>, ICompleteInitializationPhase, ICompleteTerminationPhase
     {
         #region Properties
         string ManagerName { get; }

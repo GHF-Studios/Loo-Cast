@@ -13,6 +13,167 @@ namespace LooCast.System
         IManager IChild<IManager>.Parent => (IManager)FolderParent;
 
         IEnumerable<IManager> IParent<IManager>.Children => (IEnumerable<IManager>)FolderChildren;
+
+        #region Initialization Phase Flags
+        public bool IsEarlyPreInitializing { get; protected set; }
+        public bool IsEarlyPreInitialized { get; protected set; }
+        public bool IsPreInitializing { get; protected set; }
+        public bool IsPreInitialized { get; protected set; }
+        public bool IsLatePreInitializing { get; protected set; }
+        public bool IsLatePreInitialized { get; protected set; }
+
+        public bool IsEarlyInitializing { get; protected set; }
+        public bool IsEarlyInitialized { get; protected set; }
+        public bool IsInitializing { get; protected set; }
+        public bool IsInitialized { get; protected set; }
+        public bool IsLateInitializing { get; protected set; }
+        public bool IsLateInitialized { get; protected set; }
+
+        public bool IsEarlyPostInitializing { get; protected set; }
+        public bool IsEarlyPostInitialized { get; protected set; }
+        public bool IsPostInitializing { get; protected set; }
+        public bool IsPostInitialized { get; protected set; }
+        public bool IsLatePostInitializing { get; protected set; }
+        public bool IsLatePostInitialized { get; protected set; }
+
+        public bool IsFullyPreInitializing
+        {
+            get
+            {
+                return IsEarlyPreInitializing || IsPreInitializing || IsLatePreInitializing;
+            }
+        }
+        public bool IsFullyPreInitialized
+        {
+            get
+            {
+                return IsEarlyPreInitialized && IsPreInitialized && IsLatePreInitialized;
+            }
+        }
+        public bool IsFullyInitializing
+        {
+            get
+            {
+                return IsEarlyInitializing || IsInitializing || IsLateInitializing;
+            }
+        }
+        public bool IsFullyInitialized
+        {
+            get
+            {
+                return IsEarlyInitialized && IsInitialized && IsLateInitialized;
+            }
+        }
+        public bool IsFullyPostInitializing
+        {
+            get
+            {
+                return IsEarlyPostInitializing || IsPostInitializing || IsLatePostInitializing;
+            }
+        }
+        public bool IsFullyPostInitialized
+        {
+            get
+            {
+                return IsEarlyPostInitialized && IsPostInitialized && IsLatePostInitialized;
+            }
+        }
+        public bool IsCompletelyInitializing
+        {
+            get
+            {
+                return IsFullyPreInitializing || IsFullyInitializing || IsFullyPostInitializing;
+            }
+        }
+        public bool IsCompletelyInitialized
+        {
+            get
+            {
+                return IsFullyPreInitialized && IsFullyInitialized && IsPostInitialized;
+            }
+        }
+        #endregion
+
+        #region Termination Phase Flags
+        public bool IsEarlyPreTerminating { get; protected set; }
+        public bool IsPreTerminating { get; protected set; }
+        public bool IsLatePreTerminating { get; protected set; }
+        public bool IsEarlyPreTerminated { get; protected set; }
+        public bool IsPreTerminated { get; protected set; }
+        public bool IsLatePreTerminated { get; protected set; }
+
+        public bool IsEarlyTerminating { get; protected set; }
+        public bool IsTerminating { get; protected set; }
+        public bool IsLateTerminating { get; protected set; }
+        public bool IsEarlyTerminated { get; protected set; }
+        public bool IsTerminated { get; protected set; }
+        public bool IsLateTerminated { get; protected set; }
+
+        public bool IsEarlyPostTerminating { get; protected set; }
+        public bool IsPostTerminating { get; protected set; }
+        public bool IsLatePostTerminating { get; protected set; }
+        public bool IsEarlyPostTerminated { get; protected set; }
+        public bool IsPostTerminated { get; protected set; }
+        public bool IsLatePostTerminated { get; protected set; }
+
+        public bool IsFullyPreTerminating
+        {
+            get
+            {
+                return IsEarlyPreTerminating || IsPreTerminating || IsLatePreTerminating;
+            }
+        }
+        public bool IsFullyPreTerminated
+        {
+            get
+            {
+                return IsEarlyPreTerminated && IsPreTerminated && IsLatePreTerminated;
+            }
+        }
+        public bool IsFullyTerminating
+        {
+            get
+            {
+                return IsEarlyTerminating || IsTerminating || IsLateTerminating;
+            }
+        }
+        public bool IsFullyTerminated
+        {
+            get
+            {
+                return IsEarlyTerminated && IsTerminated && IsLateTerminated;
+            }
+        }
+        public bool IsFullyPostTerminating
+        {
+            get
+            {
+                return IsEarlyPostTerminating || IsPostTerminating || IsLatePostTerminating;
+            }
+        }
+        public bool IsFullyPostTerminated
+        {
+            get
+            {
+                return IsEarlyPostTerminated && IsPostTerminated && IsLatePostTerminated;
+            }
+        }
+        public bool IsCompletelyTerminating
+        {
+            get
+            {
+                return IsFullyPreTerminating || IsFullyTerminating || IsFullyPostTerminating;
+            }
+        }
+        public bool IsCompletelyTerminated
+        {
+            get
+            {
+                return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
+            }
+        }
+        #endregion
+
         #endregion
 
         #region Fields

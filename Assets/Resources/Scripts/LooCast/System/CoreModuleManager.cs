@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.System
 {
-    public abstract class CoreModuleManager : ModuleManager, ICoreModuleManager
+    public abstract class CoreModuleManager : Manager, ICoreModuleManager
     {
         #region Properties
         #endregion

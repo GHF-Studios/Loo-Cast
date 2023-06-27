@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.System
 {
-    public abstract class SubModuleManager : ModuleManager
+    public abstract class SubModuleManager : Manager, ISubModuleManager
     {
     }
 }
