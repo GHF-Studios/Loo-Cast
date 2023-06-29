@@ -172,6 +172,12 @@ namespace LooCast.System
                 return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
             }
         }
+
+        public bool IsFullyPostTermináted => throw new NotImplementedException();
+
+        public bool IsCompletelyPreTerminating => throw new NotImplementedException();
+
+        public bool IsCompletelyPreTerminated => throw new NotImplementedException();
         #endregion
 
         #endregion
@@ -331,7 +337,7 @@ namespace LooCast.System
             IsLateInitialized = true;
         }
 
-        public void EarlyPostInitalize()
+        public void EarlyPostInitialize()
         {
             IsEarlyPostInitializing = true;
             string managerTypeName = GetType().Name;
@@ -628,7 +634,7 @@ namespace LooCast.System
             latePostTerminationActions.Add(action);
         }
         #endregion
-        
+
         #endregion
     }
 }

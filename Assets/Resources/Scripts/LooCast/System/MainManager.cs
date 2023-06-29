@@ -31,6 +31,16 @@ namespace LooCast.System
         #region Constructors
         private MainManager() : base("MainManager", null, ManagerMonoBehaviour.CreateManagerObject("MainManager"))
         {
+            RootFolder = new Folder();
+            CoreModuleManagers = new ICoreModuleManager[]
+            {
+                // TODO: Read the mod folder for valid core module managers and load them.
+                // LooCast.Core.CoreManager.Instance,
+                // ThermalDynamics.Core.CoreManager.Instance,
+                // ThermalExpansion.Core.CoreManager.Instance,
+                // CrazySexMod.Core.CoreManager.Instance
+            };
+
             RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
             RegisterPreInitializationAction(OnPreInitialize);
             RegisterLatePreInitializationAction(OnLatePreInitialize);
@@ -50,16 +60,6 @@ namespace LooCast.System
             RegisterEarlyPostTerminationAction(OnEarlyPostTerminate);
             RegisterPostTerminationAction(OnPostTerminate);
             RegisterLatePostTerminationAction(OnLatePostTerminate);
-            
-            RootFolder = new Folder();
-            CoreModuleManagers = new ICoreModuleManager[]
-            {
-                // TODO: Read the mod folder for valid core module managers and load them.
-                // LooCast.Core.CoreManager.Instance,
-                // ThermalDynamics.Core.CoreManager.Instance,
-                // ThermalExpansion.Core.CoreManager.Instance,
-                // CrazySexMod.Core.CoreManager.Instance
-            };
         }
         #endregion
 
@@ -118,7 +118,7 @@ namespace LooCast.System
         {
             foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
             {
-                coreModuleManager.EarlyPostInitalize();
+                coreModuleManager.EarlyPostInitialize();
             }
         }
 
@@ -245,12 +245,12 @@ namespace LooCast.System
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void PostAwake()
         {
-            Instance.EarlyPostInitalize();
+            Instance.EarlyPostInitialize();
 
             // Pre-Initialize all the core module managers
             foreach (ICoreModuleManager coreModuleManager in Instance.CoreModuleManagers)
             {
-                coreModuleManager.EarlyPostInitalize();
+                coreModuleManager.EarlyPostInitialize();
             }
         }
         #endregion

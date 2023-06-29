@@ -29,8 +29,8 @@ namespace LooCast.System
         IFile GetChildFile(string childFileName, string childFileExtension);
 
         bool ContainsChildFolder(string childFolderName);
-        bool ContainsChildFolder(IFolder childFolder);
         bool ContainsChildFile(string childFileName, string childFileExtension);
+        bool ContainsChildFolder(IFolder childFolder);
         bool ContainsChildFile(IFile childFile);
 
         void ClearChildFolders();

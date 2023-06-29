@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LooCast.System
@@ -6,177 +7,22 @@ namespace LooCast.System
     public abstract class CoreModuleManager : Manager, ICoreModuleManager
     {
         #region Properties
+        public string CoreModuleManagerName => ManagerName;
+
+        MainManager IChild<MainManager>.Parent => MainManager.Instance;
+
+        IEnumerable<IModuleManager> IParent<IModuleManager>.Children => ModuleManagerChildren;
+        public IEnumerable<IModuleManager> ModuleManagerChildren => moduleManagerChildrenList;
         #endregion
 
-        #region Callbacks
-
-        #region Initialization Phases
-        private void OnEarlyPreInitialize()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.EarlyPreInitialize();
-            }
-        }
-
-        private void OnPreInitialize()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.PreInitialize();
-            }
-        }
-
-        private void OnLatePreInitialize()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.LatePreInitialize();
-            }
-        }
-
-        private void OnEarlyInitialize()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.EarlyInitialize();
-            }
-        }
-
-        private void OnInitialize()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.Initialize();
-            }
-        }
-
-        private void OnLateInitialize()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.LateInitialize();
-            }
-        }
-
-        private void OnEarlyPostInitialize()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.EarlyPostInitalize();
-            }
-        }
-
-        private void OnPostInitialize()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.PostInitialize();
-            }
-        }
-
-        private void OnLatePostInitialize()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.LatePostInitialize();
-            }
-        }
+        #region Fields
+        private List<IModuleManager> moduleManagerChildrenList;
         #endregion
 
-        #region Termination Phases
-        private void OnEarlyPreTerminate()
+        #region Constructors
+        protected CoreModuleManager(string coreModuleManagerName) : base(coreModuleManagerName, MainManager.Instance, ManagerMonoBehaviour.CreateManagerObject(coreModuleManagerName))
         {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.EarlyPreTerminate();
-            }
-        }
-
-        private void OnPreTerminate()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.PreTerminate();
-            }
-        }
-
-        private void OnLatePreTerminate()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.LatePreTerminate();
-            }
-        }
-
-        private void OnEarlyTerminate()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.EarlyTerminate();
-            }
-        }
-
-        private void OnTerminate()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.Terminate();
-            }
-        }
-
-        private void OnLateTerminate()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.LateTerminate();
-            }
-        }
-
-        private void OnEarlyPostTerminate()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.EarlyPostTerminate();
-            }
-        }
-
-        private void OnPostTerminate()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.PostTerminate();
-            }
-        }
-
-        private void OnLatePostTerminate()
-        {
-            foreach (IModuleManager moduleManager in ModuleManagers)
-            {
-                moduleManager.LatePostTerminate();
-            }
-        }
-        #endregion
-
-        #endregion
-
-        #region Methods
-        /// <summary>
-        /// Returns the module managers in the order they should be initialized.
-        /// </summary>
-        protected virtual IModuleManager[] GetModuleManagers()
-        {
-            return new IModuleManager[0];
-        }
-        #endregion
-
-        #region Overrides
-        protected override void PreConstruct()
-        {
-            base.PreConstruct();
-
-            ModuleManagers = GetModuleManagers();
-            ParentMainManager = (MainManager)ParentManager;
+            moduleManagerChildrenList = new List<IModuleManager>();
 
             RegisterEarlyPreInitializationAction(OnEarlyPreInitialize);
             RegisterPreInitializationAction(OnPreInitialize);
@@ -198,10 +44,226 @@ namespace LooCast.System
             RegisterPostTerminationAction(OnPostTerminate);
             RegisterLatePostTerminationAction(OnLatePostTerminate);
         }
+        #endregion
 
-        protected override IManager GetParentManager()
+        #region Callbacks
+
+        #region Initialization Phases
+        private void OnEarlyPreInitialize()
         {
-            return MainManager.Instance;
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.EarlyPreInitialize();
+            }
+        }
+
+        private void OnPreInitialize()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.PreInitialize();
+            }
+        }
+
+        private void OnLatePreInitialize()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.LatePreInitialize();
+            }
+        }
+
+        private void OnEarlyInitialize()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.EarlyInitialize();
+            }
+        }
+
+        private void OnInitialize()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.Initialize();
+            }
+        }
+
+        private void OnLateInitialize()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.LateInitialize();
+            }
+        }
+
+        private void OnEarlyPostInitialize()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.EarlyPostInitialize();
+            }
+        }
+
+        private void OnPostInitialize()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.PostInitialize();
+            }
+        }
+
+        private void OnLatePostInitialize()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.LatePostInitialize();
+            }
+        }
+        #endregion
+
+        #region Termination Phases
+        private void OnEarlyPreTerminate()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.EarlyPreTerminate();
+            }
+        }
+
+        private void OnPreTerminate()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.PreTerminate();
+            }
+        }
+
+        private void OnLatePreTerminate()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.LatePreTerminate();
+            }
+        }
+
+        private void OnEarlyTerminate()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.EarlyTerminate();
+            }
+        }
+
+        private void OnTerminate()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.Terminate();
+            }
+        }
+
+        private void OnLateTerminate()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.LateTerminate();
+            }
+        }
+
+        private void OnEarlyPostTerminate()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.EarlyPostTerminate();
+            }
+        }
+
+        private void OnPostTerminate()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.PostTerminate();
+            }
+        }
+
+        private void OnLatePostTerminate()
+        {
+            foreach (IModuleManager moduleManagerChild in moduleManagerChildrenList)
+            {
+                moduleManagerChild.LatePostTerminate();
+            }
+        }
+        #endregion
+
+        #endregion
+
+        #region Methods
+        public bool TryAddChildModuleManager(IModuleManager childModuleManager)
+        {
+            if (ContainsChildModuleManager(childModuleManager.ModuleManagerName))
+            {
+                return false;
+            }
+            else
+            {
+                AddChildModuleManager(childModuleManager);
+                return true;
+            }
+        }
+        public void AddChildModuleManager(IModuleManager childModuleManager)
+        {
+            moduleManagerChildrenList.Add(childModuleManager);
+        }
+
+        public bool TryRemoveChildModuleManager(IModuleManager childModuleManager)
+        {
+            if (!ContainsChildModuleManager(childModuleManager))
+            {
+                return false;
+            }
+            else
+            {
+                RemoveChildModuleManager(childModuleManager);
+                return true;
+            }
+        }
+        public void RemoveChildModuleManager(IModuleManager childModuleManager)
+        {
+            moduleManagerChildrenList.Remove(childModuleManager);
+        }
+
+        public bool TryGetChildModuleManager(string childModuleManagerName, out IModuleManager childModuleManager)
+        {
+            if (!ContainsChildModuleManager(childModuleManagerName))
+            {
+                childModuleManager = null;
+                return false;
+            }
+            else
+            {
+                childModuleManager = GetChildModuleManager(childModuleManagerName);
+                return true;
+            }
+        }
+        public IModuleManager GetChildModuleManager(string childModuleManagerName)
+        {
+            return moduleManagerChildrenList.Find((moduleManagerChild) => { return moduleManagerChild.ModuleManagerName == childModuleManagerName; });
+        }
+
+        public bool ContainsChildModuleManager(string childModuleManagerName)
+        {
+            return moduleManagerChildrenList.Exists((moduleManagerChild) => { return moduleManagerChild.ModuleManagerName == childModuleManagerName; });
+        }
+
+        public bool ContainsChildModuleManager(IModuleManager childModuleManager)
+        {
+            return moduleManagerChildrenList.Contains(childModuleManager);
+        }
+
+        public void ClearChildModuleManagers()
+        {
+            moduleManagerChildrenList.Clear();
         }
         #endregion
     }

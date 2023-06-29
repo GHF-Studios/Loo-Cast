@@ -20,15 +20,15 @@ namespace LooCast.System
         public IFolder FolderParent { get; private set; }
 
         IEnumerable<IFolder> IParent<IFolder>.Children => FolderChildren;
-        public IEnumerable<IFolder> FolderChildren => FolderChildrenList;
+        public IEnumerable<IFolder> FolderChildren => folderChildrenList;
 
         IEnumerable<IFile> IParent<IFile>.Children => FileChildren;
-        public IEnumerable<IFile> FileChildren => FileChildrenList;
+        public IEnumerable<IFile> FileChildren => fileChildrenList;
         #endregion
 
         #region Fields
-        protected List<IFolder> FolderChildrenList;
-        protected List<IFile> FileChildrenList;
+        private List<IFolder> folderChildrenList;
+        private List<IFile> fileChildrenList;
         #endregion
 
         #region Constructors
@@ -39,8 +39,8 @@ namespace LooCast.System
             FolderName = "Root";
             FolderPath = new FolderPath(false);
             FolderParent = null;
-            FolderChildrenList = new List<IFolder>();
-            FileChildrenList = new List<IFile>();
+            folderChildrenList = new List<IFolder>();
+            fileChildrenList = new List<IFile>();
         }
 
         public Folder(string folderName, IFolder folderParent)
@@ -53,8 +53,8 @@ namespace LooCast.System
             FolderName = folderName;
             FolderPath = folderPathBuilder.ConstructFolderPath();
             FolderParent = folderParent;
-            FolderChildrenList = new List<IFolder>();
-            FileChildrenList = new List<IFile>();
+            folderChildrenList = new List<IFolder>();
+            fileChildrenList = new List<IFile>();
         }
         #endregion
 
@@ -90,11 +90,11 @@ namespace LooCast.System
         }
         public void AddChildFolder(IFolder childFolder) 
         {
-            FolderChildrenList.Add(childFolder);
+            folderChildrenList.Add(childFolder);
         }
         public void AddChildFile(IFile childFile) 
         {
-            FileChildrenList.Add(childFile);
+            fileChildrenList.Add(childFile);
         }
 
         public bool TryRemoveChildFolder(IFolder childFolder) 
@@ -123,11 +123,11 @@ namespace LooCast.System
         }
         public void RemoveChildFolder(IFolder childFolder) 
         {
-            FolderChildrenList.Remove(childFolder);
+            folderChildrenList.Remove(childFolder);
         }
         public void RemoveChildFile(IFile childFile) 
         {
-            FileChildrenList.Remove(childFile);
+            fileChildrenList.Remove(childFile);
         }
 
         public bool TryGetChildFolder(string childFolderName, out IFolder childFolder)
@@ -158,36 +158,36 @@ namespace LooCast.System
         }
         public IFolder GetChildFolder(string childFolderName) 
         {
-            return FolderChildrenList.Find((folderChild) => { return folderChild.FolderName == childFolderName; } );
+            return folderChildrenList.Find((folderChild) => { return folderChild.FolderName == childFolderName; } );
         }
         public IFile GetChildFile(string childFileName, string childFileExtension)
         {
-            return FileChildrenList.Find((fileChild) => { return fileChild.FileName == childFileName && fileChild.FileExtension == childFileExtension; });
+            return fileChildrenList.Find((fileChild) => { return fileChild.FileName == childFileName && fileChild.FileExtension == childFileExtension; });
         }
         public bool ContainsChildFolder(string childFolderName) 
         {
-            return FolderChildrenList.Exists((childFolder) => { return childFolder.FolderName == childFolderName; });
+            return folderChildrenList.Exists((childFolder) => { return childFolder.FolderName == childFolderName; });
+        }
+        public bool ContainsChildFile(string childFileName, string childFileExtension)
+        {
+            return fileChildrenList.Exists((fileChild) => { return fileChild.FileName == childFileName && fileChild.FileExtension == childFileExtension; });
         }
         public bool ContainsChildFolder(IFolder childFolder)
         {
-            return FolderChildrenList.Contains(childFolder);
-        }
-        public bool ContainsChildFile(string childFileName, string childFileExtension) 
-        {
-            return FileChildrenList.Exists((fileChild) => { return fileChild.FileName == childFileName && fileChild.FileExtension == childFileExtension; });
+            return folderChildrenList.Contains(childFolder);
         }
         public bool ContainsChildFile(IFile childFile)
         {
-            return FileChildrenList.Contains(childFile);
+            return fileChildrenList.Contains(childFile);
         }
 
         public void ClearChildFolders() 
         {
-            FolderChildrenList.Clear();
+            folderChildrenList.Clear();
         }
         public void ClearChildFiles() 
         {
-            FileChildrenList.Clear();
+            fileChildrenList.Clear();
         }
         #endregion
 

@@ -20,11 +20,11 @@ namespace LooCast.System
         public IFolder FolderParent { get; private set; }
 
         IEnumerable<IObject> IParent<IObject>.Children => ObjectChildren;
-        public IEnumerable<IObject> ObjectChildren => ObjectChildrenList;
+        public IEnumerable<IObject> ObjectChildren => objectChildrenList;
         #endregion
 
         #region Fields
-        protected List<IObject> ObjectChildrenList;
+        protected List<IObject> objectChildrenList;
         #endregion
 
         #region Constructors
@@ -46,7 +46,7 @@ namespace LooCast.System
             FileExtension = fileExtension;
             FilePath = filePathBuilder.ConstructFilePath();
             FolderParent = folderParent;
-            ObjectChildrenList = new List<IObject>();
+            objectChildrenList = new List<IObject>();
         }
         #endregion
 
@@ -70,7 +70,7 @@ namespace LooCast.System
         }
         public void AddChildObject(IObject childObject) 
         {
-            ObjectChildrenList.Add(childObject);
+            objectChildrenList.Add(childObject);
         }
 
         public bool TryRemoveChildObject(IObject childObject)
@@ -87,7 +87,7 @@ namespace LooCast.System
         }
         public void RemoveChildObject(IObject childObject) 
         {
-            ObjectChildrenList.Remove(childObject);
+            objectChildrenList.Remove(childObject);
         }
 
         public bool TryGetChildObject(string childObjectName, out IObject childObject) 
@@ -105,22 +105,22 @@ namespace LooCast.System
         }
         public IObject GetChildObject(string childObjectName) 
         {
-            return ObjectChildrenList.Find((objectChild) => { return objectChild.ObjectName == childObjectName; });
+            return objectChildrenList.Find((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
 
         public bool ContainsChildObject(string childObjectName) 
         {
-            return ObjectChildrenList.Exists((objectChild) => { return objectChild.ObjectName == childObjectName; });
+            return objectChildrenList.Exists((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
 
         public bool ContainsChildObject(IObject childObject)
         {
-            return ObjectChildrenList.Contains(childObject);
+            return objectChildrenList.Contains(childObject);
         }
 
         public void ClearChildObjects() 
         {
-            ObjectChildrenList.Clear();
+            objectChildrenList.Clear();
         }
 
         #region Initialization Phases

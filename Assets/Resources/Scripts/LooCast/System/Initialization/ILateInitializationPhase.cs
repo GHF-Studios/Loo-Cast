@@ -1,4 +1,4 @@
-﻿namespace LooCast.System
+﻿namespace LooCast.System.Initialization
 {
     public interface ILateInitializationPhase
     {
