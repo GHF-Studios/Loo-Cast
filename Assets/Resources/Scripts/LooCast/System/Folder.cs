@@ -45,9 +45,20 @@ namespace LooCast.System
 
         public Folder(string folderName, IFolder folderParent)
         {
-            IsRoot = false;
+            PathBuilder folderPathBuilder;
+            
+            if (folderParent == null)
+            {
+                IsRoot = true;
+                folderPathBuilder = PathBuilder.Create();
+            }
+            else
+            {
+                IsRoot = false;
+                folderPathBuilder = PathBuilder.Load(folderParent.FolderPath);
+            }
 
-            PathBuilder folderPathBuilder = PathBuilder.Load(folderParent.FolderPath);
+            folderPathBuilder.AsAbsolutePath();
             folderPathBuilder.WithFolder(folderName);
 
             FolderName = folderName;
@@ -223,12 +234,34 @@ namespace LooCast.System
         #region Operators
         public static bool operator ==(Folder folder1, Folder folder2)
         {
-            return folder1.Equals(folder2);
+            if ((folder1 is null && folder2 is not null) || (folder1 is not null && folder2 is null))
+            {
+                return false;
+            }
+            else if (folder1 is null && folder2 is null)
+            {
+                return true;
+            }
+            else
+            {
+                return folder1.Equals(folder2);
+            }
         }
 
         public static bool operator !=(Folder folder1, Folder folder2)
         {
-            return !folder1.Equals(folder2);
+            if ((folder1 is null && folder2 is not null) || (folder1 is not null && folder2 is null))
+            {
+                return true;
+            }
+            else if (folder1 is null && folder2 is null)
+            {
+                return false;
+            }
+            else
+            {
+                return !folder1.Equals(folder2);
+            }
         }
 
         public static implicit operator string(Folder folder)

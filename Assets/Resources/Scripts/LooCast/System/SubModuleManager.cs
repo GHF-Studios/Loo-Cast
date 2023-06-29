@@ -24,7 +24,7 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        protected SubModuleManager(string subModuleManagerName) : base(subModuleManagerName, MainManager.Instance, ManagerMonoBehaviour.CreateManagerObject(subModuleManagerName))
+        protected SubModuleManager(string subModuleManagerName) : base(subModuleManagerName, MainManager.Instance, System.ManagerMonoBehaviour.Create(subModuleManagerName))
         {
             subModuleManagerChildrenList = new List<ISubModuleManager>();
 

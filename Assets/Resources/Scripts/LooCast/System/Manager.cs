@@ -8,7 +8,7 @@ namespace LooCast.System
     {
         #region Properties
         public string ManagerName => FolderName;
-        public ManagerMonoBehaviour ManagerMonoBehaviour { get; private set; }
+        public ExtendedMonoBehaviour ManagerMonoBehaviour { get; private set; }
 
         IManager IChild<IManager>.Parent => (IManager)FolderParent;
 
@@ -269,7 +269,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Pre-Initialization.");
             IsPreInitializing = false;
             IsPreInitialized = true;
-            LatePreInitialize();
         }
 
         public void LatePreInitialize()
@@ -318,7 +317,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Initialization.");
             IsInitializing = false;
             IsInitialized = true;
-            LateInitialize();
         }
 
         public void LateInitialize()
@@ -367,7 +365,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Post-Initialization.");
             IsPostInitializing = false;
             IsPostInitialized = true;
-            LatePostInitialize();
         }
 
         public void LatePostInitialize()
@@ -402,7 +399,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Early Pre-Termination.");
             IsEarlyPreTerminating = false;
             IsEarlyPreTerminated = true;
-            PreTerminate();
         }
 
         public void PreTerminate()
@@ -419,7 +415,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Pre-Termination.");
             IsPreTerminating = false;
             IsPreTerminated = true;
-            LatePreTerminate();
         }
 
         public void LatePreTerminate()
@@ -436,7 +431,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Late Pre-Termination.");
             IsLatePreTerminating = false;
             IsLatePreTerminated = true;
-            EarlyTerminate();
         }
 
         public void EarlyTerminate()
@@ -453,7 +447,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Early Termination.");
             IsEarlyTerminating = false;
             IsEarlyTerminated = true;
-            Terminate();
         }
 
         public void Terminate()
@@ -470,7 +463,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Termination.");
             IsTerminating = false;
             IsTerminated = true;
-            LateTerminate();
         }
 
         public void LateTerminate()
@@ -487,7 +479,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Late Termination.");
             IsLateTerminating = false;
             IsLateTerminated = true;
-            EarlyPostTerminate();
         }
 
         public void EarlyPostTerminate()
@@ -504,7 +495,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Early Post-Termination.");
             IsEarlyPostTerminating = false;
             IsEarlyPostTerminated = true;
-            PostTerminate();
         }
 
         public void PostTerminate()
@@ -521,7 +511,6 @@ namespace LooCast.System
             Debug.Log($"[{managerTypeName}] Finished Post-Termination.");
             IsPostTerminating = false;
             IsPostTerminated = true;
-            LatePostTerminate();
         }
 
         public void LatePostTerminate()

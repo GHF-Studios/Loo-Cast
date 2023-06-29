@@ -31,6 +31,7 @@ namespace LooCast.System
         public File(string fileName, string fileExtension, IFolder folderParent)
         {
             PathBuilder filePathBuilder;
+            
             if (folderParent == null)
             {
                 filePathBuilder = PathBuilder.Create();
@@ -39,7 +40,8 @@ namespace LooCast.System
             {
                 filePathBuilder = PathBuilder.Load(folderParent.FolderPath);
             }
-            
+
+            filePathBuilder.AsAbsolutePath();
             filePathBuilder.WithFile(fileName, fileExtension);
 
             FileName = fileName;
@@ -251,12 +253,34 @@ namespace LooCast.System
         #region Operators
         public static bool operator ==(File file1, File file2)
         {
-            return file1.Equals(file2);
+            if ((file1 is null && file2 is not null) || (file1 is not null && file2 is null))
+            {
+                return false;
+            }
+            else if (file1 is null && file2 is null)
+            {
+                return true;
+            }
+            else
+            {
+                return file1.Equals(file2);
+            }
         }
 
         public static bool operator !=(File file1, File file2)
         {
-            return !file1.Equals(file2);
+            if ((file1 is null && file2 is not null) || (file1 is not null && file2 is null))
+            {
+                return true;
+            }
+            else if (file1 is null && file2 is null)
+            {
+                return false;
+            }
+            else
+            {
+                return !file1.Equals(file2);
+            }
         }
         
         public static implicit operator string(File file)

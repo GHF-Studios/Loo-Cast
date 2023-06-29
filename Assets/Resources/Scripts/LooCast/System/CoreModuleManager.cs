@@ -18,9 +18,9 @@ namespace LooCast.System
         #region Fields
         private List<IModuleManager> moduleManagerChildrenList;
         #endregion
-
+        
         #region Constructors
-        protected CoreModuleManager(string coreModuleManagerName) : base(coreModuleManagerName, MainManager.Instance, ManagerMonoBehaviour.CreateManagerObject(coreModuleManagerName))
+        protected CoreModuleManager(string coreModuleManagerName) : base(coreModuleManagerName, MainManager.Instance, System.ManagerMonoBehaviour.Create(coreModuleManagerName))
         {
             moduleManagerChildrenList = new List<IModuleManager>();
 

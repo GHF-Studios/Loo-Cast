@@ -26,21 +26,21 @@ namespace LooCast.System.Paths
         {
             get
             {
-                return folderNames.Count != 0 && fileFullName == null && objectNames.Count == 0;
+                return fileFullName == null && objectNames.Count == 0;
             }
         }
         private bool isFilePath
         {
             get
             {
-                return (folderNames.Count != 0 && fileFullName != null && objectNames.Count == 0) || (folderNames.Count == 0 && fileFullName != null && objectNames.Count == 0);
+                return fileFullName != null && objectNames.Count == 0;
             }
         }
         private bool isObjectPath
         {
             get
             {
-                return (folderNames.Count != 0 && fileFullName != null && objectNames.Count != 0) || (folderNames.Count == 0 && fileFullName != null && objectNames.Count != 0) || (folderNames.Count == 0 && fileFullName == null && objectNames.Count != 0);
+                return fileFullName != null && objectNames.Count != 0;
             }
         }
         #endregion

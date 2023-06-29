@@ -38,7 +38,8 @@ namespace LooCast.System
             }
             
             PathBuilder objectPathBuilder = PathBuilder.Load(fileParent.FilePath);
-            objectPathBuilder.WithObject(objectName);
+            objectPathBuilder.AsAbsolutePath();
+            objectPathBuilder = objectPathBuilder.WithObject(objectName);
 
             ObjectName = objectName;
             ObjectPath = objectPathBuilder.ConstructObjectPath();
@@ -55,6 +56,7 @@ namespace LooCast.System
             }
 
             PathBuilder objectPathBuilder = PathBuilder.Load(objectParent.ObjectPath);
+            objectPathBuilder.AsAbsolutePath();
             objectPathBuilder.WithObject(objectName);
 
             ObjectName = objectName;
@@ -171,12 +173,34 @@ namespace LooCast.System
         #region Operators
         public static bool operator ==(Object object1, Object object2)
         {
-            return object1.Equals(object2);
+            if ((object1 is null && object2 is not null) || (object1 is not null && object2 is null))
+            {
+                return false;
+            }
+            else if (object1 is null && object2 is null)
+            {
+                return true;
+            }
+            else
+            {
+                return object1.Equals(object2);
+            }
         }
 
         public static bool operator !=(Object object1, Object object2)
         {
-            return !object1.Equals(object2);
+            if ((object1 is null && object2 is not null) || (object1 is not null && object2 is null))
+            {
+                return true;
+            }
+            else if (object1 is null && object2 is null)
+            {
+                return false;
+            }
+            else
+            {
+                return !object1.Equals(object2);
+            }
         }
 
         public static implicit operator string(Object _object)
