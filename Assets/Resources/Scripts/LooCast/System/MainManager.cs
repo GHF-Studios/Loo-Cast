@@ -204,7 +204,7 @@ namespace LooCast.System
         {
             CoreModuleManagers = new ICoreModuleManager[]
             {
-                // TODO:    Read the mod folder for valid core module managers and load them.
+                // TODO:    Read the mod hierarchyFolder for valid core module managers and load them.
                 //          This process is internal to the MainManager and thus there are no Methods to manage the child managers.
                 // LooCast.Core.CoreManager.Instance,
                 // ThermalDynamics.Core.CoreManager.Instance,

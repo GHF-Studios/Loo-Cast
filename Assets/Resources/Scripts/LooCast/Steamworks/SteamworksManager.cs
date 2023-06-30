@@ -1,7 +1,7 @@
 // The SteamworksManager is designed to work with Steamworks.NET
-// This file is released into the public domain.
+// This hierarchyFile is released into the public domain.
 // Where that dedication is not recognized you are granted a perpetual,
-// irrevocable license to copy and modify this file as you see fit.
+// irrevocable license to copy and modify this hierarchyFile as you see fit.
 //
 // Version: 1.0.12
 
@@ -128,7 +128,7 @@ namespace LooCast.Steamworks
             // Initializes the Steamworks API.
             // If this returns false then this indicates one of the following conditions:
             // [*] The Steam client isn't running. A running Steam client is required to provide implementations of the various Steamworks interfaces.
-            // [*] The Steam client couldn't determine the App ID of game. If you're running your application from the executable or debugger directly then you must have a [code-inline]steam_appid.txt[/code-inline] in your game directory next to the executable, with your app ID in it and nothing else. Steam will look for this file in the current working directory. If you are running your executable from a different directory you may need to relocate the [code-inline]steam_appid.txt[/code-inline] file.
+            // [*] The Steam client couldn't determine the App ID of game. If you're running your application from the executable or debugger directly then you must have a [code-inline]steam_appid.txt[/code-inline] in your game directory next to the executable, with your app ID in it and nothing else. Steam will look for this hierarchyFile in the current working directory. If you are running your executable from a different directory you may need to relocate the [code-inline]steam_appid.txt[/code-inline] hierarchyFile.
             // [*] Your application is not running under the same OS user context as the Steam client, such as a different user or administration access level.
             // [*] Ensure that you own a license for the App ID on the currently active Steam account. Your game must show up in your Steam library.
             // [*] Your App ID is not completely set up, i.e. in Release State: Unavailable, or it's missing default packages.
