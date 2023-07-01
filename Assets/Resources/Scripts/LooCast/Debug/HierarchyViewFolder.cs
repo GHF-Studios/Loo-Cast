@@ -7,8 +7,6 @@ public class HierarchyViewFolder : HierarchyViewElement
     #region Fields
     [SerializeField] private GameObject hierarchyViewFolderPrefab;
     [SerializeField] private GameObject hierarchyViewFilePrefab;
-    [SerializeField] private GameObject folderContainer;
-    [SerializeField] private GameObject fileContainer;
 
     private IFolder hierarchyFolder;
     private Dictionary<string, HierarchyViewFolder> hierarchyViewFolderChildren;
@@ -18,6 +16,8 @@ public class HierarchyViewFolder : HierarchyViewElement
     #region Methods
     public void Initialize(IFolder hierarchyFolder)
     {
+        base.Initialize(hierarchyFolder.FolderName);
+        
         this.hierarchyFolder = hierarchyFolder;
         hierarchyViewFolderChildren = new Dictionary<string, HierarchyViewFolder>();
         hierarchyViewFileChildren = new Dictionary<string, HierarchyViewFile>();

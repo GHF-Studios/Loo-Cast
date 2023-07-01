@@ -6,20 +6,38 @@ public class HierarchyView : MonoBehaviour
 {
     #region Fields
     [SerializeField] private GameObject hierarchyViewFolderPrefab;
-    [SerializeField] private GameObject folderContainer;
-
-    private IFolder rootHierarchyFolder;
+    [SerializeField] private GameObject hierarchyViewFilePrefab;
+    
     private Dictionary<string, HierarchyViewFolder> hierarchyViewFolderChildren;
+    private Dictionary<string, HierarchyViewFile> hierarchyViewFileChildren;
     #endregion
 
     #region Unity Callbacks
     private void Start()
     {
-        rootHierarchyFolder = MainManager.Instance;
-        hierarchyViewFolderChildren = new Dictionary<string, HierarchyViewFolder>();
+        Initialize();
     }
     #endregion
 
     #region Methods
+    public void Initialize()
+    {
+        hierarchyViewFolderChildren = new Dictionary<string, HierarchyViewFolder>();
+        hierarchyViewFileChildren = new Dictionary<string, HierarchyViewFile>();
+        
+        foreach (IFolder folder in MainManager.Instance.FolderChildren)
+        {
+            HierarchyViewFolder hierarchyViewFolder = Instantiate(hierarchyViewFolderPrefab, transform).GetComponent<HierarchyViewFolder>();
+            hierarchyViewFolder.Initialize(folder);
+            hierarchyViewFolderChildren.Add(folder.FolderName, hierarchyViewFolder);
+        }
+
+        foreach (IFile file in MainManager.Instance.FileChildren)
+        {
+            HierarchyViewFile hierarchyViewFile = Instantiate(hierarchyViewFilePrefab, transform).GetComponent<HierarchyViewFile>();
+            hierarchyViewFile.Initialize(file);
+            hierarchyViewFileChildren.Add(file.FileName, hierarchyViewFile);
+        }
+    }
     #endregion
 }

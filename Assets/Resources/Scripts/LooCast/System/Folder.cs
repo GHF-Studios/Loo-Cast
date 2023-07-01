@@ -70,12 +70,12 @@ namespace LooCast.System
         #endregion
 
         #region Methods
-        public bool Validate()
+        public virtual bool Validate()
         {
             return true;
         }
 
-        public bool TryAddChildFolder(IFolder childFolder) 
+        public virtual bool TryAddChildFolder(IFolder childFolder) 
         {
             if (ContainsChildFolder(childFolder.FolderName))
             {
@@ -87,7 +87,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public bool TryAddChildFile(IFile childFile) 
+        public virtual bool TryAddChildFile(IFile childFile) 
         {
             if (ContainsChildFile(childFile))
             {
@@ -99,16 +99,16 @@ namespace LooCast.System
                 return true;
             }
         }
-        public void AddChildFolder(IFolder childFolder) 
+        public virtual void AddChildFolder(IFolder childFolder) 
         {
             folderChildrenList.Add(childFolder);
         }
-        public void AddChildFile(IFile childFile) 
+        public virtual void AddChildFile(IFile childFile) 
         {
             fileChildrenList.Add(childFile);
         }
 
-        public bool TryRemoveChildFolder(IFolder childFolder) 
+        public virtual bool TryRemoveChildFolder(IFolder childFolder) 
         {
             if (!ContainsChildFolder(childFolder))
             {
@@ -120,7 +120,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public bool TryRemoveChildFile(IFile childFile) 
+        public virtual bool TryRemoveChildFile(IFile childFile) 
         {
             if (!ContainsChildFile(childFile))
             {
@@ -132,16 +132,16 @@ namespace LooCast.System
                 return true;
             }
         }
-        public void RemoveChildFolder(IFolder childFolder) 
+        public virtual void RemoveChildFolder(IFolder childFolder) 
         {
             folderChildrenList.Remove(childFolder);
         }
-        public void RemoveChildFile(IFile childFile) 
+        public virtual void RemoveChildFile(IFile childFile) 
         {
             fileChildrenList.Remove(childFile);
         }
 
-        public bool TryGetChildFolder(string childFolderName, out IFolder childFolder)
+        public virtual bool TryGetChildFolder(string childFolderName, out IFolder childFolder)
         {
             if (!ContainsChildFolder(childFolderName))
             {
@@ -154,7 +154,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public bool TryGetChildFile(string childFileName, string childFileExtension, out IFile childFile) 
+        public virtual bool TryGetChildFile(string childFileName, string childFileExtension, out IFile childFile) 
         {
             if (!ContainsChildFile(childFileName, childFileExtension))
             {
@@ -167,36 +167,36 @@ namespace LooCast.System
                 return true;
             }
         }
-        public IFolder GetChildFolder(string childFolderName) 
+        public virtual IFolder GetChildFolder(string childFolderName) 
         {
             return folderChildrenList.Find((folderChild) => { return folderChild.FolderName == childFolderName; } );
         }
-        public IFile GetChildFile(string childFileName, string childFileExtension)
+        public virtual IFile GetChildFile(string childFileName, string childFileExtension)
         {
             return fileChildrenList.Find((fileChild) => { return fileChild.FileName == childFileName && fileChild.FileExtension == childFileExtension; });
         }
-        public bool ContainsChildFolder(string childFolderName) 
+        public virtual bool ContainsChildFolder(string childFolderName) 
         {
             return folderChildrenList.Exists((childFolder) => { return childFolder.FolderName == childFolderName; });
         }
-        public bool ContainsChildFile(string childFileName, string childFileExtension)
+        public virtual bool ContainsChildFile(string childFileName, string childFileExtension)
         {
             return fileChildrenList.Exists((fileChild) => { return fileChild.FileName == childFileName && fileChild.FileExtension == childFileExtension; });
         }
-        public bool ContainsChildFolder(IFolder childFolder)
+        public virtual bool ContainsChildFolder(IFolder childFolder)
         {
             return folderChildrenList.Contains(childFolder);
         }
-        public bool ContainsChildFile(IFile childFile)
+        public virtual bool ContainsChildFile(IFile childFile)
         {
             return fileChildrenList.Contains(childFile);
         }
 
-        public void ClearChildFolders() 
+        public virtual void ClearChildFolders() 
         {
             folderChildrenList.Clear();
         }
-        public void ClearChildFiles() 
+        public virtual void ClearChildFiles() 
         {
             fileChildrenList.Clear();
         }

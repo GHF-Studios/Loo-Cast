@@ -10,6 +10,7 @@ namespace LooCast.System
         #region Properties
         string FileName { get; }
         string FileExtension { get; }
+        string FileIdentifier { get; }
         FilePath FilePath { get; }
         #endregion
 

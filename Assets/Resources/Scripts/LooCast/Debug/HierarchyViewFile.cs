@@ -6,7 +6,6 @@ public class HierarchyViewFile : HierarchyViewElement
 {
     #region Fields
     [SerializeField] private GameObject hierarchyViewObjectPrefab;
-    [SerializeField] private GameObject objectContainer;
 
     private IFile hierarchyFile;
     private Dictionary<string, HierarchyViewObject> hierarchyViewObjectChildren;
@@ -15,6 +14,8 @@ public class HierarchyViewFile : HierarchyViewElement
     #region Methods
     public void Initialize(IFile hierarchyFile)
     {
+        base.Initialize(hierarchyFile.FileIdentifier);
+        
         this.hierarchyFile = hierarchyFile;
         hierarchyViewObjectChildren = new Dictionary<string, HierarchyViewObject>();
     }

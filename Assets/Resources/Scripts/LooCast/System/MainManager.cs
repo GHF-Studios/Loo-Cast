@@ -213,6 +213,13 @@ namespace LooCast.System
                 // CocaineMod.Core.CoreManager.Instance,
                 // PineappleMod.Core.CoreManager.Instance
             };
+
+            AddChildFolder(new Folder("LooCast", this));
+            AddChildFolder(new Folder("ThermalDynamics", this));
+            AddChildFolder(new Folder("ThermalExpansion", this));
+            AddChildFolder(new Folder("CrazySexMod", this));
+            AddChildFolder(new Folder("CocaineMod", this));
+            AddChildFolder(new Folder("PineappleMod", this));
         }
         #endregion
 

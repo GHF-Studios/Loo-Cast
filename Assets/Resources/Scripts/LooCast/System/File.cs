@@ -2,14 +2,14 @@
 
 namespace LooCast.System
 {
-    using global::System;
     using LooCast.System.Paths;
-    
+
     public class File : IFile
     {
         #region Properties
         public string FileName { get; private set; }
         public string FileExtension { get; private set; }
+        public string FileIdentifier { get; private set; }
 
         public IHierarchicalElementPath HierarchicalElementPath => FilePath;
         public FilePath FilePath { get; private set; }
@@ -46,6 +46,7 @@ namespace LooCast.System
 
             FileName = fileName;
             FileExtension = fileExtension;
+            FileIdentifier = fileName + fileExtension;
             FilePath = filePathBuilder.ConstructFilePath();
             FolderParent = folderParent;
             objectChildrenList = new List<IObject>();
@@ -53,12 +54,12 @@ namespace LooCast.System
         #endregion
 
         #region Methods
-        public bool Validate()
+        public virtual bool Validate()
         {
             return true;
         }
 
-        public bool TryAddChildObject(IObject childObject) 
+        public virtual bool TryAddChildObject(IObject childObject) 
         {
             if (ContainsChildObject(childObject.ObjectName))
             {
@@ -70,12 +71,12 @@ namespace LooCast.System
                 return true;
             }
         }
-        public void AddChildObject(IObject childObject) 
+        public virtual void AddChildObject(IObject childObject) 
         {
             objectChildrenList.Add(childObject);
         }
 
-        public bool TryRemoveChildObject(IObject childObject)
+        public virtual bool TryRemoveChildObject(IObject childObject)
         {
             if (!ContainsChildObject(childObject))
             {
@@ -87,12 +88,12 @@ namespace LooCast.System
                 return true;
             }
         }
-        public void RemoveChildObject(IObject childObject) 
+        public virtual void RemoveChildObject(IObject childObject) 
         {
             objectChildrenList.Remove(childObject);
         }
 
-        public bool TryGetChildObject(string childObjectName, out IObject childObject) 
+        public virtual bool TryGetChildObject(string childObjectName, out IObject childObject) 
         {
             if (!ContainsChildObject(childObjectName))
             {
@@ -105,120 +106,25 @@ namespace LooCast.System
                 return true;
             }
         }
-        public IObject GetChildObject(string childObjectName) 
+        public virtual IObject GetChildObject(string childObjectName) 
         {
             return objectChildrenList.Find((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
 
-        public bool ContainsChildObject(string childObjectName) 
+        public virtual bool ContainsChildObject(string childObjectName) 
         {
             return objectChildrenList.Exists((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
 
-        public bool ContainsChildObject(IObject childObject)
+        public virtual bool ContainsChildObject(IObject childObject)
         {
             return objectChildrenList.Contains(childObject);
         }
 
-        public void ClearChildObjects() 
+        public virtual void ClearChildObjects() 
         {
             objectChildrenList.Clear();
         }
-
-        #region Initialization Phases
-        public virtual void EarlyPreInitialize()
-        {
-
-        }
-
-        public virtual void PreInitialize()
-        {
-
-        }
-
-        public virtual void LatePreInitialize()
-        {
-
-        }
-
-        public virtual void EarlyInitialize()
-        {
-
-        }
-
-        public virtual void Initialize()
-        {
-
-        }
-
-        public virtual void LateInitialize()
-        {
-
-        }
-
-        public virtual void EarlyPostInitalize()
-        {
-
-        }
-
-        public virtual void PostInitialize()
-        {
-
-        }
-
-        public virtual void LatePostInitialize()
-        {
-
-        }
-        #endregion
-
-        #region Termination Phases
-        public virtual void EarlyPreTerminate()
-        {
-
-        }
-
-        public virtual void PreTerminate()
-        {
-
-        }
-
-        public virtual void LatePreTerminate()
-        {
-
-        }
-
-        public virtual void EarlyTerminate()
-        {
-
-        }
-
-        public virtual void Terminate()
-        {
-
-        }
-
-        public virtual void LateTerminate()
-        {
-
-        }
-
-        public virtual void EarlyPostTerminate()
-        {
-
-        }
-
-        public virtual void PostTerminate()
-        {
-
-        }
-
-        public virtual void LatePostTerminate()
-        {
-
-        }
-        #endregion
-
         #endregion
 
         #region Overrides
