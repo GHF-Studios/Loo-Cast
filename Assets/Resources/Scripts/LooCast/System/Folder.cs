@@ -45,18 +45,13 @@ namespace LooCast.System
 
         public Folder(string folderName, IFolder folderParent)
         {
-            PathBuilder folderPathBuilder;
-            
             if (folderParent == null)
             {
-                IsRoot = true;
-                folderPathBuilder = PathBuilder.Create();
+                throw new NullReferenceException("FolderParent may not be null!");
             }
-            else
-            {
-                IsRoot = false;
-                folderPathBuilder = PathBuilder.Load(folderParent.FolderPath);
-            }
+            
+            IsRoot = false;
+            PathBuilder folderPathBuilder = PathBuilder.Load(folderParent.FolderPath);
 
             folderPathBuilder.AsAbsolutePath();
             folderPathBuilder.WithFolder(folderName);
@@ -66,6 +61,8 @@ namespace LooCast.System
             FolderParent = folderParent;
             folderChildrenList = new List<IFolder>();
             fileChildrenList = new List<IFile>();
+
+            folderParent.AddChildFolder(this);
         }
         #endregion
 

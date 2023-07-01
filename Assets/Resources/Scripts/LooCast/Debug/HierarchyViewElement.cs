@@ -5,13 +5,14 @@ using LooCast.System;
 public abstract class HierarchyViewElement : MonoBehaviour
 {
     #region Fields
-    [SerializeField] private Text nameLabel;
-    [SerializeField] private Button expandButton;
+    [SerializeField] protected Text nameLabel;
+    [SerializeField] protected Button expandButton;
     [SerializeField] protected GameObject elementContainerPanel;
     [SerializeField] protected GameObject elementContainer;
 
     private bool expanded;
     private bool initialized;
+    protected bool hasAnyChildren;
     #endregion
 
     #region Unity Callbacks
@@ -50,11 +51,26 @@ public abstract class HierarchyViewElement : MonoBehaviour
     protected virtual void Expand()
     {
         expanded = true;
+        expandButton.transform.rotation = Quaternion.Euler(0, 0, 0);
+        if (hasAnyChildren)
+        {
+            elementContainerPanel.SetActive(true);
+        }
     }
 
     protected virtual void Collapse()
     {
         expanded = false;
+        expandButton.transform.rotation = Quaternion.Euler(0, 0, 180);
+        if (hasAnyChildren)
+        {
+            elementContainerPanel.SetActive(false); 
+        }
+    }
+
+    protected virtual void InstantiateChildren()
+    {
+        
     }
     #endregion
 }

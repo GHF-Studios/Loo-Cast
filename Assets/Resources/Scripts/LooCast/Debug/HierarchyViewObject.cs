@@ -18,18 +18,30 @@ public class HierarchyViewObject : HierarchyViewElement
         
         this.hierarchyObject = hierarchyObject;
         hierarchyViewObjectChildren = new Dictionary<string, HierarchyViewObject>();
+
+        InstantiateChildren();
     }
     #endregion
 
     #region Overrides
-    protected override void Expand()
+    protected override void InstantiateChildren()
     {
-        base.Expand();
-    }
+        foreach (IObject _object in hierarchyObject.Children)
+        {
+            HierarchyViewObject hierarchyViewObject = Instantiate(hierarchyViewObjectPrefab, elementContainer.transform).GetComponent<HierarchyViewObject>();
+            hierarchyViewObject.gameObject.name = _object.ObjectName;
+            hierarchyViewObject.Initialize(_object);
+            hierarchyViewObjectChildren.Add(_object.ObjectName, hierarchyViewObject);
+        }
 
-    protected override void Collapse()
-    {
-        base.Collapse();
+        if (hierarchyViewObjectChildren.Count == 0)
+        {
+            hasAnyChildren = false;
+        }
+        else
+        {
+            hasAnyChildren = true;
+        }
     }
     #endregion
 }

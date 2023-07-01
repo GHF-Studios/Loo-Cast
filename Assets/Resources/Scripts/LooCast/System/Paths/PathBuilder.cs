@@ -57,7 +57,7 @@ namespace LooCast.System.Paths
 
         private PathBuilder(FolderPath folderPath)
         {
-            folderNames = folderPath.FolderNames;
+            folderNames = new List<string>(folderPath.FolderNames);
             fileName = null;
             fileExtension = null;
             objectNames = new List<string>();
@@ -66,7 +66,7 @@ namespace LooCast.System.Paths
 
         private PathBuilder(FilePath filePath)
         {
-            folderNames = filePath.FolderPathParent.FolderNames;
+            folderNames = new List<string>(filePath.FolderPathParent.FolderNames);
             fileName = filePath.FileName;
             fileExtension = filePath.FileExtension;
             objectNames = new List<string>();
@@ -75,10 +75,10 @@ namespace LooCast.System.Paths
 
         private PathBuilder(ObjectPath objectPath)
         {
-            folderNames = objectPath.FilePathParent.FolderPathParent.FolderNames;
+            folderNames = new List<string>(objectPath.FilePathParent.FolderPathParent.FolderNames);
             fileName = objectPath.FilePathParent.FileName;
             fileExtension = objectPath.FilePathParent.FileExtension;
-            objectNames = objectPath.ObjectNames;
+            objectNames = new List<string>(objectPath.ObjectNames);
             isRelative = objectPath.IsRelative;
         }
         #endregion

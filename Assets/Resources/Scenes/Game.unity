@@ -1331,14 +1331,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 579027903}
     m_Modifications:
-    - target: {fileID: 7095429547758943263, guid: 6e7a33e34f9f49f4cb55b528696ddc1f, type: 3}
-      propertyPath: hierarchyViewFilePrefab
-      value: 
-      objectReference: {fileID: 4087490020186720596, guid: 062f4387195e9d44dbdcc41492415e60, type: 3}
-    - target: {fileID: 7095429547758943263, guid: 6e7a33e34f9f49f4cb55b528696ddc1f, type: 3}
-      propertyPath: hierarchyViewFolderPrefab
-      value: 
-      objectReference: {fileID: 3022414779446655471, guid: 6c8eb105df933ed47b5c3cf9814a9676, type: 3}
     - target: {fileID: 7095429547758943330, guid: 6e7a33e34f9f49f4cb55b528696ddc1f, type: 3}
       propertyPath: m_Name
       value: HierarchyView

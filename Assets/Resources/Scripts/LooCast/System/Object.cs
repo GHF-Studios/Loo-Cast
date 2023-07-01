@@ -46,6 +46,8 @@ namespace LooCast.System
             FileParent = fileParent;
             ObjectParent = null;
             objectChildrenList = new List<IObject>();
+
+            fileParent.AddChildObject(this);
         }
         
         public Object(string objectName, IObject objectParent)
@@ -64,6 +66,8 @@ namespace LooCast.System
             ObjectParent = objectParent;
             ObjectParent = null;
             objectChildrenList = new List<IObject>();
+
+            objectParent.AddChildObject(this);
         }
         #endregion
 

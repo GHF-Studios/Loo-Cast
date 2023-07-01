@@ -112,5 +112,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3628d927eb376df4e8db28d16757a210, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  elementContainerPanel: {fileID: 0}
-  elementContainer: {fileID: 0}
+  hierarchyViewFolderPrefab: {fileID: 3022414779446655471, guid: 6c8eb105df933ed47b5c3cf9814a9676, type: 3}
+  hierarchyViewFilePrefab: {fileID: 4087490020186720596, guid: 062f4387195e9d44dbdcc41492415e60, type: 3}

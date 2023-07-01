@@ -46,10 +46,12 @@ namespace LooCast.System
 
             FileName = fileName;
             FileExtension = fileExtension;
-            FileIdentifier = fileName + fileExtension;
+            FileIdentifier = $"{fileName}.{fileExtension}";
             FilePath = filePathBuilder.ConstructFilePath();
             FolderParent = folderParent;
             objectChildrenList = new List<IObject>();
+            
+            folderParent.AddChildFile(this);
         }
         #endregion
 

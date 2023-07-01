@@ -25,7 +25,7 @@ namespace LooCast.System
         #endregion
 
         #region Properties
-        public string ManagerName => FolderName;
+        public string ManagerName => "MainManager";
         public ExtendedMonoBehaviour ManagerMonoBehaviour => MainManagerMonoBehaviour.Instance;
         public ICoreModuleManager[] CoreModuleManagers { get; private set; }
         IManager IChild<IManager>.Parent => null;
@@ -200,7 +200,7 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        private MainManager() : base("MainManager", null)
+        private MainManager() : base()
         {
             CoreModuleManagers = new ICoreModuleManager[]
             {
@@ -214,12 +214,17 @@ namespace LooCast.System
                 // PineappleMod.Core.CoreManager.Instance
             };
 
-            AddChildFolder(new Folder("LooCast", this));
-            AddChildFolder(new Folder("ThermalDynamics", this));
-            AddChildFolder(new Folder("ThermalExpansion", this));
-            AddChildFolder(new Folder("CrazySexMod", this));
-            AddChildFolder(new Folder("CocaineMod", this));
-            AddChildFolder(new Folder("PineappleMod", this));
+            Folder looCastFolder = new Folder("LooCast", this);
+            
+            //File testFile = new File("Test", "txt", this);
+            
+            Folder looCastCoreFolder = new Folder("Core", looCastFolder);
+            
+            Folder looCastSystemFolder = new Folder("System", looCastFolder);
+            
+            Folder looCastSystemPathsFolder = new Folder("Paths", looCastSystemFolder);
+            
+            //File looCastSystemPathsPathUtilFile = new File("PathUtil", "cs", looCastSystemPathsFolder);
         }
         #endregion
 

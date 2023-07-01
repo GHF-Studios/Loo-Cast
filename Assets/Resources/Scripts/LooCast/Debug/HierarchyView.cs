@@ -28,6 +28,7 @@ public class HierarchyView : MonoBehaviour
         foreach (IFolder folder in MainManager.Instance.FolderChildren)
         {
             HierarchyViewFolder hierarchyViewFolder = Instantiate(hierarchyViewFolderPrefab, transform).GetComponent<HierarchyViewFolder>();
+            hierarchyViewFolder.gameObject.name = folder.FolderName;
             hierarchyViewFolder.Initialize(folder);
             hierarchyViewFolderChildren.Add(folder.FolderName, hierarchyViewFolder);
         }
@@ -35,6 +36,7 @@ public class HierarchyView : MonoBehaviour
         foreach (IFile file in MainManager.Instance.FileChildren)
         {
             HierarchyViewFile hierarchyViewFile = Instantiate(hierarchyViewFilePrefab, transform).GetComponent<HierarchyViewFile>();
+            hierarchyViewFile.gameObject.name = file.FileName;
             hierarchyViewFile.Initialize(file);
             hierarchyViewFileChildren.Add(file.FileName, hierarchyViewFile);
         }

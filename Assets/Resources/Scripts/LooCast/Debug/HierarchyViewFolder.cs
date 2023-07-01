@@ -21,18 +21,38 @@ public class HierarchyViewFolder : HierarchyViewElement
         this.hierarchyFolder = hierarchyFolder;
         hierarchyViewFolderChildren = new Dictionary<string, HierarchyViewFolder>();
         hierarchyViewFileChildren = new Dictionary<string, HierarchyViewFile>();
+
+        InstantiateChildren();
     }
     #endregion
 
     #region Overrides
-    protected override void Expand()
+    protected override void InstantiateChildren()
     {
-        base.Expand();
-    }
-    
-    protected override void Collapse()
-    {
-        base.Collapse();
+        foreach (IFolder folder in ((IParent<IFolder>)hierarchyFolder).Children)
+        {
+            HierarchyViewFolder hierarchyViewFolder = Instantiate(hierarchyViewFolderPrefab, elementContainer.transform).GetComponent<HierarchyViewFolder>();
+            hierarchyViewFolder.gameObject.name = folder.FolderName;
+            hierarchyViewFolder.Initialize(folder);
+            hierarchyViewFolderChildren.Add(folder.FolderName, hierarchyViewFolder);
+        }
+
+        foreach (IFile file in ((IParent<IFile>)hierarchyFolder).Children)
+        {
+            HierarchyViewFile hierarchyViewFile = Instantiate(hierarchyViewFilePrefab, elementContainer.transform).GetComponent<HierarchyViewFile>();
+            hierarchyViewFile.gameObject.name = file.FileIdentifier;
+            hierarchyViewFile.Initialize(file);
+            hierarchyViewFileChildren.Add(file.FileIdentifier, hierarchyViewFile);
+        }
+
+        if (hierarchyViewFolderChildren.Count == 0 && hierarchyViewFileChildren.Count == 0)
+        {
+            hasAnyChildren = false;
+        }
+        else
+        {
+            hasAnyChildren = true;
+        }
     }
     #endregion
 }
