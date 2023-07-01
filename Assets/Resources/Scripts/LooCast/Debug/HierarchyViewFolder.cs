@@ -33,7 +33,6 @@ public class HierarchyViewFolder : HierarchyViewElement
         {
             HierarchyViewFolder hierarchyViewFolder = Instantiate(hierarchyViewFolderPrefab, elementContainer.transform).GetComponent<HierarchyViewFolder>();
             hierarchyViewFolder.gameObject.name = folder.FolderName;
-            hierarchyViewFolder.Initialize(folder);
             hierarchyViewFolderChildren.Add(folder.FolderName, hierarchyViewFolder);
         }
 
@@ -41,7 +40,6 @@ public class HierarchyViewFolder : HierarchyViewElement
         {
             HierarchyViewFile hierarchyViewFile = Instantiate(hierarchyViewFilePrefab, elementContainer.transform).GetComponent<HierarchyViewFile>();
             hierarchyViewFile.gameObject.name = file.FileIdentifier;
-            hierarchyViewFile.Initialize(file);
             hierarchyViewFileChildren.Add(file.FileIdentifier, hierarchyViewFile);
         }
 
@@ -52,6 +50,18 @@ public class HierarchyViewFolder : HierarchyViewElement
         else
         {
             hasAnyChildren = true;
+        }
+
+        foreach (IFolder folder in ((IParent<IFolder>)hierarchyFolder).Children)
+        {
+            hierarchyViewFolderChildren.TryGetValue(folder.FolderName, out HierarchyViewFolder hierarchyViewFolder);
+            hierarchyViewFolder.Initialize(folder);
+        }
+
+        foreach (IFile file in ((IParent<IFile>)hierarchyFolder).Children)
+        {
+            hierarchyViewFileChildren.TryGetValue(file.FileIdentifier, out HierarchyViewFile hierarchyViewFile);
+            hierarchyViewFile.Initialize(file);
         }
     }
     #endregion

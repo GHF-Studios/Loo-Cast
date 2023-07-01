@@ -30,7 +30,6 @@ public class HierarchyViewFile : HierarchyViewElement
         {
             HierarchyViewObject hierarchyViewObject = Instantiate(hierarchyViewObjectPrefab, elementContainer.transform).GetComponent<HierarchyViewObject>();
             hierarchyViewObject.gameObject.name = _object.ObjectName;
-            hierarchyViewObject.Initialize(_object);
             hierarchyViewObjectChildren.Add(_object.ObjectName, hierarchyViewObject);
         }
 
@@ -41,6 +40,12 @@ public class HierarchyViewFile : HierarchyViewElement
         else
         {
             hasAnyChildren = true;
+        }
+
+        foreach (IObject _object in hierarchyFile.Children)
+        {
+            hierarchyViewObjectChildren.TryGetValue(_object.ObjectName, out HierarchyViewObject hierarchyViewObject);
+            hierarchyViewObject.Initialize(_object);
         }
     }
     #endregion

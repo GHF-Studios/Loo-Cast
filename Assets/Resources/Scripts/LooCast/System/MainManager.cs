@@ -213,18 +213,18 @@ namespace LooCast.System
                 // CocaineMod.Core.CoreManager.Instance,
                 // PineappleMod.Core.CoreManager.Instance
             };
-
+            
             Folder looCastFolder = new Folder("LooCast", this);
             
-            //File testFile = new File("Test", "txt", this);
-            
             Folder looCastCoreFolder = new Folder("Core", looCastFolder);
+            
+            Folder looCastAssholeFolder = new Folder("Asshole", looCastFolder);
             
             Folder looCastSystemFolder = new Folder("System", looCastFolder);
             
             Folder looCastSystemPathsFolder = new Folder("Paths", looCastSystemFolder);
-            
-            //File looCastSystemPathsPathUtilFile = new File("PathUtil", "cs", looCastSystemPathsFolder);
+
+            Folder looCastSystemPathsFuckFolder = new Folder("Fuck", looCastSystemPathsFolder);
         }
         #endregion
 
