@@ -2,6 +2,7 @@
 using LooCast.System;
 using System.Collections.Generic;
 using UnityEngine.UI;
+using System;
 
 public class HierarchyViewFolder : HierarchyViewElement
 {
@@ -12,6 +13,20 @@ public class HierarchyViewFolder : HierarchyViewElement
     private IFolder hierarchyFolder;
     private Dictionary<string, HierarchyViewFolder> hierarchyViewFolderChildren;
     private Dictionary<string, HierarchyViewFile> hierarchyViewFileChildren;
+    #endregion
+
+    #region Unity Callbacks
+    private void Awake()
+    {
+        if (hierarchyFolder is null)
+        {
+            throw new NullReferenceException("Ich bin ein Hurensohn!");
+        }
+        else
+        {
+            Debug.Log($"I have been instantiated and I am called '{hierarchyFolder.FolderName}'");
+        }
+    }
     #endregion
 
     #region Methods
