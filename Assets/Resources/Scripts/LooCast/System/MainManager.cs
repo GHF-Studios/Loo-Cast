@@ -217,13 +217,23 @@ namespace LooCast.System
             Folder looCastFolder = new Folder("LooCast", this);
             
             Folder looCastSystemFolder = new Folder("System", looCastFolder);
-            Folder looCastSystemPathsFolder = new Folder("Paths", looCastSystemFolder);
+            Folder looCastSystemCoreFolder = new Folder("Core", looCastSystemFolder);
+            Folder looCastSystemCoreCurrencyFolder = new Folder("Currency", looCastSystemCoreFolder);
+            Folder looCastSystemCoreCurrencyCoinsFolder = new Folder("Coins", looCastSystemCoreCurrencyFolder);
             
-            Folder looCastSystem32Folder = new Folder("System32", looCastFolder);
-            Folder looCastSystem32LibrariesFolder = new Folder("Libraries", looCastSystem32Folder);
+            Folder looCastSystemNetworkingFolder = new Folder("Networking", looCastFolder);
+            Folder looCastSystemNetworkingProtocolsFolder = new Folder("Protocols", looCastSystemNetworkingFolder);
 
-            Folder looCastAppDataFolder = new Folder("AppData", looCastFolder);
-            Folder looCastAppDataRoamingFolder = new Folder("Roaming", looCastAppDataFolder);
+            Folder looCastSystemAssetsFolder = new Folder("Assets", looCastFolder);
+            
+            Folder looCastSystemAssetsAudioFolder = new Folder("Audio", looCastSystemAssetsFolder);
+
+            Folder looCastSystemAssetsAudioMusicFolder = new Folder("Music", looCastSystemAssetsAudioFolder);
+            Folder looCastSystemAssetsAudioSFXFolder = new Folder("SFX", looCastSystemAssetsAudioFolder);
+
+            Folder looCastSystemAssetsTexturesFolder = new Folder("Textures", looCastSystemAssetsFolder);
+            Folder looCastSystemAssetsBrainsFolder = new Folder("Brains", looCastSystemAssetsFolder);
+
         }
         #endregion
 

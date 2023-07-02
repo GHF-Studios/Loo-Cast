@@ -37,7 +37,6 @@ public abstract class HierarchyViewElement : MonoBehaviour
         
         nameLabel.text = name;
         expandButton.transform.rotation = Quaternion.Euler(0, 0, 180);
-        expandButton.onClick.AddListener(ToggleExpanded);
         initialized = true;
     }
 
