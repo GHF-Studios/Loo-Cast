@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using LooCast.System;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class HierarchyViewFolder : HierarchyViewElement
 {
@@ -21,47 +22,47 @@ public class HierarchyViewFolder : HierarchyViewElement
         this.hierarchyFolder = hierarchyFolder;
         hierarchyViewFolderChildren = new Dictionary<string, HierarchyViewFolder>();
         hierarchyViewFileChildren = new Dictionary<string, HierarchyViewFile>();
-
-        InstantiateChildren();
     }
     #endregion
 
     #region Overrides
     protected override void InstantiateChildren()
     {
+        base.InstantiateChildren();
+
         foreach (IFolder folder in ((IParent<IFolder>)hierarchyFolder).Children)
         {
             HierarchyViewFolder hierarchyViewFolder = Instantiate(hierarchyViewFolderPrefab, elementContainer.transform).GetComponent<HierarchyViewFolder>();
+            LayoutRebuilder.MarkLayoutForRebuild((RectTransform)transform);
+            elementContainerLayoutGroup.CalculateLayoutInputHorizontal();
+            elementContainerLayoutGroup.CalculateLayoutInputVertical();
+
             hierarchyViewFolder.gameObject.name = folder.FolderName;
             hierarchyViewFolderChildren.Add(folder.FolderName, hierarchyViewFolder);
+            hierarchyViewFolder.Initialize(folder);
+            LayoutRebuilder.MarkLayoutForRebuild((RectTransform)transform);
+            elementContainerLayoutGroup.CalculateLayoutInputHorizontal();
+            elementContainerLayoutGroup.CalculateLayoutInputVertical();
         }
 
         foreach (IFile file in ((IParent<IFile>)hierarchyFolder).Children)
         {
             HierarchyViewFile hierarchyViewFile = Instantiate(hierarchyViewFilePrefab, elementContainer.transform).GetComponent<HierarchyViewFile>();
+            LayoutRebuilder.MarkLayoutForRebuild((RectTransform)transform);
+            elementContainerLayoutGroup.CalculateLayoutInputHorizontal();
+            elementContainerLayoutGroup.CalculateLayoutInputVertical();
+
             hierarchyViewFile.gameObject.name = file.FileIdentifier;
             hierarchyViewFileChildren.Add(file.FileIdentifier, hierarchyViewFile);
+            hierarchyViewFile.Initialize(file);
+            LayoutRebuilder.MarkLayoutForRebuild((RectTransform)transform);
+            elementContainerLayoutGroup.CalculateLayoutInputHorizontal();
+            elementContainerLayoutGroup.CalculateLayoutInputVertical();
         }
 
-        if (hierarchyViewFolderChildren.Count == 0 && hierarchyViewFileChildren.Count == 0)
-        {
-            hasAnyChildren = false;
-        }
-        else
+        if (hierarchyViewFolderChildren.Count != 0 || hierarchyViewFileChildren.Count != 0)
         {
             hasAnyChildren = true;
-        }
-
-        foreach (IFolder folder in ((IParent<IFolder>)hierarchyFolder).Children)
-        {
-            hierarchyViewFolderChildren.TryGetValue(folder.FolderName, out HierarchyViewFolder hierarchyViewFolder);
-            hierarchyViewFolder.Initialize(folder);
-        }
-
-        foreach (IFile file in ((IParent<IFile>)hierarchyFolder).Children)
-        {
-            hierarchyViewFileChildren.TryGetValue(file.FileIdentifier, out HierarchyViewFile hierarchyViewFile);
-            hierarchyViewFile.Initialize(file);
         }
     }
     #endregion

@@ -9,10 +9,12 @@ public abstract class HierarchyViewElement : MonoBehaviour
     [SerializeField] protected Button expandButton;
     [SerializeField] protected GameObject elementContainerPanel;
     [SerializeField] protected GameObject elementContainer;
+    [SerializeField] protected LayoutGroup elementContainerLayoutGroup;
 
     private bool expanded;
     private bool initialized;
     protected bool hasAnyChildren;
+    protected bool instantiatedChildren;
     #endregion
 
     #region Unity Callbacks
@@ -20,6 +22,8 @@ public abstract class HierarchyViewElement : MonoBehaviour
     {
         expanded = false;
         initialized = false;
+        hasAnyChildren = false;
+        instantiatedChildren = false;
     }
     #endregion
 
@@ -32,6 +36,7 @@ public abstract class HierarchyViewElement : MonoBehaviour
         }
         
         nameLabel.text = name;
+        expandButton.transform.rotation = Quaternion.Euler(0, 0, 180);
         expandButton.onClick.AddListener(ToggleExpanded);
         initialized = true;
     }
@@ -52,6 +57,12 @@ public abstract class HierarchyViewElement : MonoBehaviour
     {
         expanded = true;
         expandButton.transform.rotation = Quaternion.Euler(0, 0, 0);
+
+        if (!instantiatedChildren)
+        {
+            InstantiateChildren();
+        }
+        
         if (hasAnyChildren)
         {
             elementContainerPanel.SetActive(true);
@@ -62,15 +73,17 @@ public abstract class HierarchyViewElement : MonoBehaviour
     {
         expanded = false;
         expandButton.transform.rotation = Quaternion.Euler(0, 0, 180);
-        if (hasAnyChildren)
-        {
-            elementContainerPanel.SetActive(false); 
-        }
+        elementContainerPanel.SetActive(false);
+
+        //if (instantiatedChildren)
+        //{
+        //    DestroyChildren();
+        //}
     }
 
     protected virtual void InstantiateChildren()
     {
-        
+        instantiatedChildren = true;
     }
     #endregion
 }

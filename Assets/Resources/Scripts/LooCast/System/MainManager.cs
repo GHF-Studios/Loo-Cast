@@ -216,15 +216,14 @@ namespace LooCast.System
             
             Folder looCastFolder = new Folder("LooCast", this);
             
-            Folder looCastCoreFolder = new Folder("Core", looCastFolder);
-            
-            Folder looCastAssholeFolder = new Folder("Asshole", looCastFolder);
-            
             Folder looCastSystemFolder = new Folder("System", looCastFolder);
-            
             Folder looCastSystemPathsFolder = new Folder("Paths", looCastSystemFolder);
+            
+            Folder looCastSystem32Folder = new Folder("System32", looCastFolder);
+            Folder looCastSystem32LibrariesFolder = new Folder("Libraries", looCastSystem32Folder);
 
-            Folder looCastSystemPathsFuckFolder = new Folder("Fuck", looCastSystemPathsFolder);
+            Folder looCastAppDataFolder = new Folder("AppData", looCastFolder);
+            Folder looCastAppDataRoamingFolder = new Folder("Roaming", looCastAppDataFolder);
         }
         #endregion
 
