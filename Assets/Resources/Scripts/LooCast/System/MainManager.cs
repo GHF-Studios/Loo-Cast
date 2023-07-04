@@ -204,6 +204,7 @@ namespace LooCast.System
         {
             CoreModuleManagers = new ICoreModuleManager[]
             {
+                SystemManager.Instance
                 // TODO:    Read the mod hierarchyFolder for valid core module managers and load them.
                 //          This process is internal to the MainManager and thus there are no Methods to manage the child managers.
                 // LooCast.Core.CoreManager.Instance,
@@ -213,26 +214,6 @@ namespace LooCast.System
                 // CocaineMod.Core.CoreManager.Instance,
                 // PineappleMod.Core.CoreManager.Instance
             };
-            
-            Folder looCastFolder = new Folder("LooCast", this);
-            
-            Folder looCastSystemFolder = new Folder("System", looCastFolder);
-            Folder looCastSystemCoreFolder = new Folder("Core", looCastSystemFolder);
-            Folder looCastSystemCoreCurrencyFolder = new Folder("Currency", looCastSystemCoreFolder);
-            Folder looCastSystemCoreCurrencyCoinsFolder = new Folder("Coins", looCastSystemCoreCurrencyFolder);
-            
-            Folder looCastSystemNetworkingFolder = new Folder("Networking", looCastFolder);
-            Folder looCastSystemNetworkingProtocolsFolder = new Folder("Protocols", looCastSystemNetworkingFolder);
-
-            Folder looCastSystemAssetsFolder = new Folder("Assets", looCastFolder);
-            
-            Folder looCastSystemAssetsAudioFolder = new Folder("Audio", looCastSystemAssetsFolder);
-
-            Folder looCastSystemAssetsAudioMusicFolder = new Folder("Music", looCastSystemAssetsAudioFolder);
-            Folder looCastSystemAssetsAudioSFXFolder = new Folder("SFX", looCastSystemAssetsAudioFolder);
-
-            Folder looCastSystemAssetsTexturesFolder = new Folder("Textures", looCastSystemAssetsFolder);
-            Folder looCastSystemAssetsBrainsFolder = new Folder("Brains", looCastSystemAssetsFolder);
 
         }
         #endregion

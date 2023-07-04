@@ -20,6 +20,8 @@ public abstract class HierarchyViewElement : MonoBehaviour
     #region Unity Callbacks
     private void Start()
     {
+        expandButton.interactable = false;
+
         expanded = false;
         initialized = false;
         hasAnyChildren = false;

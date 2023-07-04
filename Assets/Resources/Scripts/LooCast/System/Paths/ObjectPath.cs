@@ -25,6 +25,21 @@ namespace LooCast.System.Paths
         public bool IsRelative => isRelative;
         public List<string> ObjectNames => objectNames;
         public FilePath FilePathParent => filePathParent;
+        public ObjectPath ObjectPathParent => new ObjectPath(isRelative, filePathParent, objectNames.Take(objectNames.Count - 1).ToArray());
+        public string ObjectName
+        {
+            get
+            {
+                if (objectNames.Count == 0)
+                {
+                    return string.Empty;
+                }
+                else
+                {
+                    return objectNames[objectNames.Count - 1];
+                }
+            }
+        }
         #endregion
 
         #region Fields

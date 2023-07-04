@@ -13,19 +13,29 @@ public class HierarchyViewFolder : HierarchyViewElement
     private IFolder hierarchyFolder;
     private Dictionary<string, HierarchyViewFolder> hierarchyViewFolderChildren;
     private Dictionary<string, HierarchyViewFile> hierarchyViewFileChildren;
+    private static List<HierarchyViewFolder> allHierarchyViewFolderChildren = new List<HierarchyViewFolder>();
+    private Action initializationAction;
     #endregion
 
     #region Unity Callbacks
     private void Awake()
     {
-        if (hierarchyFolder is null)
+        initializationAction = () => 
         {
-            throw new NullReferenceException("Ich bin ein Hurensohn!");
-        }
-        else
-        {
-            Debug.Log($"I have been instantiated and I am called '{hierarchyFolder.FolderName}'");
-        }
+            allHierarchyViewFolderChildren.Add(this);
+
+            if (hierarchyFolder is null)
+            {
+                expandButton.interactable = false;
+                throw new NullReferenceException("Ich bin ein Hurensohn!");
+                // After you are done debugging, go into the prefabs and make the elementContainerPanels inactive by default!
+            }
+            else
+            {
+                Debug.Log($"Ich bin kein Hurensohn und mein Name ist '{hierarchyFolder.FolderName}'!");
+                expandButton.interactable = true;
+            }
+        };
     }
     #endregion
 
@@ -37,6 +47,8 @@ public class HierarchyViewFolder : HierarchyViewElement
         this.hierarchyFolder = hierarchyFolder;
         hierarchyViewFolderChildren = new Dictionary<string, HierarchyViewFolder>();
         hierarchyViewFileChildren = new Dictionary<string, HierarchyViewFile>();
+
+        initializationAction.Invoke();
     }
     #endregion
 

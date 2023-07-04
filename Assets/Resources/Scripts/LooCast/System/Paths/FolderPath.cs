@@ -28,6 +28,34 @@ namespace LooCast.System.Paths
         }
         public bool IsRelative => isRelative;
         public List<string> FolderNames => folderNames;
+        public FolderPath ParentFolderPath
+        {
+            get
+            {
+                if (folderNames.Count == 0)
+                {
+                    return (FolderPath)string.Empty;
+                }
+                else
+                {
+                    return (FolderPath)string.Join("/", folderNames.Take(folderNames.Count - 1));
+                }
+            }
+        }
+        public string FolderName
+        {
+            get
+            {
+                if (folderNames.Count == 0)
+                {
+                    return string.Empty;
+                }
+                else
+                {
+                    return folderNames[folderNames.Count - 1];
+                }
+            }
+        }
         #endregion
 
         #region Fields
@@ -172,6 +200,46 @@ namespace LooCast.System.Paths
             }
         }
 #nullable disable
+
+        public static FolderPath operator +(FolderPath folderPath1, FolderPath folderPath2)
+        {
+            if (folderPath1.IsRelative && !folderPath2.IsRelative)
+            {
+                throw new InvalidOperationException("Cannot add an absolute folder path to a relative folder path!");
+            }
+            else if (!folderPath1.IsRelative && !folderPath2.IsRelative)
+            {
+                throw new InvalidOperationException("Cannot add two absolute folder paths!");
+            }
+            else if (!folderPath1.IsRelative && folderPath2.IsRelative)
+            {
+                return new FolderPath(false, folderPath1.FolderNames.Concat(folderPath2.FolderNames).ToArray());
+            }
+            else
+            {
+                return new FolderPath(true, folderPath1.FolderNames.Concat(folderPath2.FolderNames).ToArray());
+            }
+        }
+        
+        public static FilePath operator +(FolderPath folderPath, FilePath filePath)
+        {
+            if (folderPath.IsRelative && !filePath.IsRelative)
+            {
+                throw new InvalidOperationException("Cannot add an absolute file path to a relative folder path!");
+            }
+            else if (!folderPath.IsRelative && !filePath.IsRelative)
+            {
+                throw new InvalidOperationException("Cannot add a file path to an absolute folder path!");
+            }
+            else if (!folderPath.IsRelative && filePath.IsRelative)
+            {
+                return new FilePath(false, filePath.FileName, filePath.FileExtension, folderPath);
+            }
+            else
+            {
+                return new FilePath(true, filePath.FileName, filePath.FileExtension, folderPath);
+            }
+        }
         #endregion
     }
 }
