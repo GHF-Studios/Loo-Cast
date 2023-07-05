@@ -98,10 +98,18 @@ namespace LooCast.System
         }
         public virtual void AddChildFolder(IFolder childFolder) 
         {
+            if (ContainsChildFolder(childFolder))
+            {
+                throw new InvalidOperationException($"Folder '{this}' already contains a Folder '{childFolder}'!");
+            }
             folderChildrenList.Add(childFolder);
         }
         public virtual void AddChildFile(IFile childFile) 
         {
+            if (ContainsChildFile(childFile))
+            {
+                throw new InvalidOperationException($"Folder '{this}' already contains a File '{childFile}'!");
+            }
             fileChildrenList.Add(childFile);
         }
 

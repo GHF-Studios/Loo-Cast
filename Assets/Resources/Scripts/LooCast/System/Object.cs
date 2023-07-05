@@ -91,6 +91,10 @@ namespace LooCast.System
         }
         public virtual void AddChildObject(IObject childObject)
         {
+            if (ContainsChildObject(childObject))
+            {
+                throw new InvalidOperationException($"Object '{this}' already contains an Object '{childObject}'!");
+            }
             objectChildrenList.Add(childObject);
         }
 

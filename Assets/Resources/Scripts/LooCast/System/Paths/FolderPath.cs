@@ -32,13 +32,26 @@ namespace LooCast.System.Paths
         {
             get
             {
-                if (folderNames.Count == 0)
+                if (folderNames.Count == 0 && isRelative)
                 {
                     return (FolderPath)string.Empty;
                 }
+                else if (folderNames.Count == 0 && !isRelative)
+                {
+                    return (FolderPath)"/";
+                }
                 else
                 {
-                    return (FolderPath)string.Join("/", folderNames.Take(folderNames.Count - 1));
+                    StringBuilder guspBuilder = new StringBuilder();
+
+                    if (!IsRelative)
+                    {
+                        guspBuilder.Append("/");
+                    }
+
+                    guspBuilder.Append(string.Join("/", folderNames.Take(folderNames.Count - 1)));
+                    
+                    return (FolderPath)guspBuilder.ToString();
                 }
             }
         }
@@ -46,9 +59,13 @@ namespace LooCast.System.Paths
         {
             get
             {
-                if (folderNames.Count == 0)
+                if (folderNames.Count == 0 && isRelative)
                 {
                     return string.Empty;
+                }
+                else if (folderNames.Count == 0 && !isRelative)
+                {
+                    return "Root";
                 }
                 else
                 {
@@ -86,7 +103,7 @@ namespace LooCast.System.Paths
         {
             if (folderGUSP == "/")
             {
-                folderPath = new FolderPath(true, Array.Empty<string>());
+                folderPath = new FolderPath(false, Array.Empty<string>());
                 return true;
             }
             
@@ -94,9 +111,9 @@ namespace LooCast.System.Paths
 
             bool isRelative = folderGUSP[0] != '/';
 
-            string[] folderNames = folderGUSP.Split('/');
+            string[] folderNames = folderGUSP.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-            if (folderNames == null || folderNames.Length == 0 || folderNames.Any(folderName => !StringUtil.IsAlphaNumeric(folderName)))
+            if (folderNames == null || (folderNames.Length == 0 && isRelative) || folderNames.Any(folderName => !StringUtil.IsAlphaNumeric(folderName)))
             {
                 return false;
             }
@@ -187,19 +204,17 @@ namespace LooCast.System.Paths
             return folderPath.GUSP;
         }
 
-#nullable enable
-        public static implicit operator FolderPath?(string gusp)
+        public static explicit operator FolderPath(string gusp)
         {
             if (TryParse(gusp, out FolderPath? folderPath))
             {
-                return folderPath;
+                return (FolderPath)folderPath!;
             }
             else
             {
                 throw new ArgumentException($"The string '{gusp}' is not a valid Folder GUSP.");
             }
         }
-#nullable disable
 
         public static FolderPath operator +(FolderPath folderPath1, FolderPath folderPath2)
         {

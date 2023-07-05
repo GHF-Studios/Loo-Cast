@@ -2,6 +2,7 @@
 
 namespace LooCast.System
 {
+    using global::System;
     using LooCast.System.Paths;
 
     public class File : IFile
@@ -75,6 +76,10 @@ namespace LooCast.System
         }
         public virtual void AddChildObject(IObject childObject) 
         {
+            if (ContainsChildObject(childObject))
+            {
+                throw new InvalidOperationException($"File '{this}' already contains an Object '{childObject}'!");
+            }
             objectChildrenList.Add(childObject);
         }
 

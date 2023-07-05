@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
+    using LooCast.System.Paths;
+    
     public sealed class MainManager : Folder, IManager
     {
         #region Static Properties
@@ -27,7 +29,6 @@ namespace LooCast.System
         #region Properties
         public string ManagerName => "MainManager";
         public ExtendedMonoBehaviour ManagerMonoBehaviour => MainManagerMonoBehaviour.Instance;
-        public ICoreModuleManager[] CoreModuleManagers { get; private set; }
         IManager IChild<IManager>.Parent => null;
         IEnumerable<IManager> IParent<IManager>.Children => (IEnumerable<IManager>)FolderChildren;
         
@@ -199,26 +200,19 @@ namespace LooCast.System
 
         #endregion
 
+        #region Fields
+        private List<ICoreModuleManager> coreModuleManagerChildrenList;
+        #endregion
+
         #region Constructors
         private MainManager() : base()
         {
-            CoreModuleManagers = new ICoreModuleManager[]
-            {
-                SystemManager.Instance
-                // TODO:    Read the mod hierarchyFolder for valid core module managers and load them.
-                //          This process is internal to the MainManager and thus there are no Methods to manage the child managers.
-                // LooCast.Core.CoreManager.Instance,
-                // ThermalDynamics.Core.CoreManager.Instance,
-                // ThermalExpansion.Core.CoreManager.Instance,
-                // CrazySexMod.Core.CoreManager.Instance,
-                // CocaineMod.Core.CoreManager.Instance,
-                // PineappleMod.Core.CoreManager.Instance
-            };
-
+            coreModuleManagerChildrenList = new List<ICoreModuleManager>();
         }
         #endregion
 
         #region Methods
+
         public void OnPreAwake()
         {
             EarlyPreInitialize();
@@ -278,11 +272,17 @@ namespace LooCast.System
             IsEarlyPreInitializing = true;
             Debug.Log($"[MainManager] Starting Early Pre-Initialization.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            coreModuleManagerChildrenList.Add(LooCast.System.SystemManager.Instance);
+            //coreModuleManagerChildrenList.Add(LooCast.Core.CoreModuleManager.Instance);
+
+            // TODO:    Read the mod hierarchyFolder for valid core module managers and load them.
+            //          This process is internal to the MainManager and thus there are no Methods to manage the child managers.
+
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyPreInitialize();
             }
-
+            
             Debug.Log($"[MainManager] Finished Early Pre-Initialization.");
             IsEarlyPreInitializing = false;
             IsEarlyPreInitialized = true;
@@ -293,7 +293,7 @@ namespace LooCast.System
             IsPreInitializing = true;
             Debug.Log($"[MainManager] Starting Pre-Initialization.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.PreInitialize();
             }
@@ -308,7 +308,7 @@ namespace LooCast.System
             IsLatePreInitializing = true;
             Debug.Log($"[MainManager] Starting Late Pre-Initialization.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LatePreInitialize();
             }
@@ -323,7 +323,7 @@ namespace LooCast.System
             IsEarlyInitializing = true;
             Debug.Log($"[MainManager] Starting Early Initialization.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyInitialize();
             }
@@ -338,7 +338,7 @@ namespace LooCast.System
             IsInitializing = true;
             Debug.Log($"[MainManager] Starting Initialization.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.Initialize();
             }
@@ -353,7 +353,7 @@ namespace LooCast.System
             IsLateInitializing = true;
             Debug.Log($"[MainManager] Starting Late Initialization.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LateInitialize();
             }
@@ -368,7 +368,7 @@ namespace LooCast.System
             IsEarlyPostInitializing = true;
             Debug.Log($"[MainManager] Starting Early Post-Initialization.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyPostInitialize();
             }
@@ -383,7 +383,7 @@ namespace LooCast.System
             IsPostInitializing = true;
             Debug.Log($"[MainManager] Starting Post-Initialization.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.PostInitialize();
             }
@@ -398,7 +398,7 @@ namespace LooCast.System
             IsLatePostInitializing = true;
             Debug.Log($"[MainManager] Starting Late Post-Initialization.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LatePostInitialize();
             }
@@ -415,7 +415,7 @@ namespace LooCast.System
             IsEarlyPreTerminating = true;
             Debug.Log($"[MainManager] Starting Early Pre-Termination.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyPreTerminate();
             }
@@ -430,7 +430,7 @@ namespace LooCast.System
             IsPreTerminating = true;
             Debug.Log($"[MainManager] Starting Pre-Termination.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.PreTerminate();
             }
@@ -445,7 +445,7 @@ namespace LooCast.System
             IsLatePreTerminating = true;
             Debug.Log($"[MainManager] Starting Late Pre-Termination.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LatePreTerminate();
             }
@@ -460,7 +460,7 @@ namespace LooCast.System
             IsEarlyTerminating = true;
             Debug.Log($"[MainManager] Starting Early Termination.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyTerminate();
             }
@@ -475,7 +475,7 @@ namespace LooCast.System
             IsTerminating = true;
             Debug.Log($"[MainManager] Starting Termination.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.Terminate();
             }
@@ -490,7 +490,7 @@ namespace LooCast.System
             IsLateTerminating = true;
             Debug.Log($"[MainManager] Starting Late Termination.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LateTerminate();
             }
@@ -505,7 +505,7 @@ namespace LooCast.System
             IsEarlyPostTerminating = true;
             Debug.Log($"[MainManager] Starting Early Post-Termination.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyPostTerminate();
             }
@@ -520,7 +520,7 @@ namespace LooCast.System
             IsPostTerminating = true;
             Debug.Log($"[MainManager] Starting Post-Termination.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.PostTerminate();
             }
@@ -535,7 +535,7 @@ namespace LooCast.System
             IsLatePostTerminating = true;
             Debug.Log($"[MainManager] Starting Late Post-Termination.");
 
-            foreach (ICoreModuleManager coreModuleManager in CoreModuleManagers)
+            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LatePostTerminate();
             }

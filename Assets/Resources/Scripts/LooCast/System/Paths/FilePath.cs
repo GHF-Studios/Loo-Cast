@@ -68,7 +68,7 @@ namespace LooCast.System.Paths
         {
             filePath = null;
             bool isRelative = (fileGUSP[0] != '/');
-            string[] parts = fileGUSP.Split('/', '.');
+            string[] parts = fileGUSP.Split(new char[] { '/', '.' }, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length < 1)
             {
@@ -171,19 +171,37 @@ namespace LooCast.System.Paths
             return filePath.GUSP;
         }
 
-#nullable enable
-        public static implicit operator FilePath?(string gusp)
+        public static explicit operator FilePath(string gusp)
         {
             if (TryParse(gusp, out FilePath? filePath))
             {
-                return filePath;
+                return (FilePath)filePath!;
             }
             else
             {
                 throw new ArgumentException($"The string '{gusp}' is not a valid File GUSP.");
             }
         }
-#nullable disable
+
+        public static ObjectPath operator +(FilePath filePath, ObjectPath objectPath)
+        {
+            if (filePath.IsRelative && !objectPath.IsRelative)
+            {
+                throw new Exception("Cannot add an absolute object path to a relative file path!");
+            }
+            else if (!filePath.IsRelative && !objectPath.IsRelative)
+            {
+                throw new Exception("Cannot add an absolute object path to an absolute file path!");
+            }
+            else if (!filePath.IsRelative && objectPath.IsRelative)
+            {
+                return new ObjectPath(false, filePath, objectPath.ObjectNames.ToArray());
+            }
+            else
+            {
+                return new ObjectPath(true, filePath, objectPath.ObjectNames.ToArray());
+            }
+        }
         #endregion
     }
 }

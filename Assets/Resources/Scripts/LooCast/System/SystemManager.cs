@@ -23,7 +23,12 @@
         #region Constructors
         public SystemManager() : base("SystemManager")
         {
-            AddChildModuleManager(new FolderManager());
+            RegisterPreInitializationAction(() =>
+            {
+                AddChildModuleManager(FolderManager.Instance);
+                AddChildModuleManager(FileManager.Instance);
+                AddChildModuleManager(ObjectManager.Instance);
+            });
         }
         #endregion
     }
