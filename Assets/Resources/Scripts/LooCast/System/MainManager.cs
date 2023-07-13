@@ -273,7 +273,7 @@ namespace LooCast.System
             Debug.Log($"[MainManager] Starting Early Pre-Initialization.");
 
             coreModuleManagerChildrenList.Add(LooCast.System.SystemManager.Instance);
-            //coreModuleManagerChildrenList.Add(LooCast.Core.CoreModuleManager.Instance);
+            coreModuleManagerChildrenList.Add(LooCast.Core.LooCastCoreManager.Instance);
 
             // TODO:    Read the mod hierarchyFolder for valid core module managers and load them.
             //          This process is internal to the MainManager and thus there are no Methods to manage the child managers.

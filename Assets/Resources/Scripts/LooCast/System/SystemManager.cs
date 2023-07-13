@@ -21,7 +21,7 @@
         #endregion
 
         #region Constructors
-        public SystemManager() : base("SystemManager")
+        private SystemManager() : base("SystemManager")
         {
             RegisterPreInitializationAction(() =>
             {
