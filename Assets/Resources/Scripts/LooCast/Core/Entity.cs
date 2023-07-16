@@ -1,6 +1,6 @@
 ﻿namespace LooCast.Core
 {
-    public interface IData
+    public abstract class Entity
     {
     }
 }
