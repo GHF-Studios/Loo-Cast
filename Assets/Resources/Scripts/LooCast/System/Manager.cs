@@ -172,12 +172,6 @@ namespace LooCast.System
                 return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
             }
         }
-
-        public bool IsFullyPostTermináted => throw new NotImplementedException();
-
-        public bool IsCompletelyPreTerminating => throw new NotImplementedException();
-
-        public bool IsCompletelyPreTerminated => throw new NotImplementedException();
         #endregion
 
         #endregion
@@ -202,6 +196,8 @@ namespace LooCast.System
         private List<Action> earlyPostTerminationActions;
         private List<Action> postTerminationActions;
         private List<Action> latePostTerminationActions;
+        
+        private bool enableLogging;
         #endregion
 
         #region Constructors
@@ -233,6 +229,8 @@ namespace LooCast.System
             earlyPostTerminationActions = new List<Action>();
             postTerminationActions = new List<Action>();
             latePostTerminationActions = new List<Action>();
+
+            enableLogging = false;
         }
         #endregion
 
@@ -243,14 +241,20 @@ namespace LooCast.System
         {
             IsEarlyPreInitializing = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Pre-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Early Pre-Initialization.");
+            }
 
             foreach (Action action in earlyPreInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Pre-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Early Pre-Initialization.");
+            }
             IsEarlyPreInitializing = false;
             IsEarlyPreInitialized = true;
         }
@@ -259,14 +263,20 @@ namespace LooCast.System
         {
             IsPreInitializing = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Pre-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Pre-Initialization.");
+            }
 
             foreach (Action action in preInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Pre-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Pre-Initialization.");
+            }
             IsPreInitializing = false;
             IsPreInitialized = true;
         }
@@ -275,14 +285,20 @@ namespace LooCast.System
         {
             IsLatePreInitializing = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Pre-Initialization.");
+            if (enableLogging)
+            {   
+                Debug.Log($"[{managerTypeName}] Starting Late Pre-Initialization.");
+            }
 
             foreach (Action action in latePreInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Pre-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Late Pre-Initialization.");
+            }
             IsLatePreInitializing = false;
             IsLatePreInitialized = true;
         }
@@ -291,14 +307,20 @@ namespace LooCast.System
         {
             IsEarlyInitializing = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Early Initialization.");
+            }
 
             foreach (Action action in earlyInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Early Initialization.");
+            }
             IsEarlyInitializing = false;
             IsEarlyInitialized = true;
         }
@@ -307,14 +329,20 @@ namespace LooCast.System
         {
             IsInitializing = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Initialization.");
+            }
 
             foreach (Action action in initializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Initialization.");
+            }
             IsInitializing = false;
             IsInitialized = true;
         }
@@ -323,14 +351,20 @@ namespace LooCast.System
         {
             IsLateInitializing = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Late Initialization.");
+            }
 
             foreach (Action action in lateInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Late Initialization.");
+            }
             IsLateInitializing = false;
             IsLateInitialized = true;
         }
@@ -339,14 +373,20 @@ namespace LooCast.System
         {
             IsEarlyPostInitializing = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Early Post-Initialization.");
+            }
 
             foreach (Action action in earlyPostInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Early Post-Initialization.");
+            }
             IsEarlyPostInitializing = false;
             IsEarlyPostInitialized = true;
         }
@@ -355,14 +395,20 @@ namespace LooCast.System
         {
             IsPostInitializing = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Post-Initialization.");
+            }
 
             foreach (Action action in postInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Post-Initialization.");
+            }
             IsPostInitializing = false;
             IsPostInitialized = true;
         }
@@ -371,14 +417,20 @@ namespace LooCast.System
         {
             IsLatePostInitializing = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Late Post-Initialization.");
+            }
 
             foreach (Action action in latePostInitializationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Late Post-Initialization.");
+            }
             IsLatePostInitializing = false;
             IsLatePostInitialized = true;
         }
@@ -389,14 +441,20 @@ namespace LooCast.System
         {
             IsEarlyPreTerminating = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Early Pre-Termination.");
+            }
 
             foreach (Action action in earlyPreTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Early Pre-Termination.");
+            }
             IsEarlyPreTerminating = false;
             IsEarlyPreTerminated = true;
         }
@@ -405,14 +463,20 @@ namespace LooCast.System
         {
             IsPreTerminating = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Pre-Termination.");
+            }
 
             foreach (Action action in preTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Pre-Termination.");
+            }
             IsPreTerminating = false;
             IsPreTerminated = true;
         }
@@ -421,14 +485,20 @@ namespace LooCast.System
         {
             IsLatePreTerminating = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Late Pre-Termination.");
+            }
 
             foreach (Action action in latePreTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Late Pre-Termination.");
+            }
             IsLatePreTerminating = false;
             IsLatePreTerminated = true;
         }
@@ -437,14 +507,20 @@ namespace LooCast.System
         {
             IsEarlyTerminating = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Early Termination.");
+            }
 
             foreach (Action action in earlyTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Early Termination.");
+            }
             IsEarlyTerminating = false;
             IsEarlyTerminated = true;
         }
@@ -453,14 +529,20 @@ namespace LooCast.System
         {
             IsTerminating = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Termination.");
+            }
 
             foreach (Action action in terminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Termination.");
+            }
             IsTerminating = false;
             IsTerminated = true;
         }
@@ -469,14 +551,20 @@ namespace LooCast.System
         {
             IsLateTerminating = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Late Termination.");
+            }
 
             foreach (Action action in lateTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Late Termination.");
+            }
             IsLateTerminating = false;
             IsLateTerminated = true;
         }
@@ -485,14 +573,20 @@ namespace LooCast.System
         {
             IsEarlyPostTerminating = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Early Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Early Post-Termination.");
+            }
 
             foreach (Action action in earlyPostTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Early Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Early Post-Termination.");
+            }
             IsEarlyPostTerminating = false;
             IsEarlyPostTerminated = true;
         }
@@ -501,14 +595,20 @@ namespace LooCast.System
         {
             IsPostTerminating = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Post-Termination.");
+            }
 
             foreach (Action action in postTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Post-Termination.");
+            }
             IsPostTerminating = false;
             IsPostTerminated = true;
         }
@@ -517,14 +617,20 @@ namespace LooCast.System
         {
             IsLatePostTerminating = true;
             string managerTypeName = GetType().Name;
-            Debug.Log($"[{managerTypeName}] Starting Late Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting Late Post-Termination.");
+            }
 
             foreach (Action action in latePostTerminationActions)
             {
                 action.Invoke();
             }
 
-            Debug.Log($"[{managerTypeName}] Finished Late Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished Late Post-Termination.");
+            }
             IsLatePostTerminating = false;
             IsLatePostTerminated = true;
         }

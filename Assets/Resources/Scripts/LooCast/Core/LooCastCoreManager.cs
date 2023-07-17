@@ -25,6 +25,9 @@
         #region Constructors
         private LooCastCoreManager() : base("LooCastCoreManager")
         {
+            new TestEntity().EnableUnityBridge();
+            new TestEntity().EnableUnityBridge();
+            new TestEntity().EnableUnityBridge();
         }
         #endregion
     }

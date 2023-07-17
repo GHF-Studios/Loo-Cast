@@ -4,8 +4,6 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using LooCast.System.Paths;
-    
     public sealed class MainManager : Folder, IManager
     {
         #region Static Properties
@@ -202,12 +200,16 @@ namespace LooCast.System
 
         #region Fields
         private List<ICoreModuleManager> coreModuleManagerChildrenList;
+        
+        private bool enableLogging;
         #endregion
 
         #region Constructors
         private MainManager() : base()
         {
             coreModuleManagerChildrenList = new List<ICoreModuleManager>();
+
+            enableLogging = false;
         }
         #endregion
 
@@ -270,7 +272,10 @@ namespace LooCast.System
         public void EarlyPreInitialize()
         {
             IsEarlyPreInitializing = true;
-            Debug.Log($"[MainManager] Starting Early Pre-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Early Pre-Initialization.");
+            }
 
             coreModuleManagerChildrenList.Add(LooCast.System.SystemManager.Instance);
             coreModuleManagerChildrenList.Add(LooCast.Core.LooCastCoreManager.Instance);
@@ -282,8 +287,11 @@ namespace LooCast.System
             {
                 coreModuleManager.EarlyPreInitialize();
             }
-            
-            Debug.Log($"[MainManager] Finished Early Pre-Initialization.");
+
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Early Pre-Initialization.");
+            }
             IsEarlyPreInitializing = false;
             IsEarlyPreInitialized = true;
         }
@@ -291,14 +299,20 @@ namespace LooCast.System
         public void PreInitialize()
         {
             IsPreInitializing = true;
-            Debug.Log($"[MainManager] Starting Pre-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Pre-Initialization.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.PreInitialize();
             }
 
-            Debug.Log($"[MainManager] Finished Pre-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Pre-Initialization.");
+            }
             IsPreInitializing = false;
             IsPreInitialized = true;
         }
@@ -306,14 +320,20 @@ namespace LooCast.System
         public void LatePreInitialize()
         {
             IsLatePreInitializing = true;
-            Debug.Log($"[MainManager] Starting Late Pre-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Late Pre-Initialization.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LatePreInitialize();
             }
 
-            Debug.Log($"[MainManager] Finished Late Pre-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Late Pre-Initialization.");
+            }
             IsLatePreInitializing = false;
             IsLatePreInitialized = true;
         }
@@ -321,14 +341,20 @@ namespace LooCast.System
         public void EarlyInitialize()
         {
             IsEarlyInitializing = true;
-            Debug.Log($"[MainManager] Starting Early Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Early Initialization.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyInitialize();
             }
 
-            Debug.Log($"[MainManager] Finished Early Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Early Initialization.");
+            }
             IsEarlyInitializing = false;
             IsEarlyInitialized = true;
         }
@@ -336,14 +362,20 @@ namespace LooCast.System
         public void Initialize()
         {
             IsInitializing = true;
-            Debug.Log($"[MainManager] Starting Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Initialization.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.Initialize();
             }
 
-            Debug.Log($"[MainManager] Finished Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Initialization.");
+            }
             IsInitializing = false;
             IsInitialized = true;
         }
@@ -351,14 +383,20 @@ namespace LooCast.System
         public void LateInitialize()
         {
             IsLateInitializing = true;
-            Debug.Log($"[MainManager] Starting Late Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Late Initialization.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LateInitialize();
             }
 
-            Debug.Log($"[MainManager] Finished Late Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Late Initialization.");
+            }
             IsLateInitializing = false;
             IsLateInitialized = true;
         }
@@ -366,14 +404,20 @@ namespace LooCast.System
         public void EarlyPostInitialize()
         {
             IsEarlyPostInitializing = true;
-            Debug.Log($"[MainManager] Starting Early Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Early Post-Initialization.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyPostInitialize();
             }
 
-            Debug.Log($"[MainManager] Finished Early Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Early Post-Initialization.");
+            }
             IsEarlyPostInitializing = false;
             IsEarlyPostInitialized = true;
         }
@@ -381,14 +425,20 @@ namespace LooCast.System
         public void PostInitialize()
         {
             IsPostInitializing = true;
-            Debug.Log($"[MainManager] Starting Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Post-Initialization.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.PostInitialize();
             }
 
-            Debug.Log($"[MainManager] Finished Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Post-Initialization.");
+            }
             IsPostInitializing = false;
             IsPostInitialized = true;
         }
@@ -396,14 +446,20 @@ namespace LooCast.System
         public void LatePostInitialize()
         {
             IsLatePostInitializing = true;
-            Debug.Log($"[MainManager] Starting Late Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Late Post-Initialization.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LatePostInitialize();
             }
 
-            Debug.Log($"[MainManager] Finished Late Post-Initialization.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Late Post-Initialization.");
+            }
             IsLatePostInitializing = false;
             IsLatePostInitialized = true;
         }
@@ -413,14 +469,20 @@ namespace LooCast.System
         public void EarlyPreTerminate()
         {
             IsEarlyPreTerminating = true;
-            Debug.Log($"[MainManager] Starting Early Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Early Pre-Termination.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyPreTerminate();
             }
 
-            Debug.Log($"[MainManager] Finished Early Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Early Pre-Termination.");
+            }
             IsEarlyPreTerminating = false;
             IsEarlyPreTerminated = true;
         }
@@ -428,14 +490,20 @@ namespace LooCast.System
         public void PreTerminate()
         {
             IsPreTerminating = true;
-            Debug.Log($"[MainManager] Starting Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Pre-Termination.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.PreTerminate();
             }
 
-            Debug.Log($"[MainManager] Finished Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Pre-Termination.");
+            }
             IsPreTerminating = false;
             IsPreTerminated = true;
         }
@@ -443,14 +511,20 @@ namespace LooCast.System
         public void LatePreTerminate()
         {
             IsLatePreTerminating = true;
-            Debug.Log($"[MainManager] Starting Late Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Late Pre-Termination.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LatePreTerminate();
             }
 
-            Debug.Log($"[MainManager] Finished Late Pre-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Late Pre-Termination.");
+            }
             IsLatePreTerminating = false;
             IsLatePreTerminated = true;
         }
@@ -458,14 +532,20 @@ namespace LooCast.System
         public void EarlyTerminate()
         {
             IsEarlyTerminating = true;
-            Debug.Log($"[MainManager] Starting Early Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Early Termination.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyTerminate();
             }
 
-            Debug.Log($"[MainManager] Finished Early Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Early Termination.");
+            }
             IsEarlyTerminating = false;
             IsEarlyTerminated = true;
         }
@@ -473,14 +553,20 @@ namespace LooCast.System
         public void Terminate()
         {
             IsTerminating = true;
-            Debug.Log($"[MainManager] Starting Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Termination.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.Terminate();
             }
 
-            Debug.Log($"[MainManager] Finished Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Termination.");
+            }
             IsTerminating = false;
             IsTerminated = true;
         }
@@ -488,14 +574,20 @@ namespace LooCast.System
         public void LateTerminate()
         {
             IsLateTerminating = true;
-            Debug.Log($"[MainManager] Starting Late Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Late Termination.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LateTerminate();
             }
 
-            Debug.Log($"[MainManager] Finished Late Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Late Termination.");
+            }
             IsLateTerminating = false;
             IsLateTerminated = true;
         }
@@ -503,14 +595,20 @@ namespace LooCast.System
         public void EarlyPostTerminate()
         {
             IsEarlyPostTerminating = true;
-            Debug.Log($"[MainManager] Starting Early Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Early Post-Termination.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.EarlyPostTerminate();
             }
 
-            Debug.Log($"[MainManager] Finished Early Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Early Post-Termination.");
+            }
             IsEarlyPostTerminating = false;
             IsEarlyPostTerminated = true;
         }
@@ -518,14 +616,20 @@ namespace LooCast.System
         public void PostTerminate()
         {
             IsPostTerminating = true;
-            Debug.Log($"[MainManager] Starting Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Post-Termination.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.PostTerminate();
             }
 
-            Debug.Log($"[MainManager] Finished Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Post-Termination.");
+            }
             IsPostTerminating = false;
             IsPostTerminated = true;
         }
@@ -533,14 +637,20 @@ namespace LooCast.System
         public void LatePostTerminate()
         {
             IsLatePostTerminating = true;
-            Debug.Log($"[MainManager] Starting Late Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Starting Late Post-Termination.");
+            }
 
             foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
             {
                 coreModuleManager.LatePostTerminate();
             }
 
-            Debug.Log($"[MainManager] Finished Late Post-Termination.");
+            if (enableLogging)
+            {
+                Debug.Log($"[MainManager] Finished Late Post-Termination.");
+            }
             IsLatePostTerminating = false;
             IsLatePostTerminated = true;
         }
