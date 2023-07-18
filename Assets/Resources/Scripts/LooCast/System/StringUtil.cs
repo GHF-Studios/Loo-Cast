@@ -29,5 +29,16 @@ namespace LooCast.System
         {
             return string.IsNullOrEmpty(stringValue) || string.IsNullOrWhiteSpace(stringValue);
         }
+
+        public static bool IsNumeric(string stringValue)
+        {
+            if (stringValue is null)
+            {
+                return false;
+            }
+
+            return stringValue.All(char.IsDigit);
+        }
+    }
     }
 }
