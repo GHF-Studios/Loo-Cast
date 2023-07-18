@@ -28,31 +28,33 @@ namespace LooCast.System.Numerics
         {
             Mantissa = mantissa;
             Exponent = exponent;
+
+            Normalize();
         }
         #endregion
 
         #region Static Methods
         public static BigDecimal FromIntegerExponentialString(string value)
         {
-            string[] parts = value.Split("x10^", StringSplitOptions.RemoveEmptyEntries);
-            
+            string[] parts = value.Split(new string[] { "x10^", "*10^" }, StringSplitOptions.RemoveEmptyEntries);
+
             if (parts.Length != 2)
             {
-                throw new Exception($"Scientific notation '{value}' is invalid!");
+                throw new Exception($"Integer exponential notation '{value}' is invalid!");
             }
-            if (!StringUtil.IsNumeric(parts[0]) || !StringUtil.IsNumeric(parts[1]))
+            if (!StringUtil.IsNumericWithExceptions(parts[0], '-') || !StringUtil.IsNumericWithExceptions(parts[1], '-'))
             {
-                throw new Exception($"Scientific notation '{value}' is invalid!");
+                throw new Exception($"Integer exponential notation '{value}' is invalid!");
             }
             if (!BigInteger.TryParse(parts[0], out BigInteger mantissa))
             {
-                throw new Exception($"Scientific notation '{value}' is invalid! The mantissa '{parts[0]}' could not be parsed to a BigInteger!");
+                throw new Exception($"Integer exponential notation '{value}' is invalid! The mantissa '{parts[0]}' could not be parsed to a BigInteger!");
             }
             if (!int.TryParse(parts[1], out int exponent))
             {
-                throw new Exception($"Scientific notation '{value}' is invalid! The exponent '{parts[1]}' could not be parsed to an int!");
+                throw new Exception($"Integer exponential notation '{value}' is invalid! The exponent '{parts[1]}' could not be parsed to an int!");
             }
-            
+
             return new BigDecimal(mantissa, exponent);
         }
 
@@ -62,7 +64,7 @@ namespace LooCast.System.Numerics
 
             if (parts.Length == 0)
             {
-                throw new Exception($"Decimal string '{value}' is invalid!");
+                throw new Exception($"Decimal notation '{value}' is invalid!");
             }
 
             BigInteger mantissa;
@@ -72,7 +74,7 @@ namespace LooCast.System.Numerics
             {
                 if (!BigInteger.TryParse(parts[0], out mantissa))
                 {
-                    throw new Exception($"Decimal string '{value}' is invalid! The mantissa '{parts[0]}' could not be parsed to a BigInteger!");
+                    throw new Exception($"Decimal notation '{value}' is invalid! The mantissa '{parts[0]}' could not be parsed to a BigInteger!");
                 }
                 exponent = 0;
             }
@@ -80,14 +82,69 @@ namespace LooCast.System.Numerics
             {
                 if (!BigInteger.TryParse(parts[0] + parts[1], out mantissa))
                 {
-                    throw new Exception($"Decimal string '{value}' is invalid! The mantissa '{parts[0] + parts[1]}' could not be parsed to a BigInteger!");
+                    throw new Exception($"Decimal notation '{value}' is invalid! The mantissa '{parts[0] + parts[1]}' could not be parsed to a BigInteger!");
                 }
                 exponent = -parts[1].Length;
             }
             else
             {
-                throw new Exception($"Decimal string '{value}' is invalid!");
+                throw new Exception($"Decimal notation '{value}' is invalid!");
             }
+
+            return new BigDecimal(mantissa, exponent);
+        }
+
+        public static BigDecimal FromScientificString(string value)
+        {
+            string[] parts = value.Split(new char[] { 'E', 'e' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length != 2)
+            {
+                throw new Exception($"Scientific notation '{value}' is invalid!");
+            }
+            if (!StringUtil.IsNumericWithExceptions(parts[0], new char[] { '-', '+', '.' }) || !StringUtil.IsNumericWithExceptions(parts[1], new char[] { '-', '+', '.' }))
+            {
+                throw new Exception($"Scientific notation '{value}' is invalid!");
+            }
+
+            string mantissaString = parts[0];
+            string exponentString = parts[1];
+
+            mantissaString = mantissaString.Trim();
+            exponentString = exponentString.Trim();
+
+            int exponent;
+            BigInteger mantissa;
+
+            int exponentShift = 0;
+            int decimalIndex = mantissaString.IndexOf('.');
+            if (decimalIndex != -1)
+            {
+                exponentShift = -(mantissaString.Length - 1 - decimalIndex);
+                mantissaString = mantissaString.Replace(".", "");
+            }
+
+            bool isNegative = mantissaString.StartsWith("-");
+            if (isNegative)
+            {
+                mantissaString = mantissaString.Substring(1);
+            }
+
+            if (!BigInteger.TryParse(mantissaString, out mantissa))
+            {
+                throw new Exception($"Scientific notation '{value}' is invalid! The mantissa '{mantissaString}' could not be parsed to a BigInteger!");
+            }
+            if (!int.TryParse(exponentString, out exponent))
+            {
+                throw new Exception($"Scientific notation '{value}' is invalid! The exponent '{exponentString}' could not be parsed to an int!");
+            }
+
+            if (isNegative)
+            {
+                mantissa = BigInteger.Negate(mantissa);
+            }
+
+            exponent += exponentShift;
 
             return new BigDecimal(mantissa, exponent);
         }
@@ -119,28 +176,30 @@ namespace LooCast.System.Numerics
         */
         private static int Compare(BigDecimal left, BigDecimal right)
         {
-            if (left.Exponent == right.Exponent)
+            if (left.Exponent != right.Exponent)
             {
-                return BigInteger.Compare(left.Mantissa, right.Mantissa);
+                ScaleToEqualExponent(ref left, ref right);
             }
 
-            if (left.Exponent > right.Exponent)
-            {
-                return ScaleToEqualExponent(ref left, ref right);
-            }
-            else
-            {
-                return ScaleToEqualExponent(ref right, ref left);
-            }
+            return BigInteger.Compare(left.Mantissa, right.Mantissa);
         }
 
-        private static int ScaleToEqualExponent(ref BigDecimal greater, ref BigDecimal lesser)
+        private static void ScaleToEqualExponent(ref BigDecimal bigDecimal1, ref BigDecimal bigDecimal2)
         {
-            BigInteger scale = BigInteger.Pow(10, greater.Exponent - lesser.Exponent);
-            lesser.Mantissa *= scale;
-
-            return BigInteger.Compare(lesser.Mantissa, greater.Mantissa);
+            if (bigDecimal1.Exponent > bigDecimal2.Exponent)
+            {
+                int difference = bigDecimal1.Exponent - bigDecimal2.Exponent;
+                bigDecimal1.Mantissa *= BigInteger.Pow(10, difference);
+                bigDecimal1.Exponent -= difference;
+            }
+            else if (bigDecimal2.Exponent > bigDecimal1.Exponent)
+            {
+                int difference = bigDecimal2.Exponent - bigDecimal1.Exponent;
+                bigDecimal2.Mantissa *= BigInteger.Pow(10, difference);
+                bigDecimal2.Exponent -= difference;
+            }
         }
+
         #endregion
 
         #region Methods
@@ -150,12 +209,17 @@ namespace LooCast.System.Numerics
 
             return $"{Mantissa}x10^{Exponent}";
         }
-        
+
         public string ToDecimalString()
         {
             Normalize();
-            
+
             string mantissaString = Mantissa.ToString();
+            bool isNegative = mantissaString.StartsWith("-");
+            if (isNegative)
+            {
+                mantissaString = mantissaString.Substring(1);
+            }
 
             if (Exponent < 0)
             {
@@ -166,8 +230,45 @@ namespace LooCast.System.Numerics
                 }
                 mantissaString = mantissaString.Insert(mantissaString.Length - decimalPlaces, ".");
             }
+            else if (Exponent > 0)
+            {
+                mantissaString = mantissaString.PadRight(mantissaString.Length + Exponent, '0');
+            }
+
+            if (isNegative)
+            {
+                mantissaString = mantissaString.Insert(0, "-");
+            }
 
             return mantissaString;
+        }
+
+        public string ToScientificString()
+        {
+            Normalize();
+
+            string mantissaString = Mantissa.ToString();
+            bool isNegative = mantissaString.StartsWith("-");
+            if (isNegative)
+            {
+                mantissaString = mantissaString.Substring(1);
+            }
+
+            int adjustedExponent = Exponent;
+
+            if (mantissaString.Length > 1)
+            {
+                adjustedExponent += mantissaString.Length - 1;
+                mantissaString = mantissaString.Insert(1, ".");
+            }
+            else
+            {
+                mantissaString += ".0";
+            }
+
+            string exponentString = adjustedExponent.ToString();
+
+            return $"{(isNegative ? "-" : "")}{mantissaString}E{exponentString}";
         }
 
         private void Normalize()
@@ -185,14 +286,13 @@ namespace LooCast.System.Numerics
             while (remainder.IsZero)
             {
                 Mantissa = dividedMantissa;
-                Exponent++;
                 dividedMantissa = BigInteger.DivRem(Mantissa, 10, out remainder);
                 trailingZeros++;
             }
 
             if (trailingZeros > 0)
             {
-                Mantissa = dividedMantissa;
+                Mantissa = remainder;
                 Exponent += trailingZeros;
             }
         }
@@ -223,6 +323,11 @@ namespace LooCast.System.Numerics
                 hash = hash * 23 + Exponent.GetHashCode();
                 return hash;
             }
+        }
+
+        public override string ToString()
+        {
+            return ToDecimalString();
         }
         #endregion
 
@@ -268,17 +373,31 @@ namespace LooCast.System.Numerics
 
             return result;
         }
-        
+
         public static implicit operator BigDecimal(float value)
         {
             string stringValue = value.ToString(CultureInfo.InvariantCulture);
-            return FromDecimalString(stringValue);
+            if (stringValue.Contains('E'))
+            {
+                return FromScientificString(stringValue);
+            }
+            else
+            {
+                return FromDecimalString(stringValue);
+            }
         }
 
         public static implicit operator BigDecimal(double value)
         {
             string stringValue = value.ToString(CultureInfo.InvariantCulture);
-            return FromDecimalString(stringValue);
+            if (stringValue.Contains('E'))
+            {
+                return FromScientificString(stringValue);
+            }
+            else
+            {
+                return FromDecimalString(stringValue);
+            }
         }
 
         public static implicit operator BigDecimal(int value)
@@ -321,7 +440,7 @@ namespace LooCast.System.Numerics
         {
             return value + One;
         }
-        
+
         public static BigDecimal operator --(BigDecimal value)
         {
             return value - One;
@@ -339,71 +458,65 @@ namespace LooCast.System.Numerics
 
         public static BigDecimal operator +(BigDecimal leftValue, BigDecimal rightValue)
         {
-            if (leftValue.Exponent == rightValue.Exponent)
-            {
-                return new BigDecimal(leftValue.Mantissa + rightValue.Mantissa, leftValue.Exponent);
-            }
-
-            if (leftValue.Exponent > rightValue.Exponent)
-            {
-                ScaleToEqualExponent(ref rightValue, ref leftValue);
-                return new BigDecimal(leftValue.Mantissa + rightValue.Mantissa, leftValue.Exponent);
-            }
-            else
+            if (leftValue.Exponent != rightValue.Exponent)
             {
                 ScaleToEqualExponent(ref leftValue, ref rightValue);
-                return new BigDecimal(leftValue.Mantissa + rightValue.Mantissa, rightValue.Exponent);
             }
+
+            BigDecimal result = new BigDecimal(leftValue.Mantissa + rightValue.Mantissa, leftValue.Exponent);
+            result.Normalize();
+
+            return result;
         }
 
         public static BigDecimal operator -(BigDecimal leftValue, BigDecimal rightValue)
         {
-            if (leftValue.Exponent == rightValue.Exponent)
-            {
-                return new BigDecimal(leftValue.Mantissa - rightValue.Mantissa, leftValue.Exponent);
-            }
-
-            if (leftValue.Exponent > rightValue.Exponent)
-            {
-                ScaleToEqualExponent(ref rightValue, ref leftValue);
-                return new BigDecimal(leftValue.Mantissa - rightValue.Mantissa, leftValue.Exponent);
-            }
-            else
+            if (leftValue.Exponent != rightValue.Exponent)
             {
                 ScaleToEqualExponent(ref leftValue, ref rightValue);
-                return new BigDecimal(leftValue.Mantissa - rightValue.Mantissa, rightValue.Exponent);
             }
+
+            BigDecimal result = new BigDecimal(leftValue.Mantissa - rightValue.Mantissa, leftValue.Exponent);
+            result.Normalize();
+
+            return result;
         }
 
         public static BigDecimal operator *(BigDecimal leftValue, BigDecimal rightValue)
         {
             BigInteger mantissa = leftValue.Mantissa * rightValue.Mantissa;
             int exponent = leftValue.Exponent + rightValue.Exponent;
-            return new BigDecimal(mantissa, exponent);
+
+            BigDecimal result = new BigDecimal(mantissa, exponent);
+            result.Normalize();
+
+            return result;
         }
 
         public static BigDecimal operator /(BigDecimal leftValue, BigDecimal rightValue)
         {
-            if (rightValue.Mantissa.IsZero)
-            {
-                throw new DivideByZeroException();
-            }
+            ScaleToEqualExponent(ref leftValue, ref rightValue);
 
             BigInteger mantissa = leftValue.Mantissa / rightValue.Mantissa;
             int exponent = leftValue.Exponent - rightValue.Exponent;
-            return new BigDecimal(mantissa, exponent);
+
+            BigDecimal result = new BigDecimal(mantissa, exponent);
+            result.Normalize();
+
+            return result;
         }
 
         public static BigDecimal operator %(BigDecimal leftValue, BigDecimal rightValue)
         {
-            if (rightValue.Mantissa.IsZero)
-            {
-                throw new DivideByZeroException();
-            }
+            ScaleToEqualExponent(ref leftValue, ref rightValue);
 
-            BigInteger remainder = leftValue.Mantissa % rightValue.Mantissa;
+            BigInteger mantissa = leftValue.Mantissa % rightValue.Mantissa;
             int exponent = leftValue.Exponent;
-            return new BigDecimal(remainder, exponent);
+
+            BigDecimal result = new BigDecimal(mantissa, exponent);
+            result.Normalize();
+
+            return result;
         }
         #endregion
     }

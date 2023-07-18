@@ -11,10 +11,10 @@ namespace LooCast.System
             {
                 return false;
             }
-            
+
             return stringValue.All(char.IsLetterOrDigit);
         }
-        
+
         public static bool IsAlphaNumericWithExceptions(string stringValue, params char[] exceptions)
         {
             if (stringValue is null)
@@ -39,6 +39,15 @@ namespace LooCast.System
 
             return stringValue.All(char.IsDigit);
         }
-    }
+
+        public static bool IsNumericWithExceptions(string stringValue, params char[] exceptions)
+        {
+            if (stringValue is null)
+            {
+                return false;
+            }
+
+            return stringValue.All(c => char.IsDigit(c) || exceptions.Contains(c));
+        }
     }
 }
