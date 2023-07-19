@@ -14,15 +14,15 @@ namespace LooCast.Universe
         #region Unity Callbacks
         private void Start()
         {
-            transform.position = (Vector3)Chunk.Position;
+            transform.localPosition = (Vector3)Chunk.Position;
         }
 
         private void OnDrawGizmos()
         {
             if (Chunk is not null)
             {
-                Gizmos.color = Color.red;
-                Gizmos.DrawWireCube(transform.position, Vector3.one * Chunk.Size);
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireCube(transform.position + (Vector3.one * (Chunk.Size / 2)), Vector3.one * Chunk.Size);
             }
         }
         #endregion

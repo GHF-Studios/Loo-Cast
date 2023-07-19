@@ -23,21 +23,24 @@
         #region Static Fields
         private static LooCastCoreManager instance;
         #endregion
-        
+
+        #region Properties
+        public Universe Universe { get; private set; }
+        public UniverseObserver UniverseObserver { get; private set; }
+        #endregion
+
         #region Constructors
         private LooCastCoreManager() : base("LooCastCoreManager")
         {
-            Universe universe = new Universe();
-            
-            Scale scale_0 = universe.GetScale(0);
-            
-            for (int i = -8; i < 8; i++)
-            {
-                for (int j = -8; j < 8; j++)
-                {
-                    scale_0.GenerateChunk(new BigVec2Int(i, j));
-                }
-            }
+            RegisterInitializationAction(OnInitialization);
+        }
+        #endregion
+
+        #region Callbacks
+        private void OnInitialization()
+        {
+            Universe = new Universe(64);
+            UniverseObserver = new UniverseObserver(256);
         }
         #endregion
     }

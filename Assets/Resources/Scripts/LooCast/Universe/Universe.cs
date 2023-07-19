@@ -3,15 +3,14 @@ using System.Collections.Generic;
 
 namespace LooCast.Universe
 {
-    using global::System.Net.NetworkInformation;
+    using LooCast.System.Numerics;
     using LooCast.Core;
     
     public sealed class Universe : Entity
     {
         #region Properties
-        public Scale CurrentScale { get; private set; }
-        public int ChunkSize { get; private set; }
         public UniverseUnityComponent UniverseUnityComponent { get; private set; }
+        public int ChunkSize { get; private set; }
         #endregion
 
         #region Fields
@@ -19,16 +18,13 @@ namespace LooCast.Universe
         #endregion
 
         #region Constructors
-        public Universe() : base()
+        public Universe(int chunkSize) : base()
         {
+            ChunkSize = chunkSize;
+            
             scaleDictionary = new Dictionary<int, Scale>();
 
-            ChunkSize = 16;
-
             EnableUnityBridge();
-
-            GenerateScale(0);
-            CurrentScale = GetScale(0);
         }
         #endregion
 

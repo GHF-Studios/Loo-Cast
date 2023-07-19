@@ -9,9 +9,9 @@ namespace LooCast.Universe
     public sealed class Scale : Entity
     {
         #region Properties
+        public ScaleUnityComponent ScaleUnityComponent { get; private set; }
         public int ScaleLevel { get; private set; }
         public Universe Universe { get; private set; }
-        public ScaleUnityComponent ScaleUnityComponent { get; private set; }
         #endregion
 
         #region Fields
@@ -45,6 +45,17 @@ namespace LooCast.Universe
             
             Chunk chunk = new Chunk(chunkPosition, Universe.ChunkSize, this);
             chunkDictionary.Add(chunkPosition, chunk);
+        }
+
+        public void DeleteChunk(BigVec2Int chunkPosition)
+        {
+            if (!chunkDictionary.ContainsKey(chunkPosition))
+            {
+                throw new Exception($"Chunk '{chunkPosition}' has already been deleted!");
+            }
+
+            chunkDictionary[chunkPosition].DisableUnityBridge();
+            chunkDictionary.Remove(chunkPosition);
         }
 
         public Chunk GetChunk(BigVec2Int chunkPosition)

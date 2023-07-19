@@ -5,6 +5,11 @@ namespace LooCast.System.Numerics
 {
     public struct BigVec2Int
     {
+        #region Static Properties
+        public static readonly BigVec2Int Zero = new BigVec2Int(0, 0);
+        public static readonly BigVec2Int One = new BigVec2Int(1, 1);
+        #endregion
+
         #region Properties
         public BigInteger X { get; private set; }
         public BigInteger Y { get; private set; }
@@ -15,6 +20,15 @@ namespace LooCast.System.Numerics
         {
             X = x;
             Y = y;
+        }
+        #endregion
+
+        #region Static Methods
+        public static float Distance(BigVec2Int pointA, BigVec2Int pointB)
+        {
+            float deltaX = (float)(pointA.X - pointB.X);
+            float deltaY = (float)(pointA.Y - pointB.Y);
+            return Mathf.Sqrt(deltaX * deltaX + deltaY * deltaY);
         }
         #endregion
 
@@ -60,9 +74,24 @@ namespace LooCast.System.Numerics
             return left.X != right.X || left.Y != right.Y;
         }
 
+        public static BigVec2Int operator +(BigVec2Int left, BigVec2Int right)
+        {
+            return new BigVec2Int(left.X + right.X, left.Y + right.Y);
+        }
+
+        public static BigVec2Int operator -(BigVec2Int left, BigVec2Int right)
+        {
+            return new BigVec2Int(left.X - right.X, left.Y - right.Y);
+        }
+
         public static BigVec2Int operator *(BigVec2Int left, int right)
         {
             return new BigVec2Int(left.X * right, left.Y * right);
+        }
+
+        public static BigVec2Int operator /(BigVec2Int left, int right)
+        {
+            return new BigVec2Int(left.X / right, left.Y / right);
         }
 
         public static explicit operator UnityEngine.Vector2(BigVec2Int bigVec2Int)
@@ -73,6 +102,16 @@ namespace LooCast.System.Numerics
         public static explicit operator UnityEngine.Vector3(BigVec2Int bigVec2Int)
         {
             return new UnityEngine.Vector3((float)bigVec2Int.X, (float)bigVec2Int.Y);
+        }
+
+        public static explicit operator BigVec2Int(UnityEngine.Vector2 vector2)
+        {
+            return new BigVec2Int((BigInteger)vector2.x, (BigInteger)vector2.y);
+        }
+
+        public static explicit operator BigVec2Int(UnityEngine.Vector3 vector3)
+        {
+            return new BigVec2Int((BigInteger)vector3.x, (BigInteger)vector3.y);
         }
         #endregion
     }

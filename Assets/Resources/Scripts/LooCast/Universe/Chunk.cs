@@ -8,11 +8,11 @@ namespace LooCast.Universe
     public sealed class Chunk : Entity
     {
         #region Properties
+        public ChunkUnityComponent ChunkUnityComponent { get; private set; }
         public BigVec2Int ChunkPosition { get; private set; }
         public BigVec2Int Position { get; private set; }
         public int Size { get; private set; }
         public Scale Scale { get; private set; }
-        public ChunkUnityComponent ChunkUnityComponent { get; private set; }
         #endregion
 
         #region Constructors
