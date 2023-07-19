@@ -8,7 +8,7 @@ namespace LooCast.Core
     public abstract class ComposedData : IData, IParent<IData>
     {
         #region Properties
-        public string DataID { get; private set; }
+        public Guid DataID { get; private set; }
         IEnumerable<IData> IParent<IData>.Children => DataChildren;
         public IEnumerable<IData> DataChildren => dataChildrenList;
         #endregion
@@ -18,9 +18,9 @@ namespace LooCast.Core
         #endregion
 
         #region Constructors
-        protected ComposedData(string dataID)
+        protected ComposedData()
         {
-            DataID = dataID;
+            DataID = new Guid();
             dataChildrenList = new List<IData>();
         }
         #endregion
@@ -70,7 +70,7 @@ namespace LooCast.Core
             dataChildrenList.Remove(childData);
         }
 
-        public virtual bool TryGetChildData(string childDataID, out IData childData)
+        public virtual bool TryGetChildData(Guid childDataID, out IData childData)
         {
             if (!ContainsChildData(childDataID))
             {
@@ -83,11 +83,11 @@ namespace LooCast.Core
                 return true;
             }
         }
-        public virtual IData GetChildData(string childDataID)
+        public virtual IData GetChildData(Guid childDataID)
         {
             return dataChildrenList.Find((dataChild) => { return dataChild.DataID == childDataID; });
         }
-        public virtual bool ContainsChildData(string childDataID)
+        public virtual bool ContainsChildData(Guid childDataID)
         {
             return dataChildrenList.Exists((childData) => { return childData.DataID == childDataID; });
         }
@@ -99,6 +99,29 @@ namespace LooCast.Core
         public virtual void ClearChildDatas()
         {
             dataChildrenList.Clear();
+        }
+        #endregion
+
+        #region Overrides
+        public override int GetHashCode()
+        {
+            return DataID.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not ComposedData)
+            {
+                return false;
+            }
+
+            ComposedData other = (ComposedData)obj;
+            return other.DataID == this.DataID;
+        }
+
+        public override string ToString()
+        {
+            return DataID.ToString();
         }
         #endregion
     }

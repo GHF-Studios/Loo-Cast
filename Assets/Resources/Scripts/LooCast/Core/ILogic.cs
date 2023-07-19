@@ -1,9 +1,11 @@
-﻿namespace LooCast.Core
+﻿using System;
+
+namespace LooCast.Core
 {
     public interface ILogic
     {
         #region Properties
-        string LogicID { get; }
+        Guid LogicID { get; }
         #endregion
     }
 }

@@ -16,6 +16,8 @@ namespace LooCast.System.Numerics
 
         public static readonly BigDecimal Zero = new BigDecimal(0, 0);
         public static readonly BigDecimal One = new BigDecimal(1, 0);
+
+        private static readonly int divisionPrecision = 100;
         #endregion
 
         #region Properties
@@ -153,12 +155,28 @@ namespace LooCast.System.Numerics
         {
             return new BigDecimal(BigInteger.Abs(value.Mantissa), value.Exponent);
         }
-        /*
-        public static BigDecimal Pow(BigDecimal value, BigInteger exponent)
-        {
-            
-        }
 
+        public static BigDecimal Pow(BigDecimal value, int exponent)
+        {
+            if (exponent == 0)
+            {
+                return One;
+            }
+            if (exponent == 1)
+            {
+                return value;
+            }
+            if (exponent < 0)
+            {
+                return Pow(One / value, -exponent);
+            }
+
+            BigInteger mantissa = BigInteger.Pow(value.Mantissa, exponent);
+            int exp = value.Exponent * exponent;
+
+            return new BigDecimal(mantissa, exp);
+        }
+        /*
         public static BigDecimal Sqrt(BigDecimal value)
         {
 
@@ -497,10 +515,41 @@ namespace LooCast.System.Numerics
         {
             ScaleToEqualExponent(ref leftValue, ref rightValue);
 
-            BigInteger mantissa = leftValue.Mantissa / rightValue.Mantissa;
-            int exponent = leftValue.Exponent - rightValue.Exponent;
+            if (leftValue.Mantissa == rightValue.Mantissa)
+            {
+                return One;
+            }
 
-            BigDecimal result = new BigDecimal(mantissa, exponent);
+            int exponent = 0;
+            while (leftValue.Mantissa < rightValue.Mantissa)
+            {
+                leftValue.Mantissa *= 10;
+                exponent--;
+            }
+
+            BigInteger mantissa;
+            BigInteger remainder;
+
+            mantissa = BigInteger.DivRem(leftValue.Mantissa, rightValue.Mantissa, out remainder);
+
+            int additionalDigits = 0;
+            if (!remainder.IsZero)
+            {
+                for (int i = 0; i < divisionPrecision; i++)
+                {
+                    BigInteger digit = BigInteger.DivRem(remainder * 10, rightValue.Mantissa, out remainder);
+                    mantissa *= 10;
+                    mantissa += digit;
+                    additionalDigits++;
+
+                    if (leftValue.Mantissa.IsZero)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            BigDecimal result = new BigDecimal(mantissa, exponent - additionalDigits);
             result.Normalize();
 
             return result;

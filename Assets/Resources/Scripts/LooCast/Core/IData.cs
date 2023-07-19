@@ -1,9 +1,11 @@
-﻿namespace LooCast.Core
+﻿using System;
+
+namespace LooCast.Core
 {
     public interface IData
     {
         #region Properties
-        string DataID { get; }
+        Guid DataID { get; }
         #endregion
     }
 }

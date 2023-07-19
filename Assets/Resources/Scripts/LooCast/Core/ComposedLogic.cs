@@ -8,7 +8,7 @@ namespace LooCast.Core
     public abstract class ComposedLogic : ILogic, IParent<ILogic>
     {
         #region Properties
-        public string LogicID { get; private set; }
+        public Guid LogicID { get; private set; }
         IEnumerable<ILogic> IParent<ILogic>.Children => LogicChildren;
         public IEnumerable<ILogic> LogicChildren => logicChildrenList;
         #endregion
@@ -18,9 +18,9 @@ namespace LooCast.Core
         #endregion
 
         #region Constructors
-        protected ComposedLogic(string logicID)
+        protected ComposedLogic()
         {
-            LogicID = logicID;
+            LogicID = new Guid();
             logicChildrenList = new List<ILogic>();
         }
         #endregion
@@ -70,7 +70,7 @@ namespace LooCast.Core
             logicChildrenList.Remove(childLogic);
         }
 
-        public virtual bool TryGetChildLogic(string childLogicID, out ILogic childLogic)
+        public virtual bool TryGetChildLogic(Guid childLogicID, out ILogic childLogic)
         {
             if (!ContainsChildLogic(childLogicID))
             {
@@ -83,11 +83,11 @@ namespace LooCast.Core
                 return true;
             }
         }
-        public virtual ILogic GetChildLogic(string childLogicID)
+        public virtual ILogic GetChildLogic(Guid childLogicID)
         {
             return logicChildrenList.Find((logicChild) => { return logicChild.LogicID == childLogicID; });
         }
-        public virtual bool ContainsChildLogic(string childLogicID)
+        public virtual bool ContainsChildLogic(Guid childLogicID)
         {
             return logicChildrenList.Exists((childLogic) => { return childLogic.LogicID == childLogicID; });
         }
@@ -99,6 +99,29 @@ namespace LooCast.Core
         public virtual void ClearChildLogics()
         {
             logicChildrenList.Clear();
+        }
+        #endregion
+
+        #region Overrides
+        public override int GetHashCode()
+        {
+            return LogicID.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not ComposedLogic)
+            {
+                return false;
+            }
+
+            ComposedLogic other = (ComposedLogic)obj;
+            return other.LogicID == this.LogicID;
+        }
+
+        public override string ToString()
+        {
+            return LogicID.ToString();
         }
         #endregion
     }
