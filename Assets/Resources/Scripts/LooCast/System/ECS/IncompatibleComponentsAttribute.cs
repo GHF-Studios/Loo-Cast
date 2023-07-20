@@ -19,6 +19,7 @@ namespace LooCast.System.ECS
                     throw new ArgumentException($"The provided type '{incompatibleComponentType.Name}' is not a component type!");
                 }
             }
+            IncompatibleComponentTypes = incompatibleComponentTypes;
         }
         #endregion
     }

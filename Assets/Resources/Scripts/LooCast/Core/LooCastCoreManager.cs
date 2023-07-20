@@ -1,8 +1,8 @@
 ﻿namespace LooCast.Core
 {
-    using global::LooCast.System;
-    using global::LooCast.System.Numerics;
-    using global::LooCast.Universe;
+    using LooCast.System;
+    using LooCast.System.Numerics;
+    using LooCast.Universe;
     
     public sealed class LooCastCoreManager : CoreModuleManager
     {

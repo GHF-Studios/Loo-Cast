@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Collections.Generic;
 
 namespace LooCast.System.ECS
@@ -48,19 +49,34 @@ namespace LooCast.System.ECS
 
         public ComponentType AddComponent<ComponentType>() where ComponentType : IComponent, new()
         {
-            Type componentType = typeof(ComponentType);
-            ComponentType component = new ComponentType();
+            Type newComponentType = typeof(ComponentType);
+            ComponentType newComponent = new ComponentType();
 
-            if (components.ContainsKey(componentType))
+            if (components.ContainsKey(newComponentType))
             {
                 throw new InvalidOperationException($"Entity '{this}' already contains a component of type '{typeof(ComponentType).Name}'!");
             }
 
-            components.Add(componentType, component);
-            component.Initialize_INTERNAL(this);
-            component.OnCreate();
+            foreach (Type componentType in components.Keys)
+            {
+                IncompatibleComponentsAttribute incompatibleComponentsAttribute = componentType.GetCustomAttribute<IncompatibleComponentsAttribute>();
+                if (incompatibleComponentsAttribute != null)
+                {
+                    foreach (Type incompatibleComponentType in incompatibleComponentsAttribute.IncompatibleComponentTypes)
+                    {
+                        if (newComponentType == incompatibleComponentType)
+                        {
+                            throw new InvalidOperationException($"Cannot add component of type '{newComponentType.Name}', as it is incompatible with already added component of type '{componentType.Name}'!");
+                        }
+                    }
+                }
+            }
 
-            return component;
+            components.Add(newComponentType, newComponent);
+            newComponent.Initialize_INTERNAL(this);
+            newComponent.OnCreate();
+
+            return newComponent;
         }
 
         public void RemoveComponent<ComponentType>() where ComponentType : IComponent, new()
