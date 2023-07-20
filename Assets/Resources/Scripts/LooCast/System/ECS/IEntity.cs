@@ -13,7 +13,7 @@ namespace LooCast.System.ECS
         #region Methods
         public void EnableUnityBridge();
         public void DisableUnityBridge();
-        
+
         public ComponentType AddComponent<ComponentType>() where ComponentType : IComponent, new();
         public void RemoveComponent<ComponentType>() where ComponentType : IComponent, new();
         public bool ContainsComponent<ComponentType>() where ComponentType : IComponent, new();

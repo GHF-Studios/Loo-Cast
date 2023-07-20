@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace LooCast.System
 {
@@ -99,7 +100,7 @@ namespace LooCast.System
             return TryGetFile(filePath!, out file);
         }
 
-        public bool FileExists(FilePath filePath)
+        public bool IsFileRegistered(FilePath filePath)
         {
             return registeredFiles.ContainsKey(filePath);
         }

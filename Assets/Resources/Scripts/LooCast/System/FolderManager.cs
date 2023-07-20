@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace LooCast.System
 {
@@ -104,7 +105,7 @@ namespace LooCast.System
             return TryGetFolder(folderPath!, out folder);
         }
 
-        public bool FolderExists(FolderPath folderPath)
+        public bool IsFolderRegistered(FolderPath folderPath)
         {
             if (folderPath == "/")
             {

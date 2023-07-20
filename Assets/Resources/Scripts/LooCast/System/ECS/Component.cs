@@ -14,18 +14,19 @@ namespace LooCast.System.ECS
         protected Component()
         {
             ComponentID = Guid.NewGuid();
+            ComponentManager.Instance.RegisterComponent(this);
         }
         #endregion
 
         #region Callbacks
         public virtual void OnCreate()
         {
-
+            ComponentManager.Instance.RegisterComponent(this);
         }
 
         public virtual void OnDestroy()
         {
-
+            ComponentManager.Instance.UnregisterComponent(this);
         }
         #endregion
 

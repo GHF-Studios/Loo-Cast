@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace LooCast.System
 {
@@ -99,7 +100,7 @@ namespace LooCast.System
             return TryGetObject(objectPath!, out _object);
         }
 
-        public bool ObjectExists(ObjectPath objectPath)
+        public bool IsObjectRegistered(ObjectPath objectPath)
         {
             return registeredObjects.ContainsKey(objectPath);
         }

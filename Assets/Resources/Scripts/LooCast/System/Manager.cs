@@ -202,7 +202,7 @@ namespace LooCast.System
         private List<Action> postTerminationActions;
         private List<Action> latePostTerminationActions;
         
-        protected bool enableLogging = false;
+        protected bool enableLogging = true;
 
         private List<IManager> managerChildrenList;
         #endregion
@@ -213,6 +213,35 @@ namespace LooCast.System
             ManagerName = managerName;
             ManagerParent = managerParent;
 
+            EnableUnityBridge();
+            UnityBridge.RootGameObject.name = managerName;
+            ManagerUnityComponent = UnityBridge.RootGameObject.AddComponent<ManagerUnityComponent>();
+            ManagerUnityComponent.InitializeManager(this);
+
+            if (managerParent != null)
+            {
+                UnityBridge.RootGameObject.transform.SetParent(managerParent.UnityBridge.RootGameObject.transform);
+            }
+
+            RegisterInitializationAction(() =>
+            {
+                FolderComponent folderComponent = AddComponent<FolderComponent>();
+                
+                if (managerParent == null)
+                {
+                    folderComponent.InitializeAsRoot();
+                }
+                else
+                {
+                    folderComponent.Initialize(managerName, managerParent.GetComponent<FolderComponent>());
+                }
+            });
+        }
+        #endregion
+
+        #region Callbacks
+        protected override void OnCreate()
+        {
             earlyPreInitializationActions = new List<Action>();
             preInitializationActions = new List<Action>();
             latePreInitializationActions = new List<Action>();
@@ -232,29 +261,10 @@ namespace LooCast.System
             earlyPostTerminationActions = new List<Action>();
             postTerminationActions = new List<Action>();
             latePostTerminationActions = new List<Action>();
-
-            EnableUnityBridge();
-            UnityBridge.RootGameObject.name = managerName;
-            ManagerUnityComponent = UnityBridge.RootGameObject.AddComponent<ManagerUnityComponent>();
-            ManagerUnityComponent.InitializeManager(this);
-
-            FolderComponent folderComponent = AddComponent<FolderComponent>();
-
-            if (managerParent != null)
+            
+            RegisterLateInitializationAction(() =>
             {
-                UnityBridge.RootGameObject.transform.SetParent(managerParent.UnityBridge.RootGameObject.transform);
-            }
-
-            RegisterInitializationAction(() =>
-            {
-                if (managerParent == null)
-                {
-                    folderComponent.InitializeAsRoot();
-                }
-                else
-                {
-                    folderComponent.Initialize(managerName, managerParent.GetComponent<FolderComponent>());
-                }
+                EntityManager.Instance.RegisterEntity(this);
             });
         }
         #endregion

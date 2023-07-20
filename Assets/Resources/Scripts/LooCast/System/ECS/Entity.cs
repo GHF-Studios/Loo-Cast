@@ -14,6 +14,7 @@ namespace LooCast.System.ECS
 
         #region Fields
         private Dictionary<Type, IComponent> components;
+        private Dictionary<Guid, Type> componentTypes;
         #endregion
         
         #region Constructors
@@ -21,6 +22,51 @@ namespace LooCast.System.ECS
         {
             EntityID = Guid.NewGuid();
             components = new Dictionary<Type, IComponent>();
+            componentTypes = new Dictionary<Guid, Type>();
+            OnCreate();
+        }
+        #endregion
+
+        #region Finalizers
+        ~Entity()
+        {
+            OnDestroy();
+        }
+        #endregion
+        
+        #region Static Methods
+        public static void Destroy(Entity entity)
+        {
+            if (entity == null)
+            {
+                throw new ArgumentNullException(nameof(entity));
+            }
+
+            entity.OnDestroy();
+        }
+        #endregion
+
+        #region Callbacks
+        protected virtual void OnCreate()
+        {
+            EntityManager.Instance.RegisterEntity(this);
+        }
+
+        protected virtual void OnDestroy()
+        {
+            if (IsUnityBridgeEnabled)
+            {
+                DisableUnityBridge();
+            }
+
+            foreach (Type componentType in componentTypes.Values)
+            {
+                RemoveComponent(componentType);
+            }
+            components.Clear();
+            componentTypes.Clear();
+
+            EntityManager.Instance.UnregisterEntity(this);
         }
         #endregion
 
@@ -73,30 +119,57 @@ namespace LooCast.System.ECS
             }
 
             components.Add(newComponentType, newComponent);
+            componentTypes.Add(newComponent.ComponentID, newComponentType);
             newComponent.Initialize_INTERNAL(this);
             newComponent.OnCreate();
 
             return newComponent;
         }
 
+        public void RemoveComponent(IComponent component)
+        {
+            RemoveComponent(component.ComponentID);
+        }
+
+        public void RemoveComponent(Guid componentID)
+        {
+            if (!componentTypes.ContainsKey(componentID))
+            {
+                throw new InvalidOperationException($"Entity '{this}' does not contain a component with ID '{componentID}'!");
+            }
+
+            Type componentType = componentTypes[componentID];
+            RemoveComponent(componentType);
+        }
+
         public void RemoveComponent<ComponentType>() where ComponentType : IComponent, new()
         {
             Type componentType = typeof(ComponentType);
+            RemoveComponent(componentType);
+        }
 
+        public void RemoveComponent(Type componentType)
+        {
             if (!components.ContainsKey(componentType))
             {
-                throw new InvalidOperationException($"Entity '{this}' does not contain a component of type '{typeof(ComponentType).Name}'!");
+                throw new InvalidOperationException($"Entity '{this}' does not contain a component of type '{componentType.Name}'!");
             }
 
             IComponent component = components[componentType];
             component.OnDestroy();
             component.Destroy_INTERNAL();
             components.Remove(componentType);
+            componentTypes.Remove(component.ComponentID);
         }
 
         public bool ContainsComponent<ComponentType>() where ComponentType : IComponent, new()
         {
             return components.ContainsKey(typeof(ComponentType));
+        }
+
+        public bool ContainsComponent(Type componentType)
+        {
+            return components.ContainsKey(componentType);
         }
         
         public ComponentType GetComponent<ComponentType>() where ComponentType : IComponent, new()
@@ -108,9 +181,23 @@ namespace LooCast.System.ECS
             return (ComponentType)component;
         }
 
+        public IComponent GetComponent(Type componentType)
+        {
+            if (!components.TryGetValue(componentType, out IComponent component))
+            {
+                return default;
+            }
+            return component;
+        }
+
         public bool TryGetComponent<ComponentType>(out IComponent component) where ComponentType : IComponent, new()
         {
             return components.TryGetValue(typeof(ComponentType), out component);
+        }
+
+        public bool TryGetComponent(Type componentType, out IComponent component)
+        {
+            return components.TryGetValue(componentType, out component);
         }
         #endregion
 

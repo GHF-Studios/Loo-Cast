@@ -1,5 +1,7 @@
 ﻿namespace LooCast.System
 {
+    using LooCast.System.ECS;
+    
     public sealed class SystemManager : CoreModuleManager
     {
         #region Static Properties
@@ -28,6 +30,8 @@
                 AddChildModuleManager(FolderManager.Instance);
                 AddChildModuleManager(FileManager.Instance);
                 AddChildModuleManager(ObjectManager.Instance);
+                AddChildModuleManager(EntityManager.Instance);;
+                AddChildModuleManager(ComponentManager.Instance);
             });
         }
         #endregion

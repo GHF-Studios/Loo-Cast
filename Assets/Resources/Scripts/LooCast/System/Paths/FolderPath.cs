@@ -93,7 +93,7 @@ namespace LooCast.System.Paths
             }
             
             this.isRelative = isRelative;
-            this.folderNames = folderNames.ToList();
+            this.folderNames = new List<string>(folderNames);
         }
         #endregion
 
