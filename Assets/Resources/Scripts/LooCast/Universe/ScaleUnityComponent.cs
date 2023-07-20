@@ -11,6 +11,16 @@ namespace LooCast.Universe
         public Scale Scale { get; private set; }
         #endregion
 
+        #region Unity Callbacks
+        private void FixedUpdate()
+        {
+            if (Scale is not null)
+            {
+                transform.localScale = Vector3.one * Scale.ScaleFactor;
+            }
+        }
+        #endregion
+
         #region Methods
         public void InitializeScale(Scale scale)
         {

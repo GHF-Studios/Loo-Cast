@@ -54,6 +54,17 @@ namespace LooCast.Universe
             
             return scale;
         }
+
+        public void DeleteScale(int scaleLevel)
+        {
+            if (!scaleDictionary.ContainsKey(scaleLevel))
+            {
+                throw new Exception($"Scale '{scaleLevel}' has already been deleted!");
+            }
+
+            scaleDictionary[scaleLevel].DisableUnityBridge();
+            scaleDictionary.Remove(scaleLevel);
+        }
         #endregion
 
         #region Overrides

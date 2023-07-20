@@ -39,7 +39,7 @@
         #region Callbacks
         private void OnInitialization()
         {
-            Universe = new Universe(64);
+            Universe = new Universe(32);
             UniverseObserver = new UniverseObserver(256);
         }
         #endregion

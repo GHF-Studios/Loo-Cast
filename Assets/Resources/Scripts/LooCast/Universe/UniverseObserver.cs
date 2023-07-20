@@ -10,14 +10,27 @@ namespace LooCast.Universe
     
     public sealed class UniverseObserver : Entity
     {
+        #region Enums
+        public enum ScaleTransitionType
+        {
+            ZoomIn,
+            ZoomOut
+        }
+        #endregion
+        
         #region Properties
         public UniverseObserverUnityComponent UniverseObserverUnityComponent { get; private set; }
         public Scale CurrentScale { get; private set; }
         public int ObservingDistance { get; private set; }
+        public bool IsTransitioningScale { get; private set; }
+        public float ScaleTransitionDuration { get; private set; }
         #endregion
 
         #region Fields
-        private List<BigVec2Int> oldProximalChunkCoordinates;
+        private List<BigVec2Int> currentScaleOldProximalChunkCoordinates;
+        private List<BigVec2Int> newScaleOldProximalChunkCoordinates;
+        private ScaleTransitionType? scaleTransitionType;
+        private Scale newCurrentScale;
         #endregion
 
         #region Constructors
@@ -30,6 +43,8 @@ namespace LooCast.Universe
             }
             
             CurrentScale = universe.GetScale(0);
+            CurrentScale.ScaleFactor = 1.0f;
+            CurrentScale.AlphaFactor = 1.0f;
 
             if (observingDistance % universe.ChunkSize != 0)
             {
@@ -38,7 +53,10 @@ namespace LooCast.Universe
 
             ObservingDistance = observingDistance;
 
-            oldProximalChunkCoordinates = new List<BigVec2Int>();
+            currentScaleOldProximalChunkCoordinates = new List<BigVec2Int>();
+            newScaleOldProximalChunkCoordinates = new List<BigVec2Int>();
+
+            ScaleTransitionDuration = 1.5f;
 
             EnableUnityBridge();
         }
@@ -57,25 +75,121 @@ namespace LooCast.Universe
                 {
                     CurrentScale.GenerateChunk(proximalChunkCoordinate);
                 }
-            }
-
-            foreach (BigVec2Int oldProximalChunkCoordinate in oldProximalChunkCoordinates)
-            {
-                if (!proximalChunkCoordinates.Contains(oldProximalChunkCoordinate))
+                
+                if (newCurrentScale is not null)
                 {
-                    if (CurrentScale.IsChunkGenerated(oldProximalChunkCoordinate))
+                    if (!newCurrentScale.IsChunkGenerated(proximalChunkCoordinate))
                     {
-                        CurrentScale.DeleteChunk(oldProximalChunkCoordinate);
+                        newCurrentScale.GenerateChunk(proximalChunkCoordinate);
                     }
                 }
             }
+            
+            foreach (BigVec2Int currentScaleOldProximalChunkCoordinate in currentScaleOldProximalChunkCoordinates)
+            {
+                if (!proximalChunkCoordinates.Contains(currentScaleOldProximalChunkCoordinate))
+                {
+                    if (CurrentScale.IsChunkGenerated(currentScaleOldProximalChunkCoordinate))
+                    {
+                        CurrentScale.DeleteChunk(currentScaleOldProximalChunkCoordinate);
+                    }
+                }
+            }
+            
+            currentScaleOldProximalChunkCoordinates = proximalChunkCoordinates;
 
-            oldProximalChunkCoordinates = proximalChunkCoordinates;
+            if (newCurrentScale is not null)
+            {
+                foreach (BigVec2Int newScaleOldProximalChunkCoordinate in newScaleOldProximalChunkCoordinates)
+                {
+                    if (!proximalChunkCoordinates.Contains(newScaleOldProximalChunkCoordinate))
+                    {
+                        if (newCurrentScale.IsChunkGenerated(newScaleOldProximalChunkCoordinate))
+                        {
+                            newCurrentScale.DeleteChunk(newScaleOldProximalChunkCoordinate);
+                        }
+                    }
+                }
+
+                newScaleOldProximalChunkCoordinates = proximalChunkCoordinates;
+            }
         }
         #endregion
 
         #region Methods
-        public List<BigVec2Int> GetProximalChunkCoordinates()
+        public void InitializeScaleTransition(ScaleTransitionType scaleTransitionType)
+        {
+            if (!IsTransitioningScale)
+            {
+                IsTransitioningScale = true;
+
+                if (scaleTransitionType == ScaleTransitionType.ZoomIn)
+                {
+                    Debug.Log("Zooming in!");
+                }
+                else
+                {
+                    Debug.Log("Zooming out!");
+                }
+                
+                this.scaleTransitionType = scaleTransitionType;
+                Universe universe = LooCastCoreManager.Instance.Universe;
+                int newScaleLevel = CurrentScale.ScaleLevel;
+                
+                if (scaleTransitionType == ScaleTransitionType.ZoomOut)
+                {
+                    newScaleLevel++;
+                }
+                else
+                {
+                    newScaleLevel--;
+                }
+                
+                if (!universe.IsScaleGenerated(newScaleLevel))
+                {
+                    universe.GenerateScale(newScaleLevel);
+                }
+
+                newCurrentScale = universe.GetScale(newScaleLevel);
+            }
+        }
+
+        public void UpdateScaleTransition(float oldScaleFactor, float oldAlphaFactor, float newScaleFactor, float newAlphaFactor)
+        {
+            if (IsTransitioningScale)
+            {
+                CurrentScale.ScaleFactor = oldScaleFactor;
+                CurrentScale.AlphaFactor = oldAlphaFactor;
+                newCurrentScale.ScaleFactor = newScaleFactor;
+                newCurrentScale.AlphaFactor = newAlphaFactor;
+            }
+        }
+
+        public void FinalizeScaleTransition()
+        {
+            if (IsTransitioningScale)
+            {
+                if (scaleTransitionType == ScaleTransitionType.ZoomIn)
+                {
+                    Debug.Log("Finished zooming in!");
+                }
+                else
+                {
+                    Debug.Log("Finished zooming out!");
+                }
+                
+                UpdateScaleTransition(0.0f, 0.0f, 1.0f, 1.0f);
+
+                Universe universe = LooCastCoreManager.Instance.Universe;
+                universe.DeleteScale(CurrentScale.ScaleLevel);
+                CurrentScale = newCurrentScale;
+                newCurrentScale = null;
+                scaleTransitionType = null;
+                IsTransitioningScale = false;
+            }
+        }
+
+        private List<BigVec2Int> GetProximalChunkCoordinates()
         {
             Universe universe = LooCastCoreManager.Instance.Universe;
             int chunkSize = universe.ChunkSize;

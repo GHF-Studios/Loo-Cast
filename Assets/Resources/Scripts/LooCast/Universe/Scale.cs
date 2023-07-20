@@ -15,6 +15,9 @@ namespace LooCast.Universe
         #endregion
 
         #region Fields
+        public float ScaleFactor;
+        public float AlphaFactor;
+        
         private Dictionary<BigVec2Int, Chunk> chunkDictionary;
         #endregion
 
@@ -22,9 +25,11 @@ namespace LooCast.Universe
         public Scale(int scaleLevel, Universe universe) : base()
         {
             chunkDictionary = new Dictionary<BigVec2Int, Chunk>();
-            
+
             ScaleLevel = scaleLevel;
             Universe = universe;
+            ScaleFactor = 0.0f;
+            AlphaFactor = 0.0f;
 
             EnableUnityBridge();
         }
