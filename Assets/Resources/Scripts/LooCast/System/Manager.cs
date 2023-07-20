@@ -4,15 +4,20 @@ using UnityEngine;
 
 namespace LooCast.System
 {
-    public abstract class Manager : Folder, IManager
+    using global::LooCast.System.ECS;
+    
+    public abstract class Manager : Entity, IManager
     {
         #region Properties
-        public string ManagerName => FolderName;
-        public ExtendedMonoBehaviour ManagerMonoBehaviour { get; private set; }
+        public ManagerUnityComponent ManagerUnityComponent { get; private set; }
+        
+        public string ManagerName { get; private set; }
 
-        IManager IChild<IManager>.Parent => (IManager)FolderParent;
-
-        IEnumerable<IManager> IParent<IManager>.Children => (IEnumerable<IManager>)FolderChildren;
+        IManager IChild<IManager>.Parent => ManagerParent;
+        public IManager ManagerParent { get; private set; }
+        
+        IEnumerable<IManager> IParent<IManager>.Children => ManagerChildren;
+        public IEnumerable<IManager> ManagerChildren => managerChildrenList;
 
         #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; protected set; }
@@ -197,18 +202,16 @@ namespace LooCast.System
         private List<Action> postTerminationActions;
         private List<Action> latePostTerminationActions;
         
-        private bool enableLogging;
+        protected bool enableLogging = false;
+
+        private List<IManager> managerChildrenList;
         #endregion
 
         #region Constructors
-        protected Manager(string managerName, IManager managerParent, ManagerMonoBehaviour managerMonoBehaviour) : base(managerName, managerParent)
+        protected Manager(string managerName, IManager managerParent) : base()
         {
-            if (managerParent != null)
-            {
-                managerMonoBehaviour.transform.SetParent(managerParent.ManagerMonoBehaviour.transform);
-            }
-            
-            ManagerMonoBehaviour = managerMonoBehaviour;
+            ManagerName = managerName;
+            ManagerParent = managerParent;
 
             earlyPreInitializationActions = new List<Action>();
             preInitializationActions = new List<Action>();
@@ -230,7 +233,29 @@ namespace LooCast.System
             postTerminationActions = new List<Action>();
             latePostTerminationActions = new List<Action>();
 
-            enableLogging = false;
+            EnableUnityBridge();
+            UnityBridge.RootGameObject.name = managerName;
+            ManagerUnityComponent = UnityBridge.RootGameObject.AddComponent<ManagerUnityComponent>();
+            ManagerUnityComponent.InitializeManager(this);
+
+            FolderComponent folderComponent = AddComponent<FolderComponent>();
+
+            if (managerParent != null)
+            {
+                UnityBridge.RootGameObject.transform.SetParent(managerParent.UnityBridge.RootGameObject.transform);
+            }
+
+            RegisterInitializationAction(() =>
+            {
+                if (managerParent == null)
+                {
+                    folderComponent.InitializeAsRoot();
+                }
+                else
+                {
+                    folderComponent.Initialize(managerName, managerParent.GetComponent<FolderComponent>());
+                }
+            });
         }
         #endregion
 

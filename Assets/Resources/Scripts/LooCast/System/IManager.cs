@@ -2,10 +2,11 @@
 
 namespace LooCast.System
 {
-    using LooCast.System.Initialization;
-    using LooCast.System.Termination;
+    using global::LooCast.System.ECS;
+    using global::LooCast.System.Initialization;
+    using global::LooCast.System.Termination;
 
-    public interface IManager : IFolder, IChild<IManager>, IParent<IManager>, 
+    public interface IManager : IEntity, IChild<IManager>, IParent<IManager>, 
                                 IEarlyPreInitializationPhase, IPreInitializationPhase, ILatePreInitializationPhase, 
                                 IEarlyInitializationPhase, IInitializationPhase, ILateInitializationPhase, 
                                 IEarlyPostInitializationPhase, IPostInitializationPhase, ILatePostInitializationPhase, 
@@ -15,7 +16,6 @@ namespace LooCast.System
     {
         #region Properties
         string ManagerName { get; }
-        ExtendedMonoBehaviour ManagerMonoBehaviour { get; }
         #endregion
     }
 }

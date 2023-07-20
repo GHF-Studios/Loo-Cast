@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LooCast.Universe
 {
-    using LooCast.Core;
+    using global::LooCast.System.ECS;
     
     public sealed class ScaleUnityComponent : UnityComponent
     {

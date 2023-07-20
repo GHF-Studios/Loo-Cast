@@ -20,7 +20,7 @@ namespace LooCast.System
         #endregion
         
         #region Constructors
-        protected CoreModuleManager(string coreModuleManagerName) : base(coreModuleManagerName, MainManager.Instance, System.ManagerMonoBehaviour.Create(coreModuleManagerName))
+        protected CoreModuleManager(string coreModuleManagerName) : base(coreModuleManagerName, MainManager.Instance)
         {
             moduleManagerChildrenList = new List<IModuleManager>();
 

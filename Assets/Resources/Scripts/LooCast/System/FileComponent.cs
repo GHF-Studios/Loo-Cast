@@ -1,13 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using global::System;
-    using LooCast.System.Paths;
+    using global::LooCast.System.ECS;
+    using global::LooCast.System.Paths;
 
-    public class File : IFile
+    [IncompatibleComponents(typeof(FolderComponent), typeof(ObjectComponent))]
+    public sealed class FileComponent : Component, IFile
     {
         #region Properties
+        public bool IsInitialized { get; private set; }
+
         public string FileName { get; private set; }
         public string FileExtension { get; private set; }
         public string FileIdentifier { get; private set; }
@@ -25,14 +29,26 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        protected List<IObject> objectChildrenList;
+        private List<IObject> objectChildrenList;
         #endregion
 
         #region Constructors
-        public File(string fileName, string fileExtension, IFolder folderParent)
+        public FileComponent() : base()
         {
+            IsInitialized = false;
+        }
+        #endregion
+
+        #region Methods
+        public void Initialize(string fileName, string fileExtension, IFolder folderParent)
+        {
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("File has already been initialized!");
+            }
+
             PathBuilder filePathBuilder;
-            
+
             if (folderParent == null)
             {
                 filePathBuilder = PathBuilder.Create();
@@ -51,18 +67,20 @@ namespace LooCast.System
             FilePath = filePathBuilder.ConstructFilePath();
             FolderParent = folderParent;
             objectChildrenList = new List<IObject>();
-            
-            folderParent.AddChildFile(this);
-        }
-        #endregion
 
-        #region Methods
-        public virtual bool Validate()
+            folderParent.AddChildFile(this);
+
+            FileManager.Instance.RegisterFile(this);
+
+            IsInitialized = true;
+        }
+
+        public bool Validate()
         {
             return true;
         }
 
-        public virtual bool TryAddChildObject(IObject childObject) 
+        public bool TryAddChildObject(IObject childObject) 
         {
             if (ContainsChildObject(childObject.ObjectName))
             {
@@ -74,7 +92,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual void AddChildObject(IObject childObject) 
+        public void AddChildObject(IObject childObject) 
         {
             if (ContainsChildObject(childObject))
             {
@@ -83,7 +101,7 @@ namespace LooCast.System
             objectChildrenList.Add(childObject);
         }
 
-        public virtual bool TryRemoveChildObject(IObject childObject)
+        public bool TryRemoveChildObject(IObject childObject)
         {
             if (!ContainsChildObject(childObject))
             {
@@ -95,12 +113,12 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual void RemoveChildObject(IObject childObject) 
+        public void RemoveChildObject(IObject childObject) 
         {
             objectChildrenList.Remove(childObject);
         }
 
-        public virtual bool TryGetChildObject(string childObjectName, out IObject childObject) 
+        public bool TryGetChildObject(string childObjectName, out IObject childObject) 
         {
             if (!ContainsChildObject(childObjectName))
             {
@@ -113,22 +131,22 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual IObject GetChildObject(string childObjectName) 
+        public IObject GetChildObject(string childObjectName) 
         {
             return objectChildrenList.Find((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
 
-        public virtual bool ContainsChildObject(string childObjectName) 
+        public bool ContainsChildObject(string childObjectName) 
         {
             return objectChildrenList.Exists((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
 
-        public virtual bool ContainsChildObject(IObject childObject)
+        public bool ContainsChildObject(IObject childObject)
         {
             return objectChildrenList.Contains(childObject);
         }
 
-        public virtual void ClearChildObjects() 
+        public void ClearChildObjects() 
         {
             objectChildrenList.Clear();
         }
@@ -142,9 +160,9 @@ namespace LooCast.System
 
         public override bool Equals(object obj)
         {
-            if (obj is File)
+            if (obj is FileComponent)
             {
-                return Equals((File)obj);
+                return Equals((FileComponent)obj);
             }
             else
             {
@@ -152,7 +170,7 @@ namespace LooCast.System
             }
         }
 
-        public bool Equals(File otherFile)
+        public bool Equals(FileComponent otherFile)
         {
             return otherFile.FilePath == this.FilePath;
         }
@@ -164,7 +182,7 @@ namespace LooCast.System
         #endregion
 
         #region Operators
-        public static bool operator ==(File file1, File file2)
+        public static bool operator ==(FileComponent file1, FileComponent file2)
         {
             if ((file1 is null && file2 is not null) || (file1 is not null && file2 is null))
             {
@@ -180,7 +198,7 @@ namespace LooCast.System
             }
         }
 
-        public static bool operator !=(File file1, File file2)
+        public static bool operator !=(FileComponent file1, FileComponent file2)
         {
             if ((file1 is null && file2 is not null) || (file1 is not null && file2 is null))
             {
@@ -196,7 +214,7 @@ namespace LooCast.System
             }
         }
         
-        public static implicit operator string(File file)
+        public static implicit operator string(FileComponent file)
         {
             return file.FilePath;
         }

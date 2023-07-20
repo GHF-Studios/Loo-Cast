@@ -1,13 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using global::System;
-    using LooCast.System.Paths;
+    using global::LooCast.System.ECS;
+    using global::LooCast.System.Paths;
 
-    public class Folder : IFolder
+    [IncompatibleComponents(typeof(FileComponent), typeof(ObjectComponent))]
+    public sealed class FolderComponent : Component, IFolder
     {
         #region Properties
+        public bool IsInitialized { get; private set; }
+
         public string FolderName { get; private set; }
         public bool IsRoot { get; private set; }
 
@@ -32,24 +36,45 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public Folder()
+        public FolderComponent()
         {
+            IsInitialized = false;
+        }
+        #endregion
+
+        #region Methods
+        public void InitializeAsRoot()
+        {
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Folder has already been initialized!");
+            }
+
             IsRoot = true;
-            
+
             FolderName = "Root";
             FolderPath = new FolderPath(false);
             FolderParent = null;
             folderChildrenList = new List<IFolder>();
             fileChildrenList = new List<IFile>();
+
+            FolderManager.Instance.RegisterFolder(this);
+
+            IsInitialized = true;
         }
 
-        public Folder(string folderName, IFolder folderParent)
+        public void Initialize(string folderName, IFolder folderParent)
         {
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Folder has already been initialized!");
+            }
+            
             if (folderParent == null)
             {
                 throw new NullReferenceException("FolderParent may not be null!");
             }
-            
+
             IsRoot = false;
             PathBuilder folderPathBuilder = PathBuilder.Load(folderParent.FolderPath);
 
@@ -63,16 +88,18 @@ namespace LooCast.System
             fileChildrenList = new List<IFile>();
 
             folderParent.AddChildFolder(this);
-        }
-        #endregion
 
-        #region Methods
-        public virtual bool Validate()
+            FolderManager.Instance.RegisterFolder(this);
+
+            IsInitialized = true;
+        }
+
+        public bool Validate()
         {
             return true;
         }
 
-        public virtual bool TryAddChildFolder(IFolder childFolder) 
+        public bool TryAddChildFolder(IFolder childFolder) 
         {
             if (ContainsChildFolder(childFolder.FolderName))
             {
@@ -84,7 +111,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual bool TryAddChildFile(IFile childFile) 
+        public bool TryAddChildFile(IFile childFile) 
         {
             if (ContainsChildFile(childFile))
             {
@@ -96,7 +123,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual void AddChildFolder(IFolder childFolder) 
+        public void AddChildFolder(IFolder childFolder) 
         {
             if (ContainsChildFolder(childFolder))
             {
@@ -104,7 +131,7 @@ namespace LooCast.System
             }
             folderChildrenList.Add(childFolder);
         }
-        public virtual void AddChildFile(IFile childFile) 
+        public void AddChildFile(IFile childFile) 
         {
             if (ContainsChildFile(childFile))
             {
@@ -113,7 +140,7 @@ namespace LooCast.System
             fileChildrenList.Add(childFile);
         }
 
-        public virtual bool TryRemoveChildFolder(IFolder childFolder) 
+        public bool TryRemoveChildFolder(IFolder childFolder) 
         {
             if (!ContainsChildFolder(childFolder))
             {
@@ -125,7 +152,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual bool TryRemoveChildFile(IFile childFile) 
+        public bool TryRemoveChildFile(IFile childFile) 
         {
             if (!ContainsChildFile(childFile))
             {
@@ -137,16 +164,16 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual void RemoveChildFolder(IFolder childFolder) 
+        public void RemoveChildFolder(IFolder childFolder) 
         {
             folderChildrenList.Remove(childFolder);
         }
-        public virtual void RemoveChildFile(IFile childFile) 
+        public void RemoveChildFile(IFile childFile) 
         {
             fileChildrenList.Remove(childFile);
         }
 
-        public virtual bool TryGetChildFolder(string childFolderName, out IFolder childFolder)
+        public bool TryGetChildFolder(string childFolderName, out IFolder childFolder)
         {
             if (!ContainsChildFolder(childFolderName))
             {
@@ -159,7 +186,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual bool TryGetChildFile(string childFileName, string childFileExtension, out IFile childFile) 
+        public bool TryGetChildFile(string childFileName, string childFileExtension, out IFile childFile) 
         {
             if (!ContainsChildFile(childFileName, childFileExtension))
             {
@@ -172,36 +199,36 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual IFolder GetChildFolder(string childFolderName) 
+        public IFolder GetChildFolder(string childFolderName) 
         {
             return folderChildrenList.Find((folderChild) => { return folderChild.FolderName == childFolderName; } );
         }
-        public virtual IFile GetChildFile(string childFileName, string childFileExtension)
+        public IFile GetChildFile(string childFileName, string childFileExtension)
         {
             return fileChildrenList.Find((fileChild) => { return fileChild.FileName == childFileName && fileChild.FileExtension == childFileExtension; });
         }
-        public virtual bool ContainsChildFolder(string childFolderName) 
+        public bool ContainsChildFolder(string childFolderName) 
         {
             return folderChildrenList.Exists((childFolder) => { return childFolder.FolderName == childFolderName; });
         }
-        public virtual bool ContainsChildFile(string childFileName, string childFileExtension)
+        public bool ContainsChildFile(string childFileName, string childFileExtension)
         {
             return fileChildrenList.Exists((fileChild) => { return fileChild.FileName == childFileName && fileChild.FileExtension == childFileExtension; });
         }
-        public virtual bool ContainsChildFolder(IFolder childFolder)
+        public bool ContainsChildFolder(IFolder childFolder)
         {
             return folderChildrenList.Contains(childFolder);
         }
-        public virtual bool ContainsChildFile(IFile childFile)
+        public bool ContainsChildFile(IFile childFile)
         {
             return fileChildrenList.Contains(childFile);
         }
 
-        public virtual void ClearChildFolders() 
+        public void ClearChildFolders() 
         {
             folderChildrenList.Clear();
         }
-        public virtual void ClearChildFiles() 
+        public void ClearChildFiles() 
         {
             fileChildrenList.Clear();
         }
@@ -215,9 +242,9 @@ namespace LooCast.System
 
         public override bool Equals(object obj)
         {
-            if (obj is Folder)
+            if (obj is FolderComponent)
             {
-                return Equals((Folder)obj);
+                return Equals((FolderComponent)obj);
             }
             else
             {
@@ -225,7 +252,7 @@ namespace LooCast.System
             }
         }
 
-        public bool Equals(Folder otherFolder)
+        public bool Equals(FolderComponent otherFolder)
         {
             return otherFolder.FolderPath == this.FolderPath;
         }
@@ -237,7 +264,7 @@ namespace LooCast.System
         #endregion
 
         #region Operators
-        public static bool operator ==(Folder folder1, Folder folder2)
+        public static bool operator ==(FolderComponent folder1, FolderComponent folder2)
         {
             if ((folder1 is null && folder2 is not null) || (folder1 is not null && folder2 is null))
             {
@@ -253,7 +280,7 @@ namespace LooCast.System
             }
         }
 
-        public static bool operator !=(Folder folder1, Folder folder2)
+        public static bool operator !=(FolderComponent folder1, FolderComponent folder2)
         {
             if ((folder1 is null && folder2 is not null) || (folder1 is not null && folder2 is null))
             {
@@ -269,7 +296,7 @@ namespace LooCast.System
             }
         }
 
-        public static implicit operator string(Folder folder)
+        public static implicit operator string(FolderComponent folder)
         {
             return folder.FolderPath;
         }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    public sealed class MainManager : Folder, IManager
+    public sealed class MainManager : Manager
     {
         #region Static Properties
         public static MainManager Instance
@@ -24,197 +24,168 @@ namespace LooCast.System
         private static MainManager instance;
         #endregion
 
-        #region Properties
-        public string ManagerName => "MainManager";
-        public ExtendedMonoBehaviour ManagerMonoBehaviour => MainManagerMonoBehaviour.Instance;
-        IManager IChild<IManager>.Parent => null;
-        IEnumerable<IManager> IParent<IManager>.Children => (IEnumerable<IManager>)FolderChildren;
-        
-        #region Initialization Phase Flags
-        public bool IsEarlyPreInitializing { get; private set; }
-        public bool IsEarlyPreInitialized { get; private set; }
-        public bool IsPreInitializing { get; private set; }
-        public bool IsPreInitialized { get; private set; }
-        public bool IsLatePreInitializing { get; private set; }
-        public bool IsLatePreInitialized { get; private set; }
-
-        public bool IsEarlyInitializing { get; private set; }
-        public bool IsEarlyInitialized { get; private set; }
-        public bool IsInitializing { get; private set; }
-        public bool IsInitialized { get; private set; }
-        public bool IsLateInitializing { get; private set; }
-        public bool IsLateInitialized { get; private set; }
-
-        public bool IsEarlyPostInitializing { get; private set; }
-        public bool IsEarlyPostInitialized { get; private set; }
-        public bool IsPostInitializing { get; private set; }
-        public bool IsPostInitialized { get; private set; }
-        public bool IsLatePostInitializing { get; private set; }
-        public bool IsLatePostInitialized { get; private set; }
-
-        public bool IsFullyPreInitializing
-        {
-            get
-            {
-                return IsEarlyPreInitializing || IsPreInitializing || IsLatePreInitializing;
-            }
-        }
-        public bool IsFullyPreInitialized
-        {
-            get
-            {
-                return IsEarlyPreInitialized && IsPreInitialized && IsLatePreInitialized;
-            }
-        }
-        public bool IsFullyInitializing
-        {
-            get
-            {
-                return IsEarlyInitializing || IsInitializing || IsLateInitializing;
-            }
-        }
-        public bool IsFullyInitialized
-        {
-            get
-            {
-                return IsEarlyInitialized && IsInitialized && IsLateInitialized;
-            }
-        }
-        public bool IsFullyPostInitializing
-        {
-            get
-            {
-                return IsEarlyPostInitializing || IsPostInitializing || IsLatePostInitializing;
-            }
-        }
-        public bool IsFullyPostInitialized
-        {
-            get
-            {
-                return IsEarlyPostInitialized && IsPostInitialized && IsLatePostInitialized;
-            }
-        }
-        public bool IsCompletelyInitializing
-        {
-            get
-            {
-                return IsFullyPreInitializing || IsFullyInitializing || IsFullyPostInitializing;
-            }
-        }
-        public bool IsCompletelyInitialized
-        {
-            get
-            {
-                return IsFullyPreInitialized && IsFullyInitialized && IsPostInitialized;
-            }
-        }
-        #endregion
-
-        #region Termination Phase Flags
-        public bool IsEarlyPreTerminating { get; private set; }
-        public bool IsPreTerminating { get; private set; }
-        public bool IsLatePreTerminating { get; private set; }
-        public bool IsEarlyPreTerminated { get; private set; }
-        public bool IsPreTerminated { get; private set; }
-        public bool IsLatePreTerminated { get; private set; }
-
-        public bool IsEarlyTerminating { get; private set; }
-        public bool IsTerminating { get; private set; }
-        public bool IsLateTerminating { get; private set; }
-        public bool IsEarlyTerminated { get; private set; }
-        public bool IsTerminated { get; private set; }
-        public bool IsLateTerminated { get; private set; }
-
-        public bool IsEarlyPostTerminating { get; private set; }
-        public bool IsPostTerminating { get; private set; }
-        public bool IsLatePostTerminating { get; private set; }
-        public bool IsEarlyPostTerminated { get; private set; }
-        public bool IsPostTerminated { get; private set; }
-        public bool IsLatePostTerminated { get; private set; }
-
-        public bool IsFullyPreTerminating
-        {
-            get
-            {
-                return IsEarlyPreTerminating || IsPreTerminating || IsLatePreTerminating;
-            }
-        }
-        public bool IsFullyPreTerminated
-        {
-            get
-            {
-                return IsEarlyPreTerminated && IsPreTerminated && IsLatePreTerminated;
-            }
-        }
-        public bool IsFullyTerminating
-        {
-            get
-            {
-                return IsEarlyTerminating || IsTerminating || IsLateTerminating;
-            }
-        }
-        public bool IsFullyTerminated
-        {
-            get
-            {
-                return IsEarlyTerminated && IsTerminated && IsLateTerminated;
-            }
-        }
-        public bool IsFullyPostTerminating
-        {
-            get
-            {
-                return IsEarlyPostTerminating || IsPostTerminating || IsLatePostTerminating;
-            }
-        }
-        public bool IsFullyPostTerminated
-        {
-            get
-            {
-                return IsEarlyPostTerminated && IsPostTerminated && IsLatePostTerminated;
-            }
-        }
-        public bool IsCompletelyTerminating
-        {
-            get
-            {
-                return IsFullyPreTerminating || IsFullyTerminating || IsFullyPostTerminating;
-            }
-        }
-        public bool IsCompletelyTerminated
-        {
-            get
-            {
-                return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
-            }
-        }
-
-        public bool IsFullyPostTermináted => throw new NotImplementedException();
-
-        public bool IsCompletelyPreTerminating => throw new NotImplementedException();
-
-        public bool IsCompletelyPreTerminated => throw new NotImplementedException();
-        #endregion
-
-        #endregion
-
         #region Fields
         private List<ICoreModuleManager> coreModuleManagerChildrenList;
-        
-        private bool enableLogging;
         #endregion
 
         #region Constructors
-        private MainManager() : base()
+        private MainManager() : base("MainManager", null)
         {
             coreModuleManagerChildrenList = new List<ICoreModuleManager>();
 
-            enableLogging = false;
+            RegisterEarlyPreInitializationAction(() =>
+            {
+                coreModuleManagerChildrenList.Add(global::LooCast.System.SystemManager.Instance);
+                coreModuleManagerChildrenList.Add(global::LooCast.Core.LooCastCoreManager.Instance);
+
+                // TODO:    Read the mod hierarchyFolder for valid core module managers and load them.
+                //          This process is internal to the MainManager and thus there are no Methods to manage the child managers.
+
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.EarlyPreInitialize();
+                }
+            });
+
+            RegisterPreInitializationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.PreInitialize();
+                }
+            });
+
+            RegisterLatePreInitializationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.LatePreInitialize();
+                }
+            });
+
+            RegisterEarlyInitializationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.EarlyInitialize();
+                }
+            });
+
+            RegisterInitializationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.Initialize();
+                }
+            });
+
+            RegisterLateInitializationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.LateInitialize();
+                }
+            });
+
+            RegisterEarlyPostInitializationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.EarlyPostInitialize();
+                }
+            });
+
+            RegisterPostInitializationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.PostInitialize();
+                }
+            });
+
+            RegisterLatePostInitializationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.LatePostInitialize();
+                }
+            });
+
+            RegisterEarlyPreTerminationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.EarlyPreTerminate();
+                }
+            });
+
+            RegisterPreTerminationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.PreTerminate();
+                }
+            });
+
+            RegisterLatePreTerminationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.LatePreTerminate();
+                }
+            });
+
+            RegisterEarlyTerminationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.EarlyTerminate();
+                }
+            });
+
+            RegisterTerminationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.Terminate();
+                }
+            });
+
+            RegisterLateTerminationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.LateTerminate();
+                }
+            });
+
+            RegisterEarlyPostTerminationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.EarlyPostTerminate();
+                }
+            });
+
+            RegisterPostTerminationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.PostTerminate();
+                }
+            });
+
+            RegisterLatePostTerminationAction(() =>
+            {
+                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                {
+                    coreModuleManager.LatePostTerminate();
+                }
+            });
         }
         #endregion
 
         #region Methods
-
         public void OnPreAwake()
         {
             EarlyPreInitialize();
@@ -267,395 +238,6 @@ namespace LooCast.System
                 LatePostTerminate();
             }
         }
-        
-        #region Initialization Phases
-        public void EarlyPreInitialize()
-        {
-            IsEarlyPreInitializing = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Early Pre-Initialization.");
-            }
-
-            coreModuleManagerChildrenList.Add(LooCast.System.SystemManager.Instance);
-            coreModuleManagerChildrenList.Add(LooCast.Core.LooCastCoreManager.Instance);
-
-            // TODO:    Read the mod hierarchyFolder for valid core module managers and load them.
-            //          This process is internal to the MainManager and thus there are no Methods to manage the child managers.
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.EarlyPreInitialize();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Early Pre-Initialization.");
-            }
-            IsEarlyPreInitializing = false;
-            IsEarlyPreInitialized = true;
-        }
-
-        public void PreInitialize()
-        {
-            IsPreInitializing = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Pre-Initialization.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.PreInitialize();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Pre-Initialization.");
-            }
-            IsPreInitializing = false;
-            IsPreInitialized = true;
-        }
-
-        public void LatePreInitialize()
-        {
-            IsLatePreInitializing = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Late Pre-Initialization.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.LatePreInitialize();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Late Pre-Initialization.");
-            }
-            IsLatePreInitializing = false;
-            IsLatePreInitialized = true;
-        }
-
-        public void EarlyInitialize()
-        {
-            IsEarlyInitializing = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Early Initialization.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.EarlyInitialize();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Early Initialization.");
-            }
-            IsEarlyInitializing = false;
-            IsEarlyInitialized = true;
-        }
-
-        public void Initialize()
-        {
-            IsInitializing = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Initialization.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.Initialize();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Initialization.");
-            }
-            IsInitializing = false;
-            IsInitialized = true;
-        }
-
-        public void LateInitialize()
-        {
-            IsLateInitializing = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Late Initialization.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.LateInitialize();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Late Initialization.");
-            }
-            IsLateInitializing = false;
-            IsLateInitialized = true;
-        }
-
-        public void EarlyPostInitialize()
-        {
-            IsEarlyPostInitializing = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Early Post-Initialization.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.EarlyPostInitialize();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Early Post-Initialization.");
-            }
-            IsEarlyPostInitializing = false;
-            IsEarlyPostInitialized = true;
-        }
-
-        public void PostInitialize()
-        {
-            IsPostInitializing = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Post-Initialization.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.PostInitialize();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Post-Initialization.");
-            }
-            IsPostInitializing = false;
-            IsPostInitialized = true;
-        }
-
-        public void LatePostInitialize()
-        {
-            IsLatePostInitializing = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Late Post-Initialization.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.LatePostInitialize();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Late Post-Initialization.");
-            }
-            IsLatePostInitializing = false;
-            IsLatePostInitialized = true;
-        }
-        #endregion
-
-        #region Termination Phases
-        public void EarlyPreTerminate()
-        {
-            IsEarlyPreTerminating = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Early Pre-Termination.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.EarlyPreTerminate();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Early Pre-Termination.");
-            }
-            IsEarlyPreTerminating = false;
-            IsEarlyPreTerminated = true;
-        }
-
-        public void PreTerminate()
-        {
-            IsPreTerminating = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Pre-Termination.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.PreTerminate();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Pre-Termination.");
-            }
-            IsPreTerminating = false;
-            IsPreTerminated = true;
-        }
-
-        public void LatePreTerminate()
-        {
-            IsLatePreTerminating = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Late Pre-Termination.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.LatePreTerminate();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Late Pre-Termination.");
-            }
-            IsLatePreTerminating = false;
-            IsLatePreTerminated = true;
-        }
-
-        public void EarlyTerminate()
-        {
-            IsEarlyTerminating = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Early Termination.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.EarlyTerminate();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Early Termination.");
-            }
-            IsEarlyTerminating = false;
-            IsEarlyTerminated = true;
-        }
-
-        public void Terminate()
-        {
-            IsTerminating = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Termination.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.Terminate();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Termination.");
-            }
-            IsTerminating = false;
-            IsTerminated = true;
-        }
-
-        public void LateTerminate()
-        {
-            IsLateTerminating = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Late Termination.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.LateTerminate();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Late Termination.");
-            }
-            IsLateTerminating = false;
-            IsLateTerminated = true;
-        }
-
-        public void EarlyPostTerminate()
-        {
-            IsEarlyPostTerminating = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Early Post-Termination.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.EarlyPostTerminate();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Early Post-Termination.");
-            }
-            IsEarlyPostTerminating = false;
-            IsEarlyPostTerminated = true;
-        }
-
-        public void PostTerminate()
-        {
-            IsPostTerminating = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Post-Termination.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.PostTerminate();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Post-Termination.");
-            }
-            IsPostTerminating = false;
-            IsPostTerminated = true;
-        }
-
-        public void LatePostTerminate()
-        {
-            IsLatePostTerminating = true;
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Starting Late Post-Termination.");
-            }
-
-            foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-            {
-                coreModuleManager.LatePostTerminate();
-            }
-
-            if (enableLogging)
-            {
-                Debug.Log($"[MainManager] Finished Late Post-Termination.");
-            }
-            IsLatePostTerminating = false;
-            IsLatePostTerminated = true;
-        }
-        #endregion
-
         #endregion
     }
 }

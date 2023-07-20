@@ -1,13 +1,17 @@
-﻿using System.Collections.Generic;
-using System;
+﻿using System;
+using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using LooCast.System.Paths;
+    using global::LooCast.System.ECS;
+    using global::LooCast.System.Paths;
 
-    public class Object : IObject
+    [IncompatibleComponents(typeof(FileComponent), typeof(FolderComponent))]
+    public sealed class ObjectComponent : Component, IObject
     {
         #region Properties
+        public bool IsInitialized { get; private set; }
+        
         public string ObjectName { get; private set; }
 
         public IHierarchicalElementPath HierarchicalElementPath => ObjectPath;
@@ -26,17 +30,29 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        protected List<IObject> objectChildrenList;
+        private List<IObject> objectChildrenList;
         #endregion
 
         #region Constructors
-        public Object(string objectName, IFile fileParent)
+        public ObjectComponent() : base()
         {
+            IsInitialized = false;
+        }
+        #endregion
+
+        #region Methods
+        public void Initialize(string objectName, IFile fileParent)
+        {
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Object has already been initialized!");
+            }
+
             if (fileParent == null)
             {
-                throw new ArgumentException("Parent File may not be null here, as this would imply the existence of the Parent Object, but the opposite is implied by the choice of this costructor, instead of the constructor, which sets the Parent Object!");
+                throw new ArgumentException("Parent File may not be null here, as this would imply the existence of a Parent Object, but the opposite is implied by the choice of this costructor, instead of the constructor which sets a Parent Object!");
             }
-            
+
             PathBuilder objectPathBuilder = PathBuilder.Load(fileParent.FilePath);
             objectPathBuilder.AsAbsolutePath();
             objectPathBuilder = objectPathBuilder.WithObject(objectName);
@@ -48,13 +64,22 @@ namespace LooCast.System
             objectChildrenList = new List<IObject>();
 
             fileParent.AddChildObject(this);
+
+            ObjectManager.Instance.RegisterObject(this);
+
+            IsInitialized = true;
         }
-        
-        public Object(string objectName, IObject objectParent)
+
+        public void Initialize(string objectName, IObject objectParent)
         {
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Object has already been initialized!");
+            }
+
             if (objectParent == null)
             {
-                throw new ArgumentException("Parent Object may not be null here, as this would imply the existence of the Parent File, but the opposite is implied by the choice of this costructor, instead of the constructor, which sets the Parent File!");
+                throw new ArgumentException("Parent Object may not be null here, as this would imply the existence of a Parent File, but the opposite is implied by the choice of this costructor, instead of the constructor which sets a Parent File!");
             }
 
             PathBuilder objectPathBuilder = PathBuilder.Load(objectParent.ObjectPath);
@@ -68,16 +93,18 @@ namespace LooCast.System
             objectChildrenList = new List<IObject>();
 
             objectParent.AddChildObject(this);
-        }
-        #endregion
+            
+            ObjectManager.Instance.RegisterObject(this);
 
-        #region Methods
-        public virtual bool Validate()
+            IsInitialized = true;
+        }
+
+        public bool Validate()
         {
             return true;
         }
 
-        public virtual bool TryAddChildObject(IObject childObject)
+        public bool TryAddChildObject(IObject childObject)
         {
             if (ContainsChildObject(childObject.ObjectName))
             {
@@ -89,7 +116,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual void AddChildObject(IObject childObject)
+        public void AddChildObject(IObject childObject)
         {
             if (ContainsChildObject(childObject))
             {
@@ -98,7 +125,7 @@ namespace LooCast.System
             objectChildrenList.Add(childObject);
         }
 
-        public virtual bool TryRemoveChildObject(IObject childObject)
+        public bool TryRemoveChildObject(IObject childObject)
         {
             if (!ContainsChildObject(childObject))
             {
@@ -110,12 +137,12 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual void RemoveChildObject(IObject childObject)
+        public void RemoveChildObject(IObject childObject)
         {
             objectChildrenList.Remove(childObject);
         }
 
-        public virtual bool TryGetChildObject(string childObjectName, out IObject childObject)
+        public bool TryGetChildObject(string childObjectName, out IObject childObject)
         {
             if (!ContainsChildObject(childObjectName))
             {
@@ -128,22 +155,22 @@ namespace LooCast.System
                 return true;
             }
         }
-        public virtual IObject GetChildObject(string childObjectName)
+        public IObject GetChildObject(string childObjectName)
         {
             return objectChildrenList.Find((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
 
-        public virtual bool ContainsChildObject(string childObjectName)
+        public bool ContainsChildObject(string childObjectName)
         {
             return objectChildrenList.Exists((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
 
-        public virtual bool ContainsChildObject(IObject childObject)
+        public bool ContainsChildObject(IObject childObject)
         {
             return objectChildrenList.Contains(childObject);
         }
 
-        public virtual void ClearChildObjects()
+        public void ClearChildObjects()
         {
             objectChildrenList.Clear();
         }
@@ -157,9 +184,9 @@ namespace LooCast.System
 
         public override bool Equals(object obj)
         {
-            if (obj is Object)
+            if (obj is ObjectComponent)
             {
-                return Equals((Object)obj);
+                return Equals((ObjectComponent)obj);
             }
             else
             {
@@ -167,7 +194,7 @@ namespace LooCast.System
             }
         }
 
-        public bool Equals(Object otherObject)
+        public bool Equals(ObjectComponent otherObject)
         {
             return otherObject.ObjectPath == this.ObjectPath;
         }
@@ -179,7 +206,7 @@ namespace LooCast.System
         #endregion
 
         #region Operators
-        public static bool operator ==(Object object1, Object object2)
+        public static bool operator ==(ObjectComponent object1, ObjectComponent object2)
         {
             if ((object1 is null && object2 is not null) || (object1 is not null && object2 is null))
             {
@@ -195,7 +222,7 @@ namespace LooCast.System
             }
         }
 
-        public static bool operator !=(Object object1, Object object2)
+        public static bool operator !=(ObjectComponent object1, ObjectComponent object2)
         {
             if ((object1 is null && object2 is not null) || (object1 is not null && object2 is null))
             {
@@ -211,7 +238,7 @@ namespace LooCast.System
             }
         }
 
-        public static implicit operator string(Object _object)
+        public static implicit operator string(ObjectComponent _object)
         {
             return _object.ObjectPath;
         }

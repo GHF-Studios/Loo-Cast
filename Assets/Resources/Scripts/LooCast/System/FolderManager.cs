@@ -70,7 +70,7 @@ namespace LooCast.System
         {
             if (folderPath == "/")
             {
-                folder = MainManager.Instance;
+                folder = MainManager.Instance.GetComponent<FolderComponent>();
                 return true;
             }
             if (!registeredFolders.ContainsKey(folderPath))
@@ -111,68 +111,6 @@ namespace LooCast.System
                 return true;
             }
             return registeredFolders.ContainsKey(folderPath);
-        }
-
-        public IFolder CreateFolder(FolderPath folderPath)
-        {
-            if (folderPath == null)
-            {
-                throw new ArgumentNullException(nameof(folderPath));
-            }
-
-            if (FolderExists(folderPath))
-            {
-                return null;
-            }
-
-            FolderPath parentFolderPath = folderPath.ParentFolderPath;
-
-            if (!TryGetFolder(parentFolderPath, out IFolder parentFolder))
-            {
-                CreateFolder(parentFolderPath);
-                parentFolder = GetFolder(parentFolderPath);
-            }
-
-            IFolder folder = new Folder(folderPath.FolderName, parentFolder);
-            RegisterFolder(folder);
-            return folder;
-        }
-
-        public void DeleteFolder(IFolder folder, bool recursive = false)
-        {
-            if (folder == null)
-            {
-                throw new ArgumentNullException(nameof(folder));
-            }
-
-            if (!FolderExists(folder.FolderPath))
-            {
-                return;
-            }
-
-            if (recursive)
-            {
-                foreach (IFolder childFolder in ((IParent<IFolder>)folder).Children)
-                {
-                    DeleteFolder(childFolder, true);
-                }
-
-                foreach (IFile childFile in ((IParent<IFile>)folder).Children)
-                {
-                    FileManager.Instance.DeleteFile(childFile, true);
-                }
-            }
-            else
-            {
-                if (((IParent<IFolder>)folder).Children.Count() != 0 || ((IParent<IFile>)folder).Children.Count() != 0)
-                {
-                    throw new InvalidOperationException("Folder is not empty!");
-                }
-                else
-                {
-                    UnregisterFolder(folder);
-                }
-            }
         }
         #endregion
     }

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace LooCast.Core
+namespace LooCast.System.ECS
 {
     public abstract class UnityComponent : MonoBehaviour
     {

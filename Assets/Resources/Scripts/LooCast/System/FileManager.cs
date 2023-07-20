@@ -103,63 +103,6 @@ namespace LooCast.System
         {
             return registeredFiles.ContainsKey(filePath);
         }
-
-        public IFile CreateFile(FilePath filePath)
-        {
-            if (filePath == null)
-            {
-                throw new ArgumentNullException(nameof(filePath));
-            }
-
-            if (FileExists(filePath))
-            {
-                return null;
-            }
-
-            FolderPath parentFolderPath = filePath.FolderPathParent;
-            
-            if (!FolderManager.Instance.TryGetFolder(parentFolderPath, out IFolder parentFolder))
-            {
-                FolderManager.Instance.CreateFolder(parentFolderPath);
-                parentFolder = FolderManager.Instance.GetFolder(parentFolderPath);
-            }
-
-            IFile file = new File(filePath.FileName, filePath.FileName, parentFolder);
-            RegisterFile(file);
-            return file;
-        }
-
-        public void DeleteFile(IFile file, bool recursive = false)
-        {
-            if (file == null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
-
-            if (!FileExists(file.FilePath))
-            {
-                return;
-            }
-
-            if (recursive)
-            {
-                foreach (IObject childObject in ((IParent<IObject>)file).Children)
-                {
-                    ObjectManager.Instance.DeleteObject(childObject, true);
-                }
-            }
-            else
-            {
-                if (((IParent<IObject>)file).Children.Count() != 0)
-                {
-                    throw new InvalidOperationException("File is not empty!");
-                }
-                else
-                {
-                    UnregisterFile(file);
-                }
-            }
-        }
         #endregion
     }
 }

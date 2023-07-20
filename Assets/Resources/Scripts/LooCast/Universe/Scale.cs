@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace LooCast.Universe
 {
-    using LooCast.Core;
-    using LooCast.System.Numerics;
+    using global::LooCast.System.ECS;
+    using global::LooCast.System.Numerics;
     
     public sealed class Scale : Entity
     {
