@@ -37,7 +37,10 @@ namespace LooCast.System
         #region Constructors
         private FolderManager() : base("FolderManager", SystemManager.Instance)
         {
-            registeredFolders = new Dictionary<FolderPath, IFolder>();
+            RegisterPreSetupAction(() =>
+            {
+                registeredFolders = new Dictionary<FolderPath, IFolder>();
+            });
         }
         #endregion
 

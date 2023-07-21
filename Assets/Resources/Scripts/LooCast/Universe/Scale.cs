@@ -83,7 +83,7 @@ namespace LooCast.Universe
             UnityBridge.RootGameObject.transform.SetParent(Universe.UnityBridge.RootGameObject.transform);
 
             ScaleUnityComponent = UnityBridge.RootGameObject.AddComponent<ScaleUnityComponent>();
-            ScaleUnityComponent.InitializeScale(this);
+            ScaleUnityComponent.Setup(this);
         }
 
         public override void DisableUnityBridge()

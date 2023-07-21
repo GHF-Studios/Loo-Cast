@@ -31,213 +31,249 @@ namespace LooCast.System
         #region Constructors
         private MainManager() : base("MainManager", null)
         {
-            coreModuleManagerChildrenList = new List<ICoreModuleManager>();
-
-            RegisterEarlyPreInitializationAction(() =>
+            RegisterPreSetupAction(() =>
             {
-                coreModuleManagerChildrenList.Add(global::LooCast.System.SystemManager.Instance);
-                coreModuleManagerChildrenList.Add(global::LooCast.Core.LooCastCoreManager.Instance);
+                coreModuleManagerChildrenList = new List<ICoreModuleManager>();
+            });
 
+            RegisterSetupAction(() =>
+            {
                 // TODO:    Read the mod hierarchyFolder for valid core module managers and load them.
                 //          This process is internal to the MainManager and thus there are no Methods to manage the child managers.
 
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.EarlyPreInitialize();
-                }
+                coreModuleManagerChildrenList.Add(global::LooCast.System.SystemManager.Instance);
+                coreModuleManagerChildrenList.Add(global::LooCast.Core.LooCastCoreManager.Instance);
             });
 
-            RegisterPreInitializationAction(() =>
+            RegisterPostSetupAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                RegisterEarlyPreInitializationAction(() =>
                 {
-                    coreModuleManager.PreInitialize();
-                }
-            });
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnEarlyPreInitialize();
+                    }
+                });
+                RegisterPreInitializationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnPreInitialize();
+                    }
+                });
+                RegisterLatePreInitializationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnLatePreInitialize();
+                    }
+                });
+                RegisterEarlyInitializationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnEarlyInitialize();
+                    }
+                });
+                RegisterInitializationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnInitialize();
+                    }
+                });
+                RegisterLateInitializationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnLateInitialize();
+                    }
+                });
+                RegisterEarlyPostInitializationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnEarlyPostInitialize();
+                    }
+                });
+                RegisterPostInitializationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnPostInitialize();
+                    }
+                });
+                RegisterLatePostInitializationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnLatePostInitialize();
+                    }
+                });
 
-            RegisterLatePreInitializationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                RegisterEarlyPreTerminationAction(() =>
                 {
-                    coreModuleManager.LatePreInitialize();
-                }
-            });
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnEarlyPreTerminate();
+                    }
+                });
+                RegisterPreTerminationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnPreTerminate();
+                    }
+                });
+                RegisterLatePreTerminationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnLatePreTerminate();
+                    }
+                });
+                RegisterEarlyTerminationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnEarlyTerminate();
+                    }
+                });
+                RegisterTerminationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnTerminate();
+                    }
+                });
+                RegisterLateTerminationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnLateTerminate();
+                    }
+                });
+                RegisterEarlyPostTerminationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnEarlyPostTerminate();
+                    }
+                });
+                RegisterPostTerminationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnPostTerminate();
+                    }
+                });
+                RegisterLatePostTerminationAction(() =>
+                {
+                    foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                    {
+                        coreModuleManager.OnLatePostTerminate();
+                    }
+                });
 
-            RegisterEarlyInitializationAction(() =>
-            {
                 foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
-                    coreModuleManager.EarlyInitialize();
-                }
-            });
-
-            RegisterInitializationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.Initialize();
-                }
-            });
-
-            RegisterLateInitializationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.LateInitialize();
-                }
-            });
-
-            RegisterEarlyPostInitializationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.EarlyPostInitialize();
-                }
-            });
-
-            RegisterPostInitializationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.PostInitialize();
-                }
-            });
-
-            RegisterLatePostInitializationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.LatePostInitialize();
-                }
-            });
-
-            RegisterEarlyPreTerminationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.EarlyPreTerminate();
-                }
-            });
-
-            RegisterPreTerminationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.PreTerminate();
-                }
-            });
-
-            RegisterLatePreTerminationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.LatePreTerminate();
-                }
-            });
-
-            RegisterEarlyTerminationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.EarlyTerminate();
-                }
-            });
-
-            RegisterTerminationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.Terminate();
-                }
-            });
-
-            RegisterLateTerminationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.LateTerminate();
-                }
-            });
-
-            RegisterEarlyPostTerminationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.EarlyPostTerminate();
-                }
-            });
-
-            RegisterPostTerminationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.PostTerminate();
-                }
-            });
-
-            RegisterLatePostTerminationAction(() =>
-            {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
-                {
-                    coreModuleManager.LatePostTerminate();
+                    coreModuleManager.OnPreSetup();
+                    coreModuleManager.OnSetup();
+                    coreModuleManager.OnPostSetup();
                 }
             });
         }
         #endregion
 
-        #region Methods
+        #region Callbacks
+        /// <summary>
+        /// Automatically called when the MainManager is being created by the LooCastApplication. 
+        /// Do NOT manually call this method! 
+        /// </summary>
+        public sealed override void OnCreate()
+        {
+            base.OnCreate();
+        }
+
+        /// <summary>
+        /// Automatically called after OnCreate. 
+        /// Do NOT manually call this method!
+        /// </summary>
+        public sealed override void OnPreSetup()
+        {
+            base.OnPreSetup();
+        }
+
+        /// <summary>
+        /// Automatically called after OnPreSetup. 
+        /// Do NOT manually call this method!
+        /// </summary>
+        public sealed override void OnSetup()
+        {
+            base.OnSetup();
+        }
+
+        /// <summary>
+        /// Automatically called after OnSetup. 
+        /// Do NOT manually call this method!
+        /// </summary>
+        public sealed override void OnPostSetup()
+        {
+            base.OnPostSetup();
+        }
+
+        /// <summary>
+        /// Automatically called after OnPostSetup. 
+        /// Do NOT manually call this method!
+        /// </summary>
         public void OnPreAwake()
         {
-            EarlyPreInitialize();
-            PreInitialize();
-            LatePreInitialize();
+            OnEarlyPreInitialize();
+            OnPreInitialize();
+            OnLatePreInitialize();
         }
 
+        /// <summary>
+        /// Automatically called after OnPreAwake. 
+        /// Do NOT manually call this method!
+        /// </summary>
         public void OnAwake()
         {
-            EarlyInitialize();
-            Initialize();
-            LateInitialize();
+            OnEarlyInitialize();
+            OnInitialize();
+            OnLateInitialize();
         }
 
+        /// <summary>
+        /// Automatically called after OnAwake. 
+        /// Do NOT manually call this method!
+        /// </summary>
         public void OnPostAwake()
         {
-            EarlyPostInitialize();
-            PostInitialize();
-            LatePostInitialize();
+            OnEarlyPostInitialize();
+            OnPostInitialize();
+            OnLatePostInitialize();
         }
 
-        public void OnDisable()
+        /// <summary>
+        /// Automatically called when the MainManager is being destroyed by the LooCastApplication. 
+        /// Do NOT manually call this method! 
+        /// </summary>
+        public sealed override void OnDestroy()
         {
-            if (!IsEarlyPreTerminating && !IsPreTerminating && !IsLatePreTerminating && !IsEarlyTerminating && !IsTerminating && !IsLateTerminating && !IsEarlyPostTerminating && !IsPostTerminating && !IsLatePostTerminating)
-            {
-                EarlyPreTerminate();
-                PreTerminate();
-                LatePreTerminate();
-                EarlyTerminate();
-                Terminate();
-                LateTerminate();
-                EarlyPostTerminate();
-                PostTerminate();
-                LatePostTerminate();
-            }
+            OnEarlyPreTerminate();
+            OnPreTerminate();
+            OnLatePreTerminate();
+            OnEarlyTerminate();
+            OnTerminate();
+            OnLateTerminate();
+            OnEarlyPostTerminate();
+            OnPostTerminate();
+            OnLatePostTerminate();
         }
+        #endregion
 
-        public void OnApplicationQuit()
-        {
-            if (!IsEarlyPreTerminating && !IsPreTerminating && !IsLatePreTerminating && !IsEarlyTerminating && !IsTerminating && !IsLateTerminating && !IsEarlyPostTerminating && !IsPostTerminating && !IsLatePostTerminating)
-            {
-                EarlyPreTerminate();
-                PreTerminate();
-                LatePreTerminate();
-                EarlyTerminate();
-                Terminate();
-                LateTerminate();
-                EarlyPostTerminate();
-                PostTerminate();
-                LatePostTerminate();
-            }
-        }
+        #region Overrides
         #endregion
     }
 }

@@ -12,7 +12,7 @@ namespace LooCast.Universe
         #endregion
 
         #region Methods
-        public void InitializeUniverse(Universe universe)
+        public void Setup(Universe universe)
         {
             if (Universe is not null)
             {

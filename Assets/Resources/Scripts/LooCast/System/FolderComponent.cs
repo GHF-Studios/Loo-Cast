@@ -10,7 +10,7 @@ namespace LooCast.System
     public sealed class FolderComponent : Component, IFolder
     {
         #region Properties
-        public bool IsInitialized { get; private set; }
+        public bool IsSetup { get; private set; }
 
         public string FolderName { get; private set; }
         public bool IsRoot { get; private set; }
@@ -36,18 +36,18 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public FolderComponent()
+        public FolderComponent() : base()
         {
-            IsInitialized = false;
+            IsSetup = false;
         }
         #endregion
 
         #region Methods
-        public void InitializeAsRoot()
+        public void SetupAsRoot()
         {
-            if (IsInitialized)
+            if (IsSetup)
             {
-                throw new InvalidOperationException("Folder has already been initialized!");
+                throw new InvalidOperationException("Folder has already been set up!");
             }
 
             IsRoot = true;
@@ -60,14 +60,14 @@ namespace LooCast.System
 
             FolderManager.Instance.RegisterFolder(this);
 
-            IsInitialized = true;
+            IsSetup = true;
         }
 
-        public void Initialize(string folderName, IFolder folderParent)
+        public void Setup(string folderName, IFolder folderParent)
         {
-            if (IsInitialized)
+            if (IsSetup)
             {
-                throw new InvalidOperationException("Folder has already been initialized!");
+                throw new InvalidOperationException("Folder has already been set up!");
             }
             
             if (folderParent == null)
@@ -91,7 +91,7 @@ namespace LooCast.System
 
             FolderManager.Instance.RegisterFolder(this);
 
-            IsInitialized = true;
+            IsSetup = true;
         }
 
         public bool Validate()
@@ -237,7 +237,7 @@ namespace LooCast.System
         #region Overrides
         public override string ToString()
         {
-            return FolderPath;
+            return $"FolderComponent[{FolderPath}]";
         }
 
         public override bool Equals(object obj)

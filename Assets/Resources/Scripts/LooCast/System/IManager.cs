@@ -2,17 +2,19 @@
 
 namespace LooCast.System
 {
-    using global::LooCast.System.ECS;
-    using global::LooCast.System.Initialization;
-    using global::LooCast.System.Termination;
+    using LooCast.System.ECS;
+    using LooCast.System.Lifecycle.Setup;
+    using LooCast.System.Lifecycle.Initialization;
+    using LooCast.System.Lifecycle.Termination;
 
-    public interface IManager : IEntity, IChild<IManager>, IParent<IManager>, 
-                                IEarlyPreInitializationPhase, IPreInitializationPhase, ILatePreInitializationPhase, 
-                                IEarlyInitializationPhase, IInitializationPhase, ILateInitializationPhase, 
-                                IEarlyPostInitializationPhase, IPostInitializationPhase, ILatePostInitializationPhase, 
-                                IEarlyPreTerminationPhase, IPreTerminationPhase, ILatePreTerminationPhase, 
-                                IEarlyTerminationPhase, ITerminationPhase, ILateTerminationPhase, 
-                                IEarlyPostTerminationPhase, IPostTerminationPhase, ILatePostTerminationPhase
+    public interface IManager : IEntity, IChild<IManager>, IParent<IManager>,
+                                IPreSetupPhase, ISetupPhase, IPostSetupPhase,
+                                IEarlyPreInitializationPhase, ILatePreInitializationPhase, 
+                                IEarlyInitializationPhase, ILateInitializationPhase, 
+                                IEarlyPostInitializationPhase, ILatePostInitializationPhase,
+                                IEarlyPreTerminationPhase, ILatePreTerminationPhase,
+                                IEarlyTerminationPhase, ILateTerminationPhase,
+                                IEarlyPostTerminationPhase, ILatePostTerminationPhase
     {
         #region Properties
         string ManagerName { get; }

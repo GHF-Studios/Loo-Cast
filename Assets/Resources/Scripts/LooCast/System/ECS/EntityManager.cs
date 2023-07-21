@@ -31,7 +31,10 @@ namespace LooCast.System.ECS
         #region Constructors
         private EntityManager() : base("EntityManager", SystemManager.Instance)
         {
-            registeredEntities = new Dictionary<Guid, IEntity>();
+            RegisterPreSetupAction(() =>
+            {
+                registeredEntities = new Dictionary<Guid, IEntity>();
+            });
         }
         #endregion
 
@@ -41,11 +44,6 @@ namespace LooCast.System.ECS
             if (!registeredEntities.ContainsKey(entity.EntityID))
             {
                 registeredEntities.Add(entity.EntityID, entity);
-            }
-
-            if (enableLogging)
-            {
-                Debug.LogWarning($"Registered Entity '{entity}'.");
             }
         }
 

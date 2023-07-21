@@ -83,7 +83,7 @@ namespace LooCast.Universe
         #endregion
 
         #region Methods
-        public void InitializeUniverseObserver(UniverseObserver universeObserver)
+        public void Setup(UniverseObserver universeObserver)
         {
             if (UniverseObserver is not null)
             {

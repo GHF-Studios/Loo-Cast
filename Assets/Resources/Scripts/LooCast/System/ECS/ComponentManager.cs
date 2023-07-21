@@ -31,7 +31,10 @@ namespace LooCast.System.ECS
         #region Constructors
         private ComponentManager() : base("ComponentManager", SystemManager.Instance)
         {
-            registeredEntities = new Dictionary<Guid, IComponent>();
+            RegisterPreSetupAction(() =>
+            {
+                registeredEntities = new Dictionary<Guid, IComponent>();
+            });
         }
         #endregion
 
@@ -41,11 +44,6 @@ namespace LooCast.System.ECS
             if (!registeredEntities.ContainsKey(component.ComponentID))
             {
                 registeredEntities.Add(component.ComponentID, component);
-            }
-
-            if (enableLogging)
-            {
-                Debug.LogWarning($"Registered Component '{component}'.");
             }
         }
 

@@ -32,15 +32,16 @@
         #region Constructors
         private LooCastCoreManager() : base("LooCastCoreManager")
         {
-            RegisterInitializationAction(OnInitialization);
-        }
-        #endregion
+            RegisterSetupAction(() =>
+            {
+                AddChildModuleManager(UniverseManager.Instance);
+            });
 
-        #region Callbacks
-        private void OnInitialization()
-        {
-            Universe = new Universe(32);
-            UniverseObserver = new UniverseObserver(256);
+            RegisterInitializationAction(() =>
+            {
+                Universe = new Universe(32);
+                UniverseObserver = new UniverseObserver(256);
+            });
         }
         #endregion
     }

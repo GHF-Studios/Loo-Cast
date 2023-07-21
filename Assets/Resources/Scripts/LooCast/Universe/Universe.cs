@@ -75,7 +75,7 @@ namespace LooCast.Universe
             UnityBridge.RootGameObject.name = ToString();
 
             UniverseUnityComponent = UnityBridge.RootGameObject.AddComponent<UniverseUnityComponent>();
-            UniverseUnityComponent.InitializeUniverse(this);
+            UniverseUnityComponent.Setup(this);
         }
 
         public override void DisableUnityBridge()

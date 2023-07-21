@@ -36,7 +36,7 @@ namespace LooCast.Universe
             UnityBridge.RootGameObject.transform.SetParent(Scale.UnityBridge.RootGameObject.transform);
 
             ChunkUnityComponent = UnityBridge.RootGameObject.AddComponent<ChunkUnityComponent>();
-            ChunkUnityComponent.InitializeChunk(this);
+            ChunkUnityComponent.Setup(this);
         }
 
         public override void DisableUnityBridge()

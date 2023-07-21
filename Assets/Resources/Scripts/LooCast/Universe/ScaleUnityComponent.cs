@@ -22,7 +22,7 @@ namespace LooCast.Universe
         #endregion
 
         #region Methods
-        public void InitializeScale(Scale scale)
+        public void Setup(Scale scale)
         {
             if (Scale is not null)
             {

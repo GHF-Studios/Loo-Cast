@@ -57,7 +57,7 @@ namespace LooCast.Universe
         #endregion
 
         #region Methods
-        public void InitializeChunk(Chunk chunk)
+        public void Setup(Chunk chunk)
         {
             if (Chunk is not null)
             {

@@ -221,7 +221,7 @@ namespace LooCast.Universe
             UnityBridge.RootGameObject.name = "Universe Observer";
 
             UniverseObserverUnityComponent = UnityBridge.RootGameObject.AddComponent<UniverseObserverUnityComponent>();
-            UniverseObserverUnityComponent.InitializeUniverseObserver(this);
+            UniverseObserverUnityComponent.Setup(this);
         }
 
         public override void DisableUnityBridge()

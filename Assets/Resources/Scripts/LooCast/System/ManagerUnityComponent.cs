@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace LooCast.System
 {
-    using global::LooCast.System.ECS;
+    using LooCast.System.ECS;
     
     public sealed class ManagerUnityComponent : UnityComponent
     {
@@ -22,7 +22,7 @@ namespace LooCast.System
         #endregion
         
         #region Methods
-        public void InitializeManager(Manager manager)
+        public void Setup(Manager manager)
         {
             if (Manager is not null)
             {

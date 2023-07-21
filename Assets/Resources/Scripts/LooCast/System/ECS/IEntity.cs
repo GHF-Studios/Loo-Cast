@@ -2,7 +2,11 @@
 
 namespace LooCast.System.ECS
 {
-    public interface IEntity
+    using LooCast.System.Lifecycle.Setup;
+    using LooCast.System.Lifecycle.Initialization;
+    using LooCast.System.Lifecycle.Termination;
+
+    public interface IEntity : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Properties
         Guid EntityID { get; }
@@ -11,14 +15,17 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Methods
-        public void EnableUnityBridge();
-        public void DisableUnityBridge();
+        void OnCreate();
+        void OnDestroy();
+        
+        void EnableUnityBridge();
+        void DisableUnityBridge();
 
-        public ComponentType AddComponent<ComponentType>() where ComponentType : IComponent, new();
-        public void RemoveComponent<ComponentType>() where ComponentType : IComponent, new();
-        public bool ContainsComponent<ComponentType>() where ComponentType : IComponent, new();
-        public ComponentType GetComponent<ComponentType>() where ComponentType : IComponent, new();
-        public bool TryGetComponent<ComponentType>(out IComponent component) where ComponentType : IComponent, new();
+        ComponentType AddComponent<ComponentType>() where ComponentType : IComponent, new();
+        void RemoveComponent<ComponentType>() where ComponentType : IComponent, new();
+        bool ContainsComponent<ComponentType>() where ComponentType : IComponent, new();
+        ComponentType GetComponent<ComponentType>() where ComponentType : IComponent, new();
+        bool TryGetComponent<ComponentType>(out IComponent component) where ComponentType : IComponent, new();
         #endregion
     }
 }

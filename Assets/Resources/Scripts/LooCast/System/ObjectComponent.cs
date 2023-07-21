@@ -10,7 +10,7 @@ namespace LooCast.System
     public sealed class ObjectComponent : Component, IObject
     {
         #region Properties
-        public bool IsInitialized { get; private set; }
+        public bool IsSetup { get; private set; }
         
         public string ObjectName { get; private set; }
 
@@ -36,16 +36,16 @@ namespace LooCast.System
         #region Constructors
         public ObjectComponent() : base()
         {
-            IsInitialized = false;
+            IsSetup = false;
         }
         #endregion
 
         #region Methods
-        public void Initialize(string objectName, IFile fileParent)
+        public void Setup(string objectName, IFile fileParent)
         {
-            if (IsInitialized)
+            if (IsSetup)
             {
-                throw new InvalidOperationException("Object has already been initialized!");
+                throw new InvalidOperationException("Object has already been set up!");
             }
 
             if (fileParent == null)
@@ -67,14 +67,14 @@ namespace LooCast.System
 
             ObjectManager.Instance.RegisterObject(this);
 
-            IsInitialized = true;
+            IsSetup = true;
         }
 
-        public void Initialize(string objectName, IObject objectParent)
+        public void Setup(string objectName, IObject objectParent)
         {
-            if (IsInitialized)
+            if (IsSetup)
             {
-                throw new InvalidOperationException("Object has already been initialized!");
+                throw new InvalidOperationException("Object has already been set up!");
             }
 
             if (objectParent == null)
@@ -96,7 +96,7 @@ namespace LooCast.System
             
             ObjectManager.Instance.RegisterObject(this);
 
-            IsInitialized = true;
+            IsSetup = true;
         }
 
         public bool Validate()
@@ -179,7 +179,7 @@ namespace LooCast.System
         #region Overrides
         public override string ToString()
         {
-            return ObjectPath;
+            return $"ObjectComponent[{ObjectPath}]";
         }
 
         public override bool Equals(object obj)

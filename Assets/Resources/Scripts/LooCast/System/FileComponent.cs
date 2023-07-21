@@ -10,7 +10,7 @@ namespace LooCast.System
     public sealed class FileComponent : Component, IFile
     {
         #region Properties
-        public bool IsInitialized { get; private set; }
+        public bool IsSetup { get; private set; }
 
         public string FileName { get; private set; }
         public string FileExtension { get; private set; }
@@ -35,16 +35,16 @@ namespace LooCast.System
         #region Constructors
         public FileComponent() : base()
         {
-            IsInitialized = false;
+            IsSetup = false;
         }
         #endregion
 
         #region Methods
-        public void Initialize(string fileName, string fileExtension, IFolder folderParent)
+        public void Setup(string fileName, string fileExtension, IFolder folderParent)
         {
-            if (IsInitialized)
+            if (IsSetup)
             {
-                throw new InvalidOperationException("File has already been initialized!");
+                throw new InvalidOperationException("File has already been set up!");
             }
 
             PathBuilder filePathBuilder;
@@ -72,7 +72,7 @@ namespace LooCast.System
 
             FileManager.Instance.RegisterFile(this);
 
-            IsInitialized = true;
+            IsSetup = true;
         }
 
         public bool Validate()
@@ -155,7 +155,7 @@ namespace LooCast.System
         #region Overrides
         public override string ToString()
         {
-            return FilePath;
+            return $"FileComponent[{FilePath}]";
         }
 
         public override bool Equals(object obj)

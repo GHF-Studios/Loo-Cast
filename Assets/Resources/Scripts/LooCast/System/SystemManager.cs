@@ -25,12 +25,12 @@
         #region Constructors
         private SystemManager() : base("SystemManager")
         {
-            RegisterPreInitializationAction(() =>
+            RegisterSetupAction(() =>
             {
                 AddChildModuleManager(FolderManager.Instance);
                 AddChildModuleManager(FileManager.Instance);
                 AddChildModuleManager(ObjectManager.Instance);
-                AddChildModuleManager(EntityManager.Instance);;
+                AddChildModuleManager(EntityManager.Instance); ;
                 AddChildModuleManager(ComponentManager.Instance);
             });
         }

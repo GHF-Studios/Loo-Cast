@@ -2,7 +2,11 @@
 
 namespace LooCast.System.ECS
 {
-    public interface IComponent
+    using LooCast.System.Lifecycle.Setup;
+    using LooCast.System.Lifecycle.Initialization;
+    using LooCast.System.Lifecycle.Termination;
+
+    public interface IComponent : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Properties
         Guid ComponentID { get; }
@@ -10,10 +14,10 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Methods
-        void Initialize_INTERNAL(IEntity entity);
         void OnCreate();
         void OnDestroy();
-        void Destroy_INTERNAL();
+
+        void Create_INTERNAL(IEntity entity);
         #endregion
     }
 }

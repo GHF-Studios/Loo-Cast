@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace LooCast.System
 {
-    using global::LooCast.System.ECS;
+    using LooCast.System.ECS;
     
     public abstract class Manager : Entity, IManager
     {
@@ -19,190 +19,68 @@ namespace LooCast.System
         IEnumerable<IManager> IParent<IManager>.Children => ManagerChildren;
         public IEnumerable<IManager> ManagerChildren => managerChildrenList;
 
-        #region Initialization Phase Flags
         public bool IsEarlyPreInitializing { get; protected set; }
         public bool IsEarlyPreInitialized { get; protected set; }
-        public bool IsPreInitializing { get; protected set; }
-        public bool IsPreInitialized { get; protected set; }
         public bool IsLatePreInitializing { get; protected set; }
         public bool IsLatePreInitialized { get; protected set; }
 
         public bool IsEarlyInitializing { get; protected set; }
         public bool IsEarlyInitialized { get; protected set; }
-        public bool IsInitializing { get; protected set; }
-        public bool IsInitialized { get; protected set; }
         public bool IsLateInitializing { get; protected set; }
         public bool IsLateInitialized { get; protected set; }
 
         public bool IsEarlyPostInitializing { get; protected set; }
         public bool IsEarlyPostInitialized { get; protected set; }
-        public bool IsPostInitializing { get; protected set; }
-        public bool IsPostInitialized { get; protected set; }
         public bool IsLatePostInitializing { get; protected set; }
         public bool IsLatePostInitialized { get; protected set; }
 
-        public bool IsFullyPreInitializing
-        {
-            get
-            {
-                return IsEarlyPreInitializing || IsPreInitializing || IsLatePreInitializing;
-            }
-        }
-        public bool IsFullyPreInitialized
-        {
-            get
-            {
-                return IsEarlyPreInitialized && IsPreInitialized && IsLatePreInitialized;
-            }
-        }
-        public bool IsFullyInitializing
-        {
-            get
-            {
-                return IsEarlyInitializing || IsInitializing || IsLateInitializing;
-            }
-        }
-        public bool IsFullyInitialized
-        {
-            get
-            {
-                return IsEarlyInitialized && IsInitialized && IsLateInitialized;
-            }
-        }
-        public bool IsFullyPostInitializing
-        {
-            get
-            {
-                return IsEarlyPostInitializing || IsPostInitializing || IsLatePostInitializing;
-            }
-        }
-        public bool IsFullyPostInitialized
-        {
-            get
-            {
-                return IsEarlyPostInitialized && IsPostInitialized && IsLatePostInitialized;
-            }
-        }
-        public bool IsCompletelyInitializing
-        {
-            get
-            {
-                return IsFullyPreInitializing || IsFullyInitializing || IsFullyPostInitializing;
-            }
-        }
-        public bool IsCompletelyInitialized
-        {
-            get
-            {
-                return IsFullyPreInitialized && IsFullyInitialized && IsPostInitialized;
-            }
-        }
-        #endregion
-
-        #region Termination Phase Flags
         public bool IsEarlyPreTerminating { get; protected set; }
-        public bool IsPreTerminating { get; protected set; }
-        public bool IsLatePreTerminating { get; protected set; }
         public bool IsEarlyPreTerminated { get; protected set; }
-        public bool IsPreTerminated { get; protected set; }
+        public bool IsLatePreTerminating { get; protected set; }
         public bool IsLatePreTerminated { get; protected set; }
 
         public bool IsEarlyTerminating { get; protected set; }
-        public bool IsTerminating { get; protected set; }
-        public bool IsLateTerminating { get; protected set; }
         public bool IsEarlyTerminated { get; protected set; }
-        public bool IsTerminated { get; protected set; }
+        public bool IsLateTerminating { get; protected set; }
         public bool IsLateTerminated { get; protected set; }
 
         public bool IsEarlyPostTerminating { get; protected set; }
-        public bool IsPostTerminating { get; protected set; }
-        public bool IsLatePostTerminating { get; protected set; }
         public bool IsEarlyPostTerminated { get; protected set; }
-        public bool IsPostTerminated { get; protected set; }
+        public bool IsLatePostTerminating { get; protected set; }
         public bool IsLatePostTerminated { get; protected set; }
 
-        public bool IsFullyPreTerminating
-        {
-            get
-            {
-                return IsEarlyPreTerminating || IsPreTerminating || IsLatePreTerminating;
-            }
-        }
-        public bool IsFullyPreTerminated
-        {
-            get
-            {
-                return IsEarlyPreTerminated && IsPreTerminated && IsLatePreTerminated;
-            }
-        }
-        public bool IsFullyTerminating
-        {
-            get
-            {
-                return IsEarlyTerminating || IsTerminating || IsLateTerminating;
-            }
-        }
-        public bool IsFullyTerminated
-        {
-            get
-            {
-                return IsEarlyTerminated && IsTerminated && IsLateTerminated;
-            }
-        }
-        public bool IsFullyPostTerminating
-        {
-            get
-            {
-                return IsEarlyPostTerminating || IsPostTerminating || IsLatePostTerminating;
-            }
-        }
-        public bool IsFullyPostTerminated
-        {
-            get
-            {
-                return IsEarlyPostTerminated && IsPostTerminated && IsLatePostTerminated;
-            }
-        }
-        public bool IsCompletelyTerminating
-        {
-            get
-            {
-                return IsFullyPreTerminating || IsFullyTerminating || IsFullyPostTerminating;
-            }
-        }
-        public bool IsCompletelyTerminated
-        {
-            get
-            {
-                return IsFullyPreTerminated && IsFullyTerminated && IsPostTerminated;
-            }
-        }
-        #endregion
-
+        public bool IsPreSetupRunning { get; private set; }
+        public bool IsPreSetupFinished { get; private set; }
+        public bool IsSetupRunning { get; private set; }
+        public bool IsSetupFinished { get; private set; }
+        public bool IsPostSetupRunning { get; private set; }
+        public bool IsPostSetupFinished { get; private set; }
         #endregion
 
         #region Fields
         private List<Action> earlyPreInitializationActions;
-        private List<Action> preInitializationActions;
         private List<Action> latePreInitializationActions;
+
         private List<Action> earlyInitializationActions;
-        private List<Action> initializationActions;
         private List<Action> lateInitializationActions;
+        
         private List<Action> earlyPostInitializationActions;
-        private List<Action> postInitializationActions;
         private List<Action> latePostInitializationActions;
         
         private List<Action> earlyPreTerminationActions;
-        private List<Action> preTerminationActions;
         private List<Action> latePreTerminationActions;
-        private List<Action> earlyTerminationActions;
-        private List<Action> terminationActions;
-        private List<Action> lateTerminationActions;
-        private List<Action> earlyPostTerminationActions;
-        private List<Action> postTerminationActions;
-        private List<Action> latePostTerminationActions;
         
-        protected bool enableLogging = true;
+        private List<Action> earlyTerminationActions;
+        private List<Action> lateTerminationActions;
+        
+        private List<Action> earlyPostTerminationActions;
+        private List<Action> latePostTerminationActions;
+
+        private List<Action> preSetupActions;
+        private List<Action> setupActions;
+        private List<Action> postSetupActions;
+
+        protected bool enableLogging = false;
 
         private List<IManager> managerChildrenList;
         #endregion
@@ -213,67 +91,293 @@ namespace LooCast.System
             ManagerName = managerName;
             ManagerParent = managerParent;
 
+            earlyPreInitializationActions = new List<Action>();
+            latePreInitializationActions = new List<Action>();
+            earlyInitializationActions = new List<Action>();
+            lateInitializationActions = new List<Action>();
+            earlyPostInitializationActions = new List<Action>();
+            latePostInitializationActions = new List<Action>();
+
+            earlyPreTerminationActions = new List<Action>();
+            latePreTerminationActions = new List<Action>();
+            earlyTerminationActions = new List<Action>();
+            lateTerminationActions = new List<Action>();
+            earlyPostTerminationActions = new List<Action>();
+            latePostTerminationActions = new List<Action>();
+
+            preSetupActions = new List<Action>();
+            setupActions = new List<Action>();
+            postSetupActions = new List<Action>();
+
             EnableUnityBridge();
             UnityBridge.RootGameObject.name = managerName;
             ManagerUnityComponent = UnityBridge.RootGameObject.AddComponent<ManagerUnityComponent>();
-            ManagerUnityComponent.InitializeManager(this);
+            ManagerUnityComponent.Setup(this);
 
             if (managerParent != null)
             {
                 UnityBridge.RootGameObject.transform.SetParent(managerParent.UnityBridge.RootGameObject.transform);
             }
-
+            
+            FolderComponent folderComponent = null;
             RegisterInitializationAction(() =>
             {
-                FolderComponent folderComponent = AddComponent<FolderComponent>();
+                folderComponent = AddComponent<FolderComponent>();
                 
                 if (managerParent == null)
                 {
-                    folderComponent.InitializeAsRoot();
+                    folderComponent.SetupAsRoot();
                 }
                 else
                 {
-                    folderComponent.Initialize(managerName, managerParent.GetComponent<FolderComponent>());
+                    folderComponent.Setup(managerName, managerParent.GetComponent<FolderComponent>());
                 }
+            });
+            RegisterEarlyPostInitializationAction(() =>
+            {
+                folderComponent.OnPreInitialize();
+            });
+            RegisterPostInitializationAction(() =>
+            {
+                folderComponent.OnInitialize();
+            });
+            RegisterLatePostInitializationAction(() =>
+            {
+                folderComponent.OnPostInitialize();
             });
         }
         #endregion
 
         #region Callbacks
-        protected override void OnCreate()
-        {
-            earlyPreInitializationActions = new List<Action>();
-            preInitializationActions = new List<Action>();
-            latePreInitializationActions = new List<Action>();
-            earlyInitializationActions = new List<Action>();
-            initializationActions = new List<Action>();
-            lateInitializationActions = new List<Action>();
-            earlyPostInitializationActions = new List<Action>();
-            postInitializationActions = new List<Action>();
-            latePostInitializationActions = new List<Action>();
 
-            earlyPreTerminationActions = new List<Action>();
-            preTerminationActions = new List<Action>();
-            latePreTerminationActions = new List<Action>();
-            earlyTerminationActions = new List<Action>();
-            terminationActions = new List<Action>();
-            lateTerminationActions = new List<Action>();
-            earlyPostTerminationActions = new List<Action>();
-            postTerminationActions = new List<Action>();
-            latePostTerminationActions = new List<Action>();
-            
-            RegisterLateInitializationAction(() =>
+        #region Setup Phases
+        /// <summary>
+        /// Automatically called after constructor invocation. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnPreSetup()
+        {
+            if (IsPreSetupRunning)
             {
-                EntityManager.Instance.RegisterEntity(this);
-            });
+                throw new InvalidOperationException("Cannot start pre-setup of the manager while the manager's pre-setup is already running!");
+            }
+            if (IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start pre-setup of the manager while the manager's pre-setup is already finished!");
+            }
+            if (IsSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot start pre-setup of the manager while the manager's setup is already running!");
+            }
+            if (IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start pre-setup of the manager while the manager's setup is already finished!");
+            }
+            if (IsPostSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot start pre-setup of the manager while the manager's post-setup is already running!");
+            }
+            if (IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start pre-setup of the manager while the manager's post-setup is already finished!");
+            }
+
+            IsPreSetupRunning = true;
+            string managerTypeName = GetType().Name;
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting pre-setup.");
+            }
+
+            foreach (Action preSetupAction in preSetupActions)
+            {
+                preSetupAction.Invoke();
+            }
+
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished pre-setup.");
+            }
+            IsPreSetupRunning = false;
+            IsPreSetupFinished = true;
+        }
+
+        /// <summary>
+        /// Automatically called after OnPreSetup. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnSetup()
+        {
+            if (IsSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot start setup of the manager while the manager's setup is already running!");
+            }
+            if (IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start setup of the manager while the manager's setup is already finished!");
+            }
+            if (IsPostSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot start setup of the manager while the manager's post-setup is already running!");
+            }
+            if (IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start setup of the manager while the manager's post-setup is already finished!");
+            }
+
+            IsSetupRunning = true;
+            string managerTypeName = GetType().Name;
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting setup.");
+            }
+
+            foreach (Action setupAction in setupActions)
+            {
+                setupAction.Invoke();
+            }
+
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished setup.");
+            }
+            IsSetupRunning = false;
+            IsSetupFinished = true;
+        }
+
+        /// <summary>
+        /// Automatically called after OnSetup. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnPostSetup()
+        {
+            if (IsPostSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot start post-setup of the manager while the manager's post-setup is already running!");
+            }
+            if (IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start post-setup of the manager while the manager's post-setup is already finished!");
+            }
+
+            IsPostSetupRunning = true;
+            string managerTypeName = GetType().Name;
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Starting post-setup.");
+            }
+
+            foreach (Action postSetupAction in postSetupActions)
+            {
+                postSetupAction.Invoke();
+            }
+
+            if (enableLogging)
+            {
+                Debug.Log($"[{managerTypeName}] Finished post-setup.");
+            }
+            IsPostSetupRunning = false;
+            IsPostSetupFinished = true;
         }
         #endregion
 
-        #region Methods
-
         #region Initialization Phases
-        public void EarlyPreInitialize()
+        /// <summary>
+        /// Automatically called by parent manager.
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnEarlyPreInitialize()
         {
+            if (IsPreSetupRunning || !IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's pre-setup is not finished!");
+            }
+            if (IsSetupRunning || !IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's setup is not finished!");
+            }
+            if (IsPostSetupRunning || !IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's post-setup is not finished!");
+            }
+            
+            if (IsEarlyPreInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's early pre-initialization is already running!");
+            }
+            if (IsEarlyPreInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's early pre-initialization is already finished!");
+            }
+            if (IsPreInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's pre-initialization is already running!");
+            }
+            if (IsPreInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's pre-initialization is already finished!");
+            }
+            if (IsLatePreInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's late pre-initialization is already running!");
+            }
+            if (IsLatePreInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's late pre-initialization is already finished!");
+            }
+            if (IsEarlyInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's early initialization is already running!");
+            }
+            if (IsEarlyInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's early initialization is already finished!");
+            }
+            if (IsInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's initialization is already running!");
+            }
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's initialization is already finished!");
+            }
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's late initialization is already running!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's late initialization is already finished!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's early post-initialization is already running!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's early post-initialization is already finished!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's post-initialization is already running!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's post-initialization is already finished!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's late post-initialization is already running!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early pre-initialization of the manager while the manager's late post-initialization is already finished!");
+            }
+
             IsEarlyPreInitializing = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -294,8 +398,91 @@ namespace LooCast.System
             IsEarlyPreInitialized = true;
         }
 
-        public void PreInitialize()
+        /// <summary>
+        /// Automatically called after OnEarlyPreInitialize.
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void OnPreInitialize()
         {
+            if (IsPreSetupRunning || !IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's pre-setup is not finished!");
+            }
+            if (IsSetupRunning || !IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's setup is not finished!");
+            }
+            if (IsPostSetupRunning || !IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's post-setup is not finished!");
+            }
+
+            if (IsPreInitializing)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's pre-initialization is already running!");
+            }
+            if (IsPreInitialized)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's pre-initialization is already finished!");
+            }
+            if (IsLatePreInitializing)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's late pre-initialization is already running!");
+            }
+            if (IsLatePreInitialized)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's late pre-initialization is already finished!");
+            }
+            if (IsEarlyInitializing)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's early initialization is already running!");
+            }
+            if (IsEarlyInitialized)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's early initialization is already finished!");
+            }
+            if (IsInitializing)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's initialization is already running!");
+            }
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's initialization is already finished!");
+            }
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's late initialization is already running!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's late initialization is already finished!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's early post-initialization is already running!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's early post-initialization is already finished!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's post-initialization is already running!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's post-initialization is already finished!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's late post-initialization is already running!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start pre-initialization of the manager while the manager's late post-initialization is already finished!");
+            }
+
             IsPreInitializing = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -316,12 +503,87 @@ namespace LooCast.System
             IsPreInitialized = true;
         }
 
-        public void LatePreInitialize()
+        /// <summary>
+        /// Automatically called after OnPreInitialize.
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnLatePreInitialize()
         {
+            if (IsPreSetupRunning || !IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's pre-setup is not finished!");
+            }
+            if (IsSetupRunning || !IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's setup is not finished!");
+            }
+            if (IsPostSetupRunning || !IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's post-setup is not finished!");
+            }
+
+            if (IsLatePreInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's late pre-initialization is already running!");
+            }
+            if (IsLatePreInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's late pre-initialization is already finished!");
+            }
+            if (IsEarlyInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's early initialization is already running!");
+            }
+            if (IsEarlyInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's early initialization is already finished!");
+            }
+            if (IsInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's initialization is already running!");
+            }
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's initialization is already finished!");
+            }
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's late initialization is already running!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's late initialization is already finished!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's early post-initialization is already running!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's early post-initialization is already finished!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's post-initialization is already running!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's post-initialization is already finished!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's late post-initialization is already running!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late pre-initialization of the manager while the manager's late post-initialization is already finished!");
+            }
+            
             IsLatePreInitializing = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
-            {   
+            {
                 Debug.Log($"[{managerTypeName}] Starting Late Pre-Initialization.");
             }
 
@@ -338,8 +600,75 @@ namespace LooCast.System
             IsLatePreInitialized = true;
         }
 
-        public void EarlyInitialize()
+        /// <summary>
+        /// Automatically called after OnLatePreInitialize.
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnEarlyInitialize()
         {
+            if (IsPreSetupRunning || !IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's pre-setup is not finished!");
+            }
+            if (IsSetupRunning || !IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's setup is not finished!");
+            }
+            if (IsPostSetupRunning || !IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's post-setup is not finished!");
+            }
+
+            if (IsEarlyInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's early initialization is already running!");
+            }
+            if (IsEarlyInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's early initialization is already finished!");
+            }
+            if (IsInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's initialization is already running!");
+            }
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's initialization is already finished!");
+            }
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's late initialization is already running!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's late initialization is already finished!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's early post-initialization is already running!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's early post-initialization is already finished!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's post-initialization is already running!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's post-initialization is already finished!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's late post-initialization is already running!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early initialization of the manager while the manager's late post-initialization is already finished!");
+            }
+
             IsEarlyInitializing = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -360,8 +689,67 @@ namespace LooCast.System
             IsEarlyInitialized = true;
         }
 
-        public void Initialize()
+        /// <summary>
+        /// Automatically called after OnEarlyInitialize.
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void OnInitialize()
         {
+            if (IsPreSetupRunning || !IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's pre-setup is not finished!");
+            }
+            if (IsSetupRunning || !IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's setup is not finished!");
+            }
+            if (IsPostSetupRunning || !IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's post-setup is not finished!");
+            }
+
+            if (IsInitializing)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's initialization is already running!");
+            }
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's initialization is already finished!");
+            }
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's late initialization is already running!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's late initialization is already finished!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's early post-initialization is already running!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's early post-initialization is already finished!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's post-initialization is already running!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's post-initialization is already finished!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's late post-initialization is already running!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start initialization of the manager while the manager's late post-initialization is already finished!");
+            }
+
             IsInitializing = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -382,8 +770,59 @@ namespace LooCast.System
             IsInitialized = true;
         }
 
-        public void LateInitialize()
+        /// <summary>
+        /// Automatically called after OnInitialize.
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnLateInitialize()
         {
+            if (IsPreSetupRunning || !IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's pre-setup is not finished!");
+            }
+            if (IsSetupRunning || !IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's setup is not finished!");
+            }
+            if (IsPostSetupRunning || !IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's post-setup is not finished!");
+            }
+
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's late initialization is already running!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's late initialization is already finished!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's early post-initialization is already running!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's early post-initialization is already finished!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's post-initialization is already running!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's post-initialization is already finished!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's late post-initialization is already running!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late initialization of the manager while the manager's late post-initialization is already finished!");
+            }
+
             IsLateInitializing = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -404,8 +843,51 @@ namespace LooCast.System
             IsLateInitialized = true;
         }
 
-        public void EarlyPostInitialize()
+        /// <summary>
+        /// Automatically called after OnLateInitialize.
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnEarlyPostInitialize()
         {
+            if (IsPreSetupRunning || !IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start early post-initialization of the manager while the manager's pre-setup is not finished!");
+            }
+            if (IsSetupRunning || !IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start early post-initialization of the manager while the manager's setup is not finished!");
+            }
+            if (IsPostSetupRunning || !IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start early post-initialization of the manager while the manager's post-setup is not finished!");
+            }
+
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early post-initialization of the manager while the manager's early post-initialization is already running!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early post-initialization of the manager while the manager's early post-initialization is already finished!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early post-initialization of the manager while the manager's post-initialization is already running!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early post-initialization of the manager while the manager's post-initialization is already finished!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start early post-initialization of the manager while the manager's late post-initialization is already running!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start early post-initialization of the manager while the manager's late post-initialization is already finished!");
+            }
+
             IsEarlyPostInitializing = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -426,8 +908,43 @@ namespace LooCast.System
             IsEarlyPostInitialized = true;
         }
 
-        public void PostInitialize()
+        /// <summary>
+        /// Automatically called after OnEarlyPostInitialize.
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void OnPostInitialize()
         {
+            if (IsPreSetupRunning || !IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start post-initialization of the manager while the manager's pre-setup is not finished!");
+            }
+            if (IsSetupRunning || !IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start post-initialization of the manager while the manager's setup is not finished!");
+            }
+            if (IsPostSetupRunning || !IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start post-initialization of the manager while the manager's post-setup is not finished!");
+            }
+
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start post-initialization of the manager while the manager's post-initialization is already running!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start post-initialization of the manager while the manager's post-initialization is already finished!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start post-initialization of the manager while the manager's late post-initialization is already running!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start post-initialization of the manager while the manager's late post-initialization is already finished!");
+            }
+
             IsPostInitializing = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -448,8 +965,35 @@ namespace LooCast.System
             IsPostInitialized = true;
         }
 
-        public void LatePostInitialize()
+        /// <summary>
+        /// Automatically called after OnPostInitialize.
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnLatePostInitialize()
         {
+            if (IsPreSetupRunning || !IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start late post-initialization of the manager while the manager's pre-setup is not finished!");
+            }
+            if (IsSetupRunning || !IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start late post-initialization of the manager while the manager's setup is not finished!");
+            }
+            if (IsPostSetupRunning || !IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot start late post-initialization of the manager while the manager's post-setup is not finished!");
+            }
+
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot start late post-initialization of the manager while the manager's late post-initialization is already running!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot start late post-initialization of the manager while the manager's late post-initialization is already finished!");
+            }
+
             IsLatePostInitializing = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -472,8 +1016,86 @@ namespace LooCast.System
         #endregion
 
         #region Termination Phases
-        public void EarlyPreTerminate()
+        /// <summary>
+        /// Automatically called by parent manager via OnEarlyPreTerminate. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnEarlyPreTerminate()
         {
+            if (IsEarlyPreTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's early pre-termination is already running!");
+            }
+            if (IsEarlyPreTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's early pre-termination is already finished!");
+            }
+            if (IsPreTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's pre-termination is already running!");
+            }
+            if (IsPreTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's pre-termination is already finished!");
+            }
+            if (IsLatePreTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's late pre-termination is already running!");
+            }
+            if (IsLatePreTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's late pre-termination is already finished!");
+            }
+            if (IsEarlyTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's early termination is already running!");
+            }
+            if (IsEarlyTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's early termination is already finished!");
+            }
+            if (IsTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's termination is already running!");
+            }
+            if (IsTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's termination is already finished!");
+            }
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's late termination is already running!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's late termination is already finished!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's early post-termination is already running!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's early post-termination is already finished!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's post-termination is already running!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's post-termination is already finished!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's late post-termination is already running!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early pre-termination of the manager while the manager's late post-termination is already finished!");
+            }
+
             IsEarlyPreTerminating = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -494,8 +1116,78 @@ namespace LooCast.System
             IsEarlyPreTerminated = true;
         }
 
-        public void PreTerminate()
+        /// <summary>
+        /// Automatically called after OnEarlyPreTerminate. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void OnPreTerminate()
         {
+            if (IsPreTerminating)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's pre-termination is already running!");
+            }
+            if (IsPreTerminated)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's pre-termination is already finished!");
+            }
+            if (IsLatePreTerminating)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's late pre-termination is already running!");
+            }
+            if (IsLatePreTerminated)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's late pre-termination is already finished!");
+            }
+            if (IsEarlyTerminating)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's early termination is already running!");
+            }
+            if (IsEarlyTerminated)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's early termination is already finished!");
+            }
+            if (IsTerminating)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's termination is already running!");
+            }
+            if (IsTerminated)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's termination is already finished!");
+            }
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's late termination is already running!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's late termination is already finished!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's early post-termination is already running!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's early post-termination is already finished!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's post-termination is already running!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's post-termination is already finished!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's late post-termination is already running!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start pre-termination of the manager while the manager's late post-termination is already finished!");
+            }
+
             IsPreTerminating = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -516,8 +1208,70 @@ namespace LooCast.System
             IsPreTerminated = true;
         }
 
-        public void LatePreTerminate()
+        /// <summary>
+        /// Automatically called after OnPreTerminate. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnLatePreTerminate()
         {
+            if (IsLatePreTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's late pre-termination is already running!");
+            }
+            if (IsLatePreTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's late pre-termination is already finished!");
+            }
+            if (IsEarlyTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's early termination is already running!");
+            }
+            if (IsEarlyTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's early termination is already finished!");
+            }
+            if (IsTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's termination is already running!");
+            }
+            if (IsTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's termination is already finished!");
+            }
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's late termination is already running!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's late termination is already finished!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's early post-termination is already running!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's early post-termination is already finished!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's post-termination is already running!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's post-termination is already finished!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's late post-termination is already running!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late pre-termination of the manager while the manager's late post-termination is already finished!");
+            }
+
             IsLatePreTerminating = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -538,8 +1292,62 @@ namespace LooCast.System
             IsLatePreTerminated = true;
         }
 
-        public void EarlyTerminate()
+        /// <summary>
+        /// Automatically called after OnLatePreTerminate. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnEarlyTerminate()
         {
+            if (IsEarlyTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's early termination is already running!");
+            }
+            if (IsEarlyTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's early termination is already finished!");
+            }
+            if (IsTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's termination is already running!");
+            }
+            if (IsTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's termination is already finished!");
+            }
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's late termination is already running!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's late termination is already finished!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's early post-termination is already running!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's early post-termination is already finished!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's post-termination is already running!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's post-termination is already finished!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's late post-termination is already running!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early termination of the manager while the manager's late post-termination is already finished!");
+            }
+            
             IsEarlyTerminating = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -560,8 +1368,54 @@ namespace LooCast.System
             IsEarlyTerminated = true;
         }
 
-        public void Terminate()
+        /// <summary>
+        /// Automatically called after OnEarlyTerminate. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void OnTerminate()
         {
+            if (IsTerminating)
+            {
+                throw new InvalidOperationException("Cannot start termination of the manager while the manager's termination is already running!");
+            }
+            if (IsTerminated)
+            {
+                throw new InvalidOperationException("Cannot start termination of the manager while the manager's termination is already finished!");
+            }
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot start termination of the manager while the manager's late termination is already running!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot start termination of the manager while the manager's late termination is already finished!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start termination of the manager while the manager's early post-termination is already running!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start termination of the manager while the manager's early post-termination is already finished!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start termination of the manager while the manager's post-termination is already running!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start termination of the manager while the manager's post-termination is already finished!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start termination of the manager while the manager's late post-termination is already running!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start termination of the manager while the manager's late post-termination is already finished!");
+            }
+            
             IsTerminating = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -582,8 +1436,46 @@ namespace LooCast.System
             IsTerminated = true;
         }
 
-        public void LateTerminate()
+        /// <summary>
+        /// Automatically called after OnTerminate. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnLateTerminate()
         {
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late termination of the manager while the manager's late termination is already running!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late termination of the manager while the manager's late termination is already finished!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late termination of the manager while the manager's early post-termination is already running!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late termination of the manager while the manager's early post-termination is already finished!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late termination of the manager while the manager's post-termination is already running!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late termination of the manager while the manager's post-termination is already finished!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late termination of the manager while the manager's late post-termination is already running!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late termination of the manager while the manager's late post-termination is already finished!");
+            }
+            
             IsLateTerminating = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -604,8 +1496,38 @@ namespace LooCast.System
             IsLateTerminated = true;
         }
 
-        public void EarlyPostTerminate()
+        /// <summary>
+        /// Automatically called after OnLateTerminate. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnEarlyPostTerminate()
         {
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early post-termination of the manager while the manager's early post-termination is already running!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early post-termination of the manager while the manager's early post-termination is already finished!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early post-termination of the manager while the manager's post-termination is already running!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early post-termination of the manager while the manager's post-termination is already finished!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start early post-termination of the manager while the manager's late post-termination is already running!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start early post-termination of the manager while the manager's late post-termination is already finished!");
+            }
+            
             IsEarlyPostTerminating = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -626,8 +1548,30 @@ namespace LooCast.System
             IsEarlyPostTerminated = true;
         }
 
-        public void PostTerminate()
+        /// <summary>
+        /// Automatically called after OnEarlyPostTerminate. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void OnPostTerminate()
         {
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start post-termination of the manager while the manager's post-termination is already running!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start post-termination of the manager while the manager's post-termination is already finished!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start post-termination of the manager while the manager's late post-termination is already running!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start post-termination of the manager while the manager's late post-termination is already finished!");
+            }
+            
             IsPostTerminating = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -648,8 +1592,22 @@ namespace LooCast.System
             IsPostTerminated = true;
         }
 
-        public void LatePostTerminate()
+        /// <summary>
+        /// Automatically called after OnPostTerminate. 
+        /// Do NOT manually call this method!
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void OnLatePostTerminate()
         {
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot start late post-termination of the manager while the manager's late post-termination is already running!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot start late post-termination of the manager while the manager's late post-termination is already finished!");
+            }
+            
             IsLatePostTerminating = true;
             string managerTypeName = GetType().Name;
             if (enableLogging)
@@ -671,100 +1629,999 @@ namespace LooCast.System
         }
         #endregion
 
-        #region Initialization Action Registration
-        public void RegisterEarlyPreInitializationAction(Action action)
+        /// <summary>
+        /// Automatically called when this manager is being created by the parent manager. 
+        /// Do NOT manually call this method! 
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void OnCreate()
         {
+            base.OnCreate();
+        }
+
+        /// <summary>
+        /// Do NOT call this method, unless you are the LooCastApplication!
+        /// Do NOT override this method, unless you are the MainManager!
+        /// </summary>
+        public override void OnDestroy()
+        {
+            throw new InvalidOperationException("Manager should not be destroyed manually! Only the parent manager should destroy it via the termination cycle!");
+        }
+        
+        #endregion
+
+        #region Methods
+
+        #region Initialization Action Registration
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterEarlyPreInitializationAction(Action action)
+        {
+            if (IsEarlyPreInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already early pre-initializing!");
+            }
+            if (IsEarlyPreInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already early pre-initialized!");
+            }
+            if (IsPreInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already pre-initializing!");
+            }
+            if (IsPreInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already pre-initialized!");
+            }
+            if (IsLatePreInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already late pre-initializing!");
+            }
+            if (IsLatePreInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already late pre-initialized!");
+            }
+            if (IsEarlyInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already early initializing!");
+            }
+            if (IsEarlyInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already early initialized!");
+            }
+            if (IsInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already initializing!");
+            }
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already initialized!");
+            }
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already late initializing!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already late initialized!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already early post-initializing!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already early post-initialized!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already post-initializing!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already post-initialized!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already late post-initializing!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-initialization action while the manager is already late post-initialized!");
+            }
+
             earlyPreInitializationActions.Add(action);
         }
 
-        public void RegisterPreInitializationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void RegisterPreInitializationAction(Action preInitializationAction)
         {
-            preInitializationActions.Add(action);
+            if (IsPreInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already pre-initializing!");
+            }
+            if (IsPreInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already pre-initialized!");
+            }
+            if (IsLatePreInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already late pre-initializing!");
+            }
+            if (IsLatePreInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already late pre-initialized!");
+            }
+            if (IsEarlyInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already early initializing!");
+            }
+            if (IsEarlyInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already early initialized!");
+            }
+            if (IsInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already initializing!");
+            }
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already initialized!");
+            }
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already late initializing!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already late initialized!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already early post-initializing!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already early post-initialized!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already post-initializing!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already post-initialized!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already late post-initializing!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an pre-initialization action while the manager is already late post-initialized!");
+            }
+
+            preInitializationActions.Add(preInitializationAction);
         }
 
-        public void RegisterLatePreInitializationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterLatePreInitializationAction(Action action)
         {
+            if (IsLatePreInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already late pre-initializing!");
+            }
+            if (IsLatePreInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already late pre-initialized!");
+            }
+            if (IsEarlyInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already early initializing!");
+            }
+            if (IsEarlyInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already early initialized!");
+            }
+            if (IsInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already initializing!");
+            }
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already initialized!");
+            }
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already late initializing!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already late initialized!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already early post-initializing!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already early post-initialized!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already post-initializing!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already post-initialized!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already late post-initializing!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-initialization action while the manager is already late post-initialized!");
+            }
+            
             latePreInitializationActions.Add(action);
         }
 
-        public void RegisterEarlyInitializationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterEarlyInitializationAction(Action action)
         {
+            if (IsEarlyInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already early initializing!");
+            }
+            if (IsEarlyInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already early initialized!");
+            }
+            if (IsInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already initializing!");
+            }
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already initialized!");
+            }
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already late initializing!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already late initialized!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already early post-initializing!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already early post-initialized!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already post-initializing!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already post-initialized!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already late post-initializing!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early initialization action while the manager is already late post-initialized!");
+            }
+            
             earlyInitializationActions.Add(action);
         }
 
-        public void RegisterInitializationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void RegisterInitializationAction(Action initializationAction)
         {
-            initializationActions.Add(action);
+            if (IsInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an initialization action while the manager is already initializing!");
+            }
+            if (IsInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an initialization action while the manager is already initialized!");
+            }
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an initialization action while the manager is already late initializing!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an initialization action while the manager is already late initialized!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an initialization action while the manager is already early post-initializing!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an initialization action while the manager is already early post-initialized!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an initialization action while the manager is already post-initializing!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an initialization action while the manager is already post-initialized!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an initialization action while the manager is already late post-initializing!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an initialization action while the manager is already late post-initialized!");
+            }
+
+            initializationActions.Add(initializationAction);
         }
 
-        public void RegisterLateInitializationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterLateInitializationAction(Action action)
         {
+            if (IsLateInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late initialization action while the manager is already late initializing!");
+            }
+            if (IsLateInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late initialization action while the manager is already late initialized!");
+            }
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late initialization action while the manager is already early post-initializing!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late initialization action while the manager is already early post-initialized!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late initialization action while the manager is already post-initializing!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late initialization action while the manager is already post-initialized!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late initialization action while the manager is already late post-initializing!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late initialization action while the manager is already late post-initialized!");
+            }
+            
             lateInitializationActions.Add(action);
         }
 
-        public void RegisterEarlyPostInitializationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterEarlyPostInitializationAction(Action action)
         {
+            if (IsEarlyPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early post-initialization action while the manager is already early post-initializing!");
+            }
+            if (IsEarlyPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early post-initialization action while the manager is already early post-initialized!");
+            }
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early post-initialization action while the manager is already post-initializing!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early post-initialization action while the manager is already post-initialized!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an early post-initialization action while the manager is already late post-initializing!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an early post-initialization action while the manager is already late post-initialized!");
+            }
+            
             earlyPostInitializationActions.Add(action);
         }
 
-        public void RegisterPostInitializationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void RegisterPostInitializationAction(Action postInitializationAction)
         {
-            postInitializationActions.Add(action);
+            if (IsPostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an post-initialization action while the manager is already post-initializing!");
+            }
+            if (IsPostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an post-initialization action while the manager is already post-initialized!");
+            }
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an post-initialization action while the manager is already late post-initializing!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an post-initialization action while the manager is already late post-initialized!");
+            }
+
+            postInitializationActions.Add(postInitializationAction);
         }
 
-        public void RegisterLatePostInitializationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterLatePostInitializationAction(Action action)
         {
+            if (IsLatePostInitializing)
+            {
+                throw new InvalidOperationException("Cannot register an late post-initialization action while the manager is already late post-initializing!");
+            }
+            if (IsLatePostInitialized)
+            {
+                throw new InvalidOperationException("Cannot register an late post-initialization action while the manager is already late post-initialized!");
+            }
+            
             latePostInitializationActions.Add(action);
         }
         #endregion
 
         #region Termination Action Registration
-        public void RegisterEarlyPreTerminationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterEarlyPreTerminationAction(Action action)
         {
+            if (IsEarlyPreTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already early pre-terminating!");
+            }
+            if (IsEarlyPreTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already early pre-terminated!");
+            }
+            if (IsPreTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already pre-terminating!");
+            }
+            if (IsPreTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already pre-terminated!");
+            }
+            if (IsLatePreTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already late pre-terminating!");
+            }
+            if (IsLatePreTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already late pre-terminated!");
+            }
+            if (IsEarlyTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already early terminating!");
+            }
+            if (IsEarlyTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already early terminated!");
+            }
+            if (IsTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already terminating!");
+            }
+            if (IsTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already terminated!");
+            }
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already late terminating!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already late terminated!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already early post-terminating!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already early post-terminated!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already post-terminating!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already post-terminated!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already late post-terminating!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early pre-termination action while the manager is already late post-terminated!");
+            }
+
             earlyPreTerminationActions.Add(action);
         }
 
-        public void RegisterPreTerminationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void RegisterPreTerminationAction(Action preTerminationAction)
         {
-            preTerminationActions.Add(action);
+            if (IsPreTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already pre-terminating!");
+            }
+            if (IsPreTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already pre-terminated!");
+            }
+            if (IsLatePreTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already late pre-terminating!");
+            }
+            if (IsLatePreTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already late pre-terminated!");
+            }
+            if (IsEarlyTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already early terminating!");
+            }
+            if (IsEarlyTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already early terminated!");
+            }
+            if (IsTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already terminating!");
+            }
+            if (IsTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already terminated!");
+            }
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already late terminating!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already late terminated!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already early post-terminating!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already early post-terminated!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already post-terminating!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already post-terminated!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already late post-terminating!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an pre-termination action while the manager is already late post-terminated!");
+            }
+
+            preTerminationActions.Add(preTerminationAction);
         }
 
-        public void RegisterLatePreTerminationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterLatePreTerminationAction(Action action)
         {
+            if (IsLatePreTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already late pre-terminating!");
+            }
+            if (IsLatePreTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already late pre-terminated!");
+            }
+            if (IsEarlyTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already early terminating!");
+            }
+            if (IsEarlyTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already early terminated!");
+            }
+            if (IsTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already terminating!");
+            }
+            if (IsTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already terminated!");
+            }
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already late terminating!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already late terminated!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already early post-terminating!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already early post-terminated!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already post-terminating!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already post-terminated!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already late post-terminating!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late pre-termination action while the manager is already late post-terminated!");
+            }
+
             latePreTerminationActions.Add(action);
         }
 
-        public void RegisterEarlyTerminationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterEarlyTerminationAction(Action action)
         {
+            if (IsEarlyTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already early terminating!");
+            }
+            if (IsEarlyTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already early terminated!");
+            }
+            if (IsTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already terminating!");
+            }
+            if (IsTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already terminated!");
+            }
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already late terminating!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already late terminated!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already early post-terminating!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already early post-terminated!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already post-terminating!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already post-terminated!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already late post-terminating!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early termination action while the manager is already late post-terminated!");
+            }
+
             earlyTerminationActions.Add(action);
         }
 
-        public void RegisterTerminationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void RegisterTerminationAction(Action terminationAction)
         {
-            terminationActions.Add(action);
+            if (IsTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an termination action while the manager is already terminating!");
+            }
+            if (IsTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an termination action while the manager is already terminated!");
+            }
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an termination action while the manager is already late terminating!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an termination action while the manager is already late terminated!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an termination action while the manager is already early post-terminating!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an termination action while the manager is already early post-terminated!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an termination action while the manager is already post-terminating!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an termination action while the manager is already post-terminated!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an termination action while the manager is already late post-terminating!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an termination action while the manager is already late post-terminated!");
+            }
+
+            terminationActions.Add(terminationAction);
         }
 
-        public void RegisterLateTerminationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterLateTerminationAction(Action action)
         {
+            if (IsLateTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late termination action while the manager is already late terminating!");
+            }
+            if (IsLateTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late termination action while the manager is already late terminated!");
+            }
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late termination action while the manager is already early post-terminating!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late termination action while the manager is already early post-terminated!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late termination action while the manager is already post-terminating!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late termination action while the manager is already post-terminated!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late termination action while the manager is already late post-terminating!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late termination action while the manager is already late post-terminated!");
+            }
+
             lateTerminationActions.Add(action);
         }
 
-        public void RegisterEarlyPostTerminationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterEarlyPostTerminationAction(Action action)
         {
+            if (IsEarlyPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early post-termination action while the manager is already early post-terminating!");
+            }
+            if (IsEarlyPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early post-termination action while the manager is already early post-terminated!");
+            }
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early post-termination action while the manager is already post-terminating!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early post-termination action while the manager is already post-terminated!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an early post-termination action while the manager is already late post-terminating!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an early post-termination action while the manager is already late post-terminated!");
+            }
+
             earlyPostTerminationActions.Add(action);
         }
 
-        public void RegisterPostTerminationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public override void RegisterPostTerminationAction(Action postTerminationAction)
         {
-            postTerminationActions.Add(action);
+            if (IsPostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an post-termination action while the manager is already post-terminating!");
+            }
+            if (IsPostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an post-termination action while the manager is already post-terminated!");
+            }
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an post-termination action while the manager is already late post-terminating!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an post-termination action while the manager is already late post-terminated!");
+            }
+
+            postTerminationActions.Add(postTerminationAction);
         }
 
-        public void RegisterLatePostTerminationAction(Action action)
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterLatePostTerminationAction(Action action)
         {
+            if (IsLatePostTerminating)
+            {
+                throw new InvalidOperationException("Cannot register an late post-termination action while the manager is already late post-terminating!");
+            }
+            if (IsLatePostTerminated)
+            {
+                throw new InvalidOperationException("Cannot register an late post-termination action while the manager is already late post-terminated!");
+            }
+
             latePostTerminationActions.Add(action);
         }
         #endregion
 
+        #region Setup Action Registration
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterPreSetupAction(Action preSetupAction)
+        {
+            if (IsPreSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot register a pre-setup action while pre-setup is running!");
+            }
+            if (IsPreSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot register a pre-setup action after pre-setup has finished!");
+            }
+            if (IsSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot register a pre-setup action while setup is running!");
+            }
+            if (IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot register a pre-setup action after setup has finished!");
+            }
+            if (IsPostSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot register a pre-setup action while post-setup is running!");
+            }
+            if (IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot register a pre-setup action after post-setup has finished!");
+            }
+
+            preSetupActions.Add(preSetupAction);
+        }
+
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterSetupAction(Action setupAction)
+        {
+            if (IsSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot register a setup action while setup is running!");
+            }
+            if (IsSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot register a setup action after setup has finished!");
+            }
+            if (IsPostSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot register a setup action while post-setup is running!");
+            }
+            if (IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot register a setup action after post-setup has finished!");
+            }
+
+            setupActions.Add(setupAction);
+        }
+
+        /// <summary>
+        /// Only override this method if you know what you are doing!
+        /// </summary>
+        public virtual void RegisterPostSetupAction(Action postSetupAction)
+        {
+            if (IsPostSetupRunning)
+            {
+                throw new InvalidOperationException("Cannot register a post-setup action while post-setup is running!");
+            }
+            if (IsPostSetupFinished)
+            {
+                throw new InvalidOperationException("Cannot register a post-setup action after post-setup has finished!");
+            }
+
+            postSetupActions.Add(postSetupAction);
+        }
+        #endregion
+
+        #endregion
+
+        #region Overrides
+        public override string ToString()
+        {
+            return ManagerName;
+        }
         #endregion
     }
 }
