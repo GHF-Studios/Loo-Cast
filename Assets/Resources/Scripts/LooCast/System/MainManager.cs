@@ -184,7 +184,6 @@ namespace LooCast.System
                     coreModuleManager.OnPostSetup();
                 }
             });
-            Debug.LogWarning("MainManager constructed!");
         }
         #endregion
 

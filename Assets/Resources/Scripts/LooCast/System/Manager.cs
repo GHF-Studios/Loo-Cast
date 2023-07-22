@@ -8,7 +8,7 @@ namespace LooCast.System
     using LooCast.System.ECS;
     using LooCast.System.Paths;
 
-    public abstract class Manager : Entity, IManager, ISerializable<Entity.MetaData, Manager.Data>
+    public class Manager : Entity, IManager, ISerializable<Entity.MetaData, Manager.Data>
     {
         #region Classes
         new public class Data : Entity.Data
@@ -115,7 +115,7 @@ namespace LooCast.System
         /// <summary>
         /// Manager constructors are required be parameterless and should NEVER be called manually!
         /// </summary>
-        protected Manager() : base()
+        public Manager() : base()
         {
             preSetupActions = new List<Action>();
             setupActions = new List<Action>();
@@ -147,7 +147,6 @@ namespace LooCast.System
                     UnityBridge.RootGameObject.transform.SetParent(ManagerParent.UnityBridge.RootGameObject.transform);
                 }
             });
-            Debug.LogWarning("Manager constructed!");
         }
         #endregion
 

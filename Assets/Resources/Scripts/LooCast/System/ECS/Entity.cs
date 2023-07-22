@@ -8,10 +8,7 @@ namespace LooCast.System.ECS
 {
     using LooCast.System.Serialization;
 
-    /// <summary>
-    /// Lifecycle: Construction -> OnCreate -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
-    /// </summary>
-    public abstract class Entity : IEntity, ISerializable<Entity.MetaData, Entity.Data>
+    public class Entity : IEntity, ISerializable<Entity.MetaData, Entity.Data>
     {
         #region Classes
         public class MetaData : IEntity.IMetaData
@@ -108,7 +105,7 @@ namespace LooCast.System.ECS
         /// <summary>
         /// Entity constructors are required be parameterless and should NEVER be called manually!
         /// </summary>
-        protected Entity()
+        public Entity()
         {
             IsCreated = false;
             IsDestroyed = false;
@@ -172,7 +169,6 @@ namespace LooCast.System.ECS
                 components.Clear();
                 componentTypes.Clear();
             });
-            Debug.LogWarning("Entity constructed!");
         }
         #endregion
         
@@ -1005,7 +1001,7 @@ namespace LooCast.System.ECS
 
         public override string ToString()
         {
-            return EntityID.ToString();
+            return $"Entity[{EntityID}]";
         }
         #endregion
     }
