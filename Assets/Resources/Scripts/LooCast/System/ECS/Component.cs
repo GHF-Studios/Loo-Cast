@@ -105,12 +105,10 @@ namespace LooCast.System.ECS
 
             RegisterPreInitializationAction(() =>
             {
-                ComponentManager.Instance.RegisterComponent(this);
             });
 
             RegisterPostTerminationAction(() =>
             {
-                ComponentManager.Instance.UnregisterComponent(this);
                 ComponentID = Guid.Empty;
                 Entity = null;
             });

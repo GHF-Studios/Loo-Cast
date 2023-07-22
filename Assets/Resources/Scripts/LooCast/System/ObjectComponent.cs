@@ -69,12 +69,10 @@ namespace LooCast.System
             
             RegisterPreInitializationAction(() =>
             {
-                ObjectManager.Instance.RegisterObject(this);
             });
 
             RegisterPostTerminationAction(() =>
             {
-                ObjectManager.Instance.UnregisterObject(this);
                 ObjectName = null;
                 objectChildrenList = null;
             });
@@ -243,7 +241,6 @@ namespace LooCast.System
 
                 ObjectName = data.ObjectName;
                 ObjectPath = objectPathBuilder.ConstructObjectPath();
-                ObjectParent = ObjectManager.Instance.GetObject(data.ParentObjectPath);
                 FileParent = null;
 
                 ObjectParent.AddChildObject(this);
@@ -257,7 +254,6 @@ namespace LooCast.System
                 ObjectName = data.ObjectName;
                 ObjectPath = objectPathBuilder.ConstructObjectPath();
                 ObjectParent = null;
-                FileParent = FileManager.Instance.GetFile(data.ParentObjectPath);
 
                 FileParent.AddChildObject(this);
             }

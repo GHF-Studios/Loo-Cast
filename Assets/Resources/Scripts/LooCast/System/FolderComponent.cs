@@ -66,12 +66,10 @@ namespace LooCast.System
             
             RegisterPreInitializationAction(() =>
             {
-                FolderManager.Instance.RegisterFolder(this);
             });
 
             RegisterPostTerminationAction(() =>
             {
-                FolderManager.Instance.UnregisterFolder(this);
                 FolderName = null;
                 folderChildrenList = null;
                 fileChildrenList = null;
@@ -349,7 +347,6 @@ namespace LooCast.System
                 folderPathBuilder.WithFolder(data.FolderName);
                 FolderPath = folderPathBuilder.ConstructFolderPath();
                 FolderName = data.FolderName;
-                FolderParent = FolderManager.Instance.GetFolder(data.ParentFolderPath);
                 FolderParent.AddChildFolder(this);
             }
             
