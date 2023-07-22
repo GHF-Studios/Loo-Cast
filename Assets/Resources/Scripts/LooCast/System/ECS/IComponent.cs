@@ -6,17 +6,21 @@ namespace LooCast.System.ECS
     using LooCast.System.Lifecycle.Initialization;
     using LooCast.System.Lifecycle.Termination;
     
-    public interface IComponent : ISerializable<IComponent.IMetaData, IComponent.IData>, IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
+    public interface IComponent : ISerializable, IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Interfaces
         public interface IMetaData : Serialization.IMetaData
         {
             string AssemblyQualifiedComponentTypeName { get; set; }
+            string AssemblyQualifiedComponentMetaDataTypeName { get; set; }
+            string AssemblyQualifiedComponentDataTypeName { get; set; }
         }
-
+        
         public interface IData : Serialization.IData
         {
             string AssemblyQualifiedComponentTypeName { get; set; }
+            string AssemblyQualifiedComponentMetaDataTypeName { get; set; }
+            string AssemblyQualifiedComponentDataTypeName { get; set; }
         }
         #endregion
 
@@ -42,7 +46,7 @@ namespace LooCast.System.ECS
         /// Automatically called when the component is internally being created.
         /// Do NOT manually call this method!
         /// </summary>
-        void Create_INTERNAL(Type componentType, IEntity entity);
+        void Create_INTERNAL(Type componentType, Type componentMetaDataType, Type componentDataType, IEntity entity);
 
         /// <summary>
         /// Automatically called when the component is internally being destroyed.

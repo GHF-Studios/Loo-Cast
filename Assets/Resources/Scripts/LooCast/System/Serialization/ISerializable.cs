@@ -1,13 +1,13 @@
 ﻿namespace LooCast.System.Serialization
 {
-    public interface ISerializable<MetaDataType, DataType> where MetaDataType : IMetaData where DataType : IData
+    public interface ISerializable
     {
         #region Methods
-        MetaDataType GetMetaData();
-        void SetMetaData(MetaDataType metaData);
+        IMetaData GetMetaData();
+        void SetMetaData(IMetaData metaData);
 
-        DataType GetData();
-        void SetData(DataType data);
+        IData GetData();
+        void SetData(IData data);
         #endregion
     }
 }

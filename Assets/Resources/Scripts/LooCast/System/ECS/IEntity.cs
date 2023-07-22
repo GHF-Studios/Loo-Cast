@@ -6,18 +6,22 @@ namespace LooCast.System.ECS
     using LooCast.System.Lifecycle.Initialization;
     using LooCast.System.Lifecycle.Termination;
 
-    public interface IEntity : ISerializable<IEntity.IMetaData, IEntity.IData>, IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
+    public interface IEntity : ISerializable, IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Interfaces
         public interface IMetaData : Serialization.IMetaData
         {
             string AssemblyQualifiedEntityTypeName { get; set; }
+            string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
+            string AssemblyQualifiedEntityDataTypeName { get; set; }
             IComponent.IMetaData[] ComponentMetaDatas { get; set; }
         }
 
         public interface IData : Serialization.IData
         {
             string AssemblyQualifiedEntityTypeName { get; set; }
+            string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
+            string AssemblyQualifiedEntityDataTypeName { get; set; }
             IComponent.IData[] ComponentDatas { get; set; }
         }
         #endregion
@@ -45,7 +49,7 @@ namespace LooCast.System.ECS
         /// Automatically called when the entity is internally being created.
         /// Do NOT manually call this method!
         /// </summary>
-        void Create_INTERNAL(Type entityType);
+        void Create_INTERNAL(Type entityType, Type entityMetaDataType, Type entityDataType);
 
         /// <summary>
         /// Automatically called when the entity is internally being destroyed.
@@ -56,7 +60,11 @@ namespace LooCast.System.ECS
         void EnableUnityBridge();
         void DisableUnityBridge();
 
-        ComponentType AddComponent<ComponentType>() where ComponentType : IComponent, new();
+        ComponentType AddComponent<ComponentType, ComponentMetaDataType, ComponentDataType>()
+            where ComponentType : IComponent, new()
+            where ComponentMetaDataType : IComponent.IMetaData, new()
+            where ComponentDataType : IComponent.IData, new();
+        IComponent AddComponent(Type newComponentType, Type newComponentMetaDataType, Type newComponentDataType);
         void RemoveComponent<ComponentType>() where ComponentType : IComponent, new();
         bool ContainsComponent<ComponentType>() where ComponentType : IComponent, new();
         ComponentType GetComponent<ComponentType>() where ComponentType : IComponent, new();

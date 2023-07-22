@@ -8,48 +8,32 @@ namespace LooCast.System.ECS
     /// <summary>
     /// Lifecycle: Construction via Entity.AddComponent -> OnCreate -> Setup -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
     /// </summary>
-    public abstract class Component : IComponent, ISerializable<Component.MetaData, Component.Data>
+    public abstract class Component : IComponent
     {
         #region Classes
-        public class MetaData : IComponent.IMetaData
+        public class MetaData : Serialization.MetaData, IComponent.IMetaData
         {
             #region Properties
             public string AssemblyQualifiedComponentTypeName { get; set; }
-            public Guid GUID { get; set; }
-            #endregion
-
-            #region Constructors
-            public MetaData(string assemblyQualifiedComponentTypeName)
-            {
-                AssemblyQualifiedComponentTypeName = assemblyQualifiedComponentTypeName;
-                GUID = Guid.NewGuid();
-            }
-
-            public MetaData(string assemblyQualifiedComponentTypeName, Guid guid)
-            {
-                AssemblyQualifiedComponentTypeName = assemblyQualifiedComponentTypeName;
-                GUID = guid;
-            }
+            public string AssemblyQualifiedComponentMetaDataTypeName { get; set; }
+            public string AssemblyQualifiedComponentDataTypeName { get; set; }
             #endregion
         }
 
-        public class Data : IComponent.IData
+        public class Data : Serialization.Data, IComponent.IData
         {
             #region Properties
             public string AssemblyQualifiedComponentTypeName { get; set; }
-            #endregion
-
-            #region Constructors
-            public Data(string assemblyQualifiedComponentTypeName)
-            {
-                AssemblyQualifiedComponentTypeName = assemblyQualifiedComponentTypeName;
-            }
+            public string AssemblyQualifiedComponentMetaDataTypeName { get; set; }
+            public string AssemblyQualifiedComponentDataTypeName { get; set; }
             #endregion
         }
         #endregion
 
         #region Properties
         public Type ComponentType { get; private set; }
+        public Type ComponentMetaDataType { get; private set; }
+        public Type ComponentDataType { get; private set; }
         public Guid ComponentID { get; private set; }
         public IEntity Entity { get; private set; }
 
@@ -418,14 +402,29 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Methods
-        public void Create_INTERNAL(Type componentType, IEntity entity)
+        public void Create_INTERNAL(Type componentType, Type componentMetaDataType, Type componentDataType, IEntity entity)
         {
             if (IsCreated_INTERNALLY)
             {
                 throw new InvalidOperationException("Component has already been created internally!");
             }
 
+            if (!typeof(IComponent).IsAssignableFrom(componentType))
+            {
+                throw new ArgumentException($"'{nameof(componentType)}' is not a component type!");
+            }
+            if (!typeof(IComponent.IMetaData).IsAssignableFrom(componentMetaDataType))
+            {
+                throw new ArgumentException($"'{nameof(componentMetaDataType)}' is not a component meta-data type!");
+            }
+            if (!typeof(IComponent.IData).IsAssignableFrom(componentDataType))
+            {
+                throw new ArgumentException($"'{nameof(componentDataType)}' is not a component data type!");
+            }
+
             ComponentType = componentType;
+            ComponentMetaDataType = componentMetaDataType;
+            ComponentDataType = componentDataType;
             Entity = entity;
 
             IsCreated_INTERNALLY = true;
@@ -578,66 +577,68 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Data Management
-        Component.MetaData ISerializable<Component.MetaData, Component.Data>.GetMetaData()
+        public virtual IMetaData GetMetaData()
         {
             if (!HasMetaData)
             {
                 throw new InvalidOperationException($"Component '{this}' does not have metaData!");
             }
 
-            return new Component.MetaData(ComponentType.AssemblyQualifiedName, ComponentID);
+            IComponent.IMetaData metaData = (IComponent.IMetaData)Activator.CreateInstance(ComponentMetaDataType);
+            metaData.AssemblyQualifiedComponentTypeName = ComponentType.AssemblyQualifiedName;
+            metaData.AssemblyQualifiedComponentMetaDataTypeName = ComponentMetaDataType.AssemblyQualifiedName;
+            metaData.AssemblyQualifiedComponentDataTypeName = ComponentDataType.AssemblyQualifiedName;
+            metaData.GUID = ComponentID;
+
+            return metaData;
         }
 
-        Component.Data ISerializable<Component.MetaData, Component.Data>.GetData()
+        public virtual IData GetData()
         {
             if (!HasData)
             {
                 throw new InvalidOperationException($"Component '{this}' does not have data!");
             }
 
-            return new Component.Data(ComponentType.AssemblyQualifiedName);
+            IComponent.IData data = (IComponent.IData)Activator.CreateInstance(ComponentDataType);
+            data.AssemblyQualifiedComponentTypeName = ComponentType.AssemblyQualifiedName;
+            data.AssemblyQualifiedComponentMetaDataTypeName = ComponentMetaDataType.AssemblyQualifiedName;
+            data.AssemblyQualifiedComponentDataTypeName = ComponentDataType.AssemblyQualifiedName;
+
+            return data;
         }
 
-        void ISerializable<Component.MetaData, Component.Data>.SetMetaData(Component.MetaData metaData)
+        public virtual void SetMetaData(IMetaData metaData)
         {
-            ComponentID = metaData.GUID;
+            if (metaData is not IComponent.IMetaData)
+            {
+                throw new ArgumentException($"Cannot set metaData, because metaData is not of type '{typeof(IComponent.IMetaData)}'!");
+            }
+
+            IComponent.IMetaData componentMetaData = (IComponent.IMetaData)metaData;
+            ComponentID = componentMetaData.GUID;
 
             HasMetaData = true;
         }
 
-        void ISerializable<Component.MetaData, Component.Data>.SetData(Component.Data data)
+        public virtual void SetData(IData data)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Cannot set data, because component '{this}' is not created!");
+            }
+            if (!HasMetaData)
+            {
+                throw new InvalidOperationException($"Cannot set data, because component '{this}' does not have metaData!");
+            }
+            if (data is not IComponent.IData)
+            {
+                throw new ArgumentException($"Cannot set data, because data is not of type '{typeof(IComponent.IData)}'!");
+            }
+
+            IComponent.IData componentData = (IComponent.IData)data;
+
             HasData = true;
-        }
-
-        IComponent.IMetaData ISerializable<IComponent.IMetaData, IComponent.IData>.GetMetaData()
-        {
-            return ((ISerializable<Component.MetaData, Component.Data>)this).GetMetaData();
-        }
-
-        IComponent.IData ISerializable<IComponent.IMetaData, IComponent.IData>.GetData()
-        {
-            return ((ISerializable<Component.MetaData, Component.Data>)this).GetData();
-        }
-
-        void ISerializable<IComponent.IMetaData, IComponent.IData>.SetMetaData(IComponent.IMetaData metaData)
-        {
-            if (metaData is not Component.MetaData)
-            {
-                throw new ArgumentException($"MetaData '{nameof(metaData)}' is not of type 'Component.MetaData'!");
-            }
-
-            ((ISerializable<Component.MetaData, Component.Data>)this).SetMetaData((Component.MetaData)metaData);
-        }
-
-        void ISerializable<IComponent.IMetaData, IComponent.IData>.SetData(IComponent.IData data)
-        {
-            if (data is not Component.Data)
-            {
-                throw new ArgumentException($"Data '{nameof(data)}' is not of type 'Component.Data'!");
-            }
-
-            ((ISerializable<Component.MetaData, Component.Data>)this).SetData((Component.Data)data);
         }
         #endregion
 

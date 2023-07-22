@@ -2,10 +2,10 @@
 
 namespace LooCast.System.Serialization
 {
-    public interface IMetaData
+    public class MetaData : IMetaData
     {
         #region Properties
-        Guid GUID { get; set; }
+        public Guid GUID { get; set; }
         #endregion
     }
 }
