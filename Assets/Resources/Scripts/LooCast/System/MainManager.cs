@@ -261,6 +261,8 @@ namespace LooCast.System
         /// </summary>
         public sealed override void OnDestroy()
         {
+            IsDestroyed = true;
+            
             OnEarlyPreTerminate();
             OnPreTerminate();
             OnLatePreTerminate();

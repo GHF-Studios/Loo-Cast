@@ -3,12 +3,15 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using global::LooCast.System.ECS;
-    using global::LooCast.System.Paths;
+    using LooCast.System.ECS;
+    using LooCast.System.Paths;
 
     [IncompatibleComponents(typeof(FileComponent), typeof(ObjectComponent))]
     public sealed class FolderComponent : Component, IFolder
     {
+        #region Classes
+        #endregion
+        
         #region Properties
         public bool IsSetup { get; private set; }
 
@@ -99,6 +102,7 @@ namespace LooCast.System
             return true;
         }
 
+        #region Child Management
         public bool TryAddChildFolder(IFolder childFolder) 
         {
             if (ContainsChildFolder(childFolder.FolderName))
@@ -232,6 +236,8 @@ namespace LooCast.System
         {
             fileChildrenList.Clear();
         }
+        #endregion
+        
         #endregion
 
         #region Overrides

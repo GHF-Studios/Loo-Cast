@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using global::LooCast.System.ECS;
-    using global::LooCast.System.Paths;
+    using LooCast.System.ECS;
+    using LooCast.System.Paths;
 
     [IncompatibleComponents(typeof(FolderComponent), typeof(ObjectComponent))]
     public sealed class FileComponent : Component, IFile
@@ -80,6 +80,7 @@ namespace LooCast.System
             return true;
         }
 
+        #region Child Management
         public bool TryAddChildObject(IObject childObject) 
         {
             if (ContainsChildObject(childObject.ObjectName))
@@ -150,6 +151,8 @@ namespace LooCast.System
         {
             objectChildrenList.Clear();
         }
+        #endregion
+        
         #endregion
 
         #region Overrides
