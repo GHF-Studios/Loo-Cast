@@ -70,10 +70,7 @@ namespace LooCast.System
         #region Constructors
         public FolderManager() : base()
         {
-            RegisterPreSetupAction(() =>
-            {
-                registeredFolders = new Dictionary<FolderPath, IFolder>();
-            });
+            registeredFolders = new Dictionary<FolderPath, IFolder>();
         }
         #endregion
 

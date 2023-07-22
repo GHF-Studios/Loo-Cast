@@ -66,10 +66,7 @@ namespace LooCast.System.ECS
         #region Constructors
         public EntityManager() : base()
         {
-            RegisterPreSetupAction(() =>
-            {
-                registeredEntities = new Dictionary<Guid, IEntity>();
-            });
+            registeredEntities = new Dictionary<Guid, IEntity>();
         }
         #endregion
 

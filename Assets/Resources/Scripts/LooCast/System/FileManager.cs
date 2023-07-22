@@ -70,10 +70,7 @@ namespace LooCast.System
         #region Constructors
         public FileManager() : base()
         {
-            RegisterPreSetupAction(() =>
-            {
-                registeredFiles = new Dictionary<FilePath, IFile>();
-            });
+            registeredFiles = new Dictionary<FilePath, IFile>();
         }
         #endregion
 

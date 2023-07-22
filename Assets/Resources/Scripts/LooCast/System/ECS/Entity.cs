@@ -2,11 +2,11 @@
 using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace LooCast.System.ECS
 {
     using LooCast.System.Serialization;
-    using UnityEngine.UIElements;
 
     /// <summary>
     /// Lifecycle: Construction -> OnCreate -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
@@ -132,6 +132,27 @@ namespace LooCast.System.ECS
             RegisterPreInitializationAction(() =>
             {
                 EntityManager.Instance.RegisterEntity(this);
+
+                foreach (IComponent component in components.Values)
+                {
+                    component.OnPreInitialize();
+                }
+            });
+
+            RegisterInitializationAction(() =>
+            {
+                foreach (IComponent component in components.Values)
+                {
+                    component.OnInitialize();
+                }
+            });
+
+            RegisterPostInitializationAction(() =>
+            {
+                foreach (IComponent component in components.Values)
+                {
+                    component.OnPostInitialize();
+                }
             });
             
             RegisterPostTerminationAction(() =>
@@ -151,6 +172,7 @@ namespace LooCast.System.ECS
                 components.Clear();
                 componentTypes.Clear();
             });
+            Debug.LogWarning("Entity constructed!");
         }
         #endregion
         
@@ -158,10 +180,7 @@ namespace LooCast.System.ECS
         public static EntityType Create<EntityType>() where EntityType : IEntity, new()
         {
             Type newEntityType = typeof(EntityType);
-            EntityType newEntity = new EntityType();
-            newEntity.Create_INTERNAL(newEntityType);
-            newEntity.OnCreate();
-            return newEntity;
+            return (EntityType)Create(newEntityType);
         }
 
         public static IEntity Create(Type entityType)
@@ -732,6 +751,33 @@ namespace LooCast.System.ECS
             componentTypes.Add(newComponent.ComponentID, newComponentType);
             newComponent.Create_INTERNAL(newComponentType, this);
             newComponent.OnCreate();
+
+            if (!IsPreInitialized)
+            {
+                RegisterPreInitializationAction(newComponent.OnPreInitialize);
+            }
+            else
+            {
+                newComponent.OnPreInitialize();
+            }
+            
+            if (!IsInitialized)
+            {
+                RegisterInitializationAction(newComponent.OnInitialize);
+            }
+            else
+            {
+                newComponent.OnInitialize();
+            }
+
+            if (!IsPostInitialized)
+            {
+                RegisterPostInitializationAction(newComponent.OnPostInitialize);
+            }
+            else
+            {
+                newComponent.OnPostInitialize();
+            }
 
             return newComponent;
         }

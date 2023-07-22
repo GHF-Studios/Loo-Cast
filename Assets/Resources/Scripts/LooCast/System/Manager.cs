@@ -120,24 +120,21 @@ namespace LooCast.System
             preSetupActions = new List<Action>();
             setupActions = new List<Action>();
             postSetupActions = new List<Action>();
+            
+            earlyPreInitializationActions = new List<Action>();
+            latePreInitializationActions = new List<Action>();
+            earlyInitializationActions = new List<Action>();
+            lateInitializationActions = new List<Action>();
+            earlyPostInitializationActions = new List<Action>();
+            latePostInitializationActions = new List<Action>();
 
-            RegisterPreSetupAction(() =>
-            {
-                earlyPreInitializationActions = new List<Action>();
-                latePreInitializationActions = new List<Action>();
-                earlyInitializationActions = new List<Action>();
-                lateInitializationActions = new List<Action>();
-                earlyPostInitializationActions = new List<Action>();
-                latePostInitializationActions = new List<Action>();
-
-                earlyPreTerminationActions = new List<Action>();
-                latePreTerminationActions = new List<Action>();
-                earlyTerminationActions = new List<Action>();
-                lateTerminationActions = new List<Action>();
-                earlyPostTerminationActions = new List<Action>();
-                latePostTerminationActions = new List<Action>();
-            });
-
+            earlyPreTerminationActions = new List<Action>();
+            latePreTerminationActions = new List<Action>();
+            earlyTerminationActions = new List<Action>();
+            lateTerminationActions = new List<Action>();
+            earlyPostTerminationActions = new List<Action>();
+            latePostTerminationActions = new List<Action>();
+            
             RegisterSetupAction(() =>
             {
                 EnableUnityBridge();
@@ -150,41 +147,7 @@ namespace LooCast.System
                     UnityBridge.RootGameObject.transform.SetParent(ManagerParent.UnityBridge.RootGameObject.transform);
                 }
             });
-            
-            FolderComponent folderComponent = null;
-            RegisterInitializationAction(() =>
-            {
-                folderComponent = AddComponent<FolderComponent>();
-
-                string assemblyQualifiedComponentTypeName = typeof(FolderComponent).AssemblyQualifiedName;
-
-                FolderComponent.MetaData folderComponentMetaData = new FolderComponent.MetaData(assemblyQualifiedComponentTypeName);
-                ((ISerializable<Component.MetaData, FolderComponent.Data>)folderComponent).SetMetaData(folderComponentMetaData);
-
-                if (ManagerParent == null)
-                {
-                    FolderComponent.Data folderComponentData = new FolderComponent.Data(assemblyQualifiedComponentTypeName);
-                    ((ISerializable<Component.MetaData, FolderComponent.Data>)folderComponent).SetData(folderComponentData);
-                }
-                else
-                {
-                    FolderPath parentFolderComponentPath = ManagerParent.GetComponent<FolderComponent>().FolderParent.FolderPath;
-                    FolderComponent.Data folderComponentData = new FolderComponent.Data(assemblyQualifiedComponentTypeName, ManagerName, parentFolderComponentPath);
-                    ((ISerializable<Component.MetaData, FolderComponent.Data>)folderComponent).SetData(folderComponentData);
-                }
-            });
-            RegisterEarlyPostInitializationAction(() =>
-            {
-                folderComponent.OnPreInitialize();
-            });
-            RegisterPostInitializationAction(() =>
-            {
-                folderComponent.OnInitialize();
-            });
-            RegisterLatePostInitializationAction(() =>
-            {
-                folderComponent.OnPostInitialize();
-            });
+            Debug.LogWarning("Manager constructed!");
         }
         #endregion
 

@@ -124,7 +124,7 @@ namespace LooCast.System.ECS
 
         #region Initialization Phases
         /// <summary>
-        /// Has to be manually called once after OnCreate.
+        /// Has to be manually called once after OnCreate!
         /// Only override this method if you know what you are doing!
         /// </summary>
         public virtual void OnPreInitialize()
@@ -170,7 +170,7 @@ namespace LooCast.System.ECS
         }
 
         /// <summary>
-        /// Has to be manually called once after OnPreInitialize.
+        /// Has to be manually called once after OnPreInitialize!
         /// Only override this method if you know what you are doing!
         /// </summary>
         public virtual void OnInitialize()
@@ -216,7 +216,7 @@ namespace LooCast.System.ECS
         }
 
         /// <summary>
-        /// Has to be manually called once after OnInitialize.
+        /// Has to be manually called once after OnInitialize!
         /// Only override this method if you know what you are doing!
         /// </summary>
         public virtual void OnPostInitialize()

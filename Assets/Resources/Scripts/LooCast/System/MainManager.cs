@@ -37,26 +37,9 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        public MainManager() : base("MainManager", null)
+        public MainManager() : base()
         {
-            if (Instance != null)
-            {
-                throw new InvalidOperationException("MainManager already exists!");
-            }
-            
-            RegisterPreSetupAction(() =>
-            {
-                coreModuleManagerChildrenList = new List<ICoreModuleManager>();
-            });
-
-            RegisterSetupAction(() =>
-            {
-                // TODO:    Read the mod hierarchyFolder for valid core module managers and load them.
-                //          This process is internal to the MainManager and thus there are no Methods to manage the child managers.
-
-                coreModuleManagerChildrenList.Add(global::LooCast.System.SystemManager.Instance);
-                coreModuleManagerChildrenList.Add(global::LooCast.Core.LooCastCoreManager.Instance);
-            });
+            coreModuleManagerChildrenList = new List<ICoreModuleManager>();
 
             RegisterPostSetupAction(() =>
             {
@@ -188,6 +171,12 @@ namespace LooCast.System
                     }
                 });
 
+                // TODO:    Read the mod hierarchyFolder for valid core module managers and load them.
+                //          This process is internal to the MainManager and thus there are no Methods to manage the child managers.
+
+                coreModuleManagerChildrenList.Add(global::LooCast.System.SystemManager.Instance);
+                coreModuleManagerChildrenList.Add(global::LooCast.Core.LooCastCoreManager.Instance);
+                
                 foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnPreSetup();
@@ -195,6 +184,7 @@ namespace LooCast.System
                     coreModuleManager.OnPostSetup();
                 }
             });
+            Debug.LogWarning("MainManager constructed!");
         }
         #endregion
 

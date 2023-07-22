@@ -25,10 +25,7 @@ namespace LooCast.System
         #region Constructors
         protected ModuleManager() : base()
         {
-            RegisterPreSetupAction(() =>
-            {
-                subModuleManagerChildrenList = new List<ISubModuleManager>();
-            });
+            subModuleManagerChildrenList = new List<ISubModuleManager>();
 
             RegisterPostSetupAction(() =>
             {

@@ -70,10 +70,7 @@ namespace LooCast.System
         #region Constructors
         public ObjectManager() : base()
         {
-            RegisterPreSetupAction(() =>
-            {
-                registeredObjects = new Dictionary<ObjectPath, IObject>();
-            });
+            registeredObjects = new Dictionary<ObjectPath, IObject>();
         }
         #endregion
 
