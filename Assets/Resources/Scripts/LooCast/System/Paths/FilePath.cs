@@ -10,26 +10,7 @@ namespace LooCast.System.Paths
     public struct FilePath : IFilePath
     {
         #region Properties
-        public string GUSP
-        {
-            get
-            {
-                StringBuilder guspBuilder = new StringBuilder();
-
-                if (folderPathParent != null)
-                {
-                    guspBuilder.Append($"{folderPathParent}/");
-                }
-                else if (!isRelative)
-                {
-                    guspBuilder.Append("/");
-                }
-
-                guspBuilder.Append($"{fileName}.{fileExtension}");
-
-                return guspBuilder.ToString();
-            }
-        }
+        public string GUSP { get; private set; }
         public bool IsRelative => isRelative;
         public string FileName => fileName;
         public string FileExtension => fileExtension;
@@ -59,6 +40,21 @@ namespace LooCast.System.Paths
             this.fileName = fileName;
             this.fileExtension = fileExtension;
             this.folderPathParent = folderPathParent;
+
+            StringBuilder guspBuilder = new StringBuilder();
+
+            if (folderPathParent != null)
+            {
+                guspBuilder.Append($"{folderPathParent}/");
+            }
+            else if (!isRelative)
+            {
+                guspBuilder.Append("/");
+            }
+
+            guspBuilder.Append($"{fileName}.{fileExtension}");
+
+            GUSP = guspBuilder.ToString();
         }
         #endregion
 

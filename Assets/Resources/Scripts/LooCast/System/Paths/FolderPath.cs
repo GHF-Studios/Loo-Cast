@@ -17,24 +17,12 @@ namespace LooCast.System.Paths
                 return FolderNames.Count == 0;
             }
         }
-        public string GUSP
-        {
-            get
-            {
-                StringBuilder guspBuilder = new StringBuilder();
-
-                if (!IsRelative)
-                {
-                    guspBuilder.Append("/");
-                }
-
-                guspBuilder.Append(string.Join("/", folderNames));
-
-                return guspBuilder.ToString();
-            }
-        }
+        public string GUSP { get; private set; }
         public bool IsRelative => isRelative;
         public List<string> FolderNames => folderNames;
+        /// <summary>
+        /// If possible, cache the result of this, as it cannot be cached inside the FolderPath struct and thus has to be computed every time it is accessed!
+        /// </summary>
         public FolderPath ParentFolderPath
         {
             get
@@ -62,6 +50,9 @@ namespace LooCast.System.Paths
                 }
             }
         }
+        /// <summary>
+        /// If possible, cache the result of this, as it cannot be cached inside the FolderPath struct and thus has to be computed every time it is accessed!
+        /// </summary>
         public string FolderName
         {
             get
@@ -101,6 +92,17 @@ namespace LooCast.System.Paths
             
             this.isRelative = isRelative;
             this.folderNames = new List<string>(folderNames);
+
+            StringBuilder guspBuilder = new StringBuilder();
+
+            if (!isRelative)
+            {
+                guspBuilder.Append("/");
+            }
+
+            guspBuilder.Append(string.Join("/", folderNames));
+
+            GUSP = guspBuilder.ToString();
         }
         #endregion
 

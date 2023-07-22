@@ -10,22 +10,17 @@ namespace LooCast.System.Paths
     public struct ObjectPath : IObjectPath
     {
         #region Properties
-        public string GUSP
-        {
-            get
-            {
-                StringBuilder guspBuilder = new StringBuilder();
-                guspBuilder.Append(filePathParent);
-                guspBuilder.Append(':');
-                guspBuilder.Append(string.Join("+", objectNames));
-
-                return guspBuilder.ToString();
-            }
-        }
+        public string GUSP { get; private set; }
         public bool IsRelative => isRelative;
         public List<string> ObjectNames => objectNames;
         public FilePath FilePathParent => filePathParent;
+        /// <summary>
+        /// If possible, cache the result of this, as it cannot be cached inside the FolderPath struct and thus has to be computed every time it is accessed!
+        /// </summary>
         public ObjectPath ObjectPathParent => new ObjectPath(isRelative, filePathParent, objectNames.Take(objectNames.Count - 1).ToArray());
+        /// <summary>
+        /// If possible, cache the result of this, as it cannot be cached inside the FolderPath struct and thus has to be computed every time it is accessed!
+        /// </summary>
         public string ObjectName
         {
             get
@@ -67,6 +62,13 @@ namespace LooCast.System.Paths
             this.isRelative = isRelative;
             this.objectNames = objectNames.ToList();
             this.filePathParent = filePathParent;
+
+            StringBuilder guspBuilder = new StringBuilder();
+            guspBuilder.Append(filePathParent);
+            guspBuilder.Append(':');
+            guspBuilder.Append(string.Join("+", objectNames));
+
+            GUSP = guspBuilder.ToString();
         }
         #endregion
 
