@@ -1,11 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace LooCast.System
 {
+    using LooCast.System.Serialization;
+    using LooCast.System.ECS;
+    
     public abstract class SubModuleManager : Manager, ISubModuleManager
     {
+        #region Classes
+        new public class Data : Manager.Data
+        {
+            #region Properties
+            public string SubModuleManagerName { get; set; }
+            #endregion
+
+            #region Constructors
+            public Data(string assemblyQualifiedEntityTypeName, IComponent.IData[] componentDatas, string managerName, IManager managerParent, string subModuleManagerName) : base(assemblyQualifiedEntityTypeName, componentDatas, managerName, managerParent)
+            {
+                SubModuleManagerName = subModuleManagerName;
+            }
+            #endregion
+        }
+        #endregion
+
         #region Properties
         public string SubModuleManagerName => ManagerName;
 
@@ -24,7 +42,7 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        protected SubModuleManager(string subModuleManagerName) : base(subModuleManagerName, MainManager.Instance)
+        protected SubModuleManager() : base()
         {
             RegisterPreSetupAction(() =>
             {

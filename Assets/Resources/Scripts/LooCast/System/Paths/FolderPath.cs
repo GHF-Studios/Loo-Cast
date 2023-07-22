@@ -10,6 +10,13 @@ namespace LooCast.System.Paths
     public struct FolderPath : IFolderPath
     {
         #region Properties
+        public bool IsRoot
+        {
+            get
+            {
+                return FolderNames.Count == 0;
+            }
+        }
         public string GUSP
         {
             get

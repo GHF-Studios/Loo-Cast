@@ -5,7 +5,9 @@ namespace LooCast.Universe
 {
     using LooCast.System;
     using LooCast.Core;
-    
+    using LooCast.System.Serialization;
+    using LooCast.System.ECS;
+
     public sealed class UniverseManager : ModuleManager
     {
         #region Static Properties
@@ -15,7 +17,38 @@ namespace LooCast.Universe
             {
                 if (instance == null)
                 {
-                    instance = new UniverseManager();
+                    string assemblyQualifiedEntityTypeName = typeof(UniverseManager).AssemblyQualifiedName;
+                    instance = Entity.Create<UniverseManager>();
+
+                    Entity.MetaData instanceMetaData = new Entity.MetaData
+                        (
+                            assemblyQualifiedEntityTypeName,
+                            new Guid(),
+                            new IComponent.IMetaData[]
+                            {
+                                new FolderComponent.MetaData(typeof(FolderComponent).AssemblyQualifiedName)
+                            }
+                        );
+
+                    Manager.Data instanceData = new Manager.Data
+                        (
+                            assemblyQualifiedEntityTypeName,
+                            new IComponent.IData[]
+                            {
+                                new FolderComponent.Data
+                                    (
+                                        typeof(FolderComponent).AssemblyQualifiedName,
+                                        "UniverseManager",
+                                        LooCastCoreManager.Instance.GetComponent<FolderComponent>().FolderPath
+                                    )
+                            },
+                            "UniverseManager",
+                            LooCastCoreManager.Instance
+                        );
+
+
+                    ((ISerializable<Entity.MetaData, Manager.Data>)instance).SetMetaData(instanceMetaData);
+                    ((ISerializable<Entity.MetaData, Manager.Data>)instance).SetData(instanceData);
                 }
                 return instance;
             }
@@ -30,7 +63,7 @@ namespace LooCast.Universe
         #endregion
 
         #region Constructors
-        private UniverseManager() : base("UniverseManager", LooCastCoreManager.Instance)
+        public UniverseManager() : base()
         {
             
         }

@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
+    using LooCast.System.Serialization;
+    using LooCast.System.ECS;
+    
     public sealed class MainManager : Manager
     {
         #region Static Properties
@@ -13,7 +16,12 @@ namespace LooCast.System
             {
                 if (instance == null)
                 {
-                    instance = new MainManager();
+                    string assemblyQualifiedEntityTypeName = typeof(MainManager).AssemblyQualifiedName;
+                    instance = Entity.Create<MainManager>();
+                    Entity.MetaData instanceMetaData = new Entity.MetaData(assemblyQualifiedEntityTypeName);
+                    Entity.Data instanceData = new Entity.Data(assemblyQualifiedEntityTypeName);
+                    ((ISerializable<Entity.MetaData, Entity.Data>)instance).SetMetaData(instanceMetaData);
+                    ((ISerializable<Entity.MetaData, Entity.Data>)instance).SetData(instanceData);
                 }
                 return instance;
             }
@@ -29,8 +37,13 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        private MainManager() : base("MainManager", null)
+        public MainManager() : base("MainManager", null)
         {
+            if (Instance != null)
+            {
+                throw new InvalidOperationException("MainManager already exists!");
+            }
+            
             RegisterPreSetupAction(() =>
             {
                 coreModuleManagerChildrenList = new List<ICoreModuleManager>();

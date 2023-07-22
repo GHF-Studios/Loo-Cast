@@ -4,6 +4,10 @@ using UnityEngine;
 
 namespace LooCast.System.ECS
 {
+    using LooCast.System.Serialization;
+    using LooCast.System.ECS;
+    using LooCast.Core;
+    
     public sealed class ComponentManager : ModuleManager
     {
         #region Static Properties
@@ -13,7 +17,38 @@ namespace LooCast.System.ECS
             {
                 if (instance == null)
                 {
-                    instance = new ComponentManager();
+                    string assemblyQualifiedEntityTypeName = typeof(ComponentManager).AssemblyQualifiedName;
+                    instance = Entity.Create<ComponentManager>();
+
+                    Entity.MetaData instanceMetaData = new Entity.MetaData
+                        (
+                            assemblyQualifiedEntityTypeName,
+                            new Guid(),
+                            new IComponent.IMetaData[]
+                            {
+                                new FolderComponent.MetaData(typeof(FolderComponent).AssemblyQualifiedName)
+                            }
+                        );
+
+                    Manager.Data instanceData = new Manager.Data
+                        (
+                            assemblyQualifiedEntityTypeName,
+                            new IComponent.IData[]
+                            {
+                                new FolderComponent.Data
+                                    (
+                                        typeof(FolderComponent).AssemblyQualifiedName,
+                                        "ComponentManager",
+                                        SystemManager.Instance.GetComponent<FolderComponent>().FolderPath
+                                    )
+                            },
+                            "ComponentManager",
+                            SystemManager.Instance
+                        );
+
+
+                    ((ISerializable<Entity.MetaData, Manager.Data>)instance).SetMetaData(instanceMetaData);
+                    ((ISerializable<Entity.MetaData, Manager.Data>)instance).SetData(instanceData);
                 }
                 return instance;
             }
@@ -29,7 +64,7 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Constructors
-        private ComponentManager() : base("ComponentManager", SystemManager.Instance)
+        public ComponentManager() : base()
         {
             RegisterPreSetupAction(() =>
             {

@@ -4,10 +4,36 @@ using UnityEngine;
 
 namespace LooCast.System
 {
+    using LooCast.System.Serialization;
     using LooCast.System.ECS;
-    
-    public abstract class Manager : Entity, IManager
+    using LooCast.System.Paths;
+
+    public abstract class Manager : Entity, IManager, ISerializable<Entity.MetaData, Manager.Data>
     {
+        #region Classes
+        new public class Data : Entity.Data
+        {
+            #region Properties
+            public string ManagerName { get; set; }
+            public IManager ManagerParent { get; set; }
+            #endregion
+
+            #region Constructors
+            public Data(string assemblyQualifiedEntityTypeName) : base(assemblyQualifiedEntityTypeName)
+            {
+                ManagerName = "Root";
+                ManagerParent = null;
+            }
+
+            public Data(string assemblyQualifiedEntityTypeName, IComponent.IData[] componentDatas, string managerName, IManager managerParent) : base(assemblyQualifiedEntityTypeName, componentDatas)
+            {
+                ManagerName = managerName;
+                ManagerParent = managerParent;
+            }
+            #endregion
+        }
+        #endregion
+
         #region Properties
         public ManagerUnityComponent ManagerUnityComponent { get; private set; }
         
@@ -86,51 +112,65 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        protected Manager(string managerName, IManager managerParent) : base()
+        /// <summary>
+        /// Manager constructors are required be parameterless and should NEVER be called manually!
+        /// </summary>
+        protected Manager() : base()
         {
-            ManagerName = managerName;
-            ManagerParent = managerParent;
-
-            earlyPreInitializationActions = new List<Action>();
-            latePreInitializationActions = new List<Action>();
-            earlyInitializationActions = new List<Action>();
-            lateInitializationActions = new List<Action>();
-            earlyPostInitializationActions = new List<Action>();
-            latePostInitializationActions = new List<Action>();
-
-            earlyPreTerminationActions = new List<Action>();
-            latePreTerminationActions = new List<Action>();
-            earlyTerminationActions = new List<Action>();
-            lateTerminationActions = new List<Action>();
-            earlyPostTerminationActions = new List<Action>();
-            latePostTerminationActions = new List<Action>();
-
             preSetupActions = new List<Action>();
             setupActions = new List<Action>();
             postSetupActions = new List<Action>();
 
-            EnableUnityBridge();
-            UnityBridge.RootGameObject.name = managerName;
-            ManagerUnityComponent = UnityBridge.RootGameObject.AddComponent<ManagerUnityComponent>();
-            ManagerUnityComponent.Setup(this);
-
-            if (managerParent != null)
+            RegisterPreSetupAction(() =>
             {
-                UnityBridge.RootGameObject.transform.SetParent(managerParent.UnityBridge.RootGameObject.transform);
-            }
+                earlyPreInitializationActions = new List<Action>();
+                latePreInitializationActions = new List<Action>();
+                earlyInitializationActions = new List<Action>();
+                lateInitializationActions = new List<Action>();
+                earlyPostInitializationActions = new List<Action>();
+                latePostInitializationActions = new List<Action>();
+
+                earlyPreTerminationActions = new List<Action>();
+                latePreTerminationActions = new List<Action>();
+                earlyTerminationActions = new List<Action>();
+                lateTerminationActions = new List<Action>();
+                earlyPostTerminationActions = new List<Action>();
+                latePostTerminationActions = new List<Action>();
+            });
+
+            RegisterSetupAction(() =>
+            {
+                EnableUnityBridge();
+                UnityBridge.RootGameObject.name = ManagerName;
+                ManagerUnityComponent = UnityBridge.RootGameObject.AddComponent<ManagerUnityComponent>();
+                ManagerUnityComponent.Setup(this);
+
+                if (ManagerParent != null)
+                {
+                    UnityBridge.RootGameObject.transform.SetParent(ManagerParent.UnityBridge.RootGameObject.transform);
+                }
+            });
             
             FolderComponent folderComponent = null;
             RegisterInitializationAction(() =>
             {
                 folderComponent = AddComponent<FolderComponent>();
-                
-                if (managerParent == null)
+
+                string assemblyQualifiedComponentTypeName = typeof(FolderComponent).AssemblyQualifiedName;
+
+                FolderComponent.MetaData folderComponentMetaData = new FolderComponent.MetaData(assemblyQualifiedComponentTypeName);
+                ((ISerializable<Component.MetaData, FolderComponent.Data>)folderComponent).SetMetaData(folderComponentMetaData);
+
+                if (ManagerParent == null)
                 {
-                    folderComponent.SetupAsRoot();
+                    FolderComponent.Data folderComponentData = new FolderComponent.Data(assemblyQualifiedComponentTypeName);
+                    ((ISerializable<Component.MetaData, FolderComponent.Data>)folderComponent).SetData(folderComponentData);
                 }
                 else
                 {
-                    folderComponent.Setup(managerName, managerParent.GetComponent<FolderComponent>());
+                    FolderPath parentFolderComponentPath = ManagerParent.GetComponent<FolderComponent>().FolderParent.FolderPath;
+                    FolderComponent.Data folderComponentData = new FolderComponent.Data(assemblyQualifiedComponentTypeName, ManagerName, parentFolderComponentPath);
+                    ((ISerializable<Component.MetaData, FolderComponent.Data>)folderComponent).SetData(folderComponentData);
                 }
             });
             RegisterEarlyPostInitializationAction(() =>
@@ -2612,6 +2652,38 @@ namespace LooCast.System
             }
 
             postSetupActions.Add(postSetupAction);
+        }
+        #endregion
+
+        #region Data Management
+        Entity.MetaData ISerializable<Entity.MetaData, Manager.Data>.GetMetaData()
+        {
+            return ((ISerializable<Entity.MetaData, Entity.Data>)this).GetMetaData();
+        }
+
+        Manager.Data ISerializable<Entity.MetaData, Manager.Data>.GetData()
+        {
+            if (!HasData)
+            {
+                throw new InvalidOperationException($"Manager '{this}' does not have data!");
+            }
+
+            Entity.Data entityData = ((ISerializable<Entity.MetaData, Entity.Data>)this).GetData();
+
+            return new Manager.Data(entityData.AssemblyQualifiedEntityTypeName, entityData.ComponentDatas, ManagerName, ManagerParent);
+        }
+
+        void ISerializable<Entity.MetaData, Manager.Data>.SetMetaData(Entity.MetaData metaData)
+        {
+            ((ISerializable<Entity.MetaData, Entity.Data>)this).SetMetaData(metaData);
+        }
+
+        void ISerializable<Entity.MetaData, Manager.Data>.SetData(Manager.Data data)
+        {
+            ManagerName = data.ManagerName;
+            ManagerParent = data.ManagerParent;
+
+            ((ISerializable<Entity.MetaData, Entity.Data>)this).SetData(data);
         }
         #endregion
 

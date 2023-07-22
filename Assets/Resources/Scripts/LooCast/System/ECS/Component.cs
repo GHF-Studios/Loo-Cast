@@ -86,7 +86,7 @@ namespace LooCast.System.ECS
 
         #region Constructors
         /// <summary>
-        /// Component constructors are required to have a parameterless constructor and should NEVER be manually called
+        /// Component constructors are required be parameterless and should NEVER be called manually!
         /// </summary>
         protected Component()
         {
@@ -662,7 +662,7 @@ namespace LooCast.System.ECS
 
         public override string ToString()
         {
-            return ComponentID.ToString();
+            return $"Component[{ComponentID}]";
         }
         #endregion
     }

@@ -6,6 +6,8 @@ using UnityEngine;
 namespace LooCast.System
 {
     using LooCast.System.Paths;
+    using LooCast.System.Serialization;
+    using LooCast.System.ECS;
 
     public sealed class ObjectManager : ModuleManager
     {
@@ -16,7 +18,38 @@ namespace LooCast.System
             {
                 if (instance == null)
                 {
-                    instance = new ObjectManager();
+                    string assemblyQualifiedEntityTypeName = typeof(ObjectManager).AssemblyQualifiedName;
+                    instance = Entity.Create<ObjectManager>();
+
+                    Entity.MetaData instanceMetaData = new Entity.MetaData
+                        (
+                            assemblyQualifiedEntityTypeName,
+                            new Guid(),
+                            new IComponent.IMetaData[]
+                            {
+                                new FolderComponent.MetaData(typeof(FolderComponent).AssemblyQualifiedName)
+                            }
+                        );
+
+                    Manager.Data instanceData = new Manager.Data
+                        (
+                            assemblyQualifiedEntityTypeName,
+                            new IComponent.IData[]
+                            {
+                                new FolderComponent.Data
+                                    (
+                                        typeof(FolderComponent).AssemblyQualifiedName,
+                                        "ObjectManager",
+                                        SystemManager.Instance.GetComponent<FolderComponent>().FolderPath
+                                    )
+                            },
+                            "ObjectManager",
+                            SystemManager.Instance
+                        );
+
+
+                    ((ISerializable<Entity.MetaData, Manager.Data>)instance).SetMetaData(instanceMetaData);
+                    ((ISerializable<Entity.MetaData, Manager.Data>)instance).SetData(instanceData);
                 }
                 return instance;
             }
@@ -35,7 +68,7 @@ namespace LooCast.System
         #endregion
 
         #region Constructors
-        private ObjectManager() : base("ObjectManager", SystemManager.Instance)
+        public ObjectManager() : base()
         {
             RegisterPreSetupAction(() =>
             {

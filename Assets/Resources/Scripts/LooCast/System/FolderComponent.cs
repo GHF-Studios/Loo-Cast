@@ -5,16 +5,36 @@ namespace LooCast.System
 {
     using LooCast.System.ECS;
     using LooCast.System.Paths;
+    using LooCast.System.Serialization;
 
     [IncompatibleComponents(typeof(FileComponent), typeof(ObjectComponent))]
-    public sealed class FolderComponent : Component, IFolder
+    public sealed class FolderComponent : Component, IFolder, ISerializable<Component.MetaData, FolderComponent.Data>
     {
         #region Classes
-        #endregion
-        
-        #region Properties
-        public bool IsSetup { get; private set; }
+        new public class Data : Component.Data
+        {
+            #region Properties
+            public string FolderName { get; set; }
+            public FolderPath? ParentFolderPath { get; set; }
+            #endregion
 
+            #region Constructors
+            public Data(string assemblyQualifiedComponentTypeName) : base(assemblyQualifiedComponentTypeName)
+            {
+                FolderName = "Root";
+                ParentFolderPath = null;
+            }
+
+            public Data(string assemblyQualifiedComponentTypeName, string folderName, FolderPath parentFolderPath) : base(assemblyQualifiedComponentTypeName)
+            {
+                FolderName = folderName;
+                ParentFolderPath = parentFolderPath;
+            }
+            #endregion
+        }
+        #endregion
+
+        #region Properties
         public string FolderName { get; private set; }
         public bool IsRoot { get; private set; }
 
@@ -41,62 +61,25 @@ namespace LooCast.System
         #region Constructors
         public FolderComponent() : base()
         {
-            IsSetup = false;
+            folderChildrenList = new List<IFolder>();
+            fileChildrenList = new List<IFile>();
+            
+            RegisterPreInitializationAction(() =>
+            {
+                FolderManager.Instance.RegisterFolder(this);
+            });
+
+            RegisterPostTerminationAction(() =>
+            {
+                FolderManager.Instance.UnregisterFolder(this);
+                FolderName = null;
+                folderChildrenList = null;
+                fileChildrenList = null;
+            });
         }
         #endregion
 
         #region Methods
-        public void SetupAsRoot()
-        {
-            if (IsSetup)
-            {
-                throw new InvalidOperationException("Folder has already been set up!");
-            }
-
-            IsRoot = true;
-
-            FolderName = "Root";
-            FolderPath = new FolderPath(false);
-            FolderParent = null;
-            folderChildrenList = new List<IFolder>();
-            fileChildrenList = new List<IFile>();
-
-            FolderManager.Instance.RegisterFolder(this);
-
-            IsSetup = true;
-        }
-
-        public void Setup(string folderName, IFolder folderParent)
-        {
-            if (IsSetup)
-            {
-                throw new InvalidOperationException("Folder has already been set up!");
-            }
-            
-            if (folderParent == null)
-            {
-                throw new NullReferenceException("FolderParent may not be null!");
-            }
-
-            IsRoot = false;
-            PathBuilder folderPathBuilder = PathBuilder.Load(folderParent.FolderPath);
-
-            folderPathBuilder.AsAbsolutePath();
-            folderPathBuilder.WithFolder(folderName);
-
-            FolderName = folderName;
-            FolderPath = folderPathBuilder.ConstructFolderPath();
-            FolderParent = folderParent;
-            folderChildrenList = new List<IFolder>();
-            fileChildrenList = new List<IFile>();
-
-            folderParent.AddChildFolder(this);
-
-            FolderManager.Instance.RegisterFolder(this);
-
-            IsSetup = true;
-        }
-
         public bool Validate()
         {
             return true;
@@ -105,6 +88,11 @@ namespace LooCast.System
         #region Child Management
         public bool TryAddChildFolder(IFolder childFolder) 
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+            
             if (ContainsChildFolder(childFolder.FolderName))
             {
                 return false;
@@ -115,8 +103,13 @@ namespace LooCast.System
                 return true;
             }
         }
-        public bool TryAddChildFile(IFile childFile) 
+        public bool TryAddChildFile(IFile childFile)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             if (ContainsChildFile(childFile))
             {
                 return false;
@@ -127,16 +120,26 @@ namespace LooCast.System
                 return true;
             }
         }
-        public void AddChildFolder(IFolder childFolder) 
+        public void AddChildFolder(IFolder childFolder)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             if (ContainsChildFolder(childFolder))
             {
                 throw new InvalidOperationException($"Folder '{this}' already contains a Folder '{childFolder}'!");
             }
             folderChildrenList.Add(childFolder);
         }
-        public void AddChildFile(IFile childFile) 
+        public void AddChildFile(IFile childFile)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             if (ContainsChildFile(childFile))
             {
                 throw new InvalidOperationException($"Folder '{this}' already contains a File '{childFile}'!");
@@ -144,8 +147,13 @@ namespace LooCast.System
             fileChildrenList.Add(childFile);
         }
 
-        public bool TryRemoveChildFolder(IFolder childFolder) 
+        public bool TryRemoveChildFolder(IFolder childFolder)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             if (!ContainsChildFolder(childFolder))
             {
                 return false;
@@ -156,8 +164,13 @@ namespace LooCast.System
                 return true;
             }
         }
-        public bool TryRemoveChildFile(IFile childFile) 
+        public bool TryRemoveChildFile(IFile childFile)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             if (!ContainsChildFile(childFile))
             {
                 return false;
@@ -168,17 +181,32 @@ namespace LooCast.System
                 return true;
             }
         }
-        public void RemoveChildFolder(IFolder childFolder) 
+        public void RemoveChildFolder(IFolder childFolder)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             folderChildrenList.Remove(childFolder);
         }
-        public void RemoveChildFile(IFile childFile) 
+        public void RemoveChildFile(IFile childFile)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             fileChildrenList.Remove(childFile);
         }
 
         public bool TryGetChildFolder(string childFolderName, out IFolder childFolder)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             if (!ContainsChildFolder(childFolderName))
             {
                 childFolder = null;
@@ -190,8 +218,13 @@ namespace LooCast.System
                 return true;
             }
         }
-        public bool TryGetChildFile(string childFileName, string childFileExtension, out IFile childFile) 
+        public bool TryGetChildFile(string childFileName, string childFileExtension, out IFile childFile)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             if (!ContainsChildFile(childFileName, childFileExtension))
             {
                 childFile = null;
@@ -203,41 +236,127 @@ namespace LooCast.System
                 return true;
             }
         }
-        public IFolder GetChildFolder(string childFolderName) 
+        public IFolder GetChildFolder(string childFolderName)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             return folderChildrenList.Find((folderChild) => { return folderChild.FolderName == childFolderName; } );
         }
         public IFile GetChildFile(string childFileName, string childFileExtension)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             return fileChildrenList.Find((fileChild) => { return fileChild.FileName == childFileName && fileChild.FileExtension == childFileExtension; });
         }
-        public bool ContainsChildFolder(string childFolderName) 
+        public bool ContainsChildFolder(string childFolderName)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             return folderChildrenList.Exists((childFolder) => { return childFolder.FolderName == childFolderName; });
         }
         public bool ContainsChildFile(string childFileName, string childFileExtension)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             return fileChildrenList.Exists((fileChild) => { return fileChild.FileName == childFileName && fileChild.FileExtension == childFileExtension; });
         }
         public bool ContainsChildFolder(IFolder childFolder)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             return folderChildrenList.Contains(childFolder);
         }
         public bool ContainsChildFile(IFile childFile)
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             return fileChildrenList.Contains(childFile);
         }
 
-        public void ClearChildFolders() 
+        public void ClearChildFolders()
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             folderChildrenList.Clear();
         }
-        public void ClearChildFiles() 
+        public void ClearChildFiles()
         {
+            if (!IsCreated)
+            {
+                throw new InvalidOperationException($"Folder '{this}' is not created yet!");
+            }
+
             fileChildrenList.Clear();
         }
         #endregion
-        
+
+        #region Data Management
+        Component.MetaData ISerializable<Component.MetaData, FolderComponent.Data>.GetMetaData()
+        {
+            return ((ISerializable<Component.MetaData, Component.Data>)this).GetMetaData();
+        }
+
+        FolderComponent.Data ISerializable<Component.MetaData, FolderComponent.Data>.GetData()
+        {
+            if (!HasData)
+            {
+                throw new InvalidOperationException($"FolderComponent '{this}' does not have data!");
+            }
+            
+            return new FolderComponent.Data(ComponentType.AssemblyQualifiedName, FolderName, FolderParent.FolderPath);
+        }
+
+        void ISerializable<Component.MetaData, FolderComponent.Data>.SetMetaData(Component.MetaData metaData)
+        {
+            ((ISerializable<Component.MetaData, Component.Data>)this).SetMetaData(metaData);
+        }
+
+        void ISerializable<Component.MetaData, FolderComponent.Data>.SetData(FolderComponent.Data data)
+        {
+            if (data.FolderName.Equals("Root"))
+            {
+                IsRoot = true;
+                FolderPath = new FolderPath(false);
+                FolderName = "Root";
+                FolderParent = null;
+            }
+            else
+            {
+                IsRoot = false;
+                PathBuilder folderPathBuilder = PathBuilder.Load((FolderPath)data.ParentFolderPath);
+                folderPathBuilder.AsAbsolutePath();
+                folderPathBuilder.WithFolder(data.FolderName);
+                FolderPath = folderPathBuilder.ConstructFolderPath();
+                FolderName = data.FolderName;
+                FolderParent = FolderManager.Instance.GetFolder(data.ParentFolderPath);
+                FolderParent.AddChildFolder(this);
+            }
+            
+            ((ISerializable<Component.MetaData, Component.Data>)this).SetData(data);
+        }
+        #endregion
+
         #endregion
 
         #region Overrides

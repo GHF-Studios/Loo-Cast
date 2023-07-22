@@ -103,8 +103,11 @@ namespace LooCast.System.ECS
         private Dictionary<Type, IComponent> components;
         private Dictionary<Guid, Type> componentTypes;
         #endregion
-        
+
         #region Constructors
+        /// <summary>
+        /// Entity constructors are required be parameterless and should NEVER be called manually!
+        /// </summary>
         protected Entity()
         {
             IsCreated = false;

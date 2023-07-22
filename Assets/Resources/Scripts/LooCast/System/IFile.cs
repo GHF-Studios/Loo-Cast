@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using global::LooCast.System.Paths;
+    using LooCast.System.Paths;
 
     public interface IFile : IHierarchicalElement, IChild<IFolder>, IParent<IObject>
     {
