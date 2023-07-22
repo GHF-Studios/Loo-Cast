@@ -6,11 +6,10 @@ using UnityEngine;
 
 namespace LooCast.System.ECS
 {
-    using global::System.ComponentModel;
     using LooCast.System.Serialization;
 
     /// <summary>
-    /// Lifecycle: Construction -> OnCreate -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
+    /// Lifecycle: Construction via Entity.Create -> OnCreate -> SetMetaData -> SetData -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
     /// </summary>
     public abstract class Entity : IEntity
     {

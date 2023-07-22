@@ -4,9 +4,9 @@ using System.Collections.Generic;
 namespace LooCast.System.ECS
 {
     using LooCast.System.Serialization;
-    
+
     /// <summary>
-    /// Lifecycle: Construction via Entity.AddComponent -> OnCreate -> Setup -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
+    /// Lifecycle: Construction via Entity.AddComponent -> OnCreate -> SetMetaData -> SetData -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
     /// </summary>
     public abstract class Component : IComponent
     {
