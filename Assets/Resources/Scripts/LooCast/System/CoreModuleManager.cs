@@ -8,22 +8,6 @@ namespace LooCast.System
 
     public abstract class CoreModuleManager : Manager, ICoreModuleManager
     {
-        #region Classes
-        new public class Data : Manager.Data
-        {
-            #region Properties
-            public string CoreModuleManagerName { get; set; }
-            #endregion
-
-            #region Constructors
-            public Data(string assemblyQualifiedEntityTypeName, IComponent.IData[] componentDatas, string managerName, IManager managerParent, string coreModuleManagerName) : base(assemblyQualifiedEntityTypeName, componentDatas, managerName, managerParent)
-            {
-                CoreModuleManagerName = coreModuleManagerName;
-            }
-            #endregion
-        }
-        #endregion
-
         #region Properties
         public string CoreModuleManagerName => ManagerName;
 
