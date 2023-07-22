@@ -19,12 +19,6 @@ namespace LooCast.System
             #endregion
 
             #region Constructors
-            public Data(string assemblyQualifiedEntityTypeName) : base(assemblyQualifiedEntityTypeName)
-            {
-                ManagerName = "Root";
-                ManagerParent = null;
-            }
-
             public Data(string assemblyQualifiedEntityTypeName, IComponent.IData[] componentDatas, string managerName, IManager managerParent) : base(assemblyQualifiedEntityTypeName, componentDatas)
             {
                 ManagerName = managerName;
@@ -147,7 +141,6 @@ namespace LooCast.System
                     UnityBridge.RootGameObject.transform.SetParent(ManagerParent.UnityBridge.RootGameObject.transform);
                 }
             });
-            Debug.LogWarning("Manager constructed!");
         }
         #endregion
 
@@ -2655,7 +2648,7 @@ namespace LooCast.System
         #region Overrides
         public override string ToString()
         {
-            return ManagerName;
+            return $"Manager[{ManagerName ?? "Unnamed Manager"}]";
         }
         #endregion
     }

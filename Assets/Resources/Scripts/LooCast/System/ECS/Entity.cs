@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace LooCast.System.ECS
 {
+    using global::System.ComponentModel;
     using LooCast.System.Serialization;
 
     /// <summary>
@@ -172,7 +173,6 @@ namespace LooCast.System.ECS
                 components.Clear();
                 componentTypes.Clear();
             });
-            Debug.LogWarning("Entity constructed!");
         }
         #endregion
         
@@ -1005,7 +1005,7 @@ namespace LooCast.System.ECS
 
         public override string ToString()
         {
-            return EntityID.ToString();
+            return $"Component[{EntityID}]";
         }
         #endregion
     }

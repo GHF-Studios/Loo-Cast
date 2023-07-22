@@ -18,10 +18,34 @@ namespace LooCast.System
                 {
                     string assemblyQualifiedEntityTypeName = typeof(MainManager).AssemblyQualifiedName;
                     instance = Entity.Create<MainManager>();
-                    Entity.MetaData instanceMetaData = new Entity.MetaData(assemblyQualifiedEntityTypeName);
-                    Entity.Data instanceData = new Entity.Data(assemblyQualifiedEntityTypeName);
-                    ((ISerializable<Entity.MetaData, Entity.Data>)instance).SetMetaData(instanceMetaData);
-                    ((ISerializable<Entity.MetaData, Entity.Data>)instance).SetData(instanceData);
+
+                    Entity.MetaData instanceMetaData = new Entity.MetaData
+                        (
+                            assemblyQualifiedEntityTypeName,
+                            new Guid(),
+                            new IComponent.IMetaData[]
+                            {
+                                new FolderComponent.MetaData(typeof(FolderComponent).AssemblyQualifiedName)
+                            }
+                        );
+
+                    Manager.Data instanceData = new Manager.Data
+                        (
+                            assemblyQualifiedEntityTypeName,
+                            new IComponent.IData[]
+                            {
+                                new FolderComponent.Data
+                                    (
+                                        typeof(FolderComponent).AssemblyQualifiedName
+                                    )
+                            },
+                            "MainManager",
+                            null
+                        );
+
+
+                    ((ISerializable<Entity.MetaData, Manager.Data>)instance).SetMetaData(instanceMetaData);
+                    ((ISerializable<Entity.MetaData, Manager.Data>)instance).SetData(instanceData);
                 }
                 return instance;
             }
@@ -184,7 +208,6 @@ namespace LooCast.System
                     coreModuleManager.OnPostSetup();
                 }
             });
-            Debug.LogWarning("MainManager constructed!");
         }
         #endregion
 
@@ -276,9 +299,6 @@ namespace LooCast.System
             OnPostTerminate();
             OnLatePostTerminate();
         }
-        #endregion
-
-        #region Overrides
         #endregion
     }
 }
