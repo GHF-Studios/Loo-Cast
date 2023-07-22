@@ -8,34 +8,16 @@ namespace LooCast.System
     using LooCast.System.Serialization;
 
     [IncompatibleComponents(typeof(FileComponent), typeof(FolderComponent))]
-    public sealed class ObjectComponent : Component, IObject, ISerializable<Component.MetaData, ObjectComponent.Data>
+    public sealed class ObjectComponent : Component, IObjectComponent
     {
         #region Classes
-        new public class Data : Component.Data
+        new public class Data : Component.Data, IObjectComponent.IData
         {
             #region Properties
             public string ObjectName { get; set; }
             public bool HasFileParent { get; set; }
             public FilePath? ParentFilePath { get; set; }
             public ObjectPath? ParentObjectPath { get; set; }
-            #endregion
-
-            #region Constructors
-            public Data(string assemblyQualifiedComponentTypeName, string objectName, FilePath parentFilePath) : base(assemblyQualifiedComponentTypeName)
-            {
-                ObjectName = objectName;
-                HasFileParent = true;
-                ParentFilePath = parentFilePath;
-                ParentObjectPath = null;
-            }
-
-            public Data(string assemblyQualifiedComponentTypeName, string objectName, ObjectPath parentObjectPath) : base(assemblyQualifiedComponentTypeName)
-            {
-                ObjectName = objectName;
-                HasFileParent = false;
-                ParentFilePath = null;
-                ParentObjectPath = parentObjectPath;
-            }
             #endregion
         }
         #endregion
@@ -48,24 +30,24 @@ namespace LooCast.System
 
         public HierarchicalElementType HierarchyElementType => HierarchicalElementType.Object;
 
-        IFile IChild<IFile>.Parent => FileParent;
-        public IFile FileParent { get; private set; }
+        IFileComponent IChild<IFileComponent>.Parent => FileParent;
+        public IFileComponent FileParent { get; private set; }
 
-        IObject IChild<IObject>.Parent => ObjectParent;
-        public IObject ObjectParent { get; private set; }
+        IObjectComponent IChild<IObjectComponent>.Parent => ObjectParent;
+        public IObjectComponent ObjectParent { get; private set; }
 
-        IEnumerable<IObject> IParent<IObject>.Children => ObjectChildren;
-        public IEnumerable<IObject> ObjectChildren => objectChildrenList;
+        IEnumerable<IObjectComponent> IParent<IObjectComponent>.Children => ObjectChildren;
+        public IEnumerable<IObjectComponent> ObjectChildren => objectChildrenList;
         #endregion
 
         #region Fields
-        private List<IObject> objectChildrenList;
+        private List<IObjectComponent> objectChildrenList;
         #endregion
 
         #region Constructors
         public ObjectComponent() : base()
         {
-            objectChildrenList = new List<IObject>();
+            objectChildrenList = new List<IObjectComponent>();
             
             RegisterPreInitializationAction(() =>
             {
@@ -88,7 +70,7 @@ namespace LooCast.System
         }
 
         #region Child Management
-        public bool TryAddChildObject(IObject childObject)
+        public bool TryAddChildObject(IObjectComponent childObject)
         {
             if (!IsCreated)
             {
@@ -105,7 +87,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public void AddChildObject(IObject childObject)
+        public void AddChildObject(IObjectComponent childObject)
         {
             if (!IsCreated)
             {
@@ -119,7 +101,7 @@ namespace LooCast.System
             objectChildrenList.Add(childObject);
         }
 
-        public bool TryRemoveChildObject(IObject childObject)
+        public bool TryRemoveChildObject(IObjectComponent childObject)
         {
             if (!IsCreated)
             {
@@ -136,7 +118,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public void RemoveChildObject(IObject childObject)
+        public void RemoveChildObject(IObjectComponent childObject)
         {
             if (!IsCreated)
             {
@@ -146,7 +128,7 @@ namespace LooCast.System
             objectChildrenList.Remove(childObject);
         }
 
-        public bool TryGetChildObject(string childObjectName, out IObject childObject)
+        public bool TryGetChildObject(string childObjectName, out IObjectComponent childObject)
         {
             if (!IsCreated)
             {
@@ -164,7 +146,7 @@ namespace LooCast.System
                 return true;
             }
         }
-        public IObject GetChildObject(string childObjectName)
+        public IObjectComponent GetChildObject(string childObjectName)
         {
             if (!IsCreated)
             {
@@ -184,7 +166,7 @@ namespace LooCast.System
             return objectChildrenList.Exists((objectChild) => { return objectChild.ObjectName == childObjectName; });
         }
 
-        public bool ContainsChildObject(IObject childObject)
+        public bool ContainsChildObject(IObjectComponent childObject)
         {
             if (!IsCreated)
             {
@@ -206,63 +188,56 @@ namespace LooCast.System
         #endregion
 
         #region Data Management
-        Component.MetaData ISerializable<Component.MetaData, ObjectComponent.Data>.GetMetaData()
+        public override IData GetData()
         {
-            return ((ISerializable<Component.MetaData, Component.Data>)this).GetMetaData();
-        }
-
-        ObjectComponent.Data ISerializable<Component.MetaData, ObjectComponent.Data>.GetData()
-        {
-            if (!HasData)
-            {
-                throw new InvalidOperationException($"ObjectComponent '{this}' does not have data!");
-            }
+            IObjectComponent.IData objectComponentData = (IObjectComponent.IData)base.GetData();
 
             if (FileParent == null)
             {
-                return new ObjectComponent.Data(ComponentType.AssemblyQualifiedName, ObjectName, ObjectParent.ObjectPath);
+                objectComponentData.ObjectName = ObjectName;
+                objectComponentData.HasFileParent = false;
+                objectComponentData.ParentObjectPath = ObjectParent.ObjectPath;
+                objectComponentData.ParentFilePath = null;
             }
             else
             {
-                return new ObjectComponent.Data(ComponentType.AssemblyQualifiedName, ObjectName, FileParent.FilePath);
+                objectComponentData.ObjectName = ObjectName;
+                objectComponentData.HasFileParent = true;
+                objectComponentData.ParentObjectPath = null;
+                objectComponentData.ParentFilePath = FileParent.FilePath;
             }
+
+            return objectComponentData;
         }
 
-        void ISerializable<Component.MetaData, ObjectComponent.Data>.SetMetaData(Component.MetaData metaData)
+        public override void SetData(IData data)
         {
-            ((ISerializable<Component.MetaData, Component.Data>)this).SetMetaData(metaData);
-        }
+            IObjectComponent.IData objectComponentData = (IObjectComponent.IData)data;
 
-        void ISerializable<Component.MetaData, ObjectComponent.Data>.SetData(ObjectComponent.Data data)
-        {
-            if (data.HasFileParent)
+            if (objectComponentData.HasFileParent)
             {
-                PathBuilder objectPathBuilder = PathBuilder.Load((ObjectPath)data.ParentObjectPath);
+                PathBuilder objectPathBuilder = PathBuilder.Load((ObjectPath)objectComponentData.ParentObjectPath);
                 objectPathBuilder.AsAbsolutePath();
-                objectPathBuilder.WithObject(data.ObjectName);
-
-                ObjectName = data.ObjectName;
+                objectPathBuilder.WithObject(objectComponentData.ObjectName);
                 ObjectPath = objectPathBuilder.ConstructObjectPath();
-                ObjectParent = ObjectManager.Instance.GetObject(data.ParentObjectPath);
+                ObjectName = objectComponentData.ObjectName;
+                ObjectParent = ObjectManager.Instance.GetObject(objectComponentData.ParentObjectPath);
                 FileParent = null;
-
                 ObjectParent.AddChildObject(this);
             }
             else
             {
-                PathBuilder objectPathBuilder = PathBuilder.Load((FilePath)data.ParentFilePath);
+                PathBuilder objectPathBuilder = PathBuilder.Load((FilePath)objectComponentData.ParentFilePath);
                 objectPathBuilder.AsAbsolutePath();
-                objectPathBuilder = objectPathBuilder.WithObject(data.ObjectName);
-
-                ObjectName = data.ObjectName;
+                objectPathBuilder.WithObject(objectComponentData.ObjectName);
                 ObjectPath = objectPathBuilder.ConstructObjectPath();
+                ObjectName = objectComponentData.ObjectName;
                 ObjectParent = null;
-                FileParent = FileManager.Instance.GetFile(data.ParentObjectPath);
-
+                FileParent = FileManager.Instance.GetFile(objectComponentData.ParentObjectPath);
                 FileParent.AddChildObject(this);
             }
 
-            ((ISerializable<Component.MetaData, Component.Data>)this).SetData(data);
+            base.SetData(data);
         }
         #endregion
 

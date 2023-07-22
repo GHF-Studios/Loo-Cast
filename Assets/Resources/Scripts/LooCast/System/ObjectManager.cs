@@ -64,18 +64,18 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        private Dictionary<ObjectPath, IObject> registeredObjects;
+        private Dictionary<ObjectPath, IObjectComponent> registeredObjects;
         #endregion
 
         #region Constructors
         public ObjectManager() : base()
         {
-            registeredObjects = new Dictionary<ObjectPath, IObject>();
+            registeredObjects = new Dictionary<ObjectPath, IObjectComponent>();
         }
         #endregion
 
         #region Methods
-        public void RegisterObject(IObject _object)
+        public void RegisterObject(IObjectComponent _object)
         {
             if (!registeredObjects.ContainsKey(_object.ObjectPath))
             {
@@ -83,7 +83,7 @@ namespace LooCast.System
             }
         }
 
-        public void UnregisterObject(IObject _object)
+        public void UnregisterObject(IObjectComponent _object)
         {
             if (registeredObjects.ContainsKey(_object.ObjectPath))
             {
@@ -91,7 +91,7 @@ namespace LooCast.System
             }
         }
 
-        public IObject GetObject(ObjectPath objectPath)
+        public IObjectComponent GetObject(ObjectPath objectPath)
         {
             if (registeredObjects.ContainsKey(objectPath))
             {
@@ -100,7 +100,7 @@ namespace LooCast.System
             return null;
         }
 
-        public bool TryGetObject(ObjectPath objectPath, out IObject _object)
+        public bool TryGetObject(ObjectPath objectPath, out IObjectComponent _object)
         {
             if (!registeredObjects.ContainsKey(objectPath))
             {
@@ -114,7 +114,7 @@ namespace LooCast.System
             }
         }
 
-        public IObject GetObject(string objectGUSP)
+        public IObjectComponent GetObject(string objectGUSP)
         {
             if (!ObjectPath.TryParse(objectGUSP, out ObjectPath? objectPath))
             {
@@ -123,7 +123,7 @@ namespace LooCast.System
             return GetObject(objectPath!);
         }
 
-        public bool TryGetObject(string stringObjectPath, out IObject _object)
+        public bool TryGetObject(string stringObjectPath, out IObjectComponent _object)
         {
             if (!ObjectPath.TryParse(stringObjectPath, out ObjectPath? objectPath))
             {

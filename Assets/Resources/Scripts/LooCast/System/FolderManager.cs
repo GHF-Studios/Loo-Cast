@@ -64,18 +64,18 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        private Dictionary<FolderPath, IFolder> registeredFolders;
+        private Dictionary<FolderPath, IFolderComponent> registeredFolders;
         #endregion
 
         #region Constructors
         public FolderManager() : base()
         {
-            registeredFolders = new Dictionary<FolderPath, IFolder>();
+            registeredFolders = new Dictionary<FolderPath, IFolderComponent>();
         }
         #endregion
 
         #region Methods
-        public void RegisterFolder(IFolder folder)
+        public void RegisterFolder(IFolderComponent folder)
         {
             if (!registeredFolders.ContainsKey(folder.FolderPath))
             {
@@ -83,7 +83,7 @@ namespace LooCast.System
             }
         }
 
-        public void UnregisterFolder(IFolder folder)
+        public void UnregisterFolder(IFolderComponent folder)
         {
             if (registeredFolders.ContainsKey(folder.FolderPath))
             {
@@ -91,7 +91,7 @@ namespace LooCast.System
             }
         }
 
-        public IFolder GetFolder(FolderPath folderPath)
+        public IFolderComponent GetFolder(FolderPath folderPath)
         {
             if (registeredFolders.ContainsKey(folderPath))
             {
@@ -100,7 +100,7 @@ namespace LooCast.System
             return null;
         }
 
-        public bool TryGetFolder(FolderPath folderPath, out IFolder folder)
+        public bool TryGetFolder(FolderPath folderPath, out IFolderComponent folder)
         {
             if (folderPath == "/")
             {
@@ -119,7 +119,7 @@ namespace LooCast.System
             }
         }
 
-        public IFolder GetFolder(string folderGUSP)
+        public IFolderComponent GetFolder(string folderGUSP)
         {
             if (!FolderPath.TryParse(folderGUSP, out FolderPath? folderPath))
             {
@@ -128,7 +128,7 @@ namespace LooCast.System
             return GetFolder(folderPath!);
         }
 
-        public bool TryGetFolder(string stringFolderPath, out IFolder folder)
+        public bool TryGetFolder(string stringFolderPath, out IFolderComponent folder)
         {
             if (!FolderPath.TryParse(stringFolderPath, out FolderPath? folderPath))
             {

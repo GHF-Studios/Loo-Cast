@@ -29,7 +29,7 @@ public class HierarchyView : MonoBehaviour
 
         FolderComponent rootFolder = MainManager.Instance.GetComponent<FolderComponent>();
 
-        foreach (IFolder folder in rootFolder.FolderChildren)
+        foreach (IFolderComponent folder in rootFolder.FolderChildren)
         {
             HierarchyViewFolder hierarchyViewFolder = Instantiate(hierarchyViewFolderPrefab, transform).GetComponent<HierarchyViewFolder>();
             LayoutRebuilder.MarkLayoutForRebuild((RectTransform)transform);
@@ -44,7 +44,7 @@ public class HierarchyView : MonoBehaviour
             layoutGroup.CalculateLayoutInputVertical();
         }
 
-        foreach (IFile file in rootFolder.FileChildren)
+        foreach (IFileComponent file in rootFolder.FileChildren)
         {
             HierarchyViewFile hierarchyViewFile = Instantiate(hierarchyViewFilePrefab, transform).GetComponent<HierarchyViewFile>();
             LayoutRebuilder.MarkLayoutForRebuild((RectTransform)transform);

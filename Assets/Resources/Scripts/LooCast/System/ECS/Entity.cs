@@ -918,10 +918,6 @@ namespace LooCast.System.ECS
             {
                 throw new InvalidOperationException($"Cannot set metaData, because entity '{this}' is not created!");
             }
-            if (metaData is not IEntity.IMetaData)
-            {
-                throw new ArgumentException($"Cannot set metaData, because metaData is not of type '{typeof(IEntity.IMetaData)}'!");
-            }
 
             IEntity.IMetaData entityMetaData = (IEntity.IMetaData)metaData;
             EntityID = entityMetaData.GUID;
@@ -947,10 +943,6 @@ namespace LooCast.System.ECS
             if (!HasMetaData)
             {
                 throw new InvalidOperationException($"Cannot set data, because entity '{this}' does not have metaData!");
-            }
-            if (data is not IEntity.IData)
-            {
-                throw new ArgumentException($"Cannot set data, because data is not of type '{typeof(IEntity.IData)}'!");
             }
 
             IEntity.IData entityData = (IEntity.IData)data;

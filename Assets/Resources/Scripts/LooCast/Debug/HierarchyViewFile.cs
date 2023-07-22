@@ -8,12 +8,12 @@ public class HierarchyViewFile : HierarchyViewElement
     #region Fields
     [SerializeField] private GameObject hierarchyViewObjectPrefab;
 
-    private IFile hierarchyFile;
+    private IFileComponent hierarchyFile;
     private Dictionary<string, HierarchyViewObject> hierarchyViewObjectChildren;
     #endregion
 
     #region Methods
-    public void Initialize(IFile hierarchyFile)
+    public void Initialize(IFileComponent hierarchyFile)
     {
         base.Initialize(hierarchyFile.FileIdentifier);
         
@@ -27,7 +27,7 @@ public class HierarchyViewFile : HierarchyViewElement
     {
         base.InstantiateChildren();
 
-        foreach (IObject _object in hierarchyFile.Children)
+        foreach (IObjectComponent _object in hierarchyFile.Children)
         {
             HierarchyViewObject hierarchyViewObject = Instantiate(hierarchyViewObjectPrefab, elementContainer.transform).GetComponent<HierarchyViewObject>();
             LayoutRebuilder.MarkLayoutForRebuild((RectTransform)transform);

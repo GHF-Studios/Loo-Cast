@@ -10,7 +10,7 @@ public class HierarchyViewFolder : HierarchyViewElement
     [SerializeField] private GameObject hierarchyViewFolderPrefab;
     [SerializeField] private GameObject hierarchyViewFilePrefab;
 
-    private IFolder hierarchyFolder;
+    private IFolderComponent hierarchyFolder;
     private Dictionary<string, HierarchyViewFolder> hierarchyViewFolderChildren;
     private Dictionary<string, HierarchyViewFile> hierarchyViewFileChildren;
     private static List<HierarchyViewFolder> allHierarchyViewFolderChildren = new List<HierarchyViewFolder>();
@@ -40,7 +40,7 @@ public class HierarchyViewFolder : HierarchyViewElement
     #endregion
 
     #region Methods
-    public void Initialize(IFolder hierarchyFolder)
+    public void Initialize(IFolderComponent hierarchyFolder)
     {
         base.Initialize(hierarchyFolder.FolderName);
         
@@ -57,7 +57,7 @@ public class HierarchyViewFolder : HierarchyViewElement
     {
         base.InstantiateChildren();
 
-        foreach (IFolder folder in ((IParent<IFolder>)hierarchyFolder).Children)
+        foreach (IFolderComponent folder in ((IParent<IFolderComponent>)hierarchyFolder).Children)
         {
             HierarchyViewFolder hierarchyViewFolder = Instantiate(hierarchyViewFolderPrefab, elementContainer.transform).GetComponent<HierarchyViewFolder>();
             LayoutRebuilder.MarkLayoutForRebuild((RectTransform)transform);
@@ -72,7 +72,7 @@ public class HierarchyViewFolder : HierarchyViewElement
             elementContainerLayoutGroup.CalculateLayoutInputVertical();
         }
 
-        foreach (IFile file in ((IParent<IFile>)hierarchyFolder).Children)
+        foreach (IFileComponent file in ((IParent<IFileComponent>)hierarchyFolder).Children)
         {
             HierarchyViewFile hierarchyViewFile = Instantiate(hierarchyViewFilePrefab, elementContainer.transform).GetComponent<HierarchyViewFile>();
             LayoutRebuilder.MarkLayoutForRebuild((RectTransform)transform);

@@ -16,6 +16,14 @@ namespace LooCast.System
                                 IEarlyTerminationPhase, ILateTerminationPhase,
                                 IEarlyPostTerminationPhase, ILatePostTerminationPhase
     {
+        #region Interfaces
+        new public interface IData : IEntity.IData
+        {
+            string ManagerName { get; set; }
+            IManager ManagerParent { get; set; }
+        }
+        #endregion
+
         #region Properties
         string ManagerName { get; }
         #endregion

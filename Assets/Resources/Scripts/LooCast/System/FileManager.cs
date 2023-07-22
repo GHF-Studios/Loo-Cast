@@ -64,18 +64,18 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        private Dictionary<FilePath, IFile> registeredFiles;
+        private Dictionary<FilePath, IFileComponent> registeredFiles;
         #endregion
 
         #region Constructors
         public FileManager() : base()
         {
-            registeredFiles = new Dictionary<FilePath, IFile>();
+            registeredFiles = new Dictionary<FilePath, IFileComponent>();
         }
         #endregion
 
         #region Methods
-        public void RegisterFile(IFile file)
+        public void RegisterFile(IFileComponent file)
         {
             if (!registeredFiles.ContainsKey(file.FilePath))
             {
@@ -83,7 +83,7 @@ namespace LooCast.System
             }
         }
 
-        public void UnregisterFile(IFile file)
+        public void UnregisterFile(IFileComponent file)
         {
             if (registeredFiles.ContainsKey(file.FilePath))
             {
@@ -91,7 +91,7 @@ namespace LooCast.System
             }
         }
 
-        public IFile GetFile(FilePath filePath)
+        public IFileComponent GetFile(FilePath filePath)
         {
             if (registeredFiles.ContainsKey(filePath))
             {
@@ -100,7 +100,7 @@ namespace LooCast.System
             return null;
         }
 
-        public bool TryGetFile(FilePath filePath, out IFile file)
+        public bool TryGetFile(FilePath filePath, out IFileComponent file)
         {
             if (!registeredFiles.ContainsKey(filePath))
             {
@@ -114,7 +114,7 @@ namespace LooCast.System
             }
         }
 
-        public IFile GetFile(string fileGUSP)
+        public IFileComponent GetFile(string fileGUSP)
         {
             if (!FilePath.TryParse(fileGUSP, out FilePath? filePath))
             {
@@ -123,7 +123,7 @@ namespace LooCast.System
             return GetFile(filePath!);
         }
 
-        public bool TryGetFile(string stringFilePath, out IFile file)
+        public bool TryGetFile(string stringFilePath, out IFileComponent file)
         {
             if (!FilePath.TryParse(stringFilePath, out FilePath? filePath))
             {

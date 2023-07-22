@@ -106,19 +106,17 @@ namespace LooCast.System.Paths
         #endregion
 
         #region Methods
-        public PathBuilder AsRelativePath()
+        public void AsRelativePath()
         {
             isRelative = true;
-            return this;
         }
 
-        public PathBuilder AsAbsolutePath()
+        public void AsAbsolutePath()
         {
             isRelative = false;
-            return this;
         }
 
-        public PathBuilder WithFolder(string folderName)
+        public void WithFolder(string folderName)
         {
             if (isRelative == null)
             {
@@ -130,9 +128,8 @@ namespace LooCast.System.Paths
             }
 
             folderNames.Add(folderName);
-            return this;
         }
-        public PathBuilder WithFolder(FolderPath folderPath)
+        public void WithFolder(FolderPath folderPath)
         {
             if (isRelative == null)
             {
@@ -144,10 +141,9 @@ namespace LooCast.System.Paths
             }
 
             folderNames.AddRange(folderPath.FolderNames);
-            return this;
         }
 
-        public PathBuilder WithFile(string fileName, string fileExtension)
+        public void WithFile(string fileName, string fileExtension)
         {
             if (isRelative == null)
             {
@@ -160,9 +156,8 @@ namespace LooCast.System.Paths
 
             this.fileName = fileName;
             this.fileExtension = fileExtension;
-            return this;
         }
-        public PathBuilder WithFile(FilePath filePath)
+        public void WithFile(FilePath filePath)
         {
             if (isRelative == null)
             {
@@ -175,10 +170,9 @@ namespace LooCast.System.Paths
 
             fileName = filePath.FileName;
             fileExtension = filePath.FileExtension;
-            return this;
         }
 
-        public PathBuilder WithObject(string objectName)
+        public void WithObject(string objectName)
         {
             if (isRelative == null)
             {
@@ -190,9 +184,8 @@ namespace LooCast.System.Paths
             }
 
             objectNames.Add(objectName);
-            return this;
         }
-        public PathBuilder WithObject(ObjectPath objectPath)
+        public void WithObject(ObjectPath objectPath)
         {
             if (isRelative == null)
             {
@@ -204,7 +197,6 @@ namespace LooCast.System.Paths
             }
 
             objectNames.AddRange(objectPath.ObjectNames);
-            return this;
         }
 
         public FolderPath ConstructFolderPath()

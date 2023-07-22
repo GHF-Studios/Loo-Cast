@@ -8,22 +8,14 @@ namespace LooCast.System
     using LooCast.System.ECS;
     using LooCast.System.Paths;
 
-    public abstract class Manager : Entity, IManager, ISerializable<Entity.MetaData, Manager.Data>
+    public abstract class Manager : Entity, IManager
     {
         #region Classes
-        new public class Data : Entity.Data
+        new public class Data : Entity.Data, IManager.IData
         {
             #region Properties
             public string ManagerName { get; set; }
             public IManager ManagerParent { get; set; }
-            #endregion
-
-            #region Constructors
-            public Data(string assemblyQualifiedEntityTypeName, IComponent.IData[] componentDatas, string managerName, IManager managerParent) : base(assemblyQualifiedEntityTypeName, componentDatas)
-            {
-                ManagerName = managerName;
-                ManagerParent = managerParent;
-            }
             #endregion
         }
         #endregion
@@ -2612,34 +2604,24 @@ namespace LooCast.System
         #endregion
 
         #region Data Management
-        Entity.MetaData ISerializable<Entity.MetaData, Manager.Data>.GetMetaData()
+        public override IData GetData()
         {
-            return ((ISerializable<Entity.MetaData, Entity.Data>)this).GetMetaData();
+            IManager.IData managerData = (IManager.IData)base.GetData();
+            
+            managerData.ManagerName = ManagerName;
+            managerData.ManagerParent = ManagerParent;
+
+            return managerData;
         }
 
-        Manager.Data ISerializable<Entity.MetaData, Manager.Data>.GetData()
+        public override void SetData(IData data)
         {
-            if (!HasData)
-            {
-                throw new InvalidOperationException($"Manager '{this}' does not have data!");
-            }
+            IManager.IData managerData = (IManager.IData)data;
 
-            Entity.Data entityData = ((ISerializable<Entity.MetaData, Entity.Data>)this).GetData();
+            ManagerName = managerData.ManagerName;
+            ManagerParent = managerData.ManagerParent;
 
-            return new Manager.Data(entityData.AssemblyQualifiedEntityTypeName, entityData.ComponentDatas, ManagerName, ManagerParent);
-        }
-
-        void ISerializable<Entity.MetaData, Manager.Data>.SetMetaData(Entity.MetaData metaData)
-        {
-            ((ISerializable<Entity.MetaData, Entity.Data>)this).SetMetaData(metaData);
-        }
-
-        void ISerializable<Entity.MetaData, Manager.Data>.SetData(Manager.Data data)
-        {
-            ManagerName = data.ManagerName;
-            ManagerParent = data.ManagerParent;
-
-            ((ISerializable<Entity.MetaData, Entity.Data>)this).SetData(data);
+            base.SetData(data);
         }
         #endregion
 
