@@ -128,6 +128,7 @@ namespace LooCast.System.ECS
 
             RegisterPreInitializationAction(() =>
             {
+                EntityManager.Instance.RegisterEntity(this);
 
                 foreach (IComponent component in components.Values)
                 {
@@ -153,6 +154,7 @@ namespace LooCast.System.ECS
             
             RegisterPostTerminationAction(() =>
             {
+                EntityManager.Instance.UnregisterEntity(this);
 
                 if (IsUnityBridgeEnabled)
                 {
@@ -202,6 +204,10 @@ namespace LooCast.System.ECS
             if (entity == null)
             {
                 throw new ArgumentNullException(nameof(entity));
+            }
+            if (entity.Equals(MainManager.Instance))
+            {
+                throw new InvalidOperationException($"The MainManager can not be deleted via Entity.Destroy! If you tried to exit the application, use LooCastApplication.Exit.");
             }
 
             entity.Destroy_INTERNAL();
@@ -977,6 +983,26 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Overrides
+        public override int GetHashCode()
+        {
+            return EntityID.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not Entity)
+            {
+                return false;
+            }
+
+            Entity other = (Entity)obj;
+            return other.EntityID == this.EntityID;
+        }
+
+        public override string ToString()
+        {
+            return $"Entity[{EntityID}]";
+        }
         #endregion
     }
 }

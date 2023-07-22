@@ -58,10 +58,12 @@ namespace LooCast.System
             
             RegisterPreInitializationAction(() =>
             {
+                FileManager.Instance.RegisterFile(this);
             });
 
             RegisterPostTerminationAction(() =>
             {
+                FileManager.Instance.UnregisterFile(this);
                 FileName = null;
                 FileExtension = null;
                 FileIdentifier = null;
@@ -240,6 +242,7 @@ namespace LooCast.System
             FileExtension = data.FileExtension;
             FileIdentifier = $"{data.FileName}.{data.FileExtension}";
             FilePath = filePathBuilder.ConstructFilePath();
+            FolderParent = FolderManager.Instance.GetFolder(data.ParentFolderPath);
 
             FolderParent.AddChildFile(this);
 

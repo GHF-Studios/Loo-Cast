@@ -11,6 +11,7 @@ namespace LooCast
         #region Static Methods
         public static void Exit()
         {
+            MainManager.Instance.OnDestroy();
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -21,6 +22,16 @@ namespace LooCast
 
             Manager manager = new Manager();
             Debug.LogError(manager);
+
+            MainManager mainManager = new MainManager();
+            Debug.LogError(mainManager);
+
+            // MainManager.Instance.OnPreSetup();
+            // MainManager.Instance.OnSetup();
+            // MainManager.Instance.OnPostSetup();
+            // MainManager.Instance.OnPreAwake();
+            // MainManager.Instance.OnAwake();
+            // MainManager.Instance.OnPostAwake();
         }
         #endregion
     }
