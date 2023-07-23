@@ -96,12 +96,12 @@ namespace LooCast.System
                 folderComponent.SetComponentMetaData(folderComponentMetaData);
                 folderComponent.SetComponentData(folderComponentData);
 
+                FolderManager.Instance.RegisterFolder(folderComponent);
+
                 foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnSetup();
                 }
-
-                FolderManager.Instance.RegisterFolder(folderComponent);
             });
 
             RegisterPostSetupAction(() =>

@@ -7,7 +7,6 @@ namespace LooCast.System
 {
     using LooCast.System.Paths;
     using LooCast.System.ECS;
-    using LooCast.Core;
 
     public sealed class ObjectManager : ModuleManager
     {
@@ -60,7 +59,7 @@ namespace LooCast.System
                 objectManagerData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedObjectManagerEntityMetaDataTypeName;
                 objectManagerData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedObjectManagerEntityDataTypeName;
                 objectManagerData.ManagerName = "ObjectManager";
-                objectManagerData.ManagerParent = LooCastCoreManager.Instance;
+                objectManagerData.ManagerParent = SystemManager.Instance;
 
                 SetEntityMetaData(objectManagerMetaData);
                 SetEntityData(objectManagerData);
@@ -90,17 +89,17 @@ namespace LooCast.System
                 folderComponentData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
                 folderComponentData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
                 folderComponentData.FolderName = "ObjectManager";
-                folderComponentData.ParentFolderPath = LooCastCoreManager.Instance.GetComponent<FolderComponent>().FolderPath;
+                folderComponentData.ParentFolderPath = SystemManager.Instance.GetComponent<FolderComponent>().FolderPath;
 
                 folderComponent.SetComponentMetaData(folderComponentMetaData);
                 folderComponent.SetComponentData(folderComponentData);
+
+                FolderManager.Instance.RegisterFolder(folderComponent);
 
                 foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
                     subModuleManager.OnSetup();
                 }
-
-                FolderManager.Instance.RegisterFolder(folderComponent);
             });
 
             RegisterPostSetupAction(() =>
