@@ -18,38 +18,50 @@ namespace LooCast.System
             {
                 if (instance == null)
                 {
-                    string assemblyQualifiedEntityTypeName = typeof(ObjectManager).AssemblyQualifiedName;
-                    instance = Entity.Create<ObjectManager>();
+                    instance = Entity.Create<ObjectManager, Entity.MetaData, Manager.Data>();
 
-                    Entity.MetaData instanceMetaData = new Entity.MetaData
-                        (
-                            assemblyQualifiedEntityTypeName,
-                            new Guid(),
-                            new IComponent.IMetaData[]
-                            {
-                                new FolderComponent.MetaData(typeof(FolderComponent).AssemblyQualifiedName)
-                            }
-                        );
+                    string assemblyQualifiedMainManagerEntityTypeName = typeof(ObjectManager).AssemblyQualifiedName;
+                    string assemblyQualifiedMainManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
+                    string assemblyQualifiedMainManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
 
-                    Manager.Data instanceData = new Manager.Data
-                        (
-                            assemblyQualifiedEntityTypeName,
-                            new IComponent.IData[]
-                            {
-                                new FolderComponent.Data
-                                    (
-                                        typeof(FolderComponent).AssemblyQualifiedName,
-                                        "ObjectManager",
-                                        SystemManager.Instance.GetComponent<FolderComponent>().FolderPath
-                                    )
-                            },
-                            "ObjectManager",
-                            SystemManager.Instance
-                        );
+                    string assemblyQualifiedFolderComponentTypeName = typeof(FolderComponent).AssemblyQualifiedName;
+                    string assemblyQualifiedFolderComponentMetaDataTypeName = typeof(Component.MetaData).AssemblyQualifiedName;
+                    string assemblyQualifiedFolderComponentDataTypeName = typeof(FolderComponent.Data).AssemblyQualifiedName;
 
+                    Entity.MetaData instanceMetaData = new Entity.MetaData();
+                    instanceMetaData.AssemblyQualifiedEntityTypeName = assemblyQualifiedMainManagerEntityTypeName;
+                    instanceMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedMainManagerEntityMetaDataTypeName;
+                    instanceMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedMainManagerEntityDataTypeName;
+                    instanceMetaData.GUID = new Guid();
+                    IFolderComponent.IMetaData folderComponentMetaData = new FolderComponent.MetaData();
+                    folderComponentMetaData.AssemblyQualifiedComponentTypeName = assemblyQualifiedFolderComponentTypeName;
+                    folderComponentMetaData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
+                    folderComponentMetaData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
+                    folderComponentMetaData.GUID = new Guid();
+                    instanceMetaData.ComponentMetaDatas = new IComponent.IMetaData[]
+                    {
+                        folderComponentMetaData
+                    };
 
-                    ((ISerializable<Entity.MetaData, Manager.Data>)instance).SetMetaData(instanceMetaData);
-                    ((ISerializable<Entity.MetaData, Manager.Data>)instance).SetData(instanceData);
+                    Manager.Data instanceData = new Manager.Data();
+                    instanceData.AssemblyQualifiedEntityTypeName = assemblyQualifiedMainManagerEntityTypeName;
+                    instanceData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedMainManagerEntityMetaDataTypeName;
+                    instanceData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedMainManagerEntityDataTypeName;
+                    IFolderComponent.IData folderComponentData = new FolderComponent.Data();
+                    folderComponentData.AssemblyQualifiedComponentTypeName = assemblyQualifiedFolderComponentTypeName;
+                    folderComponentData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
+                    folderComponentData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
+                    folderComponentData.FolderName = "ObjectManager";
+                    folderComponentData.ParentFolderPath = SystemManager.Instance.GetComponent<FolderComponent>().FolderPath;
+                    instanceData.ComponentDatas = new IComponent.IData[]
+                    {
+                        folderComponentData
+                    };
+                    instanceData.ManagerName = "ObjectManager";
+                    instanceData.ManagerParent = SystemManager.Instance;
+
+                    instance.SetMetaData(instanceMetaData);
+                    instance.SetData(instanceData);
                 }
                 return instance;
             }
@@ -120,7 +132,7 @@ namespace LooCast.System
             {
                 return null;
             }
-            return GetObject(objectPath!);
+            return GetObject((ObjectPath)objectPath);
         }
 
         public bool TryGetObject(string stringObjectPath, out IObjectComponent _object)
@@ -130,7 +142,7 @@ namespace LooCast.System
                 _object = null;
                 return false;
             }
-            return TryGetObject(objectPath!, out _object);
+            return TryGetObject((ObjectPath)objectPath, out _object);
         }
 
         public bool IsObjectRegistered(ObjectPath objectPath)

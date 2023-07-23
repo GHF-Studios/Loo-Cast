@@ -31,10 +31,11 @@ namespace LooCast.System
                     instanceMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedMainManagerEntityMetaDataTypeName;
                     instanceMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedMainManagerEntityDataTypeName;
                     instanceMetaData.GUID = new Guid();
-                    IComponent.IMetaData folderComponentMetaData = new FolderComponent.MetaData();
+                    IFolderComponent.IMetaData folderComponentMetaData = new FolderComponent.MetaData();
                     folderComponentMetaData.AssemblyQualifiedComponentTypeName = assemblyQualifiedFolderComponentTypeName;
                     folderComponentMetaData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
                     folderComponentMetaData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
+                    folderComponentMetaData.GUID = new Guid();
                     instanceMetaData.ComponentMetaDatas = new IComponent.IMetaData[]
                     {
                         folderComponentMetaData
@@ -44,10 +45,12 @@ namespace LooCast.System
                     instanceData.AssemblyQualifiedEntityTypeName = assemblyQualifiedMainManagerEntityTypeName;
                     instanceData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedMainManagerEntityMetaDataTypeName;
                     instanceData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedMainManagerEntityDataTypeName;
-                    IComponent.IData folderComponentData = new FolderComponent.Data();
+                    IFolderComponent.IData folderComponentData = new FolderComponent.Data();
                     folderComponentData.AssemblyQualifiedComponentTypeName = assemblyQualifiedFolderComponentTypeName;
                     folderComponentData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
                     folderComponentData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
+                    folderComponentData.FolderName = "Root";
+                    folderComponentData.ParentFolderPath = null;
                     instanceData.ComponentDatas = new IComponent.IData[]
                     {
                         folderComponentData
