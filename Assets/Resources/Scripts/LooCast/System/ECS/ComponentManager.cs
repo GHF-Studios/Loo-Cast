@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace LooCast.System.ECS
 {
-    using LooCast.System.Serialization;
-    using LooCast.System.ECS;
-    using LooCast.Core;
-    
     public sealed class ComponentManager : ModuleManager
     {
         #region Static Properties
@@ -18,49 +14,6 @@ namespace LooCast.System.ECS
                 if (instance == null)
                 {
                     instance = Entity.Create<ComponentManager, Entity.MetaData, Manager.Data>();
-
-                    string assemblyQualifiedMainManagerEntityTypeName = typeof(ComponentManager).AssemblyQualifiedName;
-                    string assemblyQualifiedMainManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
-                    string assemblyQualifiedMainManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
-
-                    string assemblyQualifiedFolderComponentTypeName = typeof(FolderComponent).AssemblyQualifiedName;
-                    string assemblyQualifiedFolderComponentMetaDataTypeName = typeof(Component.MetaData).AssemblyQualifiedName;
-                    string assemblyQualifiedFolderComponentDataTypeName = typeof(FolderComponent.Data).AssemblyQualifiedName;
-
-                    Entity.MetaData instanceMetaData = new Entity.MetaData();
-                    instanceMetaData.AssemblyQualifiedEntityTypeName = assemblyQualifiedMainManagerEntityTypeName;
-                    instanceMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedMainManagerEntityMetaDataTypeName;
-                    instanceMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedMainManagerEntityDataTypeName;
-                    instanceMetaData.GUID = new Guid();
-                    IFolderComponent.IMetaData folderComponentMetaData = new FolderComponent.MetaData();
-                    folderComponentMetaData.AssemblyQualifiedComponentTypeName = assemblyQualifiedFolderComponentTypeName;
-                    folderComponentMetaData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
-                    folderComponentMetaData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
-                    folderComponentMetaData.GUID = new Guid();
-                    instanceMetaData.ComponentMetaDatas = new IComponent.IMetaData[]
-                    {
-                        folderComponentMetaData
-                    };
-
-                    Manager.Data instanceData = new Manager.Data();
-                    instanceData.AssemblyQualifiedEntityTypeName = assemblyQualifiedMainManagerEntityTypeName;
-                    instanceData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedMainManagerEntityMetaDataTypeName;
-                    instanceData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedMainManagerEntityDataTypeName;
-                    IFolderComponent.IData folderComponentData = new FolderComponent.Data();
-                    folderComponentData.AssemblyQualifiedComponentTypeName = assemblyQualifiedFolderComponentTypeName;
-                    folderComponentData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
-                    folderComponentData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
-                    folderComponentData.FolderName = "ComponentManager";
-                    folderComponentData.ParentFolderPath = SystemManager.Instance.GetComponent<FolderComponent>().FolderPath;
-                    instanceData.ComponentDatas = new IComponent.IData[]
-                    {
-                        folderComponentData
-                    };
-                    instanceData.ManagerName = "ComponentManager";
-                    instanceData.ManagerParent = SystemManager.Instance;
-
-                    instance.SetMetaData(instanceMetaData);
-                    instance.SetData(instanceData);
                 }
                 return instance;
             }
@@ -79,6 +32,91 @@ namespace LooCast.System.ECS
         public ComponentManager() : base()
         {
             registeredEntities = new Dictionary<Guid, IComponent>();
+
+            FolderComponent folderComponent = AddComponent<FolderComponent, Component.MetaData, FolderComponent.Data>();
+
+            RegisterPreSetupAction(() =>
+            {
+                string assemblyQualifiedComponentManagerEntityTypeName = typeof(ComponentManager).AssemblyQualifiedName;
+                string assemblyQualifiedComponentManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
+                string assemblyQualifiedComponentManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
+
+                Entity.MetaData componentManagerMetaData = new Entity.MetaData();
+                componentManagerMetaData.AssemblyQualifiedEntityTypeName = assemblyQualifiedComponentManagerEntityTypeName;
+                componentManagerMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedComponentManagerEntityMetaDataTypeName;
+                componentManagerMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedComponentManagerEntityDataTypeName;
+                componentManagerMetaData.EntityID = new Guid();
+
+                Manager.Data componentManagerData = new Manager.Data();
+                componentManagerData.AssemblyQualifiedEntityTypeName = assemblyQualifiedComponentManagerEntityTypeName;
+                componentManagerData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedComponentManagerEntityMetaDataTypeName;
+                componentManagerData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedComponentManagerEntityDataTypeName;
+                componentManagerData.ManagerName = "ComponentManager";
+                componentManagerData.ManagerParent = SystemManager.Instance;
+
+                SetEntityMetaData(componentManagerMetaData);
+                SetEntityData(componentManagerData);
+
+                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                {
+                    subModuleManager.OnPreSetup();
+                }
+
+                EntityManager.Instance.RegisterEntity(this);
+            });
+
+            RegisterSetupAction(() =>
+            {
+                string assemblyQualifiedFolderComponentTypeName = typeof(FolderComponent).AssemblyQualifiedName;
+                string assemblyQualifiedFolderComponentMetaDataTypeName = typeof(Component.MetaData).AssemblyQualifiedName;
+                string assemblyQualifiedFolderComponentDataTypeName = typeof(FolderComponent.Data).AssemblyQualifiedName;
+
+                Component.MetaData folderComponentMetaData = new Component.MetaData();
+                folderComponentMetaData.AssemblyQualifiedComponentTypeName = assemblyQualifiedFolderComponentTypeName;
+                folderComponentMetaData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
+                folderComponentMetaData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
+                folderComponentMetaData.ComponentID = new Guid();
+
+                FolderComponent.Data folderComponentData = new FolderComponent.Data();
+                folderComponentData.AssemblyQualifiedComponentTypeName = assemblyQualifiedFolderComponentTypeName;
+                folderComponentData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
+                folderComponentData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
+                folderComponentData.FolderName = "ComponentManager";
+                folderComponentData.ParentFolderPath = SystemManager.Instance.GetComponent<FolderComponent>().FolderPath;
+
+                folderComponent.SetComponentMetaData(folderComponentMetaData);
+                folderComponent.SetComponentData(folderComponentData);
+
+                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                {
+                    subModuleManager.OnSetup();
+                }
+
+                FolderManager.Instance.RegisterFolder(folderComponent);
+            });
+
+            RegisterPostSetupAction(() =>
+            {
+                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                {
+                    subModuleManager.OnPostSetup();
+                }
+            });
+
+            RegisterPreInitializationAction(() =>
+            {
+                folderComponent.OnPreInitialize();
+            });
+
+            RegisterInitializationAction(() =>
+            {
+                folderComponent.OnInitialize();
+            });
+
+            RegisterPostInitializationAction(() =>
+            {
+                folderComponent.OnPostInitialize();
+            });
         }
         #endregion
 

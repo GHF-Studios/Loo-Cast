@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace LooCast.System
 {
-    using LooCast.System.Serialization;
     using LooCast.System.ECS;
     using LooCast.System.Paths;
 
@@ -121,7 +120,7 @@ namespace LooCast.System
             earlyPostTerminationActions = new List<Action>();
             latePostTerminationActions = new List<Action>();
             
-            RegisterSetupAction(() =>
+            RegisterPostSetupAction(() =>
             {
                 EnableUnityBridge();
                 UnityBridge.RootGameObject.name = ManagerName;
@@ -2604,9 +2603,9 @@ namespace LooCast.System
         #endregion
 
         #region Data Management
-        public override IData GetData()
+        public override IEntity.IData GetEntityData()
         {
-            IManager.IData managerData = (IManager.IData)base.GetData();
+            IManager.IData managerData = (IManager.IData)base.GetEntityData();
             
             managerData.ManagerName = ManagerName;
             managerData.ManagerParent = ManagerParent;
@@ -2614,14 +2613,14 @@ namespace LooCast.System
             return managerData;
         }
 
-        public override void SetData(IData data)
+        public override void SetEntityData(IEntity.IData data)
         {
             IManager.IData managerData = (IManager.IData)data;
 
             ManagerName = managerData.ManagerName;
             ManagerParent = managerData.ManagerParent;
 
-            base.SetData(data);
+            base.SetEntityData(data);
         }
         #endregion
 

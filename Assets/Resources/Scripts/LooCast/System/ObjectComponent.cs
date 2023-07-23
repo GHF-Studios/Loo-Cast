@@ -5,7 +5,6 @@ namespace LooCast.System
 {
     using LooCast.System.ECS;
     using LooCast.System.Paths;
-    using LooCast.System.Serialization;
 
     [IncompatibleComponents(typeof(FileComponent), typeof(FolderComponent))]
     public sealed class ObjectComponent : Component, IObjectComponent
@@ -188,9 +187,9 @@ namespace LooCast.System
         #endregion
 
         #region Data Management
-        public override IData GetData()
+        public override IComponent.IData GetComponentData()
         {
-            IObjectComponent.IData objectComponentData = (IObjectComponent.IData)base.GetData();
+            IObjectComponent.IData objectComponentData = (IObjectComponent.IData)base.GetComponentData();
 
             if (FileParent == null)
             {
@@ -210,9 +209,9 @@ namespace LooCast.System
             return objectComponentData;
         }
 
-        public override void SetData(IData data)
+        public override void SetComponentData(IComponent.IData componentData)
         {
-            IObjectComponent.IData objectComponentData = (IObjectComponent.IData)data;
+            IObjectComponent.IData objectComponentData = (IObjectComponent.IData)componentData;
 
             if (objectComponentData.HasFileParent)
             {
@@ -237,7 +236,7 @@ namespace LooCast.System
                 FileParent.AddChildObject(this);
             }
 
-            base.SetData(data);
+            base.SetComponentData(componentData);
         }
         #endregion
 

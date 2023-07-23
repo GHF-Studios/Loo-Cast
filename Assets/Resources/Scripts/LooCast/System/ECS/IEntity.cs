@@ -2,27 +2,25 @@
 
 namespace LooCast.System.ECS
 {
-    using LooCast.System.Serialization;
     using LooCast.System.Lifecycle.Initialization;
     using LooCast.System.Lifecycle.Termination;
 
-    public interface IEntity : ISerializable, IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
+    public interface IEntity : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Interfaces
-        public interface IMetaData : Serialization.IMetaData
+        public interface IMetaData
         {
+            Guid EntityID { get; set; }
             string AssemblyQualifiedEntityTypeName { get; set; }
             string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
             string AssemblyQualifiedEntityDataTypeName { get; set; }
-            IComponent.IMetaData[] ComponentMetaDatas { get; set; }
         }
 
-        public interface IData : Serialization.IData
+        public interface IData
         {
             string AssemblyQualifiedEntityTypeName { get; set; }
             string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
             string AssemblyQualifiedEntityDataTypeName { get; set; }
-            IComponent.IData[] ComponentDatas { get; set; }
         }
         #endregion
         
@@ -60,6 +58,7 @@ namespace LooCast.System.ECS
         void EnableUnityBridge();
         void DisableUnityBridge();
 
+        #region Component Management
         ComponentType AddComponent<ComponentType, ComponentMetaDataType, ComponentDataType>()
             where ComponentType : IComponent, new()
             where ComponentMetaDataType : IComponent.IMetaData, new()
@@ -69,6 +68,16 @@ namespace LooCast.System.ECS
         bool ContainsComponent<ComponentType>() where ComponentType : IComponent, new();
         ComponentType GetComponent<ComponentType>() where ComponentType : IComponent, new();
         bool TryGetComponent<ComponentType>(out IComponent component) where ComponentType : IComponent, new();
+        #endregion
+
+        #region Data Management
+        IMetaData GetEntityMetaData();
+        void SetEntityMetaData(IMetaData entityMetaData);
+
+        IData GetEntityData();
+        void SetEntityData(IData entityData);
+        #endregion
+
         #endregion
     }
 }

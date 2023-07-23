@@ -3,24 +3,23 @@ using System.Collections.Generic;
 
 namespace LooCast.System.ECS
 {
-    using LooCast.System.Serialization;
-
     /// <summary>
     /// Lifecycle: Construction via Entity.AddComponent -> OnCreate -> SetMetaData -> SetData -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
     /// </summary>
     public abstract class Component : IComponent
     {
         #region Classes
-        public class MetaData : Serialization.MetaData, IComponent.IMetaData
+        public class MetaData : IComponent.IMetaData
         {
             #region Properties
+            public Guid ComponentID { get; set; }
             public string AssemblyQualifiedComponentTypeName { get; set; }
             public string AssemblyQualifiedComponentMetaDataTypeName { get; set; }
             public string AssemblyQualifiedComponentDataTypeName { get; set; }
             #endregion
         }
 
-        public class Data : Serialization.Data, IComponent.IData
+        public class Data : IComponent.IData
         {
             #region Properties
             public string AssemblyQualifiedComponentTypeName { get; set; }
@@ -89,11 +88,6 @@ namespace LooCast.System.ECS
             preTerminationActions = new List<Action>();
             terminationActions = new List<Action>();
             postTerminationActions = new List<Action>();
-
-            RegisterPreInitializationAction(() =>
-            {
-                ComponentManager.Instance.RegisterComponent(this);
-            });
 
             RegisterPostTerminationAction(() =>
             {
@@ -577,51 +571,45 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Data Management
-        public virtual IMetaData GetMetaData()
+        public virtual IComponent.IMetaData GetComponentMetaData()
         {
             if (!HasMetaData)
             {
                 throw new InvalidOperationException($"Component '{this}' does not have metaData!");
             }
 
-            IComponent.IMetaData metaData = (IComponent.IMetaData)Activator.CreateInstance(ComponentMetaDataType);
-            metaData.AssemblyQualifiedComponentTypeName = ComponentType.AssemblyQualifiedName;
-            metaData.AssemblyQualifiedComponentMetaDataTypeName = ComponentMetaDataType.AssemblyQualifiedName;
-            metaData.AssemblyQualifiedComponentDataTypeName = ComponentDataType.AssemblyQualifiedName;
-            metaData.GUID = ComponentID;
+            IComponent.IMetaData componentMetaData = (IComponent.IMetaData)Activator.CreateInstance(ComponentMetaDataType);
+            componentMetaData.AssemblyQualifiedComponentTypeName = ComponentType.AssemblyQualifiedName;
+            componentMetaData.AssemblyQualifiedComponentMetaDataTypeName = ComponentMetaDataType.AssemblyQualifiedName;
+            componentMetaData.AssemblyQualifiedComponentDataTypeName = ComponentDataType.AssemblyQualifiedName;
+            componentMetaData.ComponentID = ComponentID;
 
-            return metaData;
+            return componentMetaData;
         }
 
-        public virtual IData GetData()
+        public virtual IComponent.IData GetComponentData()
         {
             if (!HasData)
             {
                 throw new InvalidOperationException($"Component '{this}' does not have data!");
             }
 
-            IComponent.IData data = (IComponent.IData)Activator.CreateInstance(ComponentDataType);
-            data.AssemblyQualifiedComponentTypeName = ComponentType.AssemblyQualifiedName;
-            data.AssemblyQualifiedComponentMetaDataTypeName = ComponentMetaDataType.AssemblyQualifiedName;
-            data.AssemblyQualifiedComponentDataTypeName = ComponentDataType.AssemblyQualifiedName;
+            IComponent.IData componentData = (IComponent.IData)Activator.CreateInstance(ComponentDataType);
+            componentData.AssemblyQualifiedComponentTypeName = ComponentType.AssemblyQualifiedName;
+            componentData.AssemblyQualifiedComponentMetaDataTypeName = ComponentMetaDataType.AssemblyQualifiedName;
+            componentData.AssemblyQualifiedComponentDataTypeName = ComponentDataType.AssemblyQualifiedName;
 
-            return data;
+            return componentData;
         }
 
-        public virtual void SetMetaData(IMetaData metaData)
+        public virtual void SetComponentMetaData(IComponent.IMetaData componentMetaData)
         {
-            if (metaData is not IComponent.IMetaData)
-            {
-                throw new ArgumentException($"Cannot set metaData, because metaData is not of type '{typeof(IComponent.IMetaData)}'!");
-            }
-
-            IComponent.IMetaData componentMetaData = (IComponent.IMetaData)metaData;
-            ComponentID = componentMetaData.GUID;
+            ComponentID = componentMetaData.ComponentID;
 
             HasMetaData = true;
         }
 
-        public virtual void SetData(IData data)
+        public virtual void SetComponentData(IComponent.IData componentData)
         {
             if (!IsCreated)
             {
@@ -631,12 +619,6 @@ namespace LooCast.System.ECS
             {
                 throw new InvalidOperationException($"Cannot set data, because component '{this}' does not have metaData!");
             }
-            if (data is not IComponent.IData)
-            {
-                throw new ArgumentException($"Cannot set data, because data is not of type '{typeof(IComponent.IData)}'!");
-            }
-
-            IComponent.IData componentData = (IComponent.IData)data;
 
             HasData = true;
         }

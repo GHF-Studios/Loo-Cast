@@ -6,31 +6,28 @@ using UnityEngine;
 
 namespace LooCast.System.ECS
 {
-    using LooCast.System.Serialization;
-
     /// <summary>
     /// Lifecycle: Construction via Entity.Create -> OnCreate -> SetMetaData -> SetData -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
     /// </summary>
     public abstract class Entity : IEntity
     {
         #region Classes
-        public class MetaData : Serialization.MetaData, IEntity.IMetaData
+        public class MetaData : IEntity.IMetaData
         {
             #region Properties
+            public Guid EntityID { get; set; }
             public string AssemblyQualifiedEntityTypeName { get; set; }
             public string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
             public string AssemblyQualifiedEntityDataTypeName { get; set; }
-            public IComponent.IMetaData[] ComponentMetaDatas { get; set; }
             #endregion
         }
 
-        public class Data : Serialization.Data, IEntity.IData
+        public class Data : IEntity.IData
         {
             #region Properties
             public string AssemblyQualifiedEntityTypeName { get; set; }
             public string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
             public string AssemblyQualifiedEntityDataTypeName { get; set; }
-            public IComponent.IData[] ComponentDatas { get; set; }
             #endregion
         }
         #endregion
@@ -103,32 +100,6 @@ namespace LooCast.System.ECS
             preTerminationActions = new List<Action>();
             terminationActions = new List<Action>();
             postTerminationActions = new List<Action>();
-
-            RegisterPreInitializationAction(() =>
-            {
-                EntityManager.Instance.RegisterEntity(this);
-
-                foreach (IComponent component in components.Values)
-                {
-                    component.OnPreInitialize();
-                }
-            });
-
-            RegisterInitializationAction(() =>
-            {
-                foreach (IComponent component in components.Values)
-                {
-                    component.OnInitialize();
-                }
-            });
-
-            RegisterPostInitializationAction(() =>
-            {
-                foreach (IComponent component in components.Values)
-                {
-                    component.OnPostInitialize();
-                }
-            });
             
             RegisterPostTerminationAction(() =>
             {
@@ -716,7 +687,7 @@ namespace LooCast.System.ECS
         {
             return (ComponentType)AddComponent(typeof(ComponentType), typeof(ComponentMetaDataType), typeof(ComponentDataType));
         }
-
+        
         public IComponent AddComponent(Type newComponentType, Type newComponentMetaDataType, Type newComponentDataType)
         {
             IComponent newComponent = (IComponent)Activator.CreateInstance(newComponentType);
@@ -745,33 +716,6 @@ namespace LooCast.System.ECS
             componentTypes.Add(newComponent.ComponentID, newComponentType);
             newComponent.Create_INTERNAL(newComponentType, newComponentMetaDataType, newComponentDataType, this);
             newComponent.OnCreate();
-
-            if (!IsPreInitialized)
-            {
-                RegisterPreInitializationAction(newComponent.OnPreInitialize);
-            }
-            else
-            {
-                newComponent.OnPreInitialize();
-            }
-            
-            if (!IsInitialized)
-            {
-                RegisterInitializationAction(newComponent.OnInitialize);
-            }
-            else
-            {
-                newComponent.OnInitialize();
-            }
-
-            if (!IsPostInitialized)
-            {
-                RegisterPostInitializationAction(newComponent.OnPostInitialize);
-            }
-            else
-            {
-                newComponent.OnPostInitialize();
-            }
 
             return newComponent;
         }
@@ -850,90 +794,52 @@ namespace LooCast.System.ECS
             return components.TryGetValue(componentType, out component);
         }
         #endregion
-
+        
         #region Data Management
-        public virtual IMetaData GetMetaData()
+        public virtual IEntity.IMetaData GetEntityMetaData()
         {
             if (!HasMetaData)
             {
                 throw new InvalidOperationException($"Entity '{this}' does not have metaData!");
             }
 
-            IEntity.IMetaData metaData = (IEntity.IMetaData)Activator.CreateInstance(EntityMetaDataType);
-            metaData.AssemblyQualifiedEntityTypeName = EntityType.AssemblyQualifiedName;
-            metaData.AssemblyQualifiedEntityMetaDataTypeName = EntityMetaDataType.AssemblyQualifiedName;
-            metaData.AssemblyQualifiedEntityDataTypeName = EntityDataType.AssemblyQualifiedName;
-            metaData.GUID = EntityID;
-            if (components.Count == 0)
-            {
-                metaData.ComponentMetaDatas = Array.Empty<Component.MetaData>();
-            }
-            else
-            {
-                metaData.ComponentMetaDatas = new Component.MetaData[components.Count];
-                IComponent[] componentsArray = components.Values.ToArray();
+            IEntity.IMetaData entityMetaData = (IEntity.IMetaData)Activator.CreateInstance(EntityMetaDataType);
+            entityMetaData.AssemblyQualifiedEntityTypeName = EntityType.AssemblyQualifiedName;
+            entityMetaData.AssemblyQualifiedEntityMetaDataTypeName = EntityMetaDataType.AssemblyQualifiedName;
+            entityMetaData.AssemblyQualifiedEntityDataTypeName = EntityDataType.AssemblyQualifiedName;
+            entityMetaData.EntityID = EntityID;
 
-                for (int i = 0; i < components.Count; i++)
-                {
-                    metaData.ComponentMetaDatas[i] = (IComponent.IMetaData)componentsArray[i].GetMetaData();
-                }
-            }
-
-            return metaData;
+            return entityMetaData;
         }
 
-        public virtual IData GetData()
+        public virtual IEntity.IData GetEntityData()
         {
             if (!HasData)
             {
                 throw new InvalidOperationException($"Entity '{this}' does not have data!");
             }
 
-            IEntity.IData data = (IEntity.IData)Activator.CreateInstance(EntityDataType);
-            data.AssemblyQualifiedEntityTypeName = EntityType.AssemblyQualifiedName;
-            data.AssemblyQualifiedEntityMetaDataTypeName = EntityMetaDataType.AssemblyQualifiedName;
-            data.AssemblyQualifiedEntityDataTypeName = EntityDataType.AssemblyQualifiedName;
-            if (components.Count == 0)
-            {
-                data.ComponentDatas = Array.Empty<IComponent.IData>();
-            }
-            else
-            {
-                data.ComponentDatas = new IComponent.IData[components.Count];
-                IComponent[] componentsArray = components.Values.ToArray();
-
-                for (int i = 0; i < components.Count; i++)
-                {
-                    data.ComponentDatas[i] = (IComponent.IData)componentsArray[i].GetData();
-                }
-            }
+            IEntity.IData entityData = (IEntity.IData)Activator.CreateInstance(EntityDataType);
+            entityData.AssemblyQualifiedEntityTypeName = EntityType.AssemblyQualifiedName;
+            entityData.AssemblyQualifiedEntityMetaDataTypeName = EntityMetaDataType.AssemblyQualifiedName;
+            entityData.AssemblyQualifiedEntityDataTypeName = EntityDataType.AssemblyQualifiedName;
             
-            return data;
+            return entityData;
         }
 
-        public virtual void SetMetaData(IMetaData metaData)
+        public virtual void SetEntityMetaData(IEntity.IMetaData entityMetaData)
         {
             if (!IsCreated)
             {
                 throw new InvalidOperationException($"Cannot set metaData, because entity '{this}' is not created!");
             }
 
-            IEntity.IMetaData entityMetaData = (IEntity.IMetaData)metaData;
-            EntityID = entityMetaData.GUID;
-            for (int i = 0; i < entityMetaData.ComponentMetaDatas.Length; i++)
-            {
-                IComponent.IMetaData newComponentMetaData = entityMetaData.ComponentMetaDatas[i];
-                Type newComponentType = Type.GetType(newComponentMetaData.AssemblyQualifiedComponentTypeName);
-                Type newComponentMetaDataType = Type.GetType(newComponentMetaData.AssemblyQualifiedComponentMetaDataTypeName);
-                Type newComponentDataType = Type.GetType(newComponentMetaData.AssemblyQualifiedComponentDataTypeName);
-                IComponent newComponent = AddComponent(newComponentType, newComponentMetaDataType, newComponentDataType);
-                newComponent.SetMetaData(newComponentMetaData);
-            }
+            EntityID = entityMetaData.EntityID;
 
             HasMetaData = true;
         }
 
-        public virtual void SetData(IData data)
+        public virtual void SetEntityData(IEntity.IData entityData)
         {
             if (!IsCreated)
             {
@@ -942,14 +848,6 @@ namespace LooCast.System.ECS
             if (!HasMetaData)
             {
                 throw new InvalidOperationException($"Cannot set data, because entity '{this}' does not have metaData!");
-            }
-
-            IEntity.IData entityData = (IEntity.IData)data;
-            for (int i = 0; i < entityData.ComponentDatas.Length; i++)
-            {
-                IComponent.IData componentData = entityData.ComponentDatas[i];
-                Type componentType = Type.GetType(componentData.AssemblyQualifiedComponentTypeName);
-                components[componentType].SetData(componentData);
             }
 
             HasData = true;

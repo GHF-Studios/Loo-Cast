@@ -2,21 +2,21 @@
 
 namespace LooCast.System.ECS
 {
-    using LooCast.System.Serialization;
     using LooCast.System.Lifecycle.Initialization;
     using LooCast.System.Lifecycle.Termination;
     
-    public interface IComponent : ISerializable, IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
+    public interface IComponent : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Interfaces
-        public interface IMetaData : Serialization.IMetaData
+        public interface IMetaData
         {
+            Guid ComponentID { get; set; }
             string AssemblyQualifiedComponentTypeName { get; set; }
             string AssemblyQualifiedComponentMetaDataTypeName { get; set; }
             string AssemblyQualifiedComponentDataTypeName { get; set; }
         }
         
-        public interface IData : Serialization.IData
+        public interface IData
         {
             string AssemblyQualifiedComponentTypeName { get; set; }
             string AssemblyQualifiedComponentMetaDataTypeName { get; set; }
@@ -53,6 +53,15 @@ namespace LooCast.System.ECS
         /// Do NOT manually call this method!
         /// </summary>
         void Destroy_INTERNAL();
+
+        #region Data Management
+        IMetaData GetComponentMetaData();
+        void SetComponentMetaData(IMetaData componentMetaData);
+
+        IData GetComponentData();
+        void SetComponentData(IData componentData);
+        #endregion
+
         #endregion
     }
 }
