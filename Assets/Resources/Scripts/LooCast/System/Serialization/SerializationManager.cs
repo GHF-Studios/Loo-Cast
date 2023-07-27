@@ -63,8 +63,6 @@ namespace LooCast.System.Serialization
                 SetEntityData(componentManagerData);
 
                 #region Serializer Registration
-
-
                 Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
                 IEnumerable<Type> types = assemblies.SelectMany(assembly => assembly.GetTypes());
                 IEnumerable<Type> entityTypes = types.Where(type => typeof(IEntity).IsAssignableFrom(type));

@@ -2,7 +2,7 @@
 
 namespace LooCast.System.Paths
 {
-    public interface IFilePath : IHierarchicalElementPath
+    public interface IFilePath : IPath
     {
         #region Properties
         string FileName { get; }

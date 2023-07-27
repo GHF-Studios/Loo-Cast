@@ -1,9 +1,9 @@
 ﻿using System;
 using UnityEngine;
 
-namespace LooCast.System
+namespace LooCast.System.Paths
 {
-    public interface IHierarchicalElementPath
+    public interface IPath
     {
         #region Properties
         string GUSP { get; }
