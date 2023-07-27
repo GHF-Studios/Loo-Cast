@@ -30,6 +30,22 @@ namespace LooCast.System.ECS
             public string AssemblyQualifiedEntityDataTypeName { get; set; }
             #endregion
         }
+
+        public sealed class FullMetaData : IEntity.IFullMetaData
+        {
+            #region Properties
+            public IEntity.IMetaData EntityMetaData { get; set; }
+            public IComponent.IMetaData[] ComponentMetaDatas { get; set; }
+            #endregion
+        }
+
+        public sealed class FullData : IEntity.IFullData
+        {
+            #region Properties
+            public IEntity.IData EntityData { get; set; }
+            public IComponent.IData[] ComponentDatas { get; set; }
+            #endregion
+        }
         #endregion
 
         #region Properties
@@ -136,15 +152,56 @@ namespace LooCast.System.ECS
             {
                 throw new ArgumentNullException(nameof(entityType));
             }
+            if (entityMetaDataType == null)
+            {
+                throw new ArgumentNullException(nameof(entityMetaDataType));
+            }
+            if (entityDataType == null)
+            {
+                throw new ArgumentNullException(nameof(entityDataType));
+            }
             if (!typeof(IEntity).IsAssignableFrom(entityType))
             {
                 throw new ArgumentException($"The given type {entityType} does not implement IEntity!");
             }
+            if (!typeof(IEntity.IMetaData).IsAssignableFrom(entityMetaDataType))
+            {
+                throw new ArgumentException($"The given type {entityMetaDataType} does not implement IEntity.IMetaData!");
+            }
+            if (!typeof(IEntity.IData).IsAssignableFrom(entityDataType))
+            {
+                throw new ArgumentException($"The given type {entityDataType} does not implement IEntity.IData!");
+            }
 
-            IEntity newEntity = (IEntity)Activator.CreateInstance(entityType);
-            newEntity.Create_INTERNAL(entityType, entityMetaDataType, entityDataType);
-            newEntity.OnCreate();
-            return newEntity;
+            IEntity entity = (IEntity)Activator.CreateInstance(entityType);
+            entity.Create_INTERNAL(entityType, entityMetaDataType, entityDataType);
+            entity.OnCreate();
+            return entity;
+        }
+
+        public static IEntity Create(IEntity.IFullMetaData fullEntityMetaData)
+        {
+            if (fullEntityMetaData == null)
+            {
+                throw new ArgumentNullException(nameof(fullEntityMetaData));
+            }
+
+            Type entityType = Type.GetType(fullEntityMetaData.EntityMetaData.AssemblyQualifiedEntityTypeName);
+            Type entityMetaDataType = Type.GetType(fullEntityMetaData.EntityMetaData.AssemblyQualifiedEntityMetaDataTypeName);
+            Type entityDataType = Type.GetType(fullEntityMetaData.EntityMetaData.AssemblyQualifiedEntityDataTypeName);
+
+            IEntity entity = Create(entityType, entityMetaDataType, entityDataType);
+
+            foreach (IComponent.IMetaData componentMetaData in fullEntityMetaData.ComponentMetaDatas)
+            {
+                Type componentType = Type.GetType(componentMetaData.AssemblyQualifiedComponentTypeName);
+                Type componentMetaDataType = Type.GetType(componentMetaData.AssemblyQualifiedComponentMetaDataTypeName);
+                Type componentDataType = Type.GetType(componentMetaData.AssemblyQualifiedComponentDataTypeName);
+
+                entity.AddComponent(componentType, componentMetaDataType, componentDataType);
+            }
+
+            return entity;
         }
 
         /// <summary>
@@ -440,7 +497,7 @@ namespace LooCast.System.ECS
         #endregion
         
         /// <summary>
-        /// Automatically called when this newEntity is being created. 
+        /// Automatically called when this entity is being created. 
         /// Do NOT manually call this method! 
         /// Only override this method if you know what you are doing!
         /// </summary>
@@ -450,7 +507,7 @@ namespace LooCast.System.ECS
         }
 
         /// <summary>
-        /// Automatically called when this newEntity is being destroyed. 
+        /// Automatically called when this entity is being destroyed. 
         /// Do NOT manually call this method! 
         /// Only override this method if you know what you are doing!
         /// </summary>
@@ -851,6 +908,72 @@ namespace LooCast.System.ECS
             }
 
             HasData = true;
+        }
+
+        public IEntity.IFullMetaData GetFullEntityMetaData()
+        {
+            IEntity.IFullMetaData fullEntityMetaData = new FullMetaData();
+            fullEntityMetaData.EntityMetaData = GetEntityMetaData();
+            IComponent.IMetaData[] componentMetaDatas;
+            if (components.Count == 0)
+            {
+                componentMetaDatas = Array.Empty<IComponent.IMetaData>();
+            }
+            else
+            {
+                IComponent[] entityComponents = components.Values.ToArray();
+                componentMetaDatas = new IComponent.IMetaData[entityComponents.Length];
+                for (int i = 0; i < entityComponents.Length; i++)
+                {
+                    componentMetaDatas[i] = entityComponents[i].GetComponentMetaData();
+                }
+            }
+            fullEntityMetaData.ComponentMetaDatas = componentMetaDatas;
+            return fullEntityMetaData;
+        }
+
+        public IEntity.IFullData GetFullEntityData()
+        {
+            IEntity.IFullData fullEntityData = new FullData();
+            fullEntityData.EntityData = GetEntityData();
+            IComponent.IData[] componentDatas;
+            if (components.Count == 0)
+            {
+                componentDatas = Array.Empty<IComponent.IData>();
+            }
+            else
+            {
+                IComponent[] entityComponents = components.Values.ToArray();
+                componentDatas = new IComponent.IData[entityComponents.Length];
+                for (int i = 0; i < entityComponents.Length; i++)
+                {
+                    componentDatas[i] = entityComponents[i].GetComponentData();
+                }
+            }
+            fullEntityData.ComponentDatas = componentDatas;
+            return fullEntityData;
+        }
+        
+        public void SetFullEntityMetaData(IEntity.IFullMetaData fullEntityMetaData)
+        {
+            SetEntityMetaData(fullEntityMetaData.EntityMetaData);
+            
+            foreach (IComponent.IMetaData componentMetaData in fullEntityMetaData.ComponentMetaDatas)
+            {
+                Type componentType = Type.GetType(componentMetaData.AssemblyQualifiedComponentTypeName);
+                components[componentType].SetComponentMetaData(componentMetaData);
+            }
+        }
+
+        public void SetFullEntityData(IEntity.IFullData fullEntityData)
+        {
+            SetEntityData(fullEntityData.EntityData);
+
+            foreach (IComponent.IData componentData in fullEntityData.ComponentDatas)
+            {
+                Type componentType = Type.GetType(componentData.AssemblyQualifiedComponentTypeName);
+                components[componentType].SetComponentData(componentData);
+            }
         }
         #endregion
 

@@ -33,7 +33,7 @@ namespace LooCast.System.ECS
         {
             registeredEntities = new Dictionary<Guid, IEntity>();
 
-            FolderComponent folderComponent = AddComponent<FolderComponent, Component.MetaData, FolderComponent.Data>();
+            // Add pre-included components here
 
             RegisterPreSetupAction(() =>
             {
@@ -67,27 +67,11 @@ namespace LooCast.System.ECS
 
             RegisterSetupAction(() =>
             {
-                string assemblyQualifiedFolderComponentTypeName = typeof(FolderComponent).AssemblyQualifiedName;
-                string assemblyQualifiedFolderComponentMetaDataTypeName = typeof(Component.MetaData).AssemblyQualifiedName;
-                string assemblyQualifiedFolderComponentDataTypeName = typeof(FolderComponent.Data).AssemblyQualifiedName;
+                // Set pre-included components' metaData here
 
-                Component.MetaData folderComponentMetaData = new Component.MetaData();
-                folderComponentMetaData.AssemblyQualifiedComponentTypeName = assemblyQualifiedFolderComponentTypeName;
-                folderComponentMetaData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
-                folderComponentMetaData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
-                folderComponentMetaData.ComponentID = new Guid();
+                // Set pre-included component's data here
 
-                FolderComponent.Data folderComponentData = new FolderComponent.Data();
-                folderComponentData.AssemblyQualifiedComponentTypeName = assemblyQualifiedFolderComponentTypeName;
-                folderComponentData.AssemblyQualifiedComponentMetaDataTypeName = assemblyQualifiedFolderComponentMetaDataTypeName;
-                folderComponentData.AssemblyQualifiedComponentDataTypeName = assemblyQualifiedFolderComponentDataTypeName;
-                folderComponentData.FolderName = "EntityManager";
-                folderComponentData.ParentFolderPath = SystemManager.Instance.GetComponent<FolderComponent>().FolderPath;
-
-                folderComponent.SetComponentMetaData(folderComponentMetaData);
-                folderComponent.SetComponentData(folderComponentData);
-
-                FolderManager.Instance.RegisterFolder(folderComponent);
+                // Register pre-included components here
 
                 foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
@@ -105,17 +89,17 @@ namespace LooCast.System.ECS
 
             RegisterPreInitializationAction(() =>
             {
-                folderComponent.OnPreInitialize();
+                // Pre-Initialize pre-included components here
             });
 
             RegisterInitializationAction(() =>
             {
-                folderComponent.OnInitialize();
+                // Initialize pre-included components here
             });
 
             RegisterPostInitializationAction(() =>
             {
-                folderComponent.OnPostInitialize();
+                // Post-Initialize pre-included components here
             });
         }
         #endregion

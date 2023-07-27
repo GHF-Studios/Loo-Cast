@@ -3,7 +3,7 @@
 namespace LooCast.System.ECS
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public class IncompatibleComponentsAttribute : Attribute
+    public sealed class IncompatibleComponentsAttribute : Attribute
     {
         #region Properties
         public Type[] IncompatibleComponentTypes { get; private set; }

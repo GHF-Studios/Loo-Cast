@@ -1,19 +1,22 @@
 ﻿using System;
+using System.Reflection;
+using System.Linq;
 using System.Collections.Generic;
-using UnityEngine;
 
-namespace LooCast.System.ECS
+namespace LooCast.System.Serialization
 {
-    public sealed class ComponentManager : ModuleManager
+    using LooCast.System.ECS;
+
+    public sealed class SerializationManager : ModuleManager
     {
         #region Static Properties
-        public static ComponentManager Instance
+        public static SerializationManager Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    instance = Entity.Create<ComponentManager, Entity.MetaData, Manager.Data>();
+                    instance = Entity.Create<SerializationManager, Entity.MetaData, Manager.Data>();
                 }
                 return instance;
             }
@@ -21,23 +24,25 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Static Fields
-        private static ComponentManager instance;
+        private static SerializationManager instance;
         #endregion
 
         #region Fields
-        private Dictionary<Guid, IComponent> registeredEntities;
+        private Dictionary<Type, PrimitiveSerializer> primitiveSerializers;
+        private Dictionary<Type, CompositeSerializer> compositeSerializers;
         #endregion
 
         #region Constructors
-        public ComponentManager() : base()
+        public SerializationManager() : base()
         {
-            registeredEntities = new Dictionary<Guid, IComponent>();
+            primitiveSerializers = new Dictionary<Type, PrimitiveSerializer>();
+            compositeSerializers = new Dictionary<Type, CompositeSerializer>();
 
             // Add pre-included components here
 
             RegisterPreSetupAction(() =>
             {
-                string assemblyQualifiedComponentManagerEntityTypeName = typeof(ComponentManager).AssemblyQualifiedName;
+                string assemblyQualifiedComponentManagerEntityTypeName = typeof(SerializationManager).AssemblyQualifiedName;
                 string assemblyQualifiedComponentManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
                 string assemblyQualifiedComponentManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
 
@@ -51,11 +56,20 @@ namespace LooCast.System.ECS
                 componentManagerData.AssemblyQualifiedEntityTypeName = assemblyQualifiedComponentManagerEntityTypeName;
                 componentManagerData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedComponentManagerEntityMetaDataTypeName;
                 componentManagerData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedComponentManagerEntityDataTypeName;
-                componentManagerData.ManagerName = "ComponentManager";
+                componentManagerData.ManagerName = "SerializationManager";
                 componentManagerData.ManagerParent = SystemManager.Instance;
 
                 SetEntityMetaData(componentManagerMetaData);
                 SetEntityData(componentManagerData);
+
+                #region Serializer Registration
+
+
+                Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                IEnumerable<Type> types = assemblies.SelectMany(assembly => assembly.GetTypes());
+                IEnumerable<Type> entityTypes = types.Where(type => typeof(IEntity).IsAssignableFrom(type));
+                IEnumerable<Type> componentTypes = types.Where(type => typeof(IComponent).IsAssignableFrom(type));
+                #endregion
 
                 foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
@@ -69,7 +83,7 @@ namespace LooCast.System.ECS
             {
                 // Set pre-included components' metaData here
 
-                // Set pre-included component's data here
+                // Set pre-included component'assembly data here
 
                 // Register pre-included components here
 
@@ -105,49 +119,6 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Methods
-        public void RegisterComponent(IComponent component)
-        {
-            if (!registeredEntities.ContainsKey(component.ComponentID))
-            {
-                registeredEntities.Add(component.ComponentID, component);
-            }
-        }
-
-        public void UnregisterComponent(IComponent component)
-        {
-            if (registeredEntities.ContainsKey(component.ComponentID))
-            {
-                registeredEntities.Remove(component.ComponentID);
-            }
-        }
-
-        public IComponent GetComponent(Guid componentID)
-        {
-            if (registeredEntities.ContainsKey(componentID))
-            {
-                return registeredEntities[componentID];
-            }
-            return null;
-        }
-
-        public bool TryGetComponent(Guid componentID, out IComponent component)
-        {
-            if (!registeredEntities.ContainsKey(componentID))
-            {
-                component = null;
-                return false;
-            }
-            else
-            {
-                component = registeredEntities[componentID];
-                return true;
-            }
-        }
-
-        public bool IsComponentRegistered(Guid componentID)
-        {
-            return registeredEntities.ContainsKey(componentID);
-        }
         #endregion
     }
 }

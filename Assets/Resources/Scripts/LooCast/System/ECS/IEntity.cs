@@ -22,8 +22,20 @@ namespace LooCast.System.ECS
             string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
             string AssemblyQualifiedEntityDataTypeName { get; set; }
         }
+
+        public interface IFullMetaData
+        {
+            IMetaData EntityMetaData { get; set; }
+            IComponent.IMetaData[] ComponentMetaDatas { get; set; }
+        }
+
+        public interface IFullData
+        {
+            IData EntityData { get; set; }
+            IComponent.IData[] ComponentDatas { get; set; }
+        }
         #endregion
-        
+
         #region Properties
         Guid EntityID { get; }
         UnityBridge UnityBridge { get; }
@@ -76,6 +88,12 @@ namespace LooCast.System.ECS
 
         IData GetEntityData();
         void SetEntityData(IData entityData);
+
+        IFullMetaData GetFullEntityMetaData();
+        void SetFullEntityMetaData(IFullMetaData fullEntityMetaData);
+
+        IFullData GetFullEntityData();
+        void SetFullEntityData(IFullData fullEntityData);
         #endregion
 
         #endregion
