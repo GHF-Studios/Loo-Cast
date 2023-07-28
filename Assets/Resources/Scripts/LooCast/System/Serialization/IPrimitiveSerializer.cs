@@ -1,6 +1,4 @@
-﻿using System.Xml.Linq;
-
-namespace LooCast.System.Serialization
+﻿namespace LooCast.System.Serialization
 {
     /// <summary>
     /// CAUTION: Primitive Serializers should ALWAYS serialize to and deserialize from an XElement!

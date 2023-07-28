@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Xml.Linq;
 
 namespace LooCast.System.Serialization
 {
-    public class ArrayPrimitiveSerializer<ArrayType> : PrimitiveSerializer<ArrayType[]>
+    public sealed class ArrayPrimitiveSerializer<ArrayType> : PrimitiveSerializer<ArrayType[]>
     {
         #region Properties
         public Type PrimitiveArrayType { get; private set; }
@@ -17,9 +15,9 @@ namespace LooCast.System.Serialization
         public ArrayPrimitiveSerializer() : base()
         {
             PrimitiveArrayType = typeof(ArrayType);
-            if (SerializationManager.Instance.IsCompositeType(PrimitiveArrayType))
+            if (!SerializationManager.Instance.IsPrimitiveType(PrimitiveArrayType))
             {
-                throw new ArgumentException($"Type '{PrimitiveArrayType}' is a composite type and cannot be used as a primitive type!");
+                throw new ArgumentException($"Type '{PrimitiveArrayType}' is not a primitive type!");
             }
             ArrayTypePrimitiveSerializer = SerializationManager.Instance.GetPrimitiveSerializer(PrimitiveArrayType);
         }
@@ -28,17 +26,17 @@ namespace LooCast.System.Serialization
         #region Methods
         public override XElement Serialize(string name, ArrayType[] serializablePrimitives)
         {
-            XElement serializedArray = new XElement(name);
+            XElement serializedPrimitiveArray = new XElement(name);
             for (int i = 0; i < serializablePrimitives.Length; i++)
             {
-                serializedArray.Add((XElement)ArrayTypePrimitiveSerializer.Serialize("Item", serializablePrimitives[i]));
+                serializedPrimitiveArray.Add((XElement)ArrayTypePrimitiveSerializer.Serialize("Item", serializablePrimitives[i]));
             }
-            return serializedArray;
+            return serializedPrimitiveArray;
         }
 
-        public override ArrayType[] Deserialize(XElement serializedArray)
+        public override ArrayType[] Deserialize(XElement serializedPrimitiveArray)
         {
-            XElement[] serializedPrimitives = serializedArray.Elements("Item").ToArray();
+            XElement[] serializedPrimitives = serializedPrimitiveArray.Elements("Item").ToArray();
             ArrayType[] serializablePrimitives = new ArrayType[serializedPrimitives.Length];
             for (int i = 0; i < serializedPrimitives.Length; i++)
             {

@@ -6,7 +6,6 @@ using System.Collections.Generic;
 namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
-    using LooCast.System.Paths;
 
     public sealed class SerializationManager : ModuleManager
     {
@@ -30,15 +29,19 @@ namespace LooCast.System.Serialization
 
         #region Fields
         private Dictionary<Type, IPrimitiveSerializer> primitiveSerializers;
-        private Dictionary<Type, ICompositeSerializer> compositeSerializers;
+        private Dictionary<Type, ICompositeFolderSerializer> compositeFolderSerializers;
+        private Dictionary<Type, ICompositeFileSerializer> compositeFileSerializers;
+        private Dictionary<Type, ICompositeObjectSerializer> compositeObjectSerializers;
         #endregion
 
         #region Constructors
         public SerializationManager() : base()
         {
             primitiveSerializers = new Dictionary<Type, IPrimitiveSerializer>();
-            compositeSerializers = new Dictionary<Type, ICompositeSerializer>();
-            
+            compositeFolderSerializers = new Dictionary<Type, ICompositeFolderSerializer>();
+            compositeFileSerializers = new Dictionary<Type, ICompositeFileSerializer>();
+            compositeObjectSerializers = new Dictionary<Type, ICompositeObjectSerializer>();
+
             // Add pre-included components here
 
             RegisterPreSetupAction(() =>
@@ -84,6 +87,10 @@ namespace LooCast.System.Serialization
                 IEnumerable<Type> types = assemblies.SelectMany(assembly => assembly.GetTypes());
                 IEnumerable<Type> entityTypes = types.Where(type => typeof(IEntity).IsAssignableFrom(type));
                 IEnumerable<Type> componentTypes = types.Where(type => typeof(IComponent).IsAssignableFrom(type));
+
+                // automatically assign each composite type a composite serializer and also somehow determine if a type should be serialized in binary
+                // maybe add some attributes for this, once the system is kind of up and running
+                // the representation of the attributes and the relations to each other is literally the sets of serializers
                 #endregion
 
                 foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
@@ -140,21 +147,37 @@ namespace LooCast.System.Serialization
             {
                 return true;
             }
-            else if (compositeSerializers.ContainsKey(type))
+            else if (compositeFolderSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else if (compositeFileSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else if (compositeObjectSerializers.ContainsKey(type))
             {
                 return false;
             }
             else
             {
-                throw new Exception($"Type '{type}' is not registered in the SerializationManager!");
+                throw new Exception($"Type '{type}' is not a registered serializable type!");
             }
         }
 
-        public bool IsCompositeType(Type type)
+        public bool IsCompositeFolderType(Type type)
         {
-            if (compositeSerializers.ContainsKey(type))
+            if (compositeFolderSerializers.ContainsKey(type))
             {
                 return true;
+            }
+            else if (compositeFileSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else if (compositeObjectSerializers.ContainsKey(type))
+            {
+                return false;
             }
             else if (primitiveSerializers.ContainsKey(type))
             {
@@ -162,7 +185,55 @@ namespace LooCast.System.Serialization
             }
             else
             {
-                throw new Exception($"Type '{type}' is not registered in the SerializationManager!");
+                throw new Exception($"Type '{type}' is not a registered serializable type!");
+            }
+        }
+
+        public bool IsCompositeFileType(Type type)
+        {
+            if (compositeFileSerializers.ContainsKey(type))
+            {
+                return true;
+            }
+            else if (compositeObjectSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else if (primitiveSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else if (compositeFolderSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else
+            {
+                throw new Exception($"Type '{type}' is not a registered serializable type!");
+            }
+        }
+
+        public bool IsCompositeObjectType(Type type)
+        {
+            if (compositeObjectSerializers.ContainsKey(type))
+            {
+                return true;
+            }
+            else if (primitiveSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else if (compositeFolderSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else if (compositeFileSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else
+            {
+                throw new Exception($"Type '{type}' is not a registered serializable type!");
             }
         }
         
@@ -170,7 +241,7 @@ namespace LooCast.System.Serialization
         {
             if (primitiveSerializer == null)
             {
-                throw new ArgumentNullException("serializer");
+                throw new ArgumentNullException(nameof(primitiveSerializer));
             }
 
             if (primitiveSerializers.ContainsKey(primitiveSerializer.SerializableType))
@@ -181,19 +252,49 @@ namespace LooCast.System.Serialization
             primitiveSerializers.Add(primitiveSerializer.SerializableType, primitiveSerializer);
         }
 
-        public void RegisterCompositeSerializer(ICompositeSerializer compositeSerializer)
+        public void RegisterCompositeFolderSerializer(ICompositeFolderSerializer compositeFolderSerializer)
         {
-            if (compositeSerializer == null)
+            if (compositeFolderSerializer == null)
             {
-                throw new ArgumentNullException("serializer");
+                throw new ArgumentNullException(nameof(compositeFolderSerializer));
             }
 
-            if (compositeSerializers.ContainsKey(compositeSerializer.SerializableType))
+            if (compositeFolderSerializers.ContainsKey(compositeFolderSerializer.SerializableType))
             {
-                throw new ArgumentException($"Composite serializer already registered for type '{compositeSerializer.SerializableType}'!");
+                throw new ArgumentException($"Composite folder serializer already registered for type '{compositeFolderSerializer.SerializableType}'!");
             }
 
-            compositeSerializers.Add(compositeSerializer.SerializableType, compositeSerializer);
+            compositeFolderSerializers.Add(compositeFolderSerializer.SerializableType, compositeFolderSerializer);
+        }
+
+        public void RegisterCompositeFileSerializer(ICompositeFileSerializer compositeFileSerializer)
+        {
+            if (compositeFileSerializer == null)
+            {
+                throw new ArgumentNullException(nameof(compositeFileSerializer));
+            }
+
+            if (compositeFileSerializers.ContainsKey(compositeFileSerializer.SerializableType))
+            {
+                throw new ArgumentException($"Composite file serializer already registered for type '{compositeFileSerializer.SerializableType}'!");
+            }
+
+            compositeFileSerializers.Add(compositeFileSerializer.SerializableType, compositeFileSerializer);
+        }
+
+        public void RegisterCompositeObjectSerializer(ICompositeObjectSerializer compositeObjectSerializer)
+        {
+            if (compositeObjectSerializer == null)
+            {
+                throw new ArgumentNullException(nameof(compositeObjectSerializer));
+            }
+
+            if (compositeObjectSerializers.ContainsKey(compositeObjectSerializer.SerializableType))
+            {
+                throw new ArgumentException($"Composite object serializer already registered for type '{compositeObjectSerializer.SerializableType}'!");
+            }
+
+            compositeObjectSerializers.Add(compositeObjectSerializer.SerializableType, compositeObjectSerializer);
         }
 
         public IPrimitiveSerializer GetPrimitiveSerializer(Type type)
@@ -211,19 +312,49 @@ namespace LooCast.System.Serialization
             return primitiveSerializers[type];
         }
 
-        public ICompositeSerializer GetCompositeSerializer(Type type)
+        public ICompositeFolderSerializer GetCompositeFolderSerializer(Type type)
         {
             if (type == null)
             {
                 throw new ArgumentNullException("type");
             }
 
-            if (!compositeSerializers.ContainsKey(type))
+            if (!compositeFolderSerializers.ContainsKey(type))
             {
-                throw new ArgumentException($"No composite serializer registered for type '{type}'!");
+                throw new ArgumentException($"No composite folder serializer registered for type '{type}'!");
             }
 
-            return compositeSerializers[type];
+            return compositeFolderSerializers[type];
+        }
+
+        public ICompositeFileSerializer GetCompositeFileSerializer(Type type)
+        {
+            if (type == null)
+            {
+                throw new ArgumentNullException("type");
+            }
+
+            if (!compositeFileSerializers.ContainsKey(type))
+            {
+                throw new ArgumentException($"No composite file serializer registered for type '{type}'!");
+            }
+
+            return compositeFileSerializers[type];
+        }
+
+        public ICompositeObjectSerializer GetCompositeObjectSerializer(Type type)
+        {
+            if (type == null)
+            {
+                throw new ArgumentNullException("type");
+            }
+
+            if (!compositeObjectSerializers.ContainsKey(type))
+            {
+                throw new ArgumentException($"No composite object serializer registered for type '{type}'!");
+            }
+
+            return compositeObjectSerializers[type];
         }
         #endregion
     }

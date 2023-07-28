@@ -5,6 +5,8 @@ namespace LooCast.System.Serialization
     public enum SerializationType
     {
         Primitive,
-        Composite
+        CompositeFolder,
+        CompositeFile,
+        CompositeObject
     }
 }
