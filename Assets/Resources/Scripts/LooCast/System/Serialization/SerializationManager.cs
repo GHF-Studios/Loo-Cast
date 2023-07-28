@@ -29,13 +29,15 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Fields
-        private Dictionary<Type, Serializer> serializers;
+        private Dictionary<Type, IPrimitiveSerializer> primitiveSerializers;
+        private Dictionary<Type, ICompositeSerializer> compositeSerializers;
         #endregion
 
         #region Constructors
         public SerializationManager() : base()
         {
-            serializers = new Dictionary<Type, Serializer>();
+            primitiveSerializers = new Dictionary<Type, IPrimitiveSerializer>();
+            compositeSerializers = new Dictionary<Type, ICompositeSerializer>();
             
             // Add pre-included components here
 
@@ -62,7 +64,21 @@ namespace LooCast.System.Serialization
                 SetEntityData(componentManagerData);
 
                 #region Serializer Registration
-                RegisterSerializer();
+                RegisterPrimitiveSerializer(new BoolPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new BytePrimitiveSerializer());
+                RegisterPrimitiveSerializer(new SBytePrimitiveSerializer());
+                RegisterPrimitiveSerializer(new CharPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new DecimalPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new DoublePrimitiveSerializer());
+                RegisterPrimitiveSerializer(new FloatPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new IntPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new UIntPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new LongPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new ULongPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new ShortPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new UShortPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new StringPrimitiveSerializer());
+                RegisterPrimitiveSerializer(new BigIntPrimitiveSerializer());
 
                 Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
                 IEnumerable<Type> types = assemblies.SelectMany(assembly => assembly.GetTypes());
@@ -118,34 +134,96 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Methods
-        public void RegisterSerializer(Serializer serializer)
+        public bool IsPrimitiveType(Type type)
         {
-            if (serializer == null)
+            if (primitiveSerializers.ContainsKey(type))
+            {
+                return true;
+            }
+            else if (compositeSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else
+            {
+                throw new Exception($"Type '{type}' is not registered in the SerializationManager!");
+            }
+        }
+
+        public bool IsCompositeType(Type type)
+        {
+            if (compositeSerializers.ContainsKey(type))
+            {
+                return true;
+            }
+            else if (primitiveSerializers.ContainsKey(type))
+            {
+                return false;
+            }
+            else
+            {
+                throw new Exception($"Type '{type}' is not registered in the SerializationManager!");
+            }
+        }
+        
+        public void RegisterPrimitiveSerializer(IPrimitiveSerializer primitiveSerializer)
+        {
+            if (primitiveSerializer == null)
             {
                 throw new ArgumentNullException("serializer");
             }
 
-            if (serializers.ContainsKey(serializer.SerializableType))
+            if (primitiveSerializers.ContainsKey(primitiveSerializer.SerializableType))
             {
-                throw new ArgumentException($"Serializer already registered for type '{serializer.SerializableType}'!");
+                throw new ArgumentException($"Primitive serializer already registered for type '{primitiveSerializer.SerializableType}'!");
             }
 
-            serializers.Add(serializer.SerializableType, serializer);
+            primitiveSerializers.Add(primitiveSerializer.SerializableType, primitiveSerializer);
         }
 
-        public Serializer GetSerializer(Type type)
+        public void RegisterCompositeSerializer(ICompositeSerializer compositeSerializer)
+        {
+            if (compositeSerializer == null)
+            {
+                throw new ArgumentNullException("serializer");
+            }
+
+            if (compositeSerializers.ContainsKey(compositeSerializer.SerializableType))
+            {
+                throw new ArgumentException($"Composite serializer already registered for type '{compositeSerializer.SerializableType}'!");
+            }
+
+            compositeSerializers.Add(compositeSerializer.SerializableType, compositeSerializer);
+        }
+
+        public IPrimitiveSerializer GetPrimitiveSerializer(Type type)
         {
             if (type == null)
             {
                 throw new ArgumentNullException("type");
             }
 
-            if (!serializers.ContainsKey(type))
+            if (!primitiveSerializers.ContainsKey(type))
             {
-                throw new ArgumentException($"No serializer registered for type '{type}'!");
+                throw new ArgumentException($"No primitive serializer registered for type '{type}'!");
             }
 
-            return serializers[type];
+            return primitiveSerializers[type];
+        }
+
+        public ICompositeSerializer GetCompositeSerializer(Type type)
+        {
+            if (type == null)
+            {
+                throw new ArgumentNullException("type");
+            }
+
+            if (!compositeSerializers.ContainsKey(type))
+            {
+                throw new ArgumentException($"No composite serializer registered for type '{type}'!");
+            }
+
+            return compositeSerializers[type];
         }
         #endregion
     }

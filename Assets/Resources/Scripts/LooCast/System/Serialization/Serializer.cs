@@ -4,7 +4,7 @@ namespace LooCast.System.Serialization
 {
     using LooCast.System.Paths;
     
-    public abstract class Serializer
+    public abstract class Serializer : ISerializer
     {
         #region Properties
         public SerializationType SerializationType { get; private set; }
