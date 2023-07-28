@@ -12,6 +12,7 @@ namespace LooCast.System.Paths
         #region Properties
         public string GUSP { get; private set; }
         public bool IsRelative => isRelative;
+        public PathType PathType => PathType.Object;
         public List<string> ObjectNames => objectNames;
         public FilePath FilePathParent => filePathParent;
         /// <summary>

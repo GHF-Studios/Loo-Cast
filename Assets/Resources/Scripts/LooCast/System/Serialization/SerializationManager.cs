@@ -6,6 +6,7 @@ using System.Collections.Generic;
 namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
+    using LooCast.System.Paths;
 
     public sealed class SerializationManager : ModuleManager
     {
@@ -28,16 +29,14 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Fields
-        private Dictionary<Type, PrimitiveSerializer> primitiveSerializers;
-        private Dictionary<Type, CompositeSerializer> compositeSerializers;
+        private Dictionary<Type, Serializer> serializers;
         #endregion
 
         #region Constructors
         public SerializationManager() : base()
         {
-            primitiveSerializers = new Dictionary<Type, PrimitiveSerializer>();
-            compositeSerializers = new Dictionary<Type, CompositeSerializer>();
-
+            serializers = new Dictionary<Type, Serializer>();
+            
             // Add pre-included components here
 
             RegisterPreSetupAction(() =>
@@ -63,6 +62,8 @@ namespace LooCast.System.Serialization
                 SetEntityData(componentManagerData);
 
                 #region Serializer Registration
+                RegisterSerializer();
+
                 Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
                 IEnumerable<Type> types = assemblies.SelectMany(assembly => assembly.GetTypes());
                 IEnumerable<Type> entityTypes = types.Where(type => typeof(IEntity).IsAssignableFrom(type));
@@ -117,6 +118,35 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Methods
+        public void RegisterSerializer(Serializer serializer)
+        {
+            if (serializer == null)
+            {
+                throw new ArgumentNullException("serializer");
+            }
+
+            if (serializers.ContainsKey(serializer.SerializableType))
+            {
+                throw new ArgumentException($"Serializer already registered for type '{serializer.SerializableType}'!");
+            }
+
+            serializers.Add(serializer.SerializableType, serializer);
+        }
+
+        public Serializer GetSerializer(Type type)
+        {
+            if (type == null)
+            {
+                throw new ArgumentNullException("type");
+            }
+
+            if (!serializers.ContainsKey(type))
+            {
+                throw new ArgumentException($"No serializer registered for type '{type}'!");
+            }
+
+            return serializers[type];
+        }
         #endregion
     }
 }

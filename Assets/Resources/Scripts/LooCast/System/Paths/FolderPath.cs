@@ -19,6 +19,7 @@ namespace LooCast.System.Paths
         }
         public string GUSP { get; private set; }
         public bool IsRelative => isRelative;
+        public PathType PathType => PathType.Folder;
         public List<string> FolderNames => folderNames;
         /// <summary>
         /// If possible, cache the result of this, as it cannot be cached inside the FolderPath struct and thus has to be computed every time it is accessed!

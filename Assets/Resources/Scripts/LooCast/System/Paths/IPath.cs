@@ -8,6 +8,7 @@ namespace LooCast.System.Paths
         #region Properties
         string GUSP { get; }
         bool IsRelative { get; }
+        PathType PathType { get; }
         #endregion
     }
 }
