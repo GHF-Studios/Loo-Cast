@@ -3,8 +3,7 @@ using System.Collections.Generic;
 
 namespace LooCast.Universe
 {
-    using global::LooCast.System.Numerics;
-    using global::LooCast.System.ECS;
+    using LooCast.System.ECS;
     
     public sealed class Universe : Entity
     {

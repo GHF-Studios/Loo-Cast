@@ -54,7 +54,6 @@ namespace LooCast.System
 
                 moduleManagerChildrenList.Add(EntityManager.Instance);
                 moduleManagerChildrenList.Add(ComponentManager.Instance);
-                moduleManagerChildrenList.Add(SerializationManager.Instance);
 
                 foreach (IModuleManager moduleManager in moduleManagerChildrenList)
                 {

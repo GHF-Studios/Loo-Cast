@@ -2,8 +2,8 @@
 
 namespace LooCast.Universe
 {
-    using global::LooCast.System.ECS;
-    using global::LooCast.System.Numerics;
+    using LooCast.System.ECS;
+    using LooCast.System.Numerics;
     
     public sealed class Chunk : Entity
     {
