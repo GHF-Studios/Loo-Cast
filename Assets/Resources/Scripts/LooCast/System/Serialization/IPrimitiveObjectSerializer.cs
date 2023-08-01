@@ -5,10 +5,6 @@ namespace LooCast.System.Serialization
 {
     public interface IPrimitiveObjectSerializer
     {
-        #region Properties
-        Type PrimitiveObjectType { get; }
-        #endregion
-
         #region Methods
         public void Serialize(object primitiveObject, out XElement serializedPrimitiveObject);
         public void Deserialize(XElement serializedPrimitiveObject, out object primitiveObject);

@@ -65,26 +65,36 @@ namespace LooCast.System.Serialization
                 SetEntityData(componentManagerData);
 
                 #region Serializer Registration
-                RegisterPrimitiveSerializer(new BoolPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new BytePrimitiveSerializer());
-                RegisterPrimitiveSerializer(new SBytePrimitiveSerializer());
-                RegisterPrimitiveSerializer(new CharPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new DecimalPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new DoublePrimitiveSerializer());
-                RegisterPrimitiveSerializer(new FloatPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new IntPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new UIntPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new LongPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new ULongPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new ShortPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new UShortPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new StringPrimitiveSerializer());
-                RegisterPrimitiveSerializer(new BigIntPrimitiveSerializer());
+                RegisterPrimitiveAttributeSerializer(BoolSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(ByteSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(SByteSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(CharSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(DecimalSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(DoubleSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(FloatSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(IntSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(UIntSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(LongSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(ULongSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(ShortSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(UShortSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(StringSerializer.Instance);
+                RegisterPrimitiveAttributeSerializer(BigIntSerializer.Instance);
+                
+                RegisterPrimitiveObjectSerializer(ArraySerializer.Instance);
+                RegisterPrimitiveObjectSerializer(ListSerializer.Instance);
+                RegisterPrimitiveObjectSerializer(LinkedListSerializer.Instance);
+                RegisterPrimitiveObjectSerializer(SortedListSerializer.Instance);
+                RegisterPrimitiveObjectSerializer(SortedSetSerializer.Instance);
+                RegisterPrimitiveObjectSerializer(HashSetSerializer.Instance);
+                RegisterPrimitiveObjectSerializer(DictionarySerializer.Instance);
+                RegisterPrimitiveObjectSerializer(SortedDictionarySerializer.Instance);
+                RegisterPrimitiveObjectSerializer(QueueSerializer.Instance);
+                RegisterPrimitiveObjectSerializer(PriorityQueueSerializer.Instance);
+                RegisterPrimitiveObjectSerializer(StackSerializer.Instance);
+                #endregion
 
-                // TODO: Fix serializers
-                // TODO: Properly register serializers
-                // TODO: Check if all serializers are registered
-                // TODO: Reintroduce Composite Serializers via delegate with approriate signature???
+                // TODO: Maybe reintroduce Composite Serializers via delegate with approriate signature??? Aka maybe instead of ISerializable{X}, do IComposite{X}Serializer
 
                 foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
@@ -93,7 +103,6 @@ namespace LooCast.System.Serialization
                         CacheSerializability(type);
                     }
                 }
-                #endregion
 
                 foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {

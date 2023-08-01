@@ -1,0 +1,56 @@
+﻿using System;
+using System.Xml.Linq;
+
+namespace LooCast.System.Serialization
+{
+    public sealed class DoubleSerializer : IPrimitiveAttributeSerializer<double>
+    {
+        #region Static Properties
+        public static DoubleSerializer Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new DoubleSerializer();
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        #region Static Fields
+        private static DoubleSerializer instance;
+        #endregion
+
+        #region Constructors
+        private DoubleSerializer() : base()
+        {
+        }
+        #endregion
+
+        #region Methods
+        public void Serialize(object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize((double)primitiveAttribute, out serializedPrimitiveAttribute);
+
+        public void Serialize(double primitiveAttribute, out XAttribute serializedPrimitiveAttribute)
+        {
+            serializedPrimitiveAttribute = new XAttribute(nameof(primitiveAttribute), primitiveAttribute);
+        }
+
+        public void Deserialize(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute) => Deserialize(serializedPrimitiveAttribute, out primitiveAttribute);
+
+        public void Deserialize(XAttribute serializedPrimitiveAttribute, out double primitiveAttribute)
+        {
+            if (serializedPrimitiveAttribute == null)
+            {
+                throw new ArgumentNullException(nameof(serializedPrimitiveAttribute));
+            }
+
+            if (!double.TryParse(serializedPrimitiveAttribute.Value, out primitiveAttribute))
+            {
+                throw new ArgumentException($"Attribute '{serializedPrimitiveAttribute.Name}' with value '{serializedPrimitiveAttribute.Value}' could not be parsed as a double!");
+            }
+        }
+        #endregion
+    }
+}
