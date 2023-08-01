@@ -30,11 +30,11 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Methods
-        public void Serialize(object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize((float)primitiveAttribute, out serializedPrimitiveAttribute);
+        public void Serialize(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize(primitiveAttributeName, (float)primitiveAttribute, out serializedPrimitiveAttribute);
 
-        public void Serialize(float primitiveAttribute, out XAttribute serializedPrimitiveAttribute)
+        public void Serialize(string primitiveAttributeName, float primitiveAttribute, out XAttribute serializedPrimitiveAttribute)
         {
-            serializedPrimitiveAttribute = new XAttribute(nameof(primitiveAttribute), primitiveAttribute);
+            serializedPrimitiveAttribute = new XAttribute(primitiveAttributeName, primitiveAttribute);
         }
 
         public void Deserialize(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute) => Deserialize(serializedPrimitiveAttribute, out primitiveAttribute);

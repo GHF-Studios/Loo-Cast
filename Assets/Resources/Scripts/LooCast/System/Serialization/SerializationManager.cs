@@ -64,7 +64,6 @@ namespace LooCast.System.Serialization
                 SetEntityMetaData(componentManagerMetaData);
                 SetEntityData(componentManagerData);
 
-                #region Serializer Registration
                 RegisterPrimitiveAttributeSerializer(BoolSerializer.Instance);
                 RegisterPrimitiveAttributeSerializer(ByteSerializer.Instance);
                 RegisterPrimitiveAttributeSerializer(SByteSerializer.Instance);
@@ -80,21 +79,6 @@ namespace LooCast.System.Serialization
                 RegisterPrimitiveAttributeSerializer(UShortSerializer.Instance);
                 RegisterPrimitiveAttributeSerializer(StringSerializer.Instance);
                 RegisterPrimitiveAttributeSerializer(BigIntSerializer.Instance);
-                
-                RegisterPrimitiveObjectSerializer(ArraySerializer.Instance);
-                RegisterPrimitiveObjectSerializer(ListSerializer.Instance);
-                RegisterPrimitiveObjectSerializer(LinkedListSerializer.Instance);
-                RegisterPrimitiveObjectSerializer(SortedListSerializer.Instance);
-                RegisterPrimitiveObjectSerializer(SortedSetSerializer.Instance);
-                RegisterPrimitiveObjectSerializer(HashSetSerializer.Instance);
-                RegisterPrimitiveObjectSerializer(DictionarySerializer.Instance);
-                RegisterPrimitiveObjectSerializer(SortedDictionarySerializer.Instance);
-                RegisterPrimitiveObjectSerializer(QueueSerializer.Instance);
-                RegisterPrimitiveObjectSerializer(PriorityQueueSerializer.Instance);
-                RegisterPrimitiveObjectSerializer(StackSerializer.Instance);
-                #endregion
-
-                // TODO: Maybe reintroduce Composite Serializers via delegate with approriate signature??? Aka maybe instead of ISerializable{X}, do IComposite{X}Serializer
 
                 foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
@@ -160,6 +144,11 @@ namespace LooCast.System.Serialization
         public bool IsPrimitiveObjectType(Type type)
         {
             return primitiveObjectSerializers.ContainsKey(type);
+        }
+
+        public Serializability GetSerializability(Type type)
+        {
+            return serializabilityCache[type];
         }
 
         public void RegisterPrimitiveAttributeSerializer(IPrimitiveAttributeSerializer primitiveAttributeSerializer)
@@ -234,17 +223,10 @@ namespace LooCast.System.Serialization
                 throw new InvalidOperationException($"Serializability already cached for type '{type}'!");
             }
 
-            if (type.IsPublic && !type.IsAbstract)
+            if (type.IsPublic && !type.IsAbstract && (type.IsClass || type.IsValueType || type.IsEnum) && type.GetConstructor(Type.EmptyTypes) != null)
             {
-                if (type.IsClass || type.IsValueType || type.IsEnum)
-                {
-                    Serializability serializability = GetSerializability(type);
-                    serializabilityCache.Add(type, serializability);
-                }
-                else
-                {
-                    serializabilityCache.Add(type, Serializability.None);
-                }
+                Serializability serializability = AnalyzeSerializability(type);
+                serializabilityCache.Add(type, serializability);
             }
             else
             {
@@ -252,7 +234,7 @@ namespace LooCast.System.Serialization
             }
         }
 
-        private Serializability GetSerializability(Type type)
+        private Serializability AnalyzeSerializability(Type type)
         {
             List<Serializability> detectedSerializabilities = new List<Serializability>();
 

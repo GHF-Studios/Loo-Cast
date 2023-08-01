@@ -6,7 +6,7 @@ namespace LooCast.System.Serialization
     public interface IPrimitiveObjectSerializer
     {
         #region Methods
-        public void Serialize(object primitiveObject, out XElement serializedPrimitiveObject);
+        public void Serialize(string primitiveObjectName, object primitiveObject, out XElement serializedPrimitiveObject);
         public void Deserialize(XElement serializedPrimitiveObject, out object primitiveObject);
         #endregion
     }
@@ -14,7 +14,7 @@ namespace LooCast.System.Serialization
     public interface IPrimitiveObjectSerializer<PrimitiveObjectType> : IPrimitiveObjectSerializer
     {
         #region Methods
-        public void Serialize(PrimitiveObjectType primitiveObject, out XElement serializedPrimitiveObject);
+        public void Serialize(string primitiveObjectName, PrimitiveObjectType primitiveObject, out XElement serializedPrimitiveObject);
         public void Deserialize(XElement serializedPrimitiveObject, out PrimitiveObjectType primitiveObject);
         #endregion
     }
