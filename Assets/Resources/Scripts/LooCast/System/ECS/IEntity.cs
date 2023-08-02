@@ -4,11 +4,13 @@ namespace LooCast.System.ECS
 {
     using LooCast.System.Lifecycle.Initialization;
     using LooCast.System.Lifecycle.Termination;
+    using LooCast.System.Serialization;
+    using LooCast.System.Collections.Serializable;
 
     public interface IEntity : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Interfaces
-        public interface IMetaData
+        public interface IMetaData : ISerializableObject
         {
             Guid EntityID { get; set; }
             string AssemblyQualifiedEntityTypeName { get; set; }
@@ -16,23 +18,23 @@ namespace LooCast.System.ECS
             string AssemblyQualifiedEntityDataTypeName { get; set; }
         }
 
-        public interface IData
+        public interface IData : ISerializableObject
         {
             string AssemblyQualifiedEntityTypeName { get; set; }
             string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
             string AssemblyQualifiedEntityDataTypeName { get; set; }
         }
 
-        public interface IFullMetaData
+        public interface IFullMetaData : ISerializableObject
         {
             IMetaData EntityMetaData { get; set; }
-            IComponent.IMetaData[] ComponentMetaDatas { get; set; }
+            ISerializableArray<IComponent.IMetaData> ComponentMetaDatas { get; set; }
         }
 
-        public interface IFullData
+        public interface IFullData : ISerializableObject
         {
             IData EntityData { get; set; }
-            IComponent.IData[] ComponentDatas { get; set; }
+            ISerializableArray<IComponent.IData> ComponentDatas { get; set; }
         }
         #endregion
 

@@ -5,8 +5,8 @@ using System.Xml.Linq;
 namespace LooCast.System.Collections.Serializable
 {
     using LooCast.System.Serialization;
-
-    public class SerializableArray<T> : ISerializableObject where T : new()
+    
+    public class SerializableArray<T> : ISerializableArray<T> where T : new()
     {
         #region Properties
         public T[] Array { get; private set; }

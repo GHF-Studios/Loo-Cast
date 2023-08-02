@@ -4,11 +4,12 @@ namespace LooCast.System.ECS
 {
     using LooCast.System.Lifecycle.Initialization;
     using LooCast.System.Lifecycle.Termination;
+    using LooCast.System.Serialization;
     
     public interface IComponent : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Interfaces
-        public interface IMetaData
+        public interface IMetaData : ISerializableObject
         {
             Guid ComponentID { get; set; }
             string AssemblyQualifiedComponentTypeName { get; set; }
@@ -16,7 +17,7 @@ namespace LooCast.System.ECS
             string AssemblyQualifiedComponentDataTypeName { get; set; }
         }
         
-        public interface IData
+        public interface IData : ISerializableObject
         {
             string AssemblyQualifiedComponentTypeName { get; set; }
             string AssemblyQualifiedComponentMetaDataTypeName { get; set; }

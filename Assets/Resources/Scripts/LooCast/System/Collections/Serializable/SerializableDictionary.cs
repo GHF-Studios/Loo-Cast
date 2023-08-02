@@ -7,7 +7,7 @@ namespace LooCast.System.Collections.Serializable
 {
     using LooCast.System.Serialization;
 
-    public class SerializableDictionary<KeyType, ValueType> : Dictionary<KeyType, ValueType>, ISerializableObject where KeyType : new() where ValueType : new()
+    public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializableDictionary<TKey, TValue> where TKey : new() where TValue : new()
     {
         #region Fields
         private Serializability keyTypeSerializability;
@@ -21,8 +21,8 @@ namespace LooCast.System.Collections.Serializable
         {
             SerializationManager serializationManager = SerializationManager.Instance;
             
-            keyType = typeof(KeyType);
-            valueType = typeof(ValueType);
+            keyType = typeof(TKey);
+            valueType = typeof(TValue);
             
             keyTypeSerializability = serializationManager.GetSerializability(keyType);
             valueTypeSerializability = serializationManager.GetSerializability(valueType);
@@ -65,12 +65,12 @@ namespace LooCast.System.Collections.Serializable
                 SerializationManager serializationManager = SerializationManager.Instance;
                 IPrimitiveObjectSerializer keyPrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(keyType);
                 IPrimitiveObjectSerializer valuePrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(valueType);
-                KeyValuePair<KeyType, ValueType>[] keyValuePairs = this.ToArray();
+                KeyValuePair<TKey, TValue>[] keyValuePairs = this.ToArray();
                 
                 for (int i = 0; i < Count; i++)
                 {
                     XElement serializedKeyValuePair = new XElement($"KeyValuePair[{i}]");
-                    KeyValuePair<KeyType, ValueType> keyValuePair = keyValuePairs[i];
+                    KeyValuePair<TKey, TValue> keyValuePair = keyValuePairs[i];
                     
                     keyPrimitiveObjectSerializer.Serialize("Key", keyValuePair.Key, out XElement serializedKey);
                     valuePrimitiveObjectSerializer.Serialize("Value", keyValuePair.Value, out XElement serializedValue);
@@ -84,12 +84,12 @@ namespace LooCast.System.Collections.Serializable
             {
                 SerializationManager serializationManager = SerializationManager.Instance;
                 IPrimitiveObjectSerializer keyPrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(keyType);
-                KeyValuePair<KeyType, ValueType>[] keyValuePairs = this.ToArray();
+                KeyValuePair<TKey, TValue>[] keyValuePairs = this.ToArray();
                 
                 for (int i = 0; i < Count; i++)
                 {
                     XElement serializedKeyValuePair = new XElement($"KeyValuePair[{i}]");
-                    KeyValuePair<KeyType, ValueType> keyValuePair = keyValuePairs[i];
+                    KeyValuePair<TKey, TValue> keyValuePair = keyValuePairs[i];
                     
                     keyPrimitiveObjectSerializer.Serialize("Key", keyValuePair.Key, out XElement serializedKey);
                     ((ISerializableObject)keyValuePair.Value).Serialize("Value", out XElement serializedValue);
@@ -103,12 +103,12 @@ namespace LooCast.System.Collections.Serializable
             {
                 SerializationManager serializationManager = SerializationManager.Instance;
                 IPrimitiveObjectSerializer valuePrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(valueType);
-                KeyValuePair<KeyType, ValueType>[] keyValuePairs = this.ToArray();
+                KeyValuePair<TKey, TValue>[] keyValuePairs = this.ToArray();
                 
                 for (int i = 0; i < Count; i++)
                 {
                     XElement serializedKeyValuePair = new XElement($"KeyValuePair[{i}]");
-                    KeyValuePair<KeyType, ValueType> keyValuePair = keyValuePairs[i];
+                    KeyValuePair<TKey, TValue> keyValuePair = keyValuePairs[i];
                     
                     ((ISerializableObject)keyValuePair.Key).Serialize("Key", out XElement serializedKey);
                     valuePrimitiveObjectSerializer.Serialize("Value", keyValuePair.Value, out XElement serializedValue);
@@ -120,12 +120,12 @@ namespace LooCast.System.Collections.Serializable
             }
             else
             {
-                KeyValuePair<KeyType, ValueType>[] keyValuePairs = this.ToArray();
+                KeyValuePair<TKey, TValue>[] keyValuePairs = this.ToArray();
                 
                 for (int i = 0; i < Count; i++)
                 {
                     XElement serializedKeyValuePair = new XElement($"KeyValuePair[{i}]");
-                    KeyValuePair<KeyType, ValueType> keyValuePair = keyValuePairs[i];
+                    KeyValuePair<TKey, TValue> keyValuePair = keyValuePairs[i];
                     
                     ((ISerializableObject)keyValuePair.Key).Serialize("Key", out XElement serializedKey);
                     ((ISerializableObject)keyValuePair.Value).Serialize("Value", out XElement serializedValue);
@@ -156,7 +156,7 @@ namespace LooCast.System.Collections.Serializable
                     keyPrimitiveObjectSerializer.Deserialize(serializedKey, out object key);
                     valuePrimitiveObjectSerializer.Deserialize(serializedValue, out object value);
 
-                    Add((KeyType)key, (ValueType)value);
+                    Add((TKey)key, (TValue)value);
                 }
             }
             else if (keyTypeSerializability == Serializability.PrimitiveObject && valueTypeSerializability == Serializability.Object)
@@ -172,10 +172,10 @@ namespace LooCast.System.Collections.Serializable
                     XElement serializedValue = serializedKeyValuePair.Element("Value");
                     
                     keyPrimitiveObjectSerializer.Deserialize(serializedKey, out object key);
-                    ISerializableObject value = (ISerializableObject)new ValueType();
+                    ISerializableObject value = (ISerializableObject)new TValue();
                     value.Deserialize(serializedValue);
 
-                    Add((KeyType)key, (ValueType)value);
+                    Add((TKey)key, (TValue)value);
                 }
             }
             else if (keyTypeSerializability == Serializability.Object && valueTypeSerializability == Serializability.PrimitiveObject)
@@ -190,11 +190,11 @@ namespace LooCast.System.Collections.Serializable
                     XElement serializedKey = serializedKeyValuePair.Element("Key");
                     XElement serializedValue = serializedKeyValuePair.Element("Value");
 
-                    ISerializableObject key = (ISerializableObject)new KeyType();
+                    ISerializableObject key = (ISerializableObject)new TKey();
                     key.Deserialize(serializedKey);
                     valuePrimitiveObjectSerializer.Deserialize(serializedValue, out object value);
 
-                    Add((KeyType)key, (ValueType)value);
+                    Add((TKey)key, (TValue)value);
                 }
             }
             else
@@ -207,12 +207,12 @@ namespace LooCast.System.Collections.Serializable
                     XElement serializedKey = serializedKeyValuePair.Element("Key");
                     XElement serializedValue = serializedKeyValuePair.Element("Value");
 
-                    ISerializableObject key = (ISerializableObject)new KeyType();
+                    ISerializableObject key = (ISerializableObject)new TKey();
                     key.Deserialize(serializedKey);
-                    ISerializableObject value = (ISerializableObject)new ValueType();
+                    ISerializableObject value = (ISerializableObject)new TValue();
                     value.Deserialize(serializedValue);
 
-                    Add((KeyType)key, (ValueType)value);
+                    Add((TKey)key, (TValue)value);
                 }
             }
         }

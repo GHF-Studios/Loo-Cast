@@ -3,13 +3,35 @@ using System.Reflection;
 using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Xml.Linq;
 
 namespace LooCast.System.Serialization
 {
+    using global::System.IO;
     using LooCast.System.ECS;
 
     public sealed class SerializationManager : ModuleManager
     {
+        #region Delegates
+        public delegate void SerializePrimitiveAttributeDelegate(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute);
+        public delegate void DeserializePrimitiveAttributeDelegate(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute);
+
+        public delegate void SerializePrimitiveObjectDelegate(string primitiveObjectName, object primitiveObject, out XElement serializedPrimitiveObject);
+        public delegate void DeserializePrimitiveObjectDelegate(XElement serializedPrimitiveObject, out object primitiveObject);
+
+        public delegate void SerializeAttributeDelegate(string attributeName, object attribute, out XAttribute serializedAttribute);
+        public delegate void DeserializeAttributeDelegate(XAttribute serializedAttribute, out object attribute);
+
+        public delegate void SerializeObjectDelegate(string objectName, object _object, out XElement serializedObject);
+        public delegate void DeserializeObjectDelegate(XElement serializedObject, out object _object);
+
+        public delegate void SerializeFileDelegate(string fileName, string fileExtension, object file, out FileInfo serializedFile);
+        public delegate void DeserializeFileDelegate(FileInfo serializedFile, out object file);
+
+        public delegate void SerializeFolderDelegate(string folderName, object folder, out DirectoryInfo serializedFolder);
+        public delegate void DeserializeFolderDelegate(DirectoryInfo serializedFolder, out object folder);
+        #endregion
+        
         #region Static Properties
         public static SerializationManager Instance
         {
@@ -32,6 +54,24 @@ namespace LooCast.System.Serialization
         private Dictionary<Type, IPrimitiveAttributeSerializer> primitiveAttributeSerializers;
         private Dictionary<Type, IPrimitiveObjectSerializer> primitiveObjectSerializers;
         private Dictionary<Type, Serializability> serializabilityCache;
+
+        private Dictionary<Type, SerializePrimitiveAttributeDelegate> primitiveAttributeSerializationDelegates;
+        private Dictionary<Type, DeserializePrimitiveAttributeDelegate> primitiveAttributeDeserializationDelegates;
+
+        private Dictionary<Type, SerializePrimitiveObjectDelegate> primitiveObjectSerializationDelegates;
+        private Dictionary<Type, DeserializePrimitiveObjectDelegate> primitiveObjectDeserializationDelegates;
+
+        private Dictionary<Type, SerializeAttributeDelegate> attributeSerializationDelegates;
+        private Dictionary<Type, DeserializeAttributeDelegate> attributeDeserializationDelegates;
+
+        private Dictionary<Type, SerializeObjectDelegate> objectSerializationDelegates;
+        private Dictionary<Type, DeserializeObjectDelegate> objectDeserializationDelegates;
+
+        private Dictionary<Type, SerializeFileDelegate> fileSerializationDelegates;
+        private Dictionary<Type, DeserializeFileDelegate> fileDeserializationDelegates;
+
+        private Dictionary<Type, SerializeFolderDelegate> folderSerializationDelegates;
+        private Dictionary<Type, DeserializeFolderDelegate> folderDeserializationDelegates;
         #endregion
 
         #region Constructors
@@ -87,10 +127,10 @@ namespace LooCast.System.Serialization
                 IEnumerable<Type> allTypes = allAssemblies.SelectMany(assembly => assembly.GetTypes());
                 foreach (Type type in allTypes)
                 {
-                    CacheSerializability(type);
+                    CacheSerializationInformation(type);
                 }
                 stopwatch.Stop();
-                UnityEngine.Debug.Log($"Caching {allTypes.Count()} type serializabilities for {allAssemblies.Count()} assemblies took {stopwatch.ElapsedMilliseconds}ms");
+                UnityEngine.Debug.Log($"Caching {allTypes.Count()} type's serialization information for {allAssemblies.Count()} assemblies took {stopwatch.ElapsedMilliseconds}ms");
 
                 foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
@@ -140,16 +180,6 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Methods
-        public bool IsPrimitiveAttributeType(Type type)
-        {
-            return primitiveAttributeSerializers.ContainsKey(type);
-        }
-        
-        public bool IsPrimitiveObjectType(Type type)
-        {
-            return primitiveObjectSerializers.ContainsKey(type);
-        }
-
         public Serializability GetSerializability(Type type)
         {
             return serializabilityCache[type];
@@ -169,7 +199,6 @@ namespace LooCast.System.Serialization
 
             primitiveAttributeSerializers.Add(primitiveAttributeSerializer.PrimitiveAttributeType, primitiveAttributeSerializer);
         }
-
         public void RegisterPrimitiveObjectSerializer(IPrimitiveObjectSerializer primitiveObjectSerializer)
         {
             if (primitiveObjectSerializer == null)
@@ -199,7 +228,6 @@ namespace LooCast.System.Serialization
 
             return primitiveAttributeSerializers[primitiveAttributeType];
         }
-
         public IPrimitiveObjectSerializer GetPrimitiveObjectSerializer(Type primitiveObjectType)
         {
             if (primitiveObjectType == null)
@@ -215,7 +243,7 @@ namespace LooCast.System.Serialization
             return primitiveObjectSerializers[primitiveObjectType];
         }
 
-        public void CacheSerializability(Type type)
+        public void CacheSerializationInformation(Type type)
         {
             if (type == null)
             {
@@ -231,10 +259,48 @@ namespace LooCast.System.Serialization
             {
                 Serializability serializability = AnalyzeSerializability(type);
                 serializabilityCache.Add(type, serializability);
+                if (serializability != Serializability.None)
+                {
+                    CacheSerializationDelegate(type);
+                }
             }
             else
             {
                 serializabilityCache.Add(type, Serializability.None);
+            }
+        }
+
+        private void CacheSerializationDelegate(Type serializableType)
+        {
+            Serializability serializability = serializabilityCache[serializableType];
+            switch (serializability)
+            {
+                case Serializability.PrimitiveAttribute:
+                    SerializePrimitiveAttributeDelegate serializePrimitiveAttributeDelegate = GeneratePrimitiveAttributeSerializationDelegate(serializableType);
+                    DeserializePrimitiveAttributeDelegate deserializePrimitiveAttributeDelegate = GeneratePrimitiveAttributeDeserializationDelegate(serializableType);
+                    primitiveAttributeSerializationDelegates.Add(serializableType, serializePrimitiveAttributeDelegate);
+                    primitiveAttributeDeserializationDelegates.Add(serializableType, deserializePrimitiveAttributeDelegate);
+                    break;
+                case Serializability.PrimitiveObject:
+                    SerializePrimitiveObjectDelegate serializePrimitiveObjectDelegate = GeneratePrimitiveObjectSerializationDelegate(serializableType);
+                    DeserializePrimitiveObjectDelegate deserializePrimitiveObjectDelegate = GeneratePrimitiveObjectDeserializationDelegate(serializableType);
+                    primitiveObjectSerializationDelegates.Add(serializableType, serializePrimitiveObjectDelegate);
+                    primitiveObjectDeserializationDelegates.Add(serializableType, deserializePrimitiveObjectDelegate);
+                    break;
+                case Serializability.Attribute:
+                    // if the serializableType contains any serializable property or field types, which are not primitive, throw an exception because attributes are indivisible building blocks
+                    SerializeAttributeDelegate serializeAttributeDelegate = GenerateAttributeSerializationDelegate(serializableType);
+                    DeserializeAttributeDelegate deserializeAttributeDelegate = GenerateAttributeDeserializationDelegate(serializableType);
+                    attributeSerializationDelegates.Add(serializableType, serializeAttributeDelegate);
+                    attributeDeserializationDelegates.Add(serializableType, deserializeAttributeDelegate);
+                    break;
+                case Serializability.Object:
+                    // if the serializableType contains any serializable property or field object types, cache the object serialization delegates for each of them
+                    break;
+                case Serializability.File:
+                    break;
+                case Serializability.Folder:
+                    break;
             }
         }
 
@@ -279,6 +345,63 @@ namespace LooCast.System.Serialization
 
             return Serializability.None;
         }
+
+        #region (De-)serialization delegates generation
+        private SerializePrimitiveAttributeDelegate GeneratePrimitiveAttributeSerializationDelegate(Type serializableType)
+        {
+            
+        }
+        private DeserializePrimitiveAttributeDelegate GeneratePrimitiveAttributeDeserializationDelegate(Type serializableType)
+        {
+            
+        }
+
+        private SerializePrimitiveObjectDelegate GeneratePrimitiveObjectSerializationDelegate(Type serializableType)
+        {
+
+        }
+        private DeserializePrimitiveObjectDelegate GeneratePrimitiveObjectDeserializationDelegate(Type serializableType)
+        {
+
+        }
+
+        private SerializeAttributeDelegate GenerateAttributeSerializationDelegate(Type serializableType)
+        {
+
+        }
+        private DeserializeAttributeDelegate GenerateAttributeDeserializationDelegate(Type serializableType)
+        {
+
+        }
+
+        private SerializeObjectDelegate GenerateObjectSerializationDelegate(Type serializableType)
+        {
+
+        }
+        private DeserializeObjectDelegate GenerateObjectDeserializationDelegate(Type serializableType)
+        {
+
+        }
+
+        private SerializeFileDelegate GenerateFileSerializationDelegate(Type serializableType)
+        {
+
+        }
+        private DeserializeFileDelegate GenerateFileDeserializationDelegate(Type serializableType)
+        {
+
+        }
+
+        private SerializeFolderDelegate GenerateFolderSerializationDelegate(Type serializableType)
+        {
+
+        }
+        private DeserializeFolderDelegate GenerateFolderDeserializationDelegate(Type serializableType)
+        {
+
+        }
+        #endregion
+
         #endregion
     }
 }

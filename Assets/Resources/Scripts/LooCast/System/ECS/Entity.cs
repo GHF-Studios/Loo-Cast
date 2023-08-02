@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Xml.Linq;
 
 namespace LooCast.System.ECS
 {
