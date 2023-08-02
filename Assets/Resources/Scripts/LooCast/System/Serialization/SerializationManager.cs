@@ -1,26 +1,21 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Xml.Linq;
+using System.Numerics;
 
 namespace LooCast.System.Serialization
 {
-    using global::System.IO;
     using LooCast.System.ECS;
 
     public sealed class SerializationManager : ModuleManager
     {
         #region Delegates
-        public delegate void SerializePrimitiveAttributeDelegate(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute);
-        public delegate void DeserializePrimitiveAttributeDelegate(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute);
-
-        public delegate void SerializePrimitiveObjectDelegate(string primitiveObjectName, object primitiveObject, out XElement serializedPrimitiveObject);
-        public delegate void DeserializePrimitiveObjectDelegate(XElement serializedPrimitiveObject, out object primitiveObject);
-
-        public delegate void SerializeAttributeDelegate(string attributeName, object attribute, out XAttribute serializedAttribute);
-        public delegate void DeserializeAttributeDelegate(XAttribute serializedAttribute, out object attribute);
+        public delegate void SerializePrimitiveDelegate(string primitiveName, object primitive, out XAttribute serializedPrimitive);
+        public delegate void DeserializePrimitiveDelegate(XAttribute serializedPrimitive, out object primitive);
 
         public delegate void SerializeObjectDelegate(string objectName, object _object, out XElement serializedObject);
         public delegate void DeserializeObjectDelegate(XElement serializedObject, out object _object);
@@ -51,18 +46,10 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Fields
-        private Dictionary<Type, IPrimitiveAttributeSerializer> primitiveAttributeSerializers;
-        private Dictionary<Type, IPrimitiveObjectSerializer> primitiveObjectSerializers;
         private Dictionary<Type, Serializability> serializabilityCache;
 
-        private Dictionary<Type, SerializePrimitiveAttributeDelegate> primitiveAttributeSerializationDelegates;
-        private Dictionary<Type, DeserializePrimitiveAttributeDelegate> primitiveAttributeDeserializationDelegates;
-
-        private Dictionary<Type, SerializePrimitiveObjectDelegate> primitiveObjectSerializationDelegates;
-        private Dictionary<Type, DeserializePrimitiveObjectDelegate> primitiveObjectDeserializationDelegates;
-
-        private Dictionary<Type, SerializeAttributeDelegate> attributeSerializationDelegates;
-        private Dictionary<Type, DeserializeAttributeDelegate> attributeDeserializationDelegates;
+        private Dictionary<Type, SerializePrimitiveDelegate> primitiveSerializationDelegates;
+        private Dictionary<Type, DeserializePrimitiveDelegate> primitiveDeserializationDelegates;
 
         private Dictionary<Type, SerializeObjectDelegate> objectSerializationDelegates;
         private Dictionary<Type, DeserializeObjectDelegate> objectDeserializationDelegates;
@@ -77,9 +64,19 @@ namespace LooCast.System.Serialization
         #region Constructors
         public SerializationManager() : base()
         {
-            primitiveAttributeSerializers = new Dictionary<Type, IPrimitiveAttributeSerializer>();
-            primitiveObjectSerializers = new Dictionary<Type, IPrimitiveObjectSerializer>();
             serializabilityCache = new Dictionary<Type, Serializability>();
+
+            primitiveSerializationDelegates = new Dictionary<Type, SerializePrimitiveDelegate>();
+            primitiveDeserializationDelegates = new Dictionary<Type, DeserializePrimitiveDelegate>();
+
+            objectSerializationDelegates = new Dictionary<Type, SerializeObjectDelegate>();
+            objectDeserializationDelegates = new Dictionary<Type, DeserializeObjectDelegate>();
+
+            fileSerializationDelegates = new Dictionary<Type, SerializeFileDelegate>();
+            fileDeserializationDelegates = new Dictionary<Type, DeserializeFileDelegate>();
+
+            folderSerializationDelegates = new Dictionary<Type, SerializeFolderDelegate>();
+            folderDeserializationDelegates = new Dictionary<Type, DeserializeFolderDelegate>();
 
             // Add pre-included components here
 
@@ -105,32 +102,369 @@ namespace LooCast.System.Serialization
                 SetEntityMetaData(componentManagerMetaData);
                 SetEntityData(componentManagerData);
 
-                RegisterPrimitiveAttributeSerializer(BoolSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(ByteSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(SByteSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(CharSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(DecimalSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(DoubleSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(FloatSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(IntSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(UIntSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(LongSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(ULongSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(ShortSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(UShortSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(StringSerializer.Instance);
-                RegisterPrimitiveAttributeSerializer(BigIntSerializer.Instance);
+                #region Primitive (De-)serialization delegates registration
+                Type boolType = typeof(bool);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
 
+                    if (!bool.TryParse(serializedPrimitive.Value, out bool boolValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a bool!");
+                    }
+
+                    primitive = boolValue;
+                });
+
+                Type byteType = typeof(byte);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!byte.TryParse(serializedPrimitive.Value, out byte byteValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a byte!");
+                    }
+
+                    primitive = byteValue;
+                });
+
+                Type sbyteType = typeof(sbyte);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!sbyte.TryParse(serializedPrimitive.Value, out sbyte sbyteValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as an sbyte!");
+                    }
+
+                    primitive = sbyteValue;
+                });
+
+                Type charType = typeof(char);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!char.TryParse(serializedPrimitive.Value, out char charValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a char!");
+                    }
+
+                    primitive = charValue;
+                });
+
+                Type decimalType = typeof(decimal);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!decimal.TryParse(serializedPrimitive.Value, out decimal decimalValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a decimal!");
+                    }
+
+                    primitive = decimalValue;
+                });
+
+                Type doubleType = typeof(double);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!double.TryParse(serializedPrimitive.Value, out double doubleValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a double!");
+                    }
+
+                    primitive = doubleValue;
+                });
+
+                Type floatType = typeof(float);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!float.TryParse(serializedPrimitive.Value, out float floatValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a float!");
+                    }
+
+                    primitive = floatValue;
+                });
+
+                Type intType = typeof(int);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!int.TryParse(serializedPrimitive.Value, out int intValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as an int!");
+                    }
+
+                    primitive = intValue;
+                });
+
+                Type uintType = typeof(uint);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!uint.TryParse(serializedPrimitive.Value, out uint uintValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a uint!");
+                    }
+
+                    primitive = uintValue;
+                });
+
+                Type longType = typeof(long);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!long.TryParse(serializedPrimitive.Value, out long longValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a long!");
+                    }
+
+                    primitive = longValue;
+                });
+
+                Type ulongType = typeof(ulong);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!ulong.TryParse(serializedPrimitive.Value, out ulong ulongValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a ulong!");
+                    }
+
+                    primitive = ulongValue;
+                });
+
+                Type shortType = typeof(short);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!short.TryParse(serializedPrimitive.Value, out short shortValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a short!");
+                    }
+
+                    primitive = shortValue;
+                });
+
+                Type ushortType = typeof(ushort);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!ushort.TryParse(serializedPrimitive.Value, out ushort ushortValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a ushort!");
+                    }
+
+                    primitive = ushortValue;
+                });
+
+                Type stringType = typeof(string);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    primitive = serializedPrimitive.Value;
+                });
+
+                Type guidType = typeof(Guid);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!Guid.TryParse(serializedPrimitive.Value, out Guid guidValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a Guid!");
+                    }
+
+                    primitive = guidValue;
+                });
+
+                Type bigIntType = typeof(BigInteger);
+                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                {
+                    serializedPrimitive = new XAttribute(primitiveName, primitive);
+                });
+                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                {
+                    if (serializedPrimitive == null)
+                    {
+                        throw new ArgumentNullException(nameof(serializedPrimitive));
+                    }
+
+                    if (!BigInteger.TryParse(serializedPrimitive.Value, out BigInteger bigIntValue))
+                    {
+                        throw new ArgumentException($"Attribute '{serializedPrimitive.Name}' with value '{serializedPrimitive.Value}' could not be parsed as a BigInteger!");
+                    }
+
+                    primitive = bigIntValue;
+                });
+                #endregion
+
+                #region Type analysis
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
+
                 IEnumerable<Assembly> allAssemblies = AppDomain.CurrentDomain.GetAssemblies();
                 IEnumerable<Type> allTypes = allAssemblies.SelectMany(assembly => assembly.GetTypes());
+                List<Type> allSerializablePrimitiveTypes = new List<Type>();
+                List<Type> allSerializableObjectTypes = new List<Type>();
+                List<Type> allSerializableFileTypes = new List<Type>();
+                List<Type> allSerializableFolderTypes = new List<Type>();
+
                 foreach (Type type in allTypes)
                 {
-                    CacheSerializationInformation(type);
+                    CacheSerializability(type, out Serializability serializability);
+                    switch (serializability)
+                    {
+                        case Serializability.Object:
+                            allSerializableObjectTypes.Add(type);
+                            break;
+                        case Serializability.File:
+                            allSerializableFileTypes.Add(type);
+                            break;
+                        case Serializability.Folder:
+                            allSerializableFolderTypes.Add(type);
+                            break;
+                    }
                 }
+
+                foreach (Type serializableObjectType in allSerializableObjectTypes)
+                {
+                    RegisterObjectSerializationDelegates(serializableObjectType);
+                }
+
+                foreach (Type serializableFileType in allSerializableFileTypes)
+                {
+                    RegisterFileSerializationDelegates(serializableFileType);
+                }
+
+                foreach (Type serializableFolderType in allSerializableFolderTypes)
+                {
+                    RegisterFolderSerializationDelegates(serializableFolderType);
+                }
+
                 stopwatch.Stop();
                 UnityEngine.Debug.Log($"Caching {allTypes.Count()} type's serialization information for {allAssemblies.Count()} assemblies took {stopwatch.ElapsedMilliseconds}ms");
+                #endregion
 
                 foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
@@ -185,65 +519,7 @@ namespace LooCast.System.Serialization
             return serializabilityCache[type];
         }
 
-        public void RegisterPrimitiveAttributeSerializer(IPrimitiveAttributeSerializer primitiveAttributeSerializer)
-        {
-            if (primitiveAttributeSerializer == null)
-            {
-                throw new ArgumentNullException(nameof(primitiveAttributeSerializer));
-            }
-
-            if (primitiveAttributeSerializers.ContainsKey(primitiveAttributeSerializer.PrimitiveAttributeType))
-            {
-                throw new ArgumentException($"Primitive attribute serializer already registered for type '{primitiveAttributeSerializer.PrimitiveAttributeType}'!");
-            }
-
-            primitiveAttributeSerializers.Add(primitiveAttributeSerializer.PrimitiveAttributeType, primitiveAttributeSerializer);
-        }
-        public void RegisterPrimitiveObjectSerializer(IPrimitiveObjectSerializer primitiveObjectSerializer)
-        {
-            if (primitiveObjectSerializer == null)
-            {
-                throw new ArgumentNullException(nameof(primitiveObjectSerializer));
-            }
-
-            if (primitiveObjectSerializers.ContainsKey(primitiveObjectSerializer.PrimitiveObjectType))
-            {
-                throw new ArgumentException($"Primitive object serializer already registered for type '{primitiveObjectSerializer.PrimitiveObjectType}'!");
-            }
-
-            primitiveObjectSerializers.Add(primitiveObjectSerializer.PrimitiveObjectType, primitiveObjectSerializer);
-        }
-
-        public IPrimitiveAttributeSerializer GetPrimitiveAttributeSerializer(Type primitiveAttributeType)
-        {
-            if (primitiveAttributeType == null)
-            {
-                throw new ArgumentNullException("type");
-            }
-
-            if (!primitiveAttributeSerializers.ContainsKey(primitiveAttributeType))
-            {
-                throw new ArgumentException($"No primitive attribute serializer registered for type '{primitiveAttributeType}'!");
-            }
-
-            return primitiveAttributeSerializers[primitiveAttributeType];
-        }
-        public IPrimitiveObjectSerializer GetPrimitiveObjectSerializer(Type primitiveObjectType)
-        {
-            if (primitiveObjectType == null)
-            {
-                throw new ArgumentNullException("type");
-            }
-
-            if (!primitiveObjectSerializers.ContainsKey(primitiveObjectType))
-            {
-                throw new ArgumentException($"No primitive object serializer registered for type '{primitiveObjectType}'!");
-            }
-
-            return primitiveObjectSerializers[primitiveObjectType];
-        }
-
-        public void CacheSerializationInformation(Type type)
+        private void CacheSerializability(Type type, out Serializability serializability)
         {
             if (type == null)
             {
@@ -255,14 +531,39 @@ namespace LooCast.System.Serialization
                 throw new InvalidOperationException($"Serializability already cached for type '{type}'!");
             }
 
+            serializability = Serializability.None;
+            
             if (type.IsPublic && !type.IsAbstract && (type.IsClass || type.IsValueType || type.IsEnum) && type.GetConstructor(Type.EmptyTypes) != null)
             {
-                Serializability serializability = AnalyzeSerializability(type);
-                serializabilityCache.Add(type, serializability);
-                if (serializability != Serializability.None)
+                List<Serializability> detectedSerializabilities = new List<Serializability>();
+
+                if (IsPrimitiveTypeSerializationDelegateCached(type) && IsPrimitiveTypeDeserializationDelegateCached(type))
                 {
-                    CacheSerializationDelegate(type);
+                    detectedSerializabilities.Add(Serializability.Primitive);
                 }
+                if (type.IsDefined(typeof(SerializableFolderAttribute), false))
+                {
+                    detectedSerializabilities.Add(Serializability.Folder);
+                }
+                if (type.IsDefined(typeof(SerializableFileAttribute), false))
+                {
+                    detectedSerializabilities.Add(Serializability.File);
+                }
+                if (type.IsDefined(typeof(SerializableObjectAttribute), false))
+                {
+                    detectedSerializabilities.Add(Serializability.Object);
+                }
+
+                if (detectedSerializabilities.Count > 1)
+                {
+                    throw new InvalidOperationException($"Type {type.FullName} has conflicting serializability!");
+                }
+                else if (detectedSerializabilities.Count == 1)
+                {
+                    serializability = detectedSerializabilities[0];
+                }
+                
+                serializabilityCache.Add(type, serializability);
             }
             else
             {
@@ -270,138 +571,169 @@ namespace LooCast.System.Serialization
             }
         }
 
-        private void CacheSerializationDelegate(Type serializableType)
+        private bool IsPrimitiveTypeSerializationDelegateCached(Type serializablePrimitiveType)
         {
-            Serializability serializability = serializabilityCache[serializableType];
-            switch (serializability)
+            return primitiveSerializationDelegates.ContainsKey(serializablePrimitiveType);
+        }
+        private bool IsPrimitiveTypeDeserializationDelegateCached(Type serializablePrimitiveType)
+        {
+            return primitiveDeserializationDelegates.ContainsKey(serializablePrimitiveType);
+        }
+
+        private bool IsObjectTypeSerializationDelegateCached(Type serializableObjectType)
+        {
+            return objectSerializationDelegates.ContainsKey(serializableObjectType);
+        }
+        private bool IsObjectTypeDeserializationDelegateCached(Type serializableObjectType)
+        {
+            return objectDeserializationDelegates.ContainsKey(serializableObjectType);
+        }
+
+        private bool IsFileTypeSerializationDelegateCached(Type serializableFileType)
+        {
+            return objectSerializationDelegates.ContainsKey(serializableFileType);
+        }
+        private bool IsFileTypeDeserializationDelegateCached(Type serializableFileType)
+        {
+            return objectDeserializationDelegates.ContainsKey(serializableFileType);
+        }
+
+        private bool IsFolderTypeSerializationDelegateCached(Type serializableFolderType)
+        {
+            return objectSerializationDelegates.ContainsKey(serializableFolderType);
+        }
+        private bool IsFolderTypeDeserializationDelegateCached(Type serializableFolderType)
+        {
+            return objectDeserializationDelegates.ContainsKey(serializableFolderType);
+        }
+
+        // TODO: Also cache the default (de-)serialization delegates for object, file and folder
+        // TODO: Also cache the needed "sub-serializers" for each type
+        private void RegisterObjectSerializationDelegates(Type serializableObjectType)
+        {
+            PropertyInfo[] properties = serializableObjectType.GetProperties();
+            FieldInfo[] fields = serializableObjectType.GetFields();
+
+            List<SerializePrimitiveDelegate> serializePrimitiveDelegates = new List<SerializePrimitiveDelegate>();
+            List<DeserializePrimitiveDelegate> deserializePrimitiveDelegates = new List<DeserializePrimitiveDelegate>();
+
+            List<SerializeObjectDelegate> serializeObjectDelegates = new List<SerializeObjectDelegate>();
+            List<DeserializeObjectDelegate> deserializeObjectDelegates = new List<DeserializeObjectDelegate>();
+
+            for (int i = 0; i < properties.Length; i++)
             {
-                case Serializability.PrimitiveAttribute:
-                    SerializePrimitiveAttributeDelegate serializePrimitiveAttributeDelegate = GeneratePrimitiveAttributeSerializationDelegate(serializableType);
-                    DeserializePrimitiveAttributeDelegate deserializePrimitiveAttributeDelegate = GeneratePrimitiveAttributeDeserializationDelegate(serializableType);
-                    primitiveAttributeSerializationDelegates.Add(serializableType, serializePrimitiveAttributeDelegate);
-                    primitiveAttributeDeserializationDelegates.Add(serializableType, deserializePrimitiveAttributeDelegate);
-                    break;
-                case Serializability.PrimitiveObject:
-                    SerializePrimitiveObjectDelegate serializePrimitiveObjectDelegate = GeneratePrimitiveObjectSerializationDelegate(serializableType);
-                    DeserializePrimitiveObjectDelegate deserializePrimitiveObjectDelegate = GeneratePrimitiveObjectDeserializationDelegate(serializableType);
-                    primitiveObjectSerializationDelegates.Add(serializableType, serializePrimitiveObjectDelegate);
-                    primitiveObjectDeserializationDelegates.Add(serializableType, deserializePrimitiveObjectDelegate);
-                    break;
-                case Serializability.Attribute:
-                    // if the serializableType contains any serializable property or field types, which are not primitive, throw an exception because attributes are indivisible building blocks
-                    SerializeAttributeDelegate serializeAttributeDelegate = GenerateAttributeSerializationDelegate(serializableType);
-                    DeserializeAttributeDelegate deserializeAttributeDelegate = GenerateAttributeDeserializationDelegate(serializableType);
-                    attributeSerializationDelegates.Add(serializableType, serializeAttributeDelegate);
-                    attributeDeserializationDelegates.Add(serializableType, deserializeAttributeDelegate);
-                    break;
-                case Serializability.Object:
-                    // if the serializableType contains any serializable property or field object types, cache the object serialization delegates for each of them
-                    break;
-                case Serializability.File:
-                    break;
-                case Serializability.Folder:
-                    break;
+                PropertyInfo property = properties[i];
+                Type propertyType = property.PropertyType;
+                Serializability propertySerializability = GetSerializability(propertyType);
+                switch (propertySerializability)
+                {
+                    case Serializability.Object:
+                        if (!IsObjectTypeSerializationDelegateCached(propertyType))
+                        {
+                            if (false/*TODO: if propertyType is marked as override serialization*/)
+                            {
+
+                            }
+                            else
+                            {
+                                serializeObjectDelegates.Add((string objectName, object _object, out XElement serializedObject) =>
+                                {
+                                    // Get all properties and fields of the object
+                                    // Get all property and field types
+                                    // Locally cache all necessary serializers for the property and field types
+                                    // Loop through all properties and serialize them
+                                    // Loop through all fields and serialize them
+                                });
+                            }
+                        }
+                        if (!IsObjectTypeDeserializationDelegateCached(propertyType))
+                        {
+                            if (false/*TODO: if propertyType is marked as override deserialization*/)
+                            {
+
+                            }
+                            else
+                            {
+                                deserializeObjectDelegates.Add((XElement serializedObject, out object _object) =>
+                                {
+                                    // Get all properties and fields of the object
+                                    // Get all property and field types
+                                    // Locally cache all necessary serializers for the property and field types
+                                    // Loop through all properties and serialize them
+                                    // Loop through all fields and serialize them
+                                });
+                            }
+                        }
+                        break;
+                    case Serializability.File:
+                        throw new Exception($"Properties of serializable objects may not be files!");
+                    case Serializability.Folder:
+                        throw new Exception($"Properties of serializable objects may not be folders!");
+                }
+            }
+
+            for (int i = 0; i < fields.Length; i++)
+            {
+                FieldInfo field = fields[i];
+                Type fieldType = field.FieldType;
+                Serializability fieldSerializability = GetSerializability(fieldType);
+                switch (fieldSerializability)
+                {
+                    case Serializability.Object:
+                        if (!IsObjectTypeSerializationDelegateCached(fieldType))
+                        {
+                            if (false/*TODO: if fieldType is marked as override serialization*/)
+                            {
+
+                            }
+                            else
+                            {
+                                serializeObjectDelegates.Add((string objectName, object _object, out XElement serializedObject) =>
+                                {
+                                    // Get all properties and fields of the object
+                                    // Get all property and field types
+                                    // Locally cache all necessary serializers for the property and field types
+                                    // Loop through all properties and serialize them
+                                    // Loop through all fields and serialize them
+                                });
+                            }
+                        }
+                        if (!IsObjectTypeDeserializationDelegateCached(fieldType))
+                        {
+                            if (false/*TODO: if fieldType is marked as override deserialization*/)
+                            {
+
+                            }
+                            else
+                            {
+                                deserializeObjectDelegates.Add((XElement serializedObject, out object _object) =>
+                                {
+                                    // Get all properties and fields of the object
+                                    // Get all property and field types
+                                    // Locally cache all necessary serializers for the property and field types
+                                    // Loop through all properties and serialize them
+                                    // Loop through all fields and serialize them
+                                });
+                            }
+                        }
+                        break;
+                    case Serializability.File:
+                        throw new Exception($"Fields of serializable objects may not be files!");
+                    case Serializability.Folder:
+                        throw new Exception($"Fields of serializable objects may not be folders!");
+                }
             }
         }
 
-        private Serializability AnalyzeSerializability(Type type)
-        {
-            List<Serializability> detectedSerializabilities = new List<Serializability>();
-
-            if (IsPrimitiveAttributeType(type))
-            {
-                detectedSerializabilities.Add(Serializability.PrimitiveAttribute);
-            }
-            if (IsPrimitiveObjectType(type))
-            {
-                detectedSerializabilities.Add(Serializability.PrimitiveObject);
-            }
-
-            if (typeof(ISerializableFolder).IsAssignableFrom(type))
-            {
-                detectedSerializabilities.Add(Serializability.Folder);
-            }
-            if (typeof(ISerializableFile).IsAssignableFrom(type))
-            {
-                detectedSerializabilities.Add(Serializability.File);
-            }
-            if (typeof(ISerializableObject).IsAssignableFrom(type))
-            {
-                detectedSerializabilities.Add(Serializability.Object);
-            }
-            if (typeof(ISerializableAttribute).IsAssignableFrom(type))
-            {
-                detectedSerializabilities.Add(Serializability.Attribute);
-            }
-
-            if (detectedSerializabilities.Count > 1)
-            {
-                throw new InvalidOperationException($"Type {type.FullName} has conflicting serializability!");
-            }
-            else if (detectedSerializabilities.Count == 1)
-            {
-                return detectedSerializabilities[0];
-            }
-
-            return Serializability.None;
-        }
-
-        #region (De-)serialization delegates generation
-        private SerializePrimitiveAttributeDelegate GeneratePrimitiveAttributeSerializationDelegate(Type serializableType)
-        {
-            
-        }
-        private DeserializePrimitiveAttributeDelegate GeneratePrimitiveAttributeDeserializationDelegate(Type serializableType)
-        {
-            
-        }
-
-        private SerializePrimitiveObjectDelegate GeneratePrimitiveObjectSerializationDelegate(Type serializableType)
-        {
-
-        }
-        private DeserializePrimitiveObjectDelegate GeneratePrimitiveObjectDeserializationDelegate(Type serializableType)
+        private void RegisterFileSerializationDelegates(Type serializableFileType)
         {
 
         }
 
-        private SerializeAttributeDelegate GenerateAttributeSerializationDelegate(Type serializableType)
+        private void RegisterFolderSerializationDelegates(Type serializableFolderType)
         {
 
         }
-        private DeserializeAttributeDelegate GenerateAttributeDeserializationDelegate(Type serializableType)
-        {
-
-        }
-
-        private SerializeObjectDelegate GenerateObjectSerializationDelegate(Type serializableType)
-        {
-
-        }
-        private DeserializeObjectDelegate GenerateObjectDeserializationDelegate(Type serializableType)
-        {
-
-        }
-
-        private SerializeFileDelegate GenerateFileSerializationDelegate(Type serializableType)
-        {
-
-        }
-        private DeserializeFileDelegate GenerateFileDeserializationDelegate(Type serializableType)
-        {
-
-        }
-
-        private SerializeFolderDelegate GenerateFolderSerializationDelegate(Type serializableType)
-        {
-
-        }
-        private DeserializeFolderDelegate GenerateFolderDeserializationDelegate(Type serializableType)
-        {
-
-        }
-        #endregion
-
         #endregion
     }
 }

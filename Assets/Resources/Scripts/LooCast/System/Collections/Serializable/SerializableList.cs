@@ -41,7 +41,7 @@ namespace LooCast.System.Collections.Serializable
             {
                 case Serializability.PrimitiveAttribute:
                 {
-                    IPrimitiveAttributeSerializer primitiveAttributeSerializer = serializationManager.GetPrimitiveAttributeSerializer(type);
+                    IPrimitiveSerializer primitiveAttributeSerializer = serializationManager.GetPrimitiveSerializer(type);
                     
                     for (int i = 0; i < Count; i++)
                     {
@@ -94,7 +94,7 @@ namespace LooCast.System.Collections.Serializable
                 case Serializability.PrimitiveAttribute:
                 {
                     SerializationManager serializationManager = SerializationManager.Instance;
-                    IPrimitiveAttributeSerializer primitiveAttributeSerializer = serializationManager.GetPrimitiveAttributeSerializer(type);
+                    IPrimitiveSerializer primitiveAttributeSerializer = serializationManager.GetPrimitiveSerializer(type);
                     XAttribute[] serializedObjectAttributes = serializedList.Attributes().ToArray();
                     
                     for (int i = 0; i < serializedObjectAttributes.Length; i++)

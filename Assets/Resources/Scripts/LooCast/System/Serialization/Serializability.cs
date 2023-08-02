@@ -3,9 +3,7 @@
     public enum Serializability
     {
         None,
-        PrimitiveAttribute,
-        PrimitiveObject,
-        Attribute,
+        Primitive,
         Object,
         File,
         Folder

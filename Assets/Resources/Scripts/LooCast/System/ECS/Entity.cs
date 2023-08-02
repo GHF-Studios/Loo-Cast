@@ -20,6 +20,20 @@ namespace LooCast.System.ECS
             public string AssemblyQualifiedEntityTypeName { get; set; }
             public string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
             public string AssemblyQualifiedEntityDataTypeName { get; set; }
+
+            #endregion
+
+            #region Methods
+            public void Serialize(string objectName, out XElement serializedObject)
+            {
+                serializedObject = new XElement(objectName);
+                serializedObject.Add(new XAttribute(nameof(EntityID), EntityID));
+            }
+
+            public void Deserialize(XElement serializedObject)
+            {
+                throw new NotImplementedException();
+            }
             #endregion
         }
 
