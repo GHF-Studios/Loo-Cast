@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Numerics;
 using System.Xml.Linq;
 
 namespace LooCast.System.Serialization
 {
-    public sealed class FloatSerializer : IPrimitiveAttributeSerializer<float>
+    public sealed class FloatSerializer : PrimitiveAttributeSerializer, IPrimitiveAttributeSerializer<float>
     {
         #region Static Properties
         public static FloatSerializer Instance
@@ -24,20 +25,16 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Constructors
-        private FloatSerializer() : base()
+        private FloatSerializer() : base(typeof(float))
         {
         }
         #endregion
 
         #region Methods
-        public void Serialize(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize(primitiveAttributeName, (float)primitiveAttribute, out serializedPrimitiveAttribute);
-
         public void Serialize(string primitiveAttributeName, float primitiveAttribute, out XAttribute serializedPrimitiveAttribute)
         {
             serializedPrimitiveAttribute = new XAttribute(primitiveAttributeName, primitiveAttribute);
         }
-
-        public void Deserialize(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute) => Deserialize(serializedPrimitiveAttribute, out primitiveAttribute);
 
         public void Deserialize(XAttribute serializedPrimitiveAttribute, out float primitiveAttribute)
         {
@@ -51,6 +48,11 @@ namespace LooCast.System.Serialization
                 throw new ArgumentException($"Attribute '{serializedPrimitiveAttribute.Name}' with value '{serializedPrimitiveAttribute.Value}' could not be parsed as a float!");
             }
         }
+        #endregion
+
+        #region Overrides
+        public override void Serialize(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize(primitiveAttributeName, (float)primitiveAttribute, out serializedPrimitiveAttribute);
+        public override void Deserialize(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute) => Deserialize(serializedPrimitiveAttribute, out primitiveAttribute);
         #endregion
     }
 }

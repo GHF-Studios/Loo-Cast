@@ -5,7 +5,6 @@ using UnityEngine;
 namespace LooCast.System
 {
     using LooCast.System.ECS;
-    using LooCast.System.Paths;
 
     public abstract class Manager : Entity, IManager
     {

@@ -52,6 +52,7 @@ namespace LooCast.System
                 SetEntityMetaData(systemManagerMetaData);
                 SetEntityData(systemManagerData);
 
+                moduleManagerChildrenList.Add(SerializationManager.Instance);
                 moduleManagerChildrenList.Add(EntityManager.Instance);
                 moduleManagerChildrenList.Add(ComponentManager.Instance);
 

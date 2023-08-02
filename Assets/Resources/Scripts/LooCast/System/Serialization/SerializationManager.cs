@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Linq;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace LooCast.System.Serialization
 {
@@ -80,13 +81,16 @@ namespace LooCast.System.Serialization
                 RegisterPrimitiveAttributeSerializer(StringSerializer.Instance);
                 RegisterPrimitiveAttributeSerializer(BigIntSerializer.Instance);
 
-                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
+                IEnumerable<Assembly> allAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+                IEnumerable<Type> allTypes = allAssemblies.SelectMany(assembly => assembly.GetTypes());
+                foreach (Type type in allTypes)
                 {
-                    foreach (Type type in assembly.GetTypes())
-                    {
-                        CacheSerializability(type);
-                    }
+                    CacheSerializability(type);
                 }
+                stopwatch.Stop();
+                UnityEngine.Debug.Log($"Caching {allTypes.Count()} type serializabilities for {allAssemblies.Count()} assemblies took {stopwatch.ElapsedMilliseconds}ms");
 
                 foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {

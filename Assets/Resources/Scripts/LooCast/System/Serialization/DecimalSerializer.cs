@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Numerics;
 using System.Xml.Linq;
 
 namespace LooCast.System.Serialization
 {
-    public sealed class DecimalSerializer : IPrimitiveAttributeSerializer<decimal>
+    public sealed class DecimalSerializer : PrimitiveAttributeSerializer, IPrimitiveAttributeSerializer<decimal>
     {
         #region Static Properties
         public static DecimalSerializer Instance
@@ -22,22 +23,18 @@ namespace LooCast.System.Serialization
         #region Static Fields
         private static DecimalSerializer instance;
         #endregion
-
+        
         #region Constructors
-        private DecimalSerializer() : base()
+        private DecimalSerializer() : base(typeof(decimal))
         {
         }
         #endregion
 
         #region Methods
-        public void Serialize(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize(primitiveAttributeName, (decimal)primitiveAttribute, out serializedPrimitiveAttribute);
-
         public void Serialize(string primitiveAttributeName, decimal primitiveAttribute, out XAttribute serializedPrimitiveAttribute)
         {
             serializedPrimitiveAttribute = new XAttribute(primitiveAttributeName, primitiveAttribute);
         }
-
-        public void Deserialize(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute) => Deserialize(serializedPrimitiveAttribute, out primitiveAttribute);
 
         public void Deserialize(XAttribute serializedPrimitiveAttribute, out decimal primitiveAttribute)
         {
@@ -51,6 +48,11 @@ namespace LooCast.System.Serialization
                 throw new ArgumentException($"Attribute '{serializedPrimitiveAttribute.Name}' with value '{serializedPrimitiveAttribute.Value}' could not be parsed as a decimal!");
             }
         }
+        #endregion
+
+        #region Overrides
+        public override void Serialize(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize(primitiveAttributeName, (decimal)primitiveAttribute, out serializedPrimitiveAttribute);
+        public override void Deserialize(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute) => Deserialize(serializedPrimitiveAttribute, out primitiveAttribute);
         #endregion
     }
 }

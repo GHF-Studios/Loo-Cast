@@ -3,7 +3,7 @@ using System.Xml.Linq;
 
 namespace LooCast.System.Serialization
 {
-    public sealed class UShortSerializer : IPrimitiveAttributeSerializer<ushort>
+    public sealed class UShortSerializer : PrimitiveAttributeSerializer, IPrimitiveAttributeSerializer<ushort>
     {
         #region Static Properties
         public static UShortSerializer Instance
@@ -24,20 +24,16 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Constructors
-        private UShortSerializer() : base()
+        private UShortSerializer() : base(typeof(ushort))
         {
         }
         #endregion
 
         #region Methods
-        public void Serialize(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize(primitiveAttributeName, (ushort)primitiveAttribute, out serializedPrimitiveAttribute);
-
         public void Serialize(string primitiveAttributeName, ushort primitiveAttribute, out XAttribute serializedPrimitiveAttribute)
         {
             serializedPrimitiveAttribute = new XAttribute(primitiveAttributeName, primitiveAttribute);
         }
-
-        public void Deserialize(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute) => Deserialize(serializedPrimitiveAttribute, out primitiveAttribute);
 
         public void Deserialize(XAttribute serializedPrimitiveAttribute, out ushort primitiveAttribute)
         {
@@ -51,6 +47,11 @@ namespace LooCast.System.Serialization
                 throw new ArgumentException($"Attribute '{serializedPrimitiveAttribute.Name}' with value '{serializedPrimitiveAttribute.Value}' could not be parsed as a ushort!");
             }
         }
+        #endregion
+
+        #region Overrides
+        public override void Serialize(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize(primitiveAttributeName, (ushort)primitiveAttribute, out serializedPrimitiveAttribute);
+        public override void Deserialize(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute) => Deserialize(serializedPrimitiveAttribute, out primitiveAttribute);
         #endregion
     }
 }

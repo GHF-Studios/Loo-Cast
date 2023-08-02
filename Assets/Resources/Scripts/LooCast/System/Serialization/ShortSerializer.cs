@@ -3,7 +3,7 @@ using System.Xml.Linq;
 
 namespace LooCast.System.Serialization
 {
-    public sealed class ShortSerializer : IPrimitiveAttributeSerializer<short>
+    public sealed class ShortSerializer : PrimitiveAttributeSerializer, IPrimitiveAttributeSerializer<short>
     {
         #region Static Properties
         public static ShortSerializer Instance
@@ -24,20 +24,16 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Constructors
-        private ShortSerializer() : base()
+        private ShortSerializer() : base(typeof(short))
         {
         }
         #endregion
 
         #region Methods
-        public void Serialize(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize(primitiveAttributeName, (short)primitiveAttribute, out serializedPrimitiveAttribute);
-
         public void Serialize(string primitiveAttributeName, short primitiveAttribute, out XAttribute serializedPrimitiveAttribute)
         {
             serializedPrimitiveAttribute = new XAttribute(primitiveAttributeName, primitiveAttribute);
         }
-
-        public void Deserialize(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute) => Deserialize(serializedPrimitiveAttribute, out primitiveAttribute);
 
         public void Deserialize(XAttribute serializedPrimitiveAttribute, out short primitiveAttribute)
         {
@@ -51,6 +47,11 @@ namespace LooCast.System.Serialization
                 throw new ArgumentException($"Attribute '{serializedPrimitiveAttribute.Name}' with value '{serializedPrimitiveAttribute.Value}' could not be parsed as a short!");
             }
         }
+        #endregion
+
+        #region Overrides
+        public override void Serialize(string primitiveAttributeName, object primitiveAttribute, out XAttribute serializedPrimitiveAttribute) => Serialize(primitiveAttributeName, (short)primitiveAttribute, out serializedPrimitiveAttribute);
+        public override void Deserialize(XAttribute serializedPrimitiveAttribute, out object primitiveAttribute) => Deserialize(serializedPrimitiveAttribute, out primitiveAttribute);
         #endregion
     }
 }
