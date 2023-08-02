@@ -1,8 +1,13 @@
-﻿namespace LooCast.System.Collections.Serializable
-{
-    using LooCast.System.Serialization;
+﻿using System.Collections;
+using System.Collections.Generic;
 
-    public interface ISerializableList<T> : ISerializableObject
+namespace LooCast.System.Collections.Serializable
+{
+    public interface ISerializableList : IList
+    {
+    }
+    
+    public interface ISerializableList<T> : ISerializableList, IList<T>
     {
     }
 }

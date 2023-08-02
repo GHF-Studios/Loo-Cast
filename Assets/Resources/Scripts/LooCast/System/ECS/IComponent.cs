@@ -9,7 +9,7 @@ namespace LooCast.System.ECS
     public interface IComponent : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Interfaces
-        public interface IMetaData : ISerializableObject
+        public interface IMetaData
         {
             Guid ComponentID { get; set; }
             string AssemblyQualifiedComponentTypeName { get; set; }
@@ -17,7 +17,7 @@ namespace LooCast.System.ECS
             string AssemblyQualifiedComponentDataTypeName { get; set; }
         }
         
-        public interface IData : ISerializableObject
+        public interface IData
         {
             string AssemblyQualifiedComponentTypeName { get; set; }
             string AssemblyQualifiedComponentMetaDataTypeName { get; set; }

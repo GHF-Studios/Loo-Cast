@@ -3,12 +3,15 @@ using System.Collections.Generic;
 
 namespace LooCast.System.ECS
 {
+    using LooCast.System.Serialization;
+    
     /// <summary>
     /// Lifecycle: Construction via Entity.AddComponent -> OnCreate -> SetMetaData -> SetData -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
     /// </summary>
     public abstract class Component : IComponent
     {
         #region Classes
+        [SerializableObject]
         public class MetaData : IComponent.IMetaData
         {
             #region Properties
@@ -19,6 +22,7 @@ namespace LooCast.System.ECS
             #endregion
         }
 
+        [SerializableObject]
         public class Data : IComponent.IData
         {
             #region Properties

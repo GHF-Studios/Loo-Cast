@@ -1,11 +1,15 @@
 ﻿namespace LooCast.System.Collections.Serializable
 {
-    using LooCast.System.Serialization;
-    
-    public interface ISerializableArray<T> : ISerializableObject
+    public interface ISerializableArray
+    {
+        int Length { get; }
+        object this[int index] { get; set; }
+    }
+
+    public interface ISerializableArray<T> : ISerializableArray
     {
         #region Properties
-        public T[] Array { get; }
+        T[] Array { get; }
         #endregion
     }
 }

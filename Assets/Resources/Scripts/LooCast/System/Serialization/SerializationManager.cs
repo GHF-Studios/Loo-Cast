@@ -638,7 +638,7 @@ namespace LooCast.System.Serialization
         }
 
         // TODO: Also cache the default (de-)serialization delegates for object, file and folder
-        // TODO: Also cache the needed "sub-serializers" for each type
+        // TODO: Also cache the needed "sub-delegates" for each type so the choice of the right delegate is made only from the set of needed delegates and not from the much larger set of all available delegates
         private void RegisterObjectSerializationDelegates(Type serializableObjectType)
         {
             SerializableObjectAttribute serializableObjectAttribute = serializableObjectType.GetCustomAttribute<SerializableObjectAttribute>();
@@ -655,7 +655,7 @@ namespace LooCast.System.Serialization
                     throw new Exception($"Type '{serializableObjectType}' is marked as overriding the defualt serialization behaviour, but it does not implement a method with the signature 'public static void Serialize(string listName, object _object, out XElement serializedList)'!");
                 }
 
-                objectSerializationDelegates.Add(serializableObjectType, (SerializeObjectDelegate)methodInfo.CreateDelegate(typeof(SerializeObjectDelegate)))
+                objectSerializationDelegates.Add(serializableObjectType, (SerializeObjectDelegate)methodInfo.CreateDelegate(typeof(SerializeObjectDelegate)));
             }
             if (overrideDeserialization)
             {
@@ -700,7 +700,7 @@ namespace LooCast.System.Serialization
                         {
                             if (!IsPrimitiveTypeSerializationDelegateRegistered(propertyType))
                             {
-                                throw new Exception($"No primitive serialization delegate registered for type '{propertyType}'!"
+                                throw new Exception($"No primitive serialization delegate registered for type '{propertyType}'!");
                             }
                             
                             serializePrimitivePropertyDelegates.Add(property.Name, primitiveSerializationDelegates[propertyType]);
@@ -709,7 +709,7 @@ namespace LooCast.System.Serialization
                         {
                             if (!IsPrimitiveTypeDeserializationDelegateRegistered(propertyType))
                             {
-                                throw new Exception($"No primitive deserialization delegate registered for type '{propertyType}'!"
+                                throw new Exception($"No primitive deserialization delegate registered for type '{propertyType}'!");
                             }
                             
                             deserializePrimitivePropertyDelegates.Add(property.Name, primitiveDeserializationDelegates[propertyType]);
@@ -754,7 +754,7 @@ namespace LooCast.System.Serialization
                         {
                             if (!IsPrimitiveTypeSerializationDelegateRegistered(fieldType))
                             {
-                                throw new Exception($"No primitive serialization delegate registered for type '{fieldType}'!"
+                                throw new Exception($"No primitive serialization delegate registered for type '{fieldType}'!");
                             }
                             serializePrimitiveFieldDelegates.Add(field.Name, primitiveSerializationDelegates[fieldType]);
                         }
@@ -762,7 +762,7 @@ namespace LooCast.System.Serialization
                         {
                             if (!IsPrimitiveTypeDeserializationDelegateRegistered(fieldType))
                             {
-                                throw new Exception($"No primitive deserialization delegate registered for type '{fieldType}'!"
+                                throw new Exception($"No primitive deserialization delegate registered for type '{fieldType}'!");
                             }
                             deserializePrimitiveFieldDelegates.Add(field.Name, primitiveDeserializationDelegates[fieldType]);
                         }
@@ -800,14 +800,47 @@ namespace LooCast.System.Serialization
                 {
                     serializedObject = new XElement(objectName);
 
-                    // get the object's properties and fields
+                    PropertyInfo[] properties = serializableObjectType.GetProperties();
+                    FieldInfo[] fields = serializableObjectType.GetFields();
 
-                    // serialize each primitive property via the primitive property serialization delegate which it is mapped to via it's name in serializePrimitivePropertyDelegates
-                    // serialize each object property via the object property serialization delegate which it is mapped to via it's name in serializeObjectPropertyDelegates
+                    foreach (PropertyInfo property in properties)
+                    {
+                        Type propertyType = property.PropertyType;
+                        Serializability propertySerializability = GetSerializability(propertyType);
+                        string propertyName = property.Name;
+                        
+                        switch (propertySerializability)
+                        {
+                            case Serializability.Primitive:
+                                serializePrimitivePropertyDelegates[propertyName].Invoke(propertyName, property.GetValue(_object), out XAttribute serializedPrimitiveProperty);
+                                serializedObject.Add(serializedPrimitiveProperty);
+                                break;
+                            case Serializability.Object:
+                                serializeObjectPropertyDelegates[propertyName].Invoke(propertyName, property.GetValue(_object), out XElement serializedObjectProperty);
+                                serializedObject.Add(serializedObjectProperty);
+                                break;
+                        }
+                    }
 
-                    // serialize each primitive field via the primitive field serialization delegate which it is mapped to via it's name in serializePrimitiveFieldDelegates
-                    // serialize each object property via the object field serialization delegate which it is mapped to via it's name in serializeObjectFieldDelegates
-                })
+                    foreach (FieldInfo field in fields)
+                    {
+                        Type fieldType = field.FieldType;
+                        Serializability fieldSerializability = GetSerializability(fieldType);
+                        string fieldName = field.Name;
+
+                        switch (fieldSerializability)
+                        {
+                            case Serializability.Primitive:
+                                serializePrimitiveFieldDelegates[fieldName].Invoke(fieldName, field.GetValue(_object), out XAttribute serializedPrimitiveField);
+                                serializedObject.Add(serializedPrimitiveField);
+                                break;
+                            case Serializability.Object:
+                                serializeObjectFieldDelegates[fieldName].Invoke(fieldName, field.GetValue(_object), out XElement serializedObjectField);
+                                serializedObject.Add(serializedObjectField);
+                                break;
+                        }
+                    }
+                });
             }
             if (!overrideDeserialization)
             {
@@ -815,9 +848,91 @@ namespace LooCast.System.Serialization
                 {
                     _object = Activator.CreateInstance(serializableObjectType);
 
-                    // search and find the object's properties and fields which are mentioned in the dictionaries deserializePrimitivePropertyDelegates, deserializeObjectPropertyDelegates, deserializePrimitiveFieldDelegates, deserializeObjectFieldDelegates
-                    // if any property or field is missing, throw an exception
-                    // else, deserialize the properties and fields via the delegates which they are mapped to in the dictionaries via their name
+                    PropertyInfo[] properties = serializableObjectType.GetProperties();
+                    FieldInfo[] fields = serializableObjectType.GetFields();
+
+                    XAttribute[] serializedPrimitives = serializedObject.Attributes().ToArray();
+                    XElement[] serializedObjects = serializedObject.Elements().ToArray();
+
+                    foreach (KeyValuePair<string, DeserializePrimitiveDelegate> propertyNamePrimitiveDeserializeDelegatePair in deserializePrimitivePropertyDelegates)
+                    {
+                        PropertyInfo primitiveProperty = properties.FirstOrDefault(property => property.Name == propertyNamePrimitiveDeserializeDelegatePair.Key);
+                        XAttribute serializedPrimitiveProperty = serializedPrimitives.FirstOrDefault(_serializedPrimitive => _serializedPrimitive.Name == propertyNamePrimitiveDeserializeDelegatePair.Key);
+
+                        if (primitiveProperty == null)
+                        {
+                            throw new Exception($"Primitive property '{propertyNamePrimitiveDeserializeDelegatePair.Key}' not found in object type '{serializableObjectType}'!");
+                        }
+                        if (serializedPrimitiveProperty == null)
+                        {
+                            throw new Exception($"Primitive roperty '{propertyNamePrimitiveDeserializeDelegatePair.Key}' not found in serialized object '{serializedObject.Name}'!");
+                        }
+
+                        string primitivePropertyName = primitiveProperty.Name;
+
+                        deserializePrimitivePropertyDelegates[primitivePropertyName].Invoke(serializedPrimitiveProperty, out object primitivePropertyValue);
+                        primitiveProperty.SetValue(_object, primitivePropertyValue);
+                    }
+
+                    foreach (KeyValuePair<string, DeserializeObjectDelegate> propertyNameObjectDeserializeDelegatePair in deserializeObjectPropertyDelegates)
+                    {
+                        PropertyInfo objectProperty = properties.FirstOrDefault(property => property.Name == propertyNameObjectDeserializeDelegatePair.Key);
+                        XElement serializedObjectProperty = serializedObjects.FirstOrDefault(_serializedObject => _serializedObject.Name == propertyNameObjectDeserializeDelegatePair.Key);
+
+                        if (objectProperty == null)
+                        {
+                            throw new Exception($"Object property '{propertyNameObjectDeserializeDelegatePair.Key}' not found in object type '{serializableObjectType}'!");
+                        }
+                        if (serializedObjectProperty == null)
+                        {
+                            throw new Exception($"Object property '{propertyNameObjectDeserializeDelegatePair.Key}' not found in serialized object '{serializedObjectProperty.Name}'!");
+                        }
+
+                        string objectPropertyName = objectProperty.Name;
+
+                        deserializeObjectPropertyDelegates[objectPropertyName].Invoke(serializedObjectProperty, out object objectPropertyValue);
+                        objectProperty.SetValue(_object, objectPropertyValue);
+                    }
+
+                    foreach (KeyValuePair<string, DeserializePrimitiveDelegate> fieldNamePrimitiveDeserializeDelegatePair in deserializePrimitiveFieldDelegates)
+                    {
+                        FieldInfo primitiveField = fields.FirstOrDefault(field => field.Name == fieldNamePrimitiveDeserializeDelegatePair.Key);
+                        XAttribute serializedPrimitiveField = serializedPrimitives.FirstOrDefault(_serializedPrimitive => _serializedPrimitive.Name == fieldNamePrimitiveDeserializeDelegatePair.Key);
+
+                        if (primitiveField == null)
+                        {
+                            throw new Exception($"Primitive field '{fieldNamePrimitiveDeserializeDelegatePair.Key}' not found in object type '{serializableObjectType}'!");
+                        }
+                        if (serializedPrimitiveField == null)
+                        {
+                            throw new Exception($"Primitive field '{fieldNamePrimitiveDeserializeDelegatePair.Key}' not found in serialized object '{serializedObject.Name}'!");
+                        }
+
+                        string primitiveFieldName = primitiveField.Name;
+
+                        deserializePrimitiveFieldDelegates[primitiveFieldName].Invoke(serializedPrimitiveField, out object primitiveFieldValue);
+                        primitiveField.SetValue(_object, primitiveFieldValue);
+                    }
+
+                    foreach (KeyValuePair<string, DeserializeObjectDelegate> fieldNameObjectDeserializeDelegatePair in deserializeObjectFieldDelegates)
+                    {
+                        FieldInfo objectField = fields.FirstOrDefault(field => field.Name == fieldNameObjectDeserializeDelegatePair.Key);
+                        XElement serializedObjectField = serializedObjects.FirstOrDefault(_serializedObject => _serializedObject.Name == fieldNameObjectDeserializeDelegatePair.Key);
+
+                        if (objectField == null)
+                        {
+                            throw new Exception($"Object field '{fieldNameObjectDeserializeDelegatePair.Key}' not found in object type '{serializableObjectType}'!");
+                        }
+                        if (serializedObjectField == null)
+                        {
+                            throw new Exception($"Object field '{fieldNameObjectDeserializeDelegatePair.Key}' not found in serialized object '{serializedObjectField.Name}'!");
+                        }
+
+                        string objectFieldName = objectField.Name;
+
+                        deserializeObjectFieldDelegates[objectFieldName].Invoke(serializedObjectField, out object objectFieldValue);
+                        objectField.SetValue(_object, objectFieldValue);
+                    }
                 });
             }
         }

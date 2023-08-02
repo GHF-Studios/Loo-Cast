@@ -2,17 +2,19 @@
 using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
-using UnityEngine;
-using System.Xml.Linq;
 
 namespace LooCast.System.ECS
 {
+    using LooCast.System.Collections.Serializable;
+    using LooCast.System.Serialization;
+    
     /// <summary>
     /// Lifecycle: Construction via Entity.Create -> OnCreate -> SetMetaData -> SetData -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
     /// </summary>
     public abstract class Entity : IEntity
     {
         #region Classes
+        [SerializableObject]
         public class MetaData : IEntity.IMetaData
         {
             #region Properties
@@ -20,23 +22,10 @@ namespace LooCast.System.ECS
             public string AssemblyQualifiedEntityTypeName { get; set; }
             public string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
             public string AssemblyQualifiedEntityDataTypeName { get; set; }
-
-            #endregion
-
-            #region Methods
-            public void Serialize(string objectName, out XElement serializedObject)
-            {
-                serializedObject = new XElement(objectName);
-                serializedObject.Add(new XAttribute(nameof(EntityID), EntityID));
-            }
-
-            public void Deserialize(XElement serializedObject)
-            {
-                throw new NotImplementedException();
-            }
             #endregion
         }
 
+        [SerializableObject]
         public class Data : IEntity.IData
         {
             #region Properties
@@ -46,19 +35,21 @@ namespace LooCast.System.ECS
             #endregion
         }
 
+        [SerializableObject]
         public sealed class FullMetaData : IEntity.IFullMetaData
         {
             #region Properties
             public IEntity.IMetaData EntityMetaData { get; set; }
-            public IComponent.IMetaData[] ComponentMetaDatas { get; set; }
+            public SerializableArray<IComponent.IMetaData> ComponentMetaDatas { get; set; }
             #endregion
         }
 
+        [SerializableObject]
         public sealed class FullData : IEntity.IFullData
         {
             #region Properties
             public IEntity.IData EntityData { get; set; }
-            public IComponent.IData[] ComponentDatas { get; set; }
+            public SerializableArray<IComponent.IData> ComponentDatas { get; set; }
             #endregion
         }
         #endregion

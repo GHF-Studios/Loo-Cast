@@ -10,7 +10,7 @@ namespace LooCast.System.ECS
     public interface IEntity : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Interfaces
-        public interface IMetaData : ISerializableObject
+        public interface IMetaData
         {
             Guid EntityID { get; set; }
             string AssemblyQualifiedEntityTypeName { get; set; }
@@ -18,20 +18,20 @@ namespace LooCast.System.ECS
             string AssemblyQualifiedEntityDataTypeName { get; set; }
         }
 
-        public interface IData : ISerializableObject
+        public interface IData
         {
             string AssemblyQualifiedEntityTypeName { get; set; }
             string AssemblyQualifiedEntityMetaDataTypeName { get; set; }
             string AssemblyQualifiedEntityDataTypeName { get; set; }
         }
 
-        public interface IFullMetaData : ISerializableObject
+        public interface IFullMetaData
         {
             IMetaData EntityMetaData { get; set; }
             ISerializableArray<IComponent.IMetaData> ComponentMetaDatas { get; set; }
         }
 
-        public interface IFullData : ISerializableObject
+        public interface IFullData
         {
             IData EntityData { get; set; }
             ISerializableArray<IComponent.IData> ComponentDatas { get; set; }
