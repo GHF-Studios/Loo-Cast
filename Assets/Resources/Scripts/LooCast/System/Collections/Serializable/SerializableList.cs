@@ -7,11 +7,15 @@ namespace LooCast.System.Collections.Serializable
 {
     using LooCast.System.Serialization;
 
-    public class SerializableList<T> : List<T>, ISerializableList<T> where T : new()
+    [SerializableObject(true, true)]
+    public class SerializableList<T> : List<T>, ISerializableList<T>
     {
         #region Fields
         private Serializability typeSerializability;
         private Type type;
+
+        private SerializationManager.SerializeObjectDelegate serializeObjectDelegate;
+        private SerializationManager.DeserializeObjectDelegate deserializeObjectDelegate;
         #endregion
 
         #region Constructors
@@ -24,128 +28,43 @@ namespace LooCast.System.Collections.Serializable
             {
                 case Serializability.None:
                     throw new ArgumentException($"The type '{type.Name}' is not serializable!");
+                case Serializability.Primitive:
+                    throw new InvalidOperationException("A serializable list cannot contain primitives, only objects!");
                 case Serializability.File:
                     throw new InvalidOperationException("A serializable list cannot contain files, only attributes or objects!");
                 case Serializability.Folder:
                     throw new InvalidOperationException("A serializable list cannot contain folders, only attributes or objects!");
             }
+            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(type);
+            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(type);
         }
         #endregion
 
-        #region Methods
-        public void Serialize(string listName, out XElement serializedList)
+        #region Static Methods
+        public static void Serialize(string serializableListName, object serializableList, out XElement serializedList)
         {
-            serializedList = new XElement(listName);
-            SerializationManager serializationManager = SerializationManager.Instance;
-            switch (typeSerializability)
-            {
-                case Serializability.PrimitiveAttribute:
-                {
-                    IPrimitiveSerializer primitiveAttributeSerializer = serializationManager.GetPrimitiveSerializer(type);
-                    
-                    for (int i = 0; i < Count; i++)
-                    {
-                        primitiveAttributeSerializer.Serialize($"Item[{i}]", this[i], out XAttribute serializedItem);
-                        serializedList.Add(serializedItem);
-                    }
-                    
-                    break;
-                }
-                case Serializability.PrimitiveObject:
-                {
-                    IPrimitiveObjectSerializer primitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(type);
-                    
-                    for (int i = 0; i < Count; i++)
-                    {
-                        primitiveObjectSerializer.Serialize($"Item[{i}]", this[i], out XElement serializedItem);
-                        serializedList.Add(serializedItem);
-                    }
+            serializedList = new XElement(serializableListName);
+            SerializableList<T> list = (SerializableList<T>)serializableList;
 
-                    break;
-                }
-                case Serializability.Attribute:
-                {
-                    for (int i = 0; i < Count; i++)
-                    {
-                        ((ISerializableAttribute)this[i]).Serialize($"Item[{i}]", out XAttribute serializedItem);
-                        serializedList.Add(serializedItem);
-                    }
-                    
-                    break;
-                }
-                case Serializability.Object:
-                {
-                    for (int i = 0; i < Count; i++)
-                    {
-                        ((ISerializableObject)this[i]).Serialize($"Item[{i}]", out XElement serializedItem);
-                        serializedList.Add(serializedItem);
-                    }
-                    
-                    break;
-                }
+            for (int i = 0; i < list.Count; i++)
+            {
+                list.serializeObjectDelegate($"Item[{i}]", list[i], out XElement serializedItem);
+                serializedList.Add(serializedItem);
             }
         }
         
-        public void Deserialize(XElement serializedList)
+        public static void Deserialize(XElement serializedList, out object serializableList)
         {
-            Clear();
-            switch (typeSerializability)
+            XElement[] serializedListChildElements = serializedList.Elements().ToArray();
+            SerializableList<T> list = new SerializableList<T>();
+
+            for (int i = 0; i < serializedListChildElements.Length; i++)
             {
-                case Serializability.PrimitiveAttribute:
-                {
-                    SerializationManager serializationManager = SerializationManager.Instance;
-                    IPrimitiveSerializer primitiveAttributeSerializer = serializationManager.GetPrimitiveSerializer(type);
-                    XAttribute[] serializedObjectAttributes = serializedList.Attributes().ToArray();
-                    
-                    for (int i = 0; i < serializedObjectAttributes.Length; i++)
-                    {
-                        primitiveAttributeSerializer.Deserialize(serializedObjectAttributes[i], out object item);
-                        Add((T)item);
-                    }
-                    
-                    break;
-                }
-                case Serializability.PrimitiveObject:
-                {
-                    SerializationManager serializationManager = SerializationManager.Instance;
-                    IPrimitiveObjectSerializer primitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(type);
-                    XElement[] serializedObjectChildElements = serializedList.Elements().ToArray();
-                    
-                    for (int i = 0; i < serializedObjectChildElements.Length; i++)
-                    {
-                        primitiveObjectSerializer.Deserialize(serializedObjectChildElements[i], out object item);
-                        Add((T)item);
-                    }
-                    
-                    break;
-                }
-                case Serializability.Attribute:
-                {
-                    XAttribute[] serializedObjectAttributes = serializedList.Attributes().ToArray();
-                    
-                    for (int i = 0; i < serializedObjectAttributes.Length; i++)
-                    {
-                        ISerializableAttribute item = (ISerializableAttribute)new T();
-                        item.Deserialize(serializedObjectAttributes[i]);
-                        Add((T)item);
-                    }
-                    
-                    break;
-                }
-                case Serializability.Object:
-                {
-                    XElement[] serializedObjectChildElements = serializedList.Elements().ToArray();
-                    
-                    for (int i = 0; i < serializedObjectChildElements.Length; i++)
-                    {
-                        ISerializableObject item = (ISerializableObject)new T();
-                        item.Deserialize(serializedObjectChildElements[i]);
-                        Add((T)item);
-                    }
-                    
-                    break;
-                }
+                list.deserializeObjectDelegate.Invoke(serializedListChildElements[i], out object deserializedItem);
+                list.Add((T)deserializedItem);
             }
+
+            serializableList = list;
         }
         #endregion
     }

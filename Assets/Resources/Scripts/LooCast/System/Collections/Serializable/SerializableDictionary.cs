@@ -7,13 +7,27 @@ namespace LooCast.System.Collections.Serializable
 {
     using LooCast.System.Serialization;
 
-    public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializableDictionary<TKey, TValue> where TKey : new() where TValue : new()
+    [SerializableObject(true, true)]
+    public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializableDictionary<TKey, TValue>
     {
         #region Fields
         private Serializability keyTypeSerializability;
         private Serializability valueTypeSerializability;
+        
         private Type keyType;
         private Type valueType;
+
+        private SerializationManager.SerializePrimitiveDelegate serializeKeyPrimitiveDelegate;
+        private SerializationManager.DeserializePrimitiveDelegate deserializeKeyPrimitiveDelegate;
+
+        private SerializationManager.SerializePrimitiveDelegate serializeValuePrimitiveDelegate;
+        private SerializationManager.DeserializePrimitiveDelegate deserializeValuePrimitiveDelegate;
+
+        private SerializationManager.SerializeObjectDelegate serializeKeyObjectDelegate;
+        private SerializationManager.DeserializeObjectDelegate deserializeKeyObjectDelegate;
+
+        private SerializationManager.SerializeObjectDelegate serializeValueObjectDelegate;
+        private SerializationManager.DeserializeObjectDelegate deserializeValueObjectDelegate;
         #endregion
 
         #region Constructors
@@ -31,190 +45,148 @@ namespace LooCast.System.Collections.Serializable
             {
                 case Serializability.None:
                     throw new ArgumentException($"The key type '{keyType.Name}' is not serializable!");
-                case Serializability.PrimitiveAttribute:
-                    throw new InvalidOperationException("A serializable dictionary cannot contain attributes as keys, only objects as keys, as the order of the attribute keys cannot be preserved!");
-                case Serializability.Attribute:
-                    throw new InvalidOperationException("A serializable dictionary cannot contain attributes as keys, only objects as keys, as the order of the attribute keys cannot be preserved!");
+                case Serializability.Primitive:
+                    serializeKeyPrimitiveDelegate = serializationManager.GetPrimitiveSerializationDelegate(keyType);
+                    deserializeKeyPrimitiveDelegate = serializationManager.GetPrimitiveDeserializationDelegate(keyType);
+                    serializeKeyObjectDelegate = null;
+                    deserializeKeyObjectDelegate = null;
+                    break;
+                case Serializability.Object:
+                    serializeKeyPrimitiveDelegate = null;
+                    deserializeKeyPrimitiveDelegate = null;
+                    serializeKeyObjectDelegate = serializationManager.GetObjectSerializationDelegate(keyType);
+                    deserializeKeyObjectDelegate = serializationManager.GetObjectDeserializationDelegate(keyType);
+                    break;
                 case Serializability.File:
-                    throw new InvalidOperationException("A serializable dictionary cannot contain files as keys, only objects as keys!");
+                    throw new InvalidOperationException("A serializable dictionary cannot contain files as keys, only attributes or objects as keys!");
                 case Serializability.Folder:
-                    throw new InvalidOperationException("A serializable dictionary cannot contain folders as keys, only objects as keys!");
+                    throw new InvalidOperationException("A serializable dictionary cannot contain folders as keys, only attributes or objects as keys!");
             }
             switch (valueTypeSerializability)
             {
                 case Serializability.None:
                     throw new ArgumentException($"The value type '{valueType.Name}' is not serializable!");
-                case Serializability.PrimitiveAttribute:
-                    throw new InvalidOperationException("A serializable dictionary cannot contain attributes as keys, only objects as keys, as the order of the attribute keys cannot be preserved!");
-                case Serializability.Attribute:
-                    throw new InvalidOperationException("A serializable dictionary cannot contain attributes as keys, only objects as keys, as the order of the attribute keys cannot be preserved!");
+                case Serializability.Primitive:
+                    serializeValuePrimitiveDelegate = serializationManager.GetPrimitiveSerializationDelegate(valueType);
+                    deserializeValuePrimitiveDelegate = serializationManager.GetPrimitiveDeserializationDelegate(valueType);
+                    serializeValueObjectDelegate = null;
+                    deserializeValueObjectDelegate = null;
+                    break;
+                case Serializability.Object:
+                    serializeValuePrimitiveDelegate = null;
+                    deserializeValuePrimitiveDelegate = null;
+                    serializeValueObjectDelegate = serializationManager.GetObjectSerializationDelegate(valueType);
+                    deserializeValueObjectDelegate = serializationManager.GetObjectDeserializationDelegate(valueType);
+                    break;
                 case Serializability.File:
-                    throw new InvalidOperationException("A serializable dictionary cannot contain files as keys, only objects as keys!");
+                    throw new InvalidOperationException("A serializable dictionary cannot contain files as values, only attributes or objects as values!");
                 case Serializability.Folder:
-                    throw new InvalidOperationException("A serializable dictionary cannot contain folders as keys, only objects as keys!");
+                    throw new InvalidOperationException("A serializable dictionary cannot contain folders as values, only attributes or objects as values!");
             }
         }
         #endregion
 
-        #region Methods
-        public void Serialize(string dictionaryName, out XElement serializedDictionary)
+        #region Static Methods
+        public static void Serialize(string serializableDictionaryName, object serializableDictionary, out XElement serializedDictionary)
         {
-            serializedDictionary = new XElement(dictionaryName);
-            if (keyTypeSerializability == Serializability.PrimitiveObject && valueTypeSerializability == Serializability.PrimitiveObject)
+            serializedDictionary = new XElement(serializableDictionaryName);
+            SerializableDictionary<TKey, TValue> dictionary = (SerializableDictionary<TKey, TValue>)serializableDictionary;
+            KeyValuePair<TKey, TValue>[] keyValuePairs = dictionary.ToArray();
+
+            for (int i = 0; i < keyValuePairs.Length; i++)
             {
-                SerializationManager serializationManager = SerializationManager.Instance;
-                IPrimitiveObjectSerializer keyPrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(keyType);
-                IPrimitiveObjectSerializer valuePrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(valueType);
-                KeyValuePair<TKey, TValue>[] keyValuePairs = this.ToArray();
-                
-                for (int i = 0; i < Count; i++)
+                XElement serializedKeyValuePair = new XElement($"KeyValuePair[{i}]");
+                KeyValuePair<TKey, TValue> keyValuePair = keyValuePairs[i];
+                XObject serializedKey;
+                XObject serializedValue;
+
+                if (dictionary.keyTypeSerializability == Serializability.Primitive && dictionary.valueTypeSerializability == Serializability.Primitive)
                 {
-                    XElement serializedKeyValuePair = new XElement($"KeyValuePair[{i}]");
-                    KeyValuePair<TKey, TValue> keyValuePair = keyValuePairs[i];
-                    
-                    keyPrimitiveObjectSerializer.Serialize("Key", keyValuePair.Key, out XElement serializedKey);
-                    valuePrimitiveObjectSerializer.Serialize("Value", keyValuePair.Value, out XElement serializedValue);
-                    
-                    serializedKeyValuePair.Add(serializedKey);
-                    serializedKeyValuePair.Add(serializedValue);
-                    serializedDictionary.Add(serializedKeyValuePair);
+                    dictionary.serializeKeyPrimitiveDelegate.Invoke("Key", keyValuePair.Key, out XAttribute _serializedKey);
+                    dictionary.serializeValuePrimitiveDelegate.Invoke("Value", keyValuePair.Value, out XAttribute _serializedValue);
+
+                    serializedKey = _serializedKey;
+                    serializedValue = _serializedValue;
                 }
-            }
-            else if (keyTypeSerializability == Serializability.PrimitiveObject && valueTypeSerializability == Serializability.Object)
-            {
-                SerializationManager serializationManager = SerializationManager.Instance;
-                IPrimitiveObjectSerializer keyPrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(keyType);
-                KeyValuePair<TKey, TValue>[] keyValuePairs = this.ToArray();
-                
-                for (int i = 0; i < Count; i++)
+                else if (dictionary.keyTypeSerializability == Serializability.Primitive && dictionary.valueTypeSerializability == Serializability.Object)
                 {
-                    XElement serializedKeyValuePair = new XElement($"KeyValuePair[{i}]");
-                    KeyValuePair<TKey, TValue> keyValuePair = keyValuePairs[i];
-                    
-                    keyPrimitiveObjectSerializer.Serialize("Key", keyValuePair.Key, out XElement serializedKey);
-                    ((ISerializableObject)keyValuePair.Value).Serialize("Value", out XElement serializedValue);
-                    
-                    serializedKeyValuePair.Add(serializedKey);
-                    serializedKeyValuePair.Add(serializedValue);
-                    serializedDictionary.Add(serializedKeyValuePair);
+                    dictionary.serializeKeyPrimitiveDelegate.Invoke("Key", keyValuePair.Key, out XAttribute _serializedKey);
+                    dictionary.serializeValueObjectDelegate.Invoke("Value", keyValuePair.Value, out XElement _serializedValue);
+
+                    serializedKey = _serializedKey;
+                    serializedValue = _serializedValue;
                 }
-            }
-            else if (keyTypeSerializability == Serializability.Object && valueTypeSerializability == Serializability.PrimitiveObject)
-            {
-                SerializationManager serializationManager = SerializationManager.Instance;
-                IPrimitiveObjectSerializer valuePrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(valueType);
-                KeyValuePair<TKey, TValue>[] keyValuePairs = this.ToArray();
-                
-                for (int i = 0; i < Count; i++)
+                else if (dictionary.keyTypeSerializability == Serializability.Object && dictionary.valueTypeSerializability == Serializability.Primitive)
                 {
-                    XElement serializedKeyValuePair = new XElement($"KeyValuePair[{i}]");
-                    KeyValuePair<TKey, TValue> keyValuePair = keyValuePairs[i];
-                    
-                    ((ISerializableObject)keyValuePair.Key).Serialize("Key", out XElement serializedKey);
-                    valuePrimitiveObjectSerializer.Serialize("Value", keyValuePair.Value, out XElement serializedValue);
-                    
-                    serializedKeyValuePair.Add(serializedKey);
-                    serializedKeyValuePair.Add(serializedValue);
-                    serializedDictionary.Add(serializedKeyValuePair);
+                    dictionary.serializeKeyObjectDelegate.Invoke("Key", keyValuePair.Key, out XElement _serializedKey);
+                    dictionary.serializeValuePrimitiveDelegate.Invoke("Value", keyValuePair.Value, out XAttribute _serializedValue);
+
+                    serializedKey = _serializedKey;
+                    serializedValue = _serializedValue;
                 }
-            }
-            else
-            {
-                KeyValuePair<TKey, TValue>[] keyValuePairs = this.ToArray();
-                
-                for (int i = 0; i < Count; i++)
+                else
                 {
-                    XElement serializedKeyValuePair = new XElement($"KeyValuePair[{i}]");
-                    KeyValuePair<TKey, TValue> keyValuePair = keyValuePairs[i];
-                    
-                    ((ISerializableObject)keyValuePair.Key).Serialize("Key", out XElement serializedKey);
-                    ((ISerializableObject)keyValuePair.Value).Serialize("Value", out XElement serializedValue);
-                    
-                    serializedKeyValuePair.Add(serializedKey);
-                    serializedKeyValuePair.Add(serializedValue);
-                    serializedDictionary.Add(serializedKeyValuePair);
+                    dictionary.serializeKeyObjectDelegate.Invoke("Key", keyValuePair.Key, out XElement _serializedKey);
+                    dictionary.serializeValueObjectDelegate.Invoke("Value", keyValuePair.Value, out XElement _serializedValue);
+
+                    serializedKey = _serializedKey;
+                    serializedValue = _serializedValue;
                 }
+
+                serializedKeyValuePair.Add(serializedKey);
+                serializedKeyValuePair.Add(serializedValue);
+                serializedDictionary.Add(serializedKeyValuePair);
             }
         }
 
-        public void Deserialize(XElement serializedDictionary)
+        public static void Deserialize(XElement serializedDictionary, out object serializableDictionary)
         {
-            Clear();
-            if (keyTypeSerializability == Serializability.PrimitiveObject && valueTypeSerializability == Serializability.PrimitiveObject)
+            XElement[] serializedDictionaryChildElements = serializedDictionary.Elements().ToArray();
+            SerializableDictionary<TKey, TValue> dictionary = new SerializableDictionary<TKey, TValue>();
+
+            for (int i = 0; i < serializedDictionaryChildElements.Length; i++)
             {
-                SerializationManager serializationManager = SerializationManager.Instance;
-                IPrimitiveObjectSerializer keyPrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(keyType);
-                IPrimitiveObjectSerializer valuePrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(valueType);
-                XElement[] serializedDictionaryChildElements = serializedDictionary.Elements().ToArray();
+                XElement serializedKeyValuePair = serializedDictionaryChildElements[i];
+                object key;
+                object value;
                 
-                for (int i = 0; i < serializedDictionaryChildElements.Length; i++)
+                if (dictionary.keyTypeSerializability == Serializability.Primitive && dictionary.valueTypeSerializability == Serializability.Primitive)
                 {
-                    XElement serializedKeyValuePair = serializedDictionaryChildElements[i];
-                    XElement serializedKey = serializedKeyValuePair.Element("Key");
-                    XElement serializedValue = serializedKeyValuePair.Element("Value");
+                    XAttribute serializedKey = serializedKeyValuePair.Attribute("Key");
+                    XAttribute serializedValue = serializedKeyValuePair.Attribute("Value");
                     
-                    keyPrimitiveObjectSerializer.Deserialize(serializedKey, out object key);
-                    valuePrimitiveObjectSerializer.Deserialize(serializedValue, out object value);
-
-                    Add((TKey)key, (TValue)value);
+                    dictionary.deserializeKeyPrimitiveDelegate.Invoke(serializedKey, out key);
+                    dictionary.deserializeValuePrimitiveDelegate.Invoke(serializedValue, out value);
                 }
-            }
-            else if (keyTypeSerializability == Serializability.PrimitiveObject && valueTypeSerializability == Serializability.Object)
-            {
-                SerializationManager serializationManager = SerializationManager.Instance;
-                IPrimitiveObjectSerializer keyPrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(keyType);
-                XElement[] serializedDictionaryChildElements = serializedDictionary.Elements().ToArray();
-                
-                for (int i = 0; i < serializedDictionaryChildElements.Length; i++)
+                else if (dictionary.keyTypeSerializability == Serializability.Primitive && dictionary.valueTypeSerializability == Serializability.Object)
                 {
-                    XElement serializedKeyValuePair = serializedDictionaryChildElements[i];
-                    XElement serializedKey = serializedKeyValuePair.Element("Key");
+                    XAttribute serializedKey = serializedKeyValuePair.Attribute("Key");
                     XElement serializedValue = serializedKeyValuePair.Element("Value");
-                    
-                    keyPrimitiveObjectSerializer.Deserialize(serializedKey, out object key);
-                    ISerializableObject value = (ISerializableObject)new TValue();
-                    value.Deserialize(serializedValue);
 
-                    Add((TKey)key, (TValue)value);
+                    dictionary.deserializeKeyPrimitiveDelegate.Invoke(serializedKey, out key);
+                    dictionary.deserializeValueObjectDelegate.Invoke(serializedValue, out value);
                 }
-            }
-            else if (keyTypeSerializability == Serializability.Object && valueTypeSerializability == Serializability.PrimitiveObject)
-            {
-                SerializationManager serializationManager = SerializationManager.Instance;
-                IPrimitiveObjectSerializer valuePrimitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(valueType);
-                XElement[] serializedDictionaryChildElements = serializedDictionary.Elements().ToArray();
-                
-                for (int i = 0; i < serializedDictionaryChildElements.Length; i++)
+                else if (dictionary.keyTypeSerializability == Serializability.Object && dictionary.valueTypeSerializability == Serializability.Primitive)
                 {
-                    XElement serializedKeyValuePair = serializedDictionaryChildElements[i];
+                    XElement serializedKey = serializedKeyValuePair.Element("Key");
+                    XAttribute serializedValue = serializedKeyValuePair.Attribute("Value");
+
+                    dictionary.deserializeKeyObjectDelegate.Invoke(serializedKey, out key);
+                    dictionary.deserializeValuePrimitiveDelegate.Invoke(serializedValue, out value);
+                }
+                else
+                {
                     XElement serializedKey = serializedKeyValuePair.Element("Key");
                     XElement serializedValue = serializedKeyValuePair.Element("Value");
 
-                    ISerializableObject key = (ISerializableObject)new TKey();
-                    key.Deserialize(serializedKey);
-                    valuePrimitiveObjectSerializer.Deserialize(serializedValue, out object value);
-
-                    Add((TKey)key, (TValue)value);
+                    dictionary.deserializeKeyObjectDelegate.Invoke(serializedKey, out key);
+                    dictionary.deserializeValueObjectDelegate.Invoke(serializedValue, out value);
                 }
-            }
-            else
-            {
-                XElement[] serializedDictionaryChildElements = serializedDictionary.Elements().ToArray();
                 
-                for (int i = 0; i < serializedDictionaryChildElements.Length; i++)
-                {
-                    XElement serializedKeyValuePair = serializedDictionaryChildElements[i];
-                    XElement serializedKey = serializedKeyValuePair.Element("Key");
-                    XElement serializedValue = serializedKeyValuePair.Element("Value");
-
-                    ISerializableObject key = (ISerializableObject)new TKey();
-                    key.Deserialize(serializedKey);
-                    ISerializableObject value = (ISerializableObject)new TValue();
-                    value.Deserialize(serializedValue);
-
-                    Add((TKey)key, (TValue)value);
-                }
+                dictionary.Add((TKey)key, (TValue)value);
             }
+
+            serializableDictionary = dictionary;
         }
         #endregion
     }

@@ -544,6 +544,161 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Methods
+
+        #region Delegate Management
+        public SerializePrimitiveDelegate GetPrimitiveSerializationDelegate(Type serializablePrimitiveType)
+        {
+            if (serializablePrimitiveType == null)
+            {
+                throw new ArgumentNullException(nameof(serializablePrimitiveType));
+            }
+
+            if (!primitiveSerializationDelegates.ContainsKey(serializablePrimitiveType))
+            {
+                throw new InvalidOperationException($"No primitive serialization delegate registered for type '{serializablePrimitiveType}'!");
+            }
+
+            return primitiveSerializationDelegates[serializablePrimitiveType];
+        }
+        public DeserializePrimitiveDelegate GetPrimitiveDeserializationDelegate(Type serializablePrimitiveType)
+        {
+            if (serializablePrimitiveType == null)
+            {
+                throw new ArgumentNullException(nameof(serializablePrimitiveType));
+            }
+
+            if (!primitiveDeserializationDelegates.ContainsKey(serializablePrimitiveType))
+            {
+                throw new InvalidOperationException($"No primitive deserialization delegate registered for type '{serializablePrimitiveType}'!");
+            }
+
+            return primitiveDeserializationDelegates[serializablePrimitiveType];
+        }
+
+        public SerializeObjectDelegate GetObjectSerializationDelegate(Type serializableObjectType)
+        {
+            if (serializableObjectType == null)
+            {
+                throw new ArgumentNullException(nameof(serializableObjectType));
+            }
+
+            if (!objectSerializationDelegates.ContainsKey(serializableObjectType))
+            {
+                throw new InvalidOperationException($"No object serialization delegate registered for type '{serializableObjectType}'!");
+            }
+
+            return objectSerializationDelegates[serializableObjectType];
+        }
+        public DeserializeObjectDelegate GetObjectDeserializationDelegate(Type serializableObjectType)
+        {
+            if (serializableObjectType == null)
+            {
+                throw new ArgumentNullException(nameof(serializableObjectType));
+            }
+
+            if (!objectDeserializationDelegates.ContainsKey(serializableObjectType))
+            {
+                throw new InvalidOperationException($"No object deserialization delegate registered for type '{serializableObjectType}'!");
+            }
+
+            return objectDeserializationDelegates[serializableObjectType];
+        }
+
+        public SerializeFileDelegate GetFileSerializationDelegate(Type serializableFileType)
+        {
+            if (serializableFileType == null)
+            {
+                throw new ArgumentNullException(nameof(serializableFileType));
+            }
+
+            if (!fileSerializationDelegates.ContainsKey(serializableFileType))
+            {
+                throw new InvalidOperationException($"No file serialization delegate registered for type '{serializableFileType}'!");
+            }
+
+            return fileSerializationDelegates[serializableFileType];
+        }
+        public DeserializeFileDelegate GetFileDeserializationDelegate(Type serializableFileType)
+        {
+            if (serializableFileType == null)
+            {
+                throw new ArgumentNullException(nameof(serializableFileType));
+            }
+
+            if (!fileDeserializationDelegates.ContainsKey(serializableFileType))
+            {
+                throw new InvalidOperationException($"No file deserialization delegate registered for type '{serializableFileType}'!");
+            }
+
+            return fileDeserializationDelegates[serializableFileType];
+        }
+
+        public SerializeFolderDelegate GetFolderSerializationDelegate(Type serializableFolderType)
+        {
+            if (serializableFolderType == null)
+            {
+                throw new ArgumentNullException(nameof(serializableFolderType));
+            }
+
+            if (!folderSerializationDelegates.ContainsKey(serializableFolderType))
+            {
+                throw new InvalidOperationException($"No folder serialization delegate registered for type '{serializableFolderType}'!");
+            }
+
+            return folderSerializationDelegates[serializableFolderType];
+        }
+        public DeserializeFolderDelegate GetFolderDeserializationDelegate(Type serializableFolderType)
+        {
+            if (serializableFolderType == null)
+            {
+                throw new ArgumentNullException(nameof(serializableFolderType));
+            }
+
+            if (!folderDeserializationDelegates.ContainsKey(serializableFolderType))
+            {
+                throw new InvalidOperationException($"No folder deserialization delegate registered for type '{serializableFolderType}'!");
+            }
+
+            return folderDeserializationDelegates[serializableFolderType];
+        }
+
+        public bool IsPrimitiveTypeSerializationDelegateRegistered(Type serializablePrimitiveType)
+        {
+            return primitiveSerializationDelegates.ContainsKey(serializablePrimitiveType);
+        }
+        public bool IsPrimitiveTypeDeserializationDelegateRegistered(Type serializablePrimitiveType)
+        {
+            return primitiveDeserializationDelegates.ContainsKey(serializablePrimitiveType);
+        }
+
+        public bool IsObjectTypeSerializationDelegateRegistered(Type serializableObjectType)
+        {
+            return objectSerializationDelegates.ContainsKey(serializableObjectType);
+        }
+        public bool IsObjectTypeDeserializationDelegateRegistered(Type serializableObjectType)
+        {
+            return objectDeserializationDelegates.ContainsKey(serializableObjectType);
+        }
+
+        public bool IsFileTypeSerializationDelegateRegistered(Type serializableFileType)
+        {
+            return objectSerializationDelegates.ContainsKey(serializableFileType);
+        }
+        public bool IsFileTypeDeserializationDelegateRegistered(Type serializableFileType)
+        {
+            return objectDeserializationDelegates.ContainsKey(serializableFileType);
+        }
+
+        public bool IsFolderTypeSerializationDelegateRegistered(Type serializableFolderType)
+        {
+            return objectSerializationDelegates.ContainsKey(serializableFolderType);
+        }
+        public bool IsFolderTypeDeserializationDelegateRegistered(Type serializableFolderType)
+        {
+            return objectDeserializationDelegates.ContainsKey(serializableFolderType);
+        }
+        #endregion
+
         public Serializability GetSerializability(Type type)
         {
             return serializabilityCache[type];
@@ -601,44 +756,9 @@ namespace LooCast.System.Serialization
             }
         }
 
-        private bool IsPrimitiveTypeSerializationDelegateRegistered(Type serializablePrimitiveType)
-        {
-            return primitiveSerializationDelegates.ContainsKey(serializablePrimitiveType);
-        }
-        private bool IsPrimitiveTypeDeserializationDelegateRegistered(Type serializablePrimitiveType)
-        {
-            return primitiveDeserializationDelegates.ContainsKey(serializablePrimitiveType);
-        }
-
-        private bool IsObjectTypeSerializationDelegateRegistered(Type serializableObjectType)
-        {
-            return objectSerializationDelegates.ContainsKey(serializableObjectType);
-        }
-        private bool IsObjectTypeDeserializationDelegateRegistered(Type serializableObjectType)
-        {
-            return objectDeserializationDelegates.ContainsKey(serializableObjectType);
-        }
-
-        private bool IsFileTypeSerializationDelegateRegistered(Type serializableFileType)
-        {
-            return objectSerializationDelegates.ContainsKey(serializableFileType);
-        }
-        private bool IsFileTypeDeserializationDelegateRegistered(Type serializableFileType)
-        {
-            return objectDeserializationDelegates.ContainsKey(serializableFileType);
-        }
-
-        private bool IsFolderTypeSerializationDelegateRegistered(Type serializableFolderType)
-        {
-            return objectSerializationDelegates.ContainsKey(serializableFolderType);
-        }
-        private bool IsFolderTypeDeserializationDelegateRegistered(Type serializableFolderType)
-        {
-            return objectDeserializationDelegates.ContainsKey(serializableFolderType);
-        }
-
         // TODO: Also cache the default (de-)serialization delegates for object, file and folder
         // TODO: Also cache the needed "sub-delegates" for each type so the choice of the right delegate is made only from the set of needed delegates and not from the much larger set of all available delegates
+        //          Note: This does not apply to the Serializable variants of the generic collections, which instead store these delegate themselves, exactly because they are generic
         private void RegisterObjectSerializationDelegates(Type serializableObjectType)
         {
             SerializableObjectAttribute serializableObjectAttribute = serializableObjectType.GetCustomAttribute<SerializableObjectAttribute>();

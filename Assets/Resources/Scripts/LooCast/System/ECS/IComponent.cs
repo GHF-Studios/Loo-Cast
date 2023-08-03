@@ -4,7 +4,6 @@ namespace LooCast.System.ECS
 {
     using LooCast.System.Lifecycle.Initialization;
     using LooCast.System.Lifecycle.Termination;
-    using LooCast.System.Serialization;
     
     public interface IComponent : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {

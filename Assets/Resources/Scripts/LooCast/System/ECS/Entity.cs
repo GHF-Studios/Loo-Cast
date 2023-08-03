@@ -5,17 +5,19 @@ using System.Collections.Generic;
 
 namespace LooCast.System.ECS
 {
+    using LooCast.System.Lifecycle.Initialization;
+    using LooCast.System.Lifecycle.Termination;
     using LooCast.System.Collections.Serializable;
     using LooCast.System.Serialization;
     
     /// <summary>
     /// Lifecycle: Construction via Entity.Create -> OnCreate -> SetMetaData -> SetData -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
     /// </summary>
-    public abstract class Entity : IEntity
+    public abstract class Entity : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Classes
         [SerializableObject]
-        public class MetaData : IEntity.IMetaData
+        public class MetaData
         {
             #region Properties
             public Guid EntityID { get; set; }
@@ -26,7 +28,7 @@ namespace LooCast.System.ECS
         }
 
         [SerializableObject]
-        public class Data : IEntity.IData
+        public class Data
         {
             #region Properties
             public string AssemblyQualifiedEntityTypeName { get; set; }
@@ -36,20 +38,20 @@ namespace LooCast.System.ECS
         }
 
         [SerializableObject]
-        public sealed class FullMetaData : IEntity.IFullMetaData
+        public sealed class FullMetaData
         {
             #region Properties
             public IEntity.IMetaData EntityMetaData { get; set; }
-            public SerializableArray<IComponent.IMetaData> ComponentMetaDatas { get; set; }
+            public SerializableArray<Component.MetaData> ComponentMetaDatas { get; set; }
             #endregion
         }
 
         [SerializableObject]
-        public sealed class FullData : IEntity.IFullData
+        public sealed class FullData
         {
             #region Properties
             public IEntity.IData EntityData { get; set; }
-            public SerializableArray<IComponent.IData> ComponentDatas { get; set; }
+            public SerializableArray<Component.Data> ComponentDatas { get; set; }
             #endregion
         }
         #endregion
@@ -918,17 +920,17 @@ namespace LooCast.System.ECS
 
         public IEntity.IFullMetaData GetFullEntityMetaData()
         {
-            IEntity.IFullMetaData fullEntityMetaData = new FullMetaData();
+            FullMetaData fullEntityMetaData = new FullMetaData();
             fullEntityMetaData.EntityMetaData = GetEntityMetaData();
-            IComponent.IMetaData[] componentMetaDatas;
+            SerializableArray<Component.MetaData> componentMetaDatas;
             if (components.Count == 0)
             {
-                componentMetaDatas = Array.Empty<IComponent.IMetaData>();
+                componentMetaDatas = SerializableArray<Component.MetaData>.Empty();
             }
             else
             {
                 IComponent[] entityComponents = components.Values.ToArray();
-                componentMetaDatas = new IComponent.IMetaData[entityComponents.Length];
+                componentMetaDatas = new SerializableArray<Component.MetaData>(entityComponents.Length);
                 for (int i = 0; i < entityComponents.Length; i++)
                 {
                     componentMetaDatas[i] = entityComponents[i].GetComponentMetaData();
@@ -942,7 +944,7 @@ namespace LooCast.System.ECS
         {
             IEntity.IFullData fullEntityData = new FullData();
             fullEntityData.EntityData = GetEntityData();
-            IComponent.IData[] componentDatas;
+            SerializableArray<IComponent.IData> componentDatas;
             if (components.Count == 0)
             {
                 componentDatas = Array.Empty<IComponent.IData>();

@@ -1,11 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace LooCast.System.ECS
 {
     using LooCast.System.Lifecycle.Initialization;
     using LooCast.System.Lifecycle.Termination;
-    using LooCast.System.Serialization;
-    using LooCast.System.Collections.Serializable;
 
     public interface IEntity : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
@@ -28,13 +27,13 @@ namespace LooCast.System.ECS
         public interface IFullMetaData
         {
             IMetaData EntityMetaData { get; set; }
-            ISerializableArray<IComponent.IMetaData> ComponentMetaDatas { get; set; }
+            IEnumerable<IComponent.IMetaData> ComponentMetaDatas { get; set; }
         }
 
         public interface IFullData
         {
             IData EntityData { get; set; }
-            ISerializableArray<IComponent.IData> ComponentDatas { get; set; }
+            IEnumerable<IComponent.IData> ComponentDatas { get; set; }
         }
         #endregion
 

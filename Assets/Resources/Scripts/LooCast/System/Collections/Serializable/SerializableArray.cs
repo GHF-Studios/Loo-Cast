@@ -1,20 +1,28 @@
 ﻿using System;
 using System.Linq;
 using System.Xml.Linq;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace LooCast.System.Collections.Serializable
 {
     using LooCast.System.Serialization;
-    
-    public class SerializableArray<T> : ISerializableArray<T> where T : new()
+
+    [SerializableObject(true, true)]
+    public class SerializableArray<T> : ISerializableArray<T>
     {
         #region Properties
         public T[] Array { get; private set; }
+        public int Length => Array.Length;
+        public object this[int index] { get => Array[index]; set => Array[index] = (T)value; }
         #endregion
-        
+
         #region Fields
         private Serializability typeSerializability;
         private Type type;
+
+        private SerializationManager.SerializeObjectDelegate serializeObjectDelegate;
+        private SerializationManager.DeserializeObjectDelegate deserializeObjectDelegate;
         #endregion
 
         #region Constructors
@@ -27,16 +35,16 @@ namespace LooCast.System.Collections.Serializable
             {
                 case Serializability.None:
                     throw new ArgumentException($"The type '{type.Name}' is not serializable!");
-                case Serializability.PrimitiveAttribute:
-                    throw new InvalidOperationException("A serializable array cannot contain attributes, only objects, as the order of the attributes cannot be preserved!");
-                case Serializability.Attribute:
-                    throw new InvalidOperationException("A serializable array cannot contain attributes, only objects, as the order of the attributes cannot be preserved!");
+                case Serializability.Primitive:
+                    throw new InvalidOperationException("A serializable array cannot contain primitives, only objects!");
                 case Serializability.File:
                     throw new InvalidOperationException("A serializable array cannot contain files, only objects!");
                 case Serializability.Folder:
                     throw new InvalidOperationException("A serializable array cannot contain folders, only objects!");
             }
             Array = new T[length];
+            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(type);
+            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(type);
         }
         
         public SerializableArray(T[] array) : base()
@@ -48,93 +56,82 @@ namespace LooCast.System.Collections.Serializable
             {
                 case Serializability.None:
                     throw new ArgumentException($"The type '{type.Name}' is not serializable!");
-                case Serializability.PrimitiveAttribute:
-                    throw new InvalidOperationException("A serializable array cannot contain attributes, only objects, as the order of the attributes cannot be preserved!");
-                case Serializability.Attribute:
-                    throw new InvalidOperationException("A serializable array cannot contain attributes, only objects, as the order of the attributes cannot be preserved!");
+                case Serializability.Primitive:
+                    throw new InvalidOperationException("A serializable array cannot contain primitives, only objects!");
                 case Serializability.File:
                     throw new InvalidOperationException("A serializable array cannot contain files, only objects!");
                 case Serializability.Folder:
                     throw new InvalidOperationException("A serializable array cannot contain folders, only objects!");
             }
             Array = array.Clone() as T[];
+            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(type);
+            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(type);
+        }
+
+        private SerializableArray()
+        {
+            type = typeof(T);
+            SerializationManager serializationManager = SerializationManager.Instance;
+            typeSerializability = serializationManager.GetSerializability(type);
+            switch (typeSerializability)
+            {
+                case Serializability.None:
+                    throw new ArgumentException($"The type '{type.Name}' is not serializable!");
+                case Serializability.Primitive:
+                    throw new InvalidOperationException("A serializable array cannot contain primitives, only objects!");
+                case Serializability.File:
+                    throw new InvalidOperationException("A serializable array cannot contain files, only objects!");
+                case Serializability.Folder:
+                    throw new InvalidOperationException("A serializable array cannot contain folders, only objects!");
+            }
+            Array = global::System.Array.Empty<T>();
+            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(type);
+            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(type);
+        }
+        #endregion
+
+        #region Static Methods
+        public static void Serialize(string serializableArrayName, object serializableArray, out XElement serializedArray)
+        {
+            serializedArray = new XElement(serializableArrayName);
+            SerializableArray<T> array = (SerializableArray<T>)serializableArray;
+
+            for (int i = 0; i < array.Length; i++)
+            {
+                array.serializeObjectDelegate.Invoke($"Item[{i}]", array[i], out XElement serializedItem);
+                serializedArray.Add(serializedItem);
+            }
+        }
+
+        public static void Deserialize(XElement serializedArray, out object serializableArray)
+        {
+            XElement[] serializedArrayChildElements = serializedArray.Elements().ToArray();
+            SerializableArray<T> array = new SerializableArray<T>(serializedArrayChildElements.Length);
+
+            for (int i = 0; i < serializedArrayChildElements.Length; i++)
+            {
+                array.deserializeObjectDelegate.Invoke(serializedArrayChildElements[i], out object deserializedItem);
+                array[i] = (T)deserializedItem;
+            }
+
+            serializableArray = array;
+        }
+        
+        public static SerializableArray<T> Empty()
+        {
+            return new SerializableArray<T>();
         }
         #endregion
 
         #region Methods
-        public void Serialize(string arrayName, out XElement serializedArray)
+        IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            serializedArray = new XElement(arrayName);
-            SerializationManager serializationManager = SerializationManager.Instance;
-            switch (typeSerializability)
-            {
-                case Serializability.PrimitiveObject:
-                {
-                    IPrimitiveObjectSerializer primitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(type);
-                    
-                    for (int i = 0; i < Array.Length; i++)
-                    {
-                        primitiveObjectSerializer.Serialize($"Item[{i}]", Array[i], out XElement serializedItem);
-                        serializedArray.Add(serializedItem);
-                    }
-                    
-                    break;
-                }
-                case Serializability.Object:
-                {
-                    for (int i = 0; i < Array.Length; i++)
-                    {
-                        ((ISerializableObject)Array[i]).Serialize($"Item[{i}]", out XElement serializedItem);
-                        serializedArray.Add(serializedItem);
-                    }
-                    
-                    break;
-                }
-            }
+            return ((IEnumerable<T>)Array).GetEnumerator();
         }
 
-        public void Deserialize(XElement serializedArray)
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            SerializationManager serializationManager = SerializationManager.Instance;
-            switch (typeSerializability)
-            {
-                case Serializability.PrimitiveObject:
-                {
-                    IPrimitiveObjectSerializer primitiveObjectSerializer = serializationManager.GetPrimitiveObjectSerializer(type);
-                    XElement[] serializedObjectChildElements = serializedArray.Elements().ToArray();
-                    
-                    if (Array.Length < serializedObjectChildElements.Length)
-                    {
-                        throw new InvalidOperationException("The array does not have enough capacity for the deserialized data!");
-                    }
-                    
-                    for (int i = 0; i < serializedObjectChildElements.Length; i++)
-                    {
-                        primitiveObjectSerializer.Deserialize(serializedObjectChildElements[i], out object item);
-                        Array[i] = (T)item;
-                    }
-                    
-                    break;
-                }
-                case Serializability.Object:
-                {
-                    XElement[] serializedObjectChildElements = serializedArray.Elements().ToArray();
-                    
-                    if (Array.Length < serializedObjectChildElements.Length)
-                    {
-                        throw new InvalidOperationException("The array does not have enough capacity for the deserialized data!");
-                    }
-                    
-                    for (int i = 0; i < serializedObjectChildElements.Length; i++)
-                    {
-                        ISerializableObject item = (ISerializableObject)new T();
-                        item.Deserialize(serializedObjectChildElements[i]);
-                        Array[i] = (T)item;
-                    }
-
-                    break;
-                }
-            }
+            return Array.GetEnumerator();
         }
         #endregion
     }
