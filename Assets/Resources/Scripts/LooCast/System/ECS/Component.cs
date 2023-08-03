@@ -40,7 +40,7 @@ namespace LooCast.System.ECS
         public Type ComponentMetaDataType { get; private set; }
         public Type ComponentDataType { get; private set; }
         public Guid ComponentID { get; private set; }
-        public IEntity Entity { get; private set; }
+        public Entity Entity { get; private set; }
 
         public bool IsPreInitializing { get; protected set; }
         public bool IsPreInitialized { get; protected set; }
@@ -402,22 +402,22 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Methods
-        public void Create_INTERNAL(Type componentType, Type componentMetaDataType, Type componentDataType, IEntity entity)
+        public void Create_INTERNAL(Type componentType, Type componentMetaDataType, Type componentDataType, Entity entity)
         {
             if (IsCreated_INTERNALLY)
             {
                 throw new InvalidOperationException("Component has already been created internally!");
             }
 
-            if (!typeof(IComponent).IsAssignableFrom(componentType))
+            if (!typeof(Component).IsAssignableFrom(componentType))
             {
                 throw new ArgumentException($"'{nameof(componentType)}' is not a component type!");
             }
-            if (!typeof(IComponent.IMetaData).IsAssignableFrom(componentMetaDataType))
+            if (!typeof(Component.MetaData).IsAssignableFrom(componentMetaDataType))
             {
                 throw new ArgumentException($"'{nameof(componentMetaDataType)}' is not a component meta-data type!");
             }
-            if (!typeof(IComponent.IData).IsAssignableFrom(componentDataType))
+            if (!typeof(Component.Data).IsAssignableFrom(componentDataType))
             {
                 throw new ArgumentException($"'{nameof(componentDataType)}' is not a component data type!");
             }
@@ -577,14 +577,14 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Data Management
-        public virtual IComponent.IMetaData GetComponentMetaData()
+        public virtual MetaData GetComponentMetaData()
         {
             if (!HasMetaData)
             {
                 throw new InvalidOperationException($"Component '{this}' does not have metaData!");
             }
 
-            IComponent.IMetaData componentMetaData = (IComponent.IMetaData)Activator.CreateInstance(ComponentMetaDataType);
+            MetaData componentMetaData = (MetaData)Activator.CreateInstance(ComponentMetaDataType);
             componentMetaData.AssemblyQualifiedComponentTypeName = ComponentType.AssemblyQualifiedName;
             componentMetaData.AssemblyQualifiedComponentMetaDataTypeName = ComponentMetaDataType.AssemblyQualifiedName;
             componentMetaData.AssemblyQualifiedComponentDataTypeName = ComponentDataType.AssemblyQualifiedName;
@@ -593,14 +593,14 @@ namespace LooCast.System.ECS
             return componentMetaData;
         }
 
-        public virtual IComponent.IData GetComponentData()
+        public virtual Data GetComponentData()
         {
             if (!HasData)
             {
                 throw new InvalidOperationException($"Component '{this}' does not have data!");
             }
 
-            IComponent.IData componentData = (IComponent.IData)Activator.CreateInstance(ComponentDataType);
+            Data componentData = (Data)Activator.CreateInstance(ComponentDataType);
             componentData.AssemblyQualifiedComponentTypeName = ComponentType.AssemblyQualifiedName;
             componentData.AssemblyQualifiedComponentMetaDataTypeName = ComponentMetaDataType.AssemblyQualifiedName;
             componentData.AssemblyQualifiedComponentDataTypeName = ComponentDataType.AssemblyQualifiedName;
@@ -608,14 +608,14 @@ namespace LooCast.System.ECS
             return componentData;
         }
 
-        public virtual void SetComponentMetaData(IComponent.IMetaData componentMetaData)
+        public virtual void SetComponentMetaData(MetaData componentMetaData)
         {
             ComponentID = componentMetaData.ComponentID;
 
             HasMetaData = true;
         }
 
-        public virtual void SetComponentData(IComponent.IData componentData)
+        public virtual void SetComponentData(Data componentData)
         {
             if (!IsCreated)
             {

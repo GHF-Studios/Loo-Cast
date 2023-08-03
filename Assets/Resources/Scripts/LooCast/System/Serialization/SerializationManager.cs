@@ -143,11 +143,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type byteType = typeof(byte);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(byteType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(byteType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -163,11 +163,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type sbyteType = typeof(sbyte);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(sbyteType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(sbyteType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -183,11 +183,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type charType = typeof(char);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(charType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(charType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -203,11 +203,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type decimalType = typeof(decimal);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(decimalType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(decimalType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -223,11 +223,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type doubleType = typeof(double);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(doubleType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(doubleType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -243,11 +243,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type floatType = typeof(float);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(floatType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(floatType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -263,11 +263,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type intType = typeof(int);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(intType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(intType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -283,11 +283,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type uintType = typeof(uint);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(uintType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(uintType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -303,11 +303,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type longType = typeof(long);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(longType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(longType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -323,11 +323,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type ulongType = typeof(ulong);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(ulongType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(ulongType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -343,11 +343,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type shortType = typeof(short);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(shortType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(shortType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -363,11 +363,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type ushortType = typeof(ushort);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(ushortType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(ushortType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -383,11 +383,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type stringType = typeof(string);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(stringType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(stringType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -398,11 +398,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type guidType = typeof(Guid);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(guidType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(guidType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -418,11 +418,11 @@ namespace LooCast.System.Serialization
                 });
 
                 Type bigIntType = typeof(BigInteger);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                primitiveSerializationDelegates.Add(bigIntType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
                 });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                primitiveDeserializationDelegates.Add(bigIntType, (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -493,10 +493,10 @@ namespace LooCast.System.Serialization
                 }
 
                 stopwatch.Stop();
-                UnityEngine.Debug.Log($"Caching {allTypes.Count()} type's serialization information for {allAssemblies.Count()} assemblies took {stopwatch.ElapsedMilliseconds}ms");
+                UnityEngine.Debug.Log($"Analyzing {allTypes.Count()} types in {allAssemblies.Count()} assemblies took {stopwatch.ElapsedMilliseconds}ms");
                 #endregion
 
-                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
                     subModuleManager.OnPreSetup();
                 }
@@ -512,7 +512,7 @@ namespace LooCast.System.Serialization
 
                 // Register pre-included components here
 
-                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
                     subModuleManager.OnSetup();
                 }
@@ -520,7 +520,7 @@ namespace LooCast.System.Serialization
 
             RegisterPostSetupAction(() =>
             {
-                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
                     subModuleManager.OnPostSetup();
                 }

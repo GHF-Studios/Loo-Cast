@@ -27,13 +27,13 @@ namespace LooCast.System
         #endregion
 
         #region Fields
-        private List<ICoreModuleManager> coreModuleManagerChildrenList;
+        private List<CoreModuleManager> coreModuleManagerChildrenList;
         #endregion
 
         #region Constructors
         public MainManager() : base()
         {
-            coreModuleManagerChildrenList = new List<ICoreModuleManager>();
+            coreModuleManagerChildrenList = new List<CoreModuleManager>();
 
             // Add pre-included components here
 
@@ -66,7 +66,7 @@ namespace LooCast.System
                 coreModuleManagerChildrenList.Add(global::LooCast.System.SystemManager.Instance);
                 coreModuleManagerChildrenList.Add(global::LooCast.Core.LooCastCoreManager.Instance);
 
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnPreSetup();
                 }
@@ -82,7 +82,7 @@ namespace LooCast.System
 
                 // Register pre-included components here
 
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnSetup();
                 }
@@ -90,7 +90,7 @@ namespace LooCast.System
 
             RegisterPostSetupAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnPostSetup();
                 }
@@ -113,63 +113,63 @@ namespace LooCast.System
 
             RegisterEarlyPreInitializationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnEarlyPreInitialize();
                 }
             });
             RegisterPreInitializationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnPreInitialize();
                 }
             });
             RegisterLatePreInitializationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnLatePreInitialize();
                 }
             });
             RegisterEarlyInitializationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnEarlyInitialize();
                 }
             });
             RegisterInitializationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnInitialize();
                 }
             });
             RegisterLateInitializationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnLateInitialize();
                 }
             });
             RegisterEarlyPostInitializationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnEarlyPostInitialize();
                 }
             });
             RegisterPostInitializationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnPostInitialize();
                 }
             });
             RegisterLatePostInitializationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnLatePostInitialize();
                 }
@@ -177,63 +177,63 @@ namespace LooCast.System
 
             RegisterEarlyPreTerminationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnEarlyPreTerminate();
                 }
             });
             RegisterPreTerminationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnPreTerminate();
                 }
             });
             RegisterLatePreTerminationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnLatePreTerminate();
                 }
             });
             RegisterEarlyTerminationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnEarlyTerminate();
                 }
             });
             RegisterTerminationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnTerminate();
                 }
             });
             RegisterLateTerminationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnLateTerminate();
                 }
             });
             RegisterEarlyPostTerminationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnEarlyPostTerminate();
                 }
             });
             RegisterPostTerminationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnPostTerminate();
                 }
             });
             RegisterLatePostTerminationAction(() =>
             {
-                foreach (ICoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
+                foreach (CoreModuleManager coreModuleManager in coreModuleManagerChildrenList)
                 {
                     coreModuleManager.OnLatePostTerminate();
                 }

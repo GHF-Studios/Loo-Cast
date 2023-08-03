@@ -60,7 +60,7 @@ namespace LooCast.Core
 
                 moduleManagerChildrenList.Add(UniverseManager.Instance);
 
-                foreach (IModuleManager moduleManager in moduleManagerChildrenList)
+                foreach (ModuleManager moduleManager in moduleManagerChildrenList)
                 {
                     moduleManager.OnPreSetup();
                 }
@@ -76,7 +76,7 @@ namespace LooCast.Core
 
                 // Register pre-included components here
 
-                foreach (IModuleManager moduleManager in moduleManagerChildrenList)
+                foreach (ModuleManager moduleManager in moduleManagerChildrenList)
                 {
                     moduleManager.OnSetup();
                 }
@@ -84,7 +84,7 @@ namespace LooCast.Core
 
             RegisterPostSetupAction(() =>
             {
-                foreach (IModuleManager moduleManager in moduleManagerChildrenList)
+                foreach (ModuleManager moduleManager in moduleManagerChildrenList)
                 {
                     moduleManager.OnPostSetup();
                 }

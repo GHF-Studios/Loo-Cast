@@ -57,7 +57,7 @@ namespace LooCast.Universe
                 SetEntityMetaData(instanceMetaData);
                 SetEntityData(instanceData);
 
-                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
                     subModuleManager.OnPreSetup();
                 }
@@ -73,7 +73,7 @@ namespace LooCast.Universe
 
                 // Register pre-included components here
 
-                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
                     subModuleManager.OnSetup();
                 }
@@ -81,7 +81,7 @@ namespace LooCast.Universe
 
             RegisterPostSetupAction(() =>
             {
-                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
                     subModuleManager.OnPostSetup();
                 }

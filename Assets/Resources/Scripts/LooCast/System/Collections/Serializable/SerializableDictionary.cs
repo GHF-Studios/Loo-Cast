@@ -8,7 +8,7 @@ namespace LooCast.System.Collections.Serializable
     using LooCast.System.Serialization;
 
     [SerializableObject(true, true)]
-    public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializableDictionary<TKey, TValue>
+    public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>
     {
         #region Fields
         private Serializability keyTypeSerializability;

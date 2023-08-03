@@ -25,13 +25,13 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Fields
-        private Dictionary<Guid, IEntity> registeredEntities;
+        private Dictionary<Guid, Entity> registeredEntities;
         #endregion
 
         #region Constructors
         public EntityManager() : base()
         {
-            registeredEntities = new Dictionary<Guid, IEntity>();
+            registeredEntities = new Dictionary<Guid, Entity>();
 
             // Add pre-included components here
 
@@ -57,7 +57,7 @@ namespace LooCast.System.ECS
                 SetEntityMetaData(entityManagerMetaData);
                 SetEntityData(entityManagerData);
 
-                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
                     subModuleManager.OnPreSetup();
                 }
@@ -73,7 +73,7 @@ namespace LooCast.System.ECS
 
                 // Register pre-included components here
 
-                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
                     subModuleManager.OnSetup();
                 }
@@ -81,7 +81,7 @@ namespace LooCast.System.ECS
 
             RegisterPostSetupAction(() =>
             {
-                foreach (ISubModuleManager subModuleManager in subModuleManagerChildrenList)
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
                     subModuleManager.OnPostSetup();
                 }
@@ -105,7 +105,7 @@ namespace LooCast.System.ECS
         #endregion
 
         #region Methods
-        public void RegisterEntity(IEntity entity)
+        public void RegisterEntity(Entity entity)
         {
             if (!registeredEntities.ContainsKey(entity.EntityID))
             {
@@ -113,7 +113,7 @@ namespace LooCast.System.ECS
             }
         }
 
-        public void UnregisterEntity(IEntity entity)
+        public void UnregisterEntity(Entity entity)
         {
             if (registeredEntities.ContainsKey(entity.EntityID))
             {
@@ -121,7 +121,7 @@ namespace LooCast.System.ECS
             }
         }
 
-        public IEntity GetEntity(Guid entityID)
+        public Entity GetEntity(Guid entityID)
         {
             if (registeredEntities.ContainsKey(entityID))
             {
@@ -130,7 +130,7 @@ namespace LooCast.System.ECS
             return null;
         }
 
-        public bool TryGetEntity(Guid entityID, out IEntity entity)
+        public bool TryGetEntity(Guid entityID, out Entity entity)
         {
             if (!registeredEntities.ContainsKey(entityID))
             {

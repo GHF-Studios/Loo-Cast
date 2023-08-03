@@ -56,7 +56,7 @@ namespace LooCast.System
                 moduleManagerChildrenList.Add(EntityManager.Instance);
                 moduleManagerChildrenList.Add(ComponentManager.Instance);
 
-                foreach (IModuleManager moduleManager in moduleManagerChildrenList)
+                foreach (ModuleManager moduleManager in moduleManagerChildrenList)
                 {
                     moduleManager.OnPreSetup();
                 }
@@ -72,7 +72,7 @@ namespace LooCast.System
 
                 // Register pre-included components here
 
-                foreach (IModuleManager moduleManager in moduleManagerChildrenList)
+                foreach (ModuleManager moduleManager in moduleManagerChildrenList)
                 {
                     moduleManager.OnSetup();
                 }
@@ -80,7 +80,7 @@ namespace LooCast.System
 
             RegisterPostSetupAction(() =>
             {
-                foreach (IModuleManager moduleManager in moduleManagerChildrenList)
+                foreach (ModuleManager moduleManager in moduleManagerChildrenList)
                 {
                     moduleManager.OnPostSetup();
                 }

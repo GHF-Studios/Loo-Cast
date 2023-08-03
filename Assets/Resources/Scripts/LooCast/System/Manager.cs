@@ -5,15 +5,25 @@ using UnityEngine;
 namespace LooCast.System
 {
     using LooCast.System.ECS;
+    using LooCast.System.Lifecycle.Setup;
+    using LooCast.System.Lifecycle.Initialization;
+    using LooCast.System.Lifecycle.Termination;
 
-    public abstract class Manager : Entity, IManager
+    public abstract class Manager : Entity, IChild<Manager>, IParent<Manager>,
+                                IPreSetupPhase, ISetupPhase, IPostSetupPhase,
+                                IEarlyPreInitializationPhase, ILatePreInitializationPhase, 
+                                IEarlyInitializationPhase, ILateInitializationPhase, 
+                                IEarlyPostInitializationPhase, ILatePostInitializationPhase,
+                                IEarlyPreTerminationPhase, ILatePreTerminationPhase,
+                                IEarlyTerminationPhase, ILateTerminationPhase,
+                                IEarlyPostTerminationPhase, ILatePostTerminationPhase
     {
         #region Classes
-        new public class Data : Entity.Data, IManager.IData
+        new public class Data : Entity.Data
         {
             #region Properties
             public string ManagerName { get; set; }
-            public IManager ManagerParent { get; set; }
+            public Manager ManagerParent { get; set; }
             #endregion
         }
         #endregion
@@ -23,11 +33,11 @@ namespace LooCast.System
         
         public string ManagerName { get; private set; }
 
-        IManager IChild<IManager>.Parent => ManagerParent;
-        public IManager ManagerParent { get; private set; }
+        Manager IChild<Manager>.Parent => ManagerParent;
+        public Manager ManagerParent { get; private set; }
         
-        IEnumerable<IManager> IParent<IManager>.Children => ManagerChildren;
-        public IEnumerable<IManager> ManagerChildren => managerChildrenList;
+        IEnumerable<Manager> IParent<Manager>.Children => ManagerChildren;
+        public IEnumerable<Manager> ManagerChildren => managerChildrenList;
 
         public bool IsEarlyPreInitializing { get; protected set; }
         public bool IsEarlyPreInitialized { get; protected set; }
@@ -92,7 +102,7 @@ namespace LooCast.System
 
         protected bool enableLogging = false;
 
-        private List<IManager> managerChildrenList;
+        private List<Manager> managerChildrenList;
         #endregion
 
         #region Constructors
@@ -2602,9 +2612,9 @@ namespace LooCast.System
         #endregion
 
         #region Data Management
-        public override IEntity.IData GetEntityData()
+        public override Entity.Data GetEntityData()
         {
-            IManager.IData managerData = (IManager.IData)base.GetEntityData();
+            Data managerData = (Data)base.GetEntityData();
             
             managerData.ManagerName = ManagerName;
             managerData.ManagerParent = ManagerParent;
@@ -2612,9 +2622,9 @@ namespace LooCast.System
             return managerData;
         }
 
-        public override void SetEntityData(IEntity.IData data)
+        public override void SetEntityData(Entity.Data data)
         {
-            IManager.IData managerData = (IManager.IData)data;
+            Data managerData = (Data)data;
 
             ManagerName = managerData.ManagerName;
             ManagerParent = managerData.ManagerParent;

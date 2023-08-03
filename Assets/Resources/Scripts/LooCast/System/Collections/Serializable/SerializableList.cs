@@ -8,7 +8,7 @@ namespace LooCast.System.Collections.Serializable
     using LooCast.System.Serialization;
 
     [SerializableObject(true, true)]
-    public class SerializableList<T> : List<T>, ISerializableList<T>
+    public class SerializableList<T> : List<T>
     {
         #region Fields
         private Serializability typeSerializability;

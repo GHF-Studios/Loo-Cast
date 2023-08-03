@@ -9,7 +9,7 @@ namespace LooCast.System.Collections.Serializable
     using LooCast.System.Serialization;
 
     [SerializableObject(true, true)]
-    public class SerializableArray<T> : ISerializableArray<T>
+    public class SerializableArray<T> : IEnumerable, IEnumerable<T>
     {
         #region Properties
         public T[] Array { get; private set; }
