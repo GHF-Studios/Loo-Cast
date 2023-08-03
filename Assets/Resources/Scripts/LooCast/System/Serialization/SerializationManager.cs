@@ -717,8 +717,28 @@ namespace LooCast.System.Serialization
             }
 
             serializability = Serializability.None;
-            
-            if (type.IsPublic && !type.IsAbstract && (type.IsClass || type.IsValueType || type.IsEnum) && type.GetConstructor(Type.EmptyTypes) != null)
+            SerializableFolderAttribute serializableFolderAttribute = type.GetCustomAttribute<SerializableFolderAttribute>(false);
+            SerializableFileAttribute serializableFileAttribute = type.GetCustomAttribute<SerializableFileAttribute>(false);
+            SerializableObjectAttribute serializableObjectAttribute = type.GetCustomAttribute<SerializableObjectAttribute>(false);
+            bool isCompletelyOverridden = false;
+            bool hasFolderAttribute = serializableFolderAttribute != null;
+            bool hasFileAttribute = serializableFileAttribute != null;
+            bool hasObjectAttribute = serializableObjectAttribute != null;
+
+            if (hasFolderAttribute)
+            {
+                isCompletelyOverridden = serializableFolderAttribute.OverrideSerialization && serializableFolderAttribute.OverrideDeserialization;
+            }
+            else if (hasFileAttribute)
+            {
+                isCompletelyOverridden = serializableFileAttribute.OverrideSerialization && serializableFileAttribute.OverrideDeserialization;
+            }
+            else if (hasObjectAttribute)
+            {
+                isCompletelyOverridden = serializableObjectAttribute.OverrideSerialization && serializableObjectAttribute.OverrideDeserialization;
+            }
+
+            if ((type.IsPublic || type.IsNestedPublic) && !type.IsAbstract && (type.IsClass || type.IsValueType || type.IsEnum) && (type.GetConstructor(Type.EmptyTypes) != null || isCompletelyOverridden))
             {
                 List<Serializability> detectedSerializabilities = new List<Serializability>();
 
@@ -726,15 +746,15 @@ namespace LooCast.System.Serialization
                 {
                     detectedSerializabilities.Add(Serializability.Primitive);
                 }
-                if (type.IsDefined(typeof(SerializableFolderAttribute), false))
+                if (hasFolderAttribute)
                 {
                     detectedSerializabilities.Add(Serializability.Folder);
                 }
-                if (type.IsDefined(typeof(SerializableFileAttribute), false))
+                if (hasFileAttribute)
                 {
                     detectedSerializabilities.Add(Serializability.File);
                 }
-                if (type.IsDefined(typeof(SerializableObjectAttribute), false))
+                if (hasObjectAttribute)
                 {
                     detectedSerializabilities.Add(Serializability.Object);
                 }
@@ -759,8 +779,26 @@ namespace LooCast.System.Serialization
         // TODO: Also cache the default (de-)serialization delegates for object, file and folder
         // TODO: Also cache the needed "sub-delegates" for each type so the choice of the right delegate is made only from the set of needed delegates and not from the much larger set of all available delegates
         //          Note: This does not apply to the Serializable variants of the generic collections, which instead store these delegate themselves, exactly because they are generic
-        private void RegisterObjectSerializationDelegates(Type serializableObjectType)
+        private void RegisterObjectSerializationDelegates(Type serializableObjectType, List<Type> processedTypeStack = null)
         {
+            if (processedTypeStack == null)
+            {
+                processedTypeStack = new List<Type>
+                {
+                    serializableObjectType
+                };
+            }
+            else
+            {
+                if (processedTypeStack.Contains(serializableObjectType))
+                {
+                    string circularPath = string.Join(" -> ", processedTypeStack.Select(type => type.FullName)) + " -> " + serializableObjectType.FullName;
+                    throw new Exception($"Circular type dependency detected while registering serialization delegates for type '{serializableObjectType}'! Type dependency chain: {circularPath}");
+                }
+
+                processedTypeStack.Add(serializableObjectType);
+            }
+            
             SerializableObjectAttribute serializableObjectAttribute = serializableObjectType.GetCustomAttribute<SerializableObjectAttribute>();
 
             bool overrideSerialization = serializableObjectAttribute.OverrideSerialization;
@@ -840,7 +878,7 @@ namespace LooCast.System.Serialization
                         {
                             if (!IsObjectTypeSerializationDelegateRegistered(propertyType))
                             {
-                                RegisterObjectSerializationDelegates(propertyType); // TODO: THIS WILL BREAK WITH SELF-REFERENCING OBJECTS
+                                RegisterObjectSerializationDelegates(propertyType, processedTypeStack);
                             }
                             
                             serializeObjectPropertyDelegates.Add(property.Name, objectSerializationDelegates[propertyType]);
@@ -849,7 +887,7 @@ namespace LooCast.System.Serialization
                         {
                             if (!IsObjectTypeDeserializationDelegateRegistered(propertyType))
                             {
-                                RegisterObjectSerializationDelegates(propertyType); // TODO: THIS WILL BREAK WITH SELF-REFERENCING OBJECTS
+                                RegisterObjectSerializationDelegates(propertyType, processedTypeStack);
                             }
 
                             deserializeObjectPropertyDelegates.Add(property.Name, objectDeserializationDelegates[propertyType]);
