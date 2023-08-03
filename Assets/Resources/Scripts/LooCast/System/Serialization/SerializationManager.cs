@@ -10,7 +10,6 @@ using System.Numerics;
 namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
-    using UnityEditor.ShaderGraph.Internal;
 
     public sealed class SerializationManager : ModuleManager
     {
@@ -699,9 +698,107 @@ namespace LooCast.System.Serialization
         }
         #endregion
 
+        public void SerializeFile<SerializableFileType>(string fileName, string fileExtension, SerializableFileType serializableFile, out FileInfo serializedFile)
+        {
+            if (serializableFile == null)
+            {
+                throw new ArgumentNullException(nameof(serializableFile));
+            }
+
+            Type serializableFileType = typeof(SerializableFileType);
+
+            if (!IsFileTypeSerializationDelegateRegistered(serializableFileType))
+            {
+                throw new InvalidOperationException($"No file serialization delegate registered for type '{serializableFileType}'!");
+            }
+
+            fileSerializationDelegates[serializableFileType].Invoke(fileName, fileExtension, serializableFile, out serializedFile);
+        }
+
+        public void DeserializeFile<SerializableFileType>(FileInfo serializedFile, out SerializableFileType serializableFile)
+        {
+            if (serializedFile == null)
+            {
+                throw new ArgumentNullException(nameof(serializedFile));
+            }
+
+            Type serializableFileType = typeof(SerializableFileType);
+
+            if (!IsFileTypeDeserializationDelegateRegistered(serializableFileType))
+            {
+                throw new InvalidOperationException($"No file deserialization delegate registered for type '{serializableFileType}'!");
+            }
+
+            fileDeserializationDelegates[serializableFileType].Invoke(serializedFile, out object _serializableFile);
+            serializableFile = (SerializableFileType)_serializableFile;
+        }
+
+        public void SerializeFolder<SerializableFolderType>(string folderName, SerializableFolderType serializableFolder, out DirectoryInfo serializedFolder)
+        {
+            if (serializableFolder == null)
+            {
+                throw new ArgumentNullException(nameof(serializableFolder));
+            }
+
+            Type serializableFolderType = typeof(SerializableFolderType);
+
+            if (!IsFolderTypeSerializationDelegateRegistered(serializableFolderType))
+            {
+                throw new InvalidOperationException($"No folder serialization delegate registered for type '{serializableFolderType}'!");
+            }
+
+            folderSerializationDelegates[serializableFolderType].Invoke(folderName, serializableFolder, out serializedFolder);
+        }
+
+        public void DeserializeFolder<SerializableFolderType>(DirectoryInfo serializedFolder, out SerializableFolderType serializableFolder)
+        {
+            if (serializedFolder == null)
+            {
+                throw new ArgumentNullException(nameof(serializedFolder));
+            }
+
+            Type serializableFolderType = typeof(SerializableFolderType);
+
+            if (!IsFolderTypeDeserializationDelegateRegistered(serializableFolderType))
+            {
+                throw new InvalidOperationException($"No folder deserialization delegate registered for type '{serializableFolderType}'!");
+            }
+
+            folderDeserializationDelegates[serializableFolderType].Invoke(serializedFolder, out object _serializableFolder);
+            serializableFolder = (SerializableFolderType)_serializableFolder;
+        }
+
         public Serializability GetSerializability(Type type)
         {
-            return serializabilityCache[type];
+            if (type == null)
+            {
+                throw new ArgumentNullException(nameof(type));
+            }
+
+            Serializability serializability;
+
+            if (serializabilityCache.ContainsKey(type))
+            {
+                serializability = serializabilityCache[type];
+            }
+            else
+            {
+                CacheSerializability(type, out serializability);
+                switch (serializability)
+                {
+                    case Serializability.Object:
+                        RegisterObjectSerializationDelegates(type);
+                        break;
+                    case Serializability.File:
+                        RegisterFileSerializationDelegates(type);
+                        break;
+                    case Serializability.Folder:
+                        RegisterFolderSerializationDelegates(type);
+                        break;
+                }
+            }
+            
+            return serializability;
         }
 
         private void CacheSerializability(Type type, out Serializability serializability)
@@ -851,6 +948,7 @@ namespace LooCast.System.Serialization
                 PropertyInfo property = properties[i];
                 Type propertyType = property.PropertyType;
                 Serializability propertySerializability = GetSerializability(propertyType);
+                
                 switch (propertySerializability)
                 {
                     case Serializability.Primitive:
@@ -905,6 +1003,7 @@ namespace LooCast.System.Serialization
                 FieldInfo field = fields[i];
                 Type fieldType = field.FieldType;
                 Serializability fieldSerializability = GetSerializability(fieldType);
+                
                 switch (fieldSerializability)
                 {
                     case Serializability.Primitive:
