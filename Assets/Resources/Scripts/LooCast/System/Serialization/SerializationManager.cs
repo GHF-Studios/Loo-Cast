@@ -108,6 +108,7 @@ namespace LooCast.System.Serialization
             folderSerializationSubDelegateDictionaries = new Dictionary<Type, Dictionary<Type, SerializeFolderDelegate>>();
             folderDeserializationSubDelegateDictionaries = new Dictionary<Type, Dictionary<Type, DeserializeFolderDelegate>>();
 
+            allUnserializableTypes = new HashSet<Type>();
             allSerializablePrimitiveTypes = new HashSet<Type>();
             allSerializableObjectTypes = new HashSet<Type>();
             allSerializableFileTypes = new HashSet<Type>();
@@ -1154,8 +1155,6 @@ namespace LooCast.System.Serialization
             return serializableFolderTypeQueues;
         }
 
-        // TODO: Modify this method to utilize the cached sub-delegates of each type, instead of all defined delegates
-        // TODO: MAYBE also utilize the serializableObjectTypeInfo for that, as it contains information on the sub-types that are utilized by the serializableObjectType
         private void RegisterObjectSerializationDelegates(SerializableObjectTypeInfo serializableObjectTypeInfo)
         {
             Type serializableObjectType = serializableObjectTypeInfo.SerializableObjectType;
@@ -1207,12 +1206,19 @@ namespace LooCast.System.Serialization
             Dictionary<string, SerializeObjectDelegate> serializeObjectFieldDelegates = new Dictionary<string, SerializeObjectDelegate>();
             Dictionary<string, DeserializeObjectDelegate> deserializeObjectFieldDelegates = new Dictionary<string, DeserializeObjectDelegate>();
 
+            Dictionary<Type, SerializePrimitiveDelegate> primitiveSerializationSubDelegateDictionary = primitiveSerializationSubDelegateDictionaries[serializableObjectType];
+            Dictionary<Type, DeserializePrimitiveDelegate> primitiveDeserializationSubDelegateDictionary = primitiveDeserializationSubDelegateDictionaries[serializableObjectType];
+
+            Dictionary<Type, SerializeObjectDelegate> objectSerializationSubDelegateDictionary = objectSerializationSubDelegateDictionaries[serializableObjectType];
+            Dictionary<Type, DeserializeObjectDelegate> objectDeserializationSubDelegateDictionary = objectDeserializationSubDelegateDictionaries[serializableObjectType];
+
             for (int i = 0; i < properties.Length; i++)
             {
                 PropertyInfo property = properties[i];
                 Type propertyType = property.PropertyType;
                 Serializability propertySerializability = GetSerializability(propertyType);
-                
+
+
                 switch (propertySerializability)
                 {
                     case Serializability.Primitive:
@@ -1223,7 +1229,7 @@ namespace LooCast.System.Serialization
                                 throw new Exception($"No primitive serialization delegate registered for type '{propertyType}'!");
                             }
                             
-                            serializePrimitivePropertyDelegates.Add(property.Name, primitiveSerializationDelegates[propertyType]);
+                            serializePrimitivePropertyDelegates.Add(property.Name, primitiveSerializationSubDelegateDictionary[propertyType]);
                         }
                         if (!overrideDeserialization)
                         {
@@ -1232,7 +1238,7 @@ namespace LooCast.System.Serialization
                                 throw new Exception($"No primitive deserialization delegate registered for type '{propertyType}'!");
                             }
                             
-                            deserializePrimitivePropertyDelegates.Add(property.Name, primitiveDeserializationDelegates[propertyType]);
+                            deserializePrimitivePropertyDelegates.Add(property.Name, primitiveDeserializationSubDelegateDictionary[propertyType]);
                         }
                         break;
                     case Serializability.Object:
@@ -1243,7 +1249,7 @@ namespace LooCast.System.Serialization
                                 throw new Exception($"No object serialization delegate registered for type '{propertyType}'!");
                             }
                             
-                            serializeObjectPropertyDelegates.Add(property.Name, objectSerializationDelegates[propertyType]);
+                            serializeObjectPropertyDelegates.Add(property.Name, objectSerializationSubDelegateDictionary[propertyType]);
                         }
                         if (!overrideDeserialization)
                         {
@@ -1252,7 +1258,7 @@ namespace LooCast.System.Serialization
                                 throw new Exception($"No object deserialization delegate registered for type '{propertyType}'!");
                             }
 
-                            deserializeObjectPropertyDelegates.Add(property.Name, objectDeserializationDelegates[propertyType]);
+                            deserializeObjectPropertyDelegates.Add(property.Name, objectDeserializationSubDelegateDictionary[propertyType]);
                         }
                         break;
                     case Serializability.File:
@@ -1277,7 +1283,7 @@ namespace LooCast.System.Serialization
                             {
                                 throw new Exception($"No primitive serialization delegate registered for type '{fieldType}'!");
                             }
-                            serializePrimitiveFieldDelegates.Add(field.Name, primitiveSerializationDelegates[fieldType]);
+                            serializePrimitiveFieldDelegates.Add(field.Name, primitiveSerializationSubDelegateDictionary[fieldType]);
                         }
                         if (!overrideDeserialization)
                         {
@@ -1285,7 +1291,7 @@ namespace LooCast.System.Serialization
                             {
                                 throw new Exception($"No primitive deserialization delegate registered for type '{fieldType}'!");
                             }
-                            deserializePrimitiveFieldDelegates.Add(field.Name, primitiveDeserializationDelegates[fieldType]);
+                            deserializePrimitiveFieldDelegates.Add(field.Name, primitiveDeserializationSubDelegateDictionary[fieldType]);
                         }
                         break;
                     case Serializability.Object:
@@ -1296,7 +1302,7 @@ namespace LooCast.System.Serialization
                                 throw new Exception($"No object serialization delegate registered for type '{fieldType}'!");
                             }
 
-                            serializeObjectFieldDelegates.Add(field.Name, objectSerializationDelegates[fieldType]);
+                            serializeObjectFieldDelegates.Add(field.Name, objectSerializationSubDelegateDictionary[fieldType]);
                         }
                         if (!overrideDeserialization)
                         {
@@ -1305,7 +1311,7 @@ namespace LooCast.System.Serialization
                                 throw new Exception($"No object deserialization delegate registered for type '{fieldType}'!");
                             }
 
-                            deserializeObjectFieldDelegates.Add(field.Name, objectDeserializationDelegates[fieldType]);
+                            deserializeObjectFieldDelegates.Add(field.Name, objectDeserializationSubDelegateDictionary[fieldType]);
                         }
                         break;
                     case Serializability.File:
@@ -1460,12 +1466,12 @@ namespace LooCast.System.Serialization
         
         private void RegisterFileSerializationDelegates(SerializableFileTypeInfo serializableFileTypeInfo)
         {
-            throw new NotImplementedException();
+            
         }
         
         private void RegisterFolderSerializationDelegates(SerializableFolderTypeInfo serializableFolderTypeInfo)
         {
-            throw new NotImplementedException();
+            
         }
 
         private void RegisterObjectSerializationSubDelegates(SerializableObjectTypeInfo serializableObjectTypeInfo)
