@@ -7,16 +7,16 @@ namespace LooCast.System.Serialization
     {
         #region Properties
         public Type SerializableObjectType { get; private set; }
-        public HashSet<Type> SubSerializablePrimitiveTypes { get; private set; }
-        public HashSet<SerializableObjectTypeInfo> SubSerializableObjectTypes { get; private set; }
+        public HashSet<SerializablePrimitiveTypeInfo> SubSerializablePrimitiveTypeInfos { get; private set; }
+        public HashSet<SerializableObjectTypeInfo> SubSerializableObjectTypeInfos { get; private set; }
         #endregion
 
         #region Constructors
-        public SerializableObjectTypeInfo(Type serializableObjectType, HashSet<Type> subSerializablePrimitiveTypes, HashSet<SerializableObjectTypeInfo> subSerializableObjectTypes)
+        public SerializableObjectTypeInfo(Type serializableObjectType, HashSet<SerializablePrimitiveTypeInfo> subSerializablePrimitiveTypeInfos, HashSet<SerializableObjectTypeInfo> subSerializableObjectTypeInfos)
         {
             SerializableObjectType = serializableObjectType;
-            SubSerializablePrimitiveTypes = subSerializablePrimitiveTypes;
-            SubSerializableObjectTypes = subSerializableObjectTypes;
+            SubSerializablePrimitiveTypeInfos = subSerializablePrimitiveTypeInfos;
+            SubSerializableObjectTypeInfos = subSerializableObjectTypeInfos;
         }
         #endregion
     }

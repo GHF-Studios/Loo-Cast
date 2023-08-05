@@ -7,13 +7,15 @@ namespace LooCast.System.Serialization
         #region Properties
         public bool OverrideSerialization { get; private set; }
         public bool OverrideDeserialization { get; private set; }
+        public bool OverrideSerializableTypeInfoAnalysis { get; private set; }
         #endregion
 
         #region Constructors
-        protected SerializableAttribute(bool overrideSerialization, bool overrideDeserialization) : base()
+        protected SerializableAttribute(bool overrideSerialization, bool overrideDeserialization, bool overrideSerializableTypeInfoAnalysis) : base()
         {
             OverrideSerialization = overrideSerialization;
             OverrideDeserialization = overrideDeserialization;
+            OverrideSerializableTypeInfoAnalysis = overrideSerializableTypeInfoAnalysis;
         }
         #endregion
     }

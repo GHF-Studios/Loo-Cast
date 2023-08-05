@@ -8,18 +8,19 @@ namespace LooCast.System.Collections.Serializable
 {
     using LooCast.System.Serialization;
 
-    [SerializableObject(true, true)]
+    [SerializableObject(true, true, true)]
     public class SerializableArray<T> : IEnumerable, IEnumerable<T>
     {
         #region Properties
         public T[] Array { get; private set; }
         public int Length => Array.Length;
         public object this[int index] { get => Array[index]; set => Array[index] = (T)value; }
+
+        public Serializability TypeSerializability { get; private set; }
+        public Type Type { get; private set; }
         #endregion
 
         #region Fields
-        private Serializability typeSerializability;
-        private Type type;
 
         private SerializationManager.SerializeObjectDelegate serializeObjectDelegate;
         private SerializationManager.DeserializeObjectDelegate deserializeObjectDelegate;
@@ -28,13 +29,13 @@ namespace LooCast.System.Collections.Serializable
         #region Constructors
         public SerializableArray(int length) : base()
         {
-            type = typeof(T);
+            Type = typeof(T);
             SerializationManager serializationManager = SerializationManager.Instance;
-            typeSerializability = serializationManager.GetSerializability(type);
-            switch (typeSerializability)
+            TypeSerializability = serializationManager.GetSerializability(Type);
+            switch (TypeSerializability)
             {
                 case Serializability.None:
-                    throw new ArgumentException($"The type '{type.Name}' is not serializable!");
+                    throw new ArgumentException($"The type '{Type.Name}' is not serializable!");
                 case Serializability.Primitive:
                     throw new InvalidOperationException("A serializable array cannot contain primitives, only objects!");
                 case Serializability.File:
@@ -43,19 +44,19 @@ namespace LooCast.System.Collections.Serializable
                     throw new InvalidOperationException("A serializable array cannot contain folders, only objects!");
             }
             Array = new T[length];
-            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(type);
-            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(type);
+            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(Type);
+            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(Type);
         }
         
         public SerializableArray(T[] array) : base()
         {
-            type = typeof(T);
+            Type = typeof(T);
             SerializationManager serializationManager = SerializationManager.Instance;
-            typeSerializability = serializationManager.GetSerializability(type);
-            switch (typeSerializability)
+            TypeSerializability = serializationManager.GetSerializability(Type);
+            switch (TypeSerializability)
             {
                 case Serializability.None:
-                    throw new ArgumentException($"The type '{type.Name}' is not serializable!");
+                    throw new ArgumentException($"The type '{Type.Name}' is not serializable!");
                 case Serializability.Primitive:
                     throw new InvalidOperationException("A serializable array cannot contain primitives, only objects!");
                 case Serializability.File:
@@ -64,19 +65,19 @@ namespace LooCast.System.Collections.Serializable
                     throw new InvalidOperationException("A serializable array cannot contain folders, only objects!");
             }
             Array = array.Clone() as T[];
-            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(type);
-            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(type);
+            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(Type);
+            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(Type);
         }
 
         private SerializableArray()
         {
-            type = typeof(T);
+            Type = typeof(T);
             SerializationManager serializationManager = SerializationManager.Instance;
-            typeSerializability = serializationManager.GetSerializability(type);
-            switch (typeSerializability)
+            TypeSerializability = serializationManager.GetSerializability(Type);
+            switch (TypeSerializability)
             {
                 case Serializability.None:
-                    throw new ArgumentException($"The type '{type.Name}' is not serializable!");
+                    throw new ArgumentException($"The type '{Type.Name}' is not serializable!");
                 case Serializability.Primitive:
                     throw new InvalidOperationException("A serializable array cannot contain primitives, only objects!");
                 case Serializability.File:
@@ -85,8 +86,8 @@ namespace LooCast.System.Collections.Serializable
                     throw new InvalidOperationException("A serializable array cannot contain folders, only objects!");
             }
             Array = global::System.Array.Empty<T>();
-            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(type);
-            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(type);
+            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(Type);
+            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(Type);
         }
         #endregion
 
@@ -116,7 +117,7 @@ namespace LooCast.System.Collections.Serializable
 
             serializableArray = array;
         }
-        
+
         public static SerializableArray<T> Empty()
         {
             return new SerializableArray<T>();

@@ -7,16 +7,16 @@ namespace LooCast.System.Serialization
     {
         #region Properties
         public Type SerializableFolderType { get; private set; }
-        public HashSet<SerializableFileTypeInfo> SubSerializableFileTypes { get; private set; }
-        public HashSet<SerializableFolderTypeInfo> SubSerializableFolderTypes { get; private set; }
+        public HashSet<SerializableFileTypeInfo> SubSerializableFileTypeInfos { get; private set; }
+        public HashSet<SerializableFolderTypeInfo> SubSerializableFolderTypeInfos { get; private set; }
         #endregion
 
         #region Constructors
-        public SerializableFolderTypeInfo(Type serializableFolderType, HashSet<SerializableFileTypeInfo> subSerializableFileTypes, HashSet<SerializableFolderTypeInfo> subSerializableFolderTypes)
+        public SerializableFolderTypeInfo(Type serializableFolderType, HashSet<SerializableFileTypeInfo> subSerializableFileTypeInfos, HashSet<SerializableFolderTypeInfo> subSerializableFolderTypeInfos)
         {
             SerializableFolderType = serializableFolderType;
-            SubSerializableFileTypes = subSerializableFileTypes;
-            SubSerializableFolderTypes = subSerializableFolderTypes;
+            SubSerializableFileTypeInfos = subSerializableFileTypeInfos;
+            SubSerializableFolderTypeInfos = subSerializableFolderTypeInfos;
         }
         #endregion
     }

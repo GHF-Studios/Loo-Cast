@@ -7,14 +7,14 @@ namespace LooCast.System.Serialization
     {
         #region Properties
         public Type SerializableFileType { get; private set; }
-        public HashSet<SerializableObjectTypeInfo> SubSerializableObjectTypes { get; private set; }
+        public HashSet<SerializableObjectTypeInfo> SubSerializableObjectTypeInfos { get; private set; }
         #endregion
 
         #region Constructors
-        public SerializableFileTypeInfo(Type serializableFileType, HashSet<SerializableObjectTypeInfo> subSerializableObjectTypes)
+        public SerializableFileTypeInfo(Type serializableFileType, HashSet<SerializableObjectTypeInfo> subSerializableObjectTypeInfos)
         {
             SerializableFileType = serializableFileType;
-            SubSerializableObjectTypes = subSerializableObjectTypes;
+            SubSerializableObjectTypeInfos = subSerializableObjectTypeInfos;
         }
         #endregion
     }

@@ -10,10 +10,12 @@ namespace LooCast.System.Collections.Serializable
     [SerializableObject(true, true)]
     public class SerializableList<T> : List<T>
     {
-        #region Fields
-        private Serializability typeSerializability;
-        private Type type;
+        #region Properties
+        public Serializability TypeSerializability { get; private set; }
+        public Type Type { get; private set; }
+        #endregion
 
+        #region Fields
         private SerializationManager.SerializeObjectDelegate serializeObjectDelegate;
         private SerializationManager.DeserializeObjectDelegate deserializeObjectDelegate;
         #endregion
@@ -21,13 +23,13 @@ namespace LooCast.System.Collections.Serializable
         #region Constructors
         public SerializableList() : base()
         {
-            type = typeof(T);
+            Type = typeof(T);
             SerializationManager serializationManager = SerializationManager.Instance;
-            typeSerializability = serializationManager.GetSerializability(type);
-            switch (typeSerializability)
+            TypeSerializability = serializationManager.GetSerializability(Type);
+            switch (TypeSerializability)
             {
                 case Serializability.None:
-                    throw new ArgumentException($"The type '{type.Name}' is not serializable!");
+                    throw new ArgumentException($"The type '{Type.Name}' is not serializable!");
                 case Serializability.Primitive:
                     throw new InvalidOperationException("A serializable list cannot contain primitives, only objects!");
                 case Serializability.File:
@@ -35,8 +37,8 @@ namespace LooCast.System.Collections.Serializable
                 case Serializability.Folder:
                     throw new InvalidOperationException("A serializable list cannot contain folders, only attributes or objects!");
             }
-            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(type);
-            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(type);
+            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(Type);
+            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(Type);
         }
         #endregion
 
