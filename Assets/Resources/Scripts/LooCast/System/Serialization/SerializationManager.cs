@@ -560,6 +560,26 @@ namespace LooCast.System.Serialization
                 IEnumerable<Type> allInitialTypeDefinitions = allInitialAssemblyDefinitions.SelectMany(assembly => assembly.GetTypes());
 
                 // TODO: 1. Rename all the "Analyze" methods to "Cache" methods and anything else that is related to them
+                // Maybe rename TypeReflectionInfo to TypeMetaInfo
+                // Maybe rename AnalyzeSerializableTypeReflectionInfo to CacheSerializableTypeMetaInfo
+                // Maybe rename AnalyzeSerializability to CacheSerializability
+                // Maybe rename AnalyzeSerializableXTypeInfo to CacheSerializableTypeInfo
+                // Maybe rename RegisterXSerializationDelegates to CacheXSerializationDelegates
+                // Maybe rename RegisterXSerializationSubDelegates to CacheXSerializationSubDelegates
+                // Maybe somehow more clearly distinguish between the 5 phases of the type analysis:
+                // 1.   Determine & Cache type meta info
+                // 2.   Determine & Cache type serializability
+                // 3.   Determine & Cache type info
+                // 4.   Determine & Cache type serialization delegates
+                // 5.   Determine & Cache type serialization sub delegates
+
+                // Maybe somehow make this whole process a bit more extensible, so you can easily load and unload any serializable type
+                // Also make sure that the type analysis is done in a way that it can be done in parallel, so that it can be done in a separate thread
+                // Also make sure that the type analysis is designed to analyze multiple types with one method call, because implementing this system for a single type and then executing that multiple times would be very inefficient.
+                // Also like create a TypeManager or AssemblyManager or CSharpManager or something like that, which keeps track of loaded assemblies and types, and can load/unload those in a managed way,
+                // so that the SerializationManager is informed of Type additions/deletions and can update its analysis cache accordingly
+
+                // But before all of this, make sure that the base system works as intended, before adding new features to it
 
                 foreach (Type initialTypeDefinition in allInitialTypeDefinitions)
                 {
