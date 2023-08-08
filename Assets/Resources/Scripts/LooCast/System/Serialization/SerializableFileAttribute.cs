@@ -6,7 +6,7 @@ namespace LooCast.System.Serialization
     public class SerializableFileAttribute : SerializableAttribute
     {
         #region Constructors
-        public SerializableFileAttribute(bool overrideSerialization = false, bool overrideDeserialization = false, bool overrideSerializableTypeInfoAnalysis = false) : base(overrideSerialization, overrideDeserialization, overrideSerializableTypeInfoAnalysis)
+        public SerializableFileAttribute(bool overrideSerialization = false, bool overrideDeserialization = false, bool overrideSerializableTypeInfoCaching = false) : base(overrideSerialization, overrideDeserialization, overrideSerializableTypeInfoCaching)
         {
         }
         #endregion
