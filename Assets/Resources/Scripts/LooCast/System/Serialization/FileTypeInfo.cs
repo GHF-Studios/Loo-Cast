@@ -8,7 +8,7 @@ namespace LooCast.System.Serialization
     public sealed class FileTypeInfo : TypeInfo
     {
         #region Delegates
-        public delegate void Serialize(string fileName, string fileExtension, string parentFilePath, object file, out FileInfo serializedFile);
+        public delegate void Serialize(string fileName, string fileExtension, string parentFolderPath, object file, out FileInfo serializedFile);
         public delegate void Deserialize(FileInfo serializedFile, out object file);
         #endregion
 

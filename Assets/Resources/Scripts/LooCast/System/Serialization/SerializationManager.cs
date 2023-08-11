@@ -39,6 +39,7 @@ namespace LooCast.System.Serialization
         private Dictionary<Type, GenericObjectTypeInfo> registeredGenericObjectTypeInfos;
         private Dictionary<Type, FileTypeInfo> registeredFileTypeInfos;
         private Dictionary<Type, FolderTypeInfo> registeredFolderTypeInfos;
+        private Dictionary<Type, string> invalidations;
         #endregion
 
         #region Constructors
@@ -50,6 +51,7 @@ namespace LooCast.System.Serialization
             registeredGenericObjectTypeInfos = new Dictionary<Type, GenericObjectTypeInfo>();
             registeredFileTypeInfos = new Dictionary<Type, FileTypeInfo>();
             registeredFolderTypeInfos = new Dictionary<Type, FolderTypeInfo>();
+            invalidations = new Dictionary<Type, string>();
 
             // Add pre-included components here
 
@@ -623,6 +625,7 @@ namespace LooCast.System.Serialization
                 if (nonGenericObjectTypeInfo.Type.GetConstructor(Type.EmptyTypes) == null && !fullyOverridden)
                 {
                     nonGenericObjectTypeInfo.Invalidate();
+                    invalidations.Add(nonGenericObjectTypeInfo.Type, "A type marked as serializable non-generic object is required to have a parameterless constructor or implement both a 'public static void Serialize(string objectName, object serializableObject, out XElement serializedObject)' and a 'public static void Deserialize(XElement serializedObject, out object serializableObject)' method!");
                     continue;
                 }
             }
@@ -657,6 +660,7 @@ namespace LooCast.System.Serialization
                 if (!fullyOverridden)
                 {
                     genericObjectTypeInfo.Invalidate();
+                    invalidations.Add(genericObjectTypeInfo.Type, "A type marked as serializable generic object is required to implement both a 'public static void Serialize(string objectName, object serializableObject, out XElement serializedObject)' and a 'public static void Deserialize(XElement serializedObject, out object serializableObject)' method!");
                     continue;
                 }
             }
@@ -681,6 +685,7 @@ namespace LooCast.System.Serialization
                 if (fileTypeInfo.Type.GetConstructor(Type.EmptyTypes) == null && !fullyOverridden)
                 {
                     fileTypeInfo.Invalidate();
+                    invalidations.Add(fileTypeInfo.Type, "A type marked as serializable file is required to implement both a 'public static void Serialize(string fileName, string fileExtension, string parentFolderPath, object serializableFile, out FileInfo serializedFile)' and a 'public static void Deserialize(FileInfo serializedFile, out object serializableFile)' method!");
                     continue;
                 }
             }
@@ -715,6 +720,7 @@ namespace LooCast.System.Serialization
                 if (folderTypeInfo.Type.GetConstructor(Type.EmptyTypes) == null && !fullyOverridden)
                 {
                     folderTypeInfo.Invalidate();
+                    invalidations.Add(folderTypeInfo.Type, "A type marked as serializable folder is required to implement both a 'public static void Serialize(string folderName, string parentFolderPath, object serializableFolder, out DirectoryInfo serializedFolder)' and a 'public static void Deserialize(DirectoryInfo serializedFolder, out object serializableFolder)' method!");
                     continue;
                 }
             }
