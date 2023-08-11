@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace LooCast.System.Serialization
 {
-    public sealed class FolderTypeInfo
+    public sealed class FolderTypeInfo : TypeInfo
     {
         #region Delegates
         public delegate void Serialize(string folderName, string parentFolderPath, object folder, out DirectoryInfo serializedFolder);
@@ -100,7 +100,7 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Constructors
-        public FolderTypeInfo()
+        public FolderTypeInfo(Type type) : base(type)
         {
             Validation = ValidationStage.Unvalidated;
             PreAnalysisInformation = null;

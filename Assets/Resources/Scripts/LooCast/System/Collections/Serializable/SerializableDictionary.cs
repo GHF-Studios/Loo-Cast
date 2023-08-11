@@ -7,7 +7,7 @@ namespace LooCast.System.Collections.Serializable
 {
     using LooCast.System.Serialization;
 
-    [SerializableObject(true, true)]
+    [SerializableGenericObject()]
     public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>
     {
         #region Properties
@@ -19,23 +19,23 @@ namespace LooCast.System.Collections.Serializable
         #endregion
 
         #region Fields
-        private SerializationManager.SerializePrimitiveDelegate serializeKeyPrimitiveDelegate;
-        private SerializationManager.DeserializePrimitiveDelegate deserializeKeyPrimitiveDelegate;
+        private OldSerializationManager.SerializePrimitiveDelegate serializeKeyPrimitiveDelegate;
+        private OldSerializationManager.DeserializePrimitiveDelegate deserializeKeyPrimitiveDelegate;
 
-        private SerializationManager.SerializePrimitiveDelegate serializeValuePrimitiveDelegate;
-        private SerializationManager.DeserializePrimitiveDelegate deserializeValuePrimitiveDelegate;
+        private OldSerializationManager.SerializePrimitiveDelegate serializeValuePrimitiveDelegate;
+        private OldSerializationManager.DeserializePrimitiveDelegate deserializeValuePrimitiveDelegate;
 
-        private SerializationManager.SerializeObjectDelegate serializeKeyObjectDelegate;
-        private SerializationManager.DeserializeObjectDelegate deserializeKeyObjectDelegate;
+        private OldSerializationManager.SerializeObjectDelegate serializeKeyObjectDelegate;
+        private OldSerializationManager.DeserializeObjectDelegate deserializeKeyObjectDelegate;
 
-        private SerializationManager.SerializeObjectDelegate serializeValueObjectDelegate;
-        private SerializationManager.DeserializeObjectDelegate deserializeValueObjectDelegate;
+        private OldSerializationManager.SerializeObjectDelegate serializeValueObjectDelegate;
+        private OldSerializationManager.DeserializeObjectDelegate deserializeValueObjectDelegate;
         #endregion
 
         #region Constructors
         public SerializableDictionary() : base()
         {
-            SerializationManager serializationManager = SerializationManager.Instance;
+            OldSerializationManager serializationManager = OldSerializationManager.Instance;
             
             KeyType = typeof(TKey);
             ValueType = typeof(TValue);

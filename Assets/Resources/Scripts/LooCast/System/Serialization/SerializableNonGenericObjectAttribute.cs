@@ -2,20 +2,19 @@
 
 namespace LooCast.System.Serialization
 {
-    public abstract class SerializableAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+    public sealed class SerializableNonGenericObjectAttribute : Attribute
     {
         #region Properties
         public bool OverrideSerialization { get; private set; }
         public bool OverrideDeserialization { get; private set; }
-        public bool OverrideSerializableTypeInfoCaching { get; private set; }
         #endregion
 
         #region Constructors
-        protected SerializableAttribute(bool overrideSerialization, bool overrideDeserialization, bool overrideSerializableTypeInfoCaching) : base()
+        public SerializableNonGenericObjectAttribute(bool overrideSerialization = false, bool overrideDeserialization = false)
         {
             OverrideSerialization = overrideSerialization;
             OverrideDeserialization = overrideDeserialization;
-            OverrideSerializableTypeInfoCaching = overrideSerializableTypeInfoCaching;
         }
         #endregion
     }

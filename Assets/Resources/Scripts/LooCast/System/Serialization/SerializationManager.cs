@@ -14,20 +14,6 @@ namespace LooCast.System.Serialization
 
     public sealed class SerializationManager : ModuleManager
     {
-        #region Delegates
-        public delegate void SerializePrimitiveDelegate(string primitiveName, object primitive, out XAttribute serializedPrimitive);
-        public delegate void DeserializePrimitiveDelegate(XAttribute serializedPrimitive, out object primitive);
-
-        public delegate void SerializeObjectDelegate(string objectName, object _object, out XElement serializedObject);
-        public delegate void DeserializeObjectDelegate(XElement serializedObject, out object _object);
-
-        public delegate void SerializeFileDelegate(string fileName, string fileExtension, string parentFolderPath, object file, out FileInfo serializedFile);
-        public delegate void DeserializeFileDelegate(FileInfo serializedFile, out object file);
-
-        public delegate void SerializeFolderDelegate(string folderName, string parentFolderPath, object folder, out DirectoryInfo serializedFolder);
-        public delegate void DeserializeFolderDelegate(DirectoryInfo serializedFolder, out object folder);
-        #endregion
-        
         #region Static Properties
         public static SerializationManager Instance
         {
@@ -47,97 +33,23 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Fields
-        private HashSet<Type> allUnserializableTypes;
-        private HashSet<Type> allSerializablePrimitiveTypes;
-        private HashSet<Type> allSerializableObjectTypes;
-        private HashSet<Type> allSerializableFileTypes;
-        private HashSet<Type> allSerializableFolderTypes;
-        
-        private Dictionary<Type, SerializableTypeMetaInfo> serializableTypeMetaInfoCache;
-        private Dictionary<Type, SerializablePrimitiveTypeMetaInfo> serializablePrimitiveTypeMetaInfoCache;
-        private Dictionary<Type, SerializableObjectTypeMetaInfo> serializableObjectTypeMetaInfoCache;
-        private Dictionary<Type, SerializableFileTypeMetaInfo> serializableFileTypeMetaInfoCache;
-        private Dictionary<Type, SerializableFolderTypeMetaInfo> serializableFolderTypeMetaInfoCache;
-
-        private Dictionary<Type, Serializability> serializabilityCache;
-        
-        private Dictionary<Type, SerializableTypeInfo> serializableTypeInfoCache;
-        private Dictionary<Type, SerializablePrimitiveTypeInfo> serializablePrimitiveTypeInfoCache;
-        private Dictionary<Type, SerializableObjectTypeInfo> serializableObjectTypeInfoCache;
-        private Dictionary<Type, SerializableFileTypeInfo> serializableFileTypeInfoCache;
-        private Dictionary<Type, SerializableFolderTypeInfo> serializableFolderTypeInfoCache;
-
-        private Dictionary<Type, SerializePrimitiveDelegate> primitiveSerializationDelegates;
-        private Dictionary<Type, DeserializePrimitiveDelegate> primitiveDeserializationDelegates;
-
-        private Dictionary<Type, SerializeObjectDelegate> objectSerializationDelegates;
-        private Dictionary<Type, DeserializeObjectDelegate> objectDeserializationDelegates;
-
-        private Dictionary<Type, SerializeFileDelegate> fileSerializationDelegates;
-        private Dictionary<Type, DeserializeFileDelegate> fileDeserializationDelegates;
-
-        private Dictionary<Type, SerializeFolderDelegate> folderSerializationDelegates;
-        private Dictionary<Type, DeserializeFolderDelegate> folderDeserializationDelegates;
-
-        private Dictionary<Type, Dictionary<Type, SerializePrimitiveDelegate>> primitiveSerializationSubDelegateDictionaries;
-        private Dictionary<Type, Dictionary<Type, DeserializePrimitiveDelegate>> primitiveDeserializationSubDelegateDictionaries;
-
-        private Dictionary<Type, Dictionary<Type, SerializeObjectDelegate>> objectSerializationSubDelegateDictionaries;
-        private Dictionary<Type, Dictionary<Type, DeserializeObjectDelegate>> objectDeserializationSubDelegateDictionaries;
-
-        private Dictionary<Type, Dictionary<Type, SerializeFileDelegate>> fileSerializationSubDelegateDictionaries;
-        private Dictionary<Type, Dictionary<Type, DeserializeFileDelegate>> fileDeserializationSubDelegateDictionaries;
-
-        private Dictionary<Type, Dictionary<Type, SerializeFolderDelegate>> folderSerializationSubDelegateDictionaries;
-        private Dictionary<Type, Dictionary<Type, DeserializeFolderDelegate>> folderDeserializationSubDelegateDictionaries;
+        private HashSet<Type> registeredUnserializableTypes;
+        private Dictionary<Type, PrimitiveTypeInfo> registeredPrimitiveTypeInfos;
+        private Dictionary<Type, NonGenericObjectTypeInfo> registeredNonGenericObjectTypeInfos;
+        private Dictionary<Type, GenericObjectTypeInfo> registeredGenericObjectTypeInfos;
+        private Dictionary<Type, FileTypeInfo> registeredFileTypeInfos;
+        private Dictionary<Type, FolderTypeInfo> registeredFolderTypeInfos;
         #endregion
 
         #region Constructors
         public SerializationManager() : base()
         {
-            allUnserializableTypes = new HashSet<Type>();
-            allSerializablePrimitiveTypes = new HashSet<Type>();
-            allSerializableObjectTypes = new HashSet<Type>();
-            allSerializableFileTypes = new HashSet<Type>();
-            allSerializableFolderTypes = new HashSet<Type>();
-            
-            serializableTypeMetaInfoCache = new Dictionary<Type, SerializableTypeMetaInfo>();
-            serializablePrimitiveTypeMetaInfoCache = new Dictionary<Type, SerializablePrimitiveTypeMetaInfo>();
-            serializableObjectTypeMetaInfoCache = new Dictionary<Type, SerializableObjectTypeMetaInfo>();
-            serializableFileTypeMetaInfoCache = new Dictionary<Type, SerializableFileTypeMetaInfo>();
-            serializableFolderTypeMetaInfoCache = new Dictionary<Type, SerializableFolderTypeMetaInfo>();
-            
-            serializabilityCache = new Dictionary<Type, Serializability>();
-            
-            serializableTypeInfoCache = new Dictionary<Type, SerializableTypeInfo>();
-            serializablePrimitiveTypeInfoCache = new Dictionary<Type, SerializablePrimitiveTypeInfo>();
-            serializableObjectTypeInfoCache = new Dictionary<Type, SerializableObjectTypeInfo>();
-            serializableFileTypeInfoCache = new Dictionary<Type, SerializableFileTypeInfo>();
-            serializableFolderTypeInfoCache = new Dictionary<Type, SerializableFolderTypeInfo>();
-
-            primitiveSerializationDelegates = new Dictionary<Type, SerializePrimitiveDelegate>();
-            primitiveDeserializationDelegates = new Dictionary<Type, DeserializePrimitiveDelegate>();
-
-            objectSerializationDelegates = new Dictionary<Type, SerializeObjectDelegate>();
-            objectDeserializationDelegates = new Dictionary<Type, DeserializeObjectDelegate>();
-
-            fileSerializationDelegates = new Dictionary<Type, SerializeFileDelegate>();
-            fileDeserializationDelegates = new Dictionary<Type, DeserializeFileDelegate>();
-
-            folderSerializationDelegates = new Dictionary<Type, SerializeFolderDelegate>();
-            folderDeserializationDelegates = new Dictionary<Type, DeserializeFolderDelegate>();
-
-            primitiveSerializationSubDelegateDictionaries = new Dictionary<Type, Dictionary<Type, SerializePrimitiveDelegate>>();
-            primitiveDeserializationSubDelegateDictionaries = new Dictionary<Type, Dictionary<Type, DeserializePrimitiveDelegate>>();
-
-            objectSerializationSubDelegateDictionaries = new Dictionary<Type, Dictionary<Type, SerializeObjectDelegate>>();
-            objectDeserializationSubDelegateDictionaries = new Dictionary<Type, Dictionary<Type, DeserializeObjectDelegate>>();
-
-            fileSerializationSubDelegateDictionaries = new Dictionary<Type, Dictionary<Type, SerializeFileDelegate>>();
-            fileDeserializationSubDelegateDictionaries = new Dictionary<Type, Dictionary<Type, DeserializeFileDelegate>>();
-
-            folderSerializationSubDelegateDictionaries = new Dictionary<Type, Dictionary<Type, SerializeFolderDelegate>>();
-            folderDeserializationSubDelegateDictionaries = new Dictionary<Type, Dictionary<Type, DeserializeFolderDelegate>>();
+            registeredUnserializableTypes = new HashSet<Type>();
+            registeredPrimitiveTypeInfos = new Dictionary<Type, PrimitiveTypeInfo>();
+            registeredNonGenericObjectTypeInfos = new Dictionary<Type, NonGenericObjectTypeInfo>();
+            registeredGenericObjectTypeInfos = new Dictionary<Type, GenericObjectTypeInfo>();
+            registeredFileTypeInfos = new Dictionary<Type, FileTypeInfo>();
+            registeredFolderTypeInfos = new Dictionary<Type, FolderTypeInfo>();
 
             // Add pre-included components here
 
@@ -165,11 +77,11 @@ namespace LooCast.System.Serialization
 
                 #region Primitive (De-)serialization delegates registration
                 Type boolType = typeof(bool);
-                primitiveSerializationDelegates.Add(boolType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize boolSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(boolType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize boolDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -182,14 +94,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = boolValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(boolType, new PrimitiveTypeInfo(boolType, boolSerializeDelegate, boolDeserializeDelegate));
 
                 Type byteType = typeof(byte);
-                primitiveSerializationDelegates.Add(byteType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize byteSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(byteType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize byteDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -202,14 +115,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = byteValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(byteType, new PrimitiveTypeInfo(byteType, byteSerializeDelegate, byteDeserializeDelegate));
 
                 Type sbyteType = typeof(sbyte);
-                primitiveSerializationDelegates.Add(sbyteType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize sbyteSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(sbyteType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize sbyteDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -222,14 +136,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = sbyteValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(sbyteType, new PrimitiveTypeInfo(sbyteType, sbyteSerializeDelegate, sbyteDeserializeDelegate));
 
                 Type charType = typeof(char);
-                primitiveSerializationDelegates.Add(charType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize charSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(charType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize charDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -242,14 +157,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = charValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(charType, new PrimitiveTypeInfo(charType, charSerializeDelegate, charDeserializeDelegate));
 
                 Type decimalType = typeof(decimal);
-                primitiveSerializationDelegates.Add(decimalType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize decimalSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(decimalType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize decimalDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -262,14 +178,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = decimalValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(decimalType, new PrimitiveTypeInfo(decimalType, decimalSerializeDelegate, decimalDeserializeDelegate));
 
                 Type doubleType = typeof(double);
-                primitiveSerializationDelegates.Add(doubleType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize doubleSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(doubleType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize doubleDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -282,14 +199,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = doubleValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(doubleType, new PrimitiveTypeInfo(doubleType, doubleSerializeDelegate, doubleDeserializeDelegate));
 
                 Type floatType = typeof(float);
-                primitiveSerializationDelegates.Add(floatType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize floatSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(floatType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize floatDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -302,14 +220,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = floatValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(floatType, new PrimitiveTypeInfo(floatType, floatSerializeDelegate, floatDeserializeDelegate));
 
                 Type intType = typeof(int);
-                primitiveSerializationDelegates.Add(intType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize intSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(intType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize intDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -322,14 +241,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = intValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(intType, new PrimitiveTypeInfo(intType, intSerializeDelegate, intDeserializeDelegate));
 
                 Type uintType = typeof(uint);
-                primitiveSerializationDelegates.Add(uintType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize uintSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(uintType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize uintDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -342,14 +262,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = uintValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(uintType, new PrimitiveTypeInfo(uintType, uintSerializeDelegate, uintDeserializeDelegate));
 
                 Type longType = typeof(long);
-                primitiveSerializationDelegates.Add(longType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize longSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(longType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize longDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -362,14 +283,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = longValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(longType, new PrimitiveTypeInfo(longType, longSerializeDelegate, longDeserializeDelegate));
 
                 Type ulongType = typeof(ulong);
-                primitiveSerializationDelegates.Add(ulongType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize ulongSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(ulongType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize ulongDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -382,14 +304,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = ulongValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(ulongType, new PrimitiveTypeInfo(ulongType, ulongSerializeDelegate, ulongDeserializeDelegate));
 
                 Type shortType = typeof(short);
-                primitiveSerializationDelegates.Add(shortType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize shortSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(shortType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize shortDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -402,14 +325,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = shortValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(shortType, new PrimitiveTypeInfo(shortType, shortSerializeDelegate, shortDeserializeDelegate));
 
                 Type ushortType = typeof(ushort);
-                primitiveSerializationDelegates.Add(ushortType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize ushortSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(ushortType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize ushortDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -422,14 +346,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = ushortValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(ushortType, new PrimitiveTypeInfo(ushortType, ushortSerializeDelegate, ushortDeserializeDelegate));
 
                 Type stringType = typeof(string);
-                primitiveSerializationDelegates.Add(stringType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize stringSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(stringType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize stringDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -437,14 +362,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = serializedPrimitive.Value;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(stringType, new PrimitiveTypeInfo(stringType, stringSerializeDelegate, stringDeserializeDelegate));
 
                 Type guidType = typeof(Guid);
-                primitiveSerializationDelegates.Add(guidType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize guidSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(guidType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize guidDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -457,14 +383,15 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = guidValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(guidType, new PrimitiveTypeInfo(guidType, guidSerializeDelegate, guidDeserializeDelegate));
 
                 Type bigIntType = typeof(BigInteger);
-                primitiveSerializationDelegates.Add(bigIntType, (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
+                PrimitiveTypeInfo.Serialize bigIntSerializeDelegate = (string primitiveName, object primitive, out XAttribute serializedPrimitive) =>
                 {
                     serializedPrimitive = new XAttribute(primitiveName, primitive);
-                });
-                primitiveDeserializationDelegates.Add(bigIntType, (XAttribute serializedPrimitive, out object primitive) =>
+                };
+                PrimitiveTypeInfo.Deserialize bigIntDeserializeDelegate = (XAttribute serializedPrimitive, out object primitive) =>
                 {
                     if (serializedPrimitive == null)
                     {
@@ -477,7 +404,8 @@ namespace LooCast.System.Serialization
                     }
 
                     primitive = bigIntValue;
-                });
+                };
+                registeredPrimitiveTypeInfos.Add(bigIntType, new PrimitiveTypeInfo(bigIntType, bigIntSerializeDelegate, bigIntDeserializeDelegate));
                 #endregion
 
                 #region Type caching
@@ -487,115 +415,10 @@ namespace LooCast.System.Serialization
                 IEnumerable<Assembly> allInitialAssemblyDefinitions = AppDomain.CurrentDomain.GetAssemblies();
                 IEnumerable<Type> allInitialTypeDefinitions = allInitialAssemblyDefinitions.SelectMany(assembly => assembly.GetTypes());
 
-                // TODO: Maybe somehow more clearly distinguish between the 5 phases of the type caching:
-                // 1.   Determine & Cache type meta info
-                // 2.   Determine & Cache type serializability
-                // 3.   Determine & Cache type info
-                // 4.   Determine & Cache type serialization delegates
-                // 5.   Determine & Cache type serialization sub delegates
-
-                // TODO: Maybe somehow make this whole process a bit more extensible, so you can easily load and unload any serializable type
-                // TODO: Also make sure that the type caching is done in a way that it can be done in parallel, so that it can be done in a separate thread
-                // TODO: Also make sure that the type caching is designed to cache multiple types with one method call, because implementing this system for a single type and then executing that multiple times would be very inefficient.
-                // TODO: Also like create a TypeManager or AssemblyManager or CSharpManager or something like that, which keeps track of loaded assemblies and types, and can load/unload those in a managed way,
-                // so that the SerializationManager is informed of Type additions/deletions and can update its caching cache accordingly
-
-                // TODO: But before all of this, make sure that the base system works as intended, before adding new features to it
-
-                foreach (Type initialTypeDefinition in allInitialTypeDefinitions)
-                {
-                    if (!initialTypeDefinition.IsGenericTypeDefinition)
-                    {
-                        if (!serializabilityCache.ContainsKey(initialTypeDefinition))
-                        {
-                            CacheSerializableTypeMetaInfo(initialTypeDefinition);
-                        }
-                    }
-                }
-
-                foreach (KeyValuePair<Type, SerializableTypeMetaInfo> serializableTypeMetaInfoCacheKeyValuePair in serializableTypeMetaInfoCache)
-                {
-                    CacheSerializability(serializableTypeMetaInfoCacheKeyValuePair.Key, serializableTypeMetaInfoCacheKeyValuePair.Value);
-                }
-
-                // TODO: 2. Figure out how to implement the overriding of this caching
-                // Maybe the solution is to allow for a complete override of the serialization process, including type meta info caching, type serializability caching, type info caching, etc.
-                // Don't forget to implement the required methods in the classes which override the behaviour
-                foreach (Type serializablePrimitiveType in allSerializablePrimitiveTypes)
-                {
-                    CacheSerializablePrimitiveTypeInfo(serializablePrimitiveType, serializablePrimitiveTypeMetaInfoCache[serializablePrimitiveType]);
-                }
-                foreach (Type serializableObjectType in allSerializableObjectTypes)
-                {
-                    CacheSerializableObjectTypeInfo(serializableObjectType, serializableObjectTypeMetaInfoCache[serializableObjectType]);
-                }
-                foreach (Type serializableFileType in allSerializableFileTypes)
-                {
-                    CacheSerializableFileTypeInfo(serializableFileType, serializableFileTypeMetaInfoCache[serializableFileType]);
-                }
-                foreach (Type serializableFolderType in allSerializableFolderTypes)
-                {
-                    CacheSerializableFolderTypeInfo(serializableFolderType, serializableFolderTypeMetaInfoCache[serializableFolderType]);
-                }
-
-                List<List<SerializableObjectTypeInfo>> initialSerializableObjectTypeInfoQueues = GetSortedObjectTypeInfos();
-                SerializableFileTypeInfo[] initialSerializableFileTypeDefinitionInfos = serializableFileTypeInfoCache.Values.ToArray();
-                List<List<SerializableFolderTypeInfo>> initialSerializableFolderTypeInfoQueues = GetSortedFolderTypeInfos();
-
-                for (int i = 0; i < initialSerializableObjectTypeInfoQueues.Count; i++)
-                {
-                    List<SerializableObjectTypeInfo> initialSerializableObjectTypeQueue = initialSerializableObjectTypeInfoQueues[i];
-                    
-                    for (int j = 0; j < initialSerializableObjectTypeQueue.Count; j++)
-                    {
-                        SerializableObjectTypeInfo initialSerializableObjectTypeInfo = initialSerializableObjectTypeQueue[j];
-                        CacheObjectSerializationDelegates(initialSerializableObjectTypeInfo);
-                    }
-                }
-                for (int i = 0; i < initialSerializableFileTypeDefinitionInfos.Length; i++)
-                {
-                    SerializableFileTypeInfo initialSerializableFileTypeInfo = initialSerializableFileTypeDefinitionInfos[i];
-                    CacheFileSerializationDelegates(initialSerializableFileTypeInfo);
-                }
-                for (int i = 0; i < initialSerializableFolderTypeInfoQueues.Count; i++)
-                {
-                    List<SerializableFolderTypeInfo> initialSerializableFolderTypeQueue = initialSerializableFolderTypeInfoQueues[i];
-
-                    for (int j = 0; j < initialSerializableFolderTypeQueue.Count; j++)
-                    {
-                        SerializableFolderTypeInfo initialSerializableFolderTypeInfo = initialSerializableFolderTypeQueue[j];
-                        CacheFolderSerializationDelegates(initialSerializableFolderTypeInfo);
-                    }
-                }
-
-                for (int i = 0; i < initialSerializableObjectTypeInfoQueues.Count; i++)
-                {
-                    List<SerializableObjectTypeInfo> initialSerializableObjectTypeQueue = initialSerializableObjectTypeInfoQueues[i];
-
-                    for (int j = 0; j < initialSerializableObjectTypeQueue.Count; j++)
-                    {
-                        SerializableObjectTypeInfo initialSerializableObjectTypeInfo = initialSerializableObjectTypeQueue[j];
-                        CacheObjectSerializationSubDelegates(initialSerializableObjectTypeInfo);
-                    }
-                }
-                for (int i = 0; i < initialSerializableFileTypeDefinitionInfos.Length; i++)
-                {
-                    SerializableFileTypeInfo initialSerializableFileTypeInfo = initialSerializableFileTypeDefinitionInfos[i];
-                    CacheFileSerializationSubDelegates(initialSerializableFileTypeInfo);
-                }
-                for (int i = 0; i < initialSerializableFolderTypeInfoQueues.Count; i++)
-                {
-                    List<SerializableFolderTypeInfo> initialSerializableFolderTypeQueue = initialSerializableFolderTypeInfoQueues[i];
-
-                    for (int j = 0; j < initialSerializableFolderTypeQueue.Count; j++)
-                    {
-                        SerializableFolderTypeInfo initialSerializableFolderTypeInfo = initialSerializableFolderTypeQueue[j];
-                        CacheFolderSerializationSubDelegates(initialSerializableFolderTypeInfo);
-                    }
-                }
+                RegisterTypes(allInitialTypeDefinitions);
 
                 stopwatch.Stop();
-                int cachedTypeCount = allUnserializableTypes.Count + allSerializablePrimitiveTypes.Count + allSerializableObjectTypes.Count + allSerializableFileTypes.Count + allSerializableFolderTypes.Count;
+                int cachedTypeCount = registeredUnserializableTypes.Count + registeredPrimitiveTypeInfos.Count + registeredNonGenericObjectTypeInfos.Count + registeredGenericObjectTypeInfos.Count + registeredFileTypeInfos.Count + registeredFolderTypeInfos.Count;
                 UnityEngine.Debug.Log($"Analyzing {cachedTypeCount} types took {stopwatch.ElapsedMilliseconds}ms");
                 #endregion
 
@@ -648,1228 +471,273 @@ namespace LooCast.System.Serialization
 
         #region Methods
 
-        #region Delegate Management
-        public SerializePrimitiveDelegate GetPrimitiveSerializationDelegate(Type serializablePrimitiveType)
+        #region Type Management
+        /// <summary>
+        /// For performance reasons it is highly recommended to never register only a single type at once!
+        /// </summary>
+        public void RegisterTypes(IEnumerable<Type> types)
         {
-            if (serializablePrimitiveType == null)
+            HashSet<Type> nonGenericObjectTypes = new HashSet<Type>();
+            HashSet<Type> genericObjectTypes = new HashSet<Type>();
+            HashSet<Type> fileTypes = new HashSet<Type>();
+            HashSet<Type> folderTypes = new HashSet<Type>();
+            
+            foreach (Type type in types)
             {
-                throw new ArgumentNullException(nameof(serializablePrimitiveType));
-            }
-
-            if (!primitiveSerializationDelegates.ContainsKey(serializablePrimitiveType))
-            {
-                throw new InvalidOperationException($"No primitive serialization delegate registered for type '{serializablePrimitiveType}'!");
-            }
-
-            return primitiveSerializationDelegates[serializablePrimitiveType];
-        }
-        public DeserializePrimitiveDelegate GetPrimitiveDeserializationDelegate(Type serializablePrimitiveType)
-        {
-            if (serializablePrimitiveType == null)
-            {
-                throw new ArgumentNullException(nameof(serializablePrimitiveType));
-            }
-
-            if (!primitiveDeserializationDelegates.ContainsKey(serializablePrimitiveType))
-            {
-                throw new InvalidOperationException($"No primitive deserialization delegate registered for type '{serializablePrimitiveType}'!");
-            }
-
-            return primitiveDeserializationDelegates[serializablePrimitiveType];
-        }
-
-        public SerializeObjectDelegate GetObjectSerializationDelegate(Type serializableObjectType)
-        {
-            if (serializableObjectType == null)
-            {
-                throw new ArgumentNullException(nameof(serializableObjectType));
-            }
-
-            if (!objectSerializationDelegates.ContainsKey(serializableObjectType))
-            {
-                throw new InvalidOperationException($"No object serialization delegate registered for type '{serializableObjectType}'!");
-            }
-
-            return objectSerializationDelegates[serializableObjectType];
-        }
-        public DeserializeObjectDelegate GetObjectDeserializationDelegate(Type serializableObjectType)
-        {
-            if (serializableObjectType == null)
-            {
-                throw new ArgumentNullException(nameof(serializableObjectType));
-            }
-
-            if (!objectDeserializationDelegates.ContainsKey(serializableObjectType))
-            {
-                throw new InvalidOperationException($"No object deserialization delegate registered for type '{serializableObjectType}'!");
-            }
-
-            return objectDeserializationDelegates[serializableObjectType];
-        }
-
-        public SerializeFileDelegate GetFileSerializationDelegate(Type serializableFileType)
-        {
-            if (serializableFileType == null)
-            {
-                throw new ArgumentNullException(nameof(serializableFileType));
-            }
-
-            if (!fileSerializationDelegates.ContainsKey(serializableFileType))
-            {
-                throw new InvalidOperationException($"No file serialization delegate registered for type '{serializableFileType}'!");
-            }
-
-            return fileSerializationDelegates[serializableFileType];
-        }
-        public DeserializeFileDelegate GetFileDeserializationDelegate(Type serializableFileType)
-        {
-            if (serializableFileType == null)
-            {
-                throw new ArgumentNullException(nameof(serializableFileType));
-            }
-
-            if (!fileDeserializationDelegates.ContainsKey(serializableFileType))
-            {
-                throw new InvalidOperationException($"No file deserialization delegate registered for type '{serializableFileType}'!");
-            }
-
-            return fileDeserializationDelegates[serializableFileType];
-        }
-
-        public SerializeFolderDelegate GetFolderSerializationDelegate(Type serializableFolderType)
-        {
-            if (serializableFolderType == null)
-            {
-                throw new ArgumentNullException(nameof(serializableFolderType));
-            }
-
-            if (!folderSerializationDelegates.ContainsKey(serializableFolderType))
-            {
-                throw new InvalidOperationException($"No folder serialization delegate registered for type '{serializableFolderType}'!");
-            }
-
-            return folderSerializationDelegates[serializableFolderType];
-        }
-        public DeserializeFolderDelegate GetFolderDeserializationDelegate(Type serializableFolderType)
-        {
-            if (serializableFolderType == null)
-            {
-                throw new ArgumentNullException(nameof(serializableFolderType));
-            }
-
-            if (!folderDeserializationDelegates.ContainsKey(serializableFolderType))
-            {
-                throw new InvalidOperationException($"No folder deserialization delegate registered for type '{serializableFolderType}'!");
-            }
-
-            return folderDeserializationDelegates[serializableFolderType];
-        }
-
-        public bool IsPrimitiveTypeSerializationDelegateRegistered(Type serializablePrimitiveType)
-        {
-            return primitiveSerializationDelegates.ContainsKey(serializablePrimitiveType);
-        }
-        public bool IsPrimitiveTypeDeserializationDelegateRegistered(Type serializablePrimitiveType)
-        {
-            return primitiveDeserializationDelegates.ContainsKey(serializablePrimitiveType);
-        }
-
-        public bool IsObjectTypeSerializationDelegateRegistered(Type serializableObjectType)
-        {
-            return objectSerializationDelegates.ContainsKey(serializableObjectType);
-        }
-        public bool IsObjectTypeDeserializationDelegateRegistered(Type serializableObjectType)
-        {
-            return objectDeserializationDelegates.ContainsKey(serializableObjectType);
-        }
-
-        public bool IsFileTypeSerializationDelegateRegistered(Type serializableFileType)
-        {
-            return objectSerializationDelegates.ContainsKey(serializableFileType);
-        }
-        public bool IsFileTypeDeserializationDelegateRegistered(Type serializableFileType)
-        {
-            return objectDeserializationDelegates.ContainsKey(serializableFileType);
-        }
-
-        public bool IsFolderTypeSerializationDelegateRegistered(Type serializableFolderType)
-        {
-            return objectSerializationDelegates.ContainsKey(serializableFolderType);
-        }
-        public bool IsFolderTypeDeserializationDelegateRegistered(Type serializableFolderType)
-        {
-            return objectDeserializationDelegates.ContainsKey(serializableFolderType);
-        }
-        #endregion
-
-        public void SerializeFile<SerializableFileType>(string fileName, string fileExtension, string parentFolderPath, SerializableFileType serializableFile, out FileInfo serializedFile)
-        {
-            if (serializableFile == null)
-            {
-                throw new ArgumentNullException(nameof(serializableFile));
-            }
-
-            Type serializableFileType = typeof(SerializableFileType);
-
-            if (!IsFileTypeSerializationDelegateRegistered(serializableFileType))
-            {
-                throw new InvalidOperationException($"No file serialization delegate registered for type '{serializableFileType}'!");
-            }
-
-            fileSerializationDelegates[serializableFileType].Invoke(fileName, fileExtension, parentFolderPath, serializableFile, out serializedFile);
-        }
-
-        public void DeserializeFile<SerializableFileType>(FileInfo serializedFile, out SerializableFileType serializableFile)
-        {
-            if (serializedFile == null)
-            {
-                throw new ArgumentNullException(nameof(serializedFile));
-            }
-
-            Type serializableFileType = typeof(SerializableFileType);
-
-            if (!IsFileTypeDeserializationDelegateRegistered(serializableFileType))
-            {
-                throw new InvalidOperationException($"No file deserialization delegate registered for type '{serializableFileType}'!");
-            }
-
-            fileDeserializationDelegates[serializableFileType].Invoke(serializedFile, out object _serializableFile);
-            serializableFile = (SerializableFileType)_serializableFile;
-        }
-
-        public void SerializeFolder<SerializableFolderType>(string folderName, string parentFolderPath, SerializableFolderType serializableFolder, out DirectoryInfo serializedFolder)
-        {
-            if (serializableFolder == null)
-            {
-                throw new ArgumentNullException(nameof(serializableFolder));
-            }
-
-            Type serializableFolderType = typeof(SerializableFolderType);
-
-            if (!IsFolderTypeSerializationDelegateRegistered(serializableFolderType))
-            {
-                throw new InvalidOperationException($"No folder serialization delegate registered for type '{serializableFolderType}'!");
-            }
-
-            folderSerializationDelegates[serializableFolderType].Invoke(folderName, parentFolderPath, serializableFolder, out serializedFolder);
-        }
-
-        public void DeserializeFolder<SerializableFolderType>(DirectoryInfo serializedFolder, out SerializableFolderType serializableFolder)
-        {
-            if (serializedFolder == null)
-            {
-                throw new ArgumentNullException(nameof(serializedFolder));
-            }
-
-            Type serializableFolderType = typeof(SerializableFolderType);
-
-            if (!IsFolderTypeDeserializationDelegateRegistered(serializableFolderType))
-            {
-                throw new InvalidOperationException($"No folder deserialization delegate registered for type '{serializableFolderType}'!");
-            }
-
-            folderDeserializationDelegates[serializableFolderType].Invoke(serializedFolder, out object _serializableFolder);
-            serializableFolder = (SerializableFolderType)_serializableFolder;
-        }
-
-        public SerializableTypeMetaInfo GetSerializableTypeMetaInfo(Type type)
-        {
-            return serializableTypeMetaInfoCache[type];
-        }
-        public SerializablePrimitiveTypeMetaInfo GetSerializablePrimitiveTypeMetaInfo(Type type)
-        {
-            return serializablePrimitiveTypeMetaInfoCache[type];
-        }
-        public SerializableObjectTypeMetaInfo GetSerializableObjectTypeMetaInfo(Type type)
-        {
-            return serializableObjectTypeMetaInfoCache[type];
-        }
-        public SerializableFileTypeMetaInfo GetSerializableFileTypeMetaInfo(Type type)
-        {
-            return serializableFileTypeMetaInfoCache[type];
-        }
-        public SerializableFolderTypeMetaInfo GetSerializableFolderTypeMetaInfo(Type type)
-        {
-            return serializableFolderTypeMetaInfoCache[type];
-        }
-
-        public Serializability GetSerializability(Type type)
-        {
-            if (type == null)
-            {
-                throw new ArgumentNullException(nameof(type));
-            }
-
-            if (!serializabilityCache.ContainsKey(type))
-            {
-                throw new InvalidOperationException($"No serializability cached for type '{type}'!");
-            }
-
-            return serializabilityCache[type];
-        }
-
-        public SerializableTypeInfo GetSerializableTypeInfo(Type serializableType)
-        {
-            return serializableTypeInfoCache[serializableType];
-        }
-        public SerializablePrimitiveTypeInfo GetSerializablePrimitiveTypeInfo(Type serializablePrimitiveType)
-        {
-            return serializablePrimitiveTypeInfoCache[serializablePrimitiveType];
-        }
-        public SerializableObjectTypeInfo GetSerializableObjectTypeInfo(Type serializableObjectType)
-        {
-            return serializableObjectTypeInfoCache[serializableObjectType];
-        }
-        public SerializableFileTypeInfo GetSerializableFileTypeInfo(Type serializableFileType)
-        {
-            return serializableFileTypeInfoCache[serializableFileType];
-        }
-        public SerializableFolderTypeInfo GetSerializableFolderTypeInfo(Type serializableFolderType)
-        {
-            return serializableFolderTypeInfoCache[serializableFolderType];
-        }
-
-        private void CacheSerializableTypeMetaInfo(Type type, List<Type> processedTypeStack = null)
-        {
-            if (type == null)
-            {
-                throw new ArgumentNullException(nameof(type));
-            }
-
-            if (processedTypeStack == null)
-            {
-                processedTypeStack = new List<Type>
+                if (registeredUnserializableTypes.Contains(type))
                 {
-                    type
-                };
-            }
-            else
-            {
-                if (processedTypeStack.Contains(type))
+                    throw new InvalidOperationException($"Type '{type.FullName}' is already registered as unserializable!");
+                }
+                if (registeredPrimitiveTypeInfos.ContainsKey(type))
                 {
-                    string circularPath = string.Join(" -> ", processedTypeStack.Select(_type => _type.FullName)) + " -> " + type.FullName;
-                    throw new Exception($"Circular type dependency detected while caching meta info for type '{type}'! Type dependency chain: {circularPath}");
+                    throw new InvalidOperationException($"Type '{type.FullName}' is already registered as primitive!");
+                }
+                
+                if (type.IsGenericTypeDefinition)
+                {
+                    registeredUnserializableTypes.Add(type);
+                    continue;
+                }
+                if (type.IsAbstract)
+                {
+                    registeredUnserializableTypes.Add(type);
+                    continue;
+                }
+                if (!type.IsPublic && !type.IsNestedPublic)
+                {
+                    registeredUnserializableTypes.Add(type);
+                    continue;
+                }
+                if (!type.IsClass && !type.IsValueType && !type.IsEnum)
+                {
+                    registeredUnserializableTypes.Add(type);
+                    continue;
                 }
 
-                processedTypeStack.Add(type);
-            }
-            
-            if (!serializableTypeMetaInfoCache.ContainsKey(type))
-            {
-                SerializableObjectAttribute serializableObjectAttribute = type.GetCustomAttribute<SerializableObjectAttribute>(false);
+                SerializableNonGenericObjectAttribute serializableNonGenericObjectAttribute = type.GetCustomAttribute<SerializableNonGenericObjectAttribute>(false);
+                SerializableGenericObjectAttribute serializableGenericObjectAttribute = type.GetCustomAttribute<SerializableGenericObjectAttribute>(false);
                 SerializableFileAttribute serializableFileAttribute = type.GetCustomAttribute<SerializableFileAttribute>(false);
                 SerializableFolderAttribute serializableFolderAttribute = type.GetCustomAttribute<SerializableFolderAttribute>(false);
 
-                SerializableTypeMetaInfo serializableTypeMetaInfo = null;
-
-                if (IsPrimitiveTypeSerializationDelegateRegistered(type) && IsPrimitiveTypeDeserializationDelegateRegistered(type))
+                if (serializableNonGenericObjectAttribute == null && serializableGenericObjectAttribute == null && serializableFileAttribute == null && serializableFolderAttribute == null)
                 {
-                    PropertyInfo[] properties = type.GetProperties();
-                    FieldInfo[] fields = type.GetFields();
-                    serializableTypeMetaInfo = new SerializablePrimitiveTypeMetaInfo(type);
+                    throw new Exception($"Type '{type.FullName}' is not marked as serializable!");
                 }
-                else if (serializableFolderAttribute != null)
+                if (!(serializableNonGenericObjectAttribute != null ^ serializableGenericObjectAttribute != null ^ serializableFileAttribute != null ^ serializableFolderAttribute != null))
                 {
-                    PropertyInfo[] properties = type.GetProperties();
-                    FieldInfo[] fields = type.GetFields();
-                    bool isSerializationCompletelyOverridden = serializableObjectAttribute.OverrideSerialization && serializableObjectAttribute.OverrideDeserialization;
-                    bool isSerializableTypeInfoCachingOverridden = serializableObjectAttribute.OverrideSerializableTypeInfoCaching;
-                    serializableTypeMetaInfo = new SerializableObjectTypeMetaInfo(type, properties, fields, isSerializationCompletelyOverridden, isSerializableTypeInfoCachingOverridden);
+                    throw new Exception($"Type '{type.FullName}' is marked as more than one serializable type!");
+                }
+
+                if (serializableNonGenericObjectAttribute != null)
+                {
+                    nonGenericObjectTypes.Add(type);
+                    continue;
+                }
+                else if (serializableGenericObjectAttribute != null)
+                {
+                    genericObjectTypes.Add(type);
+                    continue;
                 }
                 else if (serializableFileAttribute != null)
                 {
-                    PropertyInfo[] properties = type.GetProperties();
-                    FieldInfo[] fields = type.GetFields();
-                    bool isSerializationCompletelyOverridden = serializableFileAttribute.OverrideSerialization && serializableFileAttribute.OverrideDeserialization;
-                    bool isSerializableTypeInfoCachingOverridden = serializableFileAttribute.OverrideSerializableTypeInfoCaching;
-                    serializableTypeMetaInfo = new SerializableFileTypeMetaInfo(type, properties, fields, isSerializationCompletelyOverridden, isSerializableTypeInfoCachingOverridden);
+                    fileTypes.Add(type);
+                    continue;
                 }
-                else if (serializableObjectAttribute != null)
+                else
                 {
-                    PropertyInfo[] properties = type.GetProperties();
-                    FieldInfo[] fields = type.GetFields();
-                    bool isSerializationCompletelyOverridden = serializableFolderAttribute.OverrideSerialization && serializableFolderAttribute.OverrideDeserialization;
-                    bool isSerializableTypeInfoCachingOverridden = serializableFolderAttribute.OverrideSerializableTypeInfoCaching;
-                    serializableTypeMetaInfo = new SerializableFolderTypeMetaInfo(type, properties, fields, isSerializationCompletelyOverridden, isSerializableTypeInfoCachingOverridden);
+                    folderTypes.Add(type);
+                    continue;
                 }
+            }
+            
+            HashSet<NonGenericObjectTypeInfo> nonGenericObjectTypeInfos = new HashSet<NonGenericObjectTypeInfo>();
+            foreach (Type nonGenericObjectType in nonGenericObjectTypes)
+            {
+                NonGenericObjectTypeInfo nonGenericObjectTypeInfo = new NonGenericObjectTypeInfo(nonGenericObjectType);
+            }
 
-                if (serializableTypeMetaInfo != null)
+            HashSet<GenericObjectTypeInfo> genericObjectTypeInfos = new HashSet<GenericObjectTypeInfo>();
+            foreach (Type genericObjectType in genericObjectTypes)
+            {
+                GenericObjectTypeInfo genericObjectTypeInfo = new GenericObjectTypeInfo(genericObjectType);
+            }
+
+            HashSet<FileTypeInfo> fileTypeInfos = new HashSet<FileTypeInfo>();
+            foreach (Type fileType in fileTypes)
+            {
+                FileTypeInfo fileTypeInfo = new FileTypeInfo(fileType);
+            }
+
+            HashSet<FolderTypeInfo> folderTypeInfos = new HashSet<FolderTypeInfo>();
+            foreach (Type folderType in folderTypes)
+            {
+                FolderTypeInfo folderTypeInfo = new FolderTypeInfo(folderType);
+            }
+
+            PreAnalyzeNonGenericObjectTypes(nonGenericObjectTypeInfos);
+            PreAnalyzeFileTypes(fileTypeInfos);
+            PreAnalyzeFolderTypes(folderTypeInfos);
+
+            AnalyzeNonGenericObjectTypes(nonGenericObjectTypeInfos);
+            AnalyzeGenericObjectTypes(genericObjectTypeInfos);
+            AnalyzeFileTypes(fileTypeInfos);
+            AnalyzeFolderTypes(folderTypeInfos);
+
+            PreProcessNonGenericObjectTypes(nonGenericObjectTypeInfos);
+            PreProcessFileTypes(fileTypeInfos);
+            PreProcessFolderTypes(folderTypeInfos);
+
+            ProcessNonGenericObjectTypes(nonGenericObjectTypeInfos);
+            ProcessGenericObjectTypes(genericObjectTypeInfos);
+            ProcessFileTypes(fileTypeInfos);
+            ProcessFolderTypes(folderTypeInfos);
+
+            // Log all invalidated types somehow. The idea is that some types may be marked as serializable, but ultimately aren't, but are not important enough to throw an exception.
+            // If however some dependency is not met as a consequence of the invalidity, an exception is thrown.
+            // If everything goes to plan regarding the dependencies, the system then logs a Severe Warning about the invalid types,
+            // stating that they will be considered unserializable by the SerializationManager and will probably cause issues down the line.
+            // This is a severe warning and not a hard error, because technically this does not guarantee issues down the line, but it's very likely.
+        }
+
+        /// <summary>
+        /// For performance reasons it is highly recommended to never unregister only a single type at once!
+        /// </summary>
+        public void UnregisterTypes(IEnumerable<Type> types)
+        {
+            
+        }
+        #endregion
+
+        #region Type Analysis & Processing
+        
+        #region Non-Generic Object Type
+        private void PreAnalyzeNonGenericObjectTypes(IEnumerable<NonGenericObjectTypeInfo> nonGenericObjectTypeInfos)
+        {
+            foreach (NonGenericObjectTypeInfo nonGenericObjectTypeInfo in nonGenericObjectTypeInfos)
+            {
+                MethodInfo serializeMethodInfo = nonGenericObjectTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(object), typeof(XElement).MakeByRefType() }, null);
+                MethodInfo deserializeMethodInfo = nonGenericObjectTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(XElement), typeof(object).MakeByRefType() }, null);
+
+                bool fullyOverridden = serializeMethodInfo != null && deserializeMethodInfo != null;
+
+                if (nonGenericObjectTypeInfo.Type.GetConstructor(Type.EmptyTypes) == null && !fullyOverridden)
                 {
-                    switch (serializableTypeMetaInfo.SerializableTypeMetaInfoType)
-                    {
-                        case SerializableTypeMetaInfoType.Primitive:
-                            serializableTypeMetaInfoCache.Add(type, serializableTypeMetaInfo);
-                            serializablePrimitiveTypeMetaInfoCache.Add(type, (SerializablePrimitiveTypeMetaInfo)serializableTypeMetaInfo);
-                            break;
-                        case SerializableTypeMetaInfoType.Object:
-                            serializableTypeMetaInfoCache.Add(type, serializableTypeMetaInfo);
-                            serializableObjectTypeMetaInfoCache.Add(type, (SerializableObjectTypeMetaInfo)serializableTypeMetaInfo);
-                            break;
-                        case SerializableTypeMetaInfoType.File:
-                            serializableTypeMetaInfoCache.Add(type, serializableTypeMetaInfo);
-                            serializableObjectTypeMetaInfoCache.Add(type, (SerializableObjectTypeMetaInfo)serializableTypeMetaInfo);
-                            break;
-                        case SerializableTypeMetaInfoType.Folder:
-                            serializableTypeMetaInfoCache.Add(type, serializableTypeMetaInfo);
-                            serializableObjectTypeMetaInfoCache.Add(type, (SerializableObjectTypeMetaInfo)serializableTypeMetaInfo);
-                            break;
-                    }
-                    
-                    foreach (Type uniqueSubType in serializableTypeMetaInfo.UniqueSubTypes)
-                    {
-                        CacheSerializableTypeMetaInfo(uniqueSubType, processedTypeStack);
-                    }
+                    nonGenericObjectTypeInfo.Invalidate();
+                    continue;
                 }
             }
         }
 
-        private void CacheSerializability(Type potentiallySerializableType, SerializableTypeMetaInfo serializableTypeMetaInfo)
+        private void AnalyzeNonGenericObjectTypes(IEnumerable<NonGenericObjectTypeInfo> nonGenericObjectTypeInfos)
         {
-            if (potentiallySerializableType == null)
-            {
-                throw new ArgumentNullException(nameof(potentiallySerializableType));
-            }
             
-            Serializability serializability = Serializability.None;
-            
-            if (!serializabilityCache.TryGetValue(potentiallySerializableType, out serializability))
-            {
-                if ((potentiallySerializableType.IsPublic || potentiallySerializableType.IsNestedPublic) && 
-                    !potentiallySerializableType.IsAbstract && 
-                    (potentiallySerializableType.IsClass || potentiallySerializableType.IsValueType || potentiallySerializableType.IsEnum) &&
-                    serializableTypeMetaInfo != null && 
-                    (potentiallySerializableType.GetConstructor(Type.EmptyTypes) != null || serializableTypeMetaInfo.IsSerializationCompletelyOverridden))
-                {
-                    switch (serializableTypeMetaInfo.SerializableTypeMetaInfoType)
-                    {
-                        case SerializableTypeMetaInfoType.Primitive:
-                            serializability = Serializability.Primitive;
-                            break;
-                        case SerializableTypeMetaInfoType.Object:
-                            serializability = Serializability.Object;
-                            break;
-                        case SerializableTypeMetaInfoType.File:
-                            serializability = Serializability.File;
-                            break;
-                        case SerializableTypeMetaInfoType.Folder:
-                            serializability = Serializability.Folder;
-                            break;
-                    }
-                }
-            }
-
-            serializabilityCache.Add(potentiallySerializableType, serializability);
-
-            switch (serializability)
-            {
-                case Serializability.None:
-                    allUnserializableTypes.Add(potentiallySerializableType);
-                    break;
-                case Serializability.Primitive:
-                    allSerializablePrimitiveTypes.Add(potentiallySerializableType);
-                    break;
-                case Serializability.Object:
-                    allSerializableObjectTypes.Add(potentiallySerializableType);
-                    break;
-                case Serializability.File:
-                    allSerializableFileTypes.Add(potentiallySerializableType);
-                    break;
-                case Serializability.Folder:
-                    allSerializableFolderTypes.Add(potentiallySerializableType);
-                    break;
-            }
-
-            if (serializability != Serializability.None)
-            {
-                foreach (Type uniqueSubType in serializableTypeMetaInfo.UniqueSubTypes)
-                {
-                    CacheSerializability(uniqueSubType, serializableTypeMetaInfo);
-                }
-            }
         }
         
-        private void CacheSerializablePrimitiveTypeInfo(Type serializablePrimitiveType, SerializablePrimitiveTypeMetaInfo serializablePrimitiveTypeMetaInfo)
+        private void PreProcessNonGenericObjectTypes(IEnumerable<NonGenericObjectTypeInfo> nonGenericObjectTypeInfos)
         {
-            SerializablePrimitiveTypeInfo serializablePrimitiveTypeInfo = new SerializablePrimitiveTypeInfo(serializablePrimitiveType);
-            
-            serializableTypeInfoCache.Add(serializablePrimitiveType, serializablePrimitiveTypeInfo);
-            serializablePrimitiveTypeInfoCache.Add(serializablePrimitiveType, serializablePrimitiveTypeInfo);
+
         }
 
-        private void CacheSerializableObjectTypeInfo(Type serializableObjectType, SerializableObjectTypeMetaInfo serializableObjectTypeMetaInfo)
+        private void ProcessNonGenericObjectTypes(IEnumerable<NonGenericObjectTypeInfo> nonGenericObjectTypeInfos)
         {
-            SerializableObjectTypeInfo serializableObjectTypeInfo = null;
-            
-            if (serializableObjectTypeMetaInfo.IsSerializableTypeInfoCachingOverridden)
-            {
-                // TODO: return the type info from the static override method from the type
-                // TODO: Also ensure that the generic type definitions without provided generic type parameters, in the initial type definitions, are never checked for serializability or anything like that
-            }
-            else
-            {
-                HashSet<SerializablePrimitiveTypeInfo> subSerializablePrimitiveTypeInfos = new HashSet<SerializablePrimitiveTypeInfo>();
-                HashSet<SerializableObjectTypeInfo> subSerializableObjectTypeInfos = new HashSet<SerializableObjectTypeInfo>();
 
-                foreach (Type uniqueSubType in serializableObjectTypeMetaInfo.UniqueSubTypes)
+        }
+        #endregion
+
+        #region Generic Object Type
+        private void AnalyzeGenericObjectTypes(IEnumerable<GenericObjectTypeInfo> genericObjectTypeInfos)
+        {
+            foreach (GenericObjectTypeInfo genericObjectTypeInfo in genericObjectTypeInfos)
+            {
+                MethodInfo serializeMethodInfo = genericObjectTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(object), typeof(XElement).MakeByRefType() }, null);
+                MethodInfo deserializeMethodInfo = genericObjectTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(XElement), typeof(object).MakeByRefType() }, null);
+
+                bool fullyOverridden = serializeMethodInfo != null && deserializeMethodInfo != null;
+
+                if (!fullyOverridden)
                 {
-                    Serializability uniqueSubTypeSerializability = GetSerializability(uniqueSubType);
-                    switch (uniqueSubTypeSerializability)
-                    {
-                        case Serializability.Primitive:
-                            SerializablePrimitiveTypeInfo subSerializablePrimitiveTypeInfo;
-                            if (!serializablePrimitiveTypeInfoCache.TryGetValue(uniqueSubType, out subSerializablePrimitiveTypeInfo))
-                            {
-                                CacheSerializablePrimitiveTypeInfo(uniqueSubType, GetSerializablePrimitiveTypeMetaInfo(uniqueSubType));
-                            }
-                            else
-                            {
-                                subSerializablePrimitiveTypeInfo = GetSerializablePrimitiveTypeInfo(uniqueSubType);
-                            }
-                            subSerializablePrimitiveTypeInfos.Add(subSerializablePrimitiveTypeInfo);
-                            break;
-                        case Serializability.Object:
-                            SerializableObjectTypeInfo subSerializableObjectTypeInfo;
-                            if (!serializableObjectTypeInfoCache.TryGetValue(uniqueSubType, out subSerializableObjectTypeInfo))
-                            {
-                                CacheSerializableObjectTypeInfo(uniqueSubType, GetSerializableObjectTypeMetaInfo(uniqueSubType));
-                            }
-                            else
-                            {
-                                subSerializableObjectTypeInfo = GetSerializableObjectTypeInfo(uniqueSubType);
-                            }
-                            subSerializableObjectTypeInfos.Add(subSerializableObjectTypeInfo);
-                            break;
-                        case Serializability.File:
-                            throw new InvalidOperationException($"Serializable object types cannot contain serializable file types! Serializable object type: '{serializableObjectType}'");
-                        case Serializability.Folder:
-                            throw new InvalidOperationException($"Serializable object types cannot contain serializable folder types! Serializable object type: '{serializableObjectType}'");
-                    }
+                    genericObjectTypeInfo.Invalidate();
+                    continue;
                 }
-
-                serializableObjectTypeInfo = new SerializableObjectTypeInfo(serializableObjectType, subSerializablePrimitiveTypeInfos, subSerializableObjectTypeInfos);
             }
-            
-            serializableTypeInfoCache.Add(serializableObjectType, serializableObjectTypeInfo);
-            serializableObjectTypeInfoCache.Add(serializableObjectType, serializableObjectTypeInfo);
         }
 
-        private void CacheSerializableFileTypeInfo(Type serializableFileType, SerializableFileTypeMetaInfo serializableFileTypeMetaInfo)
+        private void ProcessGenericObjectTypes(IEnumerable<GenericObjectTypeInfo> genericObjectTypeInfos)
         {
-            SerializableFileTypeInfo serializableFileTypeInfo = null;
-            
-            if (serializableFileTypeMetaInfo.IsSerializableTypeInfoCachingOverridden)
-            {
-                // TODO: return the type info from the static override method from the type
-                // TODO: Also ensure that the generic type definitions without provided generic type parameters, in the initial type definitions, are never checked for serializability or anything like that
-            }
-            else
-            {
-                HashSet<SerializableObjectTypeInfo> subSerializableObjectTypeInfos = new HashSet<SerializableObjectTypeInfo>();
 
-                foreach (Type uniqueSubType in serializableFileTypeMetaInfo.UniqueSubTypes)
+        }
+        #endregion
+
+        #region File Type
+        private void PreAnalyzeFileTypes(IEnumerable<FileTypeInfo> fileTypeInfos)
+        {
+            foreach (FileTypeInfo fileTypeInfo in fileTypeInfos)
+            {
+                MethodInfo serializeMethodInfo = fileTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(string), typeof(string), typeof(object), typeof(FileInfo).MakeByRefType() }, null);
+                MethodInfo deserializeMethodInfo = fileTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(FileInfo), typeof(object).MakeByRefType() }, null);
+
+                bool fullyOverridden = serializeMethodInfo != null && deserializeMethodInfo != null;
+
+                if (fileTypeInfo.Type.GetConstructor(Type.EmptyTypes) == null && !fullyOverridden)
                 {
-                    Serializability uniqueSubTypeSerializability = GetSerializability(uniqueSubType);
-                    switch (uniqueSubTypeSerializability)
-                    {
-                        case Serializability.Primitive:
-                            throw new InvalidOperationException($"Serializable file types cannot contain serializable primitive types! Serializable file type: '{serializableFileType}'");
-                        case Serializability.Object:
-                            SerializableObjectTypeInfo subSerializableObjectTypeInfo;
-                            if (!serializableObjectTypeInfoCache.TryGetValue(uniqueSubType, out subSerializableObjectTypeInfo))
-                            {
-                                CacheSerializableObjectTypeInfo(uniqueSubType, GetSerializableObjectTypeMetaInfo(uniqueSubType));
-                            }
-                            else
-                            {
-                                subSerializableObjectTypeInfo = GetSerializableObjectTypeInfo(uniqueSubType);
-                            }
-                            subSerializableObjectTypeInfos.Add(subSerializableObjectTypeInfo);
-                            break;
-                        case Serializability.File:
-                            throw new InvalidOperationException($"Serializable file types cannot contain serializable file types! Serializable file type: '{serializableFileType}'");
-                        case Serializability.Folder:
-                            throw new InvalidOperationException($"Serializable file types cannot contain serializable folder types! Serializable file type: '{serializableFileType}'");
-                    }
+                    fileTypeInfo.Invalidate();
+                    continue;
                 }
-
-                serializableFileTypeInfo = new SerializableFileTypeInfo(serializableFileType, subSerializableObjectTypeInfos);
             }
-            
-            serializableTypeInfoCache.Add(serializableFileType, serializableFileTypeInfo);
-            serializableFileTypeInfoCache.Add(serializableFileType, serializableFileTypeInfo);
         }
 
-        private void CacheSerializableFolderTypeInfo(Type serializableFolderType, SerializableFolderTypeMetaInfo serializableFolderTypeMetaInfo)
+        private void AnalyzeFileTypes(IEnumerable<FileTypeInfo> fileTypeInfos)
         {
-            SerializableFolderTypeInfo serializableFolderTypeInfo = null;
-            
-            if (serializableFolderTypeMetaInfo.IsSerializableTypeInfoCachingOverridden)
-            {
-                // TODO: return the type info from the static override method from the type
-                // TODO: Also ensure that the generic type definitions without provided generic type parameters, in the initial type definitions, are never checked for serializability or anything like that
-            }
-            else
-            {
-                HashSet<SerializableFileTypeInfo> subSerializableFileTypeInfos = new HashSet<SerializableFileTypeInfo>();
-                HashSet<SerializableFolderTypeInfo> subSerializableFolderTypeInfos = new HashSet<SerializableFolderTypeInfo>();
-                
-                foreach (Type uniqueSubType in serializableFolderTypeMetaInfo.UniqueSubTypes)
-                {
-                    Serializability uniqueSubTypeSerializability = GetSerializability(uniqueSubType);
-                    switch (uniqueSubTypeSerializability)
-                    {
-                        case Serializability.Primitive:
-                            throw new InvalidOperationException($"Serializable folder types cannot contain serializable primitive types! Serializable folder type: '{serializableFolderType}'");
-                        case Serializability.Object:
-                            throw new InvalidOperationException($"Serializable folder types cannot contain serializable object types! Serializable folder type: '{serializableFolderType}'");
-                        case Serializability.File:
-                            SerializableFileTypeInfo subSerializableFileTypeInfo;
-                            if (!serializableFileTypeInfoCache.TryGetValue(uniqueSubType, out subSerializableFileTypeInfo))
-                            {
-                                CacheSerializableFileTypeInfo(uniqueSubType, GetSerializableFileTypeMetaInfo(uniqueSubType));
-                            }
-                            else
-                            {
-                                subSerializableFileTypeInfo = GetSerializableFileTypeInfo(uniqueSubType);
-                            }
-                            subSerializableFileTypeInfos.Add(subSerializableFileTypeInfo);
-                            break;
-                        case Serializability.Folder:
-                            SerializableFolderTypeInfo subSerializableFolderTypeInfo;
-                            if (!serializableFolderTypeInfoCache.TryGetValue(uniqueSubType, out subSerializableFolderTypeInfo))
-                            {
-                                CacheSerializableFolderTypeInfo(uniqueSubType, GetSerializableFolderTypeMetaInfo(uniqueSubType));
-                            }
-                            else
-                            {
-                                subSerializableFolderTypeInfo = GetSerializableFolderTypeInfo(uniqueSubType);
-                            }
-                            subSerializableFolderTypeInfos.Add(subSerializableFolderTypeInfo);
-                            break;
-                    }
-                }
 
-                serializableFolderTypeInfo = new SerializableFolderTypeInfo(serializableFolderType, subSerializableFileTypeInfos, subSerializableFolderTypeInfos);
-            }
-            
-            serializableTypeInfoCache.Add(serializableFolderType, serializableFolderTypeInfo);
-            serializableFolderTypeInfoCache.Add(serializableFolderType, serializableFolderTypeInfo);
         }
 
-        // TODO: Optimize
-        private List<List<SerializableObjectTypeInfo>> GetSortedObjectTypeInfos()
+        private void PreProcessFileTypes(IEnumerable<FileTypeInfo> fileTypeInfos)
         {
-            List<SerializableObjectTypeInfo> serializableObjectTypeDefinitionInfos = serializableObjectTypeInfoCache.Values.ToList();
 
-            List<List<SerializableObjectTypeInfo>> serializableObjectTypeQueues = new List<List<SerializableObjectTypeInfo>>();
-            HashSet<Type> allProcessedTypes = new HashSet<Type>();
-
-            int lastCount = serializableObjectTypeDefinitionInfos.Count;
-            while (serializableObjectTypeDefinitionInfos.Count > 0)
-            {
-                HashSet<Type> processedTypes = new HashSet<Type>();
-                List<SerializableObjectTypeInfo> serializableObjectTypeQueue = new List<SerializableObjectTypeInfo>();
-                List<SerializableObjectTypeInfo> toRemove = new List<SerializableObjectTypeInfo>();
-
-                foreach (SerializableObjectTypeInfo serializableObjectTypeDefinitionInfo in serializableObjectTypeDefinitionInfos)
-                {
-                    bool allSubTypesProcessed = true;
-                    foreach (SerializableObjectTypeInfo subTypeInfo in serializableObjectTypeDefinitionInfo.SubSerializableObjectTypeInfos)
-                    {
-                        if (!allProcessedTypes.Contains(subTypeInfo.SerializableObjectType))
-                        {
-                            allSubTypesProcessed = false;
-                            break;
-                        }
-                    }
-
-                    if (allSubTypesProcessed)
-                    {
-                        serializableObjectTypeQueue.Add(serializableObjectTypeDefinitionInfo);
-                        processedTypes.Add(serializableObjectTypeDefinitionInfo.SerializableObjectType);
-                        toRemove.Add(serializableObjectTypeDefinitionInfo);
-                    }
-                }
-
-                foreach (Type processedType in processedTypes)
-                {
-                    allProcessedTypes.Add(processedType);
-                }
-
-                foreach (SerializableObjectTypeInfo item in toRemove)
-                {
-                    serializableObjectTypeDefinitionInfos.Remove(item);
-                }
-
-                if (serializableObjectTypeQueue.Count > 0)
-                {
-                    serializableObjectTypeQueues.Add(serializableObjectTypeQueue);
-                }
-
-                if (lastCount == serializableObjectTypeDefinitionInfos.Count)
-                {
-                    throw new InfiniteLoopException();
-                }
-
-                lastCount = serializableObjectTypeDefinitionInfos.Count;
-            }
-
-            return serializableObjectTypeQueues;
         }
 
-        // TODO: Optimize
-        private List<List<SerializableFolderTypeInfo>> GetSortedFolderTypeInfos()
+        private void ProcessFileTypes(IEnumerable<FileTypeInfo> fileTypeInfos)
         {
-            List<SerializableFolderTypeInfo> serializableFolderTypeDefinitionInfos = serializableFolderTypeInfoCache.Values.ToList();
-            
-            List<List<SerializableFolderTypeInfo>> serializableFolderTypeQueues = new List<List<SerializableFolderTypeInfo>>();
-            HashSet<Type> allProcessedTypes = new HashSet<Type>();
 
-            int lastCount = serializableFolderTypeDefinitionInfos.Count;
-            while (serializableFolderTypeDefinitionInfos.Count > 0)
+        }
+        #endregion
+
+        #region Folder Type
+        private void PreAnalyzeFolderTypes(IEnumerable<FolderTypeInfo> folderTypeInfos)
+        {
+            foreach (FolderTypeInfo folderTypeInfo in folderTypeInfos)
             {
-                HashSet<Type> processedTypes = new HashSet<Type>();
-                List<SerializableFolderTypeInfo> serializableFolderTypeQueue = new List<SerializableFolderTypeInfo>();
-                List<SerializableFolderTypeInfo> toRemove = new List<SerializableFolderTypeInfo>();
+                MethodInfo serializeMethodInfo = folderTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(string), typeof(object), typeof(DirectoryInfo).MakeByRefType() }, null);
+                MethodInfo deserializeMethodInfo = folderTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(DirectoryInfo), typeof(object).MakeByRefType() }, null);
 
-                foreach (SerializableFolderTypeInfo serializableFolderTypeDefinitionInfo in serializableFolderTypeDefinitionInfos)
+                bool fullyOverridden = serializeMethodInfo != null && deserializeMethodInfo != null;
+
+                if (folderTypeInfo.Type.GetConstructor(Type.EmptyTypes) == null && !fullyOverridden)
                 {
-                    bool allSubTypesProcessed = true;
-                    foreach (SerializableFolderTypeInfo subTypeInfo in serializableFolderTypeDefinitionInfo.SubSerializableFolderTypeInfos)
-                    {
-                        if (!allProcessedTypes.Contains(subTypeInfo.SerializableFolderType))
-                        {
-                            allSubTypesProcessed = false;
-                            break;
-                        }
-                    }
-
-                    if (allSubTypesProcessed)
-                    {
-                        serializableFolderTypeQueue.Add(serializableFolderTypeDefinitionInfo);
-                        processedTypes.Add(serializableFolderTypeDefinitionInfo.SerializableFolderType);
-                        toRemove.Add(serializableFolderTypeDefinitionInfo);
-                    }
+                    folderTypeInfo.Invalidate();
+                    continue;
                 }
-
-                foreach (Type processedType in processedTypes)
-                {
-                    allProcessedTypes.Add(processedType);
-                }
-
-                foreach (SerializableFolderTypeInfo item in toRemove)
-                {
-                    serializableFolderTypeDefinitionInfos.Remove(item);
-                }
-
-                if (serializableFolderTypeQueue.Count > 0)
-                {
-                    serializableFolderTypeQueues.Add(serializableFolderTypeQueue);
-                }
-
-                if (lastCount == serializableFolderTypeDefinitionInfos.Count)
-                {
-                    throw new InfiniteLoopException();
-                }
-
-                lastCount = serializableFolderTypeDefinitionInfos.Count;
             }
-
-            return serializableFolderTypeQueues;
         }
 
-        // TODO: Integrate into updated framework (utilize the cached typeMetaInfos and typeInfos)
-        // TODO: Split into manageable chunks (chunks = methods)
-        private void CacheObjectSerializationDelegates(SerializableObjectTypeInfo serializableObjectTypeInfo)
+        private void AnalyzeFolderTypes(IEnumerable<FolderTypeInfo> folderTypeInfos)
         {
-            Type serializableObjectType = serializableObjectTypeInfo.SerializableObjectType;
-            SerializableObjectTypeMetaInfo serializableObjectTypeMetaInfo = serializableObjectTypeMetaInfoCache[serializableObjectType];
 
-            SerializableObjectAttribute serializableObjectAttribute = serializableObjectType.GetCustomAttribute<SerializableObjectAttribute>();
-
-            bool overrideSerialization = serializableObjectAttribute.OverrideSerialization;
-            bool overrideDeserialization = serializableObjectAttribute.OverrideDeserialization;
-
-            if (overrideSerialization)
-            {
-                MethodInfo methodInfo = serializableObjectType.GetMethod("SerializeObject", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(object), typeof(XElement).MakeByRefType() }, null);
-
-                if (methodInfo == null)
-                {
-                    throw new Exception($"Type '{serializableObjectType}' is marked as overriding the defualt serialization behaviour, but it does not implement a method with the signature 'public static void SerializeObject(string listName, object _object, out XElement serializedList)'!");
-                }
-
-                objectSerializationDelegates.Add(serializableObjectType, (SerializeObjectDelegate)methodInfo.CreateDelegate(typeof(SerializeObjectDelegate)));
-            }
-            if (overrideDeserialization)
-            {
-                MethodInfo methodInfo = serializableObjectType.GetMethod("DeserializeObject", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(XElement), typeof(object).MakeByRefType() }, null);
-
-                if (methodInfo == null)
-                {
-                    throw new Exception($"Type '{serializableObjectType}' is marked as overriding the defualt deserialization behaviour, but it does not implement a method with the signature 'public static void DeserializeObject(XElement serializedList, out object _object)'!");
-                }
-
-                objectDeserializationDelegates.Add(serializableObjectType, (DeserializeObjectDelegate)methodInfo.CreateDelegate(typeof(DeserializeObjectDelegate)));
-            }
-            if (overrideSerialization && overrideDeserialization)
-            {
-                return;
-            }
-
-            PropertyInfo[] properties = serializableObjectTypeMetaInfo.Properties;
-            FieldInfo[] fields = serializableObjectTypeMetaInfo.Fields;
-
-            Dictionary<string, SerializePrimitiveDelegate> serializePrimitivePropertyDelegates = new Dictionary<string, SerializePrimitiveDelegate>();
-            Dictionary<string, DeserializePrimitiveDelegate> deserializePrimitivePropertyDelegates = new Dictionary<string, DeserializePrimitiveDelegate>();
-
-            Dictionary<string, SerializeObjectDelegate> serializeObjectPropertyDelegates = new Dictionary<string, SerializeObjectDelegate>();
-            Dictionary<string, DeserializeObjectDelegate> deserializeObjectPropertyDelegates = new Dictionary<string, DeserializeObjectDelegate>();
-
-            Dictionary<string, SerializePrimitiveDelegate> serializePrimitiveFieldDelegates = new Dictionary<string, SerializePrimitiveDelegate>();
-            Dictionary<string, DeserializePrimitiveDelegate> deserializePrimitiveFieldDelegates = new Dictionary<string, DeserializePrimitiveDelegate>();
-
-            Dictionary<string, SerializeObjectDelegate> serializeObjectFieldDelegates = new Dictionary<string, SerializeObjectDelegate>();
-            Dictionary<string, DeserializeObjectDelegate> deserializeObjectFieldDelegates = new Dictionary<string, DeserializeObjectDelegate>();
-
-            Dictionary<Type, SerializePrimitiveDelegate> primitiveSerializationSubDelegateDictionary = primitiveSerializationSubDelegateDictionaries[serializableObjectType];
-            Dictionary<Type, DeserializePrimitiveDelegate> primitiveDeserializationSubDelegateDictionary = primitiveDeserializationSubDelegateDictionaries[serializableObjectType];
-
-            Dictionary<Type, SerializeObjectDelegate> objectSerializationSubDelegateDictionary = objectSerializationSubDelegateDictionaries[serializableObjectType];
-            Dictionary<Type, DeserializeObjectDelegate> objectDeserializationSubDelegateDictionary = objectDeserializationSubDelegateDictionaries[serializableObjectType];
-
-            for (int i = 0; i < properties.Length; i++)
-            {
-                PropertyInfo property = properties[i];
-                Type propertyType = property.PropertyType;
-                Serializability propertySerializability = GetSerializability(propertyType);
-
-                switch (propertySerializability)
-                {
-                    case Serializability.Primitive:
-                        if (!overrideSerialization)
-                        {
-                            if (!IsPrimitiveTypeSerializationDelegateRegistered(propertyType))
-                            {
-                                throw new Exception($"No primitive serialization delegate registered for type '{propertyType}'!");
-                            }
-                            
-                            serializePrimitivePropertyDelegates.Add(property.Name, primitiveSerializationSubDelegateDictionary[propertyType]);
-                        }
-                        if (!overrideDeserialization)
-                        {
-                            if (!IsPrimitiveTypeDeserializationDelegateRegistered(propertyType))
-                            {
-                                throw new Exception($"No primitive deserialization delegate registered for type '{propertyType}'!");
-                            }
-                            
-                            deserializePrimitivePropertyDelegates.Add(property.Name, primitiveDeserializationSubDelegateDictionary[propertyType]);
-                        }
-                        break;
-                    case Serializability.Object:
-                        if (!overrideSerialization)
-                        {
-                            if (!IsObjectTypeSerializationDelegateRegistered(propertyType))
-                            {
-                                throw new Exception($"No object serialization delegate registered for type '{propertyType}'!");
-                            }
-                            
-                            serializeObjectPropertyDelegates.Add(property.Name, objectSerializationSubDelegateDictionary[propertyType]);
-                        }
-                        if (!overrideDeserialization)
-                        {
-                            if (!IsObjectTypeDeserializationDelegateRegistered(propertyType))
-                            {
-                                throw new Exception($"No object deserialization delegate registered for type '{propertyType}'!");
-                            }
-
-                            deserializeObjectPropertyDelegates.Add(property.Name, objectDeserializationSubDelegateDictionary[propertyType]);
-                        }
-                        break;
-                    case Serializability.File:
-                        throw new Exception($"Properties of serializable objects may not be files!");
-                    case Serializability.Folder:
-                        throw new Exception($"Properties of serializable objects may not be folders!");
-                }
-            }
-
-            for (int i = 0; i < fields.Length; i++)
-            {
-                FieldInfo field = fields[i];
-                Type fieldType = field.FieldType;
-                Serializability fieldSerializability = GetSerializability(fieldType);
-                
-                switch (fieldSerializability)
-                {
-                    case Serializability.Primitive:
-                        if (!overrideSerialization)
-                        {
-                            if (!IsPrimitiveTypeSerializationDelegateRegistered(fieldType))
-                            {
-                                throw new Exception($"No primitive serialization delegate registered for type '{fieldType}'!");
-                            }
-                            serializePrimitiveFieldDelegates.Add(field.Name, primitiveSerializationSubDelegateDictionary[fieldType]);
-                        }
-                        if (!overrideDeserialization)
-                        {
-                            if (!IsPrimitiveTypeDeserializationDelegateRegistered(fieldType))
-                            {
-                                throw new Exception($"No primitive deserialization delegate registered for type '{fieldType}'!");
-                            }
-                            deserializePrimitiveFieldDelegates.Add(field.Name, primitiveDeserializationSubDelegateDictionary[fieldType]);
-                        }
-                        break;
-                    case Serializability.Object:
-                        if (!overrideSerialization)
-                        {
-                            if (!IsObjectTypeSerializationDelegateRegistered(fieldType))
-                            {
-                                throw new Exception($"No object serialization delegate registered for type '{fieldType}'!");
-                            }
-
-                            serializeObjectFieldDelegates.Add(field.Name, objectSerializationSubDelegateDictionary[fieldType]);
-                        }
-                        if (!overrideDeserialization)
-                        {
-                            if (!IsObjectTypeDeserializationDelegateRegistered(fieldType))
-                            {
-                                throw new Exception($"No object deserialization delegate registered for type '{fieldType}'!");
-                            }
-
-                            deserializeObjectFieldDelegates.Add(field.Name, objectDeserializationSubDelegateDictionary[fieldType]);
-                        }
-                        break;
-                    case Serializability.File:
-                        throw new Exception($"Fields of serializable objects may not be files!");
-                    case Serializability.Folder:
-                        throw new Exception($"Fields of serializable objects may not be folders!");
-                }
-            }
-
-            if (!overrideSerialization)
-            {
-                objectSerializationDelegates.Add(serializableObjectType, (string objectName, object _object, out XElement serializedObject) =>
-                {
-                    serializedObject = new XElement(objectName);
-
-                    PropertyInfo[] properties = serializableObjectType.GetProperties();
-                    FieldInfo[] fields = serializableObjectType.GetFields();
-
-                    foreach (PropertyInfo property in properties)
-                    {
-                        Type propertyType = property.PropertyType;
-                        Serializability propertySerializability = GetSerializability(propertyType);
-                        string propertyName = property.Name;
-                        
-                        switch (propertySerializability)
-                        {
-                            case Serializability.Primitive:
-                                serializePrimitivePropertyDelegates[propertyName].Invoke(propertyName, property.GetValue(_object), out XAttribute serializedPrimitiveProperty);
-                                serializedObject.Add(serializedPrimitiveProperty);
-                                break;
-                            case Serializability.Object:
-                                serializeObjectPropertyDelegates[propertyName].Invoke(propertyName, property.GetValue(_object), out XElement serializedObjectProperty);
-                                serializedObject.Add(serializedObjectProperty);
-                                break;
-                        }
-                    }
-
-                    foreach (FieldInfo field in fields)
-                    {
-                        Type fieldType = field.FieldType;
-                        Serializability fieldSerializability = GetSerializability(fieldType);
-                        string fieldName = field.Name;
-
-                        switch (fieldSerializability)
-                        {
-                            case Serializability.Primitive:
-                                serializePrimitiveFieldDelegates[fieldName].Invoke(fieldName, field.GetValue(_object), out XAttribute serializedPrimitiveField);
-                                serializedObject.Add(serializedPrimitiveField);
-                                break;
-                            case Serializability.Object:
-                                serializeObjectFieldDelegates[fieldName].Invoke(fieldName, field.GetValue(_object), out XElement serializedObjectField);
-                                serializedObject.Add(serializedObjectField);
-                                break;
-                        }
-                    }
-                });
-            }
-            if (!overrideDeserialization)
-            {
-                objectDeserializationDelegates.Add(serializableObjectType, (XElement serializedObject, out object _object) =>
-                {
-                    _object = Activator.CreateInstance(serializableObjectType);
-
-                    PropertyInfo[] properties = serializableObjectType.GetProperties();
-                    FieldInfo[] fields = serializableObjectType.GetFields();
-
-                    XAttribute[] serializedPrimitives = serializedObject.Attributes().ToArray();
-                    XElement[] serializedObjects = serializedObject.Elements().ToArray();
-
-                    foreach (KeyValuePair<string, DeserializePrimitiveDelegate> propertyNamePrimitiveDeserializeDelegatePair in deserializePrimitivePropertyDelegates)
-                    {
-                        PropertyInfo primitiveProperty = properties.FirstOrDefault(property => property.Name == propertyNamePrimitiveDeserializeDelegatePair.Key);
-                        XAttribute serializedPrimitiveProperty = serializedPrimitives.FirstOrDefault(_serializedPrimitive => _serializedPrimitive.Name == propertyNamePrimitiveDeserializeDelegatePair.Key);
-
-                        if (primitiveProperty == null)
-                        {
-                            throw new Exception($"Primitive property '{propertyNamePrimitiveDeserializeDelegatePair.Key}' not found in object type '{serializableObjectType}'!");
-                        }
-                        if (serializedPrimitiveProperty == null)
-                        {
-                            throw new Exception($"Primitive roperty '{propertyNamePrimitiveDeserializeDelegatePair.Key}' not found in serialized object '{serializedObject.Name}'!");
-                        }
-
-                        string primitivePropertyName = primitiveProperty.Name;
-
-                        deserializePrimitivePropertyDelegates[primitivePropertyName].Invoke(serializedPrimitiveProperty, out object primitivePropertyValue);
-                        primitiveProperty.SetValue(_object, primitivePropertyValue);
-                    }
-
-                    foreach (KeyValuePair<string, DeserializeObjectDelegate> propertyNameObjectDeserializeDelegatePair in deserializeObjectPropertyDelegates)
-                    {
-                        PropertyInfo objectProperty = properties.FirstOrDefault(property => property.Name == propertyNameObjectDeserializeDelegatePair.Key);
-                        XElement serializedObjectProperty = serializedObjects.FirstOrDefault(_serializedObject => _serializedObject.Name == propertyNameObjectDeserializeDelegatePair.Key);
-
-                        if (objectProperty == null)
-                        {
-                            throw new Exception($"Object property '{propertyNameObjectDeserializeDelegatePair.Key}' not found in object type '{serializableObjectType}'!");
-                        }
-                        if (serializedObjectProperty == null)
-                        {
-                            throw new Exception($"Object property '{propertyNameObjectDeserializeDelegatePair.Key}' not found in serialized object '{serializedObjectProperty.Name}'!");
-                        }
-
-                        string objectPropertyName = objectProperty.Name;
-
-                        deserializeObjectPropertyDelegates[objectPropertyName].Invoke(serializedObjectProperty, out object objectPropertyValue);
-                        objectProperty.SetValue(_object, objectPropertyValue);
-                    }
-
-                    foreach (KeyValuePair<string, DeserializePrimitiveDelegate> fieldNamePrimitiveDeserializeDelegatePair in deserializePrimitiveFieldDelegates)
-                    {
-                        FieldInfo primitiveField = fields.FirstOrDefault(field => field.Name == fieldNamePrimitiveDeserializeDelegatePair.Key);
-                        XAttribute serializedPrimitiveField = serializedPrimitives.FirstOrDefault(_serializedPrimitive => _serializedPrimitive.Name == fieldNamePrimitiveDeserializeDelegatePair.Key);
-
-                        if (primitiveField == null)
-                        {
-                            throw new Exception($"Primitive field '{fieldNamePrimitiveDeserializeDelegatePair.Key}' not found in object type '{serializableObjectType}'!");
-                        }
-                        if (serializedPrimitiveField == null)
-                        {
-                            throw new Exception($"Primitive field '{fieldNamePrimitiveDeserializeDelegatePair.Key}' not found in serialized object '{serializedObject.Name}'!");
-                        }
-
-                        string primitiveFieldName = primitiveField.Name;
-
-                        deserializePrimitiveFieldDelegates[primitiveFieldName].Invoke(serializedPrimitiveField, out object primitiveFieldValue);
-                        primitiveField.SetValue(_object, primitiveFieldValue);
-                    }
-
-                    foreach (KeyValuePair<string, DeserializeObjectDelegate> fieldNameObjectDeserializeDelegatePair in deserializeObjectFieldDelegates)
-                    {
-                        FieldInfo objectField = fields.FirstOrDefault(field => field.Name == fieldNameObjectDeserializeDelegatePair.Key);
-                        XElement serializedObjectField = serializedObjects.FirstOrDefault(_serializedObject => _serializedObject.Name == fieldNameObjectDeserializeDelegatePair.Key);
-
-                        if (objectField == null)
-                        {
-                            throw new Exception($"Object field '{fieldNameObjectDeserializeDelegatePair.Key}' not found in object type '{serializableObjectType}'!");
-                        }
-                        if (serializedObjectField == null)
-                        {
-                            throw new Exception($"Object field '{fieldNameObjectDeserializeDelegatePair.Key}' not found in serialized object '{serializedObjectField.Name}'!");
-                        }
-
-                        string objectFieldName = objectField.Name;
-
-                        deserializeObjectFieldDelegates[objectFieldName].Invoke(serializedObjectField, out object objectFieldValue);
-                        objectField.SetValue(_object, objectFieldValue);
-                    }
-                });
-            }
-        }
-        
-        // TODO: Implement
-        private void CacheFileSerializationDelegates(SerializableFileTypeInfo serializableFileTypeInfo)
-        {
-            
         }
 
-        // TODO: Implement
-        private void CacheFolderSerializationDelegates(SerializableFolderTypeInfo serializableFolderTypeInfo)
+        private void PreProcessFolderTypes(IEnumerable<FolderTypeInfo> folderTypeInfos)
         {
-            
+
         }
 
-        private void CacheObjectSerializationSubDelegates(SerializableObjectTypeInfo serializableObjectTypeInfo)
+        private void ProcessFolderTypes(IEnumerable<FolderTypeInfo> folderTypeInfos)
         {
-            Type serializableObjectType = serializableObjectTypeInfo.SerializableObjectType;
-            
-            if (primitiveSerializationSubDelegateDictionaries.ContainsKey(serializableObjectType))
-            {
-                throw new Exception($"The primitive serialization sub delegates for object type '{serializableObjectType}' are already registered!");
-            }
-            if (primitiveDeserializationSubDelegateDictionaries.ContainsKey(serializableObjectType))
-            {
-                throw new Exception($"The primitive deserialization sub delegates for object type '{serializableObjectType}' are already registered!");
-            }
 
-            if (objectSerializationSubDelegateDictionaries.ContainsKey(serializableObjectType))
-            {
-                throw new Exception($"The object serialization sub delegates for object type '{serializableObjectType}' are already registered!");
-            }
-            if (objectDeserializationSubDelegateDictionaries.ContainsKey(serializableObjectType))
-            {
-                throw new Exception($"The object deserialization sub delegates for object type '{serializableObjectType}' are already registered!");
-            }
-
-            Dictionary<Type, SerializePrimitiveDelegate> primitiveSerializationSubDelegates = new Dictionary<Type, SerializePrimitiveDelegate>();
-            Dictionary<Type, DeserializePrimitiveDelegate> primitiveDeserializationSubDelegates = new Dictionary<Type, DeserializePrimitiveDelegate>();
-
-            Dictionary<Type, SerializeObjectDelegate> objectSerializationSubDelegates = new Dictionary<Type, SerializeObjectDelegate>();
-            Dictionary<Type, DeserializeObjectDelegate> objectDeserializationSubDelegates = new Dictionary<Type, DeserializeObjectDelegate>();
-
-            foreach (SerializablePrimitiveTypeInfo subSerializablePrimitiveTypeInfo in serializableObjectTypeInfo.SubSerializablePrimitiveTypeInfos)
-            {
-                Type subSerializablePrimitiveType = subSerializablePrimitiveTypeInfo.SerializablePrimitiveType;
-                if (primitiveSerializationSubDelegates.ContainsKey(subSerializablePrimitiveType))
-                {
-                    throw new Exception($"The primitive serialization delegate for primitive type '{subSerializablePrimitiveType}' is already registered as sub delegate for object type '{subSerializablePrimitiveType}'!");
-                }
-                if (primitiveDeserializationSubDelegates.ContainsKey(subSerializablePrimitiveType))
-                {
-                    throw new Exception($"The primitive deserialization delegate for primitive type '{subSerializablePrimitiveType}' is already registered as sub delegate for object type '{subSerializablePrimitiveType}'!");
-                }
-
-                primitiveSerializationSubDelegates.Add(subSerializablePrimitiveType, primitiveSerializationDelegates[subSerializablePrimitiveType]);
-                primitiveDeserializationSubDelegates.Add(subSerializablePrimitiveType, primitiveDeserializationDelegates[subSerializablePrimitiveType]);
-            }
-
-            foreach (SerializableObjectTypeInfo subSerializableObjectTypeInfo in serializableObjectTypeInfo.SubSerializableObjectTypeInfos)
-            {
-                Type subSerializableObjectType = subSerializableObjectTypeInfo.SerializableObjectType;
-                if (objectSerializationSubDelegates.ContainsKey(subSerializableObjectType))
-                {
-                    throw new Exception($"The object serialization delegate for object type '{subSerializableObjectType}' is already registered as sub delegate for object type '{serializableObjectType}'!");
-                }
-                if (objectDeserializationSubDelegates.ContainsKey(subSerializableObjectType))
-                {
-                    throw new Exception($"The object deserialization delegate for object type '{subSerializableObjectType}' is already registered as sub delegate for object type '{serializableObjectType}'!");
-                }
-
-                objectSerializationSubDelegates.Add(subSerializableObjectType, objectSerializationDelegates[subSerializableObjectType]);
-                objectDeserializationSubDelegates.Add(subSerializableObjectType, objectDeserializationDelegates[subSerializableObjectType]);
-            }
-
-            primitiveSerializationSubDelegateDictionaries.Add(serializableObjectType, primitiveSerializationSubDelegates);
-            primitiveDeserializationSubDelegateDictionaries.Add(serializableObjectType, primitiveDeserializationSubDelegates);
-
-            objectSerializationSubDelegateDictionaries.Add(serializableObjectType, objectSerializationSubDelegates);
-            objectDeserializationSubDelegateDictionaries.Add(serializableObjectType, objectDeserializationSubDelegates);
         }
+        #endregion
 
-        private void CacheFileSerializationSubDelegates(SerializableFileTypeInfo serializableFileTypeInfo)
-        {
-            Type serializableFileType = serializableFileTypeInfo.SerializableFileType;
+        #endregion
 
-            if (objectSerializationSubDelegateDictionaries.ContainsKey(serializableFileType))
-            {
-                throw new Exception($"The object serialization sub delegates for file type '{serializableFileType}' are already registered!");
-            }
-            if (objectDeserializationSubDelegateDictionaries.ContainsKey(serializableFileType))
-            {
-                throw new Exception($"The object deserialization sub delegates for file type '{serializableFileType}' are already registered!");
-            }
-
-            Dictionary<Type, SerializeObjectDelegate> objectSerializationSubDelegates = new Dictionary<Type, SerializeObjectDelegate>();
-            Dictionary<Type, DeserializeObjectDelegate> objectDeserializationSubDelegates = new Dictionary<Type, DeserializeObjectDelegate>();
-
-            foreach (SerializableObjectTypeInfo subSerializableObjectTypeInfo in serializableFileTypeInfo.SubSerializableObjectTypeInfos)
-            {
-                Type subSerializableObjectType = subSerializableObjectTypeInfo.SerializableObjectType;
-                if (objectSerializationSubDelegates.ContainsKey(subSerializableObjectType))
-                {
-                    throw new Exception($"The object serialization sub delegate for object type '{subSerializableObjectType}' is already registered!");
-                }
-                if (objectDeserializationSubDelegates.ContainsKey(subSerializableObjectType))
-                {
-                    throw new Exception($"The object deserialization sub delegate for object type '{subSerializableObjectType}' is already registered!");
-                }
-
-                objectSerializationSubDelegates.Add(subSerializableObjectType, objectSerializationDelegates[subSerializableObjectType]);
-                objectDeserializationSubDelegates.Add(subSerializableObjectType, objectDeserializationDelegates[subSerializableObjectType]);
-            }
-
-            objectSerializationSubDelegateDictionaries.Add(serializableFileType, objectSerializationSubDelegates);
-            objectDeserializationSubDelegateDictionaries.Add(serializableFileType, objectDeserializationSubDelegates);
-        }
-
-        private void CacheFolderSerializationSubDelegates(SerializableFolderTypeInfo serializableFolderTypeInfo)
-        {
-            Type serializableFolderType = serializableFolderTypeInfo.SerializableFolderType;
-
-            if (fileSerializationSubDelegateDictionaries.ContainsKey(serializableFolderType))
-            {
-                throw new Exception($"The file serialization sub delegates for folder type '{serializableFolderType}' are already registered!");
-            }
-            if (fileDeserializationSubDelegateDictionaries.ContainsKey(serializableFolderType))
-            {
-                throw new Exception($"The file deserialization sub delegates for folder type '{serializableFolderType}' are already registered!");
-            }
-
-            if (folderSerializationSubDelegateDictionaries.ContainsKey(serializableFolderType))
-            {
-                throw new Exception($"The folder serialization sub delegates for folder type '{serializableFolderType}' are already registered!");
-            }
-            if (folderDeserializationSubDelegateDictionaries.ContainsKey(serializableFolderType))
-            {
-                throw new Exception($"The folder deserialization sub delegates for folder type '{serializableFolderType}' are already registered!");
-            }
-
-            Dictionary<Type, SerializeFileDelegate> fileSerializationSubDelegates = new Dictionary<Type, SerializeFileDelegate>();
-            Dictionary<Type, DeserializeFileDelegate> fileDeserializationSubDelegates = new Dictionary<Type, DeserializeFileDelegate>();
-
-            Dictionary<Type, SerializeFolderDelegate> folderSerializationSubDelegates = new Dictionary<Type, SerializeFolderDelegate>();
-            Dictionary<Type, DeserializeFolderDelegate> folderDeserializationSubDelegates = new Dictionary<Type, DeserializeFolderDelegate>();
-
-            foreach (SerializableFileTypeInfo subSerializableFileTypeInfo in serializableFolderTypeInfo.SubSerializableFileTypeInfos)
-            {
-                Type subSerializableFileType = subSerializableFileTypeInfo.SerializableFileType;
-                if (fileSerializationSubDelegates.ContainsKey(subSerializableFileType))
-                {
-                    throw new Exception($"The file serialization delegate for file type '{subSerializableFileType}' is already registered as sub delegate for folder type '{serializableFolderType}'!");
-                }
-                if (fileDeserializationSubDelegates.ContainsKey(subSerializableFileType))
-                {
-                    throw new Exception($"The file deserialization delegate for file type '{subSerializableFileType}' is already registered as sub delegate for folder type '{serializableFolderType}'!");
-                }
-
-                fileSerializationSubDelegates.Add(subSerializableFileType, fileSerializationDelegates[subSerializableFileType]);
-                fileDeserializationSubDelegates.Add(subSerializableFileType, fileDeserializationDelegates[subSerializableFileType]);
-            }
-
-            foreach (SerializableFolderTypeInfo subSerializableFolderTypeInfo in serializableFolderTypeInfo.SubSerializableFolderTypeInfos)
-            {
-                Type subSerializableFolderType = subSerializableFolderTypeInfo.SerializableFolderType;
-                if (folderSerializationSubDelegates.ContainsKey(subSerializableFolderType))
-                {
-                    throw new Exception($"The folder serialization delegate for folder type '{subSerializableFolderType}' is already registered as sub delegate for folder type '{serializableFolderType}'!");
-                }
-                if (folderDeserializationSubDelegates.ContainsKey(subSerializableFolderType))
-                {
-                    throw new Exception($"The folder deserialization delegate for folder type '{subSerializableFolderType}' is already registered as sub delegate for folder type '{serializableFolderType}'!");
-                }
-
-                folderSerializationSubDelegates.Add(subSerializableFolderType, folderSerializationDelegates[subSerializableFolderType]);
-                folderDeserializationSubDelegates.Add(subSerializableFolderType, folderDeserializationDelegates[subSerializableFolderType]);
-            }
-
-            fileSerializationSubDelegateDictionaries.Add(serializableFolderType, fileSerializationSubDelegates);
-            fileDeserializationSubDelegateDictionaries.Add(serializableFolderType, fileDeserializationSubDelegates);
-
-            folderSerializationSubDelegateDictionaries.Add(serializableFolderType, folderSerializationSubDelegates);
-            folderDeserializationSubDelegateDictionaries.Add(serializableFolderType, folderDeserializationSubDelegates);
-        }
         #endregion
     }
 }

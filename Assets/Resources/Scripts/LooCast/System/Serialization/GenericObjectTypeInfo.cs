@@ -10,7 +10,6 @@ namespace LooCast.System.Serialization
         public enum ValidationStage
         {
             Unvalidated,
-            PreAnalyzed,
             Analyzed,
             Processed,
             Invalidated,
@@ -20,16 +19,14 @@ namespace LooCast.System.Serialization
 
         #region Properties
         public ValidationStage Validation { get; private set; }
-        public PreAnalysisInfo PreAnalysisInformation { get; private set; }
         public AnalysisInfo AnalysisInformation { get; private set; }
         public ProcessingInfo ProcessingInformation { get; private set; }
         #endregion
 
         #region Constructors
-        public GenericObjectTypeInfo()
+        public GenericObjectTypeInfo(Type type) : base(type)
         {
             Validation = ValidationStage.Unvalidated;
-            PreAnalysisInformation = null;
             AnalysisInformation = null;
             ProcessingInformation = null;
         }
@@ -60,7 +57,7 @@ namespace LooCast.System.Serialization
             Validation = ValidationStage.Validated;
         }
 
-        public void PreAnalyze(PreAnalysisInfo preAnalysisInformation)
+        public void Analyze(AnalysisInfo analysisInformation)
         {
             if (Validation == ValidationStage.Invalidated)
             {
@@ -68,21 +65,7 @@ namespace LooCast.System.Serialization
             }
             if (Validation != ValidationStage.Unvalidated)
             {
-                throw new InvalidOperationException("Pre-Analysis can only be performed when the non-generic object type info is unvalidated!");
-            }
-
-            PreAnalysisInformation = preAnalysisInformation;
-        }
-
-        public void Analyze(AnalysisInfo analysisInformation)
-        {
-            if (Validation == ValidationStage.Invalidated)
-            {
-                throw new InvalidOperationException("Generic object type info has already been invalidated!");
-            }
-            if (Validation != ValidationStage.PreAnalyzed)
-            {
-                throw new InvalidOperationException("Analysis can only be performed when the non-generic object type info is pre-analyzed!!");
+                throw new InvalidOperationException("Analysis can only be performed when the non-generic object type info is unvalidated!!");
             }
 
             AnalysisInformation = analysisInformation;

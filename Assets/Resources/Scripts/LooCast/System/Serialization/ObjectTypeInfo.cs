@@ -4,7 +4,7 @@ using System.Xml.Linq;
 
 namespace LooCast.System.Serialization
 {
-    public abstract class ObjectTypeInfo
+    public abstract class ObjectTypeInfo : TypeInfo
     {
         #region Delegates
         public delegate void Serialize(string objectName, object _object, out XElement serializedObject);
@@ -12,20 +12,6 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Classes
-        public abstract class PreAnalysisInfo
-        {
-            #region Properties
-            public bool IsGeneric { get; private set; }
-            #endregion
-
-            #region Constructors
-            protected PreAnalysisInfo(bool isGeneric)
-            {
-                IsGeneric = isGeneric;
-            }
-            #endregion
-        }
-
         public abstract class AnalysisInfo
         {
             #region Properties
@@ -56,6 +42,12 @@ namespace LooCast.System.Serialization
                 DeserializeDelegate = deserializeDelegate;
             }
             #endregion
+        }
+        #endregion
+
+        #region Constructors
+        public ObjectTypeInfo(Type type) : base(type)
+        {
         }
         #endregion
     }

@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace LooCast.System.Serialization
 {
-    public sealed class FileTypeInfo
+    public sealed class FileTypeInfo : TypeInfo
     {
         #region Delegates
         public delegate void Serialize(string fileName, string fileExtension, string parentFilePath, object file, out FileInfo serializedFile);
@@ -98,7 +98,7 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Constructors
-        public FileTypeInfo()
+        public FileTypeInfo(Type type) : base(type)
         {
             Validation = ValidationStage.Unvalidated;
             PreAnalysisInformation = null;

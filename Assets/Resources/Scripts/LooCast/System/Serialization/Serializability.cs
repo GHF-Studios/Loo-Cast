@@ -4,7 +4,8 @@
     {
         None,
         Primitive,
-        Object,
+        NonGenericObject,
+        GenericObject,
         File,
         Folder
     }

@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
 using System.Xml.Linq;
 
 namespace LooCast.System.Serialization
 {
-    public sealed class PrimitiveTypeInfo
+    public sealed class PrimitiveTypeInfo : TypeInfo
     {
         #region Delegates
         public delegate void Serialize(string primitiveName, object primitive, out XAttribute serializedPrimitive);
@@ -18,7 +16,7 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Constructors
-        public PrimitiveTypeInfo(Serialize serializeDelegate, Deserialize deserializeDelegate)
+        public PrimitiveTypeInfo(Type type, Serialize serializeDelegate, Deserialize deserializeDelegate) : base(type)
         {
             SerializeDelegate = serializeDelegate;
             DeserializeDelegate = deserializeDelegate;

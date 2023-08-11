@@ -7,7 +7,7 @@ namespace LooCast.System.Collections.Serializable
 {
     using LooCast.System.Serialization;
 
-    [SerializableObject(true, true)]
+    [SerializableGenericObject()]
     public class SerializableList<T> : List<T>
     {
         #region Properties
@@ -16,15 +16,15 @@ namespace LooCast.System.Collections.Serializable
         #endregion
 
         #region Fields
-        private SerializationManager.SerializeObjectDelegate serializeObjectDelegate;
-        private SerializationManager.DeserializeObjectDelegate deserializeObjectDelegate;
+        private OldSerializationManager.SerializeObjectDelegate serializeObjectDelegate;
+        private OldSerializationManager.DeserializeObjectDelegate deserializeObjectDelegate;
         #endregion
 
         #region Constructors
         public SerializableList() : base()
         {
             Type = typeof(T);
-            SerializationManager serializationManager = SerializationManager.Instance;
+            OldSerializationManager serializationManager = OldSerializationManager.Instance;
             TypeSerializability = serializationManager.GetSerializability(Type);
             switch (TypeSerializability)
             {

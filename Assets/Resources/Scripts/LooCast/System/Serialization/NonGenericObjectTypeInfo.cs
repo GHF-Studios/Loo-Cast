@@ -8,7 +8,7 @@ namespace LooCast.System.Serialization
     public sealed class NonGenericObjectTypeInfo : ObjectTypeInfo
     {
         #region Classes
-        public new sealed class PreAnalysisInfo : ObjectTypeInfo.PreAnalysisInfo
+        public sealed class PreAnalysisInfo
         {
             #region Properties
             public PropertyInfo[] Properties { get; private set; }
@@ -16,7 +16,7 @@ namespace LooCast.System.Serialization
             #endregion
 
             #region Constructors
-            public PreAnalysisInfo(PropertyInfo[] properties, FieldInfo[] fields, bool isGeneric) : base(isGeneric)
+            public PreAnalysisInfo(PropertyInfo[] properties, FieldInfo[] fields)
             {
                 Properties = properties;
                 Fields = fields;
@@ -63,7 +63,7 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Constructors
-        public NonGenericObjectTypeInfo()
+        public NonGenericObjectTypeInfo(Type type) : base(type)
         {
             Validation = ValidationStage.Unvalidated;
             PreAnalysisInformation = null;
