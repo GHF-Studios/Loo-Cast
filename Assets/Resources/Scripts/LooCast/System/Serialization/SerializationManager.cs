@@ -11,6 +11,7 @@ namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
     using LooCast.System.Exceptions;
+    using UnityEngine;
 
     public sealed class SerializationManager : ModuleManager
     {
@@ -523,13 +524,14 @@ namespace LooCast.System.Serialization
 
                 if (serializableNonGenericObjectAttribute == null && serializableGenericObjectAttribute == null && serializableFileAttribute == null && serializableFolderAttribute == null)
                 {
-                    throw new Exception($"Type '{type.FullName}' is not marked as serializable!");
+                    registeredUnserializableTypes.Add(type);
+                    continue;
                 }
                 if (!(serializableNonGenericObjectAttribute != null ^ serializableGenericObjectAttribute != null ^ serializableFileAttribute != null ^ serializableFolderAttribute != null))
                 {
                     throw new Exception($"Type '{type.FullName}' is marked as more than one serializable type!");
                 }
-
+                
                 if (serializableNonGenericObjectAttribute != null)
                 {
                     nonGenericObjectTypes.Add(type);
@@ -593,6 +595,11 @@ namespace LooCast.System.Serialization
             ProcessGenericObjectTypes(genericObjectTypeInfos);
             ProcessFileTypes(fileTypeInfos);
             ProcessFolderTypes(folderTypeInfos);
+
+            foreach (KeyValuePair<Type, string> invalidation in invalidations)
+            {
+                UnityEngine.Debug.LogWarning($"The type '{invalidation.Key}' is marked as serializable but has been invalidated by the SerializationManager for the following reason: {invalidation.Value}");
+            }
 
             // Log all invalidated types somehow. The idea is that some types may be marked as serializable, but ultimately aren't, but are not important enough to throw an exception.
             // If however some dependency is not met as a consequence of the invalidity, an exception is thrown.
