@@ -11,6 +11,8 @@ using UnityEngine;
 namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
+    using UnityEditor.ShaderGraph.Internal;
+    using static LooCast.System.Serialization.OldSerializationManager;
 
     public sealed class SerializationManager : ModuleManager
     {
@@ -493,11 +495,44 @@ namespace LooCast.System.Serialization
             IEnumerable<ObjectTypeInfo> newlyRegisteredObjectTypeInfos = newlyRegisteredNonGenericObjectTypeInfos.Values.Cast<ObjectTypeInfo>().Concat(newlyRegisteredGenericObjectTypeInfos.Values);
             HashSet<ObjectTypeInfo>[] sortedNewlyRegisteredObjectTypeInfoSets = TopologicallySortObjectTypeInfos(newlyRegisteredObjectTypeInfos);
             HashSet<FolderTypeInfo>[] sortedNewlyRegisteredFolderTypeInfoSets = TopologicallySortFolderTypeInfos(newlyRegisteredFolderTypeInfos.Values);
-            
-            // create the (de-)serialization delegates for the types on a stage-by-stage basis. Each stage is also just a part of a larger set, where these sets will be processed consecutively, as they will depend on each other. First create all Object Type Delegates, then all File Type Delegates, and lastly all Folder Type Delegates.
-            // create all sub-delegate dictionaries
 
-            // Note: These methods also follow a zero-tolerance policy, as the SerializationSystem is a crucial sub-system of the game engine
+            foreach (HashSet<ObjectTypeInfo> sortedNewlyRegisteredObjectTypeInfoSet in sortedNewlyRegisteredObjectTypeInfoSets)
+            {
+                foreach (ObjectTypeInfo objectTypeInfo in sortedNewlyRegisteredObjectTypeInfoSet)
+                {
+                    if (objectTypeInfo.Serializability == Serializability.NonGenericObject)
+                    {
+                        NonGenericObjectTypeInfo nonGenericObjectTypeInfo = (NonGenericObjectTypeInfo)objectTypeInfo;
+                        ComposeNonGenericObjectTypeDelegates(nonGenericObjectTypeInfo);
+                        registeredNonGenericObjectTypeInfos.Add(objectTypeInfo.Type, nonGenericObjectTypeInfo);
+                    }
+                    else if (objectTypeInfo.Serializability == Serializability.GenericObject)
+                    {
+                        GenericObjectTypeInfo genericObjectTypeInfo = (GenericObjectTypeInfo)objectTypeInfo;
+                        registeredGenericObjectTypeInfos.Add(objectTypeInfo.Type, genericObjectTypeInfo);
+                    }
+                }
+            }
+
+            foreach (FileTypeInfo fileTypeInfo in newlyRegisteredFileTypeInfos.Values)
+            {
+                ComposeFileTypeDelegates(fileTypeInfo);
+                registeredFileTypeInfos.Add(fileTypeInfo.Type, fileTypeInfo);
+            }
+
+            foreach (HashSet<FolderTypeInfo> sortedNewlyRegisteredFolderTypeInfoSet in sortedNewlyRegisteredFolderTypeInfoSets)
+            {
+                foreach (FolderTypeInfo folderTypeInfo in sortedNewlyRegisteredFolderTypeInfoSet)
+                {
+                    ComposeFolderTypeDelegates(folderTypeInfo);
+                    registeredFolderTypeInfos.Add(folderTypeInfo.Type, folderTypeInfo);
+                }
+            }
+
+            newlyRegisteredNonGenericObjectTypeInfos.Clear();
+            newlyRegisteredGenericObjectTypeInfos.Clear();
+            newlyRegisteredFileTypeInfos.Clear();
+            newlyRegisteredFolderTypeInfos.Clear();
         }
 
         /// <summary>
@@ -592,8 +627,34 @@ namespace LooCast.System.Serialization
                 NonGenericObjectTypeInfo nonGenericObjectTypeInfo = new NonGenericObjectTypeInfo(type);
                 newlyRegisteredNonGenericObjectTypeInfos.Add(type, nonGenericObjectTypeInfo);
                 
-                nonGenericObjectTypeInfo.Properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                nonGenericObjectTypeInfo.Properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where((property) => property.GetGetMethod() != null && property.GetSetMethod() != null).ToArray();
                 nonGenericObjectTypeInfo.Fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+                nonGenericObjectTypeInfo.OverrideSerialization = serializableNonGenericObjectAttribute.OverrideSerialization;
+                nonGenericObjectTypeInfo.OverrideDeserialization = serializableNonGenericObjectAttribute.OverrideDeserialization;
+
+                if (nonGenericObjectTypeInfo.OverrideSerialization)
+                {
+                    MethodInfo methodInfo = nonGenericObjectTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(object), typeof(XElement).MakeByRefType() }, null);
+
+                    if (methodInfo == null)
+                    {
+                        throw new Exception($"The non-generic object type '{nonGenericObjectTypeInfo.Type}' is marked as overriding the defualt serialization behaviour, but it does not implement a method with the signature 'public static void Serialize(string objectName, object _object, out XElement serializedObject)'!");
+                    }
+
+                    nonGenericObjectTypeInfo.SerializeDelegate = (NonGenericObjectTypeInfo.Serialize)methodInfo.CreateDelegate(typeof(NonGenericObjectTypeInfo.Serialize));
+                }
+                if (nonGenericObjectTypeInfo.OverrideDeserialization)
+                {
+                    MethodInfo methodInfo = nonGenericObjectTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(XElement), typeof(object).MakeByRefType() }, null);
+
+                    if (methodInfo == null)
+                    {
+                        throw new Exception($"The non-generic object type '{nonGenericObjectTypeInfo}' is marked as overriding the defualt deserialization behaviour, but it does not implement a method with the signature 'public static void Deserialize(XElement serializedObject, out object _object)'!");
+                    }
+
+                    nonGenericObjectTypeInfo.DeserializeDelegate = (NonGenericObjectTypeInfo.Deserialize)methodInfo.CreateDelegate(typeof(NonGenericObjectTypeInfo.Deserialize));
+                }
 
                 IEnumerable<Type> propertyTypes = nonGenericObjectTypeInfo.Properties.Select(property => property.PropertyType);
                 IEnumerable<Type> fieldTypes = nonGenericObjectTypeInfo.Fields.Select(field => field.FieldType);
@@ -653,6 +714,20 @@ namespace LooCast.System.Serialization
                 GenericObjectTypeInfo genericObjectTypeInfo = new GenericObjectTypeInfo(type);
                 newlyRegisteredGenericObjectTypeInfos.Add(type, genericObjectTypeInfo);
 
+                MethodInfo serializeMethodInfo = genericObjectTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(object), typeof(XElement).MakeByRefType() }, null);
+                if (serializeMethodInfo == null)
+                {
+                    throw new Exception($"The generic object type '{genericObjectTypeInfo.Type}' does not provide the mandatory method implementation with the signature 'public static void Serialize(string objectName, object _object, out XElement serializedObject)'!");
+                }
+                genericObjectTypeInfo.SerializeDelegate = (GenericObjectTypeInfo.Serialize)serializeMethodInfo.CreateDelegate(typeof(GenericObjectTypeInfo.Serialize));
+
+                MethodInfo deserializeMethodInfo = genericObjectTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(XElement), typeof(object).MakeByRefType() }, null);
+                if (deserializeMethodInfo == null)
+                {
+                    throw new Exception($"The generic object type '{genericObjectTypeInfo}' does not provide the mandatory method implementation with the signature 'public static void Deserialize(XElement serializedObject, out object _object)'!");
+                }
+                genericObjectTypeInfo.DeserializeDelegate = (GenericObjectTypeInfo.Deserialize)deserializeMethodInfo.CreateDelegate(typeof(GenericObjectTypeInfo.Deserialize));
+
                 IEnumerable<Type> utilizedTypes = type.GetGenericArguments().Distinct();
 
                 genericObjectTypeInfo.PrimitiveTypeDependencies = new HashSet<PrimitiveTypeInfo>();
@@ -709,8 +784,34 @@ namespace LooCast.System.Serialization
                 FileTypeInfo fileTypeInfo = new FileTypeInfo(type);
                 newlyRegisteredFileTypeInfos.Add(type, fileTypeInfo);
 
-                fileTypeInfo.Properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                fileTypeInfo.Properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where((property) => property.GetGetMethod() != null && property.GetSetMethod() != null).ToArray();
                 fileTypeInfo.Fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+                fileTypeInfo.OverrideSerialization = serializableFileAttribute.OverrideSerialization;
+                fileTypeInfo.OverrideDeserialization = serializableFileAttribute.OverrideDeserialization;
+
+                if (fileTypeInfo.OverrideSerialization)
+                {
+                    MethodInfo methodInfo = fileTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(string), typeof(string), typeof(object), typeof(FileInfo).MakeByRefType() }, null);
+
+                    if (methodInfo == null)
+                    {
+                        throw new Exception($"The file type '{fileTypeInfo.Type}' is marked as overriding the defualt serialization behaviour, but it does not implement a method with the signature 'public static void Serialize(string fileName, string fileExtension, string parentFolderPath, object file, out FileInfo serializedFile)'!");
+                    }
+
+                    fileTypeInfo.SerializeDelegate = (FileTypeInfo.Serialize)methodInfo.CreateDelegate(typeof(FileTypeInfo.Serialize));
+                }
+                if (fileTypeInfo.OverrideDeserialization)
+                {
+                    MethodInfo methodInfo = fileTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(FileInfo), typeof(object).MakeByRefType() }, null);
+
+                    if (methodInfo == null)
+                    {
+                        throw new Exception($"The file type '{fileTypeInfo}' is marked as overriding the defualt deserialization behaviour, but it does not implement a method with the signature 'public static void Deserialize(FileInfo serializedFile, out object file)'!");
+                    }
+
+                    fileTypeInfo.DeserializeDelegate = (FileTypeInfo.Deserialize)methodInfo.CreateDelegate(typeof(FileTypeInfo.Deserialize));
+                }
 
                 IEnumerable<Type> propertyTypes = fileTypeInfo.Properties.Select(property => property.PropertyType);
                 IEnumerable<Type> fieldTypes = fileTypeInfo.Fields.Select(field => field.FieldType);
@@ -768,8 +869,34 @@ namespace LooCast.System.Serialization
                 FolderTypeInfo folderTypeInfo = new FolderTypeInfo(type);
                 newlyRegisteredFolderTypeInfos.Add(type, folderTypeInfo);
 
-                folderTypeInfo.Properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                folderTypeInfo.Properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where((property) => property.GetGetMethod() != null && property.GetSetMethod() != null).ToArray();
                 folderTypeInfo.Fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+                folderTypeInfo.OverrideSerialization = serializableFolderAttribute.OverrideSerialization;
+                folderTypeInfo.OverrideDeserialization = serializableFolderAttribute.OverrideDeserialization;
+
+                if (folderTypeInfo.OverrideSerialization)
+                {
+                    MethodInfo methodInfo = folderTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(string), typeof(object), typeof(DirectoryInfo).MakeByRefType() }, null);
+
+                    if (methodInfo == null)
+                    {
+                        throw new Exception($"The folder type '{folderTypeInfo.Type}' is marked as overriding the defualt serialization behaviour, but it does not implement a method with the signature 'public static void Serialize(string folderName, string parentFolderPath, object folder, out DirectoryInfo serializedFolder)'!");
+                    }
+
+                    folderTypeInfo.SerializeDelegate = (FolderTypeInfo.Serialize)methodInfo.CreateDelegate(typeof(FolderTypeInfo.Serialize));
+                }
+                if (folderTypeInfo.OverrideDeserialization)
+                {
+                    MethodInfo methodInfo = folderTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(DirectoryInfo), typeof(object).MakeByRefType() }, null);
+
+                    if (methodInfo == null)
+                    {
+                        throw new Exception($"The folder type '{folderTypeInfo}' is marked as overriding the defualt deserialization behaviour, but it does not implement a method with the signature 'public static void Deserialize(DirectoryInfo serializedFolder, out object folder)'!");
+                    }
+
+                    folderTypeInfo.DeserializeDelegate = (FolderTypeInfo.Deserialize)methodInfo.CreateDelegate(typeof(FolderTypeInfo.Deserialize));
+                }
 
                 IEnumerable<Type> propertyTypes = folderTypeInfo.Properties.Select(property => property.PropertyType);
                 IEnumerable<Type> fieldTypes = folderTypeInfo.Fields.Select(field => field.FieldType);
@@ -943,6 +1070,372 @@ namespace LooCast.System.Serialization
         /// <returns>An array of HashSet<FolderTypeInfo> where each set represents a stage of dependencies, with earlier stages having no dependencies on later stages.</returns>
         private HashSet<FolderTypeInfo>[] TopologicallySortFolderTypeInfos(IEnumerable<FolderTypeInfo> folderTypeInfos)
         {
+            // The resulting sorted sets of FolderTypeInfo instances, where each set can be processed without depending on later sets.
+            List<HashSet<FolderTypeInfo>> folderTypeInfoSets = new List<HashSet<FolderTypeInfo>>();
+
+            // Stores the remaining dependencies for each FolderTypeInfo instance.
+            Dictionary<FolderTypeInfo, HashSet<FolderTypeInfo>> remainingDependencies = new Dictionary<FolderTypeInfo, HashSet<FolderTypeInfo>>();
+
+            // Combining all FolderTypeInfo instances (both new and already registered) into one set.
+            HashSet<FolderTypeInfo> combinedFolderTypeInfos = new HashSet<FolderTypeInfo>(registeredFolderTypeInfos.Values);
+
+            // Initialize the remaining dependencies for each FolderTypeInfo instance.
+            foreach (FolderTypeInfo folderTypeInfo in combinedFolderTypeInfos)
+            {
+                HashSet<FolderTypeInfo> dependencies = new HashSet<FolderTypeInfo>(folderTypeInfo.FolderTypeDependencies);
+                remainingDependencies[folderTypeInfo] = dependencies;
+            }
+
+            // Set to keep track of visited FolderTypeInfo instances to avoid redundant checks.
+            HashSet<FolderTypeInfo> visited = new HashSet<FolderTypeInfo>();
+
+            // Recursive function to detect circular dependencies.
+            void DetectCircularDependency(FolderTypeInfo current, HashSet<FolderTypeInfo> path)
+            {
+                // If the current FolderTypeInfo is already in the path, a circular dependency is detected.
+                if (path.Contains(current))
+                {
+                    path.Add(current);
+                    throw new Exception($"Circular dependency detected: {string.Join(" -> ", path.Select(oti => oti.Type.FullName))}");
+                }
+
+                // If the current FolderTypeInfo has been visited, we can skip the checks.
+                if (visited.Contains(current))
+                {
+                    return;
+                }
+
+                // Add the current FolderTypeInfo to the path and check its dependencies.
+                path.Add(current);
+                foreach (FolderTypeInfo next in remainingDependencies[current])
+                {
+                    DetectCircularDependency(next, path);
+                }
+
+                // Mark the current FolderTypeInfo as visited and remove it from the current path.
+                visited.Add(current);
+                path.Remove(current);
+            }
+
+            // Check each FolderTypeInfo instance for circular dependencies.
+            foreach (FolderTypeInfo folderTypeInfo in combinedFolderTypeInfos)
+            {
+                if (!visited.Contains(folderTypeInfo))
+                {
+                    DetectCircularDependency(folderTypeInfo, new HashSet<FolderTypeInfo>());
+                }
+            }
+
+            // Initialize a queue with FolderTypeInfo instances that have no dependencies.
+            Queue<FolderTypeInfo> folderTypeInfosWithNoDependencies = new Queue<FolderTypeInfo>(
+                combinedFolderTypeInfos.Where(fti => !remainingDependencies[fti].Any())
+            );
+
+            // While there are FolderTypeInfo instances with no dependencies, process them.
+            while (folderTypeInfosWithNoDependencies.Count > 0)
+            {
+                HashSet<FolderTypeInfo> currentBatch = new HashSet<FolderTypeInfo>();
+
+                // Process each FolderTypeInfo instance with no dependencies.
+                while (folderTypeInfosWithNoDependencies.Count > 0)
+                {
+                    FolderTypeInfo currentTypeInfo = folderTypeInfosWithNoDependencies.Dequeue();
+                    currentBatch.Add(currentTypeInfo);
+
+                    // Check other FolderTypeInfo instances that depend on the current one.
+                    foreach (FolderTypeInfo dependentFolderTypeInfo in remainingDependencies.Keys.ToList())
+                    {
+                        // If the current FolderTypeInfo is a dependency of another, remove it from that FolderTypeInfo's list of dependencies.
+                        if (remainingDependencies[dependentFolderTypeInfo].Remove(currentTypeInfo) && !remainingDependencies[dependentFolderTypeInfo].Any())
+                        {
+                            folderTypeInfosWithNoDependencies.Enqueue(dependentFolderTypeInfo);
+                        }
+                    }
+
+                    // Remove the current FolderTypeInfo from the remaining dependencies.
+                    remainingDependencies.Remove(currentTypeInfo);
+                }
+
+                // Add the current batch of FolderTypeInfo instances to the result list.
+                folderTypeInfoSets.Add(currentBatch);
+            }
+
+            // If there are any remaining dependencies, it means there's a circular dependency that wasn't identified earlier.
+            if (remainingDependencies.Count != 0)
+            {
+                throw new Exception($"Unidentifiable circular dependency detected! This is VERY problematic and should never happen!");
+            }
+
+            return folderTypeInfoSets.ToArray();
+        }
+
+        private void ComposeNonGenericObjectTypeDelegates(NonGenericObjectTypeInfo nonGenericObjectTypeInfo)
+        {
+            if (nonGenericObjectTypeInfo.OverrideSerialization && nonGenericObjectTypeInfo.OverrideDeserialization)
+            {
+                return;
+            }
+
+            Dictionary<Type, PrimitiveTypeInfo> primitiveTypeDependencies = new Dictionary<Type, PrimitiveTypeInfo>();
+            Dictionary<Type, NonGenericObjectTypeInfo> nonGenericObjectTypeDependencies = new Dictionary<Type, NonGenericObjectTypeInfo>();
+            Dictionary<Type, GenericObjectTypeInfo> genericObjectTypeDependencies = new Dictionary<Type, GenericObjectTypeInfo>();
+            
+            foreach (PrimitiveTypeInfo primitiveTypeDependency in nonGenericObjectTypeInfo.PrimitiveTypeDependencies)
+            {
+                primitiveTypeDependencies.Add(primitiveTypeDependency.Type, primitiveTypeDependency);
+            }
+            foreach (NonGenericObjectTypeInfo nonGenericObjectTypeDependency in nonGenericObjectTypeInfo.NonGenericObjectTypeDependencies)
+            {
+                nonGenericObjectTypeDependencies.Add(nonGenericObjectTypeDependency.Type, nonGenericObjectTypeDependency);
+            }
+            foreach (GenericObjectTypeInfo genericObjectTypeDependency in nonGenericObjectTypeInfo.GenericObjectTypeDependencies)
+            {
+                genericObjectTypeDependencies.Add(genericObjectTypeDependency.Type, genericObjectTypeDependency);
+            }
+
+            Dictionary<PrimitiveTypeInfo, HashSet<PropertyInfo>> primitivePropertySets = new Dictionary<PrimitiveTypeInfo, HashSet<PropertyInfo>>();
+            Dictionary<NonGenericObjectTypeInfo, HashSet<PropertyInfo>> nonGenericObjectPropertySets = new Dictionary<NonGenericObjectTypeInfo, HashSet<PropertyInfo>>();
+            Dictionary<GenericObjectTypeInfo, HashSet<PropertyInfo>> genericObjectPropertySets = new Dictionary<GenericObjectTypeInfo, HashSet<PropertyInfo>>();
+
+            foreach (PropertyInfo property in nonGenericObjectTypeInfo.Properties)
+            {
+                Type propertyType = property.PropertyType;
+                primitiveTypeDependencies.TryGetValue(propertyType, out PrimitiveTypeInfo propertyPrimitiveTypeInfo);
+                nonGenericObjectTypeDependencies.TryGetValue(propertyType, out NonGenericObjectTypeInfo propertyNonGenericObjectTypeInfo);
+                genericObjectTypeDependencies.TryGetValue(propertyType, out GenericObjectTypeInfo propertyGenericObjectTypeInfo);
+
+                if (propertyPrimitiveTypeInfo != null)
+                {
+                    if (!primitivePropertySets.ContainsKey(propertyPrimitiveTypeInfo))
+                    {
+                        primitivePropertySets[propertyPrimitiveTypeInfo] = new HashSet<PropertyInfo>();
+                    }
+                    primitivePropertySets[propertyPrimitiveTypeInfo].Add(property);
+                }
+                else if (propertyNonGenericObjectTypeInfo != null)
+                {
+                    if (!nonGenericObjectPropertySets.ContainsKey(propertyNonGenericObjectTypeInfo))
+                    {
+                        nonGenericObjectPropertySets[propertyNonGenericObjectTypeInfo] = new HashSet<PropertyInfo>();
+                    }
+                    nonGenericObjectPropertySets[propertyNonGenericObjectTypeInfo].Add(property);
+                }
+                else if (propertyGenericObjectTypeInfo != null)
+                {
+                    if (!genericObjectPropertySets.ContainsKey(propertyGenericObjectTypeInfo))
+                    {
+                        genericObjectPropertySets[propertyGenericObjectTypeInfo] = new HashSet<PropertyInfo>();
+                    }
+                    genericObjectPropertySets[propertyGenericObjectTypeInfo].Add(property);
+                }
+            }
+
+            Dictionary<PrimitiveTypeInfo, HashSet<FieldInfo>> primitiveFieldSets = new Dictionary<PrimitiveTypeInfo, HashSet<FieldInfo>>();
+            Dictionary<NonGenericObjectTypeInfo, HashSet<FieldInfo>> nonGenericObjectFieldSets = new Dictionary<NonGenericObjectTypeInfo, HashSet<FieldInfo>>();
+            Dictionary<GenericObjectTypeInfo, HashSet<FieldInfo>> genericObjectFieldSets = new Dictionary<GenericObjectTypeInfo, HashSet<FieldInfo>>();
+
+            foreach (FieldInfo field in nonGenericObjectTypeInfo.Fields)
+            {
+                Type fieldType = field.FieldType;
+                primitiveTypeDependencies.TryGetValue(fieldType, out PrimitiveTypeInfo fieldPrimitiveTypeInfo);
+                nonGenericObjectTypeDependencies.TryGetValue(fieldType, out NonGenericObjectTypeInfo fieldNonGenericObjectTypeInfo);
+                genericObjectTypeDependencies.TryGetValue(fieldType, out GenericObjectTypeInfo fieldGenericObjectTypeInfo);
+
+                if (fieldPrimitiveTypeInfo != null)
+                {
+                    if (!primitiveFieldSets.ContainsKey(fieldPrimitiveTypeInfo))
+                    {
+                        primitiveFieldSets[fieldPrimitiveTypeInfo] = new HashSet<FieldInfo>();
+                    }
+                    primitiveFieldSets[fieldPrimitiveTypeInfo].Add(field);
+                }
+                else if (fieldNonGenericObjectTypeInfo != null)
+                {
+                    if (!nonGenericObjectFieldSets.ContainsKey(fieldNonGenericObjectTypeInfo))
+                    {
+                        nonGenericObjectFieldSets[fieldNonGenericObjectTypeInfo] = new HashSet<FieldInfo>();
+                    }
+                    nonGenericObjectFieldSets[fieldNonGenericObjectTypeInfo].Add(field);
+                }
+                else if (fieldGenericObjectTypeInfo != null)
+                {
+                    if (!genericObjectFieldSets.ContainsKey(fieldGenericObjectTypeInfo))
+                    {
+                        genericObjectFieldSets[fieldGenericObjectTypeInfo] = new HashSet<FieldInfo>();
+                    }
+                    genericObjectFieldSets[fieldGenericObjectTypeInfo].Add(field);
+                }
+            }
+
+            if (!nonGenericObjectTypeInfo.OverrideSerialization)
+            {
+                nonGenericObjectTypeInfo.SerializeDelegate = (string objectName, object _object, out XElement serializedObject) =>
+                {
+                    serializedObject = new XElement(objectName);
+
+                    foreach (KeyValuePair<PrimitiveTypeInfo, HashSet<PropertyInfo>> primitivePropertySetKeyValuePair in primitivePropertySets)
+                    {
+                        foreach (PropertyInfo property in primitivePropertySetKeyValuePair.Value)
+                        {
+                            primitivePropertySetKeyValuePair.Key.SerializeDelegate.Invoke(property.Name, property.GetValue(_object), out XAttribute serializedPrimitive);
+                            serializedObject.Add(serializedPrimitive);
+                        }
+                    }
+
+                    foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<PropertyInfo>> nonGenericObjectPropertySetKeyValuePair in nonGenericObjectPropertySets)
+                    {
+                        foreach (PropertyInfo property in nonGenericObjectPropertySetKeyValuePair.Value)
+                        {
+                            nonGenericObjectPropertySetKeyValuePair.Key.SerializeDelegate.Invoke(property.Name, property.GetValue(_object), out XElement serializedNonGenericObject);
+                            serializedObject.Add(serializedNonGenericObject);
+                        }
+                    }
+
+                    foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<PropertyInfo>> genericObjectPropertySetKeyValuePair in genericObjectPropertySets)
+                    {
+                        foreach (PropertyInfo property in genericObjectPropertySetKeyValuePair.Value)
+                        {
+                            genericObjectPropertySetKeyValuePair.Key.SerializeDelegate.Invoke(property.Name, property.GetValue(_object), out XElement serializedGenericObject);
+                            serializedObject.Add(serializedGenericObject);
+                        }
+                    }
+
+                    foreach (KeyValuePair<PrimitiveTypeInfo, HashSet<FieldInfo>> primitiveFieldSetKeyValuePair in primitiveFieldSets)
+                    {
+                        foreach (FieldInfo field in primitiveFieldSetKeyValuePair.Value)
+                        {
+                            primitiveFieldSetKeyValuePair.Key.SerializeDelegate.Invoke(field.Name, field.GetValue(_object), out XAttribute serializedPrimitive);
+                            serializedObject.Add(serializedPrimitive);
+                        }
+                    }
+
+                    foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<FieldInfo>> nonGenericObjectFieldSetKeyValuePair in nonGenericObjectFieldSets)
+                    {
+                        foreach (FieldInfo field in nonGenericObjectFieldSetKeyValuePair.Value)
+                        {
+                            nonGenericObjectFieldSetKeyValuePair.Key.SerializeDelegate.Invoke(field.Name, field.GetValue(_object), out XElement serializedNonGenericObject);
+                            serializedObject.Add(serializedNonGenericObject);
+                        }
+                    }
+
+                    foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<FieldInfo>> genericObjectFieldSetKeyValuePair in genericObjectFieldSets)
+                    {
+                        foreach (FieldInfo field in genericObjectFieldSetKeyValuePair.Value)
+                        {
+                            genericObjectFieldSetKeyValuePair.Key.SerializeDelegate.Invoke(field.Name, field.GetValue(_object), out XElement serializedGenericObject);
+                            serializedObject.Add(serializedGenericObject);
+                        }
+                    }
+                }; 
+            }
+
+            if (!nonGenericObjectTypeInfo.OverrideDeserialization)
+            {
+                nonGenericObjectTypeInfo.DeserializeDelegate = (XElement serializedObject, out object _object) =>
+                {
+                    _object = Activator.CreateInstance(nonGenericObjectTypeInfo.Type);
+
+                    Dictionary<string, XAttribute> serializedPrimitives = new Dictionary<string, XAttribute>();
+                    Dictionary<string, XElement> serializedObjects = new Dictionary<string, XElement>();
+
+                    foreach (XAttribute serializedPrimitive in serializedObject.Attributes())
+                    {
+                        serializedPrimitives.Add(serializedPrimitive.Name.ToString(), serializedPrimitive);
+                    }
+                    foreach (XElement serializedNonGenericObject in serializedObject.Elements())
+                    {
+                        serializedObjects.Add(serializedNonGenericObject.Name.ToString(), serializedNonGenericObject);
+                    }
+
+                    foreach (KeyValuePair<PrimitiveTypeInfo, HashSet<PropertyInfo>> primitivePropertySetKeyValuePair in primitivePropertySets)
+                    {
+                        foreach (PropertyInfo property in primitivePropertySetKeyValuePair.Value)
+                        {
+                            if (!serializedPrimitives.TryGetValue(property.Name, out XAttribute serializedPrimitive))
+                            {
+                                throw new Exception($"Serialized non-generic object does not contain a serialized primitive with the name {property.Name}!");
+                            }
+                            primitivePropertySetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedPrimitive, out object deserializedPrimitive);
+                            property.SetValue(_object, deserializedPrimitive);
+                        }
+                    }
+
+                    foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<PropertyInfo>> nonGenericObjectPropertySetKeyValuePair in nonGenericObjectPropertySets)
+                    {
+                        foreach (PropertyInfo property in nonGenericObjectPropertySetKeyValuePair.Value)
+                        {
+                            if (!serializedObjects.TryGetValue(property.Name, out XElement serializedNonGenericObject))
+                            {
+                                throw new Exception($"Serialized non-generic object does not contain a serialized non-generic object with the name {property.Name}!");
+                            }
+                            nonGenericObjectPropertySetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedNonGenericObject, out object deserializedNonGenericObject);
+                            property.SetValue(_object, deserializedNonGenericObject);
+                        }
+                    }
+
+                    foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<PropertyInfo>> genericObjectPropertySetKeyValuePair in genericObjectPropertySets)
+                    {
+                        foreach (PropertyInfo property in genericObjectPropertySetKeyValuePair.Value)
+                        {
+                            if (!serializedObjects.TryGetValue(property.Name, out XElement serializedGenericObject))
+                            {
+                                throw new Exception($"Serialized non-generic object does not contain a serialized generic object with the name {property.Name}!");
+                            }
+                            genericObjectPropertySetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedGenericObject, out object deserializedGenericObject);
+                            property.SetValue(_object, deserializedGenericObject);
+                        }
+                    }
+
+                    foreach (KeyValuePair<PrimitiveTypeInfo, HashSet<FieldInfo>> primitiveFieldSetKeyValuePair in primitiveFieldSets)
+                    {
+                        foreach (FieldInfo field in primitiveFieldSetKeyValuePair.Value)
+                        {
+                            if (!serializedPrimitives.TryGetValue(field.Name, out XAttribute serializedPrimitive))
+                            {
+                                throw new Exception($"Serialized non-generic object does not contain a serialized primitive with the name {field.Name}!");
+                            }
+                            primitiveFieldSetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedPrimitive, out object deserializedPrimitive);
+                            field.SetValue(_object, deserializedPrimitive);
+                        }
+                    }
+
+                    foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<FieldInfo>> nonGenericObjectFieldSetKeyValuePair in nonGenericObjectFieldSets)
+                    {
+                        foreach (FieldInfo field in nonGenericObjectFieldSetKeyValuePair.Value)
+                        {
+                            if (!serializedObjects.TryGetValue(field.Name, out XElement serializedNonGenericObject))
+                            {
+                                throw new Exception($"Serialized non-generic object does not contain a serialized non-generic object with the name {field.Name}!");
+                            }
+                            nonGenericObjectFieldSetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedNonGenericObject, out object deserializedNonGenericObject);
+                            field.SetValue(_object, deserializedNonGenericObject);
+                        }
+                    }
+
+                    foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<FieldInfo>> genericObjectFieldSetKeyValuePair in genericObjectFieldSets)
+                    {
+                        foreach (FieldInfo field in genericObjectFieldSetKeyValuePair.Value)
+                        {
+                            if (!serializedObjects.TryGetValue(field.Name, out XElement serializedGenericObject))
+                            {
+                                throw new Exception($"Serialized non-generic object does not contain a serialized generic object with the name {field.Name}!");
+                            }
+                            genericObjectFieldSetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedGenericObject, out object deserializedGenericObject);
+                            field.SetValue(_object, deserializedGenericObject);
+                        }
+                    }
+                }; 
+            }
+        }
+
+        private void ComposeFileTypeDelegates(FileTypeInfo fileTypeInfo)
+        {
+
+        }
+
+        private void ComposeFolderTypeDelegates(FolderTypeInfo folderTypeInfo)
+        {
+
         }
         #endregion
     }
