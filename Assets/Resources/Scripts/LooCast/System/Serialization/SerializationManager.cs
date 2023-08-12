@@ -494,8 +494,8 @@ namespace LooCast.System.Serialization
             HashSet<ObjectTypeInfo>[] sortedNewlyRegisteredObjectTypeInfoSets = TopologicallySortObjectTypeInfos(newlyRegisteredObjectTypeInfos);
             HashSet<FolderTypeInfo>[] sortedNewlyRegisteredFolderTypeInfoSets = TopologicallySortFolderTypeInfos(newlyRegisteredFolderTypeInfos.Values);
             
-            // register the (de-)serialization delegates for the types on a stage-by-stage basis. Each stage is also just a part of a larger set, where these sets will be processed consecutively, as they will depend on each other.
-            // first register all Object Type Delegates, then all File Type Delegates, and lastly all Folder Type Delegates
+            // create the (de-)serialization delegates for the types on a stage-by-stage basis. Each stage is also just a part of a larger set, where these sets will be processed consecutively, as they will depend on each other. First create all Object Type Delegates, then all File Type Delegates, and lastly all Folder Type Delegates.
+            // create all sub-delegate dictionaries
 
             // Note: These methods also follow a zero-tolerance policy, as the SerializationSystem is a crucial sub-system of the game engine
         }
@@ -943,7 +943,6 @@ namespace LooCast.System.Serialization
         /// <returns>An array of HashSet<FolderTypeInfo> where each set represents a stage of dependencies, with earlier stages having no dependencies on later stages.</returns>
         private HashSet<FolderTypeInfo>[] TopologicallySortFolderTypeInfos(IEnumerable<FolderTypeInfo> folderTypeInfos)
         {
-            throw new NotImplementedException();
         }
         #endregion
     }
