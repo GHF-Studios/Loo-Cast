@@ -2,7 +2,6 @@
 {
     public enum Serializability
     {
-        None,
         Primitive,
         NonGenericObject,
         GenericObject,

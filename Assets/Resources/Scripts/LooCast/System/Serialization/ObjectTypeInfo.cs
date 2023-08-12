@@ -10,43 +10,18 @@ namespace LooCast.System.Serialization
         public delegate void Serialize(string objectName, object _object, out XElement serializedObject);
         public delegate void Deserialize(XElement serializedObject, out object _object);
         #endregion
+        
+        #region Properties
+        public HashSet<PrimitiveTypeInfo> PrimitiveTypeDependencies { get; set; }
+        public HashSet<NonGenericObjectTypeInfo> NonGenericObjectTypeDependencies { get; set; }
+        public HashSet<GenericObjectTypeInfo> GenericObjectTypeDependencies { get; set; }
 
-        #region Classes
-        public abstract class AnalysisInfo
-        {
-            #region Properties
-            public HashSet<PrimitiveTypeInfo> PrimitiveTypeDependencies { get; private set; }
-            public HashSet<ObjectTypeInfo> ObjectTypeDependencies { get; private set; }
-            #endregion
-
-            #region Constructors
-            protected AnalysisInfo(HashSet<PrimitiveTypeInfo> primitiveTypeDependencies, HashSet<ObjectTypeInfo> objectTypeDependencies)
-            {
-                PrimitiveTypeDependencies = primitiveTypeDependencies;
-                ObjectTypeDependencies = objectTypeDependencies;
-            }
-            #endregion
-        }
-
-        public abstract class ProcessingInfo
-        {
-            #region Properties
-            public Serialize SerializeDelegate { get; private set; }
-            public Deserialize DeserializeDelegate { get; private set; }
-            #endregion
-
-            #region Constructors
-            protected ProcessingInfo(Serialize serializeDelegate, Deserialize deserializeDelegate)
-            {
-                SerializeDelegate = serializeDelegate;
-                DeserializeDelegate = deserializeDelegate;
-            }
-            #endregion
-        }
+        public Serialize SerializeDelegate { get; set; }
+        public Deserialize DeserializeDelegate { get; set; }
         #endregion
 
         #region Constructors
-        public ObjectTypeInfo(Type type) : base(type)
+        protected ObjectTypeInfo(Type type, Serializability serializability) : base(type, serializability)
         {
         }
         #endregion

@@ -6,12 +6,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Xml.Linq;
 using System.Numerics;
+using UnityEngine;
 
 namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
-    using LooCast.System.Exceptions;
-    using UnityEngine;
 
     public sealed class SerializationManager : ModuleManager
     {
@@ -40,7 +39,11 @@ namespace LooCast.System.Serialization
         private Dictionary<Type, GenericObjectTypeInfo> registeredGenericObjectTypeInfos;
         private Dictionary<Type, FileTypeInfo> registeredFileTypeInfos;
         private Dictionary<Type, FolderTypeInfo> registeredFolderTypeInfos;
-        private Dictionary<Type, string> invalidations;
+
+        private Dictionary<Type, NonGenericObjectTypeInfo> newlyRegisteredNonGenericObjectTypeInfos;
+        private Dictionary<Type, GenericObjectTypeInfo> newlyRegisteredGenericObjectTypeInfos;
+        private Dictionary<Type, FileTypeInfo> newlyRegisteredFileTypeInfos;
+        private Dictionary<Type, FolderTypeInfo> newlyRegisteredFolderTypeInfos;
         #endregion
 
         #region Constructors
@@ -52,7 +55,11 @@ namespace LooCast.System.Serialization
             registeredGenericObjectTypeInfos = new Dictionary<Type, GenericObjectTypeInfo>();
             registeredFileTypeInfos = new Dictionary<Type, FileTypeInfo>();
             registeredFolderTypeInfos = new Dictionary<Type, FolderTypeInfo>();
-            invalidations = new Dictionary<Type, string>();
+
+            newlyRegisteredNonGenericObjectTypeInfos = new Dictionary<Type, NonGenericObjectTypeInfo>();
+            newlyRegisteredGenericObjectTypeInfos = new Dictionary<Type, GenericObjectTypeInfo>();
+            newlyRegisteredFileTypeInfos = new Dictionary<Type, FileTypeInfo>();
+            newlyRegisteredFolderTypeInfos = new Dictionary<Type, FolderTypeInfo>();
 
             // Add pre-included components here
 
@@ -421,7 +428,7 @@ namespace LooCast.System.Serialization
                 RegisterTypes(allInitialTypeDefinitions);
 
                 stopwatch.Stop();
-                int cachedTypeCount = registeredUnserializableTypes.Count + registeredPrimitiveTypeInfos.Count + registeredNonGenericObjectTypeInfos.Count + registeredGenericObjectTypeInfos.Count + registeredFileTypeInfos.Count + registeredFolderTypeInfos.Count;
+                int cachedTypeCount = registeredUnserializableTypes.Count + registeredPrimitiveTypeInfos.Count + newlyRegisteredNonGenericObjectTypeInfos.Count + newlyRegisteredGenericObjectTypeInfos.Count + newlyRegisteredFileTypeInfos.Count + newlyRegisteredFolderTypeInfos.Count;
                 UnityEngine.Debug.Log($"Analyzing {cachedTypeCount} types took {stopwatch.ElapsedMilliseconds}ms");
                 #endregion
 
@@ -473,284 +480,471 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Methods
-
-        #region Type Management
         /// <summary>
-        /// For performance reasons it is highly recommended to never register only a single type at once!
+        /// For performance reasons it is highly recommended to register as many types as possible at once!
         /// </summary>
         public void RegisterTypes(IEnumerable<Type> types)
         {
-            HashSet<Type> nonGenericObjectTypes = new HashSet<Type>();
-            HashSet<Type> genericObjectTypes = new HashSet<Type>();
-            HashSet<Type> fileTypes = new HashSet<Type>();
-            HashSet<Type> folderTypes = new HashSet<Type>();
-            
             foreach (Type type in types)
             {
-                if (registeredUnserializableTypes.Contains(type))
-                {
-                    throw new InvalidOperationException($"Type '{type.FullName}' is already registered as unserializable!");
-                }
-                if (registeredPrimitiveTypeInfos.ContainsKey(type))
-                {
-                    throw new InvalidOperationException($"Type '{type.FullName}' is already registered as primitive!");
-                }
-                
-                if (type.IsGenericTypeDefinition)
-                {
-                    registeredUnserializableTypes.Add(type);
-                    continue;
-                }
-                if (type.IsAbstract)
-                {
-                    registeredUnserializableTypes.Add(type);
-                    continue;
-                }
-                if (!type.IsPublic && !type.IsNestedPublic)
-                {
-                    registeredUnserializableTypes.Add(type);
-                    continue;
-                }
-                if (!type.IsClass && !type.IsValueType && !type.IsEnum)
-                {
-                    registeredUnserializableTypes.Add(type);
-                    continue;
-                }
-
-                SerializableNonGenericObjectAttribute serializableNonGenericObjectAttribute = type.GetCustomAttribute<SerializableNonGenericObjectAttribute>(false);
-                SerializableGenericObjectAttribute serializableGenericObjectAttribute = type.GetCustomAttribute<SerializableGenericObjectAttribute>(false);
-                SerializableFileAttribute serializableFileAttribute = type.GetCustomAttribute<SerializableFileAttribute>(false);
-                SerializableFolderAttribute serializableFolderAttribute = type.GetCustomAttribute<SerializableFolderAttribute>(false);
-
-                if (serializableNonGenericObjectAttribute == null && serializableGenericObjectAttribute == null && serializableFileAttribute == null && serializableFolderAttribute == null)
-                {
-                    registeredUnserializableTypes.Add(type);
-                    continue;
-                }
-                if (!(serializableNonGenericObjectAttribute != null ^ serializableGenericObjectAttribute != null ^ serializableFileAttribute != null ^ serializableFolderAttribute != null))
-                {
-                    throw new Exception($"Type '{type.FullName}' is marked as more than one serializable type!");
-                }
-                
-                if (serializableNonGenericObjectAttribute != null)
-                {
-                    nonGenericObjectTypes.Add(type);
-                    continue;
-                }
-                else if (serializableGenericObjectAttribute != null)
-                {
-                    genericObjectTypes.Add(type);
-                    continue;
-                }
-                else if (serializableFileAttribute != null)
-                {
-                    fileTypes.Add(type);
-                    continue;
-                }
-                else
-                {
-                    folderTypes.Add(type);
-                    continue;
-                }
+                AnalyzeType(type);
             }
+
+            IEnumerable<ObjectTypeInfo> newlyRegisteredObjectTypeInfos = newlyRegisteredNonGenericObjectTypeInfos.Values.Cast<ObjectTypeInfo>().Concat(newlyRegisteredGenericObjectTypeInfos.Values);
+            HashSet<ObjectTypeInfo>[] sortedNewlyRegisteredObjectTypeInfoSets = TopologicallySortObjectTypeInfos(newlyRegisteredObjectTypeInfos);
+            HashSet<FolderTypeInfo>[] sortedNewlyRegisteredFolderTypeInfoSets = TopologicallySortFolderTypeInfos(newlyRegisteredFolderTypeInfos.Values);
             
-            HashSet<NonGenericObjectTypeInfo> nonGenericObjectTypeInfos = new HashSet<NonGenericObjectTypeInfo>();
-            foreach (Type nonGenericObjectType in nonGenericObjectTypes)
-            {
-                NonGenericObjectTypeInfo nonGenericObjectTypeInfo = new NonGenericObjectTypeInfo(nonGenericObjectType);
-            }
+            // register the (de-)serialization delegates for the types on a stage-by-stage basis. Each stage is also just a part of a larger set, where these sets will be processed consecutively, as they will depend on each other.
+            // first register all Object Type Delegates, then all File Type Delegates, and lastly all Folder Type Delegates
 
-            HashSet<GenericObjectTypeInfo> genericObjectTypeInfos = new HashSet<GenericObjectTypeInfo>();
-            foreach (Type genericObjectType in genericObjectTypes)
-            {
-                GenericObjectTypeInfo genericObjectTypeInfo = new GenericObjectTypeInfo(genericObjectType);
-            }
-
-            HashSet<FileTypeInfo> fileTypeInfos = new HashSet<FileTypeInfo>();
-            foreach (Type fileType in fileTypes)
-            {
-                FileTypeInfo fileTypeInfo = new FileTypeInfo(fileType);
-            }
-
-            HashSet<FolderTypeInfo> folderTypeInfos = new HashSet<FolderTypeInfo>();
-            foreach (Type folderType in folderTypes)
-            {
-                FolderTypeInfo folderTypeInfo = new FolderTypeInfo(folderType);
-            }
-
-            PreAnalyzeNonGenericObjectTypes(nonGenericObjectTypeInfos);
-            PreAnalyzeFileTypes(fileTypeInfos);
-            PreAnalyzeFolderTypes(folderTypeInfos);
-
-            AnalyzeNonGenericObjectTypes(nonGenericObjectTypeInfos);
-            AnalyzeGenericObjectTypes(genericObjectTypeInfos);
-            AnalyzeFileTypes(fileTypeInfos);
-            AnalyzeFolderTypes(folderTypeInfos);
-
-            PreProcessNonGenericObjectTypes(nonGenericObjectTypeInfos);
-            PreProcessFileTypes(fileTypeInfos);
-            PreProcessFolderTypes(folderTypeInfos);
-
-            ProcessNonGenericObjectTypes(nonGenericObjectTypeInfos);
-            ProcessGenericObjectTypes(genericObjectTypeInfos);
-            ProcessFileTypes(fileTypeInfos);
-            ProcessFolderTypes(folderTypeInfos);
-
-            foreach (KeyValuePair<Type, string> invalidation in invalidations)
-            {
-                UnityEngine.Debug.LogWarning($"The type '{invalidation.Key}' is marked as serializable but has been invalidated by the SerializationManager for the following reason: {invalidation.Value}");
-            }
-
-            // Log all invalidated types somehow. The idea is that some types may be marked as serializable, but ultimately aren't, but are not important enough to throw an exception.
-            // If however some dependency is not met as a consequence of the invalidity, an exception is thrown.
-            // If everything goes to plan regarding the dependencies, the system then logs a Severe Warning about the invalid types,
-            // stating that they will be considered unserializable by the SerializationManager and will probably cause issues down the line.
-            // This is a severe warning and not a hard error, because technically this does not guarantee issues down the line, but it's very likely.
+            // Note: These methods also follow a zero-tolerance policy, as the SerializationSystem is a crucial sub-system of the game engine
         }
 
         /// <summary>
-        /// For performance reasons it is highly recommended to never unregister only a single type at once!
+        /// For performance reasons it is highly recommended to register as many types as possible at once!
         /// </summary>
         public void UnregisterTypes(IEnumerable<Type> types)
         {
             
         }
-        #endregion
 
-        #region Type Analysis & Processing
-        
-        #region Non-Generic Object Type
-        private void PreAnalyzeNonGenericObjectTypes(IEnumerable<NonGenericObjectTypeInfo> nonGenericObjectTypeInfos)
+        private TypeInfo AnalyzeType(Type type)
         {
-            foreach (NonGenericObjectTypeInfo nonGenericObjectTypeInfo in nonGenericObjectTypeInfos)
+            if (registeredUnserializableTypes.Contains(type))
             {
-                MethodInfo serializeMethodInfo = nonGenericObjectTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(object), typeof(XElement).MakeByRefType() }, null);
-                MethodInfo deserializeMethodInfo = nonGenericObjectTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(XElement), typeof(object).MakeByRefType() }, null);
+                return null;
+            }
+            if (registeredPrimitiveTypeInfos.TryGetValue(type, out PrimitiveTypeInfo _primitiveTypeInfo))
+            {
+                return _primitiveTypeInfo;
+            }
+            if (registeredNonGenericObjectTypeInfos.TryGetValue(type, out NonGenericObjectTypeInfo _nonGenericObjectTypeInfo))
+            {
+                return _nonGenericObjectTypeInfo;
+            }
+            if (registeredGenericObjectTypeInfos.TryGetValue(type, out GenericObjectTypeInfo _genericObjectTypeInfo))
+            {
+                return _genericObjectTypeInfo;
+            }
+            if (registeredFileTypeInfos.TryGetValue(type, out FileTypeInfo _fileTypeInfo))
+            {
+                return _fileTypeInfo;
+            }
+            if (registeredFolderTypeInfos.TryGetValue(type, out FolderTypeInfo _folderTypeInfo))
+            {
+                return _folderTypeInfo;
+            }
+            if (newlyRegisteredNonGenericObjectTypeInfos.TryGetValue(type, out NonGenericObjectTypeInfo _newNonGenericObjectTypeInfo))
+            {
+                return _newNonGenericObjectTypeInfo;
+            }
+            if (newlyRegisteredGenericObjectTypeInfos.TryGetValue(type, out GenericObjectTypeInfo _newGenericObjectTypeInfo))
+            {
+                return _newGenericObjectTypeInfo;
+            }
+            if (newlyRegisteredFileTypeInfos.TryGetValue(type, out FileTypeInfo _newFileTypeInfo))
+            {
+                return _newFileTypeInfo;
+            }
+            if (newlyRegisteredFolderTypeInfos.TryGetValue(type, out FolderTypeInfo _newFolderTypeInfo))
+            {
+                return _newFolderTypeInfo;
+            }
 
-                bool fullyOverridden = serializeMethodInfo != null && deserializeMethodInfo != null;
+            if (type.IsGenericTypeDefinition)
+            {
+                registeredUnserializableTypes.Add(type);
+                return null;
+            }
+            if (type.IsAbstract)
+            {
+                registeredUnserializableTypes.Add(type);
+                return null;
+            }
+            if (!type.IsPublic && !type.IsNestedPublic)
+            {
+                registeredUnserializableTypes.Add(type);
+                return null;
+            }
+            if (!type.IsClass && !type.IsValueType && !type.IsEnum)
+            {
+                registeredUnserializableTypes.Add(type);
+                return null;
+            }
 
-                if (nonGenericObjectTypeInfo.Type.GetConstructor(Type.EmptyTypes) == null && !fullyOverridden)
+            SerializableNonGenericObjectAttribute serializableNonGenericObjectAttribute = type.GetCustomAttribute<SerializableNonGenericObjectAttribute>(false);
+            SerializableGenericObjectAttribute serializableGenericObjectAttribute = type.GetCustomAttribute<SerializableGenericObjectAttribute>(false);
+            SerializableFileAttribute serializableFileAttribute = type.GetCustomAttribute<SerializableFileAttribute>(false);
+            SerializableFolderAttribute serializableFolderAttribute = type.GetCustomAttribute<SerializableFolderAttribute>(false);
+
+            if (serializableNonGenericObjectAttribute == null && serializableGenericObjectAttribute == null && serializableFileAttribute == null && serializableFolderAttribute == null)
+            {
+                registeredUnserializableTypes.Add(type);
+                return null;
+            }
+            if (!(serializableNonGenericObjectAttribute != null ^ serializableGenericObjectAttribute != null ^ serializableFileAttribute != null ^ serializableFolderAttribute != null))
+            {
+                throw new Exception($"Type '{type.FullName}' is marked as more than one serializable type!");
+            }
+
+            if (serializableNonGenericObjectAttribute != null)
+            {
+                NonGenericObjectTypeInfo nonGenericObjectTypeInfo = new NonGenericObjectTypeInfo(type);
+                newlyRegisteredNonGenericObjectTypeInfos.Add(type, nonGenericObjectTypeInfo);
+                
+                nonGenericObjectTypeInfo.Properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                nonGenericObjectTypeInfo.Fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+                IEnumerable<Type> propertyTypes = nonGenericObjectTypeInfo.Properties.Select(property => property.PropertyType);
+                IEnumerable<Type> fieldTypes = nonGenericObjectTypeInfo.Fields.Select(field => field.FieldType);
+                IEnumerable<Type> utilizedTypes = propertyTypes.Concat(fieldTypes).Distinct();
+
+                nonGenericObjectTypeInfo.PrimitiveTypeDependencies = new HashSet<PrimitiveTypeInfo>();
+                nonGenericObjectTypeInfo.NonGenericObjectTypeDependencies = new HashSet<NonGenericObjectTypeInfo>();
+                nonGenericObjectTypeInfo.GenericObjectTypeDependencies = new HashSet<GenericObjectTypeInfo>();
+
+                foreach (Type utilizedType in utilizedTypes)
                 {
-                    nonGenericObjectTypeInfo.Invalidate();
-                    invalidations.Add(nonGenericObjectTypeInfo.Type, "A type marked as serializable non-generic object is required to have a parameterless constructor or implement both a 'public static void Serialize(string objectName, object serializableObject, out XElement serializedObject)' and a 'public static void Deserialize(XElement serializedObject, out object serializableObject)' method!");
-                    continue;
+                    AnalyzeType(utilizedType);
+                    
+                    if (registeredUnserializableTypes.Contains(utilizedType))
+                    {
+                        throw new Exception($"Non-Generic object type '{type.FullName}' utilizes unserializable type '{utilizedType.FullName}'! A non-generic object type cannot utilize an unserializable type!");
+                    }
+                    else if (registeredPrimitiveTypeInfos.ContainsKey(utilizedType))
+                    {
+                        nonGenericObjectTypeInfo.PrimitiveTypeDependencies.Add(registeredPrimitiveTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (newlyRegisteredNonGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        nonGenericObjectTypeInfo.NonGenericObjectTypeDependencies.Add(newlyRegisteredNonGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (registeredNonGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        nonGenericObjectTypeInfo.NonGenericObjectTypeDependencies.Add(registeredNonGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (newlyRegisteredGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        nonGenericObjectTypeInfo.GenericObjectTypeDependencies.Add(newlyRegisteredGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (registeredGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        nonGenericObjectTypeInfo.GenericObjectTypeDependencies.Add(registeredGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (newlyRegisteredFileTypeInfos.ContainsKey(utilizedType) || registeredFileTypeInfos.ContainsKey(utilizedType))
+                    {
+                        throw new Exception($"Non-Generic object type '{type.FullName}' utilizes file type '{utilizedType.FullName}'! A non-generic object type cannot utilize a file type!");
+                    }
+                    else if (newlyRegisteredFolderTypeInfos.ContainsKey(utilizedType) || registeredFolderTypeInfos.ContainsKey(utilizedType))
+                    {
+                        throw new Exception($"Non-Generic object type '{type.FullName}' utilizes folder type '{utilizedType.FullName}'! A non-generic object type cannot utilize a folder type!");
+                    }
                 }
+
+                return nonGenericObjectTypeInfo;
+            }
+            else if (serializableGenericObjectAttribute != null)
+            {
+                GenericObjectTypeInfo genericObjectTypeInfo = new GenericObjectTypeInfo(type);
+                newlyRegisteredGenericObjectTypeInfos.Add(type, genericObjectTypeInfo);
+
+                IEnumerable<Type> utilizedTypes = type.GetGenericArguments().Distinct();
+
+                genericObjectTypeInfo.PrimitiveTypeDependencies = new HashSet<PrimitiveTypeInfo>();
+                genericObjectTypeInfo.NonGenericObjectTypeDependencies = new HashSet<NonGenericObjectTypeInfo>();
+                genericObjectTypeInfo.GenericObjectTypeDependencies = new HashSet<GenericObjectTypeInfo>();
+
+                foreach (Type utilizedType in utilizedTypes)
+                {
+                    AnalyzeType(utilizedType);
+
+                    if (registeredUnserializableTypes.Contains(utilizedType))
+                    {
+                        throw new Exception($"Generic object type '{type.FullName}' utilizes unserializable type '{utilizedType.FullName}'! A generic object type cannot utilize an unserializable type!");
+                    }
+                    else if (registeredPrimitiveTypeInfos.ContainsKey(utilizedType))
+                    {
+                        genericObjectTypeInfo.PrimitiveTypeDependencies.Add(registeredPrimitiveTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (newlyRegisteredNonGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        genericObjectTypeInfo.NonGenericObjectTypeDependencies.Add(newlyRegisteredNonGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (registeredNonGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        genericObjectTypeInfo.NonGenericObjectTypeDependencies.Add(registeredNonGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (newlyRegisteredGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        genericObjectTypeInfo.GenericObjectTypeDependencies.Add(newlyRegisteredGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (registeredGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        genericObjectTypeInfo.GenericObjectTypeDependencies.Add(registeredGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (newlyRegisteredFileTypeInfos.ContainsKey(utilizedType) || registeredFileTypeInfos.ContainsKey(utilizedType))
+                    {
+                        throw new Exception($"Generic object type '{type.FullName}' utilizes file type '{utilizedType.FullName}'! A generic object type cannot utilize a file type!");
+                    }
+                    else if (newlyRegisteredFolderTypeInfos.ContainsKey(utilizedType) || registeredFolderTypeInfos.ContainsKey(utilizedType))
+                    {
+                        throw new Exception($"Generic object type '{type.FullName}' utilizes folder type '{utilizedType.FullName}'! A generic object type cannot utilize a folder type!");
+                    }
+                }
+
+                return genericObjectTypeInfo;
+            }
+            else if (serializableFileAttribute != null)
+            {
+                FileTypeInfo fileTypeInfo = new FileTypeInfo(type);
+                newlyRegisteredFileTypeInfos.Add(type, fileTypeInfo);
+
+                fileTypeInfo.Properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                fileTypeInfo.Fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+                IEnumerable<Type> propertyTypes = fileTypeInfo.Properties.Select(property => property.PropertyType);
+                IEnumerable<Type> fieldTypes = fileTypeInfo.Fields.Select(field => field.FieldType);
+                IEnumerable<Type> utilizedTypes = propertyTypes.Concat(fieldTypes).Distinct();
+
+                fileTypeInfo.NonGenericObjectTypeDependencies = new HashSet<NonGenericObjectTypeInfo>();
+                fileTypeInfo.GenericObjectTypeDependencies = new HashSet<GenericObjectTypeInfo>();
+
+                foreach (Type utilizedType in utilizedTypes)
+                {
+                    AnalyzeType(utilizedType);
+
+                    if (registeredUnserializableTypes.Contains(utilizedType))
+                    {
+                        throw new Exception($"File type '{type.FullName}' utilizes unserializable type '{utilizedType.FullName}'! A file type cannot utilize an unserializable type!");
+                    }
+                    else if (registeredPrimitiveTypeInfos.ContainsKey(utilizedType))
+                    {
+                        throw new Exception($"File type '{type.FullName}' utilizes primitive type '{utilizedType.FullName}'! A file type cannot utilize a primitive type!");
+                    }
+                    else if (newlyRegisteredNonGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        fileTypeInfo.NonGenericObjectTypeDependencies.Add(newlyRegisteredNonGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (registeredNonGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        fileTypeInfo.NonGenericObjectTypeDependencies.Add(registeredNonGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (newlyRegisteredGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        fileTypeInfo.GenericObjectTypeDependencies.Add(newlyRegisteredGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (registeredGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        fileTypeInfo.GenericObjectTypeDependencies.Add(registeredGenericObjectTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (newlyRegisteredFileTypeInfos.ContainsKey(utilizedType) || registeredFileTypeInfos.ContainsKey(utilizedType))
+                    {
+                        throw new Exception($"File type '{type.FullName}' utilizes file type '{utilizedType.FullName}'! A file type cannot utilize a file type!");
+                    }
+                    else if (newlyRegisteredFolderTypeInfos.ContainsKey(utilizedType) || registeredFolderTypeInfos.ContainsKey(utilizedType))
+                    {
+                        throw new Exception($"File type '{type.FullName}' utilizes folder type '{utilizedType.FullName}'! A file type cannot utilize a folder type!");
+                    }
+                }
+
+                return fileTypeInfo;
+            }
+            else
+            {
+                FolderTypeInfo folderTypeInfo = new FolderTypeInfo(type);
+                newlyRegisteredFolderTypeInfos.Add(type, folderTypeInfo);
+
+                folderTypeInfo.Properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                folderTypeInfo.Fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+                IEnumerable<Type> propertyTypes = folderTypeInfo.Properties.Select(property => property.PropertyType);
+                IEnumerable<Type> fieldTypes = folderTypeInfo.Fields.Select(field => field.FieldType);
+                IEnumerable<Type> utilizedTypes = propertyTypes.Concat(fieldTypes).Distinct();
+
+                folderTypeInfo.FileTypeDependencies = new HashSet<FileTypeInfo>();
+                folderTypeInfo.FolderTypeDependencies = new HashSet<FolderTypeInfo>();
+
+                foreach (Type utilizedType in utilizedTypes)
+                {
+                    AnalyzeType(utilizedType);
+
+                    if (registeredUnserializableTypes.Contains(utilizedType))
+                    {
+                        throw new Exception($"Folder type '{type.FullName}' utilizes unserializable type '{utilizedType.FullName}'! A folder type cannot utilize an unserializable type!");
+                    }
+                    else if (registeredPrimitiveTypeInfos.ContainsKey(utilizedType))
+                    {
+                        throw new Exception($"Folder type '{type.FullName}' utilizes primitive type '{utilizedType.FullName}'! A folder type cannot utilize a primitive type!");
+                    }
+                    else if (newlyRegisteredNonGenericObjectTypeInfos.ContainsKey(utilizedType) || registeredNonGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        throw new Exception($"Folder type '{type.FullName}' utilizes non-generic object type '{utilizedType.FullName}'! A folder type cannot utilize a non-generic object type!");
+                    }
+                    else if (newlyRegisteredGenericObjectTypeInfos.ContainsKey(utilizedType) || registeredGenericObjectTypeInfos.ContainsKey(utilizedType))
+                    {
+                        throw new Exception($"Folder type '{type.FullName}' utilizes generic object type '{utilizedType.FullName}'! A folder type cannot utilize a generic object type!");
+                    }
+                    else if (newlyRegisteredFileTypeInfos.ContainsKey(utilizedType))
+                    {
+                        folderTypeInfo.FileTypeDependencies.Add(newlyRegisteredFileTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (registeredFileTypeInfos.ContainsKey(utilizedType))
+                    {
+                        folderTypeInfo.FileTypeDependencies.Add(registeredFileTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (newlyRegisteredFolderTypeInfos.ContainsKey(utilizedType))
+                    {
+                        folderTypeInfo.FolderTypeDependencies.Add(newlyRegisteredFolderTypeInfos[utilizedType]);
+                        continue;
+                    }
+                    else if (registeredFolderTypeInfos.ContainsKey(utilizedType))
+                    {
+                        folderTypeInfo.FolderTypeDependencies.Add(registeredFolderTypeInfos[utilizedType]);
+                        continue;
+                    }
+                }
+
+                return folderTypeInfo;
             }
         }
 
-        private void AnalyzeNonGenericObjectTypes(IEnumerable<NonGenericObjectTypeInfo> nonGenericObjectTypeInfos)
+        /// <summary>
+        /// Topologically sorts ObjectTypeInfo instances based on their dependencies. This method ensures that the returned order respects dependencies between the ObjectTypeInfo instances.
+        /// </summary>
+        /// <param name="objectTypeInfos">The ObjectTypeInfo instances to be sorted.</param>
+        /// <returns>An array of HashSet<ObjectTypeInfo> where each set represents a stage of dependencies, with earlier stages having no dependencies on later stages.</returns>
+        private HashSet<ObjectTypeInfo>[] TopologicallySortObjectTypeInfos(IEnumerable<ObjectTypeInfo> objectTypeInfos)
         {
-            
-        }
-        
-        private void PreProcessNonGenericObjectTypes(IEnumerable<NonGenericObjectTypeInfo> nonGenericObjectTypeInfos)
-        {
+            // The resulting sorted sets of ObjectTypeInfo instances, where each set can be processed without depending on later sets.
+            List<HashSet<ObjectTypeInfo>> objectTypeInfoSets = new List<HashSet<ObjectTypeInfo>>();
 
-        }
+            // Stores the remaining dependencies for each ObjectTypeInfo instance.
+            Dictionary<ObjectTypeInfo, HashSet<ObjectTypeInfo>> remainingDependencies = new Dictionary<ObjectTypeInfo, HashSet<ObjectTypeInfo>>();
 
-        private void ProcessNonGenericObjectTypes(IEnumerable<NonGenericObjectTypeInfo> nonGenericObjectTypeInfos)
-        {
+            // Combining all ObjectTypeInfo instances (both new and already registered) into one set.
+            HashSet<ObjectTypeInfo> combinedObjectTypeInfos = new HashSet<ObjectTypeInfo>(
+                objectTypeInfos.Union(registeredNonGenericObjectTypeInfos.Values.Cast<ObjectTypeInfo>())
+                               .Union(registeredGenericObjectTypeInfos.Values.Cast<ObjectTypeInfo>())
+            );
 
-        }
-        #endregion
-
-        #region Generic Object Type
-        private void AnalyzeGenericObjectTypes(IEnumerable<GenericObjectTypeInfo> genericObjectTypeInfos)
-        {
-            foreach (GenericObjectTypeInfo genericObjectTypeInfo in genericObjectTypeInfos)
+            // Initialize the remaining dependencies for each ObjectTypeInfo instance.
+            foreach (ObjectTypeInfo objectTypeInfo in combinedObjectTypeInfos)
             {
-                MethodInfo serializeMethodInfo = genericObjectTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(object), typeof(XElement).MakeByRefType() }, null);
-                MethodInfo deserializeMethodInfo = genericObjectTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(XElement), typeof(object).MakeByRefType() }, null);
+                HashSet<ObjectTypeInfo> dependencies = new HashSet<ObjectTypeInfo>(
+                    objectTypeInfo.NonGenericObjectTypeDependencies.Cast<ObjectTypeInfo>()
+                    .Union(objectTypeInfo.GenericObjectTypeDependencies)
+                );
+                remainingDependencies[objectTypeInfo] = dependencies;
+            }
 
-                bool fullyOverridden = serializeMethodInfo != null && deserializeMethodInfo != null;
+            // Set to keep track of visited ObjectTypeInfo instances to avoid redundant checks.
+            HashSet<ObjectTypeInfo> visited = new HashSet<ObjectTypeInfo>();
 
-                if (!fullyOverridden)
+            // Recursive function to detect circular dependencies.
+            void DetectCircularDependency(ObjectTypeInfo current, HashSet<ObjectTypeInfo> path)
+            {
+                // If the current ObjectTypeInfo is already in the path, a circular dependency is detected.
+                if (path.Contains(current))
                 {
-                    genericObjectTypeInfo.Invalidate();
-                    invalidations.Add(genericObjectTypeInfo.Type, "A type marked as serializable generic object is required to implement both a 'public static void Serialize(string objectName, object serializableObject, out XElement serializedObject)' and a 'public static void Deserialize(XElement serializedObject, out object serializableObject)' method!");
-                    continue;
+                    path.Add(current);
+                    throw new Exception($"Circular dependency detected: {string.Join(" -> ", path.Select(oti => oti.Type.FullName))}");
+                }
+
+                // If the current ObjectTypeInfo has been visited, we can skip the checks.
+                if (visited.Contains(current))
+                {
+                    return;
+                }
+
+                // Add the current ObjectTypeInfo to the path and check its dependencies.
+                path.Add(current);
+                foreach (ObjectTypeInfo next in remainingDependencies[current])
+                {
+                    DetectCircularDependency(next, path);
+                }
+
+                // Mark the current ObjectTypeInfo as visited and remove it from the current path.
+                visited.Add(current);
+                path.Remove(current);
+            }
+
+            // Check each ObjectTypeInfo instance for circular dependencies.
+            foreach (ObjectTypeInfo objectTypeInfo in combinedObjectTypeInfos)
+            {
+                if (!visited.Contains(objectTypeInfo))
+                {
+                    DetectCircularDependency(objectTypeInfo, new HashSet<ObjectTypeInfo>());
                 }
             }
-        }
 
-        private void ProcessGenericObjectTypes(IEnumerable<GenericObjectTypeInfo> genericObjectTypeInfos)
-        {
+            // Initialize a queue with ObjectTypeInfo instances that have no dependencies.
+            Queue<ObjectTypeInfo> objectTypeInfosWithNoDependencies = new Queue<ObjectTypeInfo>(
+                combinedObjectTypeInfos.Where(oti => !remainingDependencies[oti].Any())
+            );
 
-        }
-        #endregion
-
-        #region File Type
-        private void PreAnalyzeFileTypes(IEnumerable<FileTypeInfo> fileTypeInfos)
-        {
-            foreach (FileTypeInfo fileTypeInfo in fileTypeInfos)
+            // While there are ObjectTypeInfo instances with no dependencies, process them.
+            while (objectTypeInfosWithNoDependencies.Count > 0)
             {
-                MethodInfo serializeMethodInfo = fileTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(string), typeof(string), typeof(object), typeof(FileInfo).MakeByRefType() }, null);
-                MethodInfo deserializeMethodInfo = fileTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(FileInfo), typeof(object).MakeByRefType() }, null);
+                HashSet<ObjectTypeInfo> currentBatch = new HashSet<ObjectTypeInfo>();
 
-                bool fullyOverridden = serializeMethodInfo != null && deserializeMethodInfo != null;
-
-                if (fileTypeInfo.Type.GetConstructor(Type.EmptyTypes) == null && !fullyOverridden)
+                // Process each ObjectTypeInfo instance with no dependencies.
+                while (objectTypeInfosWithNoDependencies.Count > 0)
                 {
-                    fileTypeInfo.Invalidate();
-                    invalidations.Add(fileTypeInfo.Type, "A type marked as serializable file is required to implement both a 'public static void Serialize(string fileName, string fileExtension, string parentFolderPath, object serializableFile, out FileInfo serializedFile)' and a 'public static void Deserialize(FileInfo serializedFile, out object serializableFile)' method!");
-                    continue;
+                    ObjectTypeInfo currentTypeInfo = objectTypeInfosWithNoDependencies.Dequeue();
+                    currentBatch.Add(currentTypeInfo);
+
+                    // Check other ObjectTypeInfo instances that depend on the current one.
+                    foreach (ObjectTypeInfo dependentObjectTypeInfo in remainingDependencies.Keys.ToList())
+                    {
+                        // If the current ObjectTypeInfo is a dependency of another, remove it from that ObjectTypeInfo's list of dependencies.
+                        if (remainingDependencies[dependentObjectTypeInfo].Remove(currentTypeInfo) && !remainingDependencies[dependentObjectTypeInfo].Any())
+                        {
+                            objectTypeInfosWithNoDependencies.Enqueue(dependentObjectTypeInfo);
+                        }
+                    }
+
+                    // Remove the current ObjectTypeInfo from the remaining dependencies.
+                    remainingDependencies.Remove(currentTypeInfo);
                 }
+
+                // Add the current batch of ObjectTypeInfo instances to the result list.
+                objectTypeInfoSets.Add(currentBatch);
             }
-        }
 
-        private void AnalyzeFileTypes(IEnumerable<FileTypeInfo> fileTypeInfos)
-        {
-
-        }
-
-        private void PreProcessFileTypes(IEnumerable<FileTypeInfo> fileTypeInfos)
-        {
-
-        }
-
-        private void ProcessFileTypes(IEnumerable<FileTypeInfo> fileTypeInfos)
-        {
-
-        }
-        #endregion
-
-        #region Folder Type
-        private void PreAnalyzeFolderTypes(IEnumerable<FolderTypeInfo> folderTypeInfos)
-        {
-            foreach (FolderTypeInfo folderTypeInfo in folderTypeInfos)
+            // If there are any remaining dependencies, it means there's a circular dependency that wasn't identified earlier.
+            if (remainingDependencies.Count != 0)
             {
-                MethodInfo serializeMethodInfo = folderTypeInfo.Type.GetMethod("Serialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(string), typeof(object), typeof(DirectoryInfo).MakeByRefType() }, null);
-                MethodInfo deserializeMethodInfo = folderTypeInfo.Type.GetMethod("Deserialize", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(DirectoryInfo), typeof(object).MakeByRefType() }, null);
-
-                bool fullyOverridden = serializeMethodInfo != null && deserializeMethodInfo != null;
-
-                if (folderTypeInfo.Type.GetConstructor(Type.EmptyTypes) == null && !fullyOverridden)
-                {
-                    folderTypeInfo.Invalidate();
-                    invalidations.Add(folderTypeInfo.Type, "A type marked as serializable folder is required to implement both a 'public static void Serialize(string folderName, string parentFolderPath, object serializableFolder, out DirectoryInfo serializedFolder)' and a 'public static void Deserialize(DirectoryInfo serializedFolder, out object serializableFolder)' method!");
-                    continue;
-                }
+                throw new Exception($"Unidentifiable circular dependency detected! This is VERY problematic and should never happen!");
             }
+
+            return objectTypeInfoSets.ToArray();
         }
 
-        private void AnalyzeFolderTypes(IEnumerable<FolderTypeInfo> folderTypeInfos)
+        /// <summary>
+        /// Topologically sorts FolderTypeInfo instances based on their dependencies. This method ensures that the returned order respects dependencies between the FolderTypeInfo instances.
+        /// </summary>
+        /// <param name="folderTypeInfos">The FolderTypeInfo instances to be sorted.</param>
+        /// <returns>An array of HashSet<FolderTypeInfo> where each set represents a stage of dependencies, with earlier stages having no dependencies on later stages.</returns>
+        private HashSet<FolderTypeInfo>[] TopologicallySortFolderTypeInfos(IEnumerable<FolderTypeInfo> folderTypeInfos)
         {
-
+            throw new NotImplementedException();
         }
-
-        private void PreProcessFolderTypes(IEnumerable<FolderTypeInfo> folderTypeInfos)
-        {
-
-        }
-
-        private void ProcessFolderTypes(IEnumerable<FolderTypeInfo> folderTypeInfos)
-        {
-
-        }
-        #endregion
-
-        #endregion
-
         #endregion
     }
 }
