@@ -483,29 +483,41 @@ namespace LooCast.System.Serialization
 
         #region Methods
         /// <summary>
-        /// For performance reasons it is highly recommended to register as many types as possible at once!
+        /// Registers a collection of types to the serialization manager.
+        /// For performance optimization, it's recommended to register many types simultaneously.
+        /// The method analyzes each type, sorts them, and composes necessary delegates for their serialization.
         /// </summary>
+        /// <param name="types">The types to be registered.</param>
         public void RegisterTypes(IEnumerable<Type> types)
         {
+            // Analyze each provided type to determine its serializability and dependencies.
             foreach (Type type in types)
             {
                 AnalyzeType(type);
             }
 
+            // Combine the newly registered non-generic and generic object type infos.
             IEnumerable<ObjectTypeInfo> newlyRegisteredObjectTypeInfos = newlyRegisteredNonGenericObjectTypeInfos.Values.Cast<ObjectTypeInfo>().Concat(newlyRegisteredGenericObjectTypeInfos.Values);
+
+            // Topologically sort the object type infos. This ensures dependencies are handled correctly.
             HashSet<ObjectTypeInfo>[] sortedNewlyRegisteredObjectTypeInfoSets = TopologicallySortObjectTypeInfos(newlyRegisteredObjectTypeInfos);
+
+            // Topologically sort the folder type infos.
             HashSet<FolderTypeInfo>[] sortedNewlyRegisteredFolderTypeInfoSets = TopologicallySortFolderTypeInfos(newlyRegisteredFolderTypeInfos.Values);
 
+            // Process the sorted object type infos.
             foreach (HashSet<ObjectTypeInfo> sortedNewlyRegisteredObjectTypeInfoSet in sortedNewlyRegisteredObjectTypeInfoSets)
             {
                 foreach (ObjectTypeInfo objectTypeInfo in sortedNewlyRegisteredObjectTypeInfoSet)
                 {
+                    // If the object type info is non-generic, compose its delegates and add it to the registered non-generic object type infos.
                     if (objectTypeInfo.Serializability == Serializability.NonGenericObject)
                     {
                         NonGenericObjectTypeInfo nonGenericObjectTypeInfo = (NonGenericObjectTypeInfo)objectTypeInfo;
                         ComposeNonGenericObjectTypeDelegates(nonGenericObjectTypeInfo);
                         registeredNonGenericObjectTypeInfos.Add(objectTypeInfo.Type, nonGenericObjectTypeInfo);
                     }
+                    // If the object type info is generic, add it to the registered generic object type infos.
                     else if (objectTypeInfo.Serializability == Serializability.GenericObject)
                     {
                         GenericObjectTypeInfo genericObjectTypeInfo = (GenericObjectTypeInfo)objectTypeInfo;
@@ -514,12 +526,14 @@ namespace LooCast.System.Serialization
                 }
             }
 
+            // For each newly registered file type info, compose its delegates and add it to the registered file type infos.
             foreach (FileTypeInfo fileTypeInfo in newlyRegisteredFileTypeInfos.Values)
             {
                 ComposeFileTypeDelegates(fileTypeInfo);
                 registeredFileTypeInfos.Add(fileTypeInfo.Type, fileTypeInfo);
             }
 
+            // For each sorted folder type info set, compose its delegates and add it to the registered folder type infos.
             foreach (HashSet<FolderTypeInfo> sortedNewlyRegisteredFolderTypeInfoSet in sortedNewlyRegisteredFolderTypeInfoSets)
             {
                 foreach (FolderTypeInfo folderTypeInfo in sortedNewlyRegisteredFolderTypeInfoSet)
@@ -529,18 +543,16 @@ namespace LooCast.System.Serialization
                 }
             }
 
+            // Clear the dictionaries of newly registered type infos for garbage collection and to ensure they don't interfere with subsequent registrations.
             newlyRegisteredNonGenericObjectTypeInfos.Clear();
             newlyRegisteredGenericObjectTypeInfos.Clear();
             newlyRegisteredFileTypeInfos.Clear();
             newlyRegisteredFolderTypeInfos.Clear();
         }
 
-        /// <summary>
-        /// For performance reasons it is highly recommended to register as many types as possible at once!
-        /// </summary>
         public void UnregisterTypes(IEnumerable<Type> types)
         {
-            
+            throw new PenisException();
         }
 
         private TypeInfo AnalyzeType(Type type)
@@ -954,7 +966,7 @@ namespace LooCast.System.Serialization
         /// <summary>
         /// Topologically sorts ObjectTypeInfo instances based on their dependencies. This method ensures that the returned order respects dependencies between the ObjectTypeInfo instances.
         /// </summary>
-        /// <param name="objectTypeInfos">The ObjectTypeInfo instances to be sorted.</param>
+        /// <param name="objectTypeInfos">The ObjectTypeInfo instances to be sorted. These should NEVER contain ObjectTypeInfo instances, which have already been fully registered!</param>
         /// <returns>An array of HashSet<ObjectTypeInfo> where each set represents a stage of dependencies, with earlier stages having no dependencies on later stages.</returns>
         private HashSet<ObjectTypeInfo>[] TopologicallySortObjectTypeInfos(IEnumerable<ObjectTypeInfo> objectTypeInfos)
         {
@@ -1066,7 +1078,7 @@ namespace LooCast.System.Serialization
         /// <summary>
         /// Topologically sorts FolderTypeInfo instances based on their dependencies. This method ensures that the returned order respects dependencies between the FolderTypeInfo instances.
         /// </summary>
-        /// <param name="folderTypeInfos">The FolderTypeInfo instances to be sorted.</param>
+        /// <param name="folderTypeInfos">The FolderTypeInfo instances to be sorted. These should NEVER contain FolderTypeInfo instances, which have already been fully registered!</param>
         /// <returns>An array of HashSet<FolderTypeInfo> where each set represents a stage of dependencies, with earlier stages having no dependencies on later stages.</returns>
         private HashSet<FolderTypeInfo>[] TopologicallySortFolderTypeInfos(IEnumerable<FolderTypeInfo> folderTypeInfos)
         {
@@ -1169,17 +1181,26 @@ namespace LooCast.System.Serialization
             return folderTypeInfoSets.ToArray();
         }
 
+        /// <summary>
+        /// Composes the serialization and deserialization delegates for a given non-generic object type.
+        /// This method is performance-optimized and is foundational to the serialization system.
+        /// </summary>
+        /// <param name="nonGenericObjectTypeInfo">Information about the non-generic object type to be processed.</param>
         private void ComposeNonGenericObjectTypeDelegates(NonGenericObjectTypeInfo nonGenericObjectTypeInfo)
         {
+            // If both serialization and deserialization are overridden, there's no need to proceed.
             if (nonGenericObjectTypeInfo.OverrideSerialization && nonGenericObjectTypeInfo.OverrideDeserialization)
             {
                 return;
             }
 
+            // Initializing dictionaries to store dependencies for primitives, non-generic objects, and generic objects.
+            // These are used to map types to their corresponding type info.
             Dictionary<Type, PrimitiveTypeInfo> primitiveTypeDependencies = new Dictionary<Type, PrimitiveTypeInfo>();
             Dictionary<Type, NonGenericObjectTypeInfo> nonGenericObjectTypeDependencies = new Dictionary<Type, NonGenericObjectTypeInfo>();
             Dictionary<Type, GenericObjectTypeInfo> genericObjectTypeDependencies = new Dictionary<Type, GenericObjectTypeInfo>();
-            
+
+            // Populating the type dependencies.
             foreach (PrimitiveTypeInfo primitiveTypeDependency in nonGenericObjectTypeInfo.PrimitiveTypeDependencies)
             {
                 primitiveTypeDependencies.Add(primitiveTypeDependency.Type, primitiveTypeDependency);
@@ -1193,18 +1214,18 @@ namespace LooCast.System.Serialization
                 genericObjectTypeDependencies.Add(genericObjectTypeDependency.Type, genericObjectTypeDependency);
             }
 
+            // Dictionaries to hold properties and fields grouped by their type.
+            // This aids in batch processing during serialization and deserialization.
             Dictionary<PrimitiveTypeInfo, HashSet<PropertyInfo>> primitivePropertySets = new Dictionary<PrimitiveTypeInfo, HashSet<PropertyInfo>>();
             Dictionary<NonGenericObjectTypeInfo, HashSet<PropertyInfo>> nonGenericObjectPropertySets = new Dictionary<NonGenericObjectTypeInfo, HashSet<PropertyInfo>>();
             Dictionary<GenericObjectTypeInfo, HashSet<PropertyInfo>> genericObjectPropertySets = new Dictionary<GenericObjectTypeInfo, HashSet<PropertyInfo>>();
 
+            // Grouping properties based on their type.
             foreach (PropertyInfo property in nonGenericObjectTypeInfo.Properties)
             {
                 Type propertyType = property.PropertyType;
-                primitiveTypeDependencies.TryGetValue(propertyType, out PrimitiveTypeInfo propertyPrimitiveTypeInfo);
-                nonGenericObjectTypeDependencies.TryGetValue(propertyType, out NonGenericObjectTypeInfo propertyNonGenericObjectTypeInfo);
-                genericObjectTypeDependencies.TryGetValue(propertyType, out GenericObjectTypeInfo propertyGenericObjectTypeInfo);
-
-                if (propertyPrimitiveTypeInfo != null)
+                // Check which dependency dictionary the property type belongs to and add it to the corresponding set.
+                if (primitiveTypeDependencies.TryGetValue(propertyType, out PrimitiveTypeInfo propertyPrimitiveTypeInfo))
                 {
                     if (!primitivePropertySets.ContainsKey(propertyPrimitiveTypeInfo))
                     {
@@ -1212,7 +1233,7 @@ namespace LooCast.System.Serialization
                     }
                     primitivePropertySets[propertyPrimitiveTypeInfo].Add(property);
                 }
-                else if (propertyNonGenericObjectTypeInfo != null)
+                else if (nonGenericObjectTypeDependencies.TryGetValue(propertyType, out NonGenericObjectTypeInfo propertyNonGenericObjectTypeInfo))
                 {
                     if (!nonGenericObjectPropertySets.ContainsKey(propertyNonGenericObjectTypeInfo))
                     {
@@ -1220,7 +1241,7 @@ namespace LooCast.System.Serialization
                     }
                     nonGenericObjectPropertySets[propertyNonGenericObjectTypeInfo].Add(property);
                 }
-                else if (propertyGenericObjectTypeInfo != null)
+                else if (genericObjectTypeDependencies.TryGetValue(propertyType, out GenericObjectTypeInfo propertyGenericObjectTypeInfo))
                 {
                     if (!genericObjectPropertySets.ContainsKey(propertyGenericObjectTypeInfo))
                     {
@@ -1230,18 +1251,17 @@ namespace LooCast.System.Serialization
                 }
             }
 
+            // Similar to properties, fields are also grouped based on their type.
             Dictionary<PrimitiveTypeInfo, HashSet<FieldInfo>> primitiveFieldSets = new Dictionary<PrimitiveTypeInfo, HashSet<FieldInfo>>();
             Dictionary<NonGenericObjectTypeInfo, HashSet<FieldInfo>> nonGenericObjectFieldSets = new Dictionary<NonGenericObjectTypeInfo, HashSet<FieldInfo>>();
             Dictionary<GenericObjectTypeInfo, HashSet<FieldInfo>> genericObjectFieldSets = new Dictionary<GenericObjectTypeInfo, HashSet<FieldInfo>>();
 
+            // Grouping fields based on their type.
             foreach (FieldInfo field in nonGenericObjectTypeInfo.Fields)
             {
                 Type fieldType = field.FieldType;
-                primitiveTypeDependencies.TryGetValue(fieldType, out PrimitiveTypeInfo fieldPrimitiveTypeInfo);
-                nonGenericObjectTypeDependencies.TryGetValue(fieldType, out NonGenericObjectTypeInfo fieldNonGenericObjectTypeInfo);
-                genericObjectTypeDependencies.TryGetValue(fieldType, out GenericObjectTypeInfo fieldGenericObjectTypeInfo);
-
-                if (fieldPrimitiveTypeInfo != null)
+                // Check which dependency dictionary the field type belongs to and add it to the corresponding set.
+                if (primitiveTypeDependencies.TryGetValue(fieldType, out PrimitiveTypeInfo fieldPrimitiveTypeInfo))
                 {
                     if (!primitiveFieldSets.ContainsKey(fieldPrimitiveTypeInfo))
                     {
@@ -1249,7 +1269,7 @@ namespace LooCast.System.Serialization
                     }
                     primitiveFieldSets[fieldPrimitiveTypeInfo].Add(field);
                 }
-                else if (fieldNonGenericObjectTypeInfo != null)
+                else if (nonGenericObjectTypeDependencies.TryGetValue(fieldType, out NonGenericObjectTypeInfo fieldNonGenericObjectTypeInfo))
                 {
                     if (!nonGenericObjectFieldSets.ContainsKey(fieldNonGenericObjectTypeInfo))
                     {
@@ -1257,7 +1277,7 @@ namespace LooCast.System.Serialization
                     }
                     nonGenericObjectFieldSets[fieldNonGenericObjectTypeInfo].Add(field);
                 }
-                else if (fieldGenericObjectTypeInfo != null)
+                else if (genericObjectTypeDependencies.TryGetValue(fieldType, out GenericObjectTypeInfo fieldGenericObjectTypeInfo))
                 {
                     if (!genericObjectFieldSets.ContainsKey(fieldGenericObjectTypeInfo))
                     {
@@ -1267,12 +1287,21 @@ namespace LooCast.System.Serialization
                 }
             }
 
+            // If serialization is not overridden, compose the serialization delegate.
             if (!nonGenericObjectTypeInfo.OverrideSerialization)
             {
+                // The delegate serializes the object into an XElement.
+                // The serialization is based on the type of each property or field (primitive, non-generic object, generic object).
                 nonGenericObjectTypeInfo.SerializeDelegate = (string objectName, object _object, out XElement serializedObject) =>
                 {
                     serializedObject = new XElement(objectName);
 
+                    // Serialize each group of properties and fields based on their type.
+                    // The logic is similar for each type group, but they're handled separately for performance reasons.
+                    // This involves invoking the appropriate serialization delegate for each property or field.
+                    // The serialized result (either XAttribute or XElement) is then added to the resulting XElement.
+
+                    // Serializing primitive properties.
                     foreach (KeyValuePair<PrimitiveTypeInfo, HashSet<PropertyInfo>> primitivePropertySetKeyValuePair in primitivePropertySets)
                     {
                         foreach (PropertyInfo property in primitivePropertySetKeyValuePair.Value)
@@ -1282,6 +1311,7 @@ namespace LooCast.System.Serialization
                         }
                     }
 
+                    // Serializing non-generic object properties.
                     foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<PropertyInfo>> nonGenericObjectPropertySetKeyValuePair in nonGenericObjectPropertySets)
                     {
                         foreach (PropertyInfo property in nonGenericObjectPropertySetKeyValuePair.Value)
@@ -1291,6 +1321,7 @@ namespace LooCast.System.Serialization
                         }
                     }
 
+                    // Serializing generic object properties.
                     foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<PropertyInfo>> genericObjectPropertySetKeyValuePair in genericObjectPropertySets)
                     {
                         foreach (PropertyInfo property in genericObjectPropertySetKeyValuePair.Value)
@@ -1300,6 +1331,7 @@ namespace LooCast.System.Serialization
                         }
                     }
 
+                    // Serializing primitive fields.
                     foreach (KeyValuePair<PrimitiveTypeInfo, HashSet<FieldInfo>> primitiveFieldSetKeyValuePair in primitiveFieldSets)
                     {
                         foreach (FieldInfo field in primitiveFieldSetKeyValuePair.Value)
@@ -1309,6 +1341,7 @@ namespace LooCast.System.Serialization
                         }
                     }
 
+                    // Serializing non-generic object fields.
                     foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<FieldInfo>> nonGenericObjectFieldSetKeyValuePair in nonGenericObjectFieldSets)
                     {
                         foreach (FieldInfo field in nonGenericObjectFieldSetKeyValuePair.Value)
@@ -1318,6 +1351,7 @@ namespace LooCast.System.Serialization
                         }
                     }
 
+                    // Serializing generic object fields.
                     foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<FieldInfo>> genericObjectFieldSetKeyValuePair in genericObjectFieldSets)
                     {
                         foreach (FieldInfo field in genericObjectFieldSetKeyValuePair.Value)
@@ -1326,18 +1360,23 @@ namespace LooCast.System.Serialization
                             serializedObject.Add(serializedGenericObject);
                         }
                     }
-                }; 
+                };
             }
 
+            // If deserialization is not overridden, compose the deserialization delegate.
             if (!nonGenericObjectTypeInfo.OverrideDeserialization)
             {
+                // The delegate deserializes an XElement into an object.
+                // The deserialization is based on the type of each property or field (primitive, non-generic object, generic object).
                 nonGenericObjectTypeInfo.DeserializeDelegate = (XElement serializedObject, out object _object) =>
                 {
                     _object = Activator.CreateInstance(nonGenericObjectTypeInfo.Type);
 
+                    // Dictionaries to hold serialized primitives and objects for quick look-up during deserialization.
                     Dictionary<string, XAttribute> serializedPrimitives = new Dictionary<string, XAttribute>();
                     Dictionary<string, XElement> serializedObjects = new Dictionary<string, XElement>();
 
+                    // Populate the dictionaries with serialized primitives and objects.
                     foreach (XAttribute serializedPrimitive in serializedObject.Attributes())
                     {
                         serializedPrimitives.Add(serializedPrimitive.Name.ToString(), serializedPrimitive);
@@ -1347,6 +1386,12 @@ namespace LooCast.System.Serialization
                         serializedObjects.Add(serializedNonGenericObject.Name.ToString(), serializedNonGenericObject);
                     }
 
+                    // Deserialize each group of properties and fields based on their type.
+                    // The logic is similar for each type group, but they're handled separately for performance reasons.
+                    // This involves invoking the appropriate deserialization delegate for each property or field.
+                    // The deserialized result is then set on the resulting object.
+
+                    // Deserializing primitive properties.
                     foreach (KeyValuePair<PrimitiveTypeInfo, HashSet<PropertyInfo>> primitivePropertySetKeyValuePair in primitivePropertySets)
                     {
                         foreach (PropertyInfo property in primitivePropertySetKeyValuePair.Value)
@@ -1360,6 +1405,7 @@ namespace LooCast.System.Serialization
                         }
                     }
 
+                    // Deserializing non-generic object properties.
                     foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<PropertyInfo>> nonGenericObjectPropertySetKeyValuePair in nonGenericObjectPropertySets)
                     {
                         foreach (PropertyInfo property in nonGenericObjectPropertySetKeyValuePair.Value)
@@ -1373,6 +1419,7 @@ namespace LooCast.System.Serialization
                         }
                     }
 
+                    // Deserializing generic object properties.
                     foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<PropertyInfo>> genericObjectPropertySetKeyValuePair in genericObjectPropertySets)
                     {
                         foreach (PropertyInfo property in genericObjectPropertySetKeyValuePair.Value)
@@ -1386,6 +1433,7 @@ namespace LooCast.System.Serialization
                         }
                     }
 
+                    // Deserializing primitive fields.
                     foreach (KeyValuePair<PrimitiveTypeInfo, HashSet<FieldInfo>> primitiveFieldSetKeyValuePair in primitiveFieldSets)
                     {
                         foreach (FieldInfo field in primitiveFieldSetKeyValuePair.Value)
@@ -1399,6 +1447,7 @@ namespace LooCast.System.Serialization
                         }
                     }
 
+                    // Deserializing non-generic object fields.
                     foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<FieldInfo>> nonGenericObjectFieldSetKeyValuePair in nonGenericObjectFieldSets)
                     {
                         foreach (FieldInfo field in nonGenericObjectFieldSetKeyValuePair.Value)
@@ -1412,6 +1461,7 @@ namespace LooCast.System.Serialization
                         }
                     }
 
+                    // Deserializing generic object fields.
                     foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<FieldInfo>> genericObjectFieldSetKeyValuePair in genericObjectFieldSets)
                     {
                         foreach (FieldInfo field in genericObjectFieldSetKeyValuePair.Value)
@@ -1424,7 +1474,7 @@ namespace LooCast.System.Serialization
                             field.SetValue(_object, deserializedGenericObject);
                         }
                     }
-                }; 
+                };
             }
         }
 
