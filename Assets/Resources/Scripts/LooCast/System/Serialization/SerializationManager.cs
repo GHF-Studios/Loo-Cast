@@ -11,6 +11,8 @@ using UnityEngine;
 namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
+    using Newtonsoft.Json.Linq;
+    using UnityEditor;
 
     public sealed class SerializationManager : ModuleManager
     {
@@ -1515,14 +1517,438 @@ namespace LooCast.System.Serialization
             }
         }
 
+        /// <summary>
+        /// Composes the serialization and deserialization delegates for a given file type.
+        /// This method is performance-optimized and is foundational to the serialization system.
+        /// </summary>
+        /// <param name="fileTypeInfo">Information about the file type to be processed.</param>
         private void ComposeFileTypeDelegates(FileTypeInfo fileTypeInfo)
         {
+            // If both serialization and deserialization are overridden, there's no need to proceed.
+            if (fileTypeInfo.OverrideSerialization && fileTypeInfo.OverrideDeserialization)
+            {
+                return;
+            }
+            
+            // Initializing dictionaries to store dependencies for non-generic objects and generic objects.
+            // These are used to map types to their corresponding type info.
+            Dictionary<Type, NonGenericObjectTypeInfo> nonGenericObjectTypeDependencies = new Dictionary<Type, NonGenericObjectTypeInfo>();
+            Dictionary<Type, GenericObjectTypeInfo> genericObjectTypeDependencies = new Dictionary<Type, GenericObjectTypeInfo>();
 
+            // Populating the type dependencies.
+            foreach (NonGenericObjectTypeInfo nonGenericObjectTypeDependency in fileTypeInfo.NonGenericObjectTypeDependencies)
+            {
+                nonGenericObjectTypeDependencies.Add(nonGenericObjectTypeDependency.Type, nonGenericObjectTypeDependency);
+            }
+            foreach (GenericObjectTypeInfo genericObjectTypeDependency in fileTypeInfo.GenericObjectTypeDependencies)
+            {
+                genericObjectTypeDependencies.Add(genericObjectTypeDependency.Type, genericObjectTypeDependency);
+            }
+
+            // Dictionaries to hold properties and fields grouped by their type.
+            // This aids in batch processing during serialization and deserialization.
+            Dictionary<NonGenericObjectTypeInfo, HashSet<PropertyInfo>> nonGenericObjectPropertySets = new Dictionary<NonGenericObjectTypeInfo, HashSet<PropertyInfo>>();
+            Dictionary<GenericObjectTypeInfo, HashSet<PropertyInfo>> genericObjectPropertySets = new Dictionary<GenericObjectTypeInfo, HashSet<PropertyInfo>>();
+
+            // Grouping properties based on their type.
+            foreach (PropertyInfo property in fileTypeInfo.Properties)
+            {
+                Type propertyType = property.PropertyType;
+                // Check which dependency dictionary the property type belongs to and add it to the corresponding set.
+                if (nonGenericObjectTypeDependencies.TryGetValue(propertyType, out NonGenericObjectTypeInfo propertyNonGenericObjectTypeInfo))
+                {
+                    if (!nonGenericObjectPropertySets.ContainsKey(propertyNonGenericObjectTypeInfo))
+                    {
+                        nonGenericObjectPropertySets[propertyNonGenericObjectTypeInfo] = new HashSet<PropertyInfo>();
+                    }
+                    nonGenericObjectPropertySets[propertyNonGenericObjectTypeInfo].Add(property);
+                }
+                else if (genericObjectTypeDependencies.TryGetValue(propertyType, out GenericObjectTypeInfo propertyGenericObjectTypeInfo))
+                {
+                    if (!genericObjectPropertySets.ContainsKey(propertyGenericObjectTypeInfo))
+                    {
+                        genericObjectPropertySets[propertyGenericObjectTypeInfo] = new HashSet<PropertyInfo>();
+                    }
+                    genericObjectPropertySets[propertyGenericObjectTypeInfo].Add(property);
+                }
+            }
+
+            // Similar to properties, fields are also grouped based on their type.
+            Dictionary<NonGenericObjectTypeInfo, HashSet<FieldInfo>> nonGenericObjectFieldSets = new Dictionary<NonGenericObjectTypeInfo, HashSet<FieldInfo>>();
+            Dictionary<GenericObjectTypeInfo, HashSet<FieldInfo>> genericObjectFieldSets = new Dictionary<GenericObjectTypeInfo, HashSet<FieldInfo>>();
+
+            // Grouping fields based on their type.
+            foreach (FieldInfo field in fileTypeInfo.Fields)
+            {
+                Type fieldType = field.FieldType;
+                // Check which dependency dictionary the field type belongs to and add it to the corresponding set.
+                if (nonGenericObjectTypeDependencies.TryGetValue(fieldType, out NonGenericObjectTypeInfo fieldNonGenericObjectTypeInfo))
+                {
+                    if (!nonGenericObjectFieldSets.ContainsKey(fieldNonGenericObjectTypeInfo))
+                    {
+                        nonGenericObjectFieldSets[fieldNonGenericObjectTypeInfo] = new HashSet<FieldInfo>();
+                    }
+                    nonGenericObjectFieldSets[fieldNonGenericObjectTypeInfo].Add(field);
+                }
+                else if (genericObjectTypeDependencies.TryGetValue(fieldType, out GenericObjectTypeInfo fieldGenericObjectTypeInfo))
+                {
+                    if (!genericObjectFieldSets.ContainsKey(fieldGenericObjectTypeInfo))
+                    {
+                        genericObjectFieldSets[fieldGenericObjectTypeInfo] = new HashSet<FieldInfo>();
+                    }
+                    genericObjectFieldSets[fieldGenericObjectTypeInfo].Add(field);
+                }
+            }
+
+            // If serialization is not overridden, compose the serialization delegate.
+            if (!fileTypeInfo.OverrideSerialization)
+            {
+                // The delegate serializes the XML-based file representation into a FileInfo.
+                // The serialization is based on the type of each property or field (non-generic object, generic object).
+                fileTypeInfo.SerializeDelegate = (string fileName, string fileExtension, string parentFolderPath, object file, out FileInfo serializedFile) =>
+                {
+                    XElement fileRootElement = new XElement("Root");
+
+                    // Serialize each group of properties and fields based on their type.
+                    // The logic is similar for each type group, but they're handled separately for performance reasons.
+                    // This involves invoking the appropriate serialization delegate for each property or field.
+                    // The serialized result XElement is then added to the file's root XElement.
+
+                    // Serializing non-generic object properties.
+                    foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<PropertyInfo>> nonGenericObjectPropertySetKeyValuePair in nonGenericObjectPropertySets)
+                    {
+                        foreach (PropertyInfo property in nonGenericObjectPropertySetKeyValuePair.Value)
+                        {
+                            nonGenericObjectPropertySetKeyValuePair.Key.SerializeDelegate.Invoke(property.Name, property.GetValue(file), out XElement serializedNonGenericObject);
+                            fileRootElement.Add(serializedNonGenericObject);
+                        }
+                    }
+
+                    // Serializing generic object properties.
+                    foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<PropertyInfo>> genericObjectPropertySetKeyValuePair in genericObjectPropertySets)
+                    {
+                        foreach (PropertyInfo property in genericObjectPropertySetKeyValuePair.Value)
+                        {
+                            genericObjectPropertySetKeyValuePair.Key.SerializeDelegate.Invoke(property.Name, property.GetValue(file), out XElement serializedGenericObject);
+                            fileRootElement.Add(serializedGenericObject);
+                        }
+                    }
+
+                    // Serializing non-generic object fields.
+                    foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<FieldInfo>> nonGenericObjectFieldSetKeyValuePair in nonGenericObjectFieldSets)
+                    {
+                        foreach (FieldInfo field in nonGenericObjectFieldSetKeyValuePair.Value)
+                        {
+                            nonGenericObjectFieldSetKeyValuePair.Key.SerializeDelegate.Invoke(field.Name, field.GetValue(file), out XElement serializedNonGenericObject);
+                            fileRootElement.Add(serializedNonGenericObject);
+                        }
+                    }
+
+                    // Serializing generic object fields.
+                    foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<FieldInfo>> genericObjectFieldSetKeyValuePair in genericObjectFieldSets)
+                    {
+                        foreach (FieldInfo field in genericObjectFieldSetKeyValuePair.Value)
+                        {
+                            genericObjectFieldSetKeyValuePair.Key.SerializeDelegate.Invoke(field.Name, field.GetValue(file), out XElement serializedGenericObject);
+                            fileRootElement.Add(serializedGenericObject);
+                        }
+                    }
+
+                    string filePath = Path.Combine(parentFolderPath, fileName + "." + fileExtension);
+                    File.WriteAllText(filePath, fileRootElement.ToString());
+                    serializedFile = new FileInfo(filePath);
+                };
+            }
+
+            // If deserialization is not overridden, compose the deserialization delegate.
+            if (!fileTypeInfo.OverrideDeserialization)
+            {
+                // The delegate deserializes a FileInfo into an XML-based file representation.
+                // The deserialization is based on the type of each property or field (non-generic object, generic object).
+                fileTypeInfo.DeserializeDelegate = (FileInfo serializedFile, out object file) =>
+                {
+                    // Read the content of the file and load it into an XElement.
+                    XElement fileRootElement = XElement.Load(serializedFile.FullName);
+
+                    // Assuming the file object type has a parameterless constructor.
+                    file = Activator.CreateInstance(fileTypeInfo.Type);
+
+                    // Deserialize non-generic object properties.
+                    foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<PropertyInfo>> nonGenericObjectPropertySetKeyValuePair in nonGenericObjectPropertySets)
+                    {
+                        foreach (PropertyInfo property in nonGenericObjectPropertySetKeyValuePair.Value)
+                        {
+                            XElement serializedNonGenericObject = fileRootElement.Element(property.Name);
+                            nonGenericObjectPropertySetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedNonGenericObject, out object deserializedNonGenericObject);
+                            property.SetValue(file, deserializedNonGenericObject);
+                        }
+                    }
+
+                    // Deserialize generic object properties.
+                    foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<PropertyInfo>> genericObjectPropertySetKeyValuePair in genericObjectPropertySets)
+                    {
+                        foreach (PropertyInfo property in genericObjectPropertySetKeyValuePair.Value)
+                        {
+                            XElement serializedGenericObject = fileRootElement.Element(property.Name);
+                            genericObjectPropertySetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedGenericObject, out object deserializedGenericObject);
+                            property.SetValue(file, deserializedGenericObject);
+                        }
+                    }
+
+                    // Deserialize non-generic object fields.
+                    foreach (KeyValuePair<NonGenericObjectTypeInfo, HashSet<FieldInfo>> nonGenericObjectFieldSetKeyValuePair in nonGenericObjectFieldSets)
+                    {
+                        foreach (FieldInfo field in nonGenericObjectFieldSetKeyValuePair.Value)
+                        {
+                            XElement serializedNonGenericObject = fileRootElement.Element(field.Name);
+                            nonGenericObjectFieldSetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedNonGenericObject, out object deserializedNonGenericObject);
+                            field.SetValue(file, deserializedNonGenericObject);
+                        }
+                    }
+
+                    // Deserialize generic object fields.
+                    foreach (KeyValuePair<GenericObjectTypeInfo, HashSet<FieldInfo>> genericObjectFieldSetKeyValuePair in genericObjectFieldSets)
+                    {
+                        foreach (FieldInfo field in genericObjectFieldSetKeyValuePair.Value)
+                        {
+                            XElement serializedGenericObject = fileRootElement.Element(field.Name);
+                            genericObjectFieldSetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedGenericObject, out object deserializedGenericObject);
+                            field.SetValue(file, deserializedGenericObject);
+                        }
+                    }
+                };
+            }
         }
 
+        /// <summary>
+        /// Composes the serialization and deserialization delegates for a given folder type.
+        /// This method is performance-optimized and is foundational to the serialization system.
+        /// </summary>
+        /// <param name="folderTypeInfo">Information about the folder type to be processed.</param>
         private void ComposeFolderTypeDelegates(FolderTypeInfo folderTypeInfo)
         {
+            // If both serialization and deserialization are overridden, there's no need to proceed.
+            if (folderTypeInfo.OverrideSerialization && folderTypeInfo.OverrideDeserialization)
+            {
+                return;
+            }
 
+            // Initializing dictionaries to store dependencies for folders and files.
+            // These are used to map types to their corresponding type info.
+            Dictionary<Type, FileTypeInfo> fileTypeDependencies = new Dictionary<Type, FileTypeInfo>();
+            Dictionary<Type, FolderTypeInfo> folderTypeDependencies = new Dictionary<Type, FolderTypeInfo>();
+
+            // Populating the type dependencies.
+            foreach (FileTypeInfo fileTypeDependency in folderTypeInfo.FileTypeDependencies)
+            {
+                fileTypeDependencies.Add(fileTypeDependency.Type, fileTypeDependency);
+            }
+            foreach (FolderTypeInfo folderTypeDependency in folderTypeInfo.FolderTypeDependencies)
+            {
+                folderTypeDependencies.Add(folderTypeDependency.Type, folderTypeDependency);
+            }
+
+            // Dictionaries to hold properties and fields grouped by their type.
+            // This aids in batch processing during serialization and deserialization.
+            Dictionary<FileTypeInfo, HashSet<PropertyInfo>> filePropertySets = new Dictionary<FileTypeInfo, HashSet<PropertyInfo>>();
+            Dictionary<FolderTypeInfo, HashSet<PropertyInfo>> folderPropertySets = new Dictionary<FolderTypeInfo, HashSet<PropertyInfo>>();
+
+            // Grouping properties based on their type.
+            foreach (PropertyInfo property in folderTypeInfo.Properties)
+            {
+                Type propertyType = property.PropertyType;
+                // Check which dependency dictionary the property type belongs to and add it to the corresponding set.
+                if (fileTypeDependencies.TryGetValue(propertyType, out FileTypeInfo propertyFileTypeInfo))
+                {
+                    if (!filePropertySets.ContainsKey(propertyFileTypeInfo))
+                    {
+                        filePropertySets[propertyFileTypeInfo] = new HashSet<PropertyInfo>();
+                    }
+                    filePropertySets[propertyFileTypeInfo].Add(property);
+                }
+                else if (folderTypeDependencies.TryGetValue(propertyType, out FolderTypeInfo propertyFolderTypeInfo))
+                {
+                    if (!folderPropertySets.ContainsKey(propertyFolderTypeInfo))
+                    {
+                        folderPropertySets[propertyFolderTypeInfo] = new HashSet<PropertyInfo>();
+                    }
+                    folderPropertySets[propertyFolderTypeInfo].Add(property);
+                }
+            }
+
+            // Similar to properties, fields are also grouped based on their type.
+            Dictionary<FileTypeInfo, HashSet<FieldInfo>> fileFieldSets = new Dictionary<FileTypeInfo, HashSet<FieldInfo>>();
+            Dictionary<FolderTypeInfo, HashSet<FieldInfo>> folderFieldSets = new Dictionary<FolderTypeInfo, HashSet<FieldInfo>>();
+
+            // Grouping fields based on their type.
+            foreach (FieldInfo field in folderTypeInfo.Fields)
+            {
+                Type fieldType = field.FieldType;
+                // Check which dependency dictionary the field type belongs to and add it to the corresponding set.
+                if (fileTypeDependencies.TryGetValue(fieldType, out FileTypeInfo fieldFileTypeInfo))
+                {
+                    if (!fileFieldSets.ContainsKey(fieldFileTypeInfo))
+                    {
+                        fileFieldSets[fieldFileTypeInfo] = new HashSet<FieldInfo>();
+                    }
+                    fileFieldSets[fieldFileTypeInfo].Add(field);
+                }
+                else if (folderTypeDependencies.TryGetValue(fieldType, out FolderTypeInfo fieldFolderTypeInfo))
+                {
+                    if (!folderFieldSets.ContainsKey(fieldFolderTypeInfo))
+                    {
+                        folderFieldSets[fieldFolderTypeInfo] = new HashSet<FieldInfo>();
+                    }
+                    folderFieldSets[fieldFolderTypeInfo].Add(field);
+                }
+            }
+
+            // If serialization is not overridden, compose the serialization delegate.
+            if (!folderTypeInfo.OverrideSerialization)
+            {
+                // The delegate serializes the XML-based folder representation into a DirectoryInfo.
+                // The serialization is based on the type of each property or field (file, folder).
+                folderTypeInfo.SerializeDelegate = (string folderName, string parentFolderPath, object folder, out DirectoryInfo serializedFolder) =>
+                {
+                    string folderPath = Path.Combine(parentFolderPath, folderName);
+
+                    // Ensure the directory exists.
+                    if (!Directory.Exists(folderPath))
+                    {
+                        Directory.CreateDirectory(folderPath);
+                    }
+
+                    // Serialize file properties.
+                    foreach (KeyValuePair<FileTypeInfo, HashSet<PropertyInfo>> filePropertySetKeyValuePair in filePropertySets)
+                    {
+                        foreach (PropertyInfo property in filePropertySetKeyValuePair.Value)
+                        {
+                            // Serialize the file and save it to the directory.
+                            object fileObject = property.GetValue(folder);
+                            filePropertySetKeyValuePair.Key.SerializeDelegate.Invoke(property.Name, "default_data", folderPath, fileObject, out FileInfo _);
+                        }
+                    }
+
+                    // Serialize folder properties.
+                    foreach (KeyValuePair<FolderTypeInfo, HashSet<PropertyInfo>> folderPropertySetKeyValuePair in folderPropertySets)
+                    {
+                        foreach (PropertyInfo property in folderPropertySetKeyValuePair.Value)
+                        {
+                            // Serialize the subfolder recursively.
+                            object subfolderObject = property.GetValue(folder);
+                            folderPropertySetKeyValuePair.Key.SerializeDelegate.Invoke(property.Name, folderPath, subfolderObject, out DirectoryInfo _);
+                        }
+                    }
+
+                    // Serialize file fields.
+                    foreach (KeyValuePair<FileTypeInfo, HashSet<FieldInfo>> fileFieldSetKeyValuePair in fileFieldSets)
+                    {
+                        foreach (FieldInfo field in fileFieldSetKeyValuePair.Value)
+                        {
+                            // Serialize the file and save it to the directory.
+                            object fileObject = field.GetValue(folder);
+                            fileFieldSetKeyValuePair.Key.SerializeDelegate.Invoke(field.Name, "default_data", folderPath, fileObject, out FileInfo _);
+                        }
+                    }
+
+                    // Serialize folder fields.
+                    foreach (KeyValuePair<FolderTypeInfo, HashSet<FieldInfo>> folderFieldSetKeyValuePair in folderFieldSets)
+                    {
+                        foreach (FieldInfo field in folderFieldSetKeyValuePair.Value)
+                        {
+                            // Serialize the subfolder recursively.
+                            object subfolderObject = field.GetValue(folder);
+                            folderFieldSetKeyValuePair.Key.SerializeDelegate.Invoke(field.Name, folderPath, subfolderObject, out DirectoryInfo _);
+                        }
+                    }
+
+                    serializedFolder = new DirectoryInfo(folderPath);
+                };
+            }
+
+            // If deserialization is not overridden, compose the deserialization delegate.
+            if (!folderTypeInfo.OverrideDeserialization)
+            {
+                // The delegate deserializes a DirectoryInfo into an XML-based folder representation.
+                // The deserialization is based on the type of each property or field (file, folder).
+                folderTypeInfo.DeserializeDelegate = (DirectoryInfo serializedFolder, out object folder) =>
+                {
+                    // Create an instance of the folder object type.
+                    folder = Activator.CreateInstance(folderTypeInfo.Type);
+
+                    // Deserialize file properties.
+                    foreach (KeyValuePair<FileTypeInfo, HashSet<PropertyInfo>> filePropertySetKeyValuePair in filePropertySets)
+                    {
+                        foreach (PropertyInfo property in filePropertySetKeyValuePair.Value)
+                        {
+                            FileInfo serializedFile = new FileInfo(Path.Combine(serializedFolder.FullName, property.Name + ".default_data"));
+                            if (serializedFile.Exists)
+                            {
+                                filePropertySetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedFile, out object deserializedFileObject);
+                                property.SetValue(folder, deserializedFileObject);
+                            }
+                            else
+                            {
+                                throw new FileNotFoundException($"File {serializedFile.FullName} not found!");
+                            }
+                        }
+                    }
+
+                    // Deserialize folder properties.
+                    foreach (KeyValuePair<FolderTypeInfo, HashSet<PropertyInfo>> folderPropertySetKeyValuePair in folderPropertySets)
+                    {
+                        foreach (PropertyInfo property in folderPropertySetKeyValuePair.Value)
+                        {
+                            DirectoryInfo serializedSubFolder = new DirectoryInfo(Path.Combine(serializedFolder.FullName, property.Name));
+                            if (serializedSubFolder.Exists)
+                            {
+                                folderPropertySetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedSubFolder, out object deserializedSubfolderObject);
+                                property.SetValue(folder, deserializedSubfolderObject);
+                            }
+                            else
+                            {
+                                throw new DirectoryNotFoundException($"Folder {serializedSubFolder.FullName} not found!");
+                            }
+                        }
+                    }
+
+                    // Deserialize file fields.
+                    foreach (KeyValuePair<FileTypeInfo, HashSet<FieldInfo>> fileFieldSetKeyValuePair in fileFieldSets)
+                    {
+                        foreach (FieldInfo field in fileFieldSetKeyValuePair.Value)
+                        {
+                            FileInfo serializedFile = new FileInfo(Path.Combine(serializedFolder.FullName, field.Name + ".default_data"));
+                            if (serializedFile.Exists)
+                            {
+                                fileFieldSetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedFile, out object deserializedFileObject);
+                                field.SetValue(folder, deserializedFileObject);
+                            }
+                            else
+                            {
+                                throw new FileNotFoundException($"File {serializedFile.FullName} not found!");
+                            }
+                        }
+                    }
+
+                    // Deserialize folder fields.
+                    foreach (KeyValuePair<FolderTypeInfo, HashSet<FieldInfo>> folderFieldSetKeyValuePair in folderFieldSets)
+                    {
+                        foreach (FieldInfo field in folderFieldSetKeyValuePair.Value)
+                        {
+                            DirectoryInfo serializedSubFolder = new DirectoryInfo(Path.Combine(serializedFolder.FullName, field.Name));
+                            if (serializedSubFolder.Exists)
+                            {
+                                folderFieldSetKeyValuePair.Key.DeserializeDelegate.Invoke(serializedSubFolder, out object deserializedSubfolderObject);
+                                field.SetValue(folder, deserializedSubfolderObject);
+                            }
+                            else
+                            {
+                                throw new DirectoryNotFoundException($"Folder {serializedSubFolder.FullName} not found!");
+                            }
+                        }
+                    }
+                };
+            }
         }
         #endregion
     }
