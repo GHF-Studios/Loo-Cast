@@ -11,8 +11,6 @@ using UnityEngine;
 namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
-    using UnityEditor.ShaderGraph.Internal;
-    using static LooCast.System.Serialization.OldSerializationManager;
 
     public sealed class SerializationManager : ModuleManager
     {
@@ -555,85 +553,121 @@ namespace LooCast.System.Serialization
             throw new PenisException();
         }
 
+        /// <summary>
+        /// Analyzes a given type to determine its serialization attributes and characteristics.
+        /// </summary>
+        /// <param name="type">The type to analyze.</param>
+        /// <returns>Returns a TypeInfo object representing the serialized characteristics of the type; returns null if the type is unserializable.</returns>
         private TypeInfo AnalyzeType(Type type)
         {
+            // If the type is null, throw an exception.
             if (registeredUnserializableTypes.Contains(type))
             {
                 return null;
             }
+            
+            // If the type is a primitive type, return the respective PrimitiveTypeInfo.
             if (registeredPrimitiveTypeInfos.TryGetValue(type, out PrimitiveTypeInfo _primitiveTypeInfo))
             {
                 return _primitiveTypeInfo;
             }
+
+            // If the type is an already registered non-generic object type, return the respective NonGenericObjectTypeInfo.
             if (registeredNonGenericObjectTypeInfos.TryGetValue(type, out NonGenericObjectTypeInfo _nonGenericObjectTypeInfo))
             {
                 return _nonGenericObjectTypeInfo;
             }
+
+            // If the type is an already registered generic object type, return the respective GenericObjectTypeInfo.
             if (registeredGenericObjectTypeInfos.TryGetValue(type, out GenericObjectTypeInfo _genericObjectTypeInfo))
             {
                 return _genericObjectTypeInfo;
             }
+
+            // If the type is an already registered file type, return the respective FileTypeInfo.
             if (registeredFileTypeInfos.TryGetValue(type, out FileTypeInfo _fileTypeInfo))
             {
                 return _fileTypeInfo;
             }
+
+            // If the type is an already registered folder type, return the respective FolderTypeInfo.
             if (registeredFolderTypeInfos.TryGetValue(type, out FolderTypeInfo _folderTypeInfo))
             {
                 return _folderTypeInfo;
             }
+
+            // If the type is a newly registered non-generic object type, return the respective NonGenericObjectTypeInfo.
             if (newlyRegisteredNonGenericObjectTypeInfos.TryGetValue(type, out NonGenericObjectTypeInfo _newNonGenericObjectTypeInfo))
             {
                 return _newNonGenericObjectTypeInfo;
             }
+
+            // If the type is a newly registered generic object type, return the respective GenericObjectTypeInfo.
             if (newlyRegisteredGenericObjectTypeInfos.TryGetValue(type, out GenericObjectTypeInfo _newGenericObjectTypeInfo))
             {
                 return _newGenericObjectTypeInfo;
             }
+
+            // If the type is a newly registered file type, return the respective FileTypeInfo.
             if (newlyRegisteredFileTypeInfos.TryGetValue(type, out FileTypeInfo _newFileTypeInfo))
             {
                 return _newFileTypeInfo;
             }
+
+            // If the type is a newly registered folder type, return the respective FolderTypeInfo.
             if (newlyRegisteredFolderTypeInfos.TryGetValue(type, out FolderTypeInfo _newFolderTypeInfo))
             {
                 return _newFolderTypeInfo;
             }
 
+            // If the type is a generic type definition(not to be confused with a generic type), it is unserializable.
             if (type.IsGenericTypeDefinition)
             {
                 registeredUnserializableTypes.Add(type);
                 return null;
             }
+
+            // If the type is abstract, it is unserializable.
             if (type.IsAbstract)
             {
                 registeredUnserializableTypes.Add(type);
                 return null;
             }
+
+            // If the type is not public, it is unserializable.
             if (!type.IsPublic && !type.IsNestedPublic)
             {
                 registeredUnserializableTypes.Add(type);
                 return null;
             }
-            if (!type.IsClass && !type.IsValueType && !type.IsEnum)
+
+            // If the type is neither a class nor a value type, it is unserializable.
+            if (!type.IsClass && !type.IsValueType)
             {
                 registeredUnserializableTypes.Add(type);
                 return null;
             }
 
+            // Get any serializability attributes which may be applied to the type.
             SerializableNonGenericObjectAttribute serializableNonGenericObjectAttribute = type.GetCustomAttribute<SerializableNonGenericObjectAttribute>(false);
             SerializableGenericObjectAttribute serializableGenericObjectAttribute = type.GetCustomAttribute<SerializableGenericObjectAttribute>(false);
             SerializableFileAttribute serializableFileAttribute = type.GetCustomAttribute<SerializableFileAttribute>(false);
             SerializableFolderAttribute serializableFolderAttribute = type.GetCustomAttribute<SerializableFolderAttribute>(false);
 
+            // If the type is not marked as any serializable type, it is unserializable.
             if (serializableNonGenericObjectAttribute == null && serializableGenericObjectAttribute == null && serializableFileAttribute == null && serializableFolderAttribute == null)
             {
                 registeredUnserializableTypes.Add(type);
                 return null;
             }
+
+            // It is illegal for a type to be marked as more than one serializable type, so an exception is thrown.
             if (!(serializableNonGenericObjectAttribute != null ^ serializableGenericObjectAttribute != null ^ serializableFileAttribute != null ^ serializableFolderAttribute != null))
             {
                 throw new Exception($"Type '{type.FullName}' is marked as more than one serializable type!");
             }
 
+            // If the type is marked as a serializable non-generic object, proceed with the analysis for serializable non-generic objects.
             if (serializableNonGenericObjectAttribute != null)
             {
                 NonGenericObjectTypeInfo nonGenericObjectTypeInfo = new NonGenericObjectTypeInfo(type);
@@ -721,6 +755,7 @@ namespace LooCast.System.Serialization
 
                 return nonGenericObjectTypeInfo;
             }
+            // Else if the type is marked as a serializable generic object, proceed with the analysis for serializable generic objects.
             else if (serializableGenericObjectAttribute != null)
             {
                 GenericObjectTypeInfo genericObjectTypeInfo = new GenericObjectTypeInfo(type);
@@ -791,6 +826,7 @@ namespace LooCast.System.Serialization
 
                 return genericObjectTypeInfo;
             }
+            // Else if the type is marked as a serializable file, proceed with the analysis for serializable files.
             else if (serializableFileAttribute != null)
             {
                 FileTypeInfo fileTypeInfo = new FileTypeInfo(type);
@@ -876,6 +912,7 @@ namespace LooCast.System.Serialization
 
                 return fileTypeInfo;
             }
+            // Otherwise the the type has to be marked as a serializable folder, so proceed with the analysis for serializable folders.
             else
             {
                 FolderTypeInfo folderTypeInfo = new FolderTypeInfo(type);
