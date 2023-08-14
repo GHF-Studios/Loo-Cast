@@ -7,38 +7,32 @@ namespace LooCast.System.Collections.Serializable
 {
     using LooCast.System.Serialization;
 
-    [SerializableGenericObject()]
+    [SerializableGenericObject]
     public class SerializableList<T> : List<T>
     {
-        #region Properties
-        public Serializability TypeSerializability { get; private set; }
-        public Type Type { get; private set; }
-        #endregion
-
         #region Fields
-        private OldSerializationManager.SerializeObjectDelegate serializeObjectDelegate;
-        private OldSerializationManager.DeserializeObjectDelegate deserializeObjectDelegate;
+        private ObjectTypeInfo objectTypeInfo;
         #endregion
 
         #region Constructors
         public SerializableList() : base()
         {
-            Type = typeof(T);
-            OldSerializationManager serializationManager = OldSerializationManager.Instance;
-            TypeSerializability = serializationManager.GetSerializability(Type);
-            switch (TypeSerializability)
+            Type type = typeof(T);
+            
+            if (!SerializationManager.Instance.TryGetObjectTypeInfo(type, out objectTypeInfo))
             {
-                case Serializability.None:
-                    throw new ArgumentException($"The type '{Type.Name}' is not serializable!");
-                case Serializability.Primitive:
-                    throw new InvalidOperationException("A serializable list cannot contain primitives, only objects!");
-                case Serializability.File:
-                    throw new InvalidOperationException("A serializable list cannot contain files, only attributes or objects!");
-                case Serializability.Folder:
-                    throw new InvalidOperationException("A serializable list cannot contain folders, only attributes or objects!");
+                throw new Exception($"Type '{type}' is not an object type!");
             }
-            serializeObjectDelegate = serializationManager.GetObjectSerializationDelegate(Type);
-            deserializeObjectDelegate = serializationManager.GetObjectDeserializationDelegate(Type);
+        }
+
+        public SerializableList(IEnumerable<T> collection) : base(collection)
+        {
+            Type type = typeof(T);
+
+            if (!SerializationManager.Instance.TryGetObjectTypeInfo(type, out objectTypeInfo))
+            {
+                throw new Exception($"Type '{type}' is not an object type!");
+            }
         }
         #endregion
 
@@ -50,7 +44,7 @@ namespace LooCast.System.Collections.Serializable
 
             for (int i = 0; i < list.Count; i++)
             {
-                list.serializeObjectDelegate($"Item[{i}]", list[i], out XElement serializedItem);
+                list.objectTypeInfo.SerializeDelegate($"Item[{i}]", list[i], out XElement serializedItem);
                 serializedList.Add(serializedItem);
             }
         }
@@ -62,7 +56,7 @@ namespace LooCast.System.Collections.Serializable
 
             for (int i = 0; i < serializedListChildElements.Length; i++)
             {
-                list.deserializeObjectDelegate.Invoke(serializedListChildElements[i], out object deserializedItem);
+                list.objectTypeInfo.DeserializeDelegate.Invoke(serializedListChildElements[i], out object deserializedItem);
                 list.Add((T)deserializedItem);
             }
 

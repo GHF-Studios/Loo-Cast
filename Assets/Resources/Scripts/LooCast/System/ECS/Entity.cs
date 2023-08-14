@@ -16,7 +16,7 @@ namespace LooCast.System.ECS
     public abstract class Entity : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Classes
-        [SerializableObject]
+        [SerializableNonGenericObject]
         public class MetaData
         {
             #region Properties
@@ -27,7 +27,7 @@ namespace LooCast.System.ECS
             #endregion
         }
 
-        [SerializableObject]
+        [SerializableNonGenericObject]
         public class Data
         {
             #region Properties
@@ -37,7 +37,7 @@ namespace LooCast.System.ECS
             #endregion
         }
 
-        [SerializableObject]
+        [SerializableNonGenericObject]
         public sealed class FullMetaData
         {
             #region Properties
@@ -46,7 +46,7 @@ namespace LooCast.System.ECS
             #endregion
         }
 
-        [SerializableObject]
+        [SerializableNonGenericObject]
         public sealed class FullData
         {
             #region Properties

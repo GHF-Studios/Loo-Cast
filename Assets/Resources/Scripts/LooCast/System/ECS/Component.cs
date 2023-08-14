@@ -13,7 +13,7 @@ namespace LooCast.System.ECS
     public abstract class Component : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
     {
         #region Classes
-        [SerializableObject]
+        [SerializableNonGenericObject]
         public class MetaData
         {
             #region Properties
@@ -24,7 +24,7 @@ namespace LooCast.System.ECS
             #endregion
         }
 
-        [SerializableObject]
+        [SerializableNonGenericObject]
         public class Data
         {
             #region Properties

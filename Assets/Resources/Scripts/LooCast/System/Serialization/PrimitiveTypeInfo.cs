@@ -16,7 +16,7 @@ namespace LooCast.System.Serialization
         #endregion
 
         #region Constructors
-        public PrimitiveTypeInfo(Type type, Serialize serializeDelegate, Deserialize deserializeDelegate) : base(type)
+        public PrimitiveTypeInfo(Type type, Serialize serializeDelegate, Deserialize deserializeDelegate) : base(type, Serializability.Primitive)
         {
             SerializeDelegate = serializeDelegate;
             DeserializeDelegate = deserializeDelegate;
