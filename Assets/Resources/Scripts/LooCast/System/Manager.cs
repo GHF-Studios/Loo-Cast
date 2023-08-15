@@ -22,6 +22,7 @@ namespace LooCast.System
         public string ManagerName { get; private set; }
         public Manager ManagerParent { get; private set; }
         public IEnumerable<Manager> ManagerChildren => managerChildrenList;
+        public ManagerUnityComponent ManagerUnityComponent { get; private set; }
 
         public bool IsEarlyPreInitializing { get; protected set; }
         public bool IsEarlyPreInitialized { get; protected set; }
@@ -2675,8 +2676,8 @@ namespace LooCast.System
                 UnityBridge.RootGameObject.transform.SetParent(ManagerParent.UnityBridge.RootGameObject.transform);
             }
 
-            ManagerUnityComponent managerUnityComponent = UnityBridge.RootGameObject.AddComponent<ManagerUnityComponent>();
-            managerUnityComponent.Setup(this);
+            ManagerUnityComponent = UnityBridge.RootGameObject.AddComponent<ManagerUnityComponent>();
+            ManagerUnityComponent.Setup(this);
         }
         #endregion
     }

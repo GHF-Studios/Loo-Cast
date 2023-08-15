@@ -330,5 +330,14 @@ namespace LooCast.System
             OnLatePostTerminate();
         }
         #endregion
+
+        #region Overrides
+        public override void EnableUnityBridge()
+        {
+            base.EnableUnityBridge();
+            
+            UnityEngine.Object.DontDestroyOnLoad(UnityBridge.RootGameObject);
+        }
+        #endregion
     }
 }

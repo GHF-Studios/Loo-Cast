@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections;
 using System.Reflection;
 using UnityEngine;
 
@@ -8,7 +8,7 @@ namespace LooCast.System
     using LooCast.System.ECS;
 
     [DisallowMultipleComponent]
-    public abstract class ManagerUnityComponent : UnityComponent
+    public class ManagerUnityComponent : UnityComponent
     {
         #region Fields
         private Manager manager;
@@ -30,7 +30,6 @@ namespace LooCast.System
         {
             gameObject.layer = 31;
             gameObject.tag = "INTERNAL";
-            DontDestroyOnLoad(this);
         }
 
         private void Start()
@@ -39,47 +38,76 @@ namespace LooCast.System
             {
                 throw new InvalidOperationException("Setup has not been done in time! Make sure that you call Setup() on this ManagerUnityComponent immediately after creating it!");
             }
-            
-            callback_Start.Invoke();
+
+            if (callback_Start != null)
+            {
+                callback_Start.Invoke(); 
+            }
         }
 
         private void Update()
         {
-            callback_Update.Invoke();
+            if (callback_Update != null)
+            {
+                callback_Update.Invoke();
+            }
         }
 
         private void LateUpdate()
         {
-            callback_LateUpdate.Invoke();
+            if (callback_LateUpdate != null)
+            {
+                callback_LateUpdate.Invoke();
+            }
         }
 
         private void FixedUpdate()
         {
-            callback_FixedUpdate.Invoke();
-        }
-        
-        public virtual void OnGUI()
-        {
-            callback_OnGUI.Invoke();
+            if (callback_FixedUpdate != null)
+            {
+                callback_FixedUpdate.Invoke();
+            }
         }
 
-        public virtual void OnEnable()
+        private void OnGUI()
         {
-            callback_OnEnable.Invoke();
+            if (callback_OnGUI != null)
+            {
+                callback_OnGUI.Invoke();
+            }
         }
 
-        public virtual void OnDisable()
+        private void OnEnable()
         {
-            callback_OnDisable.Invoke();
+            if (callback_OnEnable != null)
+            {
+                callback_OnEnable.Invoke();
+            }
         }
 
-        public virtual void OnDestroy()
+        private void OnDisable()
         {
-            callback_OnDestroy.Invoke();
+            if (callback_OnDisable != null)
+            {
+                callback_OnDisable.Invoke();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (callback_OnDestroy != null)
+            {
+                callback_OnDestroy.Invoke();
+            }
         }
         #endregion
 
         #region Methods
+        public void RunCoroutine(IEnumerator coroutine)
+        {
+            StartCoroutine(coroutine);
+        }
+
         public void Setup(Manager manager)
         {
             if (manager == null)
@@ -142,7 +170,10 @@ namespace LooCast.System
                 callback_OnDestroy = (Action)Delegate.CreateDelegate(typeof(Action), manager, onUnityDestroyMethodInfo);
             }
 
-            callback_Awake.Invoke();
+            if (callback_Awake != null)
+            {
+                callback_Awake.Invoke();
+            }
 
             isSetup = true;
         }
