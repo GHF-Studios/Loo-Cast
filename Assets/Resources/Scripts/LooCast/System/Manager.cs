@@ -85,7 +85,7 @@ namespace LooCast.System
         private List<Action> setupActions;
         private List<Action> postSetupActions;
 
-        protected bool enableLogging = false;
+        protected bool enableLogging = true;
 
         private List<Manager> managerChildrenList;
         #endregion
