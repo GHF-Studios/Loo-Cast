@@ -30,6 +30,7 @@ namespace LooCast.System
             }
 
             Manager = manager;
+            gameObject.name = manager.ManagerName;
         }
         #endregion
     }

@@ -3,8 +3,12 @@
 namespace LooCast.Core
 {
     using LooCast.System;
-    using LooCast.Universe;
     using LooCast.System.ECS;
+    using LooCast.Save;
+    using LooCast.Scene;
+    using LooCast.MainMenu;
+    using LooCast.Game;
+    using LooCast.Universe;
 
     public sealed class LooCastCoreManager : CoreModuleManager
     {
@@ -58,6 +62,10 @@ namespace LooCast.Core
                 SetEntityMetaData(looCastCoreManagerMetaData);
                 SetEntityData(looCastCoreManagerData);
 
+                moduleManagerChildrenList.Add(SaveManager.Instance);
+                moduleManagerChildrenList.Add(SceneManager.Instance);
+                moduleManagerChildrenList.Add(MainMenuManager.Instance);
+                moduleManagerChildrenList.Add(GameManager.Instance);
                 moduleManagerChildrenList.Add(UniverseManager.Instance);
 
                 foreach (ModuleManager moduleManager in moduleManagerChildrenList)

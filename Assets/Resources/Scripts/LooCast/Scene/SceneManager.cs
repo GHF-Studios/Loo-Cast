@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace LooCast.Universe
+namespace LooCast.Scene
 {
     using LooCast.System;
     using LooCast.System.ECS;
     using LooCast.Core;
 
-    public sealed class UniverseManager : ModuleManager
+    public sealed class SceneManager : ModuleManager
     {
         #region Static Properties
-        public static UniverseManager Instance
+        public static SceneManager Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    instance = Entity.Create<UniverseManager, Entity.MetaData, Manager.Data>();
+                    instance = Entity.Create<SceneManager, Entity.MetaData, Manager.Data>();
                 }
                 return instance;
             }
@@ -24,34 +24,34 @@ namespace LooCast.Universe
         #endregion
 
         #region Static Fields
-        private static UniverseManager instance;
+        private static SceneManager instance;
         #endregion
 
         #region Fields
         #endregion
 
         #region Constructors
-        public UniverseManager() : base()
+        public SceneManager() : base()
         {
             // Add pre-included components here
-            
+
             RegisterPreSetupAction(() =>
             {
-                string assemblyQualifiedUniverseManagerEntityTypeName = typeof(UniverseManager).AssemblyQualifiedName;
-                string assemblyQualifiedUniverseManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
-                string assemblyQualifiedUniverseManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
+                string assemblyQualifiedSceneManagerEntityTypeName = typeof(SceneManager).AssemblyQualifiedName;
+                string assemblyQualifiedSceneManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
+                string assemblyQualifiedSceneManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
 
                 Entity.MetaData instanceMetaData = new Entity.MetaData();
-                instanceMetaData.AssemblyQualifiedEntityTypeName = assemblyQualifiedUniverseManagerEntityTypeName;
-                instanceMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedUniverseManagerEntityMetaDataTypeName;
-                instanceMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedUniverseManagerEntityDataTypeName;
+                instanceMetaData.AssemblyQualifiedEntityTypeName = assemblyQualifiedSceneManagerEntityTypeName;
+                instanceMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedSceneManagerEntityMetaDataTypeName;
+                instanceMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedSceneManagerEntityDataTypeName;
                 instanceMetaData.EntityID = new Guid();
 
                 Manager.Data instanceData = new Manager.Data();
-                instanceData.AssemblyQualifiedEntityTypeName = assemblyQualifiedUniverseManagerEntityTypeName;
-                instanceData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedUniverseManagerEntityMetaDataTypeName;
-                instanceData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedUniverseManagerEntityDataTypeName;
-                instanceData.ManagerName = "UniverseManager";
+                instanceData.AssemblyQualifiedEntityTypeName = assemblyQualifiedSceneManagerEntityTypeName;
+                instanceData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedSceneManagerEntityMetaDataTypeName;
+                instanceData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedSceneManagerEntityDataTypeName;
+                instanceData.ManagerName = "SceneManager";
                 instanceData.ManagerParent = LooCastCoreManager.Instance;
 
                 SetEntityMetaData(instanceMetaData);

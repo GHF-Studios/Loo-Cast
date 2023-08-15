@@ -1,98 +1,82 @@
-// The SteamworksManager is designed to work with Steamworks.NET
-// This hierarchyFile is released into the public domain.
-// Where that dedication is not recognized you are granted a perpetual,
-// irrevocable license to copy and modify this hierarchyFile as you see fit.
-//
-// Version: 1.0.12
-
-#if !(UNITY_STANDALONE_WIN || UNITY_STANDALONE_LINUX || UNITY_STANDALONE_OSX || STEAMWORKS_WIN || STEAMWORKS_LIN_OSX)
-#define DISABLESTEAMWORKS
-#endif
-
 using UnityEngine;
-#if !DISABLESTEAMWORKS
 using System.Collections;
 using Steamworks;
-#endif
 using CSSystem = System;
+using System.Text;
 
 namespace LooCast.Steamworks
 {
+    using LooCast.System.ECS;
+    
     //
-    // The SteamworksManager provides a base implementation of Steamworks.NET on which you can build upon.
+    // The SteamworksManagerUnityComponent provides a base implementation of Steamworks.NET on which you can build upon.
     // It handles the basics of starting up and shutting down the SteamAPI for use.
     //
     [DisallowMultipleComponent]
-    public class SteamworksManager : MonoBehaviour
+    public sealed class SteamworksManagerUnityComponent : UnityComponent
     {
-#if !DISABLESTEAMWORKS
-        protected static bool s_EverInitialized = false;
-
-        protected static SteamworksManager s_instance;
-        protected static SteamworksManager Instance
+        #region Static Properties
+        public static SteamworksManagerUnityComponent Instance
         {
             get
             {
-                if (s_instance == null)
+                if (instance == null)
                 {
-                    return new GameObject("SteamworksManager").AddComponent<SteamworksManager>();
+                    return new GameObject("SteamworksManager").AddComponent<SteamworksManagerUnityComponent>();
                 }
                 else
                 {
-                    return s_instance;
+                    return instance;
                 }
             }
         }
+        #endregion
 
-        protected bool m_bInitialized = false;
+        #region Static Fields
+        private static bool everInitialized = false;
+        private static SteamworksManagerUnityComponent instance = null;
+        #endregion
+
+        #region Properties
         public static bool Initialized
         {
             get
             {
-                return Instance.m_bInitialized;
+                return Instance.initialized;
             }
         }
+        #endregion
 
-        protected SteamAPIWarningMessageHook_t m_SteamAPIWarningMessageHook;
+        #region Fields
+        private bool initialized = false;
+        private SteamAPIWarningMessageHook_t steamAPIWarningMessageHook;
+        #endregion
 
-        [AOT.MonoPInvokeCallback(typeof(SteamAPIWarningMessageHook_t))]
-        protected static void SteamAPIDebugTextHook(int nSeverity, CSSystem.Text.StringBuilder pchDebugText)
+        #region Unity Callbacks
+        private void Awake()
         {
-            Debug.LogWarning(pchDebugText);
-        }
-
-#if UNITY_2019_3_OR_NEWER
-        // In case of disabled Domain Reload, reset static members before entering Play Mode.
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void InitOnPlayMode()
-        {
-            s_EverInitialized = false;
-            s_instance = null;
-        }
-#endif
-
-        protected virtual void Awake()
-        {
-            // Only one instance of SteamworksManager at a time!
-            if (s_instance != null)
+            // Only one instance of SteamworksManagerUnityComponent at a time!
+            if (instance != null)
             {
                 Destroy(gameObject);
                 return;
             }
-            s_instance = this;
+            instance = this;
+            gameObject.layer = 31;
+            gameObject.tag = "INTERNAL";
 
-            if (s_EverInitialized)
+            if (everInitialized)
             {
                 // This is almost always an error.
-                // The most common case where this happens is when SteamworksManager gets destroyed because of Application.Quit(),
-                // and then some Steamworks code in some other OnDestroy gets called afterwards, creating a new SteamworksManager.
+                // The most common case where this happens is when SteamworksManagerUnityComponent gets destroyed because of Application.Quit(),
+                // and then some Steamworks code in some other OnDestroy gets called afterwards, creating a new SteamworksManagerUnityComponent.
                 // You should never call Steamworks functions in OnDestroy, always prefer OnDisable if possible.
                 throw new CSSystem.Exception("Tried to Initialize the SteamAPI twice in one session!");
             }
 
-            // We want our SteamworksManager Instance to persist across scenes.
+            // We want our SteamworksManagerUnityComponent Instance to persist across scenes.
             DontDestroyOnLoad(gameObject);
-
+            
             if (!Packsize.Test())
             {
                 Debug.LogError("[Steamworks.NET] Packsize Test returned false, the wrong version of Steamworks.NET is being run in this platform.", this);
@@ -107,10 +91,6 @@ namespace LooCast.Steamworks
             {
                 // If Steam is not running or the game wasn't started through Steam, SteamAPI_RestartAppIfNecessary starts the
                 // Steam client and also launches this game again if the User owns it. This can act as a rudimentary form of DRM.
-
-                // Once you get a Steam AppID assigned by Valve, you need to replace AppId_t.Invalid with it and
-                // remove steam_appid.txt from the game depot. eg: "(AppId_t)480" or "new AppId_t(480)".
-                // See the Valve documentation for more information: https://partner.steamgames.com/doc/sdk/api#initialization_and_shutdown
                 if (SteamAPI.RestartAppIfNecessary((AppId_t)2122620))
                 {
                     Application.Quit();
@@ -118,7 +98,8 @@ namespace LooCast.Steamworks
                 }
             }
             catch (CSSystem.DllNotFoundException e)
-            { // We catch this exception here, as it will be the first occurrence of it.
+            { 
+                // We catch this exception here, as it will be the first occurrence of it.
                 Debug.LogError("[Steamworks.NET] Could not load [lib]steam_api.dll/so/dylib. It's likely not in the correct location. Refer to the README for more details.\n" + e, this);
 
                 Application.Quit();
@@ -134,52 +115,52 @@ namespace LooCast.Steamworks
             // [*] Your App ID is not completely set up, i.e. in Release State: Unavailable, or it's missing default packages.
             // Valve's documentation for this is located here:
             // https://partner.steamgames.com/doc/sdk/api#initialization_and_shutdown
-            m_bInitialized = SteamAPI.Init();
-            if (!m_bInitialized)
+            initialized = SteamAPI.Init();
+            if (!initialized)
             {
                 Debug.LogError("[Steamworks.NET] SteamAPI_Init() failed. Refer to Valve's documentation or the comment above this line for more information.", this);
 
                 return;
             }
 
-            s_EverInitialized = true;
+            everInitialized = true;
         }
 
         // This should only ever get called on first load and after an Assembly reload, You should never Disable the Steamworks Manager yourself.
-        protected virtual void OnEnable()
+        private void OnEnable()
         {
-            if (s_instance == null)
+            if (instance == null)
             {
-                s_instance = this;
+                instance = this;
             }
 
-            if (!m_bInitialized)
+            if (!initialized)
             {
                 return;
             }
 
-            if (m_SteamAPIWarningMessageHook == null)
+            if (steamAPIWarningMessageHook == null)
             {
                 // Set up our callback to receive warning messages from Steam.
                 // You must launch with "-debug_steamapi" in the launch args to receive warnings.
-                m_SteamAPIWarningMessageHook = new SteamAPIWarningMessageHook_t(SteamAPIDebugTextHook);
-                SteamClient.SetWarningMessageHook(m_SteamAPIWarningMessageHook);
+                steamAPIWarningMessageHook = new SteamAPIWarningMessageHook_t(SteamAPIDebugTextHook);
+                SteamClient.SetWarningMessageHook(steamAPIWarningMessageHook);
             }
         }
 
         // OnApplicationQuit gets called too early to shutdown the SteamAPI.
-        // Because the SteamworksManager should be persistent and never disabled or destroyed we can shutdown the SteamAPI here.
-        // Thus it is not recommended to perform any Steamworks work in other OnDestroy functions as the order of execution can not be garenteed upon Shutdown. Prefer OnDisable().
-        protected virtual void OnDestroy()
+        // Because the SteamworksManagerUnityComponent should be persistent and never disabled or destroyed we can shutdown the SteamAPI here.
+        // Thus it is not recommended to perform any Steamworks work in other OnDestroy functions as the order of execution can not be guarenteed upon Shutdown. Prefer OnDisable().
+        private void OnDestroy()
         {
-            if (s_instance != this)
+            if (instance != this)
             {
                 return;
             }
 
-            s_instance = null;
+            instance = null;
 
-            if (!m_bInitialized)
+            if (!initialized)
             {
                 return;
             }
@@ -187,9 +168,9 @@ namespace LooCast.Steamworks
             SteamAPI.Shutdown();
         }
 
-        protected virtual void Update()
+        private void Update()
         {
-            if (!m_bInitialized)
+            if (!initialized)
             {
                 return;
             }
@@ -197,14 +178,14 @@ namespace LooCast.Steamworks
             // Run Steam client callbacks
             SteamAPI.RunCallbacks();
         }
-#else
-	public static bool Initialized
-	{
-		get
-		{
-			return false;
-		}
-	}
-#endif // !DISABLESTEAMWORKS
-    } 
+        #endregion
+
+        #region Static Methods
+        [AOT.MonoPInvokeCallback(typeof(SteamAPIWarningMessageHook_t))]
+        private static void SteamAPIDebugTextHook(int severity, StringBuilder pchDebugText)
+        {
+            Debug.LogWarning(pchDebugText);
+        }
+        #endregion
+    }
 }

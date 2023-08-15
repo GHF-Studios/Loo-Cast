@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace LooCast.Universe
+namespace LooCast.MainMenu
 {
     using LooCast.System;
     using LooCast.System.ECS;
     using LooCast.Core;
 
-    public sealed class UniverseManager : ModuleManager
+    public sealed class MainMenuManager : ModuleManager
     {
         #region Static Properties
-        public static UniverseManager Instance
+        public static MainMenuManager Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    instance = Entity.Create<UniverseManager, Entity.MetaData, Manager.Data>();
+                    instance = Entity.Create<MainMenuManager, Entity.MetaData, Manager.Data>();
                 }
                 return instance;
             }
@@ -24,34 +24,34 @@ namespace LooCast.Universe
         #endregion
 
         #region Static Fields
-        private static UniverseManager instance;
+        private static MainMenuManager instance;
         #endregion
 
         #region Fields
         #endregion
 
         #region Constructors
-        public UniverseManager() : base()
+        public MainMenuManager() : base()
         {
             // Add pre-included components here
-            
+
             RegisterPreSetupAction(() =>
             {
-                string assemblyQualifiedUniverseManagerEntityTypeName = typeof(UniverseManager).AssemblyQualifiedName;
-                string assemblyQualifiedUniverseManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
-                string assemblyQualifiedUniverseManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
+                string assemblyQualifiedMainMenuManagerEntityTypeName = typeof(MainMenuManager).AssemblyQualifiedName;
+                string assemblyQualifiedMainMenuManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
+                string assemblyQualifiedMainMenuManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
 
                 Entity.MetaData instanceMetaData = new Entity.MetaData();
-                instanceMetaData.AssemblyQualifiedEntityTypeName = assemblyQualifiedUniverseManagerEntityTypeName;
-                instanceMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedUniverseManagerEntityMetaDataTypeName;
-                instanceMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedUniverseManagerEntityDataTypeName;
+                instanceMetaData.AssemblyQualifiedEntityTypeName = assemblyQualifiedMainMenuManagerEntityTypeName;
+                instanceMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedMainMenuManagerEntityMetaDataTypeName;
+                instanceMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedMainMenuManagerEntityDataTypeName;
                 instanceMetaData.EntityID = new Guid();
 
                 Manager.Data instanceData = new Manager.Data();
-                instanceData.AssemblyQualifiedEntityTypeName = assemblyQualifiedUniverseManagerEntityTypeName;
-                instanceData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedUniverseManagerEntityMetaDataTypeName;
-                instanceData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedUniverseManagerEntityDataTypeName;
-                instanceData.ManagerName = "UniverseManager";
+                instanceData.AssemblyQualifiedEntityTypeName = assemblyQualifiedMainMenuManagerEntityTypeName;
+                instanceData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedMainMenuManagerEntityMetaDataTypeName;
+                instanceData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedMainMenuManagerEntityDataTypeName;
+                instanceData.ManagerName = "MainMenuManager";
                 instanceData.ManagerParent = LooCastCoreManager.Instance;
 
                 SetEntityMetaData(instanceMetaData);

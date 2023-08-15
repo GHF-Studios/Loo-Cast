@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace LooCast.Universe
+namespace LooCast.Save
 {
     using LooCast.System;
     using LooCast.System.ECS;
     using LooCast.Core;
 
-    public sealed class UniverseManager : ModuleManager
+    public sealed class SaveManager : ModuleManager
     {
         #region Static Properties
-        public static UniverseManager Instance
+        public static SaveManager Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    instance = Entity.Create<UniverseManager, Entity.MetaData, Manager.Data>();
+                    instance = Entity.Create<SaveManager, Entity.MetaData, Manager.Data>();
                 }
                 return instance;
             }
@@ -24,34 +24,34 @@ namespace LooCast.Universe
         #endregion
 
         #region Static Fields
-        private static UniverseManager instance;
+        private static SaveManager instance;
         #endregion
 
         #region Fields
         #endregion
 
         #region Constructors
-        public UniverseManager() : base()
+        public SaveManager() : base()
         {
             // Add pre-included components here
-            
+
             RegisterPreSetupAction(() =>
             {
-                string assemblyQualifiedUniverseManagerEntityTypeName = typeof(UniverseManager).AssemblyQualifiedName;
-                string assemblyQualifiedUniverseManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
-                string assemblyQualifiedUniverseManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
+                string assemblyQualifiedSaveManagerEntityTypeName = typeof(SaveManager).AssemblyQualifiedName;
+                string assemblyQualifiedSaveManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
+                string assemblyQualifiedSaveManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
 
                 Entity.MetaData instanceMetaData = new Entity.MetaData();
-                instanceMetaData.AssemblyQualifiedEntityTypeName = assemblyQualifiedUniverseManagerEntityTypeName;
-                instanceMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedUniverseManagerEntityMetaDataTypeName;
-                instanceMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedUniverseManagerEntityDataTypeName;
+                instanceMetaData.AssemblyQualifiedEntityTypeName = assemblyQualifiedSaveManagerEntityTypeName;
+                instanceMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedSaveManagerEntityMetaDataTypeName;
+                instanceMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedSaveManagerEntityDataTypeName;
                 instanceMetaData.EntityID = new Guid();
 
                 Manager.Data instanceData = new Manager.Data();
-                instanceData.AssemblyQualifiedEntityTypeName = assemblyQualifiedUniverseManagerEntityTypeName;
-                instanceData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedUniverseManagerEntityMetaDataTypeName;
-                instanceData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedUniverseManagerEntityDataTypeName;
-                instanceData.ManagerName = "UniverseManager";
+                instanceData.AssemblyQualifiedEntityTypeName = assemblyQualifiedSaveManagerEntityTypeName;
+                instanceData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedSaveManagerEntityMetaDataTypeName;
+                instanceData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedSaveManagerEntityDataTypeName;
+                instanceData.ManagerName = "SaveManager";
                 instanceData.ManagerParent = LooCastCoreManager.Instance;
 
                 SetEntityMetaData(instanceMetaData);
