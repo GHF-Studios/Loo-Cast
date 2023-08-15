@@ -1,40 +1,34 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 using Steamworks;
 using CSSystem = System;
 using System.Text;
 
-namespace LooCast.Steamworks
+namespace LooCast.Steam
 {
+    using LooCast.System;
     using LooCast.System.ECS;
-    
-    //
-    // The SteamworksManagerUnityComponent provides a base implementation of Steamworks.NET on which you can build upon.
-    // It handles the basics of starting up and shutting down the SteamAPI for use.
-    //
-    [DisallowMultipleComponent]
-    public sealed class SteamworksManagerUnityComponent : UnityComponent
+    using LooCast.Core;
+
+    public sealed class SteamManager : ModuleManager
     {
         #region Static Properties
-        public static SteamworksManagerUnityComponent Instance
+        public static SteamManager Instance
         {
             get
             {
                 if (instance == null)
                 {
-                    return new GameObject("SteamworksManager").AddComponent<SteamworksManagerUnityComponent>();
+                    instance = Entity.Create<SteamManager, Entity.MetaData, Manager.Data>();
                 }
-                else
-                {
-                    return instance;
-                }
+                return instance;
             }
         }
         #endregion
 
         #region Static Fields
         private static bool everInitialized = false;
-        private static SteamworksManagerUnityComponent instance = null;
+        private static SteamManager instance = null;
         #endregion
 
         #region Properties
@@ -52,18 +46,89 @@ namespace LooCast.Steamworks
         private SteamAPIWarningMessageHook_t steamAPIWarningMessageHook;
         #endregion
 
-        #region Unity Callbacks
-        private void Awake()
+        #region Constructors
+        public SteamManager() : base()
+        {
+            // Add pre-included components here
+
+            RegisterPreSetupAction(() =>
+            {
+                string assemblyQualifiedSteamManagerEntityTypeName = typeof(SteamManager).AssemblyQualifiedName;
+                string assemblyQualifiedSteamManagerEntityMetaDataTypeName = typeof(Entity.MetaData).AssemblyQualifiedName;
+                string assemblyQualifiedSteamManagerEntityDataTypeName = typeof(Manager.Data).AssemblyQualifiedName;
+
+                Entity.MetaData instanceMetaData = new Entity.MetaData();
+                instanceMetaData.AssemblyQualifiedEntityTypeName = assemblyQualifiedSteamManagerEntityTypeName;
+                instanceMetaData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedSteamManagerEntityMetaDataTypeName;
+                instanceMetaData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedSteamManagerEntityDataTypeName;
+                instanceMetaData.EntityID = new CSSystem.Guid();
+
+                Manager.Data instanceData = new Manager.Data();
+                instanceData.AssemblyQualifiedEntityTypeName = assemblyQualifiedSteamManagerEntityTypeName;
+                instanceData.AssemblyQualifiedEntityMetaDataTypeName = assemblyQualifiedSteamManagerEntityMetaDataTypeName;
+                instanceData.AssemblyQualifiedEntityDataTypeName = assemblyQualifiedSteamManagerEntityDataTypeName;
+                instanceData.ManagerName = "SteamManager";
+                instanceData.ManagerParent = LooCastCoreManager.Instance;
+
+                SetEntityMetaData(instanceMetaData);
+                SetEntityData(instanceData);
+
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
+                {
+                    subModuleManager.OnPreSetup();
+                }
+
+                EntityManager.Instance.RegisterEntity(this);
+            });
+
+            RegisterSetupAction(() =>
+            {
+                // Set pre-included components' metaData here
+
+                // Set pre-included component's data here
+
+                // Register pre-included components here
+
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
+                {
+                    subModuleManager.OnSetup();
+                }
+            });
+
+            RegisterPostSetupAction(() =>
+            {
+                foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
+                {
+                    subModuleManager.OnPostSetup();
+                }
+            });
+
+            RegisterPreInitializationAction(() =>
+            {
+                // Pre-Initialize pre-included components here
+            });
+
+            RegisterInitializationAction(() =>
+            {
+                // Initialize pre-included components here
+            });
+
+            RegisterPostInitializationAction(() =>
+            {
+                // Post-Initialize pre-included components here
+            });
+        }
+        #endregion
+
+        #region Overrides
+        protected override void OnUnityAwake()
         {
             // Only one instance of SteamworksManagerUnityComponent at a time!
             if (instance != null)
             {
-                Destroy(gameObject);
-                return;
+                throw new CSSystem.Exception("Only one instance of SteamManager can exist at a time!");
             }
             instance = this;
-            gameObject.layer = 31;
-            gameObject.tag = "INTERNAL";
 
             if (everInitialized)
             {
@@ -74,17 +139,14 @@ namespace LooCast.Steamworks
                 throw new CSSystem.Exception("Tried to Initialize the SteamAPI twice in one session!");
             }
 
-            // We want our SteamworksManagerUnityComponent Instance to persist across scenes.
-            DontDestroyOnLoad(gameObject);
-            
             if (!Packsize.Test())
             {
-                Debug.LogError("[Steamworks.NET] Packsize Test returned false, the wrong version of Steamworks.NET is being run in this platform.", this);
+                Debug.LogError("[Steamworks.NET] Packsize Test returned false, the wrong version of Steamworks.NET is being run in this platform.", UnityBridge.RootGameObject);
             }
 
             if (!DllCheck.Test())
             {
-                Debug.LogError("[Steamworks.NET] DllCheck Test returned false, One or more of the Steamworks binaries seems to be the wrong version.", this);
+                Debug.LogError("[Steamworks.NET] DllCheck Test returned false, One or more of the Steamworks binaries seems to be the wrong version.", UnityBridge.RootGameObject);
             }
 
             try
@@ -98,9 +160,9 @@ namespace LooCast.Steamworks
                 }
             }
             catch (CSSystem.DllNotFoundException e)
-            { 
+            {
                 // We catch this exception here, as it will be the first occurrence of it.
-                Debug.LogError("[Steamworks.NET] Could not load [lib]steam_api.dll/so/dylib. It's likely not in the correct location. Refer to the README for more details.\n" + e, this);
+                Debug.LogError("[Steamworks.NET] Could not load [lib]steam_api.dll/so/dylib. It's likely not in the correct location. Refer to the README for more details.\n" + e, UnityBridge.RootGameObject);
 
                 Application.Quit();
                 return;
@@ -118,7 +180,7 @@ namespace LooCast.Steamworks
             initialized = SteamAPI.Init();
             if (!initialized)
             {
-                Debug.LogError("[Steamworks.NET] SteamAPI_Init() failed. Refer to Valve's documentation or the comment above this line for more information.", this);
+                Debug.LogError("[Steamworks.NET] SteamAPI_Init() failed. Refer to Valve's documentation or the comment above this line for more information.", UnityBridge.RootGameObject);
 
                 return;
             }
@@ -127,7 +189,7 @@ namespace LooCast.Steamworks
         }
 
         // This should only ever get called on first load and after an Assembly reload, You should never Disable the Steamworks Manager yourself.
-        private void OnEnable()
+        protected override void OnUnityEnable()
         {
             if (instance == null)
             {
@@ -147,11 +209,11 @@ namespace LooCast.Steamworks
                 SteamClient.SetWarningMessageHook(steamAPIWarningMessageHook);
             }
         }
-
+        
         // OnApplicationQuit gets called too early to shutdown the SteamAPI.
         // Because the SteamworksManagerUnityComponent should be persistent and never disabled or destroyed we can shutdown the SteamAPI here.
         // Thus it is not recommended to perform any Steamworks work in other OnDestroy functions as the order of execution can not be guarenteed upon Shutdown. Prefer OnDisable().
-        private void OnDestroy()
+        protected override void OnUnityDestroy()
         {
             if (instance != this)
             {
@@ -168,7 +230,7 @@ namespace LooCast.Steamworks
             SteamAPI.Shutdown();
         }
 
-        private void Update()
+        protected override void OnUnityUpdate()
         {
             if (!initialized)
             {

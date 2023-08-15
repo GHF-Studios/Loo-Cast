@@ -19,7 +19,6 @@ namespace LooCast.System
         #endregion
 
         #region Properties
-        public ManagerUnityComponent ManagerUnityComponent { get; private set; }
         public string ManagerName { get; private set; }
         public Manager ManagerParent { get; private set; }
         public IEnumerable<Manager> ManagerChildren => managerChildrenList;
@@ -117,14 +116,6 @@ namespace LooCast.System
             RegisterPostSetupAction(() =>
             {
                 EnableUnityBridge();
-                UnityBridge.RootGameObject.name = ManagerName;
-                ManagerUnityComponent = UnityBridge.RootGameObject.AddComponent<ManagerUnityComponent>();
-                ManagerUnityComponent.Setup(this);
-
-                if (ManagerParent != null)
-                {
-                    UnityBridge.RootGameObject.transform.SetParent(ManagerParent.UnityBridge.RootGameObject.transform);
-                }
             });
         }
         #endregion
@@ -1610,8 +1601,55 @@ namespace LooCast.System
         }
         #endregion
 
+        #region Unity Callbacks
+        protected virtual void OnUnityAwake()
+        {
+            
+        }
+
+        protected virtual void OnUnityStart()
+        {
+            
+        }
+
+        protected virtual void OnUnityUpdate()
+        {
+            
+        }
+
+        protected virtual void OnUnityLateUpdate()
+        {
+            
+        }
+
+        protected virtual void OnUnityFixedUpdate()
+        {
+
+        }
+
+        protected virtual void OnUnityGUI()
+        {
+
+        }
+
+        protected virtual void OnUnityEnable()
+        {
+
+        }
+
+        protected virtual void OnUnityDisable()
+        {
+
+        }
+
+        protected virtual void OnUnityDestroy()
+        {
+
+        }
+        #endregion
+
         /// <summary>
-        /// Automatically called when this manager is being created by the parent manager. 
+        /// Automatically called by the parent manager!
         /// Do NOT manually call this method! 
         /// Only override this method if you know what you are doing!
         /// </summary>
@@ -1621,8 +1659,9 @@ namespace LooCast.System
         }
 
         /// <summary>
-        /// Do NOT call this method, unless you are the LooCastApplication!
-        /// Do NOT override this method, unless you are the MainManager!
+        /// Automatically called by the LooCast Application!
+        /// Do NOT call this method!
+        /// Do NOT override this method!
         /// </summary>
         public override void OnDestroy()
         {
@@ -2624,6 +2663,20 @@ namespace LooCast.System
         public override string ToString()
         {
             return $"Manager[{ManagerName ?? "Unnamed Manager"}]";
+        }
+        
+        public override void EnableUnityBridge()
+        {
+            base.EnableUnityBridge();
+
+            UnityBridge.RootGameObject.name = ManagerName;
+            if (ManagerParent != null)
+            {
+                UnityBridge.RootGameObject.transform.SetParent(ManagerParent.UnityBridge.RootGameObject.transform);
+            }
+
+            ManagerUnityComponent managerUnityComponent = UnityBridge.RootGameObject.AddComponent<ManagerUnityComponent>();
+            managerUnityComponent.Setup(this);
         }
         #endregion
     }
