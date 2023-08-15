@@ -3,14 +3,12 @@ using System.Collections.Generic;
 
 namespace LooCast.System.ECS
 {
-    using LooCast.System.Lifecycle.Initialization;
-    using LooCast.System.Lifecycle.Termination;
     using LooCast.System.Serialization;
     
     /// <summary>
     /// Lifecycle: Construction via Entity.AddComponent -> OnCreate -> SetMetaData -> SetData -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
     /// </summary>
-    public abstract class Component : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
+    public abstract class Component
     {
         #region Classes
         [SerializableNonGenericObject]

@@ -3,17 +3,11 @@ using System.Collections.Generic;
 
 namespace LooCast.System
 {
-    using LooCast.System.ECS;
-
-    public abstract class ModuleManager : Manager, IChild<CoreModuleManager>, IParent<SubModuleManager>
+    public abstract class ModuleManager : Manager
     {
         #region Properties
         public string ModuleManagerName => ManagerName;
-
-        CoreModuleManager IChild<CoreModuleManager>.Parent => CoreModuleManagerParent;
         public CoreModuleManager CoreModuleManagerParent { get; private set; }
-
-        IEnumerable<SubModuleManager> IParent<SubModuleManager>.Children => SubModuleManagerChildren;
         public IEnumerable<SubModuleManager> SubModuleManagerChildren => subModuleManagerChildrenList;
         #endregion
 

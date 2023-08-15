@@ -5,15 +5,13 @@ using System.Collections.Generic;
 
 namespace LooCast.System.ECS
 {
-    using LooCast.System.Lifecycle.Initialization;
-    using LooCast.System.Lifecycle.Termination;
     using LooCast.System.Collections.Serializable;
     using LooCast.System.Serialization;
     
     /// <summary>
     /// Lifecycle: Construction via Entity.Create -> OnCreate -> SetMetaData -> SetData -> OnPreInitialize -> OnInitialize -> OnPostInitialize -> OnDestroy -> OnPreTerminate -> OnTerminate -> OnPostTerminate
     /// </summary>
-    public abstract class Entity : IPreInitializationPhase, IInitializationPhase, IPostInitializationPhase, IPreTerminationPhase, ITerminationPhase, IPostTerminationPhase
+    public abstract class Entity
     {
         #region Classes
         [SerializableNonGenericObject]

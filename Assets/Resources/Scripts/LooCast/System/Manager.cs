@@ -5,18 +5,8 @@ using UnityEngine;
 namespace LooCast.System
 {
     using LooCast.System.ECS;
-    using LooCast.System.Lifecycle.Setup;
-    using LooCast.System.Lifecycle.Initialization;
-    using LooCast.System.Lifecycle.Termination;
 
-    public abstract class Manager : Entity, IChild<Manager>, IParent<Manager>,
-                                IPreSetupPhase, ISetupPhase, IPostSetupPhase,
-                                IEarlyPreInitializationPhase, ILatePreInitializationPhase, 
-                                IEarlyInitializationPhase, ILateInitializationPhase, 
-                                IEarlyPostInitializationPhase, ILatePostInitializationPhase,
-                                IEarlyPreTerminationPhase, ILatePreTerminationPhase,
-                                IEarlyTerminationPhase, ILateTerminationPhase,
-                                IEarlyPostTerminationPhase, ILatePostTerminationPhase
+    public abstract class Manager : Entity
     {
         #region Classes
         new public class Data : Entity.Data
@@ -30,13 +20,8 @@ namespace LooCast.System
 
         #region Properties
         public ManagerUnityComponent ManagerUnityComponent { get; private set; }
-        
         public string ManagerName { get; private set; }
-
-        Manager IChild<Manager>.Parent => ManagerParent;
         public Manager ManagerParent { get; private set; }
-        
-        IEnumerable<Manager> IParent<Manager>.Children => ManagerChildren;
         public IEnumerable<Manager> ManagerChildren => managerChildrenList;
 
         public bool IsEarlyPreInitializing { get; protected set; }
