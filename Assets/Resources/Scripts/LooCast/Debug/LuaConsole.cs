@@ -55,8 +55,7 @@ public class LuaConsole : MonoBehaviour
         GUILayout.BeginVertical();
 
         float splitterHeight = 5f; // Height of the splitter
-        float inputHeight = 30f; // Fixed height for the input field
-        float availableHeight = consoleWindowRect.height - inputHeight - splitterHeight - 20f; // Adjust this value as needed
+        float availableHeight = consoleWindowRect.height - splitterHeight - 20f; // Adjust this value as needed
         float outputHeight = verticalSplitter.GetSplitterPosition();
 
         if (outputHeight > availableHeight)
@@ -70,7 +69,9 @@ public class LuaConsole : MonoBehaviour
 
         verticalSplitter.Splitter(5f);
 
+        float inputHeight = availableHeight - outputHeight;
         consoleInput = GUILayout.TextField(consoleInput, GUILayout.Height(inputHeight));
+
 
         if (GUILayout.Button("Execute") || (Event.current.isKey && Event.current.keyCode == KeyCode.Return))
         {
