@@ -429,7 +429,7 @@ namespace LooCast.System.Serialization
 
                 stopwatch.Stop();
                 int cachedTypeCount = registeredUnserializableTypes.Count + registeredPrimitiveTypeInfos.Count + newlyRegisteredNonGenericObjectTypeInfos.Count + newlyRegisteredGenericObjectTypeInfos.Count + newlyRegisteredFileTypeInfos.Count + newlyRegisteredFolderTypeInfos.Count;
-                UnityEngine.Debug.Log($"Analyzing {cachedTypeCount} types took {stopwatch.ElapsedMilliseconds}ms");
+                UnityEngine.Debug.Log($"[SerializationManager] Analyzing {cachedTypeCount} types took {stopwatch.ElapsedMilliseconds}ms");
                 #endregion
 
                 foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
