@@ -2,6 +2,7 @@
 using System.IO;
 using System.Reflection;
 using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Xml.Linq;
@@ -12,6 +13,7 @@ namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
     using LooCast.System.CSharp;
+    using LooCast.System.Algorithms.Generic;
 
     public sealed class SerializationManager : ModuleManager
     {
@@ -493,10 +495,12 @@ namespace LooCast.System.Serialization
             IEnumerable<ObjectTypeInfo> newlyRegisteredObjectTypeInfos = Instance.newlyRegisteredNonGenericObjectTypeInfos.Values.Cast<ObjectTypeInfo>().Concat(Instance.newlyRegisteredGenericObjectTypeInfos.Values);
 
             // Topologically sort the object type infos. This ensures dependencies are handled correctly.
-            HashSet<ObjectTypeInfo>[] sortedNewlyRegisteredObjectTypeInfoSets = Instance.TopologicallySortObjectTypeInfos(newlyRegisteredObjectTypeInfos);
+            TopologicalSorter<ObjectTypeInfo> topologicalObjectInfoSorter = new TopologicalSorter<ObjectTypeInfo>((objectInfo) => ((IEnumerable<ObjectTypeInfo>)objectInfo.NonGenericObjectTypeDependencies).Concat(objectInfo.GenericObjectTypeDependencies));
+            IEnumerable<IEnumerable<ObjectTypeInfo>> sortedNewlyRegisteredObjectTypeInfoSets = topologicalObjectInfoSorter.Sort(newlyRegisteredObjectTypeInfos);
 
             // Topologically sort the folder type infos.
-            HashSet<FolderTypeInfo>[] sortedNewlyRegisteredFolderTypeInfoSets = Instance.TopologicallySortFolderTypeInfos(Instance.newlyRegisteredFolderTypeInfos.Values);
+            TopologicalSorter<FolderTypeInfo> topologicalFolderInfoSorter = new TopologicalSorter<FolderTypeInfo>((folderInfo) => folderInfo.FolderTypeDependencies);
+            IEnumerable<IEnumerable<FolderTypeInfo>> sortedNewlyRegisteredFolderTypeInfoSets = topologicalFolderInfoSorter.Sort(Instance.newlyRegisteredFolderTypeInfos.Values);
 
             // Process the sorted object type infos.
             foreach (HashSet<ObjectTypeInfo> sortedNewlyRegisteredObjectTypeInfoSet in sortedNewlyRegisteredObjectTypeInfoSets)

@@ -4,7 +4,6 @@ using UnityEngine;
 
 namespace LooCast.Universe
 {
-    using global::LooCast.System.Numerics;
     using global::LooCast.System.ECS;
     
     public sealed class UniverseObserverUnityComponent : UnityComponent
