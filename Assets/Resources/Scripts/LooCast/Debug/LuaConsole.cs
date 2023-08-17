@@ -4,12 +4,14 @@ using NLua.Exceptions;
 using UnityEditor;
 using LooCast;
 using LooCast.System;
+using System.Collections;
 
 public class LuaConsole : MonoBehaviour
 {
     private Lua lua;
     private string input = "";
     private Vector2 outputScrollPos;
+    private Vector2 inputScrollPos;
     private bool scrollToBottom = false;
     private Vector2 windowSize = new Vector2(1400, 700);
     private Vector2 minWindowSize = new Vector2(700, 350);
@@ -26,11 +28,20 @@ public class LuaConsole : MonoBehaviour
     private Rect resizeRect;
     private bool resizingWindow = false;
     private Vector2 resizeStartPos;
+    private bool resetInput = false;
+    public bool focusInputArea = false;
+    private GUIStyle outputStyle;
 
     private void Awake()
     {
         lua = new Lua();
         lua.LoadCLRPackage();
+
+        lua.RegisterFunction("UpdateLog", typeof(LooCastApplication).GetMethod("UpdateLog"));
+
+
+
+
         LooCastApplication.OnLogUpdated += ScrollToBottom;
 
         // Create the console style
@@ -115,6 +126,12 @@ public class LuaConsole : MonoBehaviour
             ScrollToBottom();
             scrollToBottom = false;
         }
+
+        if (resetInput)
+        {
+            resetInput = false;
+            input = "";
+        }
     }
 
     private void DrawConsole(int windowID)
@@ -133,10 +150,20 @@ public class LuaConsole : MonoBehaviour
             );
         }
 
+        // Create the output style
+        if (outputStyle == null)
+        {
+            outputStyle = new GUIStyle(GUI.skin.label);
+            outputStyle.normal.background = null;
+            outputStyle.focused.background = null;
+            outputStyle.active.background = null;
+            outputStyle.hover.background = null;
+        }
+
         // Output area
         outputScrollPos = GUI.BeginScrollView(new Rect(10, 20, windowSize.x - 20, splitterPosY - 10),
             outputScrollPos, new Rect(0, 0, windowSize.x - 40, contentHeight));
-        GUI.Label(new Rect(0, 0, windowSize.x - 40, contentHeight), LooCastApplication.Log);
+        GUI.TextArea(new Rect(0, 0, windowSize.x - 40, contentHeight), LooCastApplication.Log, outputStyle);
         GUI.EndScrollView();
 
         // Splitter
@@ -160,18 +187,36 @@ public class LuaConsole : MonoBehaviour
         GUI.Box(new Rect(10, splitterPosY, windowSize.x - 40, splitterHeight), GUIContent.none, splitterStyle);
 
         // Input area
-        input = GUI.TextField(new Rect(10, splitterPosY + splitterHeight + 5, windowSize.x - 70, windowSize.y - splitterPosY - splitterHeight - 15), input);
+        float inputHeight = windowSize.y - splitterPosY - splitterHeight - 15;
+        inputScrollPos = GUI.BeginScrollView(
+            new Rect(10, splitterPosY + splitterHeight + 5, windowSize.x - 20, inputHeight),
+            inputScrollPos, new Rect(0, 0, windowSize.x - 40, Mathf.Max(inputHeight, GUI.skin.textArea.CalcHeight(new GUIContent(input), windowSize.x - 40)))
+        );
+        GUI.SetNextControlName("InputField");
+        input = GUI.TextArea(
+            new Rect(0, 0, windowSize.x - 40, Mathf.Max(inputHeight, GUI.skin.textArea.CalcHeight(new GUIContent(input), windowSize.x - 40))),
+            input
+        );
+        GUI.EndScrollView();
 
+        if (focusInputArea)
+        {
+            GUI.FocusControl("InputField");
+            focusInputArea = false;
+        }
+        
         // Check for Shift + Enter key press
-        if (Event.current.shift && Event.current.keyCode == KeyCode.Return && Event.current.type != EventType.Layout)
+        if (!Event.current.shift && Event.current.keyCode == KeyCode.Return && Event.current.type != EventType.Layout)
         {
             if (!StringUtil.IsEmpty(input))
             {
                 ExecuteLuaCode(input);
-                input = "";
+                resetInput = true;
             }
 
-            Event.current.Use(); // Consume the event so it doesn't trigger other actions
+            Event.current.Use();
+            GUI.FocusControl(null);
+            StartCoroutine(DelayedFocus());
         }
 
         // Title with margin
@@ -188,12 +233,17 @@ public class LuaConsole : MonoBehaviour
     {
         try
         {
-            object result = lua.DoString(code)[0];
-            LooCastApplication.UpdateLog($"[Lua Console] {result}");
+            lua.DoString(code);
         }
         catch (LuaException ex)
         {
             LooCastApplication.UpdateLog($"[Lua Console] Error executing Lua code: {ex.Message}");
         }
+    }
+
+    private IEnumerator DelayedFocus()
+    {
+        yield return null;
+        focusInputArea = true;
     }
 }
