@@ -12,7 +12,7 @@ namespace LooCast
         #endregion
 
         #region Static Fields
-        public static string Log { get; private set; }
+        public static string LogHistory { get; private set; }
         #endregion
 
         #region Static Methods
@@ -20,12 +20,12 @@ namespace LooCast
         {
             MainManager.Instance.OnDestroy();
             
-            Application.logMessageReceived -= UpdateLog_INTERNAL;
+            Application.logMessageReceived -= Log_INTERNAL;
         }
 
-        public static void UpdateLog(string logString)
+        public static void Log(string logString)
         {
-            Log += logString + "\n";
+            LogHistory += logString + "\n";
             if (OnLogUpdated != null)
             {
                 OnLogUpdated.Invoke();
@@ -35,7 +35,7 @@ namespace LooCast
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void PreAwake()
         {
-            Application.logMessageReceived += UpdateLog_INTERNAL;
+            Application.logMessageReceived += Log_INTERNAL;
 
             MainManager.Instance.OnPreSetup();
             MainManager.Instance.OnSetup();
@@ -45,9 +45,9 @@ namespace LooCast
             MainManager.Instance.OnPostAwake();
         }
 
-        private static void UpdateLog_INTERNAL(string logString, string stackTrace, LogType type)
+        private static void Log_INTERNAL(string logString, string stackTrace, LogType type)
         {
-            Log += logString + "\n";
+            LogHistory += logString + "\n";
             if (OnLogUpdated != null)
             {
                 OnLogUpdated.Invoke();

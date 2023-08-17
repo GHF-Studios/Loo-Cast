@@ -26,7 +26,7 @@ namespace LooCast.System.Collections.Serializable
         {
             Type type = typeof(T);
 
-            if (!SerializationManager.Instance.TryGetObjectTypeInfo(type, out objectTypeInfo))
+            if (!SerializationManager.TryGetObjectTypeInfo(type, out objectTypeInfo))
             {
                 throw new Exception($"Type '{type}' is not an object type!");
             }
@@ -38,7 +38,7 @@ namespace LooCast.System.Collections.Serializable
         {
             Type type = typeof(T);
 
-            if (!SerializationManager.Instance.TryGetObjectTypeInfo(type, out objectTypeInfo))
+            if (!SerializationManager.TryGetObjectTypeInfo(type, out objectTypeInfo))
             {
                 throw new Exception($"Type '{type}' is not an object type!");
             }
@@ -50,7 +50,7 @@ namespace LooCast.System.Collections.Serializable
         {
             Type type = typeof(T);
 
-            if (!SerializationManager.Instance.TryGetObjectTypeInfo(type, out objectTypeInfo))
+            if (!SerializationManager.TryGetObjectTypeInfo(type, out objectTypeInfo))
             {
                 throw new Exception($"Type '{type}' is not an object type!");
             }

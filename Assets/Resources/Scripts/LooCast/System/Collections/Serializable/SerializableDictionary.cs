@@ -31,17 +31,16 @@ namespace LooCast.System.Collections.Serializable
         #region Constructors
         public SerializableDictionary() : base()
         {
-            SerializationManager serializationManager = SerializationManager.Instance;
             Type keyType = typeof(TKey);
             Type valueType = typeof(TValue);
             bool isKeyTypePrimitive;
             bool isValueTypePrimitive;
 
-            if (serializationManager.TryGetPrimitiveTypeInfo(keyType, out keyPrimitiveTypeInfo))
+            if (SerializationManager.TryGetPrimitiveTypeInfo(keyType, out keyPrimitiveTypeInfo))
             {
                 isKeyTypePrimitive = true;
             }
-            else if(serializationManager.TryGetObjectTypeInfo(keyType, out keyObjectTypeInfo))
+            else if(SerializationManager.TryGetObjectTypeInfo(keyType, out keyObjectTypeInfo))
             {
                 isKeyTypePrimitive = false;
             }
@@ -50,11 +49,11 @@ namespace LooCast.System.Collections.Serializable
                 throw new Exception($"Key type '{keyType.FullName}' is neither a primitive type nor an object type!");
             }
 
-            if (serializationManager.TryGetPrimitiveTypeInfo(valueType, out valuePrimitiveTypeInfo))
+            if (SerializationManager.TryGetPrimitiveTypeInfo(valueType, out valuePrimitiveTypeInfo))
             {
                 isValueTypePrimitive = true;
             }
-            else if (serializationManager.TryGetObjectTypeInfo(valueType, out valueObjectTypeInfo))
+            else if (SerializationManager.TryGetObjectTypeInfo(valueType, out valueObjectTypeInfo))
             {
                 isValueTypePrimitive = false;
             }
@@ -83,17 +82,16 @@ namespace LooCast.System.Collections.Serializable
 
         public SerializableDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection) : base(collection)
         {
-            SerializationManager serializationManager = SerializationManager.Instance;
             Type keyType = typeof(TKey);
             Type valueType = typeof(TValue);
             bool isKeyTypePrimitive;
             bool isValueTypePrimitive;
 
-            if (serializationManager.TryGetPrimitiveTypeInfo(keyType, out keyPrimitiveTypeInfo))
+            if (SerializationManager.TryGetPrimitiveTypeInfo(keyType, out keyPrimitiveTypeInfo))
             {
                 isKeyTypePrimitive = true;
             }
-            else if (serializationManager.TryGetObjectTypeInfo(keyType, out keyObjectTypeInfo))
+            else if (SerializationManager.TryGetObjectTypeInfo(keyType, out keyObjectTypeInfo))
             {
                 isKeyTypePrimitive = false;
             }
@@ -102,11 +100,11 @@ namespace LooCast.System.Collections.Serializable
                 throw new Exception($"Key type '{keyType.FullName}' is neither a primitive type nor an object type!");
             }
 
-            if (serializationManager.TryGetPrimitiveTypeInfo(valueType, out valuePrimitiveTypeInfo))
+            if (SerializationManager.TryGetPrimitiveTypeInfo(valueType, out valuePrimitiveTypeInfo))
             {
                 isValueTypePrimitive = true;
             }
-            else if (serializationManager.TryGetObjectTypeInfo(valueType, out valueObjectTypeInfo))
+            else if (SerializationManager.TryGetObjectTypeInfo(valueType, out valueObjectTypeInfo))
             {
                 isValueTypePrimitive = false;
             }

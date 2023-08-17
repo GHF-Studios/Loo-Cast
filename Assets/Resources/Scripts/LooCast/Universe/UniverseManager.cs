@@ -5,8 +5,10 @@ namespace LooCast.Universe
 {
     using LooCast.System;
     using LooCast.System.ECS;
+    using LooCast.System.Lua;
     using LooCast.Core;
 
+    [LuaNamespace("Universe")]
     public sealed class UniverseManager : ModuleManager
     {
         #region Static Properties
@@ -28,6 +30,8 @@ namespace LooCast.Universe
         #endregion
 
         #region Fields
+        private Universe universe;
+        private UniverseObserver universeObserver;
         #endregion
 
         #region Constructors
@@ -101,6 +105,60 @@ namespace LooCast.Universe
             {
                 // Post-Initialize pre-included components here
             });
+        }
+        #endregion
+
+        #region Static Methods
+        [LuaMethod("CreateUniverse")]
+        public static Universe CreateUniverse(int chunkSize)
+        {
+            Universe universe = new Universe(chunkSize);
+            UnityEngine.Debug.Log("[Universe] Created universe!");
+            return universe;
+        }
+        
+        [LuaMethod("CreateUniverseObserver")]
+        public static UniverseObserver CreateUniverseObserver(int observingDistance)
+        {
+            UniverseObserver universeObserver = new UniverseObserver(observingDistance);
+            UnityEngine.Debug.Log("[UniverseObserver] Created universe observer!");
+            return universeObserver;
+        }
+
+        [LuaMethod("GetUniverse")]
+        public static Universe GetUniverse()
+        {
+            return Instance.universe;
+        }
+
+        [LuaMethod("GetUniverseObserver")]
+        public static UniverseObserver GetUniverseObserver()
+        {
+            return Instance.universeObserver;
+        }
+
+        [LuaMethod("SetUniverse")]
+        public static void SetUniverse(Universe universe)
+        {
+            if (Instance.universe != null)
+            {
+                throw new InvalidOperationException($"Universe has already been set!");
+            }
+
+            Instance.universe = universe;
+            UnityEngine.Debug.Log("[LooCastCoreManager] Set universe!");
+        }
+
+        [LuaMethod("SetUniverseObserver")]
+        public static void SetUniverseObserver(UniverseObserver universeObserver)
+        {
+            if (Instance.universeObserver != null)
+            {
+                throw new InvalidOperationException($"UniverseObserver has already been set!");
+            }
+
+            Instance.universeObserver = universeObserver;
+            UnityEngine.Debug.Log("[LooCastCoreManager] Set universe observer!");
         }
         #endregion
     }

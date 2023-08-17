@@ -4,22 +4,24 @@ using System.Collections.Generic;
 namespace LooCast.Universe
 {
     using LooCast.System.ECS;
-    
+    using LooCast.System.Lua;
+
+    [LuaNamespace("Universe")]
     public sealed class Universe : Entity
     {
         #region Properties
         public UniverseUnityComponent UniverseUnityComponent { get; private set; }
-        public int ChunkSize { get; private set; }
         #endregion
 
         #region Fields
+        public int chunkSize;
         private Dictionary<int, Scale> scaleDictionary;
         #endregion
 
         #region Constructors
-        public Universe(int chunkSize) : base()
+        public Universe(int chunkSize = 32) : base()
         {
-            ChunkSize = chunkSize;
+            this.chunkSize = chunkSize;
             
             scaleDictionary = new Dictionary<int, Scale>();
 
@@ -27,7 +29,16 @@ namespace LooCast.Universe
         }
         #endregion
 
+        #region Static Methods
+        #endregion
+
         #region Methods
+        [LuaMethod("GetChunkSize")]
+        public int GetChunkSize()
+        {
+            return chunkSize;
+        }
+
         public bool IsScaleGenerated(int scaleLevel)
         {
             return scaleDictionary.ContainsKey(scaleLevel);

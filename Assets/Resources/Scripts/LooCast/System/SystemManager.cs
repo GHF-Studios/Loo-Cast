@@ -2,9 +2,12 @@
 
 namespace LooCast.System
 {
-    using LooCast.System.ECS;
     using LooCast.System.Serialization;
-    
+    using LooCast.System.ECS;
+    using LooCast.System.Steam;
+    using LooCast.System.CSharp;
+    using LooCast.System.Lua;
+
     public sealed class SystemManager : CoreModuleManager
     {
         #region Static Properties
@@ -55,6 +58,9 @@ namespace LooCast.System
                 moduleManagerChildrenList.Add(SerializationManager.Instance);
                 moduleManagerChildrenList.Add(EntityManager.Instance);
                 moduleManagerChildrenList.Add(ComponentManager.Instance);
+                moduleManagerChildrenList.Add(SteamManager.Instance);
+                moduleManagerChildrenList.Add(CSharpManager.Instance);
+                moduleManagerChildrenList.Add(LuaManager.Instance);
 
                 foreach (ModuleManager moduleManager in moduleManagerChildrenList)
                 {

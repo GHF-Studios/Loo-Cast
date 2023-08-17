@@ -39,7 +39,7 @@ namespace LooCast.Universe
             if (UniverseObserver is not null)
             {
                 Gizmos.color = Color.blue;
-                Gizmos.DrawWireSphere(transform.position, UniverseObserver.ObservingDistance);
+                Gizmos.DrawWireSphere(transform.position, UniverseObserver.GetObservingDistance());
             }
         }
         #endregion

@@ -48,7 +48,7 @@ namespace LooCast.Universe
                 throw new Exception($"Chunk '{chunkPosition}' has already been generated!");
             }
             
-            Chunk chunk = new Chunk(chunkPosition, Universe.ChunkSize, this);
+            Chunk chunk = new Chunk(chunkPosition, Universe.GetChunkSize(), this);
             chunkDictionary.Add(chunkPosition, chunk);
         }
 

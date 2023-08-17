@@ -7,8 +7,10 @@ namespace LooCast.Universe
 {
     using LooCast.System.Numerics;
     using LooCast.System.ECS;
+    using LooCast.System.Lua;
     using LooCast.Core;
-    
+
+    [LuaNamespace("Universe")]
     public sealed class UniverseObserver : Entity
     {
         #region Enums
@@ -22,22 +24,23 @@ namespace LooCast.Universe
         #region Properties
         public UniverseObserverUnityComponent UniverseObserverUnityComponent { get; private set; }
         public Scale CurrentScale { get; private set; }
-        public int ObservingDistance { get; private set; }
         public bool IsTransitioningScale { get; private set; }
         public float ScaleTransitionDuration { get; private set; }
         #endregion
 
         #region Fields
+        private int observingDistance;
         private List<BigVec2Int> currentScaleOldProximalChunkCoordinates;
         private List<BigVec2Int> newScaleOldProximalChunkCoordinates;
         private ScaleTransitionType? scaleTransitionType;
         private Scale newCurrentScale;
+        private Universe universe;
         #endregion
 
         #region Constructors
-        public UniverseObserver(int observingDistance)
+        public UniverseObserver(int observingDistance = 256)
         {
-            Universe universe = LooCastCoreManager.Instance.Universe;
+            universe = UniverseManager.GetUniverse();
             if (!universe.IsScaleGenerated(0))
             {
                 universe.GenerateScale(0);
@@ -47,12 +50,12 @@ namespace LooCast.Universe
             CurrentScale.ScaleFactor = 1.0f;
             CurrentScale.AlphaFactor = 1.0f;
 
-            if (observingDistance % universe.ChunkSize != 0)
+            if (observingDistance % universe.GetChunkSize() != 0)
             {
                 throw new ArgumentException("Observing distance must be a multiple of the chunk size!");
             }
 
-            ObservingDistance = observingDistance;
+            this.observingDistance = observingDistance;
 
             currentScaleOldProximalChunkCoordinates = new List<BigVec2Int>();
             newScaleOldProximalChunkCoordinates = new List<BigVec2Int>();
@@ -66,8 +69,6 @@ namespace LooCast.Universe
         #region Callbacks
         public void Update()
         {
-            Universe universe = LooCastCoreManager.Instance.Universe;
-
             List<BigVec2Int> proximalChunkCoordinates = GetProximalChunkCoordinates();
 
             foreach (BigVec2Int proximalChunkCoordinate in proximalChunkCoordinates)
@@ -118,6 +119,12 @@ namespace LooCast.Universe
         #endregion
 
         #region Methods
+        [LuaMethod("GetObservingDistance")]
+        public int GetObservingDistance()
+        {
+            return observingDistance;
+        }
+        
         public void InitializeScaleTransition(ScaleTransitionType scaleTransitionType)
         {
             if (!IsTransitioningScale)
@@ -126,15 +133,14 @@ namespace LooCast.Universe
 
                 if (scaleTransitionType == ScaleTransitionType.ZoomIn)
                 {
-                    Debug.Log("Zooming in!");
+                    Debug.Log("[UniverseObserver] Zooming in!");
                 }
                 else
                 {
-                    Debug.Log("Zooming out!");
+                    Debug.Log("[UniverseObserver] Zooming out!");
                 }
                 
                 this.scaleTransitionType = scaleTransitionType;
-                Universe universe = LooCastCoreManager.Instance.Universe;
                 int newScaleLevel = CurrentScale.ScaleLevel;
                 
                 if (scaleTransitionType == ScaleTransitionType.ZoomOut)
@@ -172,16 +178,15 @@ namespace LooCast.Universe
             {
                 if (scaleTransitionType == ScaleTransitionType.ZoomIn)
                 {
-                    Debug.Log("Finished zooming in!");
+                    Debug.Log("[UniverseObserver] Finished zooming in!");
                 }
                 else
                 {
-                    Debug.Log("Finished zooming out!");
+                    Debug.Log("[UniverseObserver] Finished zooming out!");
                 }
                 
                 UpdateScaleTransition(0.0f, 0.0f, 1.0f, 1.0f);
 
-                Universe universe = LooCastCoreManager.Instance.Universe;
                 universe.DeleteScale(CurrentScale.ScaleLevel);
                 CurrentScale = newCurrentScale;
                 newCurrentScale = null;
@@ -192,14 +197,13 @@ namespace LooCast.Universe
 
         private List<BigVec2Int> GetProximalChunkCoordinates()
         {
-            Universe universe = LooCastCoreManager.Instance.Universe;
-            int chunkSize = universe.ChunkSize;
+            int chunkSize = universe.GetChunkSize();
             List<BigVec2Int> potentialChunkCoordinates = new List<BigVec2Int>();
             BigVec2Int currentPosition = (BigVec2Int)UniverseObserverUnityComponent.transform.position;
-            BigInteger minX = currentPosition.X - ObservingDistance;
-            BigInteger maxX = currentPosition.X + ObservingDistance;
-            BigInteger minY = currentPosition.Y - ObservingDistance;
-            BigInteger maxY = currentPosition.Y + ObservingDistance;
+            BigInteger minX = currentPosition.X - observingDistance;
+            BigInteger maxX = currentPosition.X + observingDistance;
+            BigInteger minY = currentPosition.Y - observingDistance;
+            BigInteger maxY = currentPosition.Y + observingDistance;
 
             for (BigInteger x = minX; x < maxX; x += chunkSize)
             {

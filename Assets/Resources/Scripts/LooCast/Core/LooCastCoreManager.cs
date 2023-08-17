@@ -4,7 +4,6 @@ namespace LooCast.Core
 {
     using LooCast.System;
     using LooCast.System.ECS;
-    using LooCast.Steam;
     using LooCast.Save;
     using LooCast.Scene;
     using LooCast.MainMenu;
@@ -31,9 +30,7 @@ namespace LooCast.Core
         private static LooCastCoreManager instance;
         #endregion
 
-        #region Properties
-        public Universe Universe { get; private set; }
-        public UniverseObserver UniverseObserver { get; private set; }
+        #region Fields
         #endregion
 
         #region Constructors
@@ -63,7 +60,6 @@ namespace LooCast.Core
                 SetEntityMetaData(looCastCoreManagerMetaData);
                 SetEntityData(looCastCoreManagerData);
 
-                moduleManagerChildrenList.Add(SteamManager.Instance);
                 moduleManagerChildrenList.Add(SaveManager.Instance);
                 moduleManagerChildrenList.Add(SceneManager.Instance);
                 moduleManagerChildrenList.Add(MainMenuManager.Instance);
@@ -117,8 +113,6 @@ namespace LooCast.Core
 
             RegisterLatePostInitializationAction(() =>
             {
-                Universe = new Universe(32);
-                UniverseObserver = new UniverseObserver(256);
             });
         }
         #endregion

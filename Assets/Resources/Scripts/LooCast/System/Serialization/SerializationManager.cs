@@ -11,6 +11,7 @@ using UnityEngine;
 namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
+    using LooCast.System.CSharp;
 
     public sealed class SerializationManager : ModuleManager
     {
@@ -418,19 +419,10 @@ namespace LooCast.System.Serialization
                 registeredPrimitiveTypeInfos.Add(bigIntType, new PrimitiveTypeInfo(bigIntType, bigIntSerializeDelegate, bigIntDeserializeDelegate));
                 #endregion
 
-                #region Type caching
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
-
-                IEnumerable<Assembly> allInitialAssemblyDefinitions = AppDomain.CurrentDomain.GetAssemblies();
-                IEnumerable<Type> allInitialTypeDefinitions = allInitialAssemblyDefinitions.SelectMany(assembly => assembly.GetTypes());
-
-                RegisterTypes(allInitialTypeDefinitions);
-
-                stopwatch.Stop();
-                int cachedTypeCount = registeredUnserializableTypes.Count + registeredPrimitiveTypeInfos.Count + newlyRegisteredNonGenericObjectTypeInfos.Count + newlyRegisteredGenericObjectTypeInfos.Count + newlyRegisteredFileTypeInfos.Count + newlyRegisteredFolderTypeInfos.Count;
-                UnityEngine.Debug.Log($"[SerializationManager] Analyzing {cachedTypeCount} types took {stopwatch.ElapsedMilliseconds}ms");
-                #endregion
+                CSharpManager.OnTypesRegistered += (types) =>
+                {
+                    RegisterTypes(types);
+                };
 
                 foreach (SubModuleManager subModuleManager in subModuleManagerChildrenList)
                 {
@@ -479,29 +471,32 @@ namespace LooCast.System.Serialization
         }
         #endregion
 
-        #region Methods
+        #region Static Methods
         /// <summary>
         /// Registers a collection of types to the serialization manager.
         /// For performance optimization, it's recommended to register many types simultaneously.
         /// The method analyzes each type, sorts them, and composes necessary delegates for their serialization.
         /// </summary>
         /// <param name="types">The types to be registered.</param>
-        public void RegisterTypes(IEnumerable<Type> types)
+        public static void RegisterTypes(IEnumerable<Type> types)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             // Analyze each provided type to determine its serializability and dependencies.
             foreach (Type type in types)
             {
-                AnalyzeType(type);
+                Instance.AnalyzeType(type);
             }
 
             // Combine the newly registered non-generic and generic object type infos.
-            IEnumerable<ObjectTypeInfo> newlyRegisteredObjectTypeInfos = newlyRegisteredNonGenericObjectTypeInfos.Values.Cast<ObjectTypeInfo>().Concat(newlyRegisteredGenericObjectTypeInfos.Values);
+            IEnumerable<ObjectTypeInfo> newlyRegisteredObjectTypeInfos = Instance.newlyRegisteredNonGenericObjectTypeInfos.Values.Cast<ObjectTypeInfo>().Concat(Instance.newlyRegisteredGenericObjectTypeInfos.Values);
 
             // Topologically sort the object type infos. This ensures dependencies are handled correctly.
-            HashSet<ObjectTypeInfo>[] sortedNewlyRegisteredObjectTypeInfoSets = TopologicallySortObjectTypeInfos(newlyRegisteredObjectTypeInfos);
+            HashSet<ObjectTypeInfo>[] sortedNewlyRegisteredObjectTypeInfoSets = Instance.TopologicallySortObjectTypeInfos(newlyRegisteredObjectTypeInfos);
 
             // Topologically sort the folder type infos.
-            HashSet<FolderTypeInfo>[] sortedNewlyRegisteredFolderTypeInfoSets = TopologicallySortFolderTypeInfos(newlyRegisteredFolderTypeInfos.Values);
+            HashSet<FolderTypeInfo>[] sortedNewlyRegisteredFolderTypeInfoSets = Instance.TopologicallySortFolderTypeInfos(Instance.newlyRegisteredFolderTypeInfos.Values);
 
             // Process the sorted object type infos.
             foreach (HashSet<ObjectTypeInfo> sortedNewlyRegisteredObjectTypeInfoSet in sortedNewlyRegisteredObjectTypeInfoSets)
@@ -512,23 +507,23 @@ namespace LooCast.System.Serialization
                     if (objectTypeInfo.Serializability == Serializability.NonGenericObject)
                     {
                         NonGenericObjectTypeInfo nonGenericObjectTypeInfo = (NonGenericObjectTypeInfo)objectTypeInfo;
-                        ComposeNonGenericObjectTypeDelegates(nonGenericObjectTypeInfo);
-                        registeredNonGenericObjectTypeInfos.Add(objectTypeInfo.Type, nonGenericObjectTypeInfo);
+                        Instance.ComposeNonGenericObjectTypeDelegates(nonGenericObjectTypeInfo);
+                        Instance.registeredNonGenericObjectTypeInfos.Add(objectTypeInfo.Type, nonGenericObjectTypeInfo);
                     }
                     // If the object type info is generic, add it to the registered generic object type infos.
                     else if (objectTypeInfo.Serializability == Serializability.GenericObject)
                     {
                         GenericObjectTypeInfo genericObjectTypeInfo = (GenericObjectTypeInfo)objectTypeInfo;
-                        registeredGenericObjectTypeInfos.Add(objectTypeInfo.Type, genericObjectTypeInfo);
+                        Instance.registeredGenericObjectTypeInfos.Add(objectTypeInfo.Type, genericObjectTypeInfo);
                     }
                 }
             }
 
             // For each newly registered serializableFile type info, compose its delegates and add it to the registered serializableFile type infos.
-            foreach (FileTypeInfo fileTypeInfo in newlyRegisteredFileTypeInfos.Values)
+            foreach (FileTypeInfo fileTypeInfo in Instance.newlyRegisteredFileTypeInfos.Values)
             {
-                ComposeFileTypeDelegates(fileTypeInfo);
-                registeredFileTypeInfos.Add(fileTypeInfo.Type, fileTypeInfo);
+                Instance.ComposeFileTypeDelegates(fileTypeInfo);
+                Instance.registeredFileTypeInfos.Add(fileTypeInfo.Type, fileTypeInfo);
             }
 
             // For each sorted folder type info set, compose its delegates and add it to the registered folder type infos.
@@ -536,47 +531,50 @@ namespace LooCast.System.Serialization
             {
                 foreach (FolderTypeInfo folderTypeInfo in sortedNewlyRegisteredFolderTypeInfoSet)
                 {
-                    ComposeFolderTypeDelegates(folderTypeInfo);
-                    registeredFolderTypeInfos.Add(folderTypeInfo.Type, folderTypeInfo);
+                    Instance.ComposeFolderTypeDelegates(folderTypeInfo);
+                    Instance.registeredFolderTypeInfos.Add(folderTypeInfo.Type, folderTypeInfo);
                 }
             }
 
             // Clear the dictionaries of newly registered type infos for garbage collection and to ensure they don't interfere with subsequent registrations.
-            newlyRegisteredNonGenericObjectTypeInfos.Clear();
-            newlyRegisteredGenericObjectTypeInfos.Clear();
-            newlyRegisteredFileTypeInfos.Clear();
-            newlyRegisteredFolderTypeInfos.Clear();
+            Instance.newlyRegisteredNonGenericObjectTypeInfos.Clear();
+            Instance.newlyRegisteredGenericObjectTypeInfos.Clear();
+            Instance.newlyRegisteredFileTypeInfos.Clear();
+            Instance.newlyRegisteredFolderTypeInfos.Clear();
+
+            stopwatch.Stop();
+            UnityEngine.Debug.Log($"[SerializationManager] Registering {types.Count()} types took {stopwatch.ElapsedMilliseconds}ms");
         }
 
-        public void UnregisterTypes(IEnumerable<Type> types)
+        public static void UnregisterTypes(IEnumerable<Type> types)
         {
             throw new NotImplementedException();
         }
-        
-        public TypeInfo GetTypeInfo<T>() => GetTypeInfo(typeof(T));
-        public TypeInfo GetTypeInfo(Type type)
+
+        public static TypeInfo GetTypeInfo<T>() => GetTypeInfo(typeof(T));
+        public static TypeInfo GetTypeInfo(Type type)
         {
-            if (registeredPrimitiveTypeInfos.TryGetValue(type, out PrimitiveTypeInfo primitiveTypeInfo))
+            if (Instance.registeredPrimitiveTypeInfos.TryGetValue(type, out PrimitiveTypeInfo primitiveTypeInfo))
             {
                 return primitiveTypeInfo;
             }
-            else if (registeredNonGenericObjectTypeInfos.TryGetValue(type, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
+            else if (Instance.registeredNonGenericObjectTypeInfos.TryGetValue(type, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
             {
                 return nonGenericObjectTypeInfo;
             }
-            else if (registeredGenericObjectTypeInfos.TryGetValue(type, out GenericObjectTypeInfo genericObjectTypeInfo))
+            else if (Instance.registeredGenericObjectTypeInfos.TryGetValue(type, out GenericObjectTypeInfo genericObjectTypeInfo))
             {
                 return genericObjectTypeInfo;
             }
-            else if (registeredFileTypeInfos.TryGetValue(type, out FileTypeInfo fileTypeInfo))
+            else if (Instance.registeredFileTypeInfos.TryGetValue(type, out FileTypeInfo fileTypeInfo))
             {
                 return fileTypeInfo;
             }
-            else if (registeredFolderTypeInfos.TryGetValue(type, out FolderTypeInfo folderTypeInfo))
+            else if (Instance.registeredFolderTypeInfos.TryGetValue(type, out FolderTypeInfo folderTypeInfo))
             {
                 return folderTypeInfo;
             }
-            else if (registeredUnserializableTypes.Contains(type))
+            else if (Instance.registeredUnserializableTypes.Contains(type))
             {
                 throw new ArgumentException($"The type '{type.FullName}' is not a serializable type and thus has no associated type info!");
             }
@@ -586,10 +584,10 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public PrimitiveTypeInfo GetPrimitiveTypeInfo<T>() => GetPrimitiveTypeInfo(typeof(T));
-        public PrimitiveTypeInfo GetPrimitiveTypeInfo(Type primitiveType)
+        public static PrimitiveTypeInfo GetPrimitiveTypeInfo<T>() => GetPrimitiveTypeInfo(typeof(T));
+        public static PrimitiveTypeInfo GetPrimitiveTypeInfo(Type primitiveType)
         {
-            if (registeredPrimitiveTypeInfos.TryGetValue(primitiveType, out PrimitiveTypeInfo primitiveTypeInfo))
+            if (Instance.registeredPrimitiveTypeInfos.TryGetValue(primitiveType, out PrimitiveTypeInfo primitiveTypeInfo))
             {
                 return primitiveTypeInfo;
             }
@@ -599,14 +597,14 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public ObjectTypeInfo GetObjectTypeInfo<T>() => GetObjectTypeInfo(typeof(T));
-        public ObjectTypeInfo GetObjectTypeInfo(Type objectType)
+        public static ObjectTypeInfo GetObjectTypeInfo<T>() => GetObjectTypeInfo(typeof(T));
+        public static ObjectTypeInfo GetObjectTypeInfo(Type objectType)
         {
-            if (registeredNonGenericObjectTypeInfos.TryGetValue(objectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
+            if (Instance.registeredNonGenericObjectTypeInfos.TryGetValue(objectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
             {
                 return nonGenericObjectTypeInfo;
             }
-            else if (registeredGenericObjectTypeInfos.TryGetValue(objectType, out GenericObjectTypeInfo genericObjectTypeInfo))
+            else if (Instance.registeredGenericObjectTypeInfos.TryGetValue(objectType, out GenericObjectTypeInfo genericObjectTypeInfo))
             {
                 return genericObjectTypeInfo;
             }
@@ -616,10 +614,10 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public NonGenericObjectTypeInfo GetNonGenericObjectTypeInfo<T>() => GetNonGenericObjectTypeInfo(typeof(T));
-        public NonGenericObjectTypeInfo GetNonGenericObjectTypeInfo(Type nonGenericObjectType)
+        public static NonGenericObjectTypeInfo GetNonGenericObjectTypeInfo<T>() => GetNonGenericObjectTypeInfo(typeof(T));
+        public static NonGenericObjectTypeInfo GetNonGenericObjectTypeInfo(Type nonGenericObjectType)
         {
-            if (registeredNonGenericObjectTypeInfos.TryGetValue(nonGenericObjectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
+            if (Instance.registeredNonGenericObjectTypeInfos.TryGetValue(nonGenericObjectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
             {
                 return nonGenericObjectTypeInfo;
             }
@@ -629,10 +627,10 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public GenericObjectTypeInfo GetGenericObjectTypeInfo<T>() => GetGenericObjectTypeInfo(typeof(T));
-        public GenericObjectTypeInfo GetGenericObjectTypeInfo(Type genericObjectType)
+        public static GenericObjectTypeInfo GetGenericObjectTypeInfo<T>() => GetGenericObjectTypeInfo(typeof(T));
+        public static GenericObjectTypeInfo GetGenericObjectTypeInfo(Type genericObjectType)
         {
-            if (registeredGenericObjectTypeInfos.TryGetValue(genericObjectType, out GenericObjectTypeInfo genericObjectTypeInfo))
+            if (Instance.registeredGenericObjectTypeInfos.TryGetValue(genericObjectType, out GenericObjectTypeInfo genericObjectTypeInfo))
             {
                 return genericObjectTypeInfo;
             }
@@ -642,10 +640,10 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public FileTypeInfo GetFileTypeInfo<T>() => GetFileTypeInfo(typeof(T));
-        public FileTypeInfo GetFileTypeInfo(Type fileType)
+        public static FileTypeInfo GetFileTypeInfo<T>() => GetFileTypeInfo(typeof(T));
+        public static FileTypeInfo GetFileTypeInfo(Type fileType)
         {
-            if (registeredFileTypeInfos.TryGetValue(fileType, out FileTypeInfo fileTypeInfo))
+            if (Instance.registeredFileTypeInfos.TryGetValue(fileType, out FileTypeInfo fileTypeInfo))
             {
                 return fileTypeInfo;
             }
@@ -655,10 +653,10 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public FolderTypeInfo GetFolderTypeInfo<T>() => GetFolderTypeInfo(typeof(T));
-        public FolderTypeInfo GetFolderTypeInfo(Type folderType)
+        public static FolderTypeInfo GetFolderTypeInfo<T>() => GetFolderTypeInfo(typeof(T));
+        public static FolderTypeInfo GetFolderTypeInfo(Type folderType)
         {
-            if (registeredFolderTypeInfos.TryGetValue(folderType, out FolderTypeInfo folderTypeInfo))
+            if (Instance.registeredFolderTypeInfos.TryGetValue(folderType, out FolderTypeInfo folderTypeInfo))
             {
                 return folderTypeInfo;
             }
@@ -668,30 +666,30 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public bool TryGetTypeInfo<T>(out TypeInfo typeInfo) => TryGetTypeInfo(typeof(T), out typeInfo);
-        public bool TryGetTypeInfo(Type type, out TypeInfo typeInfo)
+        public static bool TryGetTypeInfo<T>(out TypeInfo typeInfo) => TryGetTypeInfo(typeof(T), out typeInfo);
+        public static bool TryGetTypeInfo(Type type, out TypeInfo typeInfo)
         {
-            if (registeredPrimitiveTypeInfos.TryGetValue(type, out PrimitiveTypeInfo primitiveTypeInfo))
+            if (Instance.registeredPrimitiveTypeInfos.TryGetValue(type, out PrimitiveTypeInfo primitiveTypeInfo))
             {
                 typeInfo = primitiveTypeInfo;
                 return true;
             }
-            else if (registeredNonGenericObjectTypeInfos.TryGetValue(type, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
+            else if (Instance.registeredNonGenericObjectTypeInfos.TryGetValue(type, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
             {
                 typeInfo = nonGenericObjectTypeInfo;
                 return true;
             }
-            else if (registeredGenericObjectTypeInfos.TryGetValue(type, out GenericObjectTypeInfo genericObjectTypeInfo))
+            else if (Instance.registeredGenericObjectTypeInfos.TryGetValue(type, out GenericObjectTypeInfo genericObjectTypeInfo))
             {
                 typeInfo = genericObjectTypeInfo;
                 return true;
             }
-            else if (registeredFileTypeInfos.TryGetValue(type, out FileTypeInfo fileTypeInfo))
+            else if (Instance.registeredFileTypeInfos.TryGetValue(type, out FileTypeInfo fileTypeInfo))
             {
                 typeInfo = fileTypeInfo;
                 return true;
             }
-            else if (registeredFolderTypeInfos.TryGetValue(type, out FolderTypeInfo folderTypeInfo))
+            else if (Instance.registeredFolderTypeInfos.TryGetValue(type, out FolderTypeInfo folderTypeInfo))
             {
                 typeInfo = folderTypeInfo;
                 return true;
@@ -703,10 +701,10 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public bool TryGetPrimitiveTypeInfo<T>(out PrimitiveTypeInfo primitiveTypeInfo) => TryGetPrimitiveTypeInfo(typeof(T), out primitiveTypeInfo);
-        public bool TryGetPrimitiveTypeInfo(Type primitiveType, out PrimitiveTypeInfo primitiveTypeInfo)
+        public static bool TryGetPrimitiveTypeInfo<T>(out PrimitiveTypeInfo primitiveTypeInfo) => TryGetPrimitiveTypeInfo(typeof(T), out primitiveTypeInfo);
+        public static bool TryGetPrimitiveTypeInfo(Type primitiveType, out PrimitiveTypeInfo primitiveTypeInfo)
         {
-            if (registeredPrimitiveTypeInfos.TryGetValue(primitiveType, out primitiveTypeInfo))
+            if (Instance.registeredPrimitiveTypeInfos.TryGetValue(primitiveType, out primitiveTypeInfo))
             {
                 return true;
             }
@@ -717,15 +715,15 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public bool TryGetObjectTypeInfo<T>(out ObjectTypeInfo objectTypeInfo) => TryGetObjectTypeInfo(typeof(T), out objectTypeInfo);
-        public bool TryGetObjectTypeInfo(Type objectType, out ObjectTypeInfo objectTypeInfo)
+        public static bool TryGetObjectTypeInfo<T>(out ObjectTypeInfo objectTypeInfo) => TryGetObjectTypeInfo(typeof(T), out objectTypeInfo);
+        public static bool TryGetObjectTypeInfo(Type objectType, out ObjectTypeInfo objectTypeInfo)
         {
-            if (registeredNonGenericObjectTypeInfos.TryGetValue(objectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
+            if (Instance.registeredNonGenericObjectTypeInfos.TryGetValue(objectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
             {
                 objectTypeInfo = nonGenericObjectTypeInfo;
                 return true;
             }
-            else if (registeredGenericObjectTypeInfos.TryGetValue(objectType, out GenericObjectTypeInfo genericObjectTypeInfo))
+            else if (Instance.registeredGenericObjectTypeInfos.TryGetValue(objectType, out GenericObjectTypeInfo genericObjectTypeInfo))
             {
                 objectTypeInfo = genericObjectTypeInfo;
                 return true;
@@ -737,10 +735,10 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public bool TryGetNonGenericObjectTypeInfo<T>(out NonGenericObjectTypeInfo nonGenericObjectTypeInfo) => TryGetNonGenericObjectTypeInfo(typeof(T), out nonGenericObjectTypeInfo);
-        public bool TryGetNonGenericObjectTypeInfo(Type nonGenericObjectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo)
+        public static bool TryGetNonGenericObjectTypeInfo<T>(out NonGenericObjectTypeInfo nonGenericObjectTypeInfo) => TryGetNonGenericObjectTypeInfo(typeof(T), out nonGenericObjectTypeInfo);
+        public static bool TryGetNonGenericObjectTypeInfo(Type nonGenericObjectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo)
         {
-            if (registeredNonGenericObjectTypeInfos.TryGetValue(nonGenericObjectType, out nonGenericObjectTypeInfo))
+            if (Instance.registeredNonGenericObjectTypeInfos.TryGetValue(nonGenericObjectType, out nonGenericObjectTypeInfo))
             {
                 return true;
             }
@@ -751,10 +749,10 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public bool TryGetGenericObjectTypeInfo<T>(out GenericObjectTypeInfo genericObjectTypeInfo) => TryGetGenericObjectTypeInfo(typeof(T), out genericObjectTypeInfo);
-        public bool TryGetGenericObjectTypeInfo(Type genericObjectType, out GenericObjectTypeInfo genericObjectTypeInfo)
+        public static bool TryGetGenericObjectTypeInfo<T>(out GenericObjectTypeInfo genericObjectTypeInfo) => TryGetGenericObjectTypeInfo(typeof(T), out genericObjectTypeInfo);
+        public static bool TryGetGenericObjectTypeInfo(Type genericObjectType, out GenericObjectTypeInfo genericObjectTypeInfo)
         {
-            if (registeredGenericObjectTypeInfos.TryGetValue(genericObjectType, out genericObjectTypeInfo))
+            if (Instance.registeredGenericObjectTypeInfos.TryGetValue(genericObjectType, out genericObjectTypeInfo))
             {
                 return true;
             }
@@ -765,10 +763,10 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public bool TryGetFileTypeInfo<T>(out FileTypeInfo fileTypeInfo) => TryGetFileTypeInfo(typeof(T), out fileTypeInfo);
-        public bool TryGetFileTypeInfo(Type fileType, out FileTypeInfo fileTypeInfo)
+        public static bool TryGetFileTypeInfo<T>(out FileTypeInfo fileTypeInfo) => TryGetFileTypeInfo(typeof(T), out fileTypeInfo);
+        public static bool TryGetFileTypeInfo(Type fileType, out FileTypeInfo fileTypeInfo)
         {
-            if (registeredFileTypeInfos.TryGetValue(fileType, out fileTypeInfo))
+            if (Instance.registeredFileTypeInfos.TryGetValue(fileType, out fileTypeInfo))
             {
                 return true;
             }
@@ -779,10 +777,10 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public bool TryGetFolderTypeInfo<T>(out FolderTypeInfo folderTypeInfo) => TryGetFolderTypeInfo(typeof(T), out folderTypeInfo);
-        public bool TryGetFolderTypeInfo(Type folderType, out FolderTypeInfo folderTypeInfo)
+        public static bool TryGetFolderTypeInfo<T>(out FolderTypeInfo folderTypeInfo) => TryGetFolderTypeInfo(typeof(T), out folderTypeInfo);
+        public static bool TryGetFolderTypeInfo(Type folderType, out FolderTypeInfo folderTypeInfo)
         {
-            if (registeredFolderTypeInfos.TryGetValue(folderType, out folderTypeInfo))
+            if (Instance.registeredFolderTypeInfos.TryGetValue(folderType, out folderTypeInfo))
             {
                 return true;
             }
@@ -793,25 +791,25 @@ namespace LooCast.System.Serialization
             }
         }
 
-        public void SerializePrimitive<T>(string primitiveName, T primitive, out XAttribute serializedPrimitive) => SerializePrimitive(typeof(T), primitiveName, primitive, out serializedPrimitive); 
-        public void SerializePrimitive(Type primitiveType, string primitiveName, object primitive, out XAttribute serializedPrimitive)
+        public static void SerializePrimitive<T>(string primitiveName, T primitive, out XAttribute serializedPrimitive) => SerializePrimitive(typeof(T), primitiveName, primitive, out serializedPrimitive);
+        public static void SerializePrimitive(Type primitiveType, string primitiveName, object primitive, out XAttribute serializedPrimitive)
         {
-            if (!registeredPrimitiveTypeInfos.TryGetValue(primitiveType, out PrimitiveTypeInfo primitiveTypeInfo))
+            if (!Instance.registeredPrimitiveTypeInfos.TryGetValue(primitiveType, out PrimitiveTypeInfo primitiveTypeInfo))
             {
                 throw new ArgumentException($"The type '{primitiveType.FullName}' is not a registered primitive type!");
             }
 
             primitiveTypeInfo.SerializeDelegate.Invoke(primitiveName, primitive, out serializedPrimitive);
         }
-        
-        public void DeserializePrimitive<T>(XAttribute serializedPrimitive, out T primitive)
+
+        public static void DeserializePrimitive<T>(XAttribute serializedPrimitive, out T primitive)
         {
             DeserializePrimitive(typeof(T), serializedPrimitive, out object _primitive);
             primitive = (T)_primitive;
         }
-        public void DeserializePrimitive(Type primitiveType, XAttribute serializedPrimitive, out object primitive)
+        public static void DeserializePrimitive(Type primitiveType, XAttribute serializedPrimitive, out object primitive)
         {
-            if (!registeredPrimitiveTypeInfos.TryGetValue(primitiveType, out PrimitiveTypeInfo primitiveTypeInfo))
+            if (!Instance.registeredPrimitiveTypeInfos.TryGetValue(primitiveType, out PrimitiveTypeInfo primitiveTypeInfo))
             {
                 throw new ArgumentException($"The type '{primitiveType.FullName}' is not a registered primitive type!");
             }
@@ -819,10 +817,10 @@ namespace LooCast.System.Serialization
             primitiveTypeInfo.DeserializeDelegate.Invoke(serializedPrimitive, out primitive);
         }
 
-        public void SerializeNonGenericObject<T>(string objectName, T _object, out XElement serializedObject) => SerializeNonGenericObject(typeof(T), objectName, _object, out serializedObject);
-        public void SerializeNonGenericObject(Type nonGenericObjectType, string objectName, object _object, out XElement serializedObject)
+        public static void SerializeNonGenericObject<T>(string objectName, T _object, out XElement serializedObject) => SerializeNonGenericObject(typeof(T), objectName, _object, out serializedObject);
+        public static void SerializeNonGenericObject(Type nonGenericObjectType, string objectName, object _object, out XElement serializedObject)
         {
-            if (!registeredNonGenericObjectTypeInfos.TryGetValue(nonGenericObjectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
+            if (!Instance.registeredNonGenericObjectTypeInfos.TryGetValue(nonGenericObjectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
             {
                 throw new ArgumentException($"The type '{nonGenericObjectType.FullName}' is not a registered non-generic object type!");
             }
@@ -830,14 +828,14 @@ namespace LooCast.System.Serialization
             nonGenericObjectTypeInfo.SerializeDelegate.Invoke(objectName, _object, out serializedObject);
         }
 
-        public void DeserializeNonGenericObject<T>(XElement serializedObject, out T _object)
+        public static void DeserializeNonGenericObject<T>(XElement serializedObject, out T _object)
         {
             DeserializeNonGenericObject(typeof(T), serializedObject, out object __object);
             _object = (T)__object;
         }
-        public void DeserializeNonGenericObject(Type nonGenericObjectType, XElement serializedObject, out object _object)
+        public static void DeserializeNonGenericObject(Type nonGenericObjectType, XElement serializedObject, out object _object)
         {
-            if (!registeredNonGenericObjectTypeInfos.TryGetValue(nonGenericObjectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
+            if (!Instance.registeredNonGenericObjectTypeInfos.TryGetValue(nonGenericObjectType, out NonGenericObjectTypeInfo nonGenericObjectTypeInfo))
             {
                 throw new ArgumentException($"The type '{nonGenericObjectType.FullName}' is not a registered non-generic object type!");
             }
@@ -845,10 +843,10 @@ namespace LooCast.System.Serialization
             nonGenericObjectTypeInfo.DeserializeDelegate.Invoke(serializedObject, out _object);
         }
 
-        public void SerializeGenericObject<T>(string objectName, T _object, out XElement serializedObject) => SerializeGenericObject(typeof(T), objectName, _object, out serializedObject);
-        public void SerializeGenericObject(Type genericObjectType, string objectName, object _object, out XElement serializedObject)
+        public static void SerializeGenericObject<T>(string objectName, T _object, out XElement serializedObject) => SerializeGenericObject(typeof(T), objectName, _object, out serializedObject);
+        public static void SerializeGenericObject(Type genericObjectType, string objectName, object _object, out XElement serializedObject)
         {
-            if (!registeredGenericObjectTypeInfos.TryGetValue(genericObjectType, out GenericObjectTypeInfo genericObjectTypeInfo))
+            if (!Instance.registeredGenericObjectTypeInfos.TryGetValue(genericObjectType, out GenericObjectTypeInfo genericObjectTypeInfo))
             {
                 throw new ArgumentException($"The type '{genericObjectType.FullName}' is not a registered generic object type!");
             }
@@ -856,14 +854,14 @@ namespace LooCast.System.Serialization
             genericObjectTypeInfo.SerializeDelegate.Invoke(objectName, _object, out serializedObject);
         }
 
-        public void DeserializeGenericObject<T>(XElement serializedObject, out T _object)
+        public static void DeserializeGenericObject<T>(XElement serializedObject, out T _object)
         {
             DeserializeGenericObject(typeof(T), serializedObject, out object __object);
             _object = (T)__object;
         }
-        public void DeserializeGenericObject(Type genericObjectType, XElement serializedObject, out object _object)
+        public static void DeserializeGenericObject(Type genericObjectType, XElement serializedObject, out object _object)
         {
-            if (!registeredGenericObjectTypeInfos.TryGetValue(genericObjectType, out GenericObjectTypeInfo genericObjectTypeInfo))
+            if (!Instance.registeredGenericObjectTypeInfos.TryGetValue(genericObjectType, out GenericObjectTypeInfo genericObjectTypeInfo))
             {
                 throw new ArgumentException($"The type '{genericObjectType.FullName}' is not a registered generic object type!");
             }
@@ -871,10 +869,10 @@ namespace LooCast.System.Serialization
             genericObjectTypeInfo.DeserializeDelegate.Invoke(serializedObject, out _object);
         }
 
-        public void SerializeFile<T>(string fileName, string fileExtension, string parentFolderPath, T file, out FileInfo serializedFile) => SerializeFile(typeof(T), fileName, fileExtension, parentFolderPath, file, out serializedFile);
-        public void SerializeFile(Type fileType, string fileName, string fileExtension, string parentFolderPath, object file, out FileInfo serializedFile)
+        public static void SerializeFile<T>(string fileName, string fileExtension, string parentFolderPath, T file, out FileInfo serializedFile) => SerializeFile(typeof(T), fileName, fileExtension, parentFolderPath, file, out serializedFile);
+        public static void SerializeFile(Type fileType, string fileName, string fileExtension, string parentFolderPath, object file, out FileInfo serializedFile)
         {
-            if (!registeredFileTypeInfos.TryGetValue(fileType, out FileTypeInfo fileTypeInfo))
+            if (!Instance.registeredFileTypeInfos.TryGetValue(fileType, out FileTypeInfo fileTypeInfo))
             {
                 throw new ArgumentException($"The type '{fileType.FullName}' is not a registered file type!");
             }
@@ -882,14 +880,14 @@ namespace LooCast.System.Serialization
             fileTypeInfo.SerializeDelegate.Invoke(fileName, fileExtension, parentFolderPath, file, out serializedFile);
         }
 
-        public void DeserializeFile<T>(FileInfo serializedFile, out T file)
+        public static void DeserializeFile<T>(FileInfo serializedFile, out T file)
         {
             DeserializeFile(typeof(T), serializedFile, out object _file);
             file = (T)_file;
         }
-        public void DeserializeFile(Type fileType, FileInfo serializedFile, out object file)
+        public static void DeserializeFile(Type fileType, FileInfo serializedFile, out object file)
         {
-            if (!registeredFileTypeInfos.TryGetValue(fileType, out FileTypeInfo fileTypeInfo))
+            if (!Instance.registeredFileTypeInfos.TryGetValue(fileType, out FileTypeInfo fileTypeInfo))
             {
                 throw new ArgumentException($"The type '{fileType.FullName}' is not a registered file type!");
             }
@@ -897,32 +895,34 @@ namespace LooCast.System.Serialization
             fileTypeInfo.DeserializeDelegate.Invoke(serializedFile, out file);
         }
 
-        public void SerializeFolder<T>(string folderName, string parentFolderPath, T folder, out DirectoryInfo serializedFolder) => SerializeFolder(typeof(T), folderName, parentFolderPath, folder, out serializedFolder);
-        public void SerializeFolder(Type folderType, string folderName, string parentFolderPath, object folder, out DirectoryInfo serializedFolder)
+        public static void SerializeFolder<T>(string folderName, string parentFolderPath, T folder, out DirectoryInfo serializedFolder) => SerializeFolder(typeof(T), folderName, parentFolderPath, folder, out serializedFolder);
+        public static void SerializeFolder(Type folderType, string folderName, string parentFolderPath, object folder, out DirectoryInfo serializedFolder)
         {
-            if (!registeredFolderTypeInfos.TryGetValue(folderType, out FolderTypeInfo folderTypeInfo))
+            if (!Instance.registeredFolderTypeInfos.TryGetValue(folderType, out FolderTypeInfo folderTypeInfo))
             {
                 throw new ArgumentException($"The type '{folderType.FullName}' is not a registered folder type!");
             }
 
             folderTypeInfo.SerializeDelegate.Invoke(folderName, parentFolderPath, folder, out serializedFolder);
         }
-        
-        public void DeserializeFolder<T>(DirectoryInfo serializedFolder, out T folder)
+
+        public static void DeserializeFolder<T>(DirectoryInfo serializedFolder, out T folder)
         {
             DeserializeFolder(typeof(T), serializedFolder, out object _folder);
             folder = (T)_folder;
         }
-        public void DeserializeFolder(Type folderType, DirectoryInfo serializedFolder, out object folder)
+        public static void DeserializeFolder(Type folderType, DirectoryInfo serializedFolder, out object folder)
         {
-            if (!registeredFolderTypeInfos.TryGetValue(folderType, out FolderTypeInfo folderTypeInfo))
+            if (!Instance.registeredFolderTypeInfos.TryGetValue(folderType, out FolderTypeInfo folderTypeInfo))
             {
                 throw new ArgumentException($"The type '{folderType.FullName}' is not a registered folder type!");
             }
 
             folderTypeInfo.DeserializeDelegate.Invoke(serializedFolder, out folder);
         }
+        #endregion
 
+        #region Methods
         /// <summary>
         /// Analyzes a given type to determine its serialization attributes and characteristics.
         /// </summary>
