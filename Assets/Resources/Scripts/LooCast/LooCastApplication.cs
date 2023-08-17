@@ -8,7 +8,7 @@ namespace LooCast
     public static class LooCastApplication
     {
         #region Static Properties
-        public static event Action<string> OnLogUpdated;
+        public static event Action OnLogUpdated;
         #endregion
 
         #region Static Fields
@@ -28,7 +28,7 @@ namespace LooCast
             Log += logString + "\n";
             if (OnLogUpdated != null)
             {
-                OnLogUpdated.Invoke(Log);
+                OnLogUpdated.Invoke();
             }
         }
 
@@ -50,7 +50,7 @@ namespace LooCast
             Log += logString + "\n";
             if (OnLogUpdated != null)
             {
-                OnLogUpdated.Invoke(Log);
+                OnLogUpdated.Invoke();
             }
         }
         #endregion

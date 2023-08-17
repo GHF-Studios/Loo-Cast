@@ -85,7 +85,7 @@ namespace LooCast.System
         private List<Action> setupActions;
         private List<Action> postSetupActions;
 
-        protected bool enableLogging = true;
+        protected bool enableLifecyclePhaseLogging = false;
 
         private List<Manager> managerChildrenList;
         #endregion
@@ -158,7 +158,7 @@ namespace LooCast.System
 
             IsPreSetupRunning = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting pre-setup.");
             }
@@ -168,7 +168,7 @@ namespace LooCast.System
                 preSetupAction.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished pre-setup.");
             }
@@ -202,7 +202,7 @@ namespace LooCast.System
 
             IsSetupRunning = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting setup.");
             }
@@ -212,7 +212,7 @@ namespace LooCast.System
                 setupAction.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished setup.");
             }
@@ -238,7 +238,7 @@ namespace LooCast.System
 
             IsPostSetupRunning = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting post-setup.");
             }
@@ -248,7 +248,7 @@ namespace LooCast.System
                 postSetupAction.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished post-setup.");
             }
@@ -353,7 +353,7 @@ namespace LooCast.System
 
             IsEarlyPreInitializing = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Early Pre-Initialization.");
             }
@@ -363,7 +363,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Early Pre-Initialization.");
             }
@@ -458,7 +458,7 @@ namespace LooCast.System
 
             IsPreInitializing = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Pre-Initialization.");
             }
@@ -468,7 +468,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Pre-Initialization.");
             }
@@ -555,7 +555,7 @@ namespace LooCast.System
             
             IsLatePreInitializing = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Late Pre-Initialization.");
             }
@@ -565,7 +565,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Late Pre-Initialization.");
             }
@@ -644,7 +644,7 @@ namespace LooCast.System
 
             IsEarlyInitializing = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Early Initialization.");
             }
@@ -654,7 +654,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Early Initialization.");
             }
@@ -725,7 +725,7 @@ namespace LooCast.System
 
             IsInitializing = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Initialization.");
             }
@@ -735,7 +735,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Initialization.");
             }
@@ -798,7 +798,7 @@ namespace LooCast.System
 
             IsLateInitializing = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Late Initialization.");
             }
@@ -808,7 +808,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Late Initialization.");
             }
@@ -863,7 +863,7 @@ namespace LooCast.System
 
             IsEarlyPostInitializing = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Early Post-Initialization.");
             }
@@ -873,7 +873,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Early Post-Initialization.");
             }
@@ -920,7 +920,7 @@ namespace LooCast.System
 
             IsPostInitializing = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Post-Initialization.");
             }
@@ -930,7 +930,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Post-Initialization.");
             }
@@ -969,7 +969,7 @@ namespace LooCast.System
 
             IsLatePostInitializing = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Late Post-Initialization.");
             }
@@ -979,7 +979,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Late Post-Initialization.");
             }
@@ -1071,7 +1071,7 @@ namespace LooCast.System
 
             IsEarlyPreTerminating = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Early Pre-Termination.");
             }
@@ -1081,7 +1081,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Early Pre-Termination.");
             }
@@ -1163,7 +1163,7 @@ namespace LooCast.System
 
             IsPreTerminating = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Pre-Termination.");
             }
@@ -1173,7 +1173,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Pre-Termination.");
             }
@@ -1247,7 +1247,7 @@ namespace LooCast.System
 
             IsLatePreTerminating = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Late Pre-Termination.");
             }
@@ -1257,7 +1257,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Late Pre-Termination.");
             }
@@ -1323,7 +1323,7 @@ namespace LooCast.System
             
             IsEarlyTerminating = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Early Termination.");
             }
@@ -1333,7 +1333,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Early Termination.");
             }
@@ -1391,7 +1391,7 @@ namespace LooCast.System
             
             IsTerminating = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Termination.");
             }
@@ -1401,7 +1401,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Termination.");
             }
@@ -1451,7 +1451,7 @@ namespace LooCast.System
             
             IsLateTerminating = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Late Termination.");
             }
@@ -1461,7 +1461,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Late Termination.");
             }
@@ -1503,7 +1503,7 @@ namespace LooCast.System
             
             IsEarlyPostTerminating = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Early Post-Termination.");
             }
@@ -1513,7 +1513,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Early Post-Termination.");
             }
@@ -1547,7 +1547,7 @@ namespace LooCast.System
             
             IsPostTerminating = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Post-Termination.");
             }
@@ -1557,7 +1557,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Post-Termination.");
             }
@@ -1583,7 +1583,7 @@ namespace LooCast.System
             
             IsLatePostTerminating = true;
             string managerTypeName = GetType().Name;
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Starting Late Post-Termination.");
             }
@@ -1593,7 +1593,7 @@ namespace LooCast.System
                 action.Invoke();
             }
 
-            if (enableLogging)
+            if (enableLifecyclePhaseLogging)
             {
                 Debug.Log($"[{managerTypeName}] Finished Late Post-Termination.");
             }
