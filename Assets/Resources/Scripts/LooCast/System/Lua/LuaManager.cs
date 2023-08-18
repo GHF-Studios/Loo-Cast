@@ -175,9 +175,10 @@ namespace LooCast.System.Lua
 
             Dictionary<TypeInfo, LuaNamespaceAttribute> namespaceAttributes = GetNamespaceAttributes(typeInfos);
             Dictionary<int, Dictionary<TypeInfo, LuaNamespaceAttribute>> orderedNamespaceAttributeSets = OrderNamespaceAttributeSets(namespaceAttributes);
-            Dictionary<string, List<LuaMethodAttribute>> methodAttributeSets = GetMethodAttributeSets(orderedNamespaceAttributeSets);
+            Dictionary<string, List<(LuaMethodAttribute, MethodInfo)>> methodAttributeSets = GetMethodAttributeSets(orderedNamespaceAttributeSets);
 
-            RegisterNamespacesAndMethods(orderedNamespaceAttributeSets, methodAttributeSets);
+            RegisterNamespaces(orderedNamespaceAttributeSets);
+            RegisterMethods(methodAttributeSets);
 
             foreach (var kv in newlyRegisteredTopLevelLuaNamespaces)
             {
@@ -237,14 +238,9 @@ namespace LooCast.System.Lua
             return orderedNamespaceAttributeSets;
         }
 
-        /// <summary>
-        /// Retrieves all the <see cref="LuaMethodAttribute"/> for each <see cref="LuaNamespaceAttribute"/> in the provided ordered namespace attribute sets.
-        /// </summary>
-        /// <param name="orderedNamespaceAttributeSets">The ordered namespace attribute sets.</param>
-        /// <returns>A dictionary mapping the <see cref="LuaNamespaceAttribute"/> to their respective sets of <see cref="LuaMethodAttribute"/>.</returns>
-        private Dictionary<string, List<LuaMethodAttribute>> GetMethodAttributeSets(Dictionary<int, Dictionary<TypeInfo, LuaNamespaceAttribute>> orderedNamespaceAttributeSets)
+        private Dictionary<string, List<(LuaMethodAttribute, MethodInfo)>> GetMethodAttributeSets(Dictionary<int, Dictionary<TypeInfo, LuaNamespaceAttribute>> orderedNamespaceAttributeSets)
         {
-            Dictionary<string, List<LuaMethodAttribute>> methodAttributeSets = new Dictionary<string, List<LuaMethodAttribute>>();
+            Dictionary<string, List<(LuaMethodAttribute, MethodInfo)>> methodAttributeSets = new Dictionary<string, List<(LuaMethodAttribute, MethodInfo)>>();
             foreach (var orderedNamespaceAttributeSet in orderedNamespaceAttributeSets.Values)
             {
                 foreach (var kv in orderedNamespaceAttributeSet)
@@ -252,26 +248,24 @@ namespace LooCast.System.Lua
                     TypeInfo typeInfo = kv.Key;
                     LuaNamespaceAttribute luaNamespaceAttribute = kv.Value;
 
-                    IEnumerable<LuaMethodAttribute> methodAttributeSet = typeInfo.Methods.SelectMany(x => x.DirectAttributes.OfType<LuaMethodAttribute>());
-                    if (methodAttributeSet != null && methodAttributeSet.Count() != 0)
+                    foreach (var methodInfo in typeInfo.Methods)
                     {
-                        if (!methodAttributeSets.ContainsKey(luaNamespaceAttribute.Namespace))
+                        var luaMethodAttribute = methodInfo.DirectAttributes.OfType<LuaMethodAttribute>().FirstOrDefault();
+                        if (luaMethodAttribute != null)
                         {
-                            methodAttributeSets.Add(luaNamespaceAttribute.Namespace, new List<LuaMethodAttribute>());
+                            if (!methodAttributeSets.ContainsKey(luaNamespaceAttribute.Namespace))
+                            {
+                                methodAttributeSets.Add(luaNamespaceAttribute.Namespace, new List<(LuaMethodAttribute, MethodInfo)>());
+                            }
+                            methodAttributeSets[luaNamespaceAttribute.Namespace].Add((luaMethodAttribute, methodInfo));
                         }
-                        methodAttributeSets[luaNamespaceAttribute.Namespace].AddRange(methodAttributeSet);
                     }
                 }
             }
             return methodAttributeSets;
         }
 
-        /// <summary>
-        /// Registers the namespaces and methods in the Lua API based on the provided ordered namespace attribute sets and method attribute sets.
-        /// </summary>
-        /// <param name="orderedNamespaceAttributeSets">The ordered namespace attribute sets.</param>
-        /// <param name="methodAttributeSets">The method attribute sets.</param>
-        private void RegisterNamespacesAndMethods(Dictionary<int, Dictionary<TypeInfo, LuaNamespaceAttribute>> orderedNamespaceAttributeSets, Dictionary<string, List<LuaMethodAttribute>> methodAttributeSets)
+        private void RegisterNamespaces(Dictionary<int, Dictionary<TypeInfo, LuaNamespaceAttribute>> orderedNamespaceAttributeSets)
         {
             foreach (var orderedNamespaceAttributeSet in orderedNamespaceAttributeSets.Values)
             {
@@ -279,71 +273,26 @@ namespace LooCast.System.Lua
                 {
                     TypeInfo typeInfo = kv.Key;
                     LuaNamespaceAttribute luaNamespaceAttribute = kv.Value;
-                    RegisterNamespace(orderedNamespaceAttributeSet, typeInfo.NamespaceParts, 0, null);
+                    string fullNamespace = string.Join(".", typeInfo.NamespaceParts);
+                    if (!newlyRegisteredTopLevelLuaNamespaces.ContainsKey(fullNamespace))
+                    {
+                        lua.DoString($"{fullNamespace} = {{}}");
+                        newlyRegisteredTopLevelLuaNamespaces.Add(fullNamespace, null); // placeholder
+                    }
                 }
             }
         }
 
-        /// <summary>
-        /// Recursively registers a namespace based on the provided namespace parts, starting from the specified index.
-        /// </summary>
-        /// <param name="namespaceAttributes">A dictionary mapping the <see cref="CSharp.TypeInfo"/> objects to their respective <see cref="LuaNamespaceAttribute"/>.</param>
-        /// <param name="namespaceParts">The parts of the namespace to register.</param>
-        /// <param name="index">The index to start the registration from.</param>
-        /// <param name="parent">The parent namespace information.</param>
-        private void RegisterNamespace(Dictionary<TypeInfo, LuaNamespaceAttribute> namespaceAttributes, string[] namespaceParts, int index, LuaNamespaceInfo parent)
+        private void RegisterMethods(Dictionary<string, List<(LuaMethodAttribute, MethodInfo)>> methodAttributeSets)
         {
-            if (index >= namespaceParts.Length)
+            foreach (var kv in methodAttributeSets)
             {
-                return;
-            }
-
-            // Get the current namespace part and construct the full namespace name
-            string namespacePart = namespaceParts[index];
-            string fullNamespace = string.Join(".", namespaceParts.Take(index + 1));
-
-            // Check if the namespace is already registered
-            if (!newlyRegisteredTopLevelLuaNamespaces.ContainsKey(fullNamespace))
-            {
-                // Create a new LuaNamespaceInfo
-                LuaNamespaceInfo namespaceInfo = new LuaNamespaceInfo(parent != null ? new[] { parent } : null, namespacePart);
-
-                // Register the namespace in the Lua API
-                if (parent == null)
+                string namespaceName = kv.Key;
+                List<(LuaMethodAttribute, MethodInfo)> methodAttributes = kv.Value;
+                foreach (var (luaMethodAttribute, methodInfo) in methodAttributes)
                 {
-                    lua.DoString($"{fullNamespace} = {{}}");
+                    lua.RegisterFunction($"{namespaceName}.{luaMethodAttribute.MethodName}", methodInfo.Method);
                 }
-                else
-                {
-                    lua.DoString($"{parent.Namespace}.{namespacePart} = {{}}");
-                }
-
-                // Register methods in the namespace
-                foreach (var kv in namespaceAttributes)
-                {
-                    TypeInfo typeInfo = kv.Key;
-                    LuaNamespaceAttribute luaNamespaceAttribute = kv.Value;
-                    if (typeInfo.Namespace == fullNamespace)
-                    {
-                        foreach (var methodInfo in typeInfo.Methods)
-                        {
-                            var luaMethodAttribute = methodInfo.DirectAttributes.OfType<LuaMethodAttribute>().FirstOrDefault();
-                            if (luaMethodAttribute != null)
-                            {
-                                namespaceInfo.Methods.Add(luaMethodAttribute.MethodName, new LuaMethodInfo(namespaceInfo, luaMethodAttribute.MethodName, methodInfo.Method));
-                                lua.RegisterFunction($"{fullNamespace}.{luaMethodAttribute.MethodName}", methodInfo.Method);
-                            }
-                        }
-                    }
-                }
-
-                // Recursively register child namespaces
-                RegisterNamespace(namespaceAttributes, namespaceParts, index + 1, namespaceInfo);
-            }
-            else
-            {
-                // If the namespace is already registered, continue with the child namespaces
-                RegisterNamespace(namespaceAttributes, namespaceParts, index + 1, newlyRegisteredTopLevelLuaNamespaces[fullNamespace]);
             }
         }
         #endregion
