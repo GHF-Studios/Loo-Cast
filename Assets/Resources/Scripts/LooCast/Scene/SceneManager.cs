@@ -131,21 +131,21 @@ namespace LooCast.Scene
         #endregion
 
         #region Methods
-        public void LoadSceneAsync(SceneType sceneType)
+        public static void LoadSceneAsync(SceneType sceneType)
         {
-            if (IsLoadingScene)
+            if (Instance.IsLoadingScene)
             {
                 throw new InvalidOperationException("Cannot load scene while another scene is loading!");
             }
 
-            IsLoadingScene = true;
-            if (OnSceneLoadStart != null)
+            Instance.IsLoadingScene = true;
+            if (Instance.OnSceneLoadStart != null)
             {
-                OnSceneLoadStart.Invoke(sceneType);
+                Instance.OnSceneLoadStart.Invoke(sceneType);
             }
-            string sceneName = sceneNames[sceneType];
+            string sceneName = Instance.sceneNames[sceneType];
             AsyncOperation asyncOperation = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(sceneName);
-            ManagerUnityComponent.RunCoroutine(TrackLoadingProgress(asyncOperation, sceneType));
+            Instance.ManagerUnityComponent.RunCoroutine(Instance.TrackLoadingProgress(asyncOperation, sceneType));
         }
         
         private IEnumerator TrackLoadingProgress(AsyncOperation asyncOperation, SceneType sceneType)
