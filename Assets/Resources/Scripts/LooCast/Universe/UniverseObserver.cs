@@ -10,7 +10,7 @@ namespace LooCast.Universe
     using LooCast.System.Lua;
     using LooCast.Core;
 
-    [LuaNamespace("Universe")]
+    [LuaNamespace("LooCast.Universe")]
     public sealed class UniverseObserver : Entity
     {
         #region Enums

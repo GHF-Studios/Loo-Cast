@@ -12,7 +12,6 @@ using UnityEngine;
 namespace LooCast.System.Serialization
 {
     using LooCast.System.ECS;
-    using LooCast.System.CSharp;
     using LooCast.System.Algorithms.Generic;
 
     public sealed class SerializationManager : ModuleManager
@@ -421,7 +420,7 @@ namespace LooCast.System.Serialization
                 registeredPrimitiveTypeInfos.Add(bigIntType, new PrimitiveTypeInfo(bigIntType, bigIntSerializeDelegate, bigIntDeserializeDelegate));
                 #endregion
 
-                CSharpManager.OnTypesRegistered += (types) =>
+                CSharp.CSharpManager.OnTypesRegistered += (types) =>
                 {
                     RegisterTypes(types);
                 };
@@ -479,16 +478,16 @@ namespace LooCast.System.Serialization
         /// For performance optimization, it's recommended to register many types simultaneously.
         /// The method analyzes each type, sorts them, and composes necessary delegates for their serialization.
         /// </summary>
-        /// <param name="types">The types to be registered.</param>
-        public static void RegisterTypes(IEnumerable<Type> types)
+        /// <param name="typeInfos">The types to be registered.</param>
+        public static void RegisterTypes(IEnumerable<CSharp.TypeInfo> typeInfos)
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
             // Analyze each provided type to determine its serializability and dependencies.
-            foreach (Type type in types)
+            foreach (CSharp.TypeInfo typeInfo in typeInfos)
             {
-                Instance.AnalyzeType(type);
+                Instance.AnalyzeType(typeInfo);
             }
 
             // Combine the newly registered non-generic and generic object type infos.
@@ -547,7 +546,7 @@ namespace LooCast.System.Serialization
             Instance.newlyRegisteredFolderTypeInfos.Clear();
 
             stopwatch.Stop();
-            UnityEngine.Debug.Log($"[SerializationManager] Registering {types.Count()} types took {stopwatch.ElapsedMilliseconds}ms");
+            UnityEngine.Debug.Log($"[SerializationManager] Registering {typeInfos.Count()} types took {stopwatch.ElapsedMilliseconds}ms");
         }
 
         public static void UnregisterTypes(IEnumerable<Type> types)
@@ -930,10 +929,11 @@ namespace LooCast.System.Serialization
         /// <summary>
         /// Analyzes a given type to determine its serialization attributes and characteristics.
         /// </summary>
-        /// <param name="type">The type to analyze.</param>
+        /// <param name="typeInfo">The type to analyze.</param>
         /// <returns>Returns a TypeInfo object representing the serialized characteristics of the type; returns null if the type is unserializable.</returns>
-        private TypeInfo AnalyzeType(Type type)
+        private TypeInfo AnalyzeType(CSharp.TypeInfo typeInfo)
         {
+            Type type = typeInfo.Type;
             // If the type is null, throw an exception.
             if (registeredUnserializableTypes.Contains(type))
             {
@@ -995,38 +995,38 @@ namespace LooCast.System.Serialization
             }
 
             // If the type is a generic type definition(not to be confused with a generic type), it is unserializable.
-            if (type.IsGenericTypeDefinition)
+            if (typeInfo.IsGenericTypeDefinition)
             {
                 registeredUnserializableTypes.Add(type);
                 return null;
             }
 
             // If the type is abstract, it is unserializable.
-            if (type.IsAbstract)
+            if (typeInfo.IsAbstract)
             {
                 registeredUnserializableTypes.Add(type);
                 return null;
             }
 
             // If the type is not public, it is unserializable.
-            if (!type.IsPublic && !type.IsNestedPublic)
+            if (!typeInfo.IsPublic && !typeInfo.IsNestedPublic)
             {
                 registeredUnserializableTypes.Add(type);
                 return null;
             }
 
             // If the type is neither a class nor a value type, it is unserializable.
-            if (!type.IsClass && !type.IsValueType)
+            if (!typeInfo.IsClass && !typeInfo.IsValueType)
             {
                 registeredUnserializableTypes.Add(type);
                 return null;
             }
 
             // Get any serializability attributes which may be applied to the type.
-            SerializableNonGenericObjectAttribute serializableNonGenericObjectAttribute = type.GetCustomAttribute<SerializableNonGenericObjectAttribute>(false);
-            SerializableGenericObjectAttribute serializableGenericObjectAttribute = type.GetCustomAttribute<SerializableGenericObjectAttribute>(false);
-            SerializableFileAttribute serializableFileAttribute = type.GetCustomAttribute<SerializableFileAttribute>(false);
-            SerializableFolderAttribute serializableFolderAttribute = type.GetCustomAttribute<SerializableFolderAttribute>(false);
+            SerializableNonGenericObjectAttribute serializableNonGenericObjectAttribute = typeInfo.DirectAttributes.OfType<SerializableNonGenericObjectAttribute>().FirstOrDefault();
+            SerializableGenericObjectAttribute serializableGenericObjectAttribute = typeInfo.DirectAttributes.OfType<SerializableGenericObjectAttribute>().FirstOrDefault();
+            SerializableFileAttribute serializableFileAttribute = typeInfo.DirectAttributes.OfType<SerializableFileAttribute>().FirstOrDefault();
+            SerializableFolderAttribute serializableFolderAttribute = typeInfo.DirectAttributes.OfType<SerializableFolderAttribute>().FirstOrDefault();
 
             // If the type is not marked as any serializable type, it is unserializable.
             if (serializableNonGenericObjectAttribute == null && serializableGenericObjectAttribute == null && serializableFileAttribute == null && serializableFolderAttribute == null)
@@ -1086,7 +1086,8 @@ namespace LooCast.System.Serialization
 
                 foreach (Type utilizedType in utilizedTypes)
                 {
-                    AnalyzeType(utilizedType);
+                    CSharp.TypeInfo utilizedTypeInfo = CSharp.CSharpManager.GetTypeInfo(utilizedType);
+                    AnalyzeType(utilizedTypeInfo);
                     
                     if (registeredUnserializableTypes.Contains(utilizedType))
                     {
@@ -1157,7 +1158,8 @@ namespace LooCast.System.Serialization
 
                 foreach (Type utilizedType in utilizedTypes)
                 {
-                    AnalyzeType(utilizedType);
+                    CSharp.TypeInfo utilizedTypeInfo = CSharp.CSharpManager.GetTypeInfo(utilizedType);
+                    AnalyzeType(utilizedTypeInfo);
 
                     if (registeredUnserializableTypes.Contains(utilizedType))
                     {
@@ -1244,7 +1246,8 @@ namespace LooCast.System.Serialization
 
                 foreach (Type utilizedType in utilizedTypes)
                 {
-                    AnalyzeType(utilizedType);
+                    CSharp.TypeInfo utilizedTypeInfo = CSharp.CSharpManager.GetTypeInfo(utilizedType);
+                    AnalyzeType(utilizedTypeInfo);
 
                     if (registeredUnserializableTypes.Contains(utilizedType))
                     {
@@ -1330,7 +1333,8 @@ namespace LooCast.System.Serialization
 
                 foreach (Type utilizedType in utilizedTypes)
                 {
-                    AnalyzeType(utilizedType);
+                    CSharp.TypeInfo utilizedTypeInfo = CSharp.CSharpManager.GetTypeInfo(utilizedType);
+                    AnalyzeType(utilizedTypeInfo);
 
                     if (registeredUnserializableTypes.Contains(utilizedType))
                     {
@@ -1373,225 +1377,7 @@ namespace LooCast.System.Serialization
                 return folderTypeInfo;
             }
         }
-
-        /// <summary>
-        /// Topologically sorts ObjectTypeInfo instances based on their dependencies. This method ensures that the returned order respects dependencies between the ObjectTypeInfo instances.
-        /// </summary>
-        /// <param name="objectTypeInfos">The ObjectTypeInfo instances to be sorted. These should NEVER contain ObjectTypeInfo instances, which have already been fully registered!</param>
-        /// <returns>An array of HashSet<ObjectTypeInfo> where each set represents a stage of dependencies, with earlier stages having no dependencies on later stages.</returns>
-        private HashSet<ObjectTypeInfo>[] TopologicallySortObjectTypeInfos(IEnumerable<ObjectTypeInfo> objectTypeInfos)
-        {
-            // The resulting sorted sets of ObjectTypeInfo instances, where each set can be processed without depending on later sets.
-            List<HashSet<ObjectTypeInfo>> objectTypeInfoSets = new List<HashSet<ObjectTypeInfo>>();
-
-            // Stores the remaining dependencies for each ObjectTypeInfo instance.
-            Dictionary<ObjectTypeInfo, HashSet<ObjectTypeInfo>> remainingDependencies = new Dictionary<ObjectTypeInfo, HashSet<ObjectTypeInfo>>();
-
-            // Combining all ObjectTypeInfo instances (both new and already registered) into one set.
-            HashSet<ObjectTypeInfo> combinedObjectTypeInfos = new HashSet<ObjectTypeInfo>(
-                objectTypeInfos.Union(registeredNonGenericObjectTypeInfos.Values.Cast<ObjectTypeInfo>())
-                               .Union(registeredGenericObjectTypeInfos.Values.Cast<ObjectTypeInfo>())
-            );
-
-            // Initialize the remaining dependencies for each ObjectTypeInfo instance.
-            foreach (ObjectTypeInfo objectTypeInfo in combinedObjectTypeInfos)
-            {
-                HashSet<ObjectTypeInfo> dependencies = new HashSet<ObjectTypeInfo>(
-                    objectTypeInfo.NonGenericObjectTypeDependencies.Cast<ObjectTypeInfo>()
-                    .Union(objectTypeInfo.GenericObjectTypeDependencies)
-                );
-                remainingDependencies[objectTypeInfo] = dependencies;
-            }
-
-            // Set to keep track of visited ObjectTypeInfo instances to avoid redundant checks.
-            HashSet<ObjectTypeInfo> visited = new HashSet<ObjectTypeInfo>();
-
-            // Recursive function to detect circular dependencies.
-            void DetectCircularDependency(ObjectTypeInfo current, HashSet<ObjectTypeInfo> path)
-            {
-                // If the current ObjectTypeInfo is already in the path, a circular dependency is detected.
-                if (path.Contains(current))
-                {
-                    path.Add(current);
-                    throw new Exception($"Circular dependency detected: {string.Join(" -> ", path.Select(oti => oti.Type.FullName))}");
-                }
-
-                // If the current ObjectTypeInfo has been visited, we can skip the checks.
-                if (visited.Contains(current))
-                {
-                    return;
-                }
-
-                // Add the current ObjectTypeInfo to the path and check its dependencies.
-                path.Add(current);
-                foreach (ObjectTypeInfo next in remainingDependencies[current])
-                {
-                    DetectCircularDependency(next, path);
-                }
-
-                // Mark the current ObjectTypeInfo as visited and remove it from the current path.
-                visited.Add(current);
-                path.Remove(current);
-            }
-
-            // Check each ObjectTypeInfo instance for circular dependencies.
-            foreach (ObjectTypeInfo objectTypeInfo in combinedObjectTypeInfos)
-            {
-                if (!visited.Contains(objectTypeInfo))
-                {
-                    DetectCircularDependency(objectTypeInfo, new HashSet<ObjectTypeInfo>());
-                }
-            }
-
-            // Initialize a queue with ObjectTypeInfo instances that have no dependencies.
-            Queue<ObjectTypeInfo> objectTypeInfosWithNoDependencies = new Queue<ObjectTypeInfo>(
-                combinedObjectTypeInfos.Where(oti => !remainingDependencies[oti].Any())
-            );
-
-            // While there are ObjectTypeInfo instances with no dependencies, process them.
-            while (objectTypeInfosWithNoDependencies.Count > 0)
-            {
-                HashSet<ObjectTypeInfo> currentBatch = new HashSet<ObjectTypeInfo>();
-
-                // Process each ObjectTypeInfo instance with no dependencies.
-                while (objectTypeInfosWithNoDependencies.Count > 0)
-                {
-                    ObjectTypeInfo currentTypeInfo = objectTypeInfosWithNoDependencies.Dequeue();
-                    currentBatch.Add(currentTypeInfo);
-
-                    // Check other ObjectTypeInfo instances that depend on the current one.
-                    foreach (ObjectTypeInfo dependentObjectTypeInfo in remainingDependencies.Keys.ToList())
-                    {
-                        // If the current ObjectTypeInfo is a dependency of another, remove it from that ObjectTypeInfo's list of dependencies.
-                        if (remainingDependencies[dependentObjectTypeInfo].Remove(currentTypeInfo) && !remainingDependencies[dependentObjectTypeInfo].Any())
-                        {
-                            objectTypeInfosWithNoDependencies.Enqueue(dependentObjectTypeInfo);
-                        }
-                    }
-
-                    // Remove the current ObjectTypeInfo from the remaining dependencies.
-                    remainingDependencies.Remove(currentTypeInfo);
-                }
-
-                // Add the current batch of ObjectTypeInfo instances to the result list.
-                objectTypeInfoSets.Add(currentBatch);
-            }
-
-            // If there are any remaining dependencies, it means there's a circular dependency that wasn't identified earlier.
-            if (remainingDependencies.Count != 0)
-            {
-                throw new Exception($"Unidentifiable circular dependency detected! This is VERY problematic and should never happen!");
-            }
-
-            return objectTypeInfoSets.ToArray();
-        }
-
-        /// <summary>
-        /// Topologically sorts FolderTypeInfo instances based on their dependencies. This method ensures that the returned order respects dependencies between the FolderTypeInfo instances.
-        /// </summary>
-        /// <param name="folderTypeInfos">The FolderTypeInfo instances to be sorted. These should NEVER contain FolderTypeInfo instances, which have already been fully registered!</param>
-        /// <returns>An array of HashSet<FolderTypeInfo> where each set represents a stage of dependencies, with earlier stages having no dependencies on later stages.</returns>
-        private HashSet<FolderTypeInfo>[] TopologicallySortFolderTypeInfos(IEnumerable<FolderTypeInfo> folderTypeInfos)
-        {
-            // The resulting sorted sets of FolderTypeInfo instances, where each set can be processed without depending on later sets.
-            List<HashSet<FolderTypeInfo>> folderTypeInfoSets = new List<HashSet<FolderTypeInfo>>();
-
-            // Stores the remaining dependencies for each FolderTypeInfo instance.
-            Dictionary<FolderTypeInfo, HashSet<FolderTypeInfo>> remainingDependencies = new Dictionary<FolderTypeInfo, HashSet<FolderTypeInfo>>();
-
-            // Combining all FolderTypeInfo instances (both new and already registered) into one set.
-            HashSet<FolderTypeInfo> combinedFolderTypeInfos = new HashSet<FolderTypeInfo>(registeredFolderTypeInfos.Values);
-
-            // Initialize the remaining dependencies for each FolderTypeInfo instance.
-            foreach (FolderTypeInfo folderTypeInfo in combinedFolderTypeInfos)
-            {
-                HashSet<FolderTypeInfo> dependencies = new HashSet<FolderTypeInfo>(folderTypeInfo.FolderTypeDependencies);
-                remainingDependencies[folderTypeInfo] = dependencies;
-            }
-
-            // Set to keep track of visited FolderTypeInfo instances to avoid redundant checks.
-            HashSet<FolderTypeInfo> visited = new HashSet<FolderTypeInfo>();
-
-            // Recursive function to detect circular dependencies.
-            void DetectCircularDependency(FolderTypeInfo current, HashSet<FolderTypeInfo> path)
-            {
-                // If the current FolderTypeInfo is already in the path, a circular dependency is detected.
-                if (path.Contains(current))
-                {
-                    path.Add(current);
-                    throw new Exception($"Circular dependency detected: {string.Join(" -> ", path.Select(oti => oti.Type.FullName))}");
-                }
-
-                // If the current FolderTypeInfo has been visited, we can skip the checks.
-                if (visited.Contains(current))
-                {
-                    return;
-                }
-
-                // Add the current FolderTypeInfo to the path and check its dependencies.
-                path.Add(current);
-                foreach (FolderTypeInfo next in remainingDependencies[current])
-                {
-                    DetectCircularDependency(next, path);
-                }
-
-                // Mark the current FolderTypeInfo as visited and remove it from the current path.
-                visited.Add(current);
-                path.Remove(current);
-            }
-
-            // Check each FolderTypeInfo instance for circular dependencies.
-            foreach (FolderTypeInfo folderTypeInfo in combinedFolderTypeInfos)
-            {
-                if (!visited.Contains(folderTypeInfo))
-                {
-                    DetectCircularDependency(folderTypeInfo, new HashSet<FolderTypeInfo>());
-                }
-            }
-
-            // Initialize a queue with FolderTypeInfo instances that have no dependencies.
-            Queue<FolderTypeInfo> folderTypeInfosWithNoDependencies = new Queue<FolderTypeInfo>(
-                combinedFolderTypeInfos.Where(fti => !remainingDependencies[fti].Any())
-            );
-
-            // While there are FolderTypeInfo instances with no dependencies, process them.
-            while (folderTypeInfosWithNoDependencies.Count > 0)
-            {
-                HashSet<FolderTypeInfo> currentBatch = new HashSet<FolderTypeInfo>();
-
-                // Process each FolderTypeInfo instance with no dependencies.
-                while (folderTypeInfosWithNoDependencies.Count > 0)
-                {
-                    FolderTypeInfo currentTypeInfo = folderTypeInfosWithNoDependencies.Dequeue();
-                    currentBatch.Add(currentTypeInfo);
-
-                    // Check other FolderTypeInfo instances that depend on the current one.
-                    foreach (FolderTypeInfo dependentFolderTypeInfo in remainingDependencies.Keys.ToList())
-                    {
-                        // If the current FolderTypeInfo is a dependency of another, remove it from that FolderTypeInfo's list of dependencies.
-                        if (remainingDependencies[dependentFolderTypeInfo].Remove(currentTypeInfo) && !remainingDependencies[dependentFolderTypeInfo].Any())
-                        {
-                            folderTypeInfosWithNoDependencies.Enqueue(dependentFolderTypeInfo);
-                        }
-                    }
-
-                    // Remove the current FolderTypeInfo from the remaining dependencies.
-                    remainingDependencies.Remove(currentTypeInfo);
-                }
-
-                // Add the current batch of FolderTypeInfo instances to the result list.
-                folderTypeInfoSets.Add(currentBatch);
-            }
-
-            // If there are any remaining dependencies, it means there's a circular dependency that wasn't identified earlier.
-            if (remainingDependencies.Count != 0)
-            {
-                throw new Exception($"Unidentifiable circular dependency detected! This is VERY problematic and should never happen!");
-            }
-
-            return folderTypeInfoSets.ToArray();
-        }
-
+        
         /// <summary>
         /// Composes the serialization and deserialization delegates for a given non-generic object type.
         /// This method is performance-optimized and is foundational to the serialization system.

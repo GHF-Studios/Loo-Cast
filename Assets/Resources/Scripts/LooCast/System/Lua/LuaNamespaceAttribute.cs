@@ -6,13 +6,13 @@ namespace LooCast.System.Lua
     public sealed class LuaNamespaceAttribute : Attribute
     {
         #region Properties
-        public string LuaNamespaceName { get; }
+        public string Namespace { get; }
         #endregion
 
         #region Constructors
-        public LuaNamespaceAttribute(string luaNamespaceName)
+        public LuaNamespaceAttribute(string _namespace)
         {
-            LuaNamespaceName = luaNamespaceName;
+            Namespace = _namespace;
         }
         #endregion
     }

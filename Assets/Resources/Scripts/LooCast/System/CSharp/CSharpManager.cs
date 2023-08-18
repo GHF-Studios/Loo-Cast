@@ -12,7 +12,7 @@ namespace LooCast.System.CSharp
     public sealed class CSharpManager : ModuleManager
     {
         #region Static Events
-        public static event Action<Type[]> OnTypesRegistered;
+        public static event Action<IEnumerable<TypeInfo>> OnTypesRegistered;
         #endregion
 
         #region Static Properties
@@ -34,15 +34,13 @@ namespace LooCast.System.CSharp
         #endregion
 
         #region Fields
-        private HashSet<Assembly> assemblies;
-        private HashSet<Type> types;
+        private Dictionary<Type, TypeInfo> registeredTypes;
         #endregion
 
         #region Constructors
         public CSharpManager() : base()
         {
-            assemblies = new HashSet<Assembly>();
-            types = new HashSet<Type>();
+            registeredTypes = new Dictionary<Type, TypeInfo>();
             
             // Add pre-included components here
 
@@ -78,7 +76,7 @@ namespace LooCast.System.CSharp
 
             RegisterSetupAction(() =>
             {
-                RegisterAssemblies(AppDomain.CurrentDomain.GetAssemblies());
+                RegisterTypes(AppDomain.CurrentDomain.GetAssemblies().SelectMany(assembly => assembly.GetTypes()));
                 
                 // Set pre-included components' metaData here
 
@@ -118,27 +116,28 @@ namespace LooCast.System.CSharp
         #endregion
 
         #region Static Methods
-        public static void RegisterAssemblies(params Assembly[] assemblies)
+        public static void RegisterTypes(IEnumerable<Type> types)
         {
-            List<Type> types = new List<Type>();
-            
-            foreach (Assembly assembly in assemblies)
-            {
-                Instance.assemblies.Add(assembly);
-                types.AddRange(assembly.GetTypes());
-            }
-            
-            RegisterTypes(types.ToArray());
-        }
-
-        private static void RegisterTypes(params Type[] types)
-        {
+            Dictionary<Type, TypeInfo> newlyRegisteredTypes = new Dictionary<Type, TypeInfo>();
             foreach (Type type in types)
             {
-                Instance.types.Add(type);
+                newlyRegisteredTypes.Add(type, new TypeInfo(type));
+            }
+
+            Instance.registeredTypes = Instance.registeredTypes.Concat(newlyRegisteredTypes).ToDictionary(pair => pair.Key, pair => pair.Value);
+
+            OnTypesRegistered?.Invoke(newlyRegisteredTypes.Values);
+        }
+
+        public static TypeInfo GetTypeInfo(Type type)
+        {
+            if (!Instance.registeredTypes.TryGetValue(type, out TypeInfo typeInfo))
+            {
+                typeInfo = new TypeInfo(type);
+                Instance.registeredTypes.Add(type, typeInfo);
             }
             
-            OnTypesRegistered?.Invoke(types);
+            return typeInfo;
         }
         #endregion
     }

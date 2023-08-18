@@ -6,7 +6,7 @@ namespace LooCast.Universe
     using LooCast.System.ECS;
     using LooCast.System.Lua;
 
-    [LuaNamespace("Universe")]
+    [LuaNamespace("LooCast.Universe")]
     public sealed class Universe : Entity
     {
         #region Properties

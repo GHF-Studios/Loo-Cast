@@ -4,7 +4,9 @@ using System;
 namespace LooCast
 {
     using LooCast.System;
+    using LooCast.System.Lua;
 
+    [LuaNamespace("LooCast")]
     public static class LooCastApplication
     {
         #region Static Properties
@@ -23,6 +25,7 @@ namespace LooCast
             Application.logMessageReceived -= Log_INTERNAL;
         }
 
+        [LuaMethod("Log")]
         public static void Log(string logString)
         {
             LogHistory += logString + "\n";

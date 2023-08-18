@@ -6,13 +6,13 @@ namespace LooCast.System.Lua
     public sealed class LuaMethodAttribute : Attribute
     {
         #region Properties
-        public string LuaMethodName { get; }
+        public string MethodName { get; }
         #endregion
 
         #region Constructors
-        public LuaMethodAttribute(string luaMethodName)
+        public LuaMethodAttribute(string methodName)
         {
-            LuaMethodName = luaMethodName;
+            MethodName = methodName;
         }
         #endregion
     }
