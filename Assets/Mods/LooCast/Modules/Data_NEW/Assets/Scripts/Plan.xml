@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<DataFolder name="Data" storedDataType="IDataType" storedDataFolderType="IDataFolderType">
+  <RuntimeDataFolder name="RuntimeData" storedDataType="IRuntimeDataType" storedDataFolderType="IRuntimeDataFolderType">
+    
+  </RuntimeDataFolder>
+  <PersistentDataFolder name="PersistentData" storedDataType="IPersistentDataType" storedDataFolderType="IPersistentDataFolderType">
+    
+  </PersistentDataFolder>
+  <DynamicDataFolder name="DynamicData" storedDataType="IDynamicDataType" storedDataFolderType="IDynamicDataFolderType">
+
+  </DynamicDataFolder>
+  <ConstantDataFolder name="ConstantData" storedDataType="IConstantDataType" storedDataFolderType="IConstantDataFolderType">
+    <ConstantDataFolder name="Mods" storedDataType="IModDataType" storedDataFolderType="IModDataFolderType">
+      <ConstantDataFolder name="{ModName}" storedDataType="I{ModName}DataType" storedDataFolderType="I{ModName}DataFolderType">
+        <ConstantMetaData name="{ModName}.LCMETADATA" dataType="I{ModName}MetaDataType">
+
+        </ConstantMetaData>
+        <ConstantDataFolder name="Modules" storedDataType="I{ModName}ModuleDataType" storedDataFolderType="I{ModName}ModuleDataFolderType">
+          <ConstantDataFolder name="{ModuleName}" storedDataType="{ModName}.I{ModuleName}DataType" storedDataFolderType="{ModName}.I{ModuleName}DataFolderType">
+            <ConstantMetaData name="{ModuleName}.LCMETADATA" dataType="{ModName}.I{ModuleName}MetaDataType">
+
+            </ConstantMetaData>
+            <ConstantDataFolder name="Assets" storedDataType="{ModName}.I{ModuleName}AssetTypeDataType">
+              <ConstantDataFolder name="{AssetTypeName}s" storedDataType="{ModName}.{ModuleName}.I{AssetTypeName}AssetDataType">
+                <ConstantMetaData name="{AssetTypeName}.LCMETADATA" dataType="{ModName}.I{ModuleName}MetaDataType">
+
+                </ConstantMetaData>
+                <ConstantData name="{AssetInstanceName1}" dataType="{ModName}.{ModuleName}.I{AssetTypeName}AssetDataType">
+
+                </ConstantData>
+                <ConstantData name="{AssetInstanceName2}" dataType="{ModName}.{ModuleName}.I{AssetTypeName}AssetDataType">
+
+                </ConstantData>
+                <ConstantData name="{AssetInstanceName3}" dataType="{ModName}.{ModuleName}.I{AssetTypeName}AssetDataType">
+
+                </ConstantData>
+              </ConstantDataFolder>
+            </ConstantDataFolder>
+          </ConstantDataFolder>
+        </ConstantDataFolder>
+      </ConstantDataFolder>
+    </ConstantDataFolder>
+  </ConstantDataFolder>
+</DataFolder>
