@@ -1,7 +1,7 @@
-use bevy::prelude::*;
+use crate::ui::main_menu::components::*;
+use crate::ui::main_menu::styles::*;
 
-use crate::main_menu::components::*;
-use crate::main_menu::styles::*;
+use bevy::prelude::*;
 
 pub fn spawn_main_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     build_main_menu(&mut commands, &asset_server);
@@ -30,28 +30,16 @@ pub fn build_main_menu(commands: &mut Commands, asset_server: &Res<AssetServer>)
                     ..default()
                 })
                 .with_children(|parent| {
-                    // Image 1
-                    parent.spawn(ImageBundle {
-                        style: IMAGE_STYLE,
-                        image: asset_server.load("sprites/ball_blue_large.png").into(),
-                        ..default()
-                    });
                     // Text
                     parent.spawn(TextBundle {
                         text: Text {
                             sections: vec![TextSection::new(
-                                "Bevy Ball Game",
+                                "Loo Cast",
                                 get_title_text_style(&asset_server),
                             )],
                             alignment: TextAlignment::Center,
                             ..default()
                         },
-                        ..default()
-                    });
-                    // Image 2
-                    parent.spawn(ImageBundle {
-                        style: IMAGE_STYLE,
-                        image: asset_server.load("sprites/ball_red_large.png").into(),
                         ..default()
                     });
                 });

@@ -5,9 +5,9 @@ mod systems;
 use systems::interactions::*;
 use systems::layout::*;
 
-use bevy::prelude::*;
-
 use crate::AppState;
+
+use bevy::prelude::*;
 
 pub struct MainMenuPlugin;
 

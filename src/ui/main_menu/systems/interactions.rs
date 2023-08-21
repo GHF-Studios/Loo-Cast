@@ -1,9 +1,9 @@
+use crate::ui::main_menu::components::*;
+use crate::ui::main_menu::styles::{HOVERED_BUTTON_COLOR, NORMAL_BUTTON_COLOR, PRESSED_BUTTON_COLOR};
+use crate::AppState;
+
 use bevy::app::AppExit;
 use bevy::prelude::*;
-
-use crate::main_menu::components::*;
-use crate::main_menu::styles::{HOVERED_BUTTON_COLOR, NORMAL_BUTTON_COLOR, PRESSED_BUTTON_COLOR};
-use crate::AppState;
 
 pub fn interact_with_play_button(
     mut button_query: Query<

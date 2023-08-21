@@ -1,9 +1,7 @@
-use bevy::prelude::*;
+use crate::ui::pause_menu::components::*;
+use crate::ui::pause_menu::styles::*;
 
-use crate::game::ui::pause_menu::components::{
-    MainMenuButton, PauseMenu, QuitButton, ResumeButton,
-};
-use crate::game::ui::pause_menu::styles::*;
+use bevy::prelude::*;
 
 pub fn spawn_pause_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     println!("Spawning Pause Menu");

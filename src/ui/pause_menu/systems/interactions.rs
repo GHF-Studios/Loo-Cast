@@ -1,22 +1,23 @@
+use crate::ui::pause_menu::components::*;
+use crate::ui::pause_menu::styles::*;
+use crate::game::SimulationState;
+use crate::AppState;
+
 use bevy::app::AppExit;
 use bevy::prelude::*;
 
-use crate::game::ui::game_over_menu::components::*;
-use crate::game::ui::game_over_menu::styles::*;
-use crate::AppState;
-
-pub fn interact_with_restart_button(
+pub fn interact_with_resume_button(
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<RestartButton>),
+        (Changed<Interaction>, With<ResumeButton>),
     >,
-    mut app_state_next_state: ResMut<NextState<AppState>>,
+    mut simulation_state_next_state: ResMut<NextState<SimulationState>>,
 ) {
     for (interaction, mut color) in button_query.iter_mut() {
         match *interaction {
             Interaction::Clicked => {
                 *color = PRESSED_BUTTON.into();
-                app_state_next_state.set(AppState::Game);
+                simulation_state_next_state.set(SimulationState::Running);
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();

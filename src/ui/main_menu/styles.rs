@@ -20,12 +20,6 @@ pub const BUTTON_STYLE: Style = Style {
     ..Style::DEFAULT
 };
 
-pub const IMAGE_STYLE: Style = Style {
-    size: Size::new(Val::Px(64.0), Val::Px(64.0)),
-    margin: UiRect::new(Val::Px(8.0), Val::Px(8.0), Val::Px(8.0), Val::Px(8.0)),
-    ..Style::DEFAULT
-};
-
 pub const TITLE_STYLE: Style = Style {
     flex_direction: FlexDirection::Row,
     justify_content: JustifyContent::Center,
