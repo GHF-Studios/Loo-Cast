@@ -19,7 +19,9 @@ pub struct UniversePlugin;
 impl Plugin for UniversePlugin {
     fn build(&self, app: &mut App) {
         app
-        .add_systems(PreStartup, create_universe)
-        .add_systems(Startup, save_universe);
+        //.add_systems(PreStartup, create_universe)
+        //.add_systems(Startup, save_universe);
+        .add_systems(PreStartup, load_universe)
+        .add_systems(Startup, print_universe);
     }
 }
