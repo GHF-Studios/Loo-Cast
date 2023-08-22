@@ -20,8 +20,8 @@ pub const BUTTON_STYLE: Style = {
     let mut style = Style::DEFAULT;
     style.justify_content = JustifyContent::Center;
     style.align_items = AlignItems::Center;
-    style.width = Val::Percent(200.0);
-    style.height = Val::Percent(80.0);
+    style.width = Val::Px(200.0);
+    style.height = Val::Px(80.0);
     style
 };
 
@@ -30,8 +30,8 @@ pub const TITLE_STYLE: Style = {
     style.flex_direction = FlexDirection::Row;
     style.justify_content = JustifyContent::Center;
     style.align_items = AlignItems::Center;
-    style.width = Val::Percent(300.0);
-    style.height = Val::Percent(120.0);
+    style.width = Val::Px(300.0);
+    style.height = Val::Px(120.0);
     style
 };
 
