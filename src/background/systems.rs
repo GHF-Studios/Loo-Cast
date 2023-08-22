@@ -59,8 +59,8 @@ pub fn despawn_background(
     mut commands: Commands,
     background_query: Query<Entity, With<Background>>,
 ) {
-    if let Ok(background_entity) = background_query.get_single() {
-        commands.entity(background_entity).despawn();
+    for entity in background_query.iter() {
+        commands.entity(entity).despawn();
     }
 }
 

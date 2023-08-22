@@ -14,15 +14,14 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            // On Enter Systems
-            .add_system(spawn_player.in_schedule(OnEnter(AppState::Game)))
-            // Systems
-            .add_system(
-                player_movement
-                    .in_set(OnUpdate(AppState::Game))
-                    .in_set(OnUpdate(SimulationState::Running)),
+            // Enter Systems
+            .add_systems(OnEnter(AppState::Game), spawn_player)
+            // Update Systems
+            .add_systems(Update, player_movement
+                    .run_if(in_state(AppState::Game))
+                    .run_if(in_state(SimulationState::Running)),
             )
-            // On Exit Systems
-            .add_system(despawn_player.in_schedule(OnExit(AppState::Game)));
+            // Exit Systems
+            .add_systems(OnExit(AppState::Game), despawn_player);
     }
 }

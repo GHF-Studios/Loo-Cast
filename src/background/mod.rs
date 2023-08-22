@@ -11,20 +11,20 @@ use bevy::prelude::*;
 
 pub struct BackgroundPlugin;
 
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
+pub struct MovementSystemSet;
+
 impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
         app
-            // OnEnter Systems
-            .add_system(insert_background_manager.in_schedule(OnEnter(AppState::Game)))
-            .add_system(spawn_background.in_schedule(OnEnter(AppState::Game)))
-            // OnUpdate Systems
-            .add_system(
-                move_background
-                    .run_if(in_state(AppState::Game))
-                    .run_if(in_state(SimulationState::Running)),
+            // Enter Systems
+            .add_systems(OnEnter(AppState::Game), (insert_background_manager, spawn_background))
+            // Update Systems
+            .add_systems(Update, move_background
+                .run_if(in_state(AppState::Game))
+                .run_if(in_state(SimulationState::Running))
             )
-            // OnExit Systems
-            .add_system(despawn_background.in_schedule(OnExit(AppState::Game)))
-            .add_system(remove_background_manager.in_schedule(OnExit(AppState::Game)));
+            // Exit Systems
+            .add_systems(OnExit(AppState::Game), (despawn_background, remove_background_manager));
     }
 }

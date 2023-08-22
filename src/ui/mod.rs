@@ -12,7 +12,6 @@ impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app
             // Plugins
-            .add_plugin(MainMenuPlugin)
-            .add_plugin(PauseMenuPlugin);
+            .add_plugins((MainMenuPlugin, PauseMenuPlugin));
     }
 }

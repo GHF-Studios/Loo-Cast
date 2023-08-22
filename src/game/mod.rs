@@ -13,12 +13,12 @@ impl Plugin for GamePlugin {
         app
             // States
             .add_state::<SimulationState>()
-            // OnEnter Systems
-            .add_system(pause_simulation.in_schedule(OnEnter(AppState::Game)))
-            // Systems
-            .add_system(toggle_simulation.run_if(in_state(AppState::Game)))
+            // Enter Systems
+            .add_systems(OnEnter(AppState::Game),pause_simulation)
+            // Update Systems
+            .add_systems(Update, toggle_simulation.run_if(in_state(AppState::Game)))
             // Exit State Systems
-            .add_system(resume_simulation.in_schedule(OnExit(AppState::Game)));
+            .add_systems(OnExit(AppState::Game), resume_simulation);
     }
 }
 
