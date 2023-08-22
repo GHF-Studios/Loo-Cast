@@ -1,6 +1,6 @@
+use crate::game::SimulationState;
 use crate::ui::pause_menu::components::*;
 use crate::ui::pause_menu::styles::*;
-use crate::game::SimulationState;
 use crate::AppState;
 
 use bevy::app::AppExit;

@@ -1,5 +1,5 @@
-mod pause_menu;
 mod main_menu;
+mod pause_menu;
 
 use main_menu::MainMenuPlugin;
 use pause_menu::PauseMenuPlugin;

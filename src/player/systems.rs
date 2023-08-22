@@ -14,8 +14,12 @@ pub fn spawn_player(
 
     commands.spawn((
         SpriteBundle {
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(64.0, 64.0)),
+                ..default()
+            },
             transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
-            texture: asset_server.load("sprites/ball_blue_large.png"),
+            texture: asset_server.load("sprites/circle.png"),
             ..default()
         },
         Player {},
