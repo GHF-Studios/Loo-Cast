@@ -5,6 +5,7 @@ pub mod camera;
 pub mod game;
 pub mod math;
 pub mod player;
+mod save_game;
 pub mod ui;
 pub mod universe;
 
@@ -14,6 +15,7 @@ use background::BackgroundPlugin;
 use camera::CameraPlugin;
 use game::GamePlugin;
 use player::PlayerPlugin;
+use save_game::SaveGamePlugin;
 use ui::UIPlugin;
 use universe::UniversePlugin;
 
@@ -26,9 +28,24 @@ fn main() {
         // States
         .add_state::<AppState>()
         // Plugins
-        .add_plugins((BackgroundPlugin, CameraPlugin, GamePlugin, PlayerPlugin, UIPlugin, UniversePlugin))
+        .add_plugins((
+            BackgroundPlugin,
+            CameraPlugin,
+            GamePlugin,
+            PlayerPlugin,
+            SaveGamePlugin,
+            UIPlugin,
+            UniversePlugin,
+        ))
         // Update Systems
-        .add_systems(Update, (transition_to_game_state, transition_to_main_menu_state, exit_game))
+        .add_systems(
+            Update,
+            (
+                transition_to_game_state,
+                transition_to_main_menu_state,
+                exit_game,
+            ),
+        )
         // Run
         .run();
 }
@@ -37,5 +54,7 @@ fn main() {
 pub enum AppState {
     #[default]
     MainMenu,
+    SaveGamesMenu,
+    CreateSaveGameMenu,
     Game,
 }

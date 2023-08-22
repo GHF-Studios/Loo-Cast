@@ -5,5 +5,6 @@ use serde::*;
 
 #[derive(Resource, Serialize, Deserialize)]
 pub struct Universe {
-    pub name: String
+    pub name: String,
+    pub scales: Vec<Scale>,
 }

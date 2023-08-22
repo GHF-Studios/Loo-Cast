@@ -14,7 +14,7 @@ impl Plugin for GamePlugin {
             // States
             .add_state::<SimulationState>()
             // Enter Systems
-            .add_systems(OnEnter(AppState::Game),pause_simulation)
+            .add_systems(OnEnter(AppState::Game), pause_simulation)
             // Update Systems
             .add_systems(Update, toggle_simulation.run_if(in_state(AppState::Game)))
             // Exit State Systems

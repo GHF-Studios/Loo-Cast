@@ -18,13 +18,21 @@ impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
         app
             // Enter Systems
-            .add_systems(OnEnter(AppState::Game), (insert_background_manager, spawn_background))
+            .add_systems(
+                OnEnter(AppState::Game),
+                (insert_background_manager, spawn_background),
+            )
             // Update Systems
-            .add_systems(Update, move_background
-                .run_if(in_state(AppState::Game))
-                .run_if(in_state(SimulationState::Running))
+            .add_systems(
+                Update,
+                move_background
+                    .run_if(in_state(AppState::Game))
+                    .run_if(in_state(SimulationState::Running)),
             )
             // Exit Systems
-            .add_systems(OnExit(AppState::Game), (despawn_background, remove_background_manager));
+            .add_systems(
+                OnExit(AppState::Game),
+                (despawn_background, remove_background_manager),
+            );
     }
 }

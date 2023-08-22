@@ -15,9 +15,11 @@ impl Plugin for CameraPlugin {
             // Startup Systems
             .add_systems(Startup, spawn_camera)
             // Update Systems
-            .add_systems(Update, lerp_to_player
-                .run_if(in_state(AppState::Game))
-                .run_if(in_state(SimulationState::Running)),
-                );
+            .add_systems(
+                Update,
+                lerp_to_player
+                    .run_if(in_state(AppState::Game))
+                    .run_if(in_state(SimulationState::Running)),
+            );
     }
 }

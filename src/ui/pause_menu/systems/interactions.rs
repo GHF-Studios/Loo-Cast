@@ -1,6 +1,6 @@
 use crate::game::SimulationState;
 use crate::ui::pause_menu::components::*;
-use crate::ui::pause_menu::styles::*;
+use crate::ui::styles::*;
 use crate::AppState;
 
 use bevy::app::AppExit;
@@ -16,14 +16,14 @@ pub fn interact_with_resume_button(
     for (interaction, mut color) in button_query.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
-                *color = PRESSED_BUTTON.into();
+                *color = PRESSED_BUTTON_COLOR.into();
                 simulation_state_next_state.set(SimulationState::Running);
             }
             Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
+                *color = HOVERED_BUTTON_COLOR.into();
             }
             Interaction::None => {
-                *color = NORMAL_BUTTON.into();
+                *color = NORMAL_BUTTON_COLOR.into();
             }
         }
     }
@@ -39,14 +39,14 @@ pub fn interact_with_main_menu_button(
     for (interaction, mut color) in button_query.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
-                *color = PRESSED_BUTTON.into();
+                *color = PRESSED_BUTTON_COLOR.into();
                 app_state_next_state.set(AppState::MainMenu);
             }
             Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
+                *color = HOVERED_BUTTON_COLOR.into();
             }
             Interaction::None => {
-                *color = NORMAL_BUTTON.into();
+                *color = NORMAL_BUTTON_COLOR.into();
             }
         }
     }
@@ -62,14 +62,14 @@ pub fn interact_with_quit_button(
     for (interaction, mut color) in button_query.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
-                *color = PRESSED_BUTTON.into();
+                *color = PRESSED_BUTTON_COLOR.into();
                 app_exit_event_writer.send(AppExit);
             }
             Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
+                *color = HOVERED_BUTTON_COLOR.into();
             }
             Interaction::None => {
-                *color = NORMAL_BUTTON.into();
+                *color = NORMAL_BUTTON_COLOR.into();
             }
         }
     }

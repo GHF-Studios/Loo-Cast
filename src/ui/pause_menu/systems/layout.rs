@@ -1,5 +1,6 @@
 use crate::ui::pause_menu::components::*;
 use crate::ui::pause_menu::styles::*;
+use crate::ui::styles::*;
 
 use bevy::prelude::*;
 
@@ -52,7 +53,7 @@ pub fn build_pause_menu(commands: &mut Commands, asset_server: &Res<AssetServer>
                         .spawn((
                             ButtonBundle {
                                 style: BUTTON_STYLE,
-                                background_color: NORMAL_BUTTON.into(),
+                                background_color: NORMAL_BUTTON_COLOR.into(),
                                 ..default()
                             },
                             ResumeButton {},
@@ -76,7 +77,7 @@ pub fn build_pause_menu(commands: &mut Commands, asset_server: &Res<AssetServer>
                         .spawn((
                             ButtonBundle {
                                 style: BUTTON_STYLE,
-                                background_color: NORMAL_BUTTON.into(),
+                                background_color: NORMAL_BUTTON_COLOR.into(),
                                 ..default()
                             },
                             MainMenuButton {},
@@ -100,7 +101,7 @@ pub fn build_pause_menu(commands: &mut Commands, asset_server: &Res<AssetServer>
                         .spawn((
                             ButtonBundle {
                                 style: BUTTON_STYLE,
-                                background_color: NORMAL_BUTTON.into(),
+                                background_color: NORMAL_BUTTON_COLOR.into(),
                                 ..default()
                             },
                             QuitButton {},

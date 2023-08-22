@@ -1,23 +1,18 @@
 use super::resources::*;
 
 use bevy::prelude::*;
-use serde::*;
-use serde_json::*;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-pub fn create_universe(
-    mut commands: Commands,
-) {
+pub fn create_universe(mut commands: Commands) {
     commands.insert_resource(Universe {
-        name: "Default Universe".to_string()
+        name: "Default Universe".to_string(),
+        scales: Vec::new(),
     });
 }
 
-pub fn save_universe(
-    universe_resource: Res<Universe>
-) {
+pub fn save_universe(universe_resource: Res<Universe>) {
     let serialized_universe = serde_json::to_string(&*universe_resource).unwrap();
 
     let path = Path::new("data/saves/universe.json");
@@ -34,9 +29,7 @@ pub fn save_universe(
     }
 }
 
-pub fn delete_universe() {
-
-}
+pub fn delete_universe() {}
 
 pub fn load_universe(mut commands: Commands) {
     let path = Path::new("data/saves/universe.json");
@@ -58,9 +51,7 @@ pub fn load_universe(mut commands: Commands) {
     commands.insert_resource(universe);
 }
 
-pub fn unload_universe() {
-
-}
+pub fn unload_universe() {}
 
 pub fn print_universe(universe_resource: Res<Universe>) {
     println!("Universe: {}", universe_resource.name);

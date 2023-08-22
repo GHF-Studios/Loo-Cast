@@ -17,7 +17,9 @@ impl Plugin for PlayerPlugin {
             // Enter Systems
             .add_systems(OnEnter(AppState::Game), spawn_player)
             // Update Systems
-            .add_systems(Update, player_movement
+            .add_systems(
+                Update,
+                player_movement
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
             )

@@ -10,9 +10,8 @@ pub struct Scale {
 #[derive(Component, Serialize, Deserialize)]
 pub struct Chunk {
     pub scale_level: i8,
-    pub universe_object_ids: Vec<i32>
+    pub universe_object_ids: Vec<i32>,
 }
 
 #[derive(Component)]
-pub struct UniverseObject {
-}
+pub struct UniverseObject {}
