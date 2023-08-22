@@ -6,6 +6,7 @@ pub mod game;
 pub mod math;
 pub mod player;
 pub mod ui;
+pub mod universe;
 
 use systems::*;
 
@@ -14,6 +15,7 @@ use camera::CameraPlugin;
 use game::GamePlugin;
 use player::PlayerPlugin;
 use ui::UIPlugin;
+use universe::UniversePlugin;
 
 use bevy::prelude::*;
 
@@ -24,7 +26,7 @@ fn main() {
         // States
         .add_state::<AppState>()
         // Plugins
-        .add_plugins((BackgroundPlugin, CameraPlugin, GamePlugin, PlayerPlugin, UIPlugin))
+        .add_plugins((BackgroundPlugin, CameraPlugin, GamePlugin, PlayerPlugin, UIPlugin, UniversePlugin))
         // Update Systems
         .add_systems(Update, (transition_to_game_state, transition_to_main_menu_state, exit_game))
         // Run
