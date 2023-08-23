@@ -3,6 +3,7 @@ pub mod events;
 pub mod styles;
 mod systems;
 
+use systems::event_handler::*;
 use systems::interactions::*;
 use systems::layout::*;
 
@@ -21,10 +22,19 @@ impl Plugin for SaveGamesMenuPlugin {
             .add_systems(
                 Update,
                 (
-                    interact_with_create_save_game_button,
                     interact_with_back_to_main_menu_button,
+                    interact_with_create_save_game_button,
+                    interact_with_delete_save_game_button,
+                    interact_with_load_save_game_button,
                 )
                     .run_if(in_state(AppState::SaveGamesMenu)),
+            )
+            .add_systems(
+                Update,
+                (handle_create_save_game_event, handle_delete_save_game_event).run_if(
+                    in_state(AppState::SaveGamesMenu)
+                        .or_else(in_state(AppState::CreateSaveGameMenu)),
+                ),
             )
             // Exit State Systems
             .add_systems(OnExit(AppState::SaveGamesMenu), despawn_save_games_menu);

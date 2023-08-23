@@ -13,16 +13,20 @@ pub fn despawn_create_save_game_menu(
     create_save_game_menu_query: Query<Entity, With<CreateSaveGameMenu>>,
 ) {
     if let Ok(create_save_game_menu_entity) = create_save_game_menu_query.get_single() {
-        commands.entity(create_save_game_menu_entity).despawn_recursive();
+        commands
+            .entity(create_save_game_menu_entity)
+            .despawn_recursive();
     }
 }
 
-pub fn build_create_save_game_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
+pub fn build_create_save_game_menu(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+) -> Entity {
     let create_save_game_menu_entity = commands
         .spawn((
             NodeBundle {
                 style: CREATE_SAVE_GAME_MENU_STYLE,
-                background_color: BACKGROUND_COLOR.into(),
                 ..default()
             },
             CreateSaveGameMenu {},
@@ -49,13 +53,10 @@ pub fn build_create_save_game_menu(commands: &mut Commands, asset_server: &Res<A
                     });
                 });
             // New Save Game Panel
-            parent
-            .spawn((
-                NodeBundle {
+            parent.spawn((NodeBundle {
                 style: NEW_SAVE_GAME_PANEL_STYLE,
                 ..default()
-                },
-            ));
+            },));
             // Button Container
             parent
                 .spawn(NodeBundle {

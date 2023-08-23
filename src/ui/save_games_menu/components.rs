@@ -8,7 +8,7 @@ pub struct SaveGamesContainer {}
 
 #[derive(Component)]
 pub struct SaveGame {
-    pub save_game_name: String,
+    pub name: String,
 }
 
 #[derive(Component)]
@@ -18,7 +18,11 @@ pub struct CreateSaveGameButton {}
 pub struct BackToMainMenuButton {}
 
 #[derive(Component)]
-pub struct LoadSaveGameButton {}
+pub struct LoadSaveGameButton {
+    pub save_game_name: String,
+}
 
 #[derive(Component)]
-pub struct DeleteSaveGameButton {}
+pub struct DeleteSaveGameButton {
+    pub save_game_name: String,
+}

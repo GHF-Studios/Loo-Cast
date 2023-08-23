@@ -17,6 +17,11 @@ impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app
             // Plugins
-            .add_plugins((MainMenuPlugin, PauseMenuPlugin, SaveGamesMenuPlugin, CreateSaveGameMenuPlugin));
+            .add_plugins((
+                MainMenuPlugin,
+                PauseMenuPlugin,
+                SaveGamesMenuPlugin,
+                CreateSaveGameMenuPlugin,
+            ));
     }
 }
