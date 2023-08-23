@@ -43,7 +43,6 @@ fn main() {
             (
                 transition_to_game_state,
                 transition_to_main_menu_state,
-                exit_game,
             ),
         )
         // Run

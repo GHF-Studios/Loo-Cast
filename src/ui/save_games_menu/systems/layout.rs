@@ -152,52 +152,63 @@ pub fn build_save_game(
                     },
                 ))
                 .with_children(|parent| {
-                    // Button Container
+                    // Delete Save Game Button
+                    parent
+                        .spawn((
+                            ButtonBundle {
+                                style: BUTTON_STYLE,
+                                background_color: NORMAL_BUTTON_COLOR.into(),
+                                ..default()
+                            },
+                            DeleteSaveGameButton {
+                                save_game_name: save_game_name.clone(),
+                            },
+                        ))
+                        .with_children(|parent| {
+                            parent.spawn(ImageBundle {
+                                style: BUTTON_IMAGE_STYLE,
+                                image: asset_server.load("sprites/cross.png").into(),
+                                ..default()
+                            });
+                        });
+                    // Save Game Name Text
                     parent
                         .spawn(NodeBundle {
-                            style: BUTTON_CONTAINER_STYLE,
+                            style: SAVE_GAME_NAME_STYLE,
                             ..default()
                         })
                         .with_children(|parent| {
-                            // Delete Save Game Button
-                            parent
-                                .spawn((
-                                    ButtonBundle {
-                                        style: BUTTON_STYLE,
-                                        background_color: NORMAL_BUTTON_COLOR.into(),
-                                        ..default()
-                                    },
-                                    DeleteSaveGameButton {
-                                        save_game_name: save_game_name.clone(),
-                                    },
-                                ))
-                                .with_children(|parent| {
-                                    parent.spawn(ImageBundle {
-                                        style: BUTTON_IMAGE_STYLE,
-                                        image: asset_server.load("sprites/cross.png").into(),
-                                        ..default()
-                                    });
-                                });
-
-                            // Load Save Game Button
-                            parent
-                                .spawn((
-                                    ButtonBundle {
-                                        style: BUTTON_STYLE,
-                                        background_color: NORMAL_BUTTON_COLOR.into(),
-                                        ..default()
-                                    },
-                                    LoadSaveGameButton {
-                                        save_game_name: save_game_name.clone(),
-                                    },
-                                ))
-                                .with_children(|parent| {
-                                    parent.spawn(ImageBundle {
-                                        style: BUTTON_IMAGE_STYLE,
-                                        image: asset_server.load("sprites/enter.png").into(),
-                                        ..default()
-                                    });
-                                });
+                            // Text
+                            parent.spawn(TextBundle {
+                                text: Text {
+                                    sections: vec![TextSection::new(
+                                        save_game_name.clone(),
+                                        get_save_game_name_text_style(&asset_server),
+                                    )],
+                                    alignment: TextAlignment::Center,
+                                    ..default()
+                                },
+                                ..default()
+                            });
+                        });
+                    // Load Save Game Button
+                    parent
+                        .spawn((
+                            ButtonBundle {
+                                style: BUTTON_STYLE,
+                                background_color: NORMAL_BUTTON_COLOR.into(),
+                                ..default()
+                            },
+                            LoadSaveGameButton {
+                                save_game_name: save_game_name.clone(),
+                            },
+                        ))
+                        .with_children(|parent| {
+                            parent.spawn(ImageBundle {
+                                style: BUTTON_IMAGE_STYLE,
+                                image: asset_server.load("sprites/enter.png").into(),
+                                ..default()
+                            });
                         });
                 });
         })

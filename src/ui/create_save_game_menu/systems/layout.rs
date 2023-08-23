@@ -56,7 +56,11 @@ pub fn build_create_save_game_menu(
             parent.spawn((NodeBundle {
                 style: NEW_SAVE_GAME_PANEL_STYLE,
                 ..default()
-            },));
+                }
+            ))
+            .with_children(|parent| {
+                
+            });
             // Button Container
             parent
                 .spawn(NodeBundle {

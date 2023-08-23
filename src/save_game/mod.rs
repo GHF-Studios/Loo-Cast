@@ -37,6 +37,6 @@ impl Plugin for SaveGamePlugin {
                         .or_else(in_state(AppState::CreateSaveGameMenu)),
                 ),
             );
-            // Exit State Systems
+        // Exit State Systems
     }
 }

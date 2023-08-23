@@ -29,7 +29,7 @@ pub const SAVE_GAME_STYLE: Style = {
     let mut style = Style::DEFAULT;
     style.display = Display::Flex;
     style.flex_direction = FlexDirection::Row;
-    style.justify_content = JustifyContent::Start;
+    style.justify_content = JustifyContent::SpaceBetween;
     style.align_items = AlignItems::Center;
     style.width = Val::Px(1000.0);
     style.height = Val::Px(80.0);
@@ -68,6 +68,16 @@ pub const BUTTON_IMAGE_STYLE: Style = {
     style
 };
 
+pub const SAVE_GAME_NAME_STYLE: Style = {
+    let mut style = Style::DEFAULT;
+    style.flex_direction = FlexDirection::Row;
+    style.justify_content = JustifyContent::Center;
+    style.align_items = AlignItems::Center;
+    style.width = Val::Px(500.0);
+    style.height = Val::Px(80.0);
+    style
+};
+
 pub const TITLE_STYLE: Style = {
     let mut style = Style::DEFAULT;
     style.flex_direction = FlexDirection::Row;
@@ -77,3 +87,11 @@ pub const TITLE_STYLE: Style = {
     style.height = Val::Px(80.0);
     style
 };
+
+pub fn get_save_game_name_text_style(asset_server: &Res<AssetServer>) -> TextStyle {
+    TextStyle {
+        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+        font_size: 64.0,
+        color: Color::WHITE,
+    }
+}

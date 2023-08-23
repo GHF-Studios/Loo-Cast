@@ -55,7 +55,7 @@ pub fn interact_with_delete_save_game_button(
     mut game_over_event_writer: EventWriter<DeleteSaveGameEvent>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor, &DeleteSaveGameButton),
-        (Changed<Interaction>),
+        Changed<Interaction>,
     >,
 ) {
     if let Ok((interaction, mut background_color, delete_save_game_button)) =
