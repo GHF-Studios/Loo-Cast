@@ -1,6 +1,6 @@
-use crate::AppState;
-use crate::ui::styles::*;
 use crate::ui::save_games_menu::components::*;
+use crate::ui::styles::*;
+use crate::AppState;
 
 use bevy::prelude::*;
 
@@ -8,7 +8,8 @@ pub fn interact_with_create_save_game_button(
     mut app_state_next_state: ResMut<NextState<AppState>>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<CreateSaveGameButton>)>,
+        (Changed<Interaction>, With<CreateSaveGameButton>),
+    >,
 ) {
     if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
         match *interaction {
@@ -30,7 +31,8 @@ pub fn interact_with_back_to_main_menu_button(
     mut app_state_next_state: ResMut<NextState<AppState>>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<BackToMainMenuButton>)>,
+        (Changed<Interaction>, With<BackToMainMenuButton>),
+    >,
 ) {
     if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
         match *interaction {

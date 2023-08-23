@@ -4,8 +4,11 @@ use bevy::prelude::Component;
 pub struct SaveGamesMenu {}
 
 #[derive(Component)]
+pub struct SaveGamesContainer {}
+
+#[derive(Component)]
 pub struct SaveGame {
-    pub save_game_id: String,
+    pub save_game_name: String,
 }
 
 #[derive(Component)]

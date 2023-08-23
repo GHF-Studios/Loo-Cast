@@ -2,8 +2,8 @@ pub mod components;
 pub mod styles;
 mod systems;
 
-use components::*;
-use systems::*;
+use systems::interactions::*;
+use systems::layout::*;
 
 use crate::AppState;
 
@@ -20,6 +20,7 @@ impl Plugin for CreateSaveGameMenuPlugin {
             .add_systems(
                 Update,
                 (
+                    interact_with_cancel_create_save_game_button,
                     interact_with_confirm_create_save_game_button,
                 ).run_if(in_state(AppState::CreateSaveGameMenu)),
             )

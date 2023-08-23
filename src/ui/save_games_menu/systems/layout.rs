@@ -1,6 +1,7 @@
 use crate::ui::save_games_menu::components::*;
 use crate::ui::save_games_menu::styles::*;
 use crate::ui::styles::*;
+use crate::ui::save_games_menu::events::*;
 
 use bevy::prelude::*;
 
@@ -47,54 +48,15 @@ pub fn build_save_games_menu(commands: &mut Commands, asset_server: &Res<AssetSe
                         ..default()
                     });
                 });
-            // Save Game Container
+            // Save Games Container
             parent
-                .spawn(NodeBundle {
+                .spawn((
+                    NodeBundle {
                     style: SAVE_GAMES_CONTAINER_STYLE,
                     ..default()
-                })
-                .with_children(|parent| {
-                    // Example Save Game 1
-                    parent.spawn(
-                        NodeBundle {
-                            style: SAVE_GAME_STYLE,
-                            background_color: BACKGROUND_COLOR.into(),
-                            ..default()
-                        }
-                    );
-                    // Example Save Game 2
-                    parent.spawn(
-                        NodeBundle {
-                            style: SAVE_GAME_STYLE,
-                            background_color: BACKGROUND_COLOR.into(),
-                            ..default()
-                        }
-                    );
-                    // Example Save Game 3
-                    parent.spawn(
-                        NodeBundle {
-                            style: SAVE_GAME_STYLE,
-                            background_color: BACKGROUND_COLOR.into(),
-                            ..default()
-                        }
-                    );
-                    // Example Save Game 4
-                    parent.spawn(
-                        NodeBundle {
-                            style: SAVE_GAME_STYLE,
-                            background_color: BACKGROUND_COLOR.into(),
-                            ..default()
-                        }
-                    );
-                    // Example Save Game 5
-                    parent.spawn(
-                        NodeBundle {
-                            style: SAVE_GAME_STYLE,
-                            background_color: BACKGROUND_COLOR.into(),
-                            ..default()
-                        }
-                    );
-                });
+                    },
+                    SaveGamesContainer {},
+                ));
             // Button Container
             parent
                 .spawn(NodeBundle {
@@ -142,4 +104,27 @@ pub fn build_save_games_menu(commands: &mut Commands, asset_server: &Res<AssetSe
         .id();
 
     save_games_menu_entity
+}
+
+pub fn build_save_game(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    save_games_container_entity: Entity,
+    save_game_name: String
+) -> Entity {
+    commands
+        .entity(save_games_container_entity)
+        .with_children(|parent| {
+            parent.spawn((
+                NodeBundle {
+                style: SAVE_GAME_STYLE,
+                background_color: BACKGROUND_COLOR.into(),
+                ..default()
+                },
+                SaveGame {
+                    save_game_name: save_game_name,
+                },
+            ));
+        })
+        .id()
 }
