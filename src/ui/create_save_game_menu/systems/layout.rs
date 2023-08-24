@@ -1,9 +1,11 @@
 use crate::ui::create_save_game_menu::components::*;
 use crate::ui::create_save_game_menu::styles::*;
-use crate::ui::styles::*;
 use crate::ui::input_field::components::*;
+use crate::ui::input_field::node_bundles::*;
+use crate::ui::styles::*;
 
 use bevy::prelude::*;
+use bevy::text::*;
 
 pub fn spawn_create_save_game_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     build_create_save_game_menu(&mut commands, &asset_server);
@@ -20,10 +22,7 @@ pub fn despawn_create_save_game_menu(
     }
 }
 
-fn build_create_save_game_menu(
-    commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
-) -> Entity {
+fn build_create_save_game_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
     let create_save_game_menu_entity = commands
         .spawn((
             NodeBundle {
@@ -54,30 +53,26 @@ fn build_create_save_game_menu(
                     });
                 });
             // New Save Game Panel
-            parent.spawn((NodeBundle {
-                style: NEW_SAVE_GAME_PANEL_STYLE,
-                ..default()
-                }
-            ))
-            .with_children(|parent| {
-                // Name Input Field
-                parent.spawn((
-                    TextBundle {
+            parent
+                .spawn(NodeBundle {
+                    style: NEW_SAVE_GAME_PANEL_STYLE,
+                    background_color: PANEL_COLOR.into(),
+                    ..default()
+                })
+                .with_children(|parent| {
+                    // Name Input Field
+                    parent.spawn((InputFieldBundle {
                         text: Text {
                             sections: vec![TextSection::new(
-                                "New Save Game",
+                                "Sex",
                                 get_title_text_style(&asset_server),
                             )],
                             alignment: TextAlignment::Center,
-                            ..default()
+                            linebreak_behavior: BreakLineOn::WordBoundary,
                         },
                         ..default()
-                    },
-                    InputField {
-                        value: String::new(),
-                    },
-                ));
-            });
+                    },));
+                });
             // Button Container
             parent
                 .spawn(NodeBundle {

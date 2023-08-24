@@ -1,5 +1,6 @@
 pub mod components;
 pub mod events;
+pub mod node_bundles;
 mod systems;
 
 use events::*;

@@ -14,7 +14,7 @@ pub fn text_input_system(
             //received_string_event_writer.send(ReceivedInput {
             //    sender: input_field_entity,
             //    input: input_field.value.clone(),
-            //});	
+            //});
             println!("Text input: {}", input_field.value);
             input_field.value.clear();
             continue;
@@ -34,9 +34,7 @@ pub fn text_input_system(
     }
 }
 
-pub fn text_render_system(
-    mut input_field_query: Query<(&InputField, &mut Text)>,
-) {
+pub fn text_render_system(mut input_field_query: Query<(&InputField, &mut Text)>) {
     for (input_field, mut input_field_text) in input_field_query.iter_mut() {
         input_field_text.sections[0].value = input_field.value.clone();
     }
