@@ -1,6 +1,5 @@
 use crate::AppState;
 
-use bevy::app::AppExit;
 use bevy::prelude::*;
 
 pub fn transition_to_game_state(

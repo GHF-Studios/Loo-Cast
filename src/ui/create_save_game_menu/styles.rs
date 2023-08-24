@@ -37,6 +37,22 @@ pub const NEW_SAVE_GAME_PANEL_STYLE: Style = {
     style.column_gap = Val::Px(8.0);
     style
 };
+pub const NEW_SAVE_GAME_NAME_STYLE: Style = {
+    let mut style = Style::DEFAULT;
+    style.display = Display::Flex;
+    style.flex_direction = FlexDirection::Row;
+    style.justify_content = JustifyContent::Center;
+    style.align_items = AlignItems::Start;
+    style.width = Val::Px(1000.0);
+    style.height = Val::Px(64.0);
+    style.row_gap = Val::Px(8.0);
+    style.column_gap = Val::Px(8.0);
+    style.min_width = Val::Px(1000.0);
+    style.min_height = Val::Px(64.0);
+    style.max_width = Val::Px(1000.0);
+    style.max_height = Val::Px(64.0);
+    style
+};
 
 pub const BUTTON_STYLE: Style = {
     let mut style = Style::DEFAULT;

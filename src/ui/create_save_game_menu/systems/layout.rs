@@ -1,7 +1,7 @@
 use crate::ui::create_save_game_menu::components::*;
 use crate::ui::create_save_game_menu::styles::*;
 use crate::ui::input_field::components::*;
-use crate::ui::input_field::node_bundles::*;
+use crate::ui::input_field::component_bundles::*;
 use crate::ui::styles::*;
 
 use bevy::prelude::*;
@@ -56,7 +56,6 @@ fn build_create_save_game_menu(commands: &mut Commands, asset_server: &Res<Asset
             parent
                 .spawn(NodeBundle {
                     style: NEW_SAVE_GAME_PANEL_STYLE,
-                    background_color: PANEL_COLOR.into(),
                     ..default()
                 })
                 .with_children(|parent| {
@@ -65,13 +64,27 @@ fn build_create_save_game_menu(commands: &mut Commands, asset_server: &Res<Asset
                         text: Text {
                             sections: vec![TextSection::new(
                                 "Sex",
-                                get_title_text_style(&asset_server),
+                                get_label_text_style(&asset_server),
                             )],
-                            alignment: TextAlignment::Center,
-                            linebreak_behavior: BreakLineOn::WordBoundary,
+                            ..default()
                         },
+                        style: NEW_SAVE_GAME_NAME_STYLE,
+                        background_color: UNFOCUSED_COLOR.into(),
                         ..default()
-                    },));
+                    }));
+                    // Name Input Field
+                    parent.spawn((InputFieldBundle {
+                        text: Text {
+                            sections: vec![TextSection::new(
+                                "Sex",
+                                get_label_text_style(&asset_server),
+                            )],
+                            ..default()
+                        },
+                        style: NEW_SAVE_GAME_NAME_STYLE,
+                        background_color: UNFOCUSED_COLOR.into(),
+                        ..default()
+                    }));
                 });
             // Button Container
             parent
