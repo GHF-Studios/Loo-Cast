@@ -1,5 +1,6 @@
 use crate::save_game::events::*;
 use crate::ui::create_save_game_menu::components::*;
+use crate::ui::input_field::components::InputField;
 use crate::ui::styles::*;
 use crate::AppState;
 
@@ -35,13 +36,16 @@ pub fn interact_with_confirm_create_save_game_button(
         (&Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<ConfirmCreateSaveGameButton>),
     >,
+    name_input_field_query: Query<&InputField, With<SaveGameName>>,
 ) {
     if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
+        let name_input_field = name_input_field_query.iter().next().unwrap();
+
         match *interaction {
             Interaction::Pressed => {
                 *background_color = PRESSED_BUTTON_COLOR.into();
                 create_save_game_event_writer.send(CreatedSaveGame {
-                    save_game_name: "test".to_string(),
+                    save_game_name: name_input_field.value.clone(),
                 });
                 app_state_next_state.set(AppState::SaveGamesMenu);
             }

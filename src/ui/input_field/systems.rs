@@ -54,10 +54,7 @@ pub fn text_render_system(mut input_field_query: Query<(&InputField, &mut Text)>
 pub fn interact_with_input_field(
     mut gained_focus_event_writer: EventWriter<GainedFocus>,
     focus_manager: Res<FocusManager>,
-    mut input_field_query: Query<
-        (&Interaction, Entity),
-        (Changed<Interaction>, With<InputField>),
-    >,
+    mut input_field_query: Query<(&Interaction, Entity), (Changed<Interaction>, With<InputField>)>,
 ) {
     if let Ok((interaction, input_field_entity)) = input_field_query.get_single_mut() {
         match *interaction {
@@ -72,18 +69,16 @@ pub fn interact_with_input_field(
             Interaction::None => {}
         }
     }
-    
 }
 
 pub fn handle_gained_focus_event(
     mut gained_focus_event_reader: EventReader<GainedFocus>,
-    mut input_field_query: Query<
-        (&mut BackgroundColor, Entity),
-        With<InputField>,
-    >,
+    mut input_field_query: Query<(&mut BackgroundColor, Entity), With<InputField>>,
 ) {
     if let Some(gained_focus_event) = gained_focus_event_reader.iter().last() {
-        if let Ok((mut background_color, input_field_entity)) = input_field_query.get_mut(gained_focus_event.entity) {
+        if let Ok((mut background_color, input_field_entity)) =
+            input_field_query.get_mut(gained_focus_event.entity)
+        {
             if gained_focus_event.entity == input_field_entity {
                 *background_color = FOCUSED_COLOR.into();
             }
@@ -93,13 +88,12 @@ pub fn handle_gained_focus_event(
 
 pub fn handle_lost_focus_event(
     mut lost_focus_event_reader: EventReader<LostFocus>,
-    mut input_field_query: Query<
-        (&mut BackgroundColor, Entity),
-        With<InputField>,
-    >,
+    mut input_field_query: Query<(&mut BackgroundColor, Entity), With<InputField>>,
 ) {
     if let Some(lost_focus_event) = lost_focus_event_reader.iter().last() {
-        if let Ok((mut background_color, input_field_entity)) = input_field_query.get_mut(lost_focus_event.entity) {
+        if let Ok((mut background_color, input_field_entity)) =
+            input_field_query.get_mut(lost_focus_event.entity)
+        {
             if lost_focus_event.entity == input_field_entity {
                 *background_color = UNFOCUSED_COLOR.into();
             }

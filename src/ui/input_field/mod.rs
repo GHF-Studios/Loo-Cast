@@ -1,5 +1,5 @@
-pub mod components;
 pub mod component_bundles;
+pub mod components;
 pub mod events;
 mod systems;
 
@@ -16,6 +16,15 @@ impl Plugin for InputFieldPlugin {
             // Initialize Events
             .add_event::<ReceivedInput>()
             // Update Systems
-            .add_systems(Update, (text_input_system, text_render_system, interact_with_input_field, handle_gained_focus_event, handle_lost_focus_event));
+            .add_systems(
+                Update,
+                (
+                    text_input_system,
+                    text_render_system,
+                    interact_with_input_field,
+                    handle_gained_focus_event,
+                    handle_lost_focus_event,
+                ),
+            );
     }
 }

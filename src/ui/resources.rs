@@ -7,8 +7,6 @@ pub struct FocusManager {
 
 impl Default for FocusManager {
     fn default() -> Self {
-        Self {
-            focus: None,
-        }
+        Self { focus: None }
     }
 }

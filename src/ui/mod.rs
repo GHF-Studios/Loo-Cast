@@ -1,10 +1,10 @@
 mod create_save_game_menu;
+pub mod events;
 mod input_field;
 mod main_menu;
 mod pause_menu;
-mod save_games_menu;
-pub mod events;
 pub mod resources;
+mod save_games_menu;
 pub mod styles;
 mod systems;
 
@@ -39,6 +39,6 @@ impl Plugin for UIPlugin {
                 InputFieldPlugin,
             ))
             // Update Systems
-            .add_systems(Update, (handle_gained_focus_event));
+            .add_systems(Update, handle_gained_focus_event);
     }
 }

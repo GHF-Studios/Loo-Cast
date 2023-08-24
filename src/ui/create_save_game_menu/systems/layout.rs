@@ -1,11 +1,9 @@
 use crate::ui::create_save_game_menu::components::*;
 use crate::ui::create_save_game_menu::styles::*;
-use crate::ui::input_field::components::*;
 use crate::ui::input_field::component_bundles::*;
 use crate::ui::styles::*;
 
 use bevy::prelude::*;
-use bevy::text::*;
 
 pub fn spawn_create_save_game_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     build_create_save_game_menu(&mut commands, &asset_server);
@@ -59,32 +57,22 @@ fn build_create_save_game_menu(commands: &mut Commands, asset_server: &Res<Asset
                     ..default()
                 })
                 .with_children(|parent| {
-                    // Name Input Field
-                    parent.spawn((InputFieldBundle {
-                        text: Text {
-                            sections: vec![TextSection::new(
-                                "Sex",
-                                get_label_text_style(&asset_server),
-                            )],
+                    // Save Game Name Input Field
+                    parent.spawn((
+                        InputFieldBundle {
+                            text: Text {
+                                sections: vec![TextSection::new(
+                                    "Sex",
+                                    get_label_text_style(&asset_server),
+                                )],
+                                ..default()
+                            },
+                            style: NEW_SAVE_GAME_NAME_STYLE,
+                            background_color: UNFOCUSED_COLOR.into(),
                             ..default()
                         },
-                        style: NEW_SAVE_GAME_NAME_STYLE,
-                        background_color: UNFOCUSED_COLOR.into(),
-                        ..default()
-                    }));
-                    // Name Input Field
-                    parent.spawn((InputFieldBundle {
-                        text: Text {
-                            sections: vec![TextSection::new(
-                                "Sex",
-                                get_label_text_style(&asset_server),
-                            )],
-                            ..default()
-                        },
-                        style: NEW_SAVE_GAME_NAME_STYLE,
-                        background_color: UNFOCUSED_COLOR.into(),
-                        ..default()
-                    }));
+                        SaveGameName {},
+                    ));
                 });
             // Button Container
             parent

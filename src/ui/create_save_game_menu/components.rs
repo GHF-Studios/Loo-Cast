@@ -4,6 +4,9 @@ use bevy::prelude::Component;
 pub struct CreateSaveGameMenu {}
 
 #[derive(Component)]
+pub struct SaveGameName {}
+
+#[derive(Component)]
 pub struct CancelCreateSaveGameButton {}
 
 #[derive(Component)]

@@ -1,5 +1,5 @@
-use crate::ui::resources::FocusManager;
 use crate::ui::events::*;
+use crate::ui::resources::FocusManager;
 
 use bevy::prelude::*;
 
@@ -10,9 +10,7 @@ pub fn handle_gained_focus_event(
 ) {
     if let Some(gained_focus_event) = gained_focus_event_reader.iter().last() {
         if let Some(old_focus) = focus_manager.focus {
-            lost_focus_event_writer.send(LostFocus {
-                entity: old_focus
-            });
+            lost_focus_event_writer.send(LostFocus { entity: old_focus });
         }
         focus_manager.focus = Some(gained_focus_event.entity);
     }
