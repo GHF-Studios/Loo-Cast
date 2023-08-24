@@ -14,7 +14,7 @@ pub fn despawn_main_menu(mut commands: Commands, main_menu_query: Query<Entity, 
     }
 }
 
-pub fn build_main_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
+fn build_main_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
     let main_menu_entity = commands
         .spawn((
             NodeBundle {

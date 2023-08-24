@@ -52,7 +52,7 @@ pub fn interact_with_create_save_game_button(
 }
 
 pub fn interact_with_delete_save_game_button(
-    mut game_over_event_writer: EventWriter<DeleteSaveGameEvent>,
+    mut game_over_event_writer: EventWriter<DeletedSaveGame>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor, &DeleteSaveGameButton),
         Changed<Interaction>,
@@ -63,7 +63,7 @@ pub fn interact_with_delete_save_game_button(
     {
         match *interaction {
             Interaction::Pressed => {
-                game_over_event_writer.send(DeleteSaveGameEvent {
+                game_over_event_writer.send(DeletedSaveGame {
                     save_game_name: delete_save_game_button.save_game_name.clone(),
                 });
                 *background_color = PRESSED_BUTTON_COLOR.into();
@@ -79,7 +79,7 @@ pub fn interact_with_delete_save_game_button(
 }
 
 pub fn interact_with_load_save_game_button(
-    mut game_over_event_writer: EventWriter<LoadSaveGameEvent>,
+    mut game_over_event_writer: EventWriter<LoadedSaveGame>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<LoadSaveGameButton>),
@@ -88,7 +88,7 @@ pub fn interact_with_load_save_game_button(
     if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
         match *interaction {
             Interaction::Pressed => {
-                game_over_event_writer.send(LoadSaveGameEvent {
+                game_over_event_writer.send(LoadedSaveGame {
                     save_game_name: "save_game_name".to_string(),
                 });
                 *background_color = PRESSED_BUTTON_COLOR.into();

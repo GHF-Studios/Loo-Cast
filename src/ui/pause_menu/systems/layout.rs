@@ -18,7 +18,7 @@ pub fn despawn_pause_menu(
 }
 
 // System Piping Example
-pub fn build_pause_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
+fn build_pause_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
     let pause_menu_entity = commands
         .spawn((
             NodeBundle {

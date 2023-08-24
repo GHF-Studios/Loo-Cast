@@ -31,7 +31,7 @@ impl Plugin for SaveGamesMenuPlugin {
             )
             .add_systems(
                 Update,
-                (handle_create_save_game_event, handle_delete_save_game_event).run_if(
+                (handle_created_save_game, handle_deleted_save_game).run_if(
                     in_state(AppState::SaveGamesMenu)
                         .or_else(in_state(AppState::CreateSaveGameMenu)),
                 ),

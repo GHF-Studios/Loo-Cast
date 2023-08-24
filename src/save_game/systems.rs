@@ -8,8 +8,8 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-pub fn handle_create_save_game_event(
-    mut create_save_game_event_reader: EventReader<CreateSaveGameEvent>,
+pub fn handle_created_save_game(
+    mut create_save_game_event_reader: EventReader<CreatedSaveGame>,
     mut save_game_manager: ResMut<SaveGameManager>,
 ) {
     for event in create_save_game_event_reader.iter() {
@@ -37,8 +37,8 @@ pub fn handle_create_save_game_event(
     }
 }
 
-pub fn handle_delete_save_game_event(
-    mut delete_save_game_event_reader: EventReader<DeleteSaveGameEvent>,
+pub fn handle_deleted_save_game(
+    mut delete_save_game_event_reader: EventReader<DeletedSaveGame>,
     mut save_game_manager: ResMut<SaveGameManager>,
 ) {
     for event in delete_save_game_event_reader.iter() {
@@ -57,8 +57,8 @@ pub fn handle_delete_save_game_event(
     }
 }
 
-pub fn handle_load_save_game_event(
-    mut load_save_game_event_reader: EventReader<LoadSaveGameEvent>,
+pub fn handle_loaded_save_game(
+    mut load_save_game_event_reader: EventReader<LoadedSaveGame>,
     mut app_state_next_state: ResMut<NextState<AppState>>,
 ) {
     if let Some(_) = load_save_game_event_reader.iter().next() {

@@ -44,7 +44,7 @@ pub fn despawn_save_game(
     }
 }
 
-pub fn build_save_games_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
+fn build_save_games_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
     let save_games_menu_entity = commands
         .spawn((
             NodeBundle {
@@ -131,7 +131,7 @@ pub fn build_save_games_menu(commands: &mut Commands, asset_server: &Res<AssetSe
     save_games_menu_entity
 }
 
-pub fn build_save_game(
+fn build_save_game(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
     save_games_container_entity: Entity,

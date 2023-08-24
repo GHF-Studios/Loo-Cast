@@ -1,6 +1,7 @@
 use crate::ui::create_save_game_menu::components::*;
 use crate::ui::create_save_game_menu::styles::*;
 use crate::ui::styles::*;
+use crate::ui::input_field::components::*;
 
 use bevy::prelude::*;
 
@@ -19,7 +20,7 @@ pub fn despawn_create_save_game_menu(
     }
 }
 
-pub fn build_create_save_game_menu(
+fn build_create_save_game_menu(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
 ) -> Entity {
@@ -59,7 +60,23 @@ pub fn build_create_save_game_menu(
                 }
             ))
             .with_children(|parent| {
-                
+                // Name Input Field
+                parent.spawn((
+                    TextBundle {
+                        text: Text {
+                            sections: vec![TextSection::new(
+                                "New Save Game",
+                                get_title_text_style(&asset_server),
+                            )],
+                            alignment: TextAlignment::Center,
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    InputField {
+                        value: String::new(),
+                    },
+                ));
             });
             // Button Container
             parent

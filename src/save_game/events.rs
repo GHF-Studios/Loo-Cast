@@ -1,16 +1,16 @@
 use bevy::prelude::*;
 
 #[derive(Event)]
-pub struct CreateSaveGameEvent {
+pub struct CreatedSaveGame {
     pub save_game_name: String,
 }
 
 #[derive(Event)]
-pub struct DeleteSaveGameEvent {
+pub struct DeletedSaveGame {
     pub save_game_name: String,
 }
 
 #[derive(Event)]
-pub struct LoadSaveGameEvent {
+pub struct LoadedSaveGame {
     pub save_game_name: String,
 }
