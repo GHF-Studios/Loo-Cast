@@ -25,6 +25,7 @@ impl Plugin for SaveGamesMenuPlugin {
                     interact_with_create_save_game_button,
                     interact_with_delete_save_game_button,
                     interact_with_load_save_game_button,
+                    handle_confirm_deleted_save_game_event,
                 )
                     .run_if(in_state(AppState::SaveGamesMenu)),
             )

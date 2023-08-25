@@ -1,4 +1,5 @@
 pub mod components;
+pub mod enums;
 pub mod events;
 pub mod resources;
 pub mod structs;
@@ -23,14 +24,16 @@ impl Plugin for SaveGamePlugin {
             .add_event::<CreateSaveGame>()
             .add_event::<DeleteSaveGame>()
             .add_event::<LoadSaveGame>()
+            .add_event::<UnloadSaveGame>()
             .add_event::<ConfirmCreatedSaveGame>()
             .add_event::<ConfirmDeletedSaveGame>()
             .add_event::<ConfirmLoadedSaveGame>()
+            .add_event::<ConfirmUnloadedSaveGame>()
             // Enter State Systems
             // Update Systems
             .add_systems(
                 Update,
-                (handle_deleted_save_game, handle_loaded_save_game)
+                (handle_delete_save_game, handle_load_save_game)
                     .run_if(in_state(AppState::SaveGamesMenu)),
             )
             .add_systems(
@@ -39,7 +42,8 @@ impl Plugin for SaveGamePlugin {
                     in_state(AppState::SaveGamesMenu)
                         .or_else(in_state(AppState::CreateSaveGameMenu)),
                 ),
-            );
-        // Exit State Systems
+            )
+            .add_systems(Update, handle_unload_save_game.run_if(in_state(AppState::Game)));
+            // Exit State Systems
     }
 }

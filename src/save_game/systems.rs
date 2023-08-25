@@ -2,6 +2,7 @@ use crate::save_game::events::*;
 use crate::save_game::resources::*;
 use crate::save_game::structs::*;
 use crate::AppState;
+use crate::game::resources::*;
 
 use bevy::prelude::*;
 use std::fs::File;
@@ -41,7 +42,7 @@ pub fn handle_create_save_game(
     }
 }
 
-pub fn handle_deleted_save_game(
+pub fn handle_delete_save_game(
     mut delete_save_game_event_reader: EventReader<DeleteSaveGame>,
     mut confirm_deleted_save_game_event_writer: EventWriter<ConfirmDeletedSaveGame>,
     mut save_game_manager: ResMut<SaveGameManager>,
@@ -56,7 +57,6 @@ pub fn handle_deleted_save_game(
             Ok(_) => println!("successfully deleted {}", display),
         }
 
-        // get the game info from the save game manager, remove it, delete it, and send the confirm, event
         let mut index_to_remove: Option<usize> = None;
         for (index, save_game_info) in save_game_manager.registered_save_games.iter().enumerate() {
             if save_game_info.name == event.save_game_name {
@@ -70,16 +70,32 @@ pub fn handle_deleted_save_game(
         }
 
         confirm_deleted_save_game_event_writer.send(ConfirmDeletedSaveGame {
-            save_game_name: event.save_game_name.to_string(),
+            save_game: event.save_game_name.to_string(),
         });
     }
 }
 
-pub fn handle_loaded_save_game(
+pub fn handle_load_save_game(
     mut load_save_game_event_reader: EventReader<LoadSaveGame>,
-    mut app_state_next_state: ResMut<NextState<AppState>>,
+    mut confirm_loaded_save_game_event_writer: EventWriter<ConfirmLoadedSaveGame>,
+    save_game_manager: Res<SaveGameManager>,
 ) {
-    if let Some(_) = load_save_game_event_reader.iter().next() {
-        app_state_next_state.set(AppState::Game);
+    if let Some(loaded_save_game_event) = load_save_game_event_reader.iter().last() {
+        if let Some(save_game) = save_game_manager.get_save_game_info(&loaded_save_game_event.save_game_name) {
+            confirm_loaded_save_game_event_writer.send(ConfirmLoadedSaveGame {
+                save_game: save_game.clone(),
+            });
+        }
+    }
+}
+
+pub fn handle_unload_save_game(
+    mut unload_save_game_event_reader: EventReader<UnloadSaveGame>,
+    mut confirm_unloaded_save_game_event_writer: EventWriter<ConfirmUnloadedSaveGame>,
+) {
+    if let Some(unloaded_save_game_event) = unload_save_game_event_reader.iter().last() {
+        confirm_unloaded_save_game_event_writer.send(ConfirmUnloadedSaveGame {
+            quit_mode: unloaded_save_game_event.quit_mode.clone(),
+        });
     }
 }

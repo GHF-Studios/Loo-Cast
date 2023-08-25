@@ -1,7 +1,9 @@
 use crate::game::SimulationState;
+use crate::game::resources::*;
+use crate::save_game::enums::*;
+use crate::save_game::events::*;
 use crate::ui::pause_menu::components::*;
 use crate::ui::styles::*;
-use crate::AppState;
 
 use bevy::app::AppExit;
 use bevy::prelude::*;
@@ -30,17 +32,19 @@ pub fn interact_with_resume_button(
 }
 
 pub fn interact_with_main_menu_button(
+    mut unload_save_game_event_writer: EventWriter<UnloadSaveGame>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<MainMenuButton>),
     >,
-    mut app_state_next_state: ResMut<NextState<AppState>>,
 ) {
     for (interaction, mut color) in button_query.iter_mut() {
         match *interaction {
             Interaction::Pressed => {
                 *color = PRESSED_BUTTON_COLOR.into();
-                app_state_next_state.set(AppState::MainMenu);
+                unload_save_game_event_writer.send(UnloadSaveGame {
+                    quit_mode: GameQuitMode::QuitToMainMenu,
+                });
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON_COLOR.into();
@@ -53,7 +57,7 @@ pub fn interact_with_main_menu_button(
 }
 
 pub fn interact_with_quit_button(
-    mut app_exit_event_writer: EventWriter<AppExit>,
+    mut unload_save_game_event_writer: EventWriter<UnloadSaveGame>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<QuitButton>),
@@ -63,7 +67,9 @@ pub fn interact_with_quit_button(
         match *interaction {
             Interaction::Pressed => {
                 *color = PRESSED_BUTTON_COLOR.into();
-                app_exit_event_writer.send(AppExit);
+                unload_save_game_event_writer.send(UnloadSaveGame {
+                    quit_mode: GameQuitMode::QuitToDesktop,
+                });
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON_COLOR.into();
