@@ -97,3 +97,32 @@ pub fn handle_unload_save_game(
         });
     }
 }
+
+pub fn init_save_game_manager(
+    mut commands: Commands,
+) {
+    let paths = std::fs::read_dir("data/saves").unwrap();
+    let mut save_game_infos: Vec<SaveGameInfo> = Vec::new();
+
+    for path in paths {
+        let path = path.unwrap().path();
+        let display = path.display();
+
+        let mut file = match File::open(&path) {
+            Err(why) => panic!("Couldn't open {}: {}", display, why),
+            Ok(file) => file,
+        };
+
+        let mut serialized_save_game_info = String::new();
+        match file.read_to_string(&mut serialized_save_game_info) {
+            Err(why) => panic!("Couldn't read {}: {}", display, why),
+            Ok(_) => println!("Successfully read {}", display),
+        }
+
+        save_game_infos.push(serde_json::from_str(&serialized_save_game_info).unwrap());
+    }
+
+    commands.insert_resource(SaveGameManager {
+        registered_save_games: save_game_infos,
+    });
+}

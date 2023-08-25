@@ -18,8 +18,6 @@ pub struct SaveGamePlugin;
 impl Plugin for SaveGamePlugin {
     fn build(&self, app: &mut App) {
         app
-            // Initialize Resources
-            .init_resource::<SaveGameManager>()
             // Initialize Events
             .add_event::<CreateSaveGame>()
             .add_event::<DeleteSaveGame>()
@@ -29,6 +27,8 @@ impl Plugin for SaveGamePlugin {
             .add_event::<ConfirmDeletedSaveGame>()
             .add_event::<ConfirmLoadedSaveGame>()
             .add_event::<ConfirmUnloadedSaveGame>()
+            // Startup Systems
+            .add_systems(Startup, init_save_game_manager)
             // Enter State Systems
             // Update Systems
             .add_systems(
