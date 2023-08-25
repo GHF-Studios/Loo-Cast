@@ -3,29 +3,17 @@ use crate::ui::resources::FocusManager;
 use crate::ui::styles::*;
 
 use super::components::*;
-use super::events::*;
 
 use bevy::prelude::*;
 
 pub fn text_input_system(
     mut received_character_event_reader: EventReader<ReceivedCharacter>,
-    mut received_string_event_writer: EventWriter<ReceivedInput>,
     keyboard_input: Res<Input<KeyCode>>,
     focus_manager: Res<FocusManager>,
     mut input_field_query: Query<(&mut InputField, Entity)>,
 ) {
     for (mut input_field, input_field_entity) in input_field_query.iter_mut() {
         if Some(input_field_entity) != focus_manager.focus {
-            continue;
-        }
-
-        if keyboard_input.just_pressed(KeyCode::Return) {
-            received_string_event_writer.send(ReceivedInput {
-                sender: input_field_entity,
-                input: input_field.value.clone(),
-            });
-            println!("Text input: {}", input_field.value);
-            input_field.value.clear();
             continue;
         }
 

@@ -1,9 +1,7 @@
 pub mod component_bundles;
 pub mod components;
-pub mod events;
 mod systems;
 
-use events::*;
 use systems::*;
 
 use bevy::prelude::*;
@@ -13,8 +11,6 @@ pub struct InputFieldPlugin;
 impl Plugin for InputFieldPlugin {
     fn build(&self, app: &mut App) {
         app
-            // Initialize Events
-            .add_event::<ReceivedInput>()
             // Update Systems
             .add_systems(
                 Update,

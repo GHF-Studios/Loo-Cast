@@ -19,7 +19,14 @@ pub fn handle_create_save_game(
 
         let serialized_save_game_info: String = serde_json::to_string(&save_game_info).unwrap();
 
-        let string_path = format!("data/saves/{}.json", event.save_game_name);
+        // Create the directory if it doesn't exist
+        let dir_path = format!("data/saves/{}", event.save_game_name);
+        if !Path::new(&dir_path).exists() {
+            std::fs::create_dir_all(&dir_path).expect("Failed to create save game directory");
+        }
+
+        // Now save the file inside the directory
+        let string_path = format!("{}/info.json", dir_path);
         let path = Path::new(&string_path);
         let display = path.display();
 
@@ -46,7 +53,8 @@ pub fn handle_delete_save_game(
     mut save_game_manager: ResMut<SaveGameManager>,
 ) {
     for event in delete_save_game_event_reader.iter() {
-        let string_path = format!("data/saves/{}.json", event.save_game_name);
+        let dir_path = format!("data/saves/{}", event.save_game_name);
+        let string_path = format!("{}/info.json", dir_path);
         let path = Path::new(&string_path);
         let display = path.display();
 
@@ -54,6 +62,8 @@ pub fn handle_delete_save_game(
             Err(why) => panic!("Couldn't delete {}: {}", display, why),
             Ok(_) => println!("successfully deleted {}", display),
         }
+
+        std::fs::remove_dir_all(&dir_path).expect("Failed to remove save game directory");
 
         let mut index_to_remove: Option<usize> = None;
         for (index, save_game_info) in save_game_manager.registered_save_games.iter().enumerate() {
@@ -106,20 +116,23 @@ pub fn init_save_game_manager(
 
     for path in paths {
         let path = path.unwrap().path();
-        let display = path.display();
+        if path.is_dir() {
+            let info_path = path.join("info.json");
+            let display = info_path.display();
 
-        let mut file = match File::open(&path) {
-            Err(why) => panic!("Couldn't open {}: {}", display, why),
-            Ok(file) => file,
-        };
+            let mut file = match File::open(&info_path) {
+                Err(why) => panic!("Couldn't open {}: {}", display, why),
+                Ok(file) => file,
+            };
 
-        let mut serialized_save_game_info = String::new();
-        match file.read_to_string(&mut serialized_save_game_info) {
-            Err(why) => panic!("Couldn't read {}: {}", display, why),
-            Ok(_) => println!("Successfully read {}", display),
+            let mut serialized_save_game_info = String::new();
+            match file.read_to_string(&mut serialized_save_game_info) {
+                Err(why) => panic!("Couldn't read {}: {}", display, why),
+                Ok(_) => println!("Successfully read {}", display),
+            }
+
+            save_game_infos.push(serde_json::from_str(&serialized_save_game_info).unwrap());
         }
-
-        save_game_infos.push(serde_json::from_str(&serialized_save_game_info).unwrap());
     }
 
     commands.insert_resource(SaveGameManager {
