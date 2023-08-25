@@ -6,7 +6,6 @@ pub mod structs;
 mod systems;
 
 use events::*;
-use resources::*;
 use systems::*;
 
 use crate::AppState;
