@@ -1,11 +1,9 @@
 use crate::game::SimulationState;
-use crate::game::resources::*;
 use crate::save_game::enums::*;
 use crate::save_game::events::*;
 use crate::ui::pause_menu::components::*;
 use crate::ui::styles::*;
 
-use bevy::app::AppExit;
 use bevy::prelude::*;
 
 pub fn interact_with_resume_button(

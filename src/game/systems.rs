@@ -1,7 +1,6 @@
 use crate::AppState;
 use crate::save_game::enums::GameQuitMode;
 use crate::{game::SimulationState, save_game::events::{ConfirmLoadedSaveGame, ConfirmUnloadedSaveGame}};
-use crate::save_game::resources::*;
 
 use bevy::prelude::*;
 use bevy::app::AppExit;
