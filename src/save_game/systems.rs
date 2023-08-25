@@ -8,8 +8,9 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-pub fn handle_created_save_game(
-    mut create_save_game_event_reader: EventReader<CreatedSaveGame>,
+pub fn handle_create_save_game(
+    mut create_save_game_event_reader: EventReader<CreateSaveGame>,
+    mut confirm_created_save_game_event_writer: EventWriter<ConfirmCreatedSaveGame>,
     mut save_game_manager: ResMut<SaveGameManager>,
 ) {
     for event in create_save_game_event_reader.iter() {
@@ -34,11 +35,15 @@ pub fn handle_created_save_game(
         }
 
         save_game_manager.registered_save_games.push(save_game_info);
+        confirm_created_save_game_event_writer.send(ConfirmCreatedSaveGame {
+            save_game_name: event.save_game_name.to_string(),
+        });
     }
 }
 
 pub fn handle_deleted_save_game(
-    mut delete_save_game_event_reader: EventReader<DeletedSaveGame>,
+    mut delete_save_game_event_reader: EventReader<DeleteSaveGame>,
+    mut confirm_deleted_save_game_event_writer: EventWriter<ConfirmDeletedSaveGame>,
     mut save_game_manager: ResMut<SaveGameManager>,
 ) {
     for event in delete_save_game_event_reader.iter() {
@@ -51,14 +56,27 @@ pub fn handle_deleted_save_game(
             Ok(_) => println!("successfully deleted {}", display),
         }
 
-        save_game_manager
-            .registered_save_games
-            .retain(|save_game_info| save_game_info.name != event.save_game_name);
+        // get the game info from the save game manager, remove it, delete it, and send the confirm, event
+        let mut index_to_remove: Option<usize> = None;
+        for (index, save_game_info) in save_game_manager.registered_save_games.iter().enumerate() {
+            if save_game_info.name == event.save_game_name {
+                index_to_remove = Some(index);
+                break;
+            }
+        }
+
+        if let Some(index) = index_to_remove {
+            save_game_manager.registered_save_games.remove(index);
+        }
+
+        confirm_deleted_save_game_event_writer.send(ConfirmDeletedSaveGame {
+            save_game_name: event.save_game_name.to_string(),
+        });
     }
 }
 
 pub fn handle_loaded_save_game(
-    mut load_save_game_event_reader: EventReader<LoadedSaveGame>,
+    mut load_save_game_event_reader: EventReader<LoadSaveGame>,
     mut app_state_next_state: ResMut<NextState<AppState>>,
 ) {
     if let Some(_) = load_save_game_event_reader.iter().next() {

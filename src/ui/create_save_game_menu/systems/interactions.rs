@@ -30,8 +30,7 @@ pub fn interact_with_cancel_create_save_game_button(
 }
 
 pub fn interact_with_confirm_create_save_game_button(
-    mut create_save_game_event_writer: EventWriter<CreatedSaveGame>,
-    mut app_state_next_state: ResMut<NextState<AppState>>,
+    mut create_save_game_event_writer: EventWriter<CreateSaveGame>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<ConfirmCreateSaveGameButton>),
@@ -44,10 +43,9 @@ pub fn interact_with_confirm_create_save_game_button(
         match *interaction {
             Interaction::Pressed => {
                 *background_color = PRESSED_BUTTON_COLOR.into();
-                create_save_game_event_writer.send(CreatedSaveGame {
+                create_save_game_event_writer.send(CreateSaveGame {
                     save_game_name: name_input_field.value.clone(),
                 });
-                app_state_next_state.set(AppState::SaveGamesMenu);
             }
             Interaction::Hovered => {
                 *background_color = HOVERED_BUTTON_COLOR.into();

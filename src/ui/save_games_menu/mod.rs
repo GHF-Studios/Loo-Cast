@@ -28,6 +28,11 @@ impl Plugin for SaveGamesMenuPlugin {
                 )
                     .run_if(in_state(AppState::SaveGamesMenu)),
             )
+            .add_systems(
+                Update,
+                handle_confirm_created_save_game_event
+                    .run_if(in_state(AppState::CreateSaveGameMenu)),
+            )
             // Exit State Systems
             .add_systems(OnExit(AppState::SaveGamesMenu), despawn_save_games_menu);
     }

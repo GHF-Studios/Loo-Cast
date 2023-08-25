@@ -9,8 +9,6 @@ mod save_game;
 pub mod ui;
 pub mod universe;
 
-use systems::*;
-
 use background::BackgroundPlugin;
 use camera::CameraPlugin;
 use game::GamePlugin;
@@ -38,10 +36,6 @@ fn main() {
             UniversePlugin,
         ))
         // Update Systems
-        .add_systems(
-            Update,
-            (transition_to_game_state, transition_to_main_menu_state),
-        )
         // Run
         .run();
 }
