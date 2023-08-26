@@ -17,7 +17,7 @@ pub struct SaveGamePlugin;
 impl Plugin for SaveGamePlugin {
     fn build(&self, app: &mut App) {
         app
-            // Initialize Events
+            // Events
             .add_event::<CreateSaveGame>()
             .add_event::<DeleteSaveGame>()
             .add_event::<LoadSaveGame>()
@@ -42,7 +42,10 @@ impl Plugin for SaveGamePlugin {
                         .or_else(in_state(AppState::CreateSaveGameMenu)),
                 ),
             )
-            .add_systems(Update, handle_unload_save_game.run_if(in_state(AppState::Game)));
-            // Exit State Systems
+            .add_systems(
+                Update,
+                handle_unload_save_game.run_if(in_state(AppState::Game)),
+            );
+        // Exit State Systems
     }
 }

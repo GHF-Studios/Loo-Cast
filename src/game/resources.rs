@@ -4,5 +4,5 @@ use crate::save_game::structs::SaveGameInfo;
 
 #[derive(Resource)]
 pub struct GameManager {
-    pub current_save_game: SaveGameInfo
+    pub current_save_game: SaveGameInfo,
 }

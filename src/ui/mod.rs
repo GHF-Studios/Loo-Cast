@@ -25,10 +25,10 @@ pub struct UIPlugin;
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app
-            // Initialize Events
+            // Events
             .add_event::<GainedFocus>()
             .add_event::<LostFocus>()
-            // Initialize Resources
+            // Resources
             .init_resource::<FocusManager>()
             // Plugins
             .add_plugins((

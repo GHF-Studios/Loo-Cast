@@ -1,15 +1,19 @@
-mod components;
-mod resources;
+pub mod components;
+pub mod events;
+pub mod resources;
 mod systems;
 
-use components::*;
-use resources::*;
-use systems::*;
+use events::*;
 
 use bevy::prelude::*;
 
 pub struct UniversePlugin;
 
 impl Plugin for UniversePlugin {
-    fn build(&self, app: &mut App) {}
+    fn build(&self, app: &mut App) {
+        app
+            // Events
+            .add_event::<LoadUniverse>()
+            .add_event::<ConfirmLoadedUniverse>();
+    }
 }

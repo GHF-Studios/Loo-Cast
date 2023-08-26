@@ -19,13 +19,11 @@ pub fn handle_create_save_game(
 
         let serialized_save_game_info: String = serde_json::to_string(&save_game_info).unwrap();
 
-        // Create the directory if it doesn't exist
         let dir_path = format!("data/saves/{}", event.save_game_name);
         if !Path::new(&dir_path).exists() {
             std::fs::create_dir_all(&dir_path).expect("Failed to create save game directory");
         }
 
-        // Now save the file inside the directory
         let string_path = format!("{}/info.json", dir_path);
         let path = Path::new(&string_path);
         let display = path.display();
@@ -89,7 +87,9 @@ pub fn handle_load_save_game(
     save_game_manager: Res<SaveGameManager>,
 ) {
     if let Some(loaded_save_game_event) = load_save_game_event_reader.iter().last() {
-        if let Some(save_game) = save_game_manager.get_save_game_info(&loaded_save_game_event.save_game_name) {
+        if let Some(save_game) =
+            save_game_manager.get_save_game_info(&loaded_save_game_event.save_game_name)
+        {
             confirm_loaded_save_game_event_writer.send(ConfirmLoadedSaveGame {
                 save_game: save_game.clone(),
             });
@@ -108,9 +108,7 @@ pub fn handle_unload_save_game(
     }
 }
 
-pub fn init_save_game_manager(
-    mut commands: Commands,
-) {
+pub fn init_save_game_manager(mut commands: Commands) {
     let paths = std::fs::read_dir("data/saves").unwrap();
     let mut save_game_infos: Vec<SaveGameInfo> = Vec::new();
 

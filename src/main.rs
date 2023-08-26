@@ -3,23 +3,25 @@ mod systems;
 pub mod background;
 pub mod camera;
 pub mod game;
-mod game_configuration;
+pub mod game_config;
+pub mod game_state;
 pub mod math;
 pub mod player;
-mod save_game;
+pub mod save_game;
 pub mod ui;
 pub mod universe;
 
 use background::BackgroundPlugin;
 use camera::CameraPlugin;
 use game::GamePlugin;
-use game_configuration::GameConfigurationPlugin;
+use game_config::GameConfigPlugin;
+use game_state::GameStatePlugin;
 use player::PlayerPlugin;
 use save_game::SaveGamePlugin;
 use ui::UIPlugin;
 use universe::UniversePlugin;
 
-use bevy::{prelude::*, app::PluginGroupBuilder};
+use bevy::{app::PluginGroupBuilder, prelude::*};
 
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
 pub enum AppState {
@@ -40,12 +42,13 @@ impl PluginGroup for LooCastBasePlugins {
             .add(BackgroundPlugin)
             .add(CameraPlugin)
             .add(GamePlugin)
-            .add(GameConfigurationPlugin)
+            .add(GameConfigPlugin)
+            .add(GameStatePlugin)
             .add(PlayerPlugin)
             .add(SaveGamePlugin)
             .add(UIPlugin)
             .add(UniversePlugin);
-        
+
         group
     }
 }

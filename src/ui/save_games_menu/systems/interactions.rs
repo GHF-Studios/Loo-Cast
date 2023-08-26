@@ -85,7 +85,9 @@ pub fn interact_with_load_save_game_button(
         Changed<Interaction>,
     >,
 ) {
-    if let Ok((interaction, mut background_color, load_save_game_button)) = button_query.get_single_mut() {
+    if let Ok((interaction, mut background_color, load_save_game_button)) =
+        button_query.get_single_mut()
+    {
         match *interaction {
             Interaction::Pressed => {
                 load_save_game_event_writer.send(LoadSaveGame {
@@ -115,7 +117,7 @@ pub fn handle_confirm_created_save_game_event(
 pub fn handle_confirm_deleted_save_game_event(
     mut commands: Commands,
     mut confirm_deleted_save_game_event_reader: EventReader<ConfirmDeletedSaveGame>,
-    mut save_game_query: Query<(Entity, &SaveGame)>
+    mut save_game_query: Query<(Entity, &SaveGame)>,
 ) {
     if let Some(event) = confirm_deleted_save_game_event_reader.iter().next() {
         for (entity, save_game) in save_game_query.iter_mut() {

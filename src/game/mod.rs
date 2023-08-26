@@ -17,8 +17,21 @@ impl Plugin for GamePlugin {
             // Enter Systems
             .add_systems(OnEnter(AppState::Game), pause_simulation)
             // Update Systems
-            .add_systems(Update, handle_confirm_loaded_save_game_event.run_if(in_state(AppState::SaveGamesMenu)))
-            .add_systems(Update, (toggle_simulation, handle_confirm_unloaded_save_game_event).run_if(in_state(AppState::Game)))
+            .add_systems(
+                Update,
+                handle_confirm_loaded_save_game_event.run_if(in_state(AppState::SaveGamesMenu)),
+            )
+            .add_systems(
+                Update,
+                (
+                    toggle_simulation,
+                    handle_confirm_unloaded_save_game_event,
+                    handle_confirm_loaded_game_config,
+                    handle_confirm_loaded_game_state,
+                    handle_confirm_loaded_universe,
+                )
+                    .run_if(in_state(AppState::Game)),
+            )
             // Exit State Systems
             .add_systems(OnExit(AppState::Game), resume_simulation);
     }
