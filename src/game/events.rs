@@ -8,9 +8,6 @@ pub struct LoadGame {
 }
 
 #[derive(Event)]
-pub struct LoadedGame;
-
-#[derive(Event)]
 pub struct UnloadGame {
     pub quit_mode: GameQuitMode,
 }

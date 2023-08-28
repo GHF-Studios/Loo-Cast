@@ -20,7 +20,6 @@ impl Plugin for GamePlugin {
         app.add_plugins((ConfigPlugin, StatePlugin))
             // Events
             .add_event::<LoadGame>()
-            .add_event::<LoadedGame>()
             .add_event::<UnloadGame>()
             // States
             .add_state::<SimulationState>()

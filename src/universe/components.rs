@@ -2,16 +2,9 @@ use bevy::prelude::*;
 use serde::*;
 
 #[derive(Component, Serialize, Deserialize)]
-pub struct Scale {
-    pub scale_level: i8,
-    pub loaded_chunks: Vec<Chunk>,
-}
-
-#[derive(Component, Serialize, Deserialize)]
 pub struct Chunk {
+    pub chunk_x: i16,
+    pub chunk_y: i16,
     pub scale_level: i8,
-    pub universe_object_ids: Vec<i32>,
+    pub stored_entities: Vec<Entity>,
 }
-
-#[derive(Component)]
-pub struct UniverseObject {}

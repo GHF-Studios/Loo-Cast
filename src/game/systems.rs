@@ -3,6 +3,7 @@ use crate::game::state::resources::*;
 use crate::game::SimulationState;
 use crate::save_game::enums::GameQuitMode;
 use crate::save_game::structs::*;
+use crate::universe::events::*;
 use crate::AppState;
 
 use super::events::*;
@@ -33,7 +34,7 @@ pub fn toggle_simulation(
 pub fn handle_load_game(
     mut commands: Commands,
     mut load_game_event_reader: EventReader<LoadGame>,
-    mut loaded_game_event_reader: EventWriter<LoadedGame>,
+    mut load_universe_event_writer: EventWriter<LoadUniverse>,
     mut app_state_next_state: ResMut<NextState<AppState>>,
     mut simulation_state_next_state: ResMut<NextState<SimulationState>>,
 ) {
@@ -67,9 +68,9 @@ pub fn handle_load_game(
         commands.insert_resource(GameStateManager {});
 
         // Finalize Loading
-        app_state_next_state.set(AppState::Game);
-        loaded_game_event_reader.send(LoadedGame {});
         simulation_state_next_state.set(SimulationState::Paused);
+        app_state_next_state.set(AppState::Game);
+        load_universe_event_writer.send(LoadUniverse {});
     }
 }
 
