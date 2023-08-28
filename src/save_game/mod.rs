@@ -26,14 +26,11 @@ impl Plugin for SaveGamePlugin {
             // Update Systems
             .add_systems(
                 Update,
-                (handle_delete_save_game)
-                    .run_if(in_state(AppState::SaveGamesMenu)),
+                (handle_delete_save_game).run_if(in_state(AppState::SaveGamesMenu)),
             )
             .add_systems(
                 Update,
-                (handle_create_save_game).run_if(
-                    in_state(AppState::CreateSaveGameMenu),
-                ),
+                (handle_create_save_game).run_if(in_state(AppState::CreateSaveGameMenu)),
             );
         // Exit State Systems
     }

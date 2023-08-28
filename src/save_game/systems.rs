@@ -1,8 +1,8 @@
 use crate::save_game::events::*;
 use crate::save_game::resources::*;
 use crate::save_game::structs::*;
-use crate::AppState;
 use crate::ui::save_games_menu::events::DeleteSaveGameUI;
+use crate::AppState;
 
 use bevy::prelude::*;
 use std::fs::File;
@@ -75,9 +75,11 @@ pub fn handle_delete_save_game(
             save_game_manager.registered_save_games.remove(index);
         }
 
-        delete_save_game_ui_event_writer.send(crate::ui::save_games_menu::events::DeleteSaveGameUI {
-            save_game_name: event.save_game_name.to_string(),
-        });
+        delete_save_game_ui_event_writer.send(
+            crate::ui::save_games_menu::events::DeleteSaveGameUI {
+                save_game_name: event.save_game_name.to_string(),
+            },
+        );
     }
 }
 

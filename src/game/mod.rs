@@ -1,13 +1,13 @@
+mod config;
 pub mod events;
 pub mod resources;
-mod systems;
-mod config;
 mod state;
+mod systems;
 
-use events::*;
-use systems::*;
 use config::*;
+use events::*;
 use state::*;
+use systems::*;
 
 use crate::AppState;
 
@@ -17,8 +17,7 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins((ConfigPlugin, StatePlugin))
+        app.add_plugins((ConfigPlugin, StatePlugin))
             // Events
             .add_event::<LoadGame>()
             .add_event::<LoadedGame>()
@@ -29,13 +28,11 @@ impl Plugin for GamePlugin {
             // Update Systems
             .add_systems(
                 Update,
-                handle_load_game
-                .run_if(in_state(AppState::SaveGamesMenu)),
+                handle_load_game.run_if(in_state(AppState::SaveGamesMenu)),
             )
             .add_systems(
                 Update,
-                (toggle_simulation, handle_unload_game)
-                    .run_if(in_state(AppState::Game)),
+                (toggle_simulation, handle_unload_game).run_if(in_state(AppState::Game)),
             );
     }
 }

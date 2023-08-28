@@ -1,5 +1,4 @@
-use crate::save_game::{structs::SaveGameInfo, enums::GameQuitMode};
-
+use crate::save_game::{enums::GameQuitMode, structs::SaveGameInfo};
 
 use bevy::prelude::*;
 

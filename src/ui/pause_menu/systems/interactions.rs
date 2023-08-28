@@ -1,5 +1,5 @@
-use crate::game::SimulationState;
 use crate::game::events::UnloadGame;
+use crate::game::SimulationState;
 use crate::save_game::enums::*;
 use crate::ui::pause_menu::components::*;
 use crate::ui::styles::*;

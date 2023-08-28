@@ -4,6 +4,9 @@ pub mod resources;
 mod systems;
 
 use events::*;
+use systems::*;
+
+use crate::AppState;
 
 use bevy::prelude::*;
 
@@ -14,6 +17,11 @@ impl Plugin for UniversePlugin {
         app
             // Events
             .add_event::<LoadUniverse>()
-            .add_event::<ConfirmLoadedUniverse>();
+            .add_event::<ConfirmLoadedUniverse>()
+            // Update Systems
+            .add_systems(
+                Update,
+                handle_load_universe.run_if(in_state(AppState::Game)),
+            );
     }
 }

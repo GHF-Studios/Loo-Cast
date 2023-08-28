@@ -1,10 +1,10 @@
+use crate::game::events::*;
 use crate::save_game::events::DeleteSaveGame;
+use crate::save_game::resources::*;
 use crate::ui::save_games_menu::components::*;
+use crate::ui::save_games_menu::events::*;
 use crate::ui::styles::*;
 use crate::AppState;
-use crate::game::events::*;
-use crate::ui::save_games_menu::events::*;
-use crate::save_game::resources::*;
 
 use bevy::prelude::*;
 
@@ -114,8 +114,7 @@ pub fn handle_load_save_game_instance(
     save_game_manager: Res<SaveGameManager>,
 ) {
     if let Some(event) = load_save_game_instance_event_reader.iter().last() {
-        if let Some(save_game) =
-            save_game_manager.get_save_game_info(event.save_game_name.clone())
+        if let Some(save_game) = save_game_manager.get_save_game_info(event.save_game_name.clone())
         {
             load_game_event_writer.send(LoadGame {
                 save_game: save_game.clone(),

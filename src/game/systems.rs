@@ -1,6 +1,6 @@
-use crate::game::SimulationState;
 use crate::game::config::resources::*;
 use crate::game::state::resources::*;
+use crate::game::SimulationState;
 use crate::save_game::enums::GameQuitMode;
 use crate::save_game::structs::*;
 use crate::AppState;
@@ -35,7 +35,7 @@ pub fn handle_load_game(
     mut load_game_event_reader: EventReader<LoadGame>,
     mut loaded_game_event_reader: EventWriter<LoadedGame>,
     mut app_state_next_state: ResMut<NextState<AppState>>,
-    mut simulation_state_next_state: ResMut<NextState<SimulationState>>
+    mut simulation_state_next_state: ResMut<NextState<SimulationState>>,
 ) {
     if let Some(confirm_loaded_save_game_event) = load_game_event_reader.iter().last() {
         let save_game_info: SaveGameInfo = confirm_loaded_save_game_event.save_game.clone();
@@ -78,7 +78,7 @@ pub fn handle_unload_game(
     mut unload_game_event_reader: EventReader<UnloadGame>,
     mut app_exit_event_writer: EventWriter<AppExit>,
     mut app_state_next_state: ResMut<NextState<AppState>>,
-    mut simulation_state_next_state: ResMut<NextState<SimulationState>>
+    mut simulation_state_next_state: ResMut<NextState<SimulationState>>,
 ) {
     if let Some(unload_save_game_event) = unload_game_event_reader.iter().last() {
         // Unload Game State
