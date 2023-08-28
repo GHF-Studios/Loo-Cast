@@ -1,6 +1,8 @@
 use crate::save_game::events::*;
 use crate::save_game::resources::*;
 use crate::save_game::structs::*;
+use crate::AppState;
+use crate::ui::save_games_menu::events::DeleteSaveGameUI;
 
 use bevy::prelude::*;
 use std::fs::File;
@@ -9,8 +11,8 @@ use std::path::Path;
 
 pub fn handle_create_save_game(
     mut create_save_game_event_reader: EventReader<CreateSaveGame>,
-    mut confirm_created_save_game_event_writer: EventWriter<ConfirmCreatedSaveGame>,
     mut save_game_manager: ResMut<SaveGameManager>,
+    mut app_state_next_state: ResMut<NextState<AppState>>,
 ) {
     for event in create_save_game_event_reader.iter() {
         let save_game_info: SaveGameInfo = SaveGameInfo {
@@ -39,15 +41,13 @@ pub fn handle_create_save_game(
         }
 
         save_game_manager.registered_save_games.push(save_game_info);
-        confirm_created_save_game_event_writer.send(ConfirmCreatedSaveGame {
-            save_game_name: event.save_game_name.to_string(),
-        });
+        app_state_next_state.set(AppState::SaveGamesMenu);
     }
 }
 
 pub fn handle_delete_save_game(
     mut delete_save_game_event_reader: EventReader<DeleteSaveGame>,
-    mut confirm_deleted_save_game_event_writer: EventWriter<ConfirmDeletedSaveGame>,
+    mut delete_save_game_ui_event_writer: EventWriter<DeleteSaveGameUI>,
     mut save_game_manager: ResMut<SaveGameManager>,
 ) {
     for event in delete_save_game_event_reader.iter() {
@@ -75,40 +75,13 @@ pub fn handle_delete_save_game(
             save_game_manager.registered_save_games.remove(index);
         }
 
-        confirm_deleted_save_game_event_writer.send(ConfirmDeletedSaveGame {
-            save_game: event.save_game_name.to_string(),
+        delete_save_game_ui_event_writer.send(crate::ui::save_games_menu::events::DeleteSaveGameUI {
+            save_game_name: event.save_game_name.to_string(),
         });
     }
 }
 
-pub fn handle_load_save_game(
-    mut load_save_game_event_reader: EventReader<LoadSaveGame>,
-    mut confirm_loaded_save_game_event_writer: EventWriter<ConfirmLoadedSaveGame>,
-    save_game_manager: Res<SaveGameManager>,
-) {
-    if let Some(loaded_save_game_event) = load_save_game_event_reader.iter().last() {
-        if let Some(save_game) =
-            save_game_manager.get_save_game_info(&loaded_save_game_event.save_game_name)
-        {
-            confirm_loaded_save_game_event_writer.send(ConfirmLoadedSaveGame {
-                save_game: save_game.clone(),
-            });
-        }
-    }
-}
-
-pub fn handle_unload_save_game(
-    mut unload_save_game_event_reader: EventReader<UnloadSaveGame>,
-    mut confirm_unloaded_save_game_event_writer: EventWriter<ConfirmUnloadedSaveGame>,
-) {
-    if let Some(unloaded_save_game_event) = unload_save_game_event_reader.iter().last() {
-        confirm_unloaded_save_game_event_writer.send(ConfirmUnloadedSaveGame {
-            quit_mode: unloaded_save_game_event.quit_mode.clone(),
-        });
-    }
-}
-
-pub fn init_save_game_manager(mut commands: Commands) {
+pub fn init(mut commands: Commands) {
     let paths = std::fs::read_dir("data/saves").unwrap();
     let mut save_game_infos: Vec<SaveGameInfo> = Vec::new();
 

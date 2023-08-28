@@ -4,7 +4,7 @@ mod input_field;
 mod main_menu;
 mod pause_menu;
 pub mod resources;
-mod save_games_menu;
+pub mod save_games_menu;
 pub mod styles;
 mod systems;
 

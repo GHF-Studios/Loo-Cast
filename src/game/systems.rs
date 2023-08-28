@@ -1,23 +1,17 @@
 use crate::game::SimulationState;
-use crate::game_config::events::*;
-use crate::game_state::events::*;
+use crate::game::config::resources::*;
+use crate::game::state::resources::*;
 use crate::save_game::enums::GameQuitMode;
-use crate::save_game::events::*;
-use crate::universe::events::*;
+use crate::save_game::structs::*;
 use crate::AppState;
 
+use super::events::*;
 use super::resources::GameManager;
 
 use bevy::app::AppExit;
 use bevy::prelude::*;
-
-pub fn pause_simulation(mut simulation_state_next_state: ResMut<NextState<SimulationState>>) {
-    simulation_state_next_state.set(SimulationState::Paused);
-}
-
-pub fn resume_simulation(mut simulation_state_next_state: ResMut<NextState<SimulationState>>) {
-    simulation_state_next_state.set(SimulationState::Running);
-}
+use std::fs::File;
+use std::path::Path;
 
 pub fn toggle_simulation(
     keyboard_input: Res<Input<KeyCode>>,
@@ -36,79 +30,73 @@ pub fn toggle_simulation(
     }
 }
 
-pub fn handle_confirm_loaded_save_game_event(
+pub fn handle_load_game(
     mut commands: Commands,
-    mut confirm_loaded_save_game_event_reader: EventReader<ConfirmLoadedSaveGame>,
-    mut load_game_config_event_writer: EventWriter<LoadGameConfig>,
+    mut load_game_event_reader: EventReader<LoadGame>,
+    mut loaded_game_event_reader: EventWriter<LoadedGame>,
     mut app_state_next_state: ResMut<NextState<AppState>>,
+    mut simulation_state_next_state: ResMut<NextState<SimulationState>>
 ) {
-    if let Some(confirm_loaded_save_game_event) =
-        confirm_loaded_save_game_event_reader.iter().last()
-    {
+    if let Some(confirm_loaded_save_game_event) = load_game_event_reader.iter().last() {
+        let save_game_info: SaveGameInfo = confirm_loaded_save_game_event.save_game.clone();
+
+        // Load Game Manager
         commands.insert_resource(GameManager {
-            current_save_game: confirm_loaded_save_game_event.save_game.clone(),
+            current_save_game: save_game_info.clone(),
         });
+
+        // Load Game Config
+        let dir_path = format!("data/saves/{}/config", save_game_info.name);
+        if !Path::new(&dir_path).exists() {
+            std::fs::create_dir_all(&dir_path).expect("Failed to create config directory");
+
+            let file_path = format!("{}/info.json", dir_path);
+            File::create(&file_path).expect("Failed to create info.json for config");
+        }
+
+        commands.insert_resource(GameConfigManager {});
+
+        // Load Game State
+        let dir_path = format!("data/saves/{}/state", save_game_info.name);
+        if !Path::new(&dir_path).exists() {
+            std::fs::create_dir_all(&dir_path).expect("Failed to create state directory");
+
+            let file_path = format!("{}/info.json", dir_path);
+            File::create(&file_path).expect("Failed to create info.json for state");
+        }
+        commands.insert_resource(GameStateManager {});
+
+        // Finalize Loading
         app_state_next_state.set(AppState::Game);
-        println!(
-            "Loaded Save Game '{}'.",
-            confirm_loaded_save_game_event.save_game.name
-        );
-        load_game_config_event_writer.send(LoadGameConfig {});
+        loaded_game_event_reader.send(LoadedGame {});
+        simulation_state_next_state.set(SimulationState::Paused);
     }
 }
 
-pub fn handle_confirm_loaded_game_config(
-    mut confirm_loaded_game_config_event_reader: EventReader<ConfirmLoadedGameConfig>,
-    mut load_game_state_event_writer: EventWriter<LoadGameState>,
-) {
-    if let Some(_) = confirm_loaded_game_config_event_reader.iter().last() {
-        println!("Loaded Game Config.");
-        load_game_state_event_writer.send(LoadGameState {});
-    }
-}
-
-pub fn handle_confirm_loaded_game_state(
-    mut confirm_loaded_game_state_event_reader: EventReader<ConfirmLoadedGameState>,
-    mut load_universe_event_writer: EventWriter<LoadUniverse>,
-) {
-    if let Some(_) = confirm_loaded_game_state_event_reader.iter().last() {
-        println!("Loaded Game State.");
-        load_universe_event_writer.send(LoadUniverse {});
-    }
-}
-
-pub fn handle_confirm_loaded_universe(
-    mut confirm_loaded_universe_event_reader: EventReader<ConfirmLoadedUniverse>,
-) {
-    if let Some(_) = confirm_loaded_universe_event_reader.iter().last() {
-        println!("Loaded Universe.");
-    }
-}
-
-pub fn handle_confirm_unloaded_save_game_event(
+pub fn handle_unload_game(
     mut commands: Commands,
-    mut confirm_unloaded_save_game_event_reader: EventReader<ConfirmUnloadedSaveGame>,
-    mut app_state_next_state: ResMut<NextState<AppState>>,
-    game_manager: ResMut<GameManager>,
+    mut unload_game_event_reader: EventReader<UnloadGame>,
     mut app_exit_event_writer: EventWriter<AppExit>,
+    mut app_state_next_state: ResMut<NextState<AppState>>,
+    mut simulation_state_next_state: ResMut<NextState<SimulationState>>
 ) {
-    if let Some(confirm_unloaded_save_game_event) =
-        confirm_unloaded_save_game_event_reader.iter().last()
-    {
-        if confirm_unloaded_save_game_event.quit_mode == GameQuitMode::QuitToMainMenu {
-            app_state_next_state.set(AppState::MainMenu);
-            println!(
-                "Unloaded Save Game '{}' to Main Menu.",
-                game_manager.current_save_game.name
-            );
-        }
-        if confirm_unloaded_save_game_event.quit_mode == GameQuitMode::QuitToDesktop {
-            app_exit_event_writer.send(AppExit);
-            println!(
-                "Unloaded Save Game '{}' to Desktop.",
-                game_manager.current_save_game.name
-            );
-        }
+    if let Some(unload_save_game_event) = unload_game_event_reader.iter().last() {
+        // Unload Game State
+        commands.remove_resource::<GameStateManager>();
+
+        // Unload Game Config
+        commands.remove_resource::<GameConfigManager>();
+
+        // Unload Game Manager
         commands.remove_resource::<GameManager>();
+
+        // Finalize Unloading
+        simulation_state_next_state.set(SimulationState::Running);
+        if unload_save_game_event.quit_mode == GameQuitMode::QuitToMainMenu {
+            app_state_next_state.set(AppState::MainMenu);
+        }
+        if unload_save_game_event.quit_mode == GameQuitMode::QuitToDesktop {
+            app_exit_event_writer.send(AppExit);
+        }
     }
 }

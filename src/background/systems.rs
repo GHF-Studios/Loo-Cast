@@ -84,7 +84,7 @@ pub fn move_background(
             if difference_x > 0.0 {
                 background_manager.background_origin_x += window_width as i32;
 
-                println!("Shifting background +X");
+                println!("Shifting background towards +X");
 
                 for mut background_transform in background_transform_query.iter_mut() {
                     background_transform.translation.x += window_width;
@@ -92,7 +92,7 @@ pub fn move_background(
             } else {
                 background_manager.background_origin_x -= window_width as i32;
 
-                println!("Shifting background -X");
+                println!("Shifting background towards -X");
 
                 for mut background_transform in background_transform_query.iter_mut() {
                     background_transform.translation.x -= window_width;
@@ -103,7 +103,7 @@ pub fn move_background(
             if difference_y > 0.0 {
                 background_manager.background_origin_y += window_height as i32;
 
-                println!("Shifting background in +Y");
+                println!("Shifting background towards +Y");
 
                 for mut background_transform in background_transform_query.iter_mut() {
                     background_transform.translation.y += window_height;
@@ -111,7 +111,7 @@ pub fn move_background(
             } else {
                 background_manager.background_origin_y -= window_height as i32;
 
-                println!("Shifting background in -Y");
+                println!("Shifting background towards -Y");
 
                 for mut background_transform in background_transform_query.iter_mut() {
                     background_transform.translation.y -= window_height;

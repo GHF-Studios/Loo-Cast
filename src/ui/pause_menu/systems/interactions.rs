@@ -1,6 +1,6 @@
 use crate::game::SimulationState;
+use crate::game::events::UnloadGame;
 use crate::save_game::enums::*;
-use crate::save_game::events::*;
 use crate::ui::pause_menu::components::*;
 use crate::ui::styles::*;
 
@@ -30,7 +30,7 @@ pub fn interact_with_resume_button(
 }
 
 pub fn interact_with_main_menu_button(
-    mut unload_save_game_event_writer: EventWriter<UnloadSaveGame>,
+    mut unload_save_game_event_writer: EventWriter<UnloadGame>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<MainMenuButton>),
@@ -40,7 +40,7 @@ pub fn interact_with_main_menu_button(
         match *interaction {
             Interaction::Pressed => {
                 *color = PRESSED_BUTTON_COLOR.into();
-                unload_save_game_event_writer.send(UnloadSaveGame {
+                unload_save_game_event_writer.send(UnloadGame {
                     quit_mode: GameQuitMode::QuitToMainMenu,
                 });
             }
@@ -55,7 +55,7 @@ pub fn interact_with_main_menu_button(
 }
 
 pub fn interact_with_quit_button(
-    mut unload_save_game_event_writer: EventWriter<UnloadSaveGame>,
+    mut unload_save_game_event_writer: EventWriter<UnloadGame>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor),
         (Changed<Interaction>, With<QuitButton>),
@@ -65,7 +65,7 @@ pub fn interact_with_quit_button(
         match *interaction {
             Interaction::Pressed => {
                 *color = PRESSED_BUTTON_COLOR.into();
-                unload_save_game_event_writer.send(UnloadSaveGame {
+                unload_save_game_event_writer.send(UnloadGame {
                     quit_mode: GameQuitMode::QuitToDesktop,
                 });
             }

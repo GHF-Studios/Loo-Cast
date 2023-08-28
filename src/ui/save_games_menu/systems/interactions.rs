@@ -1,7 +1,10 @@
-use crate::save_game::events::*;
+use crate::save_game::events::DeleteSaveGame;
 use crate::ui::save_games_menu::components::*;
 use crate::ui::styles::*;
 use crate::AppState;
+use crate::game::events::*;
+use crate::ui::save_games_menu::events::*;
+use crate::save_game::resources::*;
 
 use bevy::prelude::*;
 
@@ -52,7 +55,7 @@ pub fn interact_with_create_save_game_button(
 }
 
 pub fn interact_with_delete_save_game_button(
-    mut game_over_event_writer: EventWriter<DeleteSaveGame>,
+    mut delete_save_game_event_writer: EventWriter<DeleteSaveGame>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor, &DeleteSaveGameButton),
         Changed<Interaction>,
@@ -63,7 +66,7 @@ pub fn interact_with_delete_save_game_button(
     {
         match *interaction {
             Interaction::Pressed => {
-                game_over_event_writer.send(DeleteSaveGame {
+                delete_save_game_event_writer.send(DeleteSaveGame {
                     save_game_name: delete_save_game_button.save_game_name.clone(),
                 });
                 *background_color = PRESSED_BUTTON_COLOR.into();
@@ -79,7 +82,7 @@ pub fn interact_with_delete_save_game_button(
 }
 
 pub fn interact_with_load_save_game_button(
-    mut load_save_game_event_writer: EventWriter<LoadSaveGame>,
+    mut load_save_game_instance_event_writer: EventWriter<LoadSaveGameInstance>,
     mut button_query: Query<
         (&Interaction, &mut BackgroundColor, &LoadSaveGameButton),
         Changed<Interaction>,
@@ -90,7 +93,7 @@ pub fn interact_with_load_save_game_button(
     {
         match *interaction {
             Interaction::Pressed => {
-                load_save_game_event_writer.send(LoadSaveGame {
+                load_save_game_instance_event_writer.send(LoadSaveGameInstance {
                     save_game_name: load_save_game_button.save_game_name.clone(),
                 });
                 *background_color = PRESSED_BUTTON_COLOR.into();
@@ -105,23 +108,30 @@ pub fn interact_with_load_save_game_button(
     }
 }
 
-pub fn handle_confirm_created_save_game_event(
-    mut confirm_created_save_game_event_reader: EventReader<ConfirmCreatedSaveGame>,
-    mut app_state_next_state: ResMut<NextState<AppState>>,
+pub fn handle_load_save_game_instance(
+    mut load_save_game_instance_event_reader: EventReader<LoadSaveGameInstance>,
+    mut load_game_event_writer: EventWriter<LoadGame>,
+    save_game_manager: Res<SaveGameManager>,
 ) {
-    if let Some(_) = confirm_created_save_game_event_reader.iter().next() {
-        app_state_next_state.set(AppState::SaveGamesMenu);
+    if let Some(event) = load_save_game_instance_event_reader.iter().last() {
+        if let Some(save_game) =
+            save_game_manager.get_save_game_info(event.save_game_name.clone())
+        {
+            load_game_event_writer.send(LoadGame {
+                save_game: save_game.clone(),
+            });
+        }
     }
 }
 
-pub fn handle_confirm_deleted_save_game_event(
+pub fn handle_delete_save_game_ui(
     mut commands: Commands,
-    mut confirm_deleted_save_game_event_reader: EventReader<ConfirmDeletedSaveGame>,
+    mut delete_save_game_ui_event_reader: EventReader<DeleteSaveGameUI>,
     mut save_game_query: Query<(Entity, &SaveGame)>,
 ) {
-    if let Some(event) = confirm_deleted_save_game_event_reader.iter().next() {
+    if let Some(event) = delete_save_game_ui_event_reader.iter().next() {
         for (entity, save_game) in save_game_query.iter_mut() {
-            if save_game.name == event.save_game.clone() {
+            if save_game.name == event.save_game_name {
                 commands.entity(entity).despawn_recursive();
                 return;
             }

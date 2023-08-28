@@ -20,31 +20,20 @@ impl Plugin for SaveGamePlugin {
             // Events
             .add_event::<CreateSaveGame>()
             .add_event::<DeleteSaveGame>()
-            .add_event::<LoadSaveGame>()
-            .add_event::<UnloadSaveGame>()
-            .add_event::<ConfirmCreatedSaveGame>()
-            .add_event::<ConfirmDeletedSaveGame>()
-            .add_event::<ConfirmLoadedSaveGame>()
-            .add_event::<ConfirmUnloadedSaveGame>()
             // Startup Systems
-            .add_systems(Startup, init_save_game_manager)
+            .add_systems(Startup, init)
             // Enter State Systems
             // Update Systems
             .add_systems(
                 Update,
-                (handle_delete_save_game, handle_load_save_game)
+                (handle_delete_save_game)
                     .run_if(in_state(AppState::SaveGamesMenu)),
             )
             .add_systems(
                 Update,
                 (handle_create_save_game).run_if(
-                    in_state(AppState::SaveGamesMenu)
-                        .or_else(in_state(AppState::CreateSaveGameMenu)),
+                    in_state(AppState::CreateSaveGameMenu),
                 ),
-            )
-            .add_systems(
-                Update,
-                handle_unload_save_game.run_if(in_state(AppState::Game)),
             );
         // Exit State Systems
     }

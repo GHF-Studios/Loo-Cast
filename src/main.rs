@@ -3,8 +3,6 @@ mod systems;
 pub mod background;
 pub mod camera;
 pub mod game;
-pub mod game_config;
-pub mod game_state;
 pub mod math;
 pub mod player;
 pub mod save_game;
@@ -14,8 +12,6 @@ pub mod universe;
 use background::BackgroundPlugin;
 use camera::CameraPlugin;
 use game::GamePlugin;
-use game_config::GameConfigPlugin;
-use game_state::GameStatePlugin;
 use player::PlayerPlugin;
 use save_game::SaveGamePlugin;
 use ui::UIPlugin;
@@ -42,8 +38,6 @@ impl PluginGroup for LooCastBasePlugins {
             .add(BackgroundPlugin)
             .add(CameraPlugin)
             .add(GamePlugin)
-            .add(GameConfigPlugin)
-            .add(GameStatePlugin)
             .add(PlayerPlugin)
             .add(SaveGamePlugin)
             .add(UIPlugin)
