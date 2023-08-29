@@ -79,78 +79,78 @@ static SCALES: &[Scale] = &[
     },
     Scale {
         magnitude: -24,
-        name: "small",
-        description: "description_here"
+        name: "Neutrino Emergence Scale",
+        description: "The universe's essence coalesces into stable, elementary particles known as neutrinos. These particles serve as the first stable seeds for the next layers of complexity."
     },
     Scale {
         magnitude: -23,
-        name: "small",
-        description: "description_here"
+        name: "Neutrino-Essence Synergy Scale",
+        description: "Neutrinos begin to interact with the essence flux patterns, giving rise to a menagerie of unstable neutrino variants. These rare and elusive variants offer glimpses into higher complexities."
     },
     Scale {
         magnitude: -22,
-        name: "small",
-        description: "description_here"
+        name: "High Energy Neutrino Cataclysm Scale",
+        description: "Neutrinos cluster into ultra-high-energy forms, teetering on the brink of catastrophic collapse. Their existence is a precarious balancing act, a dance on the edge of annihilation."
     },
     Scale {
         magnitude: -21,
-        name: "small",
-        description: "description_here"
+        name: "Proto-Quark Genesis Scale",
+        description: "Quantum tunneling events cause high-energy neutrinos to collapse into proto-quarks. These entities are ephemeral, quickly reverting back to neutrinos, yet they open the door for the birth of a new class of particles."
     },
     Scale {
         magnitude: -20,
-        name: "small",
-        description: "description_here"
+        name: "Quark-Chromodynamic Inception Scale",
+        description: "The first top and bottom quarks emerge as coherent structures within proto-quarks. Their stable existence marks the onset of Quantum Chromodynamics and sets the stage for the next level of particle interaction."
     },
     Scale {
         magnitude: -19,
-        name: "small",
-        description: "description_here"
+        name: "Weak Force Enigma Scale",
+        description: "An enigmatic process allows the weak force to accumulate and coalesce simple quarks into more complex up and down quarks. These new quarks are unstable but serve as a crucial stepping stone."
     },
     Scale {
         magnitude: -18,
-        name: "small",
-        description: "description_here"
+        name: "Volatile Quark Scale",
+        description: "Quarks occasionally reach critical densities, forming incredibly unstable, ultra-high-energy quarks known as charm quarks. These volatile entities have the potential to disrupt the essence flow across vast regions."
     },
     Scale {
         magnitude: -17,
-        name: "small",
-        description: "description_here"
+        name: "Strange Quark Anomaly Scale",
+        description: "The universe defies its own odds. Charm quarks stabilize into strange quarks, the universe's most volatile substance. Even a single strange quark poses a threat to the stability of existence itself."
     },
     Scale {
         magnitude: -16,
-        name: "small",
-        description: "description_here"
+        name: "Gluonic Revolution Scale",
+        description: "A radical shift occurs as essence manifests into gluons, carriers of the strong force. These particles rewrite the rules of interaction, transforming quark relationships into complex webs."
     },
     Scale {
         magnitude: -15,
-        name: "small",
-        description: "description_here"
+        name: "Baryonic Emergence Scale",
+        description: "A critical mass is achieved as quarks coalesce into stable entities known as baryons. These baryons act as the cornerstones for the next wave of material complexity."
     },
     Scale {
         magnitude: -14,
-        name: "small",
-        description: "description_here"
+        name: "Nucleonic Foundation Scale",
+        description: "As baryons find stability, they pave the way for the emergence of simple atomic nuclei. It's a fleeting moment that marks the edge of a new frontier in complexity."
     },
     Scale {
         magnitude: -13,
-        name: "small",
-        description: "description_here"
+        name: "Electron Genesis Scale",
+        description: "The strong force meets its limits, leading to the decay of complex nuclei. This decay gives birth to a new form of particle, the electron, heralding the dawn of electromagnetic interactions."
     },
     Scale {
         magnitude: -12,
-        name: "small",
-        description: "description_here"
+        name: "Photon Emergence Scale",
+        description: "Hypercomplex interactions between several layers of reality lead to the emergence of incredibly high energy photons, the carriers of the electromagnetic force. From here on, the electromagnetic force mostly governs the interactions between different entities of various different types."
     },
     Scale {
         magnitude: -11,
-        name: "small",
-        description: "description_here"
+        name: "Photonic Void Scale",
+        description: "This scale is very unique, in that almost every entity known is either vastly larger or smaller then this scale. This is a realm inhabited mostly by very high energy photons, dangerous space-time vortices and many other serious threats to structured existence."
     },
     Scale {
         magnitude: -10,
-        name: "small",
-        description: "description_here"
+        name: "Atomic Inception Scale",
+        description: "Electrons and nuclei combine to form atoms, the building blocks of matter as we know it. Atoms are the first entities to be able to form stable structures, like molecules, crystals, and even life."
     },
     Scale {
         magnitude: -9,
