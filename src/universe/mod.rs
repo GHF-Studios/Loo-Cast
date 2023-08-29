@@ -20,257 +20,257 @@ static SCALES: &[Scale] = &[
     Scale {
         magnitude: -36,
         name: "Change Potential Scale",
-        description: "The universe begins as a field of change potential, serving as the raw canvas for all future developments."
+        description: "At this scale, the universe presents as a field of 'change potential,' where localized hotspots govern both state changes (time) and relational changes (space)."
     },
     Scale {
         magnitude: -35,
         name: "Change Partition Scale",
-        description: "The change potential diversifies, splitting into two distinct potentials: one for state changes (leading to time) and another for relational changes (leading to space)."
+        description: "When the field of change potential is observed at a larger scale, two distinct potentials for state and relational changes become distinguishable."
     },
     Scale {
         magnitude: -34,
         name: "Dimensional Nexus Scale",
-        description: "In regions of concentrated change potential, Dimensional Nexuses form. These nexuses are the seeds for the fabric of time and space."
+        description: "At a larger observational scale, foundational anchors in the fabric of time and space, known as 'Dimensional Nexuses,' emerge due to the concentration of partitioned potentials."
     },
     Scale {
         magnitude: -33,
         name: "Topological Fluctuation Scale",
-        description: "Dimensional Nexuses evolve into Topological Fluctuations, transient structures that allow patches of space and time to momentarily exist."
+        description: "When viewed at an expanded scale, small-scale distortions known as 'Topological Fluctuations' become noticeable. These create transient patches of space and time and emerge from the aggregation of Dimensional Nexuses."
     },
     Scale {
         magnitude: -32,
         name: "Quantum Foam Scale",
-        description: "An accumulation of Topological Fluctuations gives rise to Quantum Foam, a sponge-like structure featuring unstable, yet semi-persistent, space-time regions."
+        description: "At this scale, 'Quantum Foam' becomes evident, manifesting as unstable yet semi-persistent regions of space-time. These regions emerge due to the averaging out of Topological Fluctuations."
     },
     Scale {
         magnitude: -31,
         name: "Resonant Foam Mechanics Scale",
-        description: "Regions of Quantum Foam can resonate, forming larger and more stable patches of coherent space-time."
+        description: "When Quantum Foam is observed on a broader scale, resonance phenomena stabilize certain regions into coherent patches of space-time."
     },
     Scale {
         magnitude: -30,
         name: "Elemental Energy Pathway Scale",
-        description: "High-amplitude resonances in the foam create Elemental Energy Pathways, where energy starts to flow in a directed manner."
+        description: "At a larger scale, 'Elemental Energy Pathways' become discernible within the Quantum Foam, guiding the flow of energy due to the prevalence of resonant regions."
     },
     Scale {
         magnitude: -29,
         name: "Aetheric Nexus Scale",
-        description: "Intersections of Elemental Energy Pathways coalesce into Aetheric Nexuses, marking the first signs of discrete energy manifestations."
+        description: "When Elemental Energy Pathways are abundant, their intersections give rise to 'Aetheric Nexuses,' marking the first instances of discrete, localized energy packets."
     },
     Scale {
         magnitude: -28,
         name: "Essence Node Scale",
-        description: "At this scale, Aetheric Nexuses evolve into Essence Nodes, discrete packets of energy carrying fundamental properties like charge, spin, and mass."
+        description: "At this scale, energy condenses into 'Essence Nodes' within Aetheric Nexuses due to the high concentration of localized energy packets. These nodes are endowed with properties like charge, spin, and mass."
     },
     Scale {
         magnitude: -27,
         name: "Essence Manifestation Scale",
-        description: "Clusters of Essence Nodes form, engaging in complex interactions that produce new types of energy relationships, similar to magnetic attraction or repulsion."
+        description: "When a significant number of Essence Nodes are present, they cluster and interact, giving rise to various energy relationships, akin to magnetic fields or gravitational pull."
     },
     Scale {
         magnitude: -26,
         name: "Essence Flux Pattern Scale",
-        description: "The Essence Nodes organize into larger structures, creating islands, oceans, and rivers of interacting essence."
+        description: "At a larger scale, the interactions among Essence Nodes average out to form 'Essence Flux Patterns,' large-scale structures resembling islands or rivers of interacting energy."
     },
     Scale {
         magnitude: -25,
         name: "Essence Nexus Scale",
-        description: "Complex webs of essence interactions form, leading to the emergence of stable structures that serve as the building blocks for elementary particles in the standard model of particle physics."
+        description: "When Essence Flux Patterns become prevalent, they give rise to 'Essence Nexuses,' complex webs that serve as the structural blueprints for elementary particles."
     },
     Scale {
         magnitude: -24,
         name: "Neutrino Emergence Scale",
-        description: "The universe's essence coalesces into stable, elementary particles known as neutrinos. These particles serve as the first stable seeds for the next layers of complexity."
+        description: "At this scale, stable 'neutrinos' make their first appearance, emerging as the most stable energy configurations within the high-density field of Essence Nexuses."
     },
     Scale {
         magnitude: -23,
         name: "Neutrino-Essence Synergy Scale",
-        description: "Neutrinos begin to interact with the essence flux patterns, giving rise to a menagerie of unstable neutrino variants. These rare and elusive variants offer glimpses into higher complexities."
+        description: "As the observational scale expands, a multitude of unstable neutrino variants form. These variants acquire unique characteristics through direct energy exchanges with Essence Flux Patterns."
     },
     Scale {
         magnitude: -22,
         name: "High Energy Neutrino Cataclysm Scale",
-        description: "Neutrinos cluster into ultra-high-energy forms, teetering on the brink of catastrophic collapse. Their existence is a precarious balancing act, a dance on the edge of annihilation."
+        description: "When the field of view broadens further, ultra-high-energy neutrinos form precarious clusters, teetering on the edge of annihilation. These volatile formations originate from the collision and fusion of unstable neutrino variants."
     },
     Scale {
         magnitude: -21,
         name: "Proto-Quark Genesis Scale",
-        description: "Quantum tunneling events cause high-energy neutrinos to collapse into proto-quarks. These entities are ephemeral, quickly reverting back to neutrinos, yet they open the door for the birth of a new class of particles."
+        description: "At this expanded scale, fleeting 'proto-quarks' sporadically crystallize from the disintegration of high-energy neutrinos, serving as potential precursors to more stable forms of matter."
     },
     Scale {
         magnitude: -20,
         name: "Quark-Chromodynamic Inception Scale",
-        description: "The first top and bottom quarks emerge as coherent structures within proto-quarks. Their stable existence marks the onset of Quantum Chromodynamics and sets the stage for the next level of particle interaction."
+        description: "With the zoom extended, 'top' and 'bottom' quarks stabilize, acting as the foundational elements for strong-force interactions. These quarks manifest when proto-quarks reach a critical stability threshold."
     },
     Scale {
         magnitude: -19,
         name: "Weak Force Enigma Scale",
-        description: "An enigmatic process allows the weak force to accumulate and coalesce simple quarks into more complex up and down quarks. These new quarks are unstable but serve as a crucial stepping stone."
+        description: "As the scale broadens, 'up' and 'down' quarks intermittently emerge, adding an additional layer of complexity. These forms materialize during transitional phases where top and bottom quarks exchange energy."
     },
     Scale {
         magnitude: -18,
         name: "Volatile Quark Scale",
-        description: "Quarks occasionally reach critical densities, forming incredibly unstable, ultra-high-energy quarks known as charm quarks. These volatile entities have the potential to disrupt the essence flow across vast regions."
+        description: "At this wider scale, critical densities of quarks coalesce to give birth to 'charm quarks,' which are ultra-high-energy and highly unstable. These charm quarks result from the collision-induced energy spikes among simpler quarks."
     },
     Scale {
         magnitude: -17,
         name: "Strange Quark Anomaly Scale",
-        description: "The universe defies its own odds. Charm quarks stabilize into strange quarks, the universe's most volatile substance. Even a single strange quark poses a threat to the stability of existence itself."
+        description: "Upon further scale expansion, 'strange quarks' occasionally stabilize from their charm quark precursors, marking them as some of the most unpredictable forms of matter."
     },
     Scale {
         magnitude: -16,
         name: "Gluonic Revolution Scale",
-        description: "A radical shift occurs as essence manifests into gluons, carriers of the strong force. These particles rewrite the rules of interaction, transforming quark relationships into complex webs."
+        description: "At this level of observation, 'gluons' emerge as the mediators of the strong force, facilitating the intricate dance of quark interactions. These gluons appear when charm and strange quarks reach a critical density, necessitating a new form of interaction."
     },
     Scale {
         magnitude: -15,
         name: "Baryonic Emergence Scale",
-        description: "A critical mass is achieved as quarks coalesce into stable entities known as baryons. These baryons act as the cornerstones for the next wave of material complexity."
+        description: "When viewed at a more expansive scale, quarks bind into 'baryons,' providing the cornerstone for more elaborate structures. These baryons form through gluon-mediated attractions between quarks."
     },
     Scale {
         magnitude: -14,
         name: "Nucleonic Foundation Scale",
-        description: "As baryons find stability, they pave the way for the emergence of simple atomic nuclei. It's a fleeting moment that marks the edge of a new frontier in complexity."
+        description: "At this broader scale, baryonic aggregations stabilize to form 'nuclei,' which serve as the backbone for atomic structures. These nuclei establish themselves through resonant interactions among baryons."
     },
     Scale {
         magnitude: -13,
         name: "Electron Genesis Scale",
-        description: "The strong force meets its limits, leading to the decay of complex nuclei. This decay gives birth to a new form of particle, the electron, heralding the dawn of electromagnetic interactions."
+        description: "As the scale continues to widen, 'electrons' emerge from specific decay pathways within the stabilized nuclei, adding a new dimension to the universe's complexity."
     },
     Scale {
         magnitude: -12,
         name: "Photon Emergence Scale",
-        description: "Hypercomplex interactions between several layers of reality lead to the emergence of incredibly high energy photons, the carriers of the electromagnetic force. From here on, the electromagnetic force mostly governs the interactions between different entities of various different types."
+        description: "At this more expansive scale, 'photons' manifest as the dominant energy carriers, stemming from the constant conversion of electron and nuclear energies into electromagnetic radiation."
     },
     Scale {
         magnitude: -11,
         name: "Photonic Void Scale",
-        description: "This scale is very unique, in that almost every entity known is either vastly larger or smaller then this scale. This is a realm inhabited mostly by very high energy photons, dangerous space-time vortices and many other serious threats to structured existence."
+        description: "As the observational scale further widens, a void-like realm emerges, dominated by high-energy photons and occasional space-time anomalies. This void arises from the unbalanced propagation of photons, leading to a reduced presence of structured matter."
     },
     Scale {
         magnitude: -10,
         name: "Atomic Inception Scale",
-        description: "Electrons and nuclei combine to form atoms, the building blocks of matter as we know it. Atoms are the first entities to be able to form stable structures, like molecules, crystals, and even life."
+        description: "At this broadened scale, electrons and nuclei engage in dynamic unions, forming the first rudimentary 'atoms.' These atomic structures materialize through stable orbital resonances between electrons and nuclei, providing the foundation for more complex forms of matter."
     },
     Scale {
         magnitude: -9,
-        name: "small",
-        description: "description_here"
+        name: "Quantum Mechanical Scale",
+        description: "At this scale, quantum mechanics dominates, allowing for the electron cloud configurations that give rise to the rich variety of chemical elements. Both the wave and particle natures of matter are significant here."
     },
     Scale {
         magnitude: -8,
-        name: "small",
-        description: "description_here"
+        name: "Quantum Resonance Scale",
+        description: "At this scale, the principles of quantum resonance dictate both chemical bonds and electron behavior in condensed matter physics. These quantized states are foundational to phenomena like superconductivity and chemical reactivity."
     },
     Scale {
         magnitude: -7,
-        name: "small",
-        description: "description_here"
+        name: "Geometric and Kinetic Harmony Scale",
+        description: "The spatial arrangement of atoms and the kinetics of their reactions find a harmonious balance at this scale. This is pivotal for the formation of complex molecules in both living systems and inorganic materials."
     },
     Scale {
         magnitude: -6,
-        name: "small",
-        description: "description_here"
+        name: "Unified Forces Scale",
+        description: "Various forces including van der Waals, hydrogen bonding, and even ionic interactions become significant, demonstrating a unity of forces that govern the behavior of matter in both biological systems and engineered materials."
     },
     Scale {
         magnitude: -5,
-        name: "small",
-        description: "description_here"
+        name: "Interface and Cohesion Scale",
+        description: "At this level, the principles of interface interactions and cohesion become universally significant, governing the behavior of colloidal systems, biological membranes, and even geological formations like sediment layers."
     },
     Scale {
         magnitude: -4,
-        name: "small",
-        description: "description_here"
+        name: "Microdynamic Systems Scale",
+        description: "This scale is governed by the principles of motion and flow, whether it's the motility of cells in a biological context or the principles of microfluidics that govern small-scale engineered systems."
     },
     Scale {
         magnitude: -3,
-        name: "small",
-        description: "description_here"
+        name: "Structural Integrity Scale",
+        description: "The structural integrity of systems, whether biological or mechanical, becomes crucial. This includes the arrangement of cells in tissues as well as the alignment of crystalline structures in metals and other materials."
     },
     Scale {
         magnitude: -2,
-        name: "small",
-        description: "description_here"
+        name: "Surface and Fluid Interaction Scale",
+        description: "At this scale, interactions between surfaces and fluids manifest in ways that are critical across scientific disciplines. Whether it's capillary action in plants or wicking in engineered materials, the principles at this scale govern a range of phenomena."
     },
     Scale {
         magnitude: -1,
-        name: "small",
-        description: "description_here"
+        name: "Systems Dynamics Scale",
+        description: "The principles of dynamics come into play at this scale, governing everything from biomechanical systems like human movement to the flow dynamics in geological formations like rivers or lava flows. The laws of motion and energy conservation are universally applicable."
     },
     Scale {
         magnitude: 0,
-        name: "normal",
-        description: "description_here"
+        name: "Equilibrium and Stability Scale",
+        description: "This scale is dominated by the interplay of forces that bring systems into equilibrium. These principles are not just limited to gravitational and electromagnetic forces but also include thermal and chemical equilibria that are foundational in various domains."
     },
     Scale {
         magnitude: 1,
-        name: "big",
-        description: "description_here"
+        name: "Structural Cohesion Scale",
+        description: "At this scale, the integrity of both biological and man-made structures becomes crucial. The principles of mechanical engineering find parallels in the biological world through the structural design of organisms and their habitats."
     },
     Scale {
         magnitude: 2,
-        name: "big",
-        description: "description_here"
+        name: "Environmental Systems Scale",
+        description: "Larger ecological, geophysical, and meteorological phenomena manifest at this scale. The principles that govern these large systems, such as energy transfer and mass flow, are consistent across both living and non-living entities."
     },
     Scale {
         magnitude: 3,
-        name: "big",
-        description: "description_here"
+        name: "Geospatial Systems Dynamics Scale",
+        description: "At this scale, the dynamics of physical systems manifest through tectonic movements, atmospheric patterns, and resource cycles. These phenomena are fundamentally driven by principles of energy conservation and mass transfer, applicable across a variety of planetary landscapes."
     },
     Scale {
         magnitude: 4,
-        name: "big",
-        description: "description_here"
+        name: "Fluid and Thermal Dynamics Scale",
+        description: "Principles of fluid dynamics and thermodynamics govern the behavior of atmospheres and subsurface oceans across celestial bodies."
     },
     Scale {
         magnitude: 5,
-        name: "big",
-        description: "description_here"
+        name: "Ecological and Geological Pattern Scale",
+        description: "Complex patterns emerge in both living and non-living systems at this scale, from the distribution of biomes to the arrangement of geological formations. These patterns are shaped by underlying principles of resource allocation and energy gradients."
     },
     Scale {
         magnitude: 6,
-        name: "big",
-        description: "description_here"
+        name: "Planetary Systems Interaction Scale",
+        description: "Gravitational and electromagnetic interactions between planetary bodies shape phenomena from orbital mechanics to tectonic activity across planetary systems."
     },
     Scale {
         magnitude: 7,
-        name: "big",
-        description: "description_here"
+        name: "Celestial Formation and Evolution Scale",
+        description: "Principles like mass aggregation and angular momentum become significant, shaping the formation of various celestial bodies and early stages of star formation."
     },
     Scale {
         magnitude: 8,
-        name: "big",
-        description: "description_here"
+        name: "Core Dynamics and Energetics Scale",
+        description: "The internal dynamics of celestial bodies, including their cores and mantles, become crucial at this scale. Core processes like magnetic field generation and thermal flows are central to the stability and life cycles of these bodies."
     },
     Scale {
         magnitude: 9,
-        name: "big",
-        description: "description_here"
+        name: "Radiative and Magnetic Phenomena Scale",
+        description: "Surface and atmospheric phenomena of stars and celestial bodies are defined by principles like magnetohydrodynamics and thermal radiation."
     },
     Scale {
         magnitude: 10,
-        name: "big",
-        description: "description_here"
+        name: "Orbital Resonance and Stability Scale",
+        description: "Stability of planetary and celestial orbits is governed by principles such as gravitational forces, orbital resonances, and tidal interactions."
     },
     Scale {
         magnitude: 11,
-        name: "big",
-        description: "description_here"
+        name: "Local Stellar Phenomena Scale",
+        description: "This scale includes phenomena like asteroid belts, protoplanetary disks, and local interstellar clouds. It's governed by principles like gravitational interaction, radiation pressure, and mass distribution."
     },
     Scale {
         magnitude: 12,
-        name: "big",
-        description: "description_here"
+        name: "Star System Boundaries Scale",
+        description: "Transitional zones between star systems and the interstellar medium are governed by phenomena like stellar winds and the influence of nearby supernovae."
     },
     Scale {
         magnitude: 13,
-        name: "big",
-        description: "description_here"
+        name: "Stellar Nurseries and Decay Scale",
+        description: "Life cycles of stars and early stages of galactic structures are influenced by processes like nuclear fusion, supernova-induced shockwaves, and gravitational collapse."
     },
     Scale {
         magnitude: 14,
-        name: "big",
-        description: "description_here"
+        name: "Interstellar Matter and Energy Flow Scale",
+        description: "This scale covers the interstellar neighborhood, encompassing the flow of matter and energy between star systems. Principles like mass conservation, energy transfer, and the dynamics of the interstellar medium are universally applicable."
     },
     Scale {
         magnitude: 15,
