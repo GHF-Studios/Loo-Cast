@@ -2,8 +2,9 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::player::components::Player;
+use crate::universe::components::UniverseObserver;
 
-pub const PLAYER_SPEED: f32 = 500.0;
+pub const PLAYER_SPEED: f32 = 50.0;
 
 pub fn spawn_player(
     mut commands: Commands,
@@ -18,11 +19,12 @@ pub fn spawn_player(
                 custom_size: Some(Vec2::new(64.0, 64.0)),
                 ..default()
             },
-            transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
             texture: asset_server.load("sprites/circle.png"),
             ..default()
         },
         Player {},
+        UniverseObserver::new(2)
     ));
 }
 
@@ -58,5 +60,29 @@ pub fn player_movement(
         }
 
         transform.translation += direction * PLAYER_SPEED * time.delta_seconds();
+
+        let global_pos: ((i16, i16), (f32, f32)) = f32_to_i16_chunk_position_with_local_offset(transform.translation.x, transform.translation.y, crate::universe::CHUNK_SIZE as f32, 0, 0);
+
+        println!("Scene Position: {}, {} | Chunk position: {:?}", transform.translation.x, transform.translation.y, global_pos);
     }
+}
+
+fn f32_to_i16_chunk_position_with_local_offset(
+    x: f32, y: f32, 
+    chunk_size: f32, 
+    global_origin_x: i16, global_origin_y: i16
+) -> ((i16, i16), (f32, f32)) {
+    let intermediate_x = x / chunk_size;
+    let intermediate_y = y / chunk_size;
+
+    let normalized_x = intermediate_x.floor() as i16;
+    let normalized_y = intermediate_y.floor() as i16;
+
+    let final_chunk_x = normalized_x + global_origin_x;
+    let final_chunk_y = normalized_y + global_origin_y;
+
+    let local_offset_x = x % chunk_size;
+    let local_offset_y = y % chunk_size;
+
+    ((final_chunk_x, final_chunk_y), (local_offset_x, local_offset_y))
 }
