@@ -9,11 +9,32 @@ use systems::*;
 use crate::AppState;
 
 use bevy::prelude::*;
+use serde::*;
 
 pub struct Scale {
     level: i8,
     name: &'static str,
     description: &'static str,
+}
+
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+pub struct GlobalEntityPosition {
+    pub chunk_position: GlobalChunkPosition,
+    pub offset_x: f32,
+    pub offset_y: f32,
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct GlobalChunkPosition {
+    pub scale_level: i8,
+    pub parent_local_chunk_position: Option<LocalChunkPosition>,
+    pub local_chunk_position: LocalChunkPosition,
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct LocalChunkPosition {
+    pub x: i16,
+    pub y: i16,
 }
 
 pub static SCALES: &[Scale] = &[

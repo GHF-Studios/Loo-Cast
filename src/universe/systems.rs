@@ -1,28 +1,20 @@
 use super::*;
 use super::components::*;
 use super::events::*;
-
-use crate::game::resources::GameManager;
-use crate::save_game::structs::SaveGameInfo;
+use super::resources::UniverseManager;
 
 use bevy::prelude::*;
 
 pub fn handle_load_universe(
+    mut commands: Commands,
     mut load_universe_event_reader: EventReader<LoadUniverse>,
-    chunk_observer_query: Query<&UniverseObserver>,
-    game_manager: Res<GameManager>,
 ) {
     if let Some(_) = load_universe_event_reader.iter().last() {
-        let save_game_info: SaveGameInfo = game_manager.current_save_game.clone();
-
-        if let Ok(chunk_observer) = chunk_observer_query.get_single() {
-            // check if the current chunk is generated, if not mark it for generation
-            // check if the current chunk's parent chunk is generated, if not, mark it for generation
-            // do this recursively until either a chunk is found that is generated or the root chunk is reached
-            // if the root chunk is reached, generate it
-            // if a chunk is found that is generated, load it
-            // generate the generated chunk's children recursively and load them
-        }
+        commands.insert_resource(UniverseManager {
+            current_scale_level: 0,
+            current_chunk_offset_x: 0,
+            current_chunk_offset_y: 0,
+        })
     }
 }
 
@@ -39,13 +31,13 @@ pub fn universe_observer_system(
         let proximal_chunk_coordinates = observer.get_proximal_chunk_coordinates(x, y);
 
         for coordinate in &proximal_chunk_coordinates {
-            spawn_chunk(&mut commands, &chunk_query, coordinate.0, coordinate.1);
+            spawn_chunk(&mut commands, &chunk_query, coordinate.x, coordinate.y);
         }
 
         for old_coordinate in &observer.old_proximal_chunk_coordinates {
             if !proximal_chunk_coordinates.contains(old_coordinate) {
                 
-                despawn_chunk(&mut commands, &chunk_entity_query, old_coordinate.0, old_coordinate.1);
+                despawn_chunk(&mut commands, &chunk_entity_query, old_coordinate.x, old_coordinate.y);
             }
         }
 
