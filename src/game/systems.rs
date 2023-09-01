@@ -47,7 +47,7 @@ pub fn handle_load_game(
         });
 
         // Load Game Config
-        let dir_path = format!("data/saves/{}/config", save_game_info.name);
+        let dir_path = format!("assets/data/saves/{}/config", save_game_info.name);
         if !Path::new(&dir_path).exists() {
             std::fs::create_dir_all(&dir_path).expect("Failed to create config directory");
 
@@ -58,7 +58,7 @@ pub fn handle_load_game(
         commands.insert_resource(GameConfigManager {});
 
         // Load Game State
-        let dir_path = format!("data/saves/{}/state", save_game_info.name);
+        let dir_path = format!("assets/data/saves/{}/state", save_game_info.name);
         if !Path::new(&dir_path).exists() {
             std::fs::create_dir_all(&dir_path).expect("Failed to create state directory");
 

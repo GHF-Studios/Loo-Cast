@@ -1,4 +1,4 @@
-use super::{CHUNK_SIZE, LocalChunkPosition};
+use super::{LocalChunkPosition, CHUNK_SIZE};
 
 use bevy::prelude::*;
 use serde::*;
@@ -6,8 +6,7 @@ use std::collections::HashSet;
 
 #[derive(Component, Serialize, Deserialize)]
 pub struct Chunk {
-    pub chunk_x: i16,
-    pub chunk_y: i16,
+    pub pos: LocalChunkPosition,
     pub scale_level: i8,
     pub stored_entities: Vec<Entity>,
 }
@@ -28,10 +27,10 @@ impl UniverseObserver {
 
     pub fn get_proximal_chunk_coordinates(&self, x: f32, y: f32) -> HashSet<LocalChunkPosition> {
         let mut proximal_chunk_coordinates = HashSet::new();
-    
+
         let chunk_x = (x / CHUNK_SIZE as f32).floor() as i16;
         let chunk_y = (y / CHUNK_SIZE as f32).floor() as i16;
-    
+
         for x_offset in -self.observing_distance..=self.observing_distance {
             for y_offset in -self.observing_distance..=self.observing_distance {
                 proximal_chunk_coordinates.insert(LocalChunkPosition {
@@ -40,8 +39,7 @@ impl UniverseObserver {
                 });
             }
         }
-    
+
         proximal_chunk_coordinates
     }
-    
 }

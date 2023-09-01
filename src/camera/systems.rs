@@ -2,13 +2,10 @@ use crate::math::*;
 use crate::player::components::*;
 
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 
 const CAMERA_SPEED: f32 = 10.0;
 
-pub fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<PrimaryWindow>>) {
-    let window = window_query.get_single().unwrap();
-
+pub fn spawn_camera(mut commands: Commands) {
     commands.spawn(Camera2dBundle {
         transform: Transform::from_xyz(0.0, 0.0, 0.0),
         ..default()

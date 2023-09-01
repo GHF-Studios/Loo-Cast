@@ -1,18 +1,11 @@
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
 
 use crate::player::components::Player;
 use crate::universe::components::UniverseObserver;
 
 pub const PLAYER_SPEED: f32 = 500.0;
 
-pub fn spawn_player(
-    mut commands: Commands,
-    window_query: Query<&Window, With<PrimaryWindow>>,
-    asset_server: Res<AssetServer>,
-) {
-    let window = window_query.get_single().unwrap();
-
+pub fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         SpriteBundle {
             sprite: Sprite {
@@ -24,7 +17,7 @@ pub fn spawn_player(
             ..default()
         },
         Player {},
-        UniverseObserver::new(2)
+        UniverseObserver::new(3),
     ));
 }
 
@@ -61,16 +54,17 @@ pub fn player_movement(
 
         transform.translation += direction * PLAYER_SPEED * time.delta_seconds();
 
-        let global_pos: ((i16, i16), (f32, f32)) = f32_to_i16_chunk_position_with_local_offset(transform.translation.x, transform.translation.y, crate::universe::CHUNK_SIZE as f32, 0, 0);
-
-        println!("Scene Position: {}, {} | Chunk position: {:?}", transform.translation.x, transform.translation.y, global_pos);
+        // let global_pos: ((i16, i16), (f32, f32)) = f32_to_i16_chunk_position_with_local_offset(transform.translation.x, transform.translation.y, crate::universe::CHUNK_SIZE as f32, 0, 0);
+        // println!("Scene Position: {}, {} | Chunk position: {:?}", transform.translation.x, transform.translation.y, global_pos);
     }
 }
 
 fn f32_to_i16_chunk_position_with_local_offset(
-    x: f32, y: f32, 
-    chunk_size: f32, 
-    global_origin_x: i16, global_origin_y: i16
+    x: f32,
+    y: f32,
+    chunk_size: f32,
+    global_origin_x: i16,
+    global_origin_y: i16,
 ) -> ((i16, i16), (f32, f32)) {
     let intermediate_x = x / chunk_size;
     let intermediate_y = y / chunk_size;
@@ -84,5 +78,8 @@ fn f32_to_i16_chunk_position_with_local_offset(
     let local_offset_x = x % chunk_size;
     let local_offset_y = y % chunk_size;
 
-    ((final_chunk_x, final_chunk_y), (local_offset_x, local_offset_y))
+    (
+        (final_chunk_x, final_chunk_y),
+        (local_offset_x, local_offset_y),
+    )
 }

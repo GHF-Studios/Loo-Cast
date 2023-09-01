@@ -31,7 +31,7 @@ pub struct GlobalChunkPosition {
     pub local_chunk_position: LocalChunkPosition,
 }
 
-#[derive(Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct LocalChunkPosition {
     pub x: i16,
     pub y: i16,
@@ -360,7 +360,7 @@ pub static SCALES: &[Scale] = &[
     },
 ];
 
-pub static CHUNK_SIZE: i16 = 128;
+pub static CHUNK_SIZE: i16 = 1024;
 
 pub struct UniversePlugin;
 
@@ -373,7 +373,12 @@ impl Plugin for UniversePlugin {
             // Update Systems
             .add_systems(
                 Update,
-                (handle_load_universe, universe_observer_system, debug_chunks_update).run_if(in_state(AppState::Game)),
+                (
+                    handle_load_universe,
+                    universe_observer_system,
+                    debug_chunks_update,
+                )
+                    .run_if(in_state(AppState::Game)),
             );
     }
 }
