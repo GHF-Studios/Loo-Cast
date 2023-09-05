@@ -71,8 +71,6 @@ pub struct ChunkManager {
 
     tx_enqueue_generate: Arc<Mutex<mpsc::Sender<(LocalChunkPosition, Callback)>>>,
     tx_enqueue_load: Arc<Mutex<mpsc::Sender<(LocalChunkPosition, Callback)>>>,
-    tx_enqueue_spawn: Arc<Mutex<mpsc::Sender<(LocalChunkPosition, Callback)>>>,
-    tx_enqueue_despawn: Arc<Mutex<mpsc::Sender<(LocalChunkPosition, Callback)>>>,
     tx_enqueue_unload: Arc<Mutex<mpsc::Sender<(LocalChunkPosition, Callback)>>>,
 }
 
@@ -82,8 +80,6 @@ pub struct ChunkManager {
 struct ChunkManagerInitializationData {
     rx_enqueue_generate: mpsc::Receiver<(LocalChunkPosition, Callback)>,
     rx_enqueue_load: mpsc::Receiver<(LocalChunkPosition, Callback)>,
-    rx_enqueue_spawn: mpsc::Receiver<(LocalChunkPosition, Callback)>,
-    rx_enqueue_despawn: mpsc::Receiver<(LocalChunkPosition, Callback)>,
     rx_enqueue_unload: mpsc::Receiver<(LocalChunkPosition, Callback)>,
 }
 
@@ -163,6 +159,8 @@ impl ChunkManager {
 
     pub fn enqueue_spawn_operation(&self, position: LocalChunkPosition, callback: Callback) -> Result<(), String> {
         let mut chunk_info_map = self.chunk_info_map.lock().unwrap();
+        let mut spawn_queue = self.spawn_queue.lock().unwrap();
+        let mut spawn_callbacks = self.spawn_callbacks.lock().unwrap();
         let mut despawn_queue = self.despawn_queue.lock().unwrap();
         let mut despawn_callbacks = self.despawn_callbacks.lock().unwrap();
 
@@ -172,11 +170,17 @@ impl ChunkManager {
         } else {
             match chunk_info_map.get(&position).unwrap().state {
                 ChunkState::Loaded => {
-                    self.tx_enqueue_load
-                        .lock()
-                        .unwrap()
-                        .send((position, callback))
-                        .unwrap();
+                    chunk_info_map.entry(position).and_modify(|chunk_info| {
+                        chunk_info.state = ChunkState::QueuedForSpawning;
+                    });
+                    spawn_queue.push_back(position);
+                    spawn_callbacks.insert(
+                        position,
+                        CallbackInfo {
+                            callback,
+                            cancelled: false,
+                        },
+                    );
                     return Ok(());
                 },
                 ChunkState::QueuedForDespawning => {
@@ -191,19 +195,31 @@ impl ChunkManager {
                     despawn_callbacks.entry(position).and_modify(|callback_info| {
                         callback_info.cancelled = true;
                     });
-                    self.tx_enqueue_load
-                        .lock()
-                        .unwrap()
-                        .send((position, callback))
-                        .unwrap();
+                    chunk_info_map.entry(position).and_modify(|chunk_info| {
+                        chunk_info.state = ChunkState::QueuedForSpawning;
+                    });
+                    spawn_queue.push_back(position);
+                    spawn_callbacks.insert(
+                        position,
+                        CallbackInfo {
+                            callback,
+                            cancelled: false,
+                        },
+                    );
                     return Ok(());
                 },
                 ChunkState::Despawned => {
-                    self.tx_enqueue_load
-                        .lock()
-                        .unwrap()
-                        .send((position, callback))
-                        .unwrap();
+                    chunk_info_map.entry(position).and_modify(|chunk_info| {
+                        chunk_info.state = ChunkState::QueuedForSpawning;
+                    });
+                    spawn_queue.push_back(position);
+                    spawn_callbacks.insert(
+                        position,
+                        CallbackInfo {
+                            callback,
+                            cancelled: false,
+                        },
+                    );
                     return Ok(());
                 },
                 _ => {
@@ -215,6 +231,8 @@ impl ChunkManager {
 
     pub fn enqueue_despawn_operation(&self, position: LocalChunkPosition, callback: Callback) -> Result<(), String> {
         let mut chunk_info_map = self.chunk_info_map.lock().unwrap();
+        let mut despawn_queue = self.despawn_queue.lock().unwrap();
+        let mut despawn_callbacks = self.despawn_callbacks.lock().unwrap();
         let mut spawn_queue = self.spawn_queue.lock().unwrap();
         let mut spawn_callbacks = self.spawn_callbacks.lock().unwrap();
 
@@ -235,19 +253,31 @@ impl ChunkManager {
                     spawn_callbacks.entry(position).and_modify(|callback_info| {
                         callback_info.cancelled = true;
                     });
-                    self.tx_enqueue_despawn
-                        .lock()
-                        .unwrap()
-                        .send((position, callback))
-                        .unwrap();
+                    chunk_info_map.entry(position).and_modify(|chunk_info| {
+                        chunk_info.state = ChunkState::QueuedForDespawning;
+                    });
+                    despawn_queue.push_back(position);
+                    despawn_callbacks.insert(
+                        position,
+                        CallbackInfo {
+                            callback,
+                            cancelled: false,
+                        },
+                    );
                     return Ok(());
                 },
                 ChunkState::Spawned => {
-                    self.tx_enqueue_despawn
-                        .lock()
-                        .unwrap()
-                        .send((position, callback))
-                        .unwrap();
+                    chunk_info_map.entry(position).and_modify(|chunk_info| {
+                        chunk_info.state = ChunkState::QueuedForDespawning;
+                    });
+                    despawn_queue.push_back(position);
+                    despawn_callbacks.insert(
+                        position,
+                        CallbackInfo {
+                            callback,
+                            cancelled: false,
+                        },
+                    );
                     return Ok(());
                 },
                 _ => {
@@ -309,6 +339,49 @@ impl ChunkManager {
         }
     }
 
+    pub fn process_spawn_operations(&self, commands: &mut Commands) {
+        while let Some(position) = self.spawn_queue.lock().unwrap().pop_front() {
+            self.chunk_info_map.lock().unwrap().entry(position).and_modify(|chunk_info| {
+                chunk_info.state = ChunkState::Spawning;
+            });
+
+            println!("Spawning chunk at position {:?}", position);
+            self.spawn_chunk(*self.chunk_map.lock().unwrap().get(&position).unwrap().clone(), commands);
+
+            self.chunk_info_map.lock().unwrap().entry(position).and_modify(|chunk_info| {
+                chunk_info.state = ChunkState::Spawned;
+            });
+
+            if let Some(callback_info) = self.spawn_callbacks.lock().unwrap().remove(&position) {
+                if !callback_info.cancelled {
+                    (callback_info.callback)();
+                }
+            }
+        }
+    }
+
+    pub fn process_despawn_operations(&self, commands: &mut Commands, chunk_query: &Query<(Entity, &Chunk)>) {
+        while let Some(position) = self.despawn_queue.lock().unwrap().pop_front() {
+            self.chunk_info_map.lock().unwrap().entry(position).and_modify(|chunk_info| {
+                chunk_info.state = ChunkState::Despawning;
+            });
+
+            println!("Despawning chunk at position {:?}", position);
+            self.despawn_chunk(*self.chunk_map.lock().unwrap().get(&position).unwrap().clone(), commands, chunk_query);
+
+            self.chunk_info_map.lock().unwrap().entry(position).and_modify(|chunk_info| {
+                chunk_info.state = ChunkState::Despawned;
+            });
+
+            if let Some(callback_info) = self.despawn_callbacks.lock().unwrap().remove(&position)
+            {
+                if !callback_info.cancelled {
+                    (callback_info.callback)();
+                }
+            }
+        }
+    }
+
     pub fn get_chunk_state(&self, position: LocalChunkPosition) -> Option<ChunkState> {
         if let Some(chunk_info) = self.chunk_info_map.lock().unwrap().get(&position) {
             Some(chunk_info.state.clone())
@@ -320,14 +393,10 @@ impl ChunkManager {
     fn create_instance(chunks_folder_path: String) -> (Self, ChunkManagerInitializationData) {
         let (tx_enqueue_generate, rx_enqueue_generate) = mpsc::channel::<(LocalChunkPosition, Callback)>();
         let (tx_enqueue_load, rx_enqueue_load) = mpsc::channel::<(LocalChunkPosition, Callback)>();
-        let (tx_enqueue_spawn, rx_enqueue_spawn) = mpsc::channel::<(LocalChunkPosition, Callback)>();
-        let (tx_enqueue_despawn, rx_enqueue_despawn) = mpsc::channel::<(LocalChunkPosition, Callback)>();
         let (tx_enqueue_unload, rx_enqueue_unload) = mpsc::channel::<(LocalChunkPosition, Callback)>();
 
         let tx_enqueue_generate = Arc::new(Mutex::new(tx_enqueue_generate));
         let tx_enqueue_load = Arc::new(Mutex::new(tx_enqueue_load));
-        let tx_enqueue_spawn = Arc::new(Mutex::new(tx_enqueue_spawn));
-        let tx_enqueue_despawn = Arc::new(Mutex::new(tx_enqueue_despawn));
         let tx_enqueue_unload = Arc::new(Mutex::new(tx_enqueue_unload));
 
         let generate_queue = Arc::new(Mutex::new(VecDeque::new()));
@@ -356,15 +425,11 @@ impl ChunkManager {
 
                 tx_enqueue_generate,
                 tx_enqueue_load,
-                tx_enqueue_spawn,
-                tx_enqueue_despawn,
                 tx_enqueue_unload,
             },
             ChunkManagerInitializationData {
                 rx_enqueue_generate,
                 rx_enqueue_load,
-                rx_enqueue_spawn,
-                rx_enqueue_despawn,
                 rx_enqueue_unload,
             },
         )
@@ -375,14 +440,10 @@ impl ChunkManager {
 
         let generate_queue = self.generate_queue.clone();
         let load_queue = self.load_queue.clone();
-        let spawn_queue = self.spawn_queue.clone();
-        let despawn_queue = self.despawn_queue.clone();
         let unload_queue = self.unload_queue.clone();
 
         let generate_callbacks = self.generate_callbacks.clone();
         let load_callbacks = self.load_callbacks.clone();
-        let spawn_callbacks = self.spawn_callbacks.clone();
-        let despawn_callbacks = self.despawn_callbacks.clone();
         let unload_callbacks = self.unload_callbacks.clone();
 
         thread::spawn(move || loop {
@@ -426,46 +487,6 @@ impl ChunkManager {
                 );
             }
             println!("Finished enqueueing load operations");
-
-            println!("Started enqueueing spawn operations");
-            while let Ok((position, callback)) = initialization_data.rx_enqueue_spawn.recv() {
-                let mut queue = spawn_queue.lock().unwrap();
-                let mut info_map = chunk_info_map.lock().unwrap();
-                let mut callbacks = spawn_callbacks.lock().unwrap();
-                
-                queue.push_back(position);
-                info_map.entry(position).and_modify(|chunk_info| {
-                    chunk_info.state = ChunkState::QueuedForSpawning;
-                });
-                callbacks.insert(
-                    position,
-                    CallbackInfo {
-                        callback,
-                        cancelled: false,
-                    },
-                );
-            }
-            println!("Finished enqueueing spawn operations");
-
-            println!("Started enqueueing despawn operations");
-            while let Ok((position, callback)) = initialization_data.rx_enqueue_despawn.recv() {
-                let mut queue = despawn_queue.lock().unwrap();
-                let mut info_map = chunk_info_map.lock().unwrap();
-                let mut callbacks = despawn_callbacks.lock().unwrap();
-                
-                queue.push_back(position);
-                info_map.entry(position).and_modify(|chunk_info| {
-                    chunk_info.state = ChunkState::QueuedForDespawning;
-                });
-                callbacks.insert(
-                    position,
-                    CallbackInfo {
-                        callback,
-                        cancelled: false,
-                    },
-                );
-            }
-            println!("Finished enqueueing despawn operations");
 
             println!("Started enqueueing unload operations");
             while let Ok((position, callback)) = initialization_data.rx_enqueue_unload.recv() {
@@ -527,47 +548,6 @@ impl ChunkManager {
                 }
             }
             println!("Finished processing load operations");
-
-            println!("Started processing spawn operations");
-            while let Some(position) = spawn_queue.lock().unwrap().pop_front() {
-                chunk_info_map.lock().unwrap().entry(position).and_modify(|chunk_info| {
-                    chunk_info.state = ChunkState::Spawning;
-                });
-
-                println!("Spawning chunk at position {:?}", position);
-
-                chunk_info_map.lock().unwrap().entry(position).and_modify(|chunk_info| {
-                    chunk_info.state = ChunkState::Spawned;
-                });
-
-                if let Some(callback_info) = spawn_callbacks.lock().unwrap().remove(&position) {
-                    if !callback_info.cancelled {
-                        (callback_info.callback)();
-                    }
-                }
-            }
-            println!("Finished processing spawn operations");
-
-            println!("Started processing despawn operations");
-            while let Some(position) = despawn_queue.lock().unwrap().pop_front() {
-                chunk_info_map.lock().unwrap().entry(position).and_modify(|chunk_info| {
-                    chunk_info.state = ChunkState::Despawning;
-                });
-
-                println!("Despawning chunk at position {:?}", position);
-
-                chunk_info_map.lock().unwrap().entry(position).and_modify(|chunk_info| {
-                    chunk_info.state = ChunkState::Despawned;
-                });
-
-                if let Some(callback_info) = despawn_callbacks.lock().unwrap().remove(&position)
-                {
-                    if !callback_info.cancelled {
-                        (callback_info.callback)();
-                    }
-                }
-            }
-            println!("Finished processing despawn operations");
 
             println!("Started processing unload operations");
             while let Some(position) = unload_queue.lock().unwrap().pop_front() {
