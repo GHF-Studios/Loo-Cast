@@ -32,7 +32,7 @@ pub struct GlobalChunkPosition {
     pub local_chunk_position: LocalChunkPosition,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub struct LocalChunkPosition {
     pub x: i16,
     pub y: i16,

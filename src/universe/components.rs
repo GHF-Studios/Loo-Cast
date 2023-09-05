@@ -1,6 +1,7 @@
 use super::{LocalChunkPosition, CHUNK_SIZE};
 
 use bevy::prelude::*;
+use image::*;
 use serde::*;
 use std::collections::HashSet;
 
