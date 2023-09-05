@@ -74,12 +74,6 @@ pub struct ChunkManager {
     tx_enqueue_spawn: Arc<Mutex<mpsc::Sender<(LocalChunkPosition, Callback)>>>,
     tx_enqueue_despawn: Arc<Mutex<mpsc::Sender<(LocalChunkPosition, Callback)>>>,
     tx_enqueue_unload: Arc<Mutex<mpsc::Sender<(LocalChunkPosition, Callback)>>>,
-
-    tx_process_generate: Arc<Mutex<mpsc::Sender<usize>>>,
-    tx_process_load: Arc<Mutex<mpsc::Sender<usize>>>,
-    tx_process_spawn: Arc<Mutex<mpsc::Sender<usize>>>,
-    tx_process_despawn: Arc<Mutex<mpsc::Sender<usize>>>,
-    tx_process_unload: Arc<Mutex<mpsc::Sender<usize>>>,
 }
 
 // Actually call the generate/load/spawn/despawn/unload functions
@@ -91,12 +85,6 @@ struct ChunkManagerInitializationData {
     rx_enqueue_spawn: mpsc::Receiver<(LocalChunkPosition, Callback)>,
     rx_enqueue_despawn: mpsc::Receiver<(LocalChunkPosition, Callback)>,
     rx_enqueue_unload: mpsc::Receiver<(LocalChunkPosition, Callback)>,
-
-    rx_process_generate: mpsc::Receiver<usize>,
-    rx_process_load: mpsc::Receiver<usize>,
-    rx_process_spawn: mpsc::Receiver<usize>,
-    rx_process_despawn: mpsc::Receiver<usize>,
-    rx_process_unload: mpsc::Receiver<usize>,
 }
 
 impl ChunkManager {
@@ -336,23 +324,11 @@ impl ChunkManager {
         let (tx_enqueue_despawn, rx_enqueue_despawn) = mpsc::channel::<(LocalChunkPosition, Callback)>();
         let (tx_enqueue_unload, rx_enqueue_unload) = mpsc::channel::<(LocalChunkPosition, Callback)>();
 
-        let (tx_process_generate, rx_process_generate) = mpsc::channel::<usize>();
-        let (tx_process_load, rx_process_load) = mpsc::channel::<usize>();
-        let (tx_process_spawn, rx_process_spawn) = mpsc::channel::<usize>();
-        let (tx_process_despawn, rx_process_despawn) = mpsc::channel::<usize>();
-        let (tx_process_unload, rx_process_unload) = mpsc::channel::<usize>();
-
         let tx_enqueue_generate = Arc::new(Mutex::new(tx_enqueue_generate));
         let tx_enqueue_load = Arc::new(Mutex::new(tx_enqueue_load));
         let tx_enqueue_spawn = Arc::new(Mutex::new(tx_enqueue_spawn));
         let tx_enqueue_despawn = Arc::new(Mutex::new(tx_enqueue_despawn));
         let tx_enqueue_unload = Arc::new(Mutex::new(tx_enqueue_unload));
-
-        let tx_process_generate = Arc::new(Mutex::new(tx_process_generate));
-        let tx_process_load = Arc::new(Mutex::new(tx_process_load));
-        let tx_process_spawn = Arc::new(Mutex::new(tx_process_spawn));
-        let tx_process_despawn = Arc::new(Mutex::new(tx_process_despawn));
-        let tx_process_unload = Arc::new(Mutex::new(tx_process_unload));
 
         let generate_queue = Arc::new(Mutex::new(VecDeque::new()));
         let load_queue = Arc::new(Mutex::new(VecDeque::new()));
@@ -383,12 +359,6 @@ impl ChunkManager {
                 tx_enqueue_spawn,
                 tx_enqueue_despawn,
                 tx_enqueue_unload,
-
-                tx_process_generate,
-                tx_process_load,
-                tx_process_spawn,
-                tx_process_despawn,
-                tx_process_unload,
             },
             ChunkManagerInitializationData {
                 rx_enqueue_generate,
@@ -396,12 +366,6 @@ impl ChunkManager {
                 rx_enqueue_spawn,
                 rx_enqueue_despawn,
                 rx_enqueue_unload,
-
-                rx_process_generate,
-                rx_process_load,
-                rx_process_spawn,
-                rx_process_despawn,
-                rx_process_unload,
             },
         )
     }
