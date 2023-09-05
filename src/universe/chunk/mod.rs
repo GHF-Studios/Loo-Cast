@@ -70,8 +70,12 @@ pub struct ChunkManager {
     unload_callbacks: Arc<Mutex<HashMap<LocalChunkPosition, CallbackInfo>>>,
 }
 
-// Actually call the generate/load/spawn/despawn/unload functions
-// Instead of calling spawn/despawn, request the main thread to enqueue those functions' calls, which it executes every frame update
+// Add a way to manage chunk data and the actual chunk component separately, so I can load a chunk without spawning it, and spawn it later
+// THe idea behind this is that in the future I can split the load state into multiple stages, so I can load the chunk "more and more" as it get's increasingly significant
+// Once the full loading is done, the necessity of that chunk is pretty much guaranteed, and only then is the chunk able to spawn
+// This requires a more or less significant rethinking of the Chunk Loading. This also solves the problem of (de-)serializing the noise map of a chunk together with the other chunk data, as we just split that into multiple stages.
+// We simply don't need to have the noise maps loaded, when we are only predicting that the chunk may be used soon, we only need some basic information like it's position and scale level
+// Also: In the future we probably don't need the noise map most of the time, and should rather make that a transient asset, which will be used to generate the persistent asset which is the biome map. But for now, just consider the noise map the biome map, for simplicity
 
 impl ChunkManager {
     pub fn new(chunks_folder_path: String) -> Self {
@@ -388,7 +392,7 @@ impl ChunkManager {
             });
 
             println!("Spawning chunk at position {:?}", position);
-            self.spawn_chunk(*self.chunk_map.lock().unwrap().get(&position).unwrap().clone(), commands);
+            self.spawn_chunk(self.chunk_map.lock().unwrap().get(&position).unwrap(), commands);
 
             self.chunk_info_map.lock().unwrap().entry(position).and_modify(|chunk_info| {
                 chunk_info.state = ChunkState::Spawned;
@@ -413,7 +417,7 @@ impl ChunkManager {
             });
 
             println!("Despawning chunk at position {:?}", position);
-            self.despawn_chunk(*self.chunk_map.lock().unwrap().get(&position).unwrap().clone(), commands, chunk_query);
+            self.despawn_chunk(self.chunk_map.lock().unwrap().get(&position).unwrap(), commands, chunk_query);
 
             self.chunk_info_map.lock().unwrap().entry(position).and_modify(|chunk_info| {
                 chunk_info.state = ChunkState::Despawned;
