@@ -32,9 +32,6 @@ pub fn handle_load_universe(
 }
 
 pub fn universe_observer_system(
-    mut commands: Commands,
-    chunk_query: Query<&Chunk>,
-    chunk_entity_query: Query<(Entity, &Chunk)>,
     mut query: Query<(&mut UniverseObserver, &Transform)>,
     chunk_manager: Res<ChunkManager>,
 ) {
@@ -46,24 +43,23 @@ pub fn universe_observer_system(
 
         for coordinate in &proximal_chunk_coordinates {
             // Chunk should be spawned
-            if let Some(chunk_state) = chunk_manager.get_chunk_state(*coordinate)
-            {
+            if let Some(chunk_state) = chunk_manager.get_chunk_state(*coordinate) {
                 match chunk_state {
-                    QueuedForGeneration => {},
-                    InProgressForGeneration => {},
-                    Generated => {},
-                    QueuedForLoading => {},
-                    InProgressForLoading => {},
-                    Loaded => {},
-                    QueuedForSpawning => {},
-                    InProgressForSpawning => {},
-                    Spawned => {},
-                    QueuedForDespawning => {},
-                    InProgressForDespawning => {},
-                    Despawned => {},
-                    QueuedForUnloading => {},
-                    InProgressForUnloading => {},
-                    Unloaded => {},
+                    ChunkState::QueuedForGeneration => {}
+                    ChunkState::Generating => {}
+                    ChunkState::Generated => {}
+                    ChunkState::QueuedForLoading => {}
+                    ChunkState::Loading => {}
+                    ChunkState::Loaded => {}
+                    ChunkState::QueuedForSpawning => {}
+                    ChunkState::Spawning => {}
+                    ChunkState::Spawned => {}
+                    ChunkState::QueuedForDespawning => {}
+                    ChunkState::Despawning => {}
+                    ChunkState::Despawned => {}
+                    ChunkState::QueuedForUnloading => {}
+                    ChunkState::Unloading => {}
+                    ChunkState::Unloaded => {}
                 }
             }
         }
@@ -71,24 +67,23 @@ pub fn universe_observer_system(
         for old_coordinate in &observer.old_proximal_chunk_coordinates {
             if !proximal_chunk_coordinates.contains(old_coordinate) {
                 // Chunk should not be spawned
-                if let Some(chunk_state) = chunk_manager.get_chunk_state(*old_coordinate)
-                {
+                if let Some(chunk_state) = chunk_manager.get_chunk_state(*old_coordinate) {
                     match chunk_state {
-                        QueuedForGeneration => {},
-                        InProgressForGeneration => {},
-                        Generated => {},
-                        QueuedForLoading => {},
-                        InProgressForLoading => {},
-                        Loaded => {},
-                        QueuedForSpawning => {},
-                        InProgressForSpawning => {},
-                        Spawned => {},
-                        QueuedForDespawning => {},
-                        InProgressForDespawning => {},
-                        Despawned => {},
-                        QueuedForUnloading => {},
-                        InProgressForUnloading => {},
-                        Unloaded => {},
+                        ChunkState::QueuedForGeneration => {}
+                        ChunkState::Generating => {}
+                        ChunkState::Generated => {}
+                        ChunkState::QueuedForLoading => {}
+                        ChunkState::Loading => {}
+                        ChunkState::Loaded => {}
+                        ChunkState::QueuedForSpawning => {}
+                        ChunkState::Spawning => {}
+                        ChunkState::Spawned => {}
+                        ChunkState::QueuedForDespawning => {}
+                        ChunkState::Despawning => {}
+                        ChunkState::Despawned => {}
+                        ChunkState::QueuedForUnloading => {}
+                        ChunkState::Unloading => {}
+                        ChunkState::Unloaded => {}
                     }
                 }
             }
