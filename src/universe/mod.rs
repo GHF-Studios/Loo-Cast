@@ -4,6 +4,7 @@ pub mod events;
 pub mod resources;
 mod systems;
 
+use chunk::*;
 use events::*;
 use systems::*;
 
