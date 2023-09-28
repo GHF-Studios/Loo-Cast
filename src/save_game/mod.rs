@@ -1,6 +1,6 @@
 // Internal imports
-use crate::AppState;
 use crate::ui::save_games_menu::*;
+use crate::AppState;
 
 // External imports
 use bevy::prelude::*;
@@ -164,11 +164,9 @@ impl SaveGameManager {
                 save_game_manager.registered_save_games.remove(index);
             }
 
-            delete_save_game_ui_event_writer.send(
-                DeleteSaveGameUI {
-                    save_game_name: event.save_game_name.to_string(),
-                },
-            );
+            delete_save_game_ui_event_writer.send(DeleteSaveGameUI {
+                save_game_name: event.save_game_name.to_string(),
+            });
         }
     }
 

@@ -76,7 +76,7 @@ impl Default for UIManager {
 
 impl UIManager {
     fn initialize(mut commands: Commands) {
-        commands.insert_resource(UIManager {focus: None});
+        commands.insert_resource(UIManager { focus: None });
     }
 
     fn handle_gained_focus_event(
@@ -99,7 +99,7 @@ impl UIManager {
             color: Color::WHITE,
         }
     }
-    
+
     pub fn get_label_text_style(asset_server: &Res<AssetServer>) -> TextStyle {
         TextStyle {
             font: asset_server.load("fonts/FiraSans-Bold.ttf"),
@@ -107,7 +107,7 @@ impl UIManager {
             color: Color::WHITE,
         }
     }
-    
+
     pub fn get_button_text_style(asset_server: &Res<AssetServer>) -> TextStyle {
         TextStyle {
             font: asset_server.load("fonts/FiraSans-Bold.ttf"),

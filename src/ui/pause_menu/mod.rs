@@ -65,7 +65,10 @@ impl Plugin for PauseMenuPlugin {
     fn build(&self, app: &mut App) {
         app
             // Enter Systems
-            .add_systems(OnEnter(SimulationState::Paused), PauseMenuManager::initialize)
+            .add_systems(
+                OnEnter(SimulationState::Paused),
+                PauseMenuManager::initialize,
+            )
             // Update Systems
             .add_systems(
                 Update,
@@ -86,10 +89,7 @@ impl PauseMenuManager {
         Self::build_pause_menu(&mut commands, &asset_server);
     }
 
-    fn terminate(
-        mut commands: Commands,
-        pause_menu_query: Query<Entity, With<PauseMenu>>
-    ) {
+    fn terminate(mut commands: Commands, pause_menu_query: Query<Entity, With<PauseMenu>>) {
         if let Ok(pause_menu_entity) = pause_menu_query.get_single() {
             commands.entity(pause_menu_entity).despawn_recursive();
         }
@@ -117,7 +117,7 @@ impl PauseMenuManager {
             }
         }
     }
-    
+
     fn interact_with_main_menu_button(
         mut unload_save_game_event_writer: EventWriter<UnloadGame>,
         mut button_query: Query<
@@ -142,7 +142,7 @@ impl PauseMenuManager {
             }
         }
     }
-    
+
     fn interact_with_quit_button(
         mut unload_save_game_event_writer: EventWriter<UnloadGame>,
         mut button_query: Query<
@@ -273,7 +273,7 @@ impl PauseMenuManager {
                     });
             })
             .id();
-    
+
         pause_menu_entity
     }
 }

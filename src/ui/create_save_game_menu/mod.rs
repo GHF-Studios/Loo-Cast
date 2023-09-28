@@ -1,7 +1,7 @@
 // Internal imports
 use crate::save_game::*;
-use crate::ui::*;
 use crate::ui::input_field::*;
+use crate::ui::*;
 use crate::AppState;
 
 // External imports

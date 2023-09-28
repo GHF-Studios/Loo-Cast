@@ -1,8 +1,8 @@
 // Internal imports
-use crate::AppState;
 use crate::game::*;
 use crate::save_game::*;
 use crate::ui::*;
+use crate::AppState;
 
 // External imports
 use bevy::prelude::*;
@@ -150,7 +150,10 @@ impl Plugin for SaveGamesMenuPlugin {
             .add_event::<LoadSaveGameInstance>()
             .add_event::<DeleteSaveGameUI>()
             // Enter State Systems
-            .add_systems(OnEnter(AppState::SaveGamesMenu), SaveGamesMenuManager::initialize)
+            .add_systems(
+                OnEnter(AppState::SaveGamesMenu),
+                SaveGamesMenuManager::initialize,
+            )
             // Update Systems
             .add_systems(
                 Update,
@@ -165,7 +168,10 @@ impl Plugin for SaveGamesMenuPlugin {
                     .run_if(in_state(AppState::SaveGamesMenu)),
             )
             // Exit State Systems
-            .add_systems(OnExit(AppState::SaveGamesMenu), SaveGamesMenuManager::terminate);
+            .add_systems(
+                OnExit(AppState::SaveGamesMenu),
+                SaveGamesMenuManager::terminate,
+            );
     }
 }
 
@@ -177,7 +183,7 @@ impl SaveGamesMenuManager {
     ) {
         Self::build_save_games_menu(&mut commands, &asset_server, &save_game_manager);
     }
-    
+
     fn terminate(
         mut commands: Commands,
         save_games_menu_query: Query<Entity, With<SaveGamesMenu>>,
@@ -209,7 +215,7 @@ impl SaveGamesMenuManager {
             }
         }
     }
-    
+
     fn interact_with_create_save_game_button(
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut button_query: Query<
@@ -232,7 +238,7 @@ impl SaveGamesMenuManager {
             }
         }
     }
-    
+
     fn interact_with_delete_save_game_button(
         mut delete_save_game_event_writer: EventWriter<DeleteSaveGame>,
         mut button_query: Query<
@@ -259,7 +265,7 @@ impl SaveGamesMenuManager {
             }
         }
     }
-    
+
     fn interact_with_load_save_game_button(
         mut load_save_game_instance_event_writer: EventWriter<LoadSaveGameInstance>,
         mut button_query: Query<
@@ -286,14 +292,15 @@ impl SaveGamesMenuManager {
             }
         }
     }
-    
+
     fn handle_load_save_game_instance(
         mut load_save_game_instance_event_reader: EventReader<LoadSaveGameInstance>,
         mut load_game_event_writer: EventWriter<LoadGame>,
         save_game_manager: Res<SaveGameManager>,
     ) {
         if let Some(event) = load_save_game_instance_event_reader.iter().last() {
-            if let Some(save_game) = save_game_manager.get_save_game_info(event.save_game_name.clone())
+            if let Some(save_game) =
+                save_game_manager.get_save_game_info(event.save_game_name.clone())
             {
                 load_game_event_writer.send(LoadGame {
                     save_game: save_game.clone(),
@@ -301,7 +308,7 @@ impl SaveGamesMenuManager {
             }
         }
     }
-    
+
     fn handle_delete_save_game_ui(
         mut commands: Commands,
         mut delete_save_game_ui_event_reader: EventReader<DeleteSaveGameUI>,
@@ -390,7 +397,9 @@ impl SaveGamesMenuManager {
                                         .with_children(|parent| {
                                             parent.spawn(ImageBundle {
                                                 style: BUTTON_IMAGE_STYLE,
-                                                image: asset_server.load("sprites/cross.png").into(),
+                                                image: asset_server
+                                                    .load("sprites/cross.png")
+                                                    .into(),
                                                 ..default()
                                             });
                                         });
@@ -406,7 +415,9 @@ impl SaveGamesMenuManager {
                                                 text: Text {
                                                     sections: vec![TextSection::new(
                                                         save_game_info.name.clone(),
-                                                        Self::get_save_game_name_text_style(&asset_server),
+                                                        Self::get_save_game_name_text_style(
+                                                            &asset_server,
+                                                        ),
                                                     )],
                                                     alignment: TextAlignment::Center,
                                                     ..default()
@@ -429,7 +440,9 @@ impl SaveGamesMenuManager {
                                         .with_children(|parent| {
                                             parent.spawn(ImageBundle {
                                                 style: BUTTON_IMAGE_STYLE,
-                                                image: asset_server.load("sprites/enter.png").into(),
+                                                image: asset_server
+                                                    .load("sprites/enter.png")
+                                                    .into(),
                                                 ..default()
                                             });
                                         });
@@ -460,7 +473,7 @@ impl SaveGamesMenuManager {
                                     ..default()
                                 });
                             });
-    
+
                         // Create Save Game Button
                         parent
                             .spawn((
@@ -481,7 +494,7 @@ impl SaveGamesMenuManager {
                     });
             })
             .id();
-    
+
         save_games_menu_entity
     }
 
