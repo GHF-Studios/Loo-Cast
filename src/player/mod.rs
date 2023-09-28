@@ -38,7 +38,7 @@ impl Plugin for PlayerPlugin {
 }
 
 impl PlayerManager {
-    pub fn initialize(mut commands: Commands, asset_server: Res<AssetServer>) {
+    fn initialize(mut commands: Commands, asset_server: Res<AssetServer>) {
         commands.insert_resource(PlayerManager {});
         commands.spawn((
             SpriteBundle {
@@ -54,21 +54,21 @@ impl PlayerManager {
         ));
     }
 
-    pub fn terminate(mut commands: Commands, player_query: Query<Entity, With<Player>>) {
+    fn terminate(mut commands: Commands, player_query: Query<Entity, With<Player>>) {
         commands.remove_resource::<PlayerManager>();
         if let Ok(player_entity) = player_query.get_single() {
             commands.entity(player_entity).despawn();
         }
     }
-    
-    pub fn player_movement(
+
+    fn player_movement(
         keyboard_input: Res<Input<KeyCode>>,
         mut player_query: Query<&mut Transform, With<Player>>,
         time: Res<Time>,
     ) {
         if let Ok(mut transform) = player_query.get_single_mut() {
             let mut direction = Vec3::ZERO;
-    
+
             if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
                 direction += Vec3::new(-1.0, 0.0, 0.0);
             }
@@ -81,11 +81,11 @@ impl PlayerManager {
             if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
                 direction += Vec3::new(0.0, -1.0, 0.0);
             }
-    
+
             if direction.length() > 0.0 {
                 direction = direction.normalize();
             }
-    
+
             transform.translation += direction * PLAYER_SPEED * time.delta_seconds();
         }
     }

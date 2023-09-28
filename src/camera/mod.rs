@@ -1,8 +1,8 @@
 // Internal imports
 use crate::game::SimulationState;
-use crate::AppState;
 use crate::math::*;
 use crate::player::*;
+use crate::AppState;
 
 // External imports
 use bevy::prelude::*;
@@ -34,35 +34,35 @@ impl Plugin for CameraPlugin {
 }
 
 impl CameraManager {
-    pub fn initialize(mut commands: Commands) {
+    fn initialize(mut commands: Commands) {
         commands.insert_resource(CameraManager {});
         commands.spawn(Camera2dBundle {
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         });
     }
-    
-    pub fn lerp_to_player(
+
+    fn lerp_to_player(
         mut camera_query: Query<&mut Transform, With<Camera>>,
         player_query: Query<&Transform, (With<Player>, Without<Camera>)>,
         time: Res<Time>,
     ) {
         let player_transform = player_query.single();
         let mut camera_transform = camera_query.single_mut();
-    
+
         let interpolation = CAMERA_SPEED * time.delta_seconds();
-    
-        let new_x = lerp(
+
+        let new_x = Math::lerp(
             camera_transform.translation.x,
             player_transform.translation.x,
             interpolation,
         );
-        let new_y = lerp(
+        let new_y = Math::lerp(
             camera_transform.translation.y,
             player_transform.translation.y,
             interpolation,
         );
-    
+
         camera_transform.translation.x = new_x;
         camera_transform.translation.y = new_y;
     }

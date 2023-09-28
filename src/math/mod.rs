@@ -13,6 +13,8 @@ pub struct Base10x10Converter {
     offsets: Vec<BigUint>,
 }
 
+pub struct Math;
+
 // Implementations
 impl Base57Converter {
     pub fn new(max_digits: usize) -> Result<Self, String> {
@@ -197,7 +199,8 @@ impl Base10x10Converter {
     }
 }
 
-// Methods
-pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
-    a + t * (b - a)
+impl Math {
+    pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
+        a + t * (b - a)
+    }
 }

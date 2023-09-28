@@ -28,10 +28,7 @@ impl Plugin for UniversePlugin {
             // Update Systems
             .add_systems(
                 Update,
-                (
-                    UniverseManager::handle_load_universe,
-                )
-                    .run_if(in_state(AppState::Game)),
+                (UniverseManager::handle_load_universe,).run_if(in_state(AppState::Game)),
             );
     }
 }

@@ -7,13 +7,13 @@ use config::*;
 use state::*;
 
 // Internal imports
-use crate::AppState;
 use crate::save_game::*;
 use crate::universe::*;
+use crate::AppState;
 
 // External imports
-use bevy::prelude::*;
 use bevy::app::AppExit;
+use bevy::prelude::*;
 use std::fs::File;
 use std::path::Path;
 
@@ -72,21 +72,27 @@ impl Plugin for GamePlugin {
             )
             .add_systems(
                 Update,
-                (GameManager::toggle_simulation, GameManager::handle_unload_game).run_if(in_state(AppState::Game)),
+                (
+                    GameManager::toggle_simulation,
+                    GameManager::handle_unload_game,
+                )
+                    .run_if(in_state(AppState::Game)),
             );
     }
 }
 
 impl GameManager {
-    pub fn initialize(commands: &mut Commands, save_game_info: SaveGameInfo) {
-        commands.insert_resource(GameManager {current_save_game: save_game_info})
+    fn initialize(commands: &mut Commands, save_game_info: SaveGameInfo) {
+        commands.insert_resource(GameManager {
+            current_save_game: save_game_info,
+        })
     }
 
-    pub fn terminate(commands: &mut Commands) {
+    fn terminate(commands: &mut Commands) {
         commands.remove_resource::<GameManager>();
     }
-    
-    pub fn handle_load_game(
+
+    fn handle_load_game(
         mut commands: Commands,
         mut load_game_event_reader: EventReader<LoadGame>,
         mut load_universe_event_writer: EventWriter<LoadUniverse>,
@@ -95,38 +101,38 @@ impl GameManager {
     ) {
         if let Some(confirm_loaded_save_game_event) = load_game_event_reader.iter().last() {
             let save_game_info: SaveGameInfo = confirm_loaded_save_game_event.save_game.clone();
-    
+
             // Load Game Manager
             GameManager::initialize(&mut commands, save_game_info.clone());
-    
+
             // Load Game Config
             let dir_path = format!("assets/data/saves/{}/config", save_game_info.name);
             if !Path::new(&dir_path).exists() {
                 std::fs::create_dir_all(&dir_path).expect("Failed to create config directory");
-    
+
                 let file_path = format!("{}/info.json", dir_path);
                 File::create(&file_path).expect("Failed to create info.json for config");
             }
             GameConfigManager::initialize(&mut commands);
-    
+
             // Load Game State
             let dir_path = format!("assets/data/saves/{}/state", save_game_info.name);
             if !Path::new(&dir_path).exists() {
                 std::fs::create_dir_all(&dir_path).expect("Failed to create state directory");
-    
+
                 let file_path = format!("{}/info.json", dir_path);
                 File::create(&file_path).expect("Failed to create info.json for state");
             }
             GameStateManager::initialize(&mut commands);
-    
+
             // Finalize Loading
             simulation_state_next_state.set(SimulationState::Paused);
             app_state_next_state.set(AppState::Game);
             load_universe_event_writer.send(LoadUniverse {});
         }
     }
-    
-    pub fn handle_unload_game(
+
+    fn handle_unload_game(
         mut commands: Commands,
         mut unload_game_event_reader: EventReader<UnloadGame>,
         mut app_exit_event_writer: EventWriter<AppExit>,
@@ -136,13 +142,13 @@ impl GameManager {
         if let Some(unload_save_game_event) = unload_game_event_reader.iter().last() {
             // Unload Game State
             GameStateManager::terminate(&mut commands);
-    
+
             // Unload Game Config
             GameConfigManager::terminate(&mut commands);
-    
+
             // Unload Game Manager
             GameManager::terminate(&mut commands);
-    
+
             // Finalize Unloading
             simulation_state_next_state.set(SimulationState::Running);
             if unload_save_game_event.quit_mode == GameQuitMode::QuitToMainMenu {

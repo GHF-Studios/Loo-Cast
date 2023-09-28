@@ -1,7 +1,7 @@
 // Internal imports
 use crate::game::SimulationState;
-use crate::AppState;
 use crate::player::*;
+use crate::AppState;
 
 // External imports
 use bevy::prelude::*;
@@ -31,10 +31,7 @@ impl Plugin for BackgroundPlugin {
     fn build(&self, app: &mut App) {
         app
             // Enter Systems
-            .add_systems(
-                OnEnter(AppState::Game),
-                BackgroundManager::initialize,
-            )
+            .add_systems(OnEnter(AppState::Game), BackgroundManager::initialize)
             // Update Systems
             .add_systems(
                 Update,
@@ -43,10 +40,7 @@ impl Plugin for BackgroundPlugin {
                     .run_if(in_state(SimulationState::Running)),
             )
             // Exit Systems
-            .add_systems(
-                OnExit(AppState::Game),
-                BackgroundManager::terminate,
-            );
+            .add_systems(OnExit(AppState::Game), BackgroundManager::terminate);
     }
 }
 
@@ -60,7 +54,7 @@ impl Default for BackgroundManager {
 }
 
 impl BackgroundManager {
-    pub fn initialize(
+    fn initialize(
         mut commands: Commands,
         window_query: Query<&Window, With<PrimaryWindow>>,
         asset_server: Res<AssetServer>,
@@ -78,7 +72,7 @@ impl BackgroundManager {
                 let window_height = window.height();
                 let x = (window_width / 2.0) + (window_width * x as f32);
                 let y = (window_height / 2.0) + (window_height * y as f32);
-    
+
                 commands.spawn((
                     SpriteBundle {
                         sprite: Sprite {
@@ -99,26 +93,23 @@ impl BackgroundManager {
             }
         }
     }
-    
-    pub fn terminate(
-        mut commands: Commands,
-        background_query: Query<Entity, With<Background>>,
-    ) {
+
+    fn terminate(mut commands: Commands, background_query: Query<Entity, With<Background>>) {
         commands.remove_resource::<BackgroundManager>();
 
         for entity in background_query.iter() {
             commands.entity(entity).despawn();
         }
     }
-    
-    pub fn move_background(
+
+    fn move_background(
         mut background_manager: ResMut<BackgroundManager>,
         mut background_transform_query: Query<&mut Transform, With<Background>>,
         player_transform_query: Query<&Transform, (With<Player>, Without<Background>)>,
         window_query: Query<&Window, With<PrimaryWindow>>,
     ) {
         let window = window_query.get_single().unwrap();
-    
+
         if let Ok(player_entity) = player_transform_query.get_single() {
             let difference_x =
                 player_entity.translation.x - background_manager.background_origin_x as f32;
@@ -126,21 +117,21 @@ impl BackgroundManager {
                 player_entity.translation.y - background_manager.background_origin_y as f32;
             let window_width = window.width();
             let window_height = window.height();
-    
+
             if difference_x.abs() > window_width as f32 {
                 if difference_x > 0.0 {
                     background_manager.background_origin_x += window_width as i32;
-    
+
                     println!("Shifting background towards +X");
-    
+
                     for mut background_transform in background_transform_query.iter_mut() {
                         background_transform.translation.x += window_width;
                     }
                 } else {
                     background_manager.background_origin_x -= window_width as i32;
-    
+
                     println!("Shifting background towards -X");
-    
+
                     for mut background_transform in background_transform_query.iter_mut() {
                         background_transform.translation.x -= window_width;
                     }
@@ -149,17 +140,17 @@ impl BackgroundManager {
             if difference_y.abs() > window_height as f32 {
                 if difference_y > 0.0 {
                     background_manager.background_origin_y += window_height as i32;
-    
+
                     println!("Shifting background towards +Y");
-    
+
                     for mut background_transform in background_transform_query.iter_mut() {
                         background_transform.translation.y += window_height;
                     }
                 } else {
                     background_manager.background_origin_y -= window_height as i32;
-    
+
                     println!("Shifting background towards -Y");
-    
+
                     for mut background_transform in background_transform_query.iter_mut() {
                         background_transform.translation.y -= window_height;
                     }
