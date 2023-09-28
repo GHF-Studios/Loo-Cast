@@ -1,4 +1,4 @@
-use crate::save_game::resources::*;
+use crate::save_game::*;
 use crate::ui::save_games_menu::components::*;
 use crate::ui::save_games_menu::styles::*;
 use crate::ui::styles::*;

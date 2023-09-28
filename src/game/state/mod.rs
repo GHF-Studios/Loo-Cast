@@ -1,9 +1,17 @@
-pub mod resources;
-
+// External imports
 use bevy::prelude::*;
 
-pub struct StatePlugin;
+// Resources
+#[derive(Resource)]
+pub struct GameStateManager;
 
-impl Plugin for StatePlugin {
-    fn build(&self, app: &mut App) {}
+// Implementations
+impl GameStateManager {
+    pub fn initialize(commands: &mut Commands) {
+        commands.insert_resource(GameStateManager {})
+    }
+
+    pub fn terminate(commands: &mut Commands) {
+        commands.remove_resource::<GameStateManager>();
+    }
 }

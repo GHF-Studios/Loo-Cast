@@ -1,6 +1,5 @@
-use crate::game::events::*;
-use crate::save_game::events::DeleteSaveGame;
-use crate::save_game::resources::*;
+use crate::game::*;
+use crate::save_game::*;
 use crate::ui::save_games_menu::components::*;
 use crate::ui::save_games_menu::events::*;
 use crate::ui::styles::*;

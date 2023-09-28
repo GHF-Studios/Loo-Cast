@@ -1,29 +1,92 @@
-mod systems;
-
-pub mod components;
-
-use systems::*;
-
+// Internal imports
 use crate::game::SimulationState;
 use crate::AppState;
 
+// External imports
 use bevy::prelude::*;
 
+// Constant variables
+pub const PLAYER_SPEED: f32 = 500.0;
+
+// Components
+#[derive(Component)]
+pub struct Player {}
+
+// Resources
+#[derive(Resource)]
+pub struct PlayerManager;
+
+// Structs
 pub struct PlayerPlugin;
 
+// Implementations
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
             // Enter Systems
-            .add_systems(OnEnter(AppState::Game), spawn_player)
+            .add_systems(OnEnter(AppState::Game), PlayerManager::initialize)
             // Update Systems
             .add_systems(
                 Update,
-                player_movement
+                PlayerManager::player_movement
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
             )
             // Exit Systems
-            .add_systems(OnExit(AppState::Game), despawn_player);
+            .add_systems(OnExit(AppState::Game), PlayerManager::terminate);
+    }
+}
+
+impl PlayerManager {
+    pub fn initialize(mut commands: Commands, asset_server: Res<AssetServer>) {
+        commands.insert_resource(PlayerManager {});
+        commands.spawn((
+            SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(64.0, 64.0)),
+                    ..default()
+                },
+                transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                texture: asset_server.load("sprites/circle.png"),
+                ..default()
+            },
+            Player {},
+        ));
+    }
+
+    pub fn terminate(mut commands: Commands, player_query: Query<Entity, With<Player>>) {
+        commands.remove_resource::<PlayerManager>();
+        if let Ok(player_entity) = player_query.get_single() {
+            commands.entity(player_entity).despawn();
+        }
+    }
+    
+    pub fn player_movement(
+        keyboard_input: Res<Input<KeyCode>>,
+        mut player_query: Query<&mut Transform, With<Player>>,
+        time: Res<Time>,
+    ) {
+        if let Ok(mut transform) = player_query.get_single_mut() {
+            let mut direction = Vec3::ZERO;
+    
+            if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
+                direction += Vec3::new(-1.0, 0.0, 0.0);
+            }
+            if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {
+                direction += Vec3::new(1.0, 0.0, 0.0);
+            }
+            if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
+                direction += Vec3::new(0.0, 1.0, 0.0);
+            }
+            if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
+                direction += Vec3::new(0.0, -1.0, 0.0);
+            }
+    
+            if direction.length() > 0.0 {
+                direction = direction.normalize();
+            }
+    
+            transform.translation += direction * PLAYER_SPEED * time.delta_seconds();
+        }
     }
 }

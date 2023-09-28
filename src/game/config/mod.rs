@@ -1,9 +1,17 @@
-pub mod resources;
-
+// External imports
 use bevy::prelude::*;
 
-pub struct ConfigPlugin;
+// Resources
+#[derive(Resource)]
+pub struct GameConfigManager;
 
-impl Plugin for ConfigPlugin {
-    fn build(&self, app: &mut App) {}
+// Implementations
+impl GameConfigManager {
+    pub fn initialize(commands: &mut Commands) {
+        commands.insert_resource(GameConfigManager {})
+    }
+
+    pub fn terminate(commands: &mut Commands) {
+        commands.remove_resource::<GameConfigManager>();
+    }
 }
