@@ -2322,6 +2322,7 @@ dependencies = [
  "bevy_rapier2d",
  "futures",
  "image",
+ "lazy_static",
  "noise",
  "num-bigint",
  "num-traits",
