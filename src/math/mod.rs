@@ -1,13 +1,15 @@
 // External imports
+use lazy_static::*;
 use num_bigint::BigUint;
 use num_traits::{One, ToPrimitive, Zero};
 use std::sync::Arc;
-use lazy_static::*;
 
 // Static variables
 lazy_static! {
-    pub static ref BASE10X10_CONVERTER: Arc<Base10x10Converter> = Arc::new(Base10x10Converter::new(64).unwrap());
-    pub static ref BASE57_CONVERTER: Arc<Base57Converter> = Arc::new(Base57Converter::new(73).unwrap());
+    pub static ref BASE10X10_CONVERTER: Arc<Base10x10Converter> =
+        Arc::new(Base10x10Converter::new(64).unwrap());
+    pub static ref BASE57_CONVERTER: Arc<Base57Converter> =
+        Arc::new(Base57Converter::new(73).unwrap());
 }
 
 // Structs
@@ -25,7 +27,7 @@ pub struct Math;
 
 // Implementations
 impl Base10x10Converter {
-    fn new(max_digits: usize) -> Result<Self, String> {
+    pub fn new(max_digits: usize) -> Result<Self, String> {
         if max_digits == 0 {
             return Err("Max number of base10x10 digits must be greater than 0!".to_string());
         }
@@ -129,9 +131,8 @@ impl Base10x10Converter {
     }
 }
 
-
 impl Base57Converter {
-    fn new(max_digits: usize) -> Result<Self, String> {
+    pub fn new(max_digits: usize) -> Result<Self, String> {
         if max_digits == 0 {
             return Err("Max number of base57 digits must be greater than 0!".to_string());
         }
