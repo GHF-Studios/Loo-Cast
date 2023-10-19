@@ -1,6 +1,6 @@
 pub mod background;
 pub mod camera;
-pub mod chunk;
+pub mod chunking;
 pub mod game;
 pub mod math;
 pub mod player;
