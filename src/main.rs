@@ -1,17 +1,19 @@
 pub mod background;
 pub mod camera;
-pub mod chunking;
+//pub mod chunking;
 pub mod game;
+pub mod iteration_test;
 pub mod math;
 pub mod player;
 pub mod save_game;
-pub mod scale;
+//pub mod scale;
 pub mod ui;
 pub mod universe;
 
 use background::BackgroundPlugin;
 use camera::CameraPlugin;
 use game::GamePlugin;
+use iteration_test::IterationTestPlugin;
 use player::PlayerPlugin;
 use save_game::SaveGamePlugin;
 use ui::UIPlugin;
@@ -38,6 +40,7 @@ impl PluginGroup for LooCastBasePlugins {
             .add(BackgroundPlugin)
             .add(CameraPlugin)
             .add(GamePlugin)
+            .add(IterationTestPlugin)
             .add(PlayerPlugin)
             .add(SaveGamePlugin)
             .add(UIPlugin)
