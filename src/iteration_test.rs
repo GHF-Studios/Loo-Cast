@@ -3,6 +3,7 @@ use crate::game::SimulationState;
 use crate::player::Player;
 use crate::AppState;
 use crate::math::BASE10X10_CONVERTER;
+use crate::universe::chunk::*;
 
 // External imports
 use bevy::prelude::*;
@@ -149,24 +150,9 @@ impl IterationTestManager {
 
     fn terminate(
         mut commands: Commands,
-        scene_position_text_query: Query<Entity, With<ScenePositionText>>,
-        local_chunk_position_text_query: Query<Entity, With<LocalChunkPositionText>>,
-        current_scale_index_text_query: Query<Entity, With<CurrentScaleIndexText>>,
-        global_chunk_position_text_query: Query<Entity, With<GlobalChunkPositionText>>,
+        debug_text_panel_query: Query<Entity, With<DebugTextPanel>>,
     ) {
-        if let Ok(entity) = scene_position_text_query.get_single() {
-            commands.entity(entity).despawn();
-        }
-
-        if let Ok(entity) = local_chunk_position_text_query.get_single() {
-            commands.entity(entity).despawn();
-        }
-
-        if let Ok(entity) = current_scale_index_text_query.get_single() {
-            commands.entity(entity).despawn();
-        }
-
-        if let Ok(entity) = global_chunk_position_text_query.get_single() {
+        if let Ok(entity) = debug_text_panel_query.get_single() {
             commands.entity(entity).despawn();
         }
     }
@@ -191,7 +177,7 @@ impl IterationTestManager {
     ) {
         for mut text in &mut text_query {
             if let Ok(player_transform) = player_query.get_single() {
-                let local_chunk_pos = Self::get_local_chunk_pos(
+                let local_chunk_pos = Self::local_chunk_pos_from_scene_pos(
                     (
                         player_transform.translation.x,
                         player_transform.translation.y,
@@ -204,12 +190,20 @@ impl IterationTestManager {
         }
     }
 
-    fn get_local_chunk_pos(scene_pos: (f32, f32), chunk_size: u16) -> (i32, i32) {
+    fn local_chunk_pos_from_scene_pos(scene_pos: (f32, f32), chunk_size: u16) -> (i32, i32) {
         let x = (scene_pos.0 / chunk_size as f32).floor() as i32;
         let y = (scene_pos.1 / chunk_size as f32).floor() as i32;
 
         (x, y)
     }
+
+    fn scene_pos_from_local_chunk_pos(local_chunk_pos: (i32, i32), chunk_size: u16) -> (f32, f32) {
+        let x = local_chunk_pos.0 as f32 * chunk_size as f32;
+        let y = local_chunk_pos.1 as f32 * chunk_size as f32;
+    
+        (x, y)
+    }
+    
 
     fn update_global_chunk_position_system(
         mut text_query: Query<&mut Text, With<GlobalChunkPositionText>>,
@@ -233,5 +227,15 @@ impl IterationTestManager {
 
     fn get_global_chunk_pos(scene_pos: (f32, f32), chunk_size: u16, current_scale_index: u8) -> Vec<(u8, u8)> {
         vec![(0, 0)]
+    }
+}
+
+impl Chunk {
+    fn render_system(
+        mut gizmos: Gizmos, 
+        chunk_query: Query<&Chunk>,
+        player_query: Query<&Transform, With<Player>>,
+    ) {
+
     }
 }

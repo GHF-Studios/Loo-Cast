@@ -1,3 +1,9 @@
+// Modules
+pub mod chunk;
+
+// Local imports
+use chunk::*;
+
 // Internal imports
 use crate::AppState;
 
@@ -10,7 +16,7 @@ pub struct LoadUniverse {}
 
 // Resources
 #[derive(Resource)]
-pub struct UniverseManager {
+pub struct Universe {
     pub current_scale_level: i8,
     pub current_chunk_offset_x: i16,
     pub current_chunk_offset_y: i16,
@@ -28,26 +34,18 @@ impl Plugin for UniversePlugin {
             // Update Systems
             .add_systems(
                 Update,
-                (UniverseManager::handle_load_universe,).run_if(in_state(AppState::Game)),
+                (Universe::handle_load_universe,).run_if(in_state(AppState::Game)),
             );
     }
 }
 
-impl UniverseManager {
-    pub fn new() -> Self {
-        Self {
-            current_scale_level: 0,
-            current_chunk_offset_x: 0,
-            current_chunk_offset_y: 0,
-        }
-    }
-
+impl Universe {
     pub fn handle_load_universe(
         mut commands: Commands,
         mut load_universe_event_reader: EventReader<LoadUniverse>,
     ) {
         if let Some(_) = load_universe_event_reader.iter().last() {
-            commands.insert_resource(UniverseManager {
+            commands.insert_resource(Universe {
                 current_scale_level: 0,
                 current_chunk_offset_x: 0,
                 current_chunk_offset_y: 0,
