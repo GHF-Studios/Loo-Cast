@@ -1,3 +1,9 @@
+// Modules
+
+
+// Local imports
+
+
 // Internal imports
 use crate::ui::*;
 
@@ -8,7 +14,21 @@ use bevy::{
     ui::{widget::TextFlags, ContentSize, FocusPolicy},
 };
 
-// Bundles
+// Static variables
+
+
+// Constant variables
+
+
+// Types
+
+
+// Enums
+
+
+// Structs
+pub struct InputFieldPlugin;
+
 #[derive(Bundle, Debug)]
 pub struct InputFieldBundle {
     pub node: Node,
@@ -31,18 +51,13 @@ pub struct InputFieldBundle {
     pub image: UiImage,
 }
 
-// Components
 #[derive(Component, Debug)]
 pub struct InputField {
     pub value: String,
 }
 
-// Resources
 #[derive(Resource)]
 pub struct InputFieldManager;
-
-// Structs
-pub struct InputFieldPlugin;
 
 // Implementations
 impl Plugin for InputFieldPlugin {
@@ -188,3 +203,5 @@ impl InputFieldManager {
         }
     }
 }
+
+// Module Functions

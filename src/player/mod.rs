@@ -1,3 +1,9 @@
+// Modules
+
+
+// Local imports
+
+
 // Internal imports
 use crate::game::SimulationState;
 use crate::AppState;
@@ -5,19 +11,26 @@ use crate::AppState;
 // External imports
 use bevy::prelude::*;
 
+// Static variables
+
+
 // Constant variables
 pub const PLAYER_SPEED: f32 = 500.0;
 
-// Components
-#[derive(Component)]
-pub struct Player {}
+// Types
 
-// Resources
-#[derive(Resource)]
-pub struct PlayerManager;
+
+// Enums
+
 
 // Structs
 pub struct PlayerPlugin;
+
+#[derive(Component)]
+pub struct Player {}
+
+#[derive(Resource)]
+pub struct PlayerManager;
 
 // Implementations
 impl Plugin for PlayerPlugin {
@@ -90,3 +103,5 @@ impl PlayerManager {
         }
     }
 }
+
+// Module Functions

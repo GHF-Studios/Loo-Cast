@@ -1,3 +1,9 @@
+// Modules
+
+
+// Local imports
+
+
 // Internal imports
 use crate::game::SimulationState;
 use crate::player::*;
@@ -7,7 +13,21 @@ use crate::AppState;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-// Components
+// Static variables
+
+
+// Constant variables
+
+
+// Types
+
+
+// Enums
+
+
+// Structs
+pub struct BackgroundPlugin;
+
 #[derive(Component)]
 pub struct Background {
     pub background_width: i32,
@@ -16,15 +36,11 @@ pub struct Background {
     pub background_chunk_position_y: i32,
 }
 
-// Resources
 #[derive(Resource)]
 pub struct BackgroundManager {
     pub background_origin_x: i32,
     pub background_origin_y: i32,
 }
-
-// Structs
-pub struct BackgroundPlugin;
 
 // Implementations
 impl Plugin for BackgroundPlugin {
@@ -159,3 +175,5 @@ impl BackgroundManager {
         }
     }
 }
+
+// Module Functions

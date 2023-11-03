@@ -1,3 +1,9 @@
+// Modules
+
+
+// Local imports
+
+
 // Internal imports
 use crate::ui::save_games_menu::*;
 use crate::AppState;
@@ -9,22 +15,14 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-// Events
-#[derive(Event)]
-pub struct CreateSaveGame {
-    pub save_game_name: String,
-}
+// Static variables
 
-#[derive(Event)]
-pub struct DeleteSaveGame {
-    pub save_game_name: String,
-}
 
-// Resources
-#[derive(Resource)]
-pub struct SaveGameManager {
-    pub registered_save_games: Vec<SaveGameInfo>,
-}
+// Constant variables
+
+
+// Types
+
 
 // Enums
 #[derive(Debug, Clone, PartialEq)]
@@ -39,6 +37,21 @@ pub struct SaveGamePlugin;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SaveGameInfo {
     pub name: String,
+}
+
+#[derive(Event)]
+pub struct CreateSaveGame {
+    pub save_game_name: String,
+}
+
+#[derive(Event)]
+pub struct DeleteSaveGame {
+    pub save_game_name: String,
+}
+
+#[derive(Resource)]
+pub struct SaveGameManager {
+    pub registered_save_games: Vec<SaveGameInfo>,
 }
 
 // Implementations
@@ -184,3 +197,5 @@ impl Default for SaveGameManager {
         }
     }
 }
+
+// Module Functions

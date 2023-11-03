@@ -1,3 +1,9 @@
+// Modules
+
+
+// Local imports
+
+
 // Internal imports
 use crate::game::*;
 use crate::save_game::*;
@@ -6,6 +12,9 @@ use crate::AppState;
 
 // External imports
 use bevy::prelude::*;
+
+// Static variables
+
 
 // Constant variables
 pub const SAVE_GAMES_MENU_STYLE: Style = {
@@ -96,7 +105,15 @@ pub const TITLE_STYLE: Style = {
     style
 };
 
-// Components
+// Types
+
+
+// Enums
+
+
+// Structs
+pub struct SaveGamesMenuPlugin;
+
 #[derive(Component)]
 pub struct SaveGamesMenu {}
 
@@ -124,7 +141,6 @@ pub struct DeleteSaveGameButton {
     pub save_game_name: String,
 }
 
-// Events
 #[derive(Event)]
 pub struct LoadSaveGameInstance {
     pub save_game_name: String,
@@ -135,12 +151,8 @@ pub struct DeleteSaveGameUI {
     pub save_game_name: String,
 }
 
-// Resources
 #[derive(Resource)]
 pub struct SaveGamesMenuManager;
-
-// Structs
-pub struct SaveGamesMenuPlugin;
 
 // Implementations
 impl Plugin for SaveGamesMenuPlugin {
@@ -506,3 +518,5 @@ impl SaveGamesMenuManager {
         }
     }
 }
+
+// Module Functions

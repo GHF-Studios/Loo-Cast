@@ -1,3 +1,9 @@
+// Modules
+
+
+// Local imports
+
+
 // Internal imports
 use crate::game::*;
 use crate::save_game::*;
@@ -5,6 +11,9 @@ use crate::ui::*;
 
 // External imports
 use bevy::prelude::*;
+
+// Static variables
+
 
 // Constant variables
 pub const PAUSE_MENU_STYLE: Style = {
@@ -40,7 +49,15 @@ pub const BUTTON_STYLE: Style = {
     style
 };
 
-// Components
+// Types
+
+
+// Enums
+
+
+// Structs
+pub struct PauseMenuPlugin;
+
 #[derive(Component)]
 pub struct PauseMenu {}
 
@@ -53,12 +70,8 @@ pub struct MainMenuButton {}
 #[derive(Component)]
 pub struct QuitButton {}
 
-// Resources
 #[derive(Resource)]
 pub struct PauseMenuManager;
-
-// Structs
-pub struct PauseMenuPlugin;
 
 // Implementations
 impl Plugin for PauseMenuPlugin {
@@ -277,3 +290,5 @@ impl PauseMenuManager {
         pause_menu_entity
     }
 }
+
+// Module Functions

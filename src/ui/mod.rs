@@ -12,8 +12,14 @@ use main_menu::MainMenuPlugin;
 use pause_menu::PauseMenuPlugin;
 use save_games_menu::SaveGamesMenuPlugin;
 
+// Internal imports
+
+
 // External imports
 use bevy::prelude::*;
+
+// Static variables
+
 
 // Constant variables
 pub const BACKGROUND_COLOR: Color = Color::rgba(0.25, 0.25, 0.25, 0.5);
@@ -26,7 +32,15 @@ pub const PRESSED_BUTTON_COLOR: Color = Color::rgb(0.35, 0.75, 0.35);
 pub const UNFOCUSED_COLOR: Color = Color::rgb(0.25, 0.25, 0.25);
 pub const FOCUSED_COLOR: Color = Color::rgb(0.15, 0.15, 0.15);
 
-// Events
+// Types
+
+
+// Enums
+
+
+// Structs
+pub struct UIPlugin;
+
 #[derive(Event)]
 pub struct GainedFocus {
     pub entity: Entity,
@@ -37,14 +51,10 @@ pub struct LostFocus {
     pub entity: Entity,
 }
 
-// Resources
 #[derive(Resource)]
 pub struct UIManager {
     pub focus: Option<Entity>,
 }
-
-// Structs
-pub struct UIPlugin;
 
 // Implementations
 impl Plugin for UIPlugin {
@@ -116,3 +126,5 @@ impl UIManager {
         }
     }
 }
+
+// Module Functions

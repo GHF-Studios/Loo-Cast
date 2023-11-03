@@ -17,24 +17,16 @@ use bevy::prelude::*;
 use std::fs::File;
 use std::path::Path;
 
-// Events
-#[derive(Event)]
-pub struct LoadGame {
-    pub save_game: SaveGameInfo,
-}
+// Static variables
 
-#[derive(Event)]
-pub struct UnloadGame {
-    pub quit_mode: GameQuitMode,
-}
 
-// Resources
-#[derive(Resource)]
-pub struct GameManager {
-    pub current_save_game: SaveGameInfo,
-}
+// Constant variables
 
-// States
+
+// Types
+
+
+// Enums
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
 pub enum SimulationState {
     #[default]
@@ -54,6 +46,21 @@ pub enum LoadState {
 
 // Structs
 pub struct GamePlugin;
+
+#[derive(Event)]
+pub struct LoadGame {
+    pub save_game: SaveGameInfo,
+}
+
+#[derive(Event)]
+pub struct UnloadGame {
+    pub quit_mode: GameQuitMode,
+}
+
+#[derive(Resource)]
+pub struct GameManager {
+    pub current_save_game: SaveGameInfo,
+}
 
 // Implementations
 impl Plugin for GamePlugin {
@@ -177,3 +184,5 @@ impl GameManager {
         }
     }
 }
+
+// Module Functions

@@ -1,3 +1,12 @@
+// Modules
+
+
+// Local imports
+
+
+// Internal imports
+
+
 // External imports
 use lazy_static::*;
 use num_bigint::BigUint;
@@ -11,6 +20,15 @@ lazy_static! {
     pub static ref BASE57_CONVERTER: Arc<Base57Converter> =
         Arc::new(Base57Converter::new(73).unwrap());
 }
+
+// Constant variables
+
+
+// Types
+
+
+// Enums
+
 
 // Structs
 pub struct Base10x10Converter {
@@ -214,3 +232,5 @@ impl Math {
         a + t * (b - a)
     }
 }
+
+// Module Functions

@@ -1,3 +1,9 @@
+// Modules
+
+
+// Local imports
+
+
 // Internal imports
 use crate::game::SimulationState;
 use crate::player::Player;
@@ -8,7 +14,21 @@ use crate::universe::chunk::*;
 // External imports
 use bevy::prelude::*;
 
-// Components
+// Static variables
+
+
+// Constant variables
+
+
+// Types
+
+
+// Enums
+
+
+// Structs
+pub struct IterationTestPlugin;
+
 #[derive(Component)]
 pub struct DebugTextPanel;
 
@@ -24,16 +44,12 @@ pub struct CurrentScaleIndexText;
 #[derive(Component)]
 pub struct GlobalChunkPositionText;
 
-// Resources
 #[derive(Resource)]
 pub struct IterationTestManager {
     origin_shift_x: i32,
     origin_shift_y: i32,
     current_scale_index: u8,
 }
-
-// Structs
-pub struct IterationTestPlugin;
 
 // Implementations
 impl Plugin for IterationTestPlugin {
@@ -189,20 +205,6 @@ impl IterationTestManager {
             }
         }
     }
-
-    fn local_chunk_pos_from_scene_pos(scene_pos: (f32, f32), chunk_size: u16) -> (i32, i32) {
-        let x = (scene_pos.0 / chunk_size as f32).floor() as i32;
-        let y = (scene_pos.1 / chunk_size as f32).floor() as i32;
-
-        (x, y)
-    }
-
-    fn scene_pos_from_local_chunk_pos(local_chunk_pos: (i32, i32), chunk_size: u16) -> (f32, f32) {
-        let x = local_chunk_pos.0 as f32 * chunk_size as f32;
-        let y = local_chunk_pos.1 as f32 * chunk_size as f32;
-    
-        (x, y)
-    }
     
 
     fn update_global_chunk_position_system(
@@ -224,18 +226,23 @@ impl IterationTestManager {
             }
         }
     }
-
-    fn get_global_chunk_pos(scene_pos: (f32, f32), chunk_size: u16, current_scale_index: u8) -> Vec<(u8, u8)> {
-        vec![(0, 0)]
-    }
 }
 
-impl Chunk {
-    fn render_system(
-        mut gizmos: Gizmos, 
-        chunk_query: Query<&Chunk>,
-        player_query: Query<&Transform, With<Player>>,
-    ) {
+// Module Functions
+fn local_chunk_pos_from_scene_pos(scene_pos: (f32, f32), chunk_size: u16) -> (i32, i32) {
+    let x = (scene_pos.0 / chunk_size as f32).floor() as i32;
+    let y = (scene_pos.1 / chunk_size as f32).floor() as i32;
 
-    }
+    (x, y)
+}
+
+fn scene_pos_from_local_chunk_pos(local_chunk_pos: (i32, i32), chunk_size: u16) -> (f32, f32) {
+    let x = local_chunk_pos.0 as f32 * chunk_size as f32;
+    let y = local_chunk_pos.1 as f32 * chunk_size as f32;
+
+    (x, y)
+}
+
+fn get_global_chunk_pos(scene_pos: (f32, f32), chunk_size: u16, current_scale_index: u8) -> Vec<(u8, u8)> {
+    vec![(0, 0)]
 }

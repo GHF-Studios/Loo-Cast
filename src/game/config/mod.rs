@@ -1,7 +1,28 @@
+// Modules
+
+
+// Local imports
+
+
+// Internal imports
+
+
 // External imports
 use bevy::prelude::*;
 
-// Resources
+// Static variables
+
+
+// Constant variables
+
+
+// Types
+
+
+// Enums
+
+
+// Structs
 #[derive(Resource)]
 pub struct GameConfigManager;
 
@@ -15,3 +36,5 @@ impl GameConfigManager {
         commands.remove_resource::<GameConfigManager>();
     }
 }
+
+// Module Functions

@@ -1,3 +1,9 @@
+// Modules
+
+
+// Local imports
+
+
 // Internal imports
 use crate::game::SimulationState;
 use crate::math::*;
@@ -7,15 +13,23 @@ use crate::AppState;
 // External imports
 use bevy::prelude::*;
 
+// Static variables
+
+
 // Constant variables
 const CAMERA_SPEED: f32 = 10.0;
 
-// Resources
-#[derive(Resource)]
-pub struct CameraManager;
+// Types
+
+
+// Enums
+
 
 // Structs
 pub struct CameraPlugin;
+
+#[derive(Resource)]
+pub struct CameraManager;
 
 // Implementations
 impl Plugin for CameraPlugin {
@@ -67,3 +81,5 @@ impl CameraManager {
         camera_transform.translation.y = new_y;
     }
 }
+
+// Module Functions

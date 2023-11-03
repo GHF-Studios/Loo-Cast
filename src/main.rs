@@ -1,15 +1,15 @@
+// Modules
 pub mod background;
 pub mod camera;
-//pub mod chunking;
 pub mod game;
 pub mod iteration_test;
 pub mod math;
 pub mod player;
 pub mod save_game;
-//pub mod scale;
 pub mod ui;
 pub mod universe;
 
+// Internal imports
 use background::BackgroundPlugin;
 use camera::CameraPlugin;
 use game::GamePlugin;
@@ -19,8 +19,19 @@ use save_game::SaveGamePlugin;
 use ui::UIPlugin;
 use universe::UniversePlugin;
 
+// External imports
 use bevy::{app::PluginGroupBuilder, prelude::*};
 
+// Static variables
+
+
+// Constant variables
+
+
+// Types
+
+
+// Enums
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
 pub enum AppState {
     #[default]
@@ -30,8 +41,10 @@ pub enum AppState {
     Game,
 }
 
+// Structs
 pub struct LooCastBasePlugins;
 
+// Implementations
 impl PluginGroup for LooCastBasePlugins {
     fn build(self) -> PluginGroupBuilder {
         let mut group = PluginGroupBuilder::start::<Self>();
@@ -50,6 +63,7 @@ impl PluginGroup for LooCastBasePlugins {
     }
 }
 
+// Module Functions
 fn main() {
     App::new()
         // Bevy Plugins

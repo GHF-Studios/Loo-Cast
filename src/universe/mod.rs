@@ -10,20 +10,30 @@ use crate::AppState;
 // External imports
 use bevy::prelude::*;
 
-// Events
+// Static variables
+
+
+// Constant variables
+
+
+// Types
+
+
+// Enums
+
+
+// Structs
+pub struct UniversePlugin;
+
 #[derive(Event)]
 pub struct LoadUniverse {}
 
-// Resources
 #[derive(Resource)]
 pub struct Universe {
     pub current_scale_level: i8,
     pub current_chunk_offset_x: i16,
     pub current_chunk_offset_y: i16,
 }
-
-// Structs
-pub struct UniversePlugin;
 
 // Implementations
 impl Plugin for UniversePlugin {
@@ -53,3 +63,5 @@ impl Universe {
         }
     }
 }
+
+// Module Functions

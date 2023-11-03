@@ -1,3 +1,15 @@
+// Modules
+
+
+// Local imports
+
+
+// Internal imports
+
+
+// External imports
+
+
 // Static variables
 pub static SCALES: &[Scale] = &[
     Scale {
@@ -386,6 +398,15 @@ pub static SCALES: &[Scale] = &[
     },
 ];
 
+// Constant variables
+
+
+// Types
+
+
+// Enums
+
+
 // Structs
 pub struct Scale {
     level: u8,
@@ -393,3 +414,8 @@ pub struct Scale {
     name: &'static str,
     description: &'static str,
 }
+
+// Implementations
+
+
+// Module Functions

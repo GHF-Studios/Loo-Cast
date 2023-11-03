@@ -1,3 +1,9 @@
+// Modules
+
+
+// Local imports
+
+
 // Internal imports
 use crate::ui::*;
 use crate::AppState;
@@ -5,6 +11,9 @@ use crate::AppState;
 // External imports
 use bevy::app::AppExit;
 use bevy::prelude::*;
+
+// Static variables
+
 
 // Constant variables
 pub const MAIN_MENU_STYLE: Style = {
@@ -38,7 +47,15 @@ pub const TITLE_STYLE: Style = {
     style
 };
 
-// Components
+// Types
+
+
+// Enums
+
+
+// Structs
+pub struct MainMenuPlugin;
+
 #[derive(Component)]
 pub struct MainMenu {}
 
@@ -48,12 +65,8 @@ pub struct PlayButton {}
 #[derive(Component)]
 pub struct QuitButton {}
 
-// Resources
 #[derive(Resource)]
 pub struct MainMenuManager;
-
-// Structs
-pub struct MainMenuPlugin;
 
 // Implementations
 impl Plugin for MainMenuPlugin {
@@ -216,3 +229,5 @@ impl MainMenuManager {
         main_menu_entity
     }
 }
+
+// Module Functions
