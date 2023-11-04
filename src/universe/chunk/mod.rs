@@ -5,7 +5,7 @@
 
 
 // Internal imports
-
+use crate::player::Player;
 
 // External imports
 use bevy::prelude::*;

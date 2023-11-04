@@ -193,7 +193,7 @@ impl IterationTestManager {
     ) {
         for mut text in &mut text_query {
             if let Ok(player_transform) = player_query.get_single() {
-                let local_chunk_pos = Self::local_chunk_pos_from_scene_pos(
+                let local_chunk_pos = local_chunk_pos_from_scene_pos(
                     (
                         player_transform.translation.x,
                         player_transform.translation.y,
@@ -213,7 +213,7 @@ impl IterationTestManager {
     ) {
         for mut text in &mut text_query {
             if let Ok(player_transform) = player_query.get_single() {
-                let global_chunk_pos = Self::get_global_chunk_pos(
+                let global_chunk_pos = get_global_chunk_pos(
                     (
                         player_transform.translation.x,
                         player_transform.translation.y,
