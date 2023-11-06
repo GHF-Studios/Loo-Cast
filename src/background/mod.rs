@@ -1,8 +1,6 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::game::SimulationState;
@@ -15,15 +13,11 @@ use bevy::window::PrimaryWindow;
 
 // Static variables
 
-
 // Constant variables
-
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct BackgroundPlugin;
@@ -51,7 +45,7 @@ impl Plugin for BackgroundPlugin {
             // Update Systems
             .add_systems(
                 Update,
-                BackgroundManager::move_background
+                BackgroundManager::background_movement_system
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
             )
@@ -118,7 +112,7 @@ impl BackgroundManager {
         }
     }
 
-    fn move_background(
+    fn background_movement_system(
         mut background_manager: ResMut<BackgroundManager>,
         mut background_transform_query: Query<&mut Transform, With<Background>>,
         player_transform_query: Query<&Transform, (With<Player>, Without<Background>)>,

@@ -1,8 +1,6 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::game::*;
@@ -13,7 +11,6 @@ use crate::ui::*;
 use bevy::prelude::*;
 
 // Static variables
-
 
 // Constant variables
 pub const PAUSE_MENU_STYLE: Style = {
@@ -51,9 +48,7 @@ pub const BUTTON_STYLE: Style = {
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct PauseMenuPlugin;
@@ -86,9 +81,9 @@ impl Plugin for PauseMenuPlugin {
             .add_systems(
                 Update,
                 (
-                    PauseMenuManager::interact_with_resume_button,
-                    PauseMenuManager::interact_with_main_menu_button,
-                    PauseMenuManager::interact_with_quit_button,
+                    PauseMenuManager::handle_resume_button,
+                    PauseMenuManager::handle_main_menu_button,
+                    PauseMenuManager::handle_quit_button,
                 )
                     .run_if(in_state(SimulationState::Paused)),
             )
@@ -108,7 +103,7 @@ impl PauseMenuManager {
         }
     }
 
-    fn interact_with_resume_button(
+    fn handle_resume_button(
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
             (Changed<Interaction>, With<ResumeButton>),
@@ -131,7 +126,7 @@ impl PauseMenuManager {
         }
     }
 
-    fn interact_with_main_menu_button(
+    fn handle_main_menu_button(
         mut unload_save_game_event_writer: EventWriter<UnloadGame>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
@@ -156,7 +151,7 @@ impl PauseMenuManager {
         }
     }
 
-    fn interact_with_quit_button(
+    fn handle_quit_button(
         mut unload_save_game_event_writer: EventWriter<UnloadGame>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),

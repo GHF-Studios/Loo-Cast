@@ -1,26 +1,19 @@
 // Modules
 
-
 // Local imports
 
-
 // Internal imports
-
 
 // External imports
 use bevy::prelude::*;
 
 // Static variables
 
-
 // Constant variables
-
 
 // Types
 
-
 // Enums
-
 
 // Structs
 #[derive(Resource)]

@@ -1,10 +1,9 @@
 // Modules
 
-
 // Local imports
 
-
 // Internal imports
+use crate::universe::chunk::ChunkViewer;
 use crate::game::SimulationState;
 use crate::AppState;
 
@@ -13,15 +12,12 @@ use bevy::prelude::*;
 
 // Static variables
 
-
 // Constant variables
 pub const PLAYER_SPEED: f32 = 500.0;
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct PlayerPlugin;
@@ -41,7 +37,7 @@ impl Plugin for PlayerPlugin {
             // Update Systems
             .add_systems(
                 Update,
-                PlayerManager::player_movement
+                PlayerManager::player_movement_system
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
             )
@@ -64,6 +60,7 @@ impl PlayerManager {
                 ..default()
             },
             Player {},
+            ChunkViewer::new(),
         ));
     }
 
@@ -74,7 +71,7 @@ impl PlayerManager {
         }
     }
 
-    fn player_movement(
+    fn player_movement_system(
         keyboard_input: Res<Input<KeyCode>>,
         mut player_query: Query<&mut Transform, With<Player>>,
         time: Res<Time>,

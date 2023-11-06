@@ -1,8 +1,6 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::ui::save_games_menu::*;
@@ -17,12 +15,9 @@ use std::path::Path;
 
 // Static variables
 
-
 // Constant variables
 
-
 // Types
-
 
 // Enums
 #[derive(Debug, Clone, PartialEq)]

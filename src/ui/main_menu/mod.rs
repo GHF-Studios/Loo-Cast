@@ -1,8 +1,6 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::ui::*;
@@ -13,7 +11,6 @@ use bevy::app::AppExit;
 use bevy::prelude::*;
 
 // Static variables
-
 
 // Constant variables
 pub const MAIN_MENU_STYLE: Style = {
@@ -49,9 +46,7 @@ pub const TITLE_STYLE: Style = {
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct MainMenuPlugin;
@@ -78,8 +73,8 @@ impl Plugin for MainMenuPlugin {
             .add_systems(
                 Update,
                 (
-                    MainMenuManager::interact_with_play_button,
-                    MainMenuManager::interact_with_quit_button,
+                    MainMenuManager::handle_play_button,
+                    MainMenuManager::handle_quit_button,
                 )
                     .run_if(in_state(AppState::MainMenu)),
             )
@@ -101,7 +96,7 @@ impl MainMenuManager {
         }
     }
 
-    fn interact_with_play_button(
+    fn handle_play_button(
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
             (Changed<Interaction>, With<PlayButton>),
@@ -124,7 +119,7 @@ impl MainMenuManager {
         }
     }
 
-    fn interact_with_quit_button(
+    fn handle_quit_button(
         mut app_exit_event_writer: EventWriter<AppExit>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),

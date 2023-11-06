@@ -1,8 +1,6 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::ui::*;
@@ -16,15 +14,11 @@ use bevy::{
 
 // Static variables
 
-
 // Constant variables
-
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct InputFieldPlugin;
@@ -69,11 +63,11 @@ impl Plugin for InputFieldPlugin {
             .add_systems(
                 Update,
                 (
-                    InputFieldManager::text_input_system,
-                    InputFieldManager::text_render_system,
-                    InputFieldManager::interact_with_input_field,
-                    InputFieldManager::handle_gained_focus_event,
-                    InputFieldManager::handle_lost_focus_event,
+                    InputFieldManager::handle_control_input,
+                    InputFieldManager::handle_text_input,
+                    InputFieldManager::handle_gain_focus,
+                    InputFieldManager::handle_lose_focus,
+                    InputFieldManager::render_text_system,
                 ),
             );
     }
@@ -117,7 +111,30 @@ impl InputFieldManager {
         commands.insert_resource(InputFieldManager {});
     }
 
-    fn text_input_system(
+    fn handle_control_input(
+        mut gained_focus_event_writer: EventWriter<GainFocus>,
+        ui_manager: Res<UIManager>,
+        mut input_field_query: Query<
+            (&Interaction, Entity),
+            (Changed<Interaction>, With<InputField>),
+        >,
+    ) {
+        if let Ok((interaction, input_field_entity)) = input_field_query.get_single_mut() {
+            match *interaction {
+                Interaction::Pressed => {
+                    if ui_manager.focus != Some(input_field_entity) {
+                        gained_focus_event_writer.send(GainFocus {
+                            entity: input_field_entity,
+                        });
+                    }
+                }
+                Interaction::Hovered => {}
+                Interaction::None => {}
+            }
+        }
+    }
+
+    fn handle_text_input(
         mut received_character_event_reader: EventReader<ReceivedCharacter>,
         keyboard_input: Res<Input<KeyCode>>,
         ui_manager: Res<UIManager>,
@@ -144,37 +161,8 @@ impl InputFieldManager {
         }
     }
 
-    fn text_render_system(mut input_field_query: Query<(&InputField, &mut Text)>) {
-        for (input_field, mut input_field_text) in input_field_query.iter_mut() {
-            input_field_text.sections[0].value = input_field.value.clone();
-        }
-    }
-
-    fn interact_with_input_field(
-        mut gained_focus_event_writer: EventWriter<GainedFocus>,
-        ui_manager: Res<UIManager>,
-        mut input_field_query: Query<
-            (&Interaction, Entity),
-            (Changed<Interaction>, With<InputField>),
-        >,
-    ) {
-        if let Ok((interaction, input_field_entity)) = input_field_query.get_single_mut() {
-            match *interaction {
-                Interaction::Pressed => {
-                    if ui_manager.focus != Some(input_field_entity) {
-                        gained_focus_event_writer.send(GainedFocus {
-                            entity: input_field_entity,
-                        });
-                    }
-                }
-                Interaction::Hovered => {}
-                Interaction::None => {}
-            }
-        }
-    }
-
-    fn handle_gained_focus_event(
-        mut gained_focus_event_reader: EventReader<GainedFocus>,
+    fn handle_gain_focus(
+        mut gained_focus_event_reader: EventReader<GainFocus>,
         mut input_field_query: Query<(&mut BackgroundColor, Entity), With<InputField>>,
     ) {
         if let Some(gained_focus_event) = gained_focus_event_reader.iter().last() {
@@ -188,8 +176,8 @@ impl InputFieldManager {
         }
     }
 
-    fn handle_lost_focus_event(
-        mut lost_focus_event_reader: EventReader<LostFocus>,
+    fn handle_lose_focus(
+        mut lost_focus_event_reader: EventReader<LoseFocus>,
         mut input_field_query: Query<(&mut BackgroundColor, Entity), With<InputField>>,
     ) {
         if let Some(lost_focus_event) = lost_focus_event_reader.iter().last() {
@@ -200,6 +188,12 @@ impl InputFieldManager {
                     *background_color = UNFOCUSED_COLOR.into();
                 }
             }
+        }
+    }
+
+    fn render_text_system(mut input_field_query: Query<(&InputField, &mut Text)>) {
+        for (input_field, mut input_field_text) in input_field_query.iter_mut() {
+            input_field_text.sections[0].value = input_field.value.clone();
         }
     }
 }

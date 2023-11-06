@@ -1,30 +1,22 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::game::SimulationState;
 use crate::player::Player;
 use crate::AppState;
-use crate::math::BASE10X10_CONVERTER;
-use crate::universe::chunk::*;
 
 // External imports
 use bevy::prelude::*;
 
 // Static variables
 
-
 // Constant variables
-
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct IterationTestPlugin;
@@ -80,19 +72,22 @@ impl Plugin for IterationTestPlugin {
 impl IterationTestManager {
     fn initialize(mut commands: Commands, asset_server: Res<AssetServer>) {
         commands
-            .spawn((NodeBundle { 
-                style: Style {
-                    flex_direction: FlexDirection::Column,
-                    justify_content: JustifyContent::FlexStart,
-                    align_items: AlignItems::FlexStart,
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    row_gap: Val::Px(8.0),
-                    column_gap: Val::Px(8.0),
+            .spawn((
+                NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Column,
+                        justify_content: JustifyContent::FlexStart,
+                        align_items: AlignItems::FlexStart,
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        row_gap: Val::Px(8.0),
+                        column_gap: Val::Px(8.0),
+                        ..default()
+                    },
                     ..default()
                 },
-                ..default() }, 
-                DebugTextPanel {}))
+                DebugTextPanel {},
+            ))
             .with_children(|parent| {
                 parent.spawn((
                     TextBundle::from_sections([
@@ -131,16 +126,14 @@ impl IterationTestManager {
                     LocalChunkPositionText,
                 ));
                 parent.spawn((
-                    TextBundle::from_sections([
-                        TextSection::new(
-                            "Current Scale Index: 0",
-                            TextStyle {
-                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                font_size: 20.0,
-                                color: Color::WHITE,
-                            },
-                        )
-                    ]),
+                    TextBundle::from_sections([TextSection::new(
+                        "Current Scale Index: 0",
+                        TextStyle {
+                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 20.0,
+                            color: Color::WHITE,
+                        },
+                    )]),
                     CurrentScaleIndexText,
                 ));
                 parent.spawn((
@@ -193,19 +186,18 @@ impl IterationTestManager {
     ) {
         for mut text in &mut text_query {
             if let Ok(player_transform) = player_query.get_single() {
-                let local_chunk_pos = local_chunk_pos_from_scene_pos(
+                let local_chunk_pos = local_chunk_pos_from_entity_pos(
                     (
                         player_transform.translation.x,
                         player_transform.translation.y,
                     ),
-                    1024,
+                    crate::universe::chunk::CHUNK_SIZE,
                 );
                 text.sections[1].value =
                     format!("x: {:.2}, y: {:.2}", local_chunk_pos.0, local_chunk_pos.1);
             }
         }
     }
-    
 
     fn update_global_chunk_position_system(
         mut text_query: Query<&mut Text, With<GlobalChunkPositionText>>,
@@ -218,31 +210,35 @@ impl IterationTestManager {
                         player_transform.translation.x,
                         player_transform.translation.y,
                     ),
-                    1024,
+                    crate::universe::chunk::CHUNK_SIZE,
                     0,
                 );
-                text.sections[1].value =
-                    format!("{:?}", global_chunk_pos);
+                text.sections[1].value = format!("{:?}", global_chunk_pos);
             }
         }
     }
 }
 
 // Module Functions
-fn local_chunk_pos_from_scene_pos(scene_pos: (f32, f32), chunk_size: u16) -> (i32, i32) {
-    let x = (scene_pos.0 / chunk_size as f32).floor() as i32;
-    let y = (scene_pos.1 / chunk_size as f32).floor() as i32;
+pub fn local_chunk_pos_from_entity_pos(scene_pos: (f32, f32), chunk_size: u16) -> (i32, i32) {
+    let half_chunk = (chunk_size as f32) / 2.0;
+    let x = ((scene_pos.0 + half_chunk) / chunk_size as f32).floor() as i32;
+    let y = ((scene_pos.1 + half_chunk) / chunk_size as f32).floor() as i32;
 
     (x, y)
 }
 
-fn scene_pos_from_local_chunk_pos(local_chunk_pos: (i32, i32), chunk_size: u16) -> (f32, f32) {
+pub fn entity_pos_from_local_chunk_pos(local_chunk_pos: (i32, i32), chunk_size: u16) -> (f32, f32) {
     let x = local_chunk_pos.0 as f32 * chunk_size as f32;
     let y = local_chunk_pos.1 as f32 * chunk_size as f32;
 
     (x, y)
 }
 
-fn get_global_chunk_pos(scene_pos: (f32, f32), chunk_size: u16, current_scale_index: u8) -> Vec<(u8, u8)> {
+pub fn get_global_chunk_pos(
+    scene_pos: (f32, f32),
+    chunk_size: u16,
+    current_scale_index: u8,
+) -> Vec<(u8, u8)> {
     vec![(0, 0)]
 }

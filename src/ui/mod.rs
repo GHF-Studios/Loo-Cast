@@ -1,25 +1,23 @@
 // Modules
-pub mod create_save_game_menu;
 pub mod input_field;
 pub mod main_menu;
 pub mod pause_menu;
+pub mod save_game_creation_menu;
 pub mod save_games_menu;
 
 // Local imports
-use create_save_game_menu::CreateSaveGameMenuPlugin;
 use input_field::InputFieldPlugin;
 use main_menu::MainMenuPlugin;
 use pause_menu::PauseMenuPlugin;
+use save_game_creation_menu::SaveGameCreationMenuPlugin;
 use save_games_menu::SaveGamesMenuPlugin;
 
 // Internal imports
-
 
 // External imports
 use bevy::prelude::*;
 
 // Static variables
-
 
 // Constant variables
 pub const BACKGROUND_COLOR: Color = Color::rgba(0.25, 0.25, 0.25, 0.5);
@@ -34,20 +32,18 @@ pub const FOCUSED_COLOR: Color = Color::rgb(0.15, 0.15, 0.15);
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct UIPlugin;
 
 #[derive(Event)]
-pub struct GainedFocus {
+pub struct GainFocus {
     pub entity: Entity,
 }
 
 #[derive(Event)]
-pub struct LostFocus {
+pub struct LoseFocus {
     pub entity: Entity,
 }
 
@@ -61,11 +57,11 @@ impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app
             // Events
-            .add_event::<GainedFocus>()
-            .add_event::<LostFocus>()
+            .add_event::<GainFocus>()
+            .add_event::<LoseFocus>()
             // Plugins
             .add_plugins((
-                CreateSaveGameMenuPlugin,
+                SaveGameCreationMenuPlugin,
                 MainMenuPlugin,
                 PauseMenuPlugin,
                 SaveGamesMenuPlugin,
@@ -74,7 +70,7 @@ impl Plugin for UIPlugin {
             // Startup Systems
             .add_systems(Startup, UIManager::initialize)
             // Update Systems
-            .add_systems(Update, UIManager::handle_gained_focus_event);
+            .add_systems(Update, UIManager::handle_gain_focus);
     }
 }
 
@@ -89,14 +85,14 @@ impl UIManager {
         commands.insert_resource(UIManager { focus: None });
     }
 
-    fn handle_gained_focus_event(
+    fn handle_gain_focus(
         mut ui_manager: ResMut<UIManager>,
-        mut gained_focus_event_reader: EventReader<GainedFocus>,
-        mut lost_focus_event_writer: EventWriter<LostFocus>,
+        mut gained_focus_event_reader: EventReader<GainFocus>,
+        mut lost_focus_event_writer: EventWriter<LoseFocus>,
     ) {
         if let Some(gained_focus_event) = gained_focus_event_reader.iter().last() {
             if let Some(old_focus) = ui_manager.focus {
-                lost_focus_event_writer.send(LostFocus { entity: old_focus });
+                lost_focus_event_writer.send(LoseFocus { entity: old_focus });
             }
             ui_manager.focus = Some(gained_focus_event.entity);
         }

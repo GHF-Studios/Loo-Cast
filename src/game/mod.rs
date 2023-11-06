@@ -19,12 +19,9 @@ use std::path::Path;
 
 // Static variables
 
-
 // Constant variables
 
-
 // Types
-
 
 // Enums
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
@@ -80,7 +77,7 @@ impl Plugin for GamePlugin {
             .add_systems(
                 Update,
                 (
-                    GameManager::toggle_simulation,
+                    GameManager::handle_toggle_simulation,
                     GameManager::handle_unload_game,
                 )
                     .run_if(in_state(AppState::Game)),
@@ -167,7 +164,7 @@ impl GameManager {
         }
     }
 
-    pub fn toggle_simulation(
+    pub fn handle_toggle_simulation(
         keyboard_input: Res<Input<KeyCode>>,
         simulation_state: Res<State<SimulationState>>,
         mut simulation_state_next_state: ResMut<NextState<SimulationState>>,

@@ -24,12 +24,9 @@ use bevy::{app::PluginGroupBuilder, prelude::*};
 
 // Static variables
 
-
 // Constant variables
 
-
 // Types
-
 
 // Enums
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]

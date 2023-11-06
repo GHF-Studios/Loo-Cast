@@ -1,11 +1,8 @@
 // Modules
 
-
 // Local imports
 
-
 // Internal imports
-
 
 // External imports
 use lazy_static::*;
@@ -23,12 +20,9 @@ lazy_static! {
 
 // Constant variables
 
-
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct Base10x10Converter {

@@ -1,8 +1,6 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::game::SimulationState;
@@ -15,15 +13,12 @@ use bevy::prelude::*;
 
 // Static variables
 
-
 // Constant variables
 const CAMERA_SPEED: f32 = 10.0;
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct CameraPlugin;
@@ -40,7 +35,7 @@ impl Plugin for CameraPlugin {
             // Update Systems
             .add_systems(
                 Update,
-                CameraManager::lerp_to_player
+                CameraManager::camera_movement_system
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
             );
@@ -56,7 +51,7 @@ impl CameraManager {
         });
     }
 
-    fn lerp_to_player(
+    fn camera_movement_system(
         mut camera_query: Query<&mut Transform, With<Camera>>,
         player_query: Query<&Transform, (With<Player>, Without<Camera>)>,
         time: Res<Time>,

@@ -1,8 +1,6 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::game::*;
@@ -14,7 +12,6 @@ use crate::AppState;
 use bevy::prelude::*;
 
 // Static variables
-
 
 // Constant variables
 pub const SAVE_GAMES_MENU_STYLE: Style = {
@@ -107,9 +104,7 @@ pub const TITLE_STYLE: Style = {
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct SaveGamesMenuPlugin;
@@ -170,10 +165,10 @@ impl Plugin for SaveGamesMenuPlugin {
             .add_systems(
                 Update,
                 (
-                    SaveGamesMenuManager::interact_with_back_to_main_menu_button,
-                    SaveGamesMenuManager::interact_with_create_save_game_button,
-                    SaveGamesMenuManager::interact_with_delete_save_game_button,
-                    SaveGamesMenuManager::interact_with_load_save_game_button,
+                    SaveGamesMenuManager::handle_back_to_main_menu_button,
+                    SaveGamesMenuManager::handle_create_save_game_button,
+                    SaveGamesMenuManager::handle_delete_save_game_button,
+                    SaveGamesMenuManager::handle_load_save_game_button,
                     SaveGamesMenuManager::handle_load_save_game_instance,
                     SaveGamesMenuManager::handle_delete_save_game_ui,
                 )
@@ -205,7 +200,7 @@ impl SaveGamesMenuManager {
         }
     }
 
-    fn interact_with_back_to_main_menu_button(
+    fn handle_back_to_main_menu_button(
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
@@ -228,7 +223,7 @@ impl SaveGamesMenuManager {
         }
     }
 
-    fn interact_with_create_save_game_button(
+    fn handle_create_save_game_button(
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
@@ -251,7 +246,7 @@ impl SaveGamesMenuManager {
         }
     }
 
-    fn interact_with_delete_save_game_button(
+    fn handle_delete_save_game_button(
         mut delete_save_game_event_writer: EventWriter<DeleteSaveGame>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor, &DeleteSaveGameButton),
@@ -278,7 +273,7 @@ impl SaveGamesMenuManager {
         }
     }
 
-    fn interact_with_load_save_game_button(
+    fn handle_load_save_game_button(
         mut load_save_game_instance_event_writer: EventWriter<LoadSaveGameInstance>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor, &LoadSaveGameButton),
