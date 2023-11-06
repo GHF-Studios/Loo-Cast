@@ -6,7 +6,7 @@
 
 // Internal imports
 use crate::math::*;
-use crate::chunking::chunk::*;
+use super::chunk::*;
 
 // External imports
 use num_bigint::BigUint;
@@ -24,14 +24,14 @@ use std::sync::{Arc, Mutex, RwLock};
 // Enums
 pub enum Cluster {
     Registered {
-        registration: Arc<RwLock<ClusterRegistration>>,
+        id: Arc<RwLock<ClusterID>>,
     },
     MetadataLoaded {
-        registration: Arc<RwLock<ClusterRegistration>>,
+        id: Arc<RwLock<ClusterID>>,
         metadata: Arc<Mutex<ClusterMetadata>>,
     },
     DataLoaded {
-        registration: Arc<RwLock<ClusterRegistration>>,
+        id: Arc<RwLock<ClusterID>>,
         metadata: Arc<Mutex<ClusterMetadata>>,
         data: Arc<Mutex<ClusterData>>,
     },
@@ -47,11 +47,8 @@ pub enum ClusterLoadState {
 #[derive(Clone, Debug)]
 pub struct ClusterID {
     global_id_base10: BigUint,
+    global_id_base10x10: Vec<(u8, u8)>,
     global_id_base57: String,
-}
-
-pub struct ClusterRegistration {
-    id: ClusterID,
 }
 
 pub struct ClusterMetadata {
@@ -67,25 +64,15 @@ pub struct ClusterManager {
 }
 
 // Implementations
-impl ClusterID {
-    pub fn from_chunk_id(chunk_id: ChunkID) -> ClusterID {
-        let base10_id = chunk_id.get_global_id_base10() / BigUint::from(100u32);
-        let base57_id = BASE57_CONVERTER
-            .convert_to_base57(base10_id.clone())
-            .unwrap();
-
-        ClusterID {
-            global_id_base10: base10_id,
-            global_id_base57: base57_id,
-        }
+impl From<EntityID> for ClusterID {
+    fn from(entity_id: EntityID) -> Self {
+        entity_id.get_chunk_id().get_cluster_id()
     }
+}
 
-    pub fn get_global_id_base10(&self) -> &BigUint {
-        return &self.global_id_base10;
-    }
-
-    pub fn get_global_id_base57(&self) -> &String {
-        return &self.global_id_base57;
+impl From<ChunkID> for ClusterID {
+    fn from(chunk_id: ChunkID) -> Self {
+        chunk_id.get_cluster_id()
     }
 }
 
@@ -95,13 +82,17 @@ impl PartialEq for ClusterID {
     }
 }
 
-impl ClusterRegistration {
-    fn new(id: ClusterID) -> ClusterRegistration {
-        ClusterRegistration { id: id }
+impl ClusterID {
+    pub fn get_global_id_base10(&self) -> &BigUint {
+        return &self.global_id_base10;
     }
 
-    fn get_id(&self) -> &ClusterID {
-        return &self.id;
+    pub fn get_global_id_base10x10(&self) -> &Vec<(u8, u8)> {
+        return &self.global_id_base10x10;
+    }
+
+    pub fn get_global_id_base57(&self) -> &String {
+        return &self.global_id_base57;
     }
 }
 
@@ -140,7 +131,7 @@ impl ClusterData {
 impl Cluster {
     fn new(id: ClusterID) -> Self {
         Cluster::Registered {
-            registration: Arc::new(RwLock::new(ClusterRegistration::new(id))),
+            id: Arc::new(RwLock::new(ClusterID::new(id))),
         }
     }
 
@@ -148,7 +139,7 @@ impl Cluster {
         match self {
             Cluster::Registered { .. } => {
                 *self = Cluster::MetadataLoaded {
-                    registration: self.get_registration().clone(),
+                    id: self.get_id().clone(),
                     metadata: Arc::new(Mutex::new(metadata)),
                 };
                 Ok(())
@@ -169,7 +160,7 @@ impl Cluster {
             }
             Cluster::MetadataLoaded { .. } => {
                 *self = Cluster::DataLoaded {
-                    registration: self.get_registration().clone(),
+                    id: self.get_id().clone(),
                     metadata: self.get_metadata().unwrap().clone(),
                     data: Arc::new(Mutex::new(data)),
                 };
@@ -188,7 +179,7 @@ impl Cluster {
             }
             Cluster::MetadataLoaded { .. } => {
                 *self = Cluster::Registered {
-                    registration: self.get_registration().clone(),
+                    id: self.get_id().clone(),
                 };
                 Ok(())
             }
@@ -208,7 +199,7 @@ impl Cluster {
             }
             Cluster::DataLoaded { .. } => {
                 *self = Cluster::MetadataLoaded {
-                    registration: self.get_registration().clone(),
+                    id: self.get_id().clone(),
                     metadata: self.get_metadata().unwrap().clone(),
                 };
                 Ok(())
@@ -216,11 +207,11 @@ impl Cluster {
         }
     }
 
-    fn get_registration(&self) -> &Arc<RwLock<ClusterRegistration>> {
+    fn get_id(&self) -> &Arc<RwLock<ClusterID>> {
         match self {
-            Cluster::Registered { registration } => registration,
-            Cluster::MetadataLoaded { registration, .. } => registration,
-            Cluster::DataLoaded { registration, .. } => registration,
+            Cluster::Registered { id } => id,
+            Cluster::MetadataLoaded { id, .. } => id,
+            Cluster::DataLoaded { id, .. } => id,
         }
     }
 

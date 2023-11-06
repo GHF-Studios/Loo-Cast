@@ -6,11 +6,13 @@
 
 // Internal imports
 use crate::math::*;
-use crate::chunking::cluster::*;
+use super::cluster::*;
+use super::entity::*;
 
 // External imports
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
+use std::sync::{Arc, Mutex, RwLock};
 
 // Static variables
 
@@ -22,10 +24,29 @@ use num_traits::ToPrimitive;
 
 
 // Enums
+pub enum Chunk {
+    Registered {
+        id: Arc<RwLock<ChunkID>>,
+    },
+    MetadataLoaded {
+        id: Arc<RwLock<ChunkID>>,
+        metadata: Arc<Mutex<ChunkMetadata>>,
+    },
+    DataLoaded {
+        id: Arc<RwLock<ChunkID>>,
+        metadata: Arc<Mutex<ChunkMetadata>>,
+        data: Arc<Mutex<ChunkData>>,
+    },
+}
 
+pub enum ChunkLoadState {
+    Registered,
+    MetadataLoaded,
+    DataLoaded,
+}
 
 // Structs
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ChunkID {
     scale_level: u8,
     local_id: u8,
@@ -35,9 +56,30 @@ pub struct ChunkID {
     global_id_base57: String,
 }
 
+pub struct ChunkMetadata {
+    placeholder_metadata: Option<i32>,
+}
+
+pub struct ChunkData {
+    placeholder_data: Option<i32>,
+}
+
+pub struct ChunkManager {
+    registered_chunks: Arc<Mutex<Vec<Chunk>>>,
+}
+
+
 // Implementations
-impl ChunkID {
-    pub fn from_base10_global(global_id_base10: BigUint) -> Result<ChunkID, String> {
+impl From<EntityID> for ChunkID {
+    fn from(entity_id: EntityID) -> Self {
+        entity_id.get_chunk_id()
+    }
+}
+
+impl TryFrom<BigUint> for ChunkID {
+    type Error = String;
+
+    fn try_from(global_id_base10: BigUint) -> Result<Self, Self::Error> {
         let global_id_base10x10 = BASE10X10_CONVERTER
             .convert_to_base10x10(global_id_base10.clone())
             .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
@@ -49,7 +91,7 @@ impl ChunkID {
             scale_level: global_id_base10x10.len() as u8,
             local_id: (global_id_base10.clone() % BigUint::from(100u32)).to_u8().unwrap(),
             cluster_id: None,
-            global_id_base10: global_id_base10,
+            global_id_base10,
             global_id_base10x10,
             global_id_base57,
         };
@@ -57,8 +99,12 @@ impl ChunkID {
 
         Ok(chunk_id)
     }
+}
 
-    pub fn from_base10x10_global(global_id_base10x10: Vec<(u8, u8)>) -> Result<ChunkID, String> {
+impl TryFrom<Vec<(u8, u8)>> for ChunkID {
+    type Error = String;
+
+    fn try_from(global_id_base10x10: Vec<(u8, u8)>) -> Result<Self, Self::Error> {
         let global_id_base10 = BASE10X10_CONVERTER
             .convert_from_base10x10(global_id_base10x10.clone())
             .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
@@ -71,15 +117,19 @@ impl ChunkID {
             local_id: (global_id_base10.clone() % BigUint::from(100u32)).to_u8().unwrap(),
             cluster_id: None,
             global_id_base10,
-            global_id_base10x10: global_id_base10x10,
+            global_id_base10x10,
             global_id_base57,
         };
         chunk_id.cluster_id = Some(ClusterID::from_chunk_id(chunk_id.clone()));
 
         Ok(chunk_id)
     }
+}
 
-    pub fn from_base57_global(global_id_base57: &str) -> Result<ChunkID, String> {
+impl TryFrom<&str> for ChunkID {
+    type Error = String;
+
+    fn try_from(global_id_base57: &str) -> Result<Self, Self::Error> {
         let global_id_base10 = BASE57_CONVERTER
             .convert_from_base57(global_id_base57.clone())
             .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
@@ -99,7 +149,15 @@ impl ChunkID {
 
         Ok(chunk_id)
     }
+}
 
+impl PartialEq for ChunkID {
+    fn eq(&self, other: &Self) -> bool {
+        self.global_id_base10x10 == other.global_id_base10x10
+    }
+}
+
+impl ChunkID {
     pub fn get_scale_level(&self) -> u8 {
         return self.scale_level;
     }
@@ -122,12 +180,6 @@ impl ChunkID {
 
     pub fn get_global_id_base57(&self) -> &String {
         return &self.global_id_base57;
-    }
-}
-
-impl PartialEq for ChunkID {
-    fn eq(&self, other: &Self) -> bool {
-        self.global_id_base10x10 == other.global_id_base10x10
     }
 }
 
