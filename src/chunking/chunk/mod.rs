@@ -6,7 +6,7 @@
 
 // Internal imports
 use crate::math::*;
-use crate::chunking::chunk_cluster::*;
+use crate::chunking::cluster::*;
 
 // External imports
 use num_bigint::BigUint;
@@ -29,7 +29,7 @@ use num_traits::ToPrimitive;
 pub struct ChunkID {
     scale_level: u8,
     local_id: u8,
-    cluster_id: Option<ChunkClusterID>,
+    cluster_id: Option<ClusterID>,
     global_id_base10: BigUint,
     global_id_base10x10: Vec<(u8, u8)>,
     global_id_base57: String,
@@ -53,7 +53,7 @@ impl ChunkID {
             global_id_base10x10,
             global_id_base57,
         };
-        chunk_id.cluster_id = Some(ChunkClusterID::from_chunk_id(chunk_id.clone()));
+        chunk_id.cluster_id = Some(ClusterID::from_chunk_id(chunk_id.clone()));
 
         Ok(chunk_id)
     }
@@ -74,7 +74,7 @@ impl ChunkID {
             global_id_base10x10: global_id_base10x10,
             global_id_base57,
         };
-        chunk_id.cluster_id = Some(ChunkClusterID::from_chunk_id(chunk_id.clone()));
+        chunk_id.cluster_id = Some(ClusterID::from_chunk_id(chunk_id.clone()));
 
         Ok(chunk_id)
     }
@@ -95,7 +95,7 @@ impl ChunkID {
             global_id_base10x10,
             global_id_base57: global_id_base57.to_string(),
         };
-        chunk_id.cluster_id = Some(ChunkClusterID::from_chunk_id(chunk_id.clone()));
+        chunk_id.cluster_id = Some(ClusterID::from_chunk_id(chunk_id.clone()));
 
         Ok(chunk_id)
     }
@@ -108,7 +108,7 @@ impl ChunkID {
         return self.local_id;
     }
 
-    pub fn get_cluster_id(&self) -> &ChunkClusterID {
+    pub fn get_cluster_id(&self) -> &ClusterID {
         return self.cluster_id.as_ref().unwrap();
     }
 

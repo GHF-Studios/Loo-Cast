@@ -63,4 +63,10 @@ impl Into<Vec3> for EntityPos {
     }
 }
 
+impl EntityPos {
+    pub fn new(x: f32, y: f32) -> EntityPos {
+        EntityPos { x, y }
+    }
+}
+
 // Module Functions

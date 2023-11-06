@@ -22,22 +22,22 @@ use std::sync::{Arc, Mutex, RwLock};
 
 
 // Enums
-pub enum ChunkCluster {
+pub enum Cluster {
     Registered {
-        registration: Arc<RwLock<ChunkClusterRegistration>>,
+        registration: Arc<RwLock<ClusterRegistration>>,
     },
     MetadataLoaded {
-        registration: Arc<RwLock<ChunkClusterRegistration>>,
-        metadata: Arc<Mutex<ChunkClusterMetadata>>,
+        registration: Arc<RwLock<ClusterRegistration>>,
+        metadata: Arc<Mutex<ClusterMetadata>>,
     },
     DataLoaded {
-        registration: Arc<RwLock<ChunkClusterRegistration>>,
-        metadata: Arc<Mutex<ChunkClusterMetadata>>,
-        data: Arc<Mutex<ChunkClusterData>>,
+        registration: Arc<RwLock<ClusterRegistration>>,
+        metadata: Arc<Mutex<ClusterMetadata>>,
+        data: Arc<Mutex<ClusterData>>,
     },
 }
 
-pub enum ChunkClusterLoadState {
+pub enum ClusterLoadState {
     Registered,
     MetadataLoaded,
     DataLoaded,
@@ -45,36 +45,36 @@ pub enum ChunkClusterLoadState {
 
 // Structs
 #[derive(Clone, Debug)]
-pub struct ChunkClusterID {
+pub struct ClusterID {
     global_id_base10: BigUint,
     global_id_base57: String,
 }
 
-pub struct ChunkClusterRegistration {
-    id: ChunkClusterID,
+pub struct ClusterRegistration {
+    id: ClusterID,
 }
 
-pub struct ChunkClusterMetadata {
+pub struct ClusterMetadata {
     placeholder_metadata: Option<i32>,
 }
 
-pub struct ChunkClusterData {
+pub struct ClusterData {
     placeholder_data: Option<i32>,
 }
 
-pub struct ChunkClusterManager {
-    registered_clusters: Arc<Mutex<Vec<ChunkCluster>>>,
+pub struct ClusterManager {
+    registered_clusters: Arc<Mutex<Vec<Cluster>>>,
 }
 
 // Implementations
-impl ChunkClusterID {
-    pub fn from_chunk_id(chunk_id: ChunkID) -> ChunkClusterID {
+impl ClusterID {
+    pub fn from_chunk_id(chunk_id: ChunkID) -> ClusterID {
         let base10_id = chunk_id.get_global_id_base10() / BigUint::from(100u32);
         let base57_id = BASE57_CONVERTER
             .convert_to_base57(base10_id.clone())
             .unwrap();
 
-        ChunkClusterID {
+        ClusterID {
             global_id_base10: base10_id,
             global_id_base57: base57_id,
         }
@@ -89,25 +89,25 @@ impl ChunkClusterID {
     }
 }
 
-impl PartialEq for ChunkClusterID {
+impl PartialEq for ClusterID {
     fn eq(&self, other: &Self) -> bool {
         self.global_id_base10 == other.global_id_base10
     }
 }
 
-impl ChunkClusterRegistration {
-    fn new(id: ChunkClusterID) -> ChunkClusterRegistration {
-        ChunkClusterRegistration { id: id }
+impl ClusterRegistration {
+    fn new(id: ClusterID) -> ClusterRegistration {
+        ClusterRegistration { id: id }
     }
 
-    fn get_id(&self) -> &ChunkClusterID {
+    fn get_id(&self) -> &ClusterID {
         return &self.id;
     }
 }
 
-impl ChunkClusterMetadata {
-    fn new() -> ChunkClusterMetadata {
-        ChunkClusterMetadata {
+impl ClusterMetadata {
+    fn new() -> ClusterMetadata {
+        ClusterMetadata {
             placeholder_metadata: None,
         }
     }
@@ -121,9 +121,9 @@ impl ChunkClusterMetadata {
     }
 }
 
-impl ChunkClusterData {
-    fn new() -> ChunkClusterData {
-        ChunkClusterData {
+impl ClusterData {
+    fn new() -> ClusterData {
+        ClusterData {
             placeholder_data: None,
         }
     }
@@ -137,45 +137,45 @@ impl ChunkClusterData {
     }
 }
 
-impl ChunkCluster {
-    fn new(id: ChunkClusterID) -> Self {
-        ChunkCluster::Registered {
-            registration: Arc::new(RwLock::new(ChunkClusterRegistration::new(id))),
+impl Cluster {
+    fn new(id: ClusterID) -> Self {
+        Cluster::Registered {
+            registration: Arc::new(RwLock::new(ClusterRegistration::new(id))),
         }
     }
 
-    fn load_metadata(&mut self, metadata: ChunkClusterMetadata) -> Result<(), String> {
+    fn load_metadata(&mut self, metadata: ClusterMetadata) -> Result<(), String> {
         match self {
-            ChunkCluster::Registered { .. } => {
-                *self = ChunkCluster::MetadataLoaded {
+            Cluster::Registered { .. } => {
+                *self = Cluster::MetadataLoaded {
                     registration: self.get_registration().clone(),
                     metadata: Arc::new(Mutex::new(metadata)),
                 };
                 Ok(())
             },
-            ChunkCluster::MetadataLoaded { .. } => {
+            Cluster::MetadataLoaded { .. } => {
                 Err("Cannot load metadata: Metadata is already loaded.".to_string())
             }
-            ChunkCluster::DataLoaded { .. } => {
+            Cluster::DataLoaded { .. } => {
                 Err("Cannot load metadata: Both metadata and data are already loaded.".to_string())
             }
         }
     }
 
-    fn load_data(&mut self, data: ChunkClusterData) -> Result<(), String> {
+    fn load_data(&mut self, data: ClusterData) -> Result<(), String> {
         match self {
-            ChunkCluster::Registered { .. } => {
+            Cluster::Registered { .. } => {
                 Err("Cannot load data: Metadata must be loaded first.".to_string())
             }
-            ChunkCluster::MetadataLoaded { .. } => {
-                *self = ChunkCluster::DataLoaded {
+            Cluster::MetadataLoaded { .. } => {
+                *self = Cluster::DataLoaded {
                     registration: self.get_registration().clone(),
                     metadata: self.get_metadata().unwrap().clone(),
                     data: Arc::new(Mutex::new(data)),
                 };
                 Ok(())
             },
-            ChunkCluster::DataLoaded { .. } => {
+            Cluster::DataLoaded { .. } => {
                 Err("Cannot load data: Data is already loaded.".to_string())
             }
         }
@@ -183,16 +183,16 @@ impl ChunkCluster {
 
     fn unload_metadata(&mut self) -> Result<(), String> {
         match self {
-            ChunkCluster::Registered { .. } => {
+            Cluster::Registered { .. } => {
                 Err("Cannot unload metadata: No metadata is loaded.".to_string())
             }
-            ChunkCluster::MetadataLoaded { .. } => {
-                *self = ChunkCluster::Registered {
+            Cluster::MetadataLoaded { .. } => {
+                *self = Cluster::Registered {
                     registration: self.get_registration().clone(),
                 };
                 Ok(())
             }
-            ChunkCluster::DataLoaded { .. } => {
+            Cluster::DataLoaded { .. } => {
                 Err("Cannot unload metadata: Data must be unloaded first.".to_string())
             }
         }
@@ -200,14 +200,14 @@ impl ChunkCluster {
 
     fn unload_data(&mut self) -> Result<(), String> {
         match self {
-            ChunkCluster::Registered { .. } => {
+            Cluster::Registered { .. } => {
                 Err("Cannot unload data: Neither metadata nor data are loaded.".to_string())
             }
-            ChunkCluster::MetadataLoaded { .. } => {
+            Cluster::MetadataLoaded { .. } => {
                 Err("Cannot unload data: No data is loaded.".to_string())
             }
-            ChunkCluster::DataLoaded { .. } => {
-                *self = ChunkCluster::MetadataLoaded {
+            Cluster::DataLoaded { .. } => {
+                *self = Cluster::MetadataLoaded {
                     registration: self.get_registration().clone(),
                     metadata: self.get_metadata().unwrap().clone(),
                 };
@@ -216,42 +216,42 @@ impl ChunkCluster {
         }
     }
 
-    fn get_registration(&self) -> &Arc<RwLock<ChunkClusterRegistration>> {
+    fn get_registration(&self) -> &Arc<RwLock<ClusterRegistration>> {
         match self {
-            ChunkCluster::Registered { registration } => registration,
-            ChunkCluster::MetadataLoaded { registration, .. } => registration,
-            ChunkCluster::DataLoaded { registration, .. } => registration,
+            Cluster::Registered { registration } => registration,
+            Cluster::MetadataLoaded { registration, .. } => registration,
+            Cluster::DataLoaded { registration, .. } => registration,
         }
     }
 
-    fn get_metadata(&self) -> Result<&Arc<Mutex<ChunkClusterMetadata>>, String> {
+    fn get_metadata(&self) -> Result<&Arc<Mutex<ClusterMetadata>>, String> {
         match self {
-            ChunkCluster::Registered { .. } => Err("No metadata is loaded.".to_string()),
-            ChunkCluster::MetadataLoaded { metadata, .. } => Ok(metadata),
-            ChunkCluster::DataLoaded { metadata, .. } => Ok(metadata),
+            Cluster::Registered { .. } => Err("No metadata is loaded.".to_string()),
+            Cluster::MetadataLoaded { metadata, .. } => Ok(metadata),
+            Cluster::DataLoaded { metadata, .. } => Ok(metadata),
         }
     }
 
-    fn get_data(&self) -> Result<&Arc<Mutex<ChunkClusterData>>, String> {
+    fn get_data(&self) -> Result<&Arc<Mutex<ClusterData>>, String> {
         match self {
-            ChunkCluster::Registered { .. } => Err("No data is loaded.".to_string()),
-            ChunkCluster::MetadataLoaded { .. } => Err("No data is loaded.".to_string()),
-            ChunkCluster::DataLoaded { data, .. } => Ok(data),
+            Cluster::Registered { .. } => Err("No data is loaded.".to_string()),
+            Cluster::MetadataLoaded { .. } => Err("No data is loaded.".to_string()),
+            Cluster::DataLoaded { data, .. } => Ok(data),
         }
     }
 
-    fn get_load_state(&self) -> ChunkClusterLoadState {
+    fn get_load_state(&self) -> ClusterLoadState {
         match self {
-            ChunkCluster::Registered { .. } => ChunkClusterLoadState::Registered,
-            ChunkCluster::MetadataLoaded { .. } => ChunkClusterLoadState::MetadataLoaded,
-            ChunkCluster::DataLoaded { .. } => ChunkClusterLoadState::DataLoaded,
+            Cluster::Registered { .. } => ClusterLoadState::Registered,
+            Cluster::MetadataLoaded { .. } => ClusterLoadState::MetadataLoaded,
+            Cluster::DataLoaded { .. } => ClusterLoadState::DataLoaded,
         }
     }
 }
 
-impl ChunkClusterManager {
-    pub fn new() -> ChunkClusterManager {
-        ChunkClusterManager {
+impl ClusterManager {
+    pub fn new() -> ClusterManager {
+        ClusterManager {
             registered_clusters: Arc::new(Mutex::new(Vec::new())),
         }
     }
