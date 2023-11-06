@@ -3,8 +3,8 @@
 // Local imports
 
 // Internal imports
-use crate::universe::chunk::ChunkViewer;
 use crate::game::SimulationState;
+use crate::universe::chunk::ChunkViewer;
 use crate::AppState;
 
 // External imports

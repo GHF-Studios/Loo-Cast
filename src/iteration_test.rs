@@ -5,6 +5,8 @@
 // Internal imports
 use crate::game::SimulationState;
 use crate::player::Player;
+use crate::universe::chunk::*;
+use crate::universe::entity::*;
 use crate::AppState;
 
 // External imports
@@ -37,35 +39,29 @@ pub struct CurrentScaleIndexText;
 pub struct GlobalChunkPositionText;
 
 #[derive(Resource)]
-pub struct IterationTestManager {
-    origin_shift_x: i32,
-    origin_shift_y: i32,
-    current_scale_index: u8,
-}
+pub struct IterationTestManager {}
 
 // Implementations
 impl Plugin for IterationTestPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(IterationTestManager {
-            origin_shift_x: 0,
-            origin_shift_y: 0,
-            current_scale_index: 0,
-        })
-        // Enter Systems
-        .add_systems(OnEnter(AppState::Game), IterationTestManager::initialize)
-        // Update Systems
-        .add_systems(
-            Update,
-            (
-                IterationTestManager::update_scene_position_system,
-                IterationTestManager::update_local_chunk_position_system,
-                IterationTestManager::update_global_chunk_position_system,
+        app
+            // Resources
+            .insert_resource(IterationTestManager {})
+            // Enter Systems
+            .add_systems(OnEnter(AppState::Game), IterationTestManager::initialize)
+            // Update Systems
+            .add_systems(
+                Update,
+                (
+                    IterationTestManager::update_scene_position_system,
+                    IterationTestManager::update_local_chunk_position_system,
+                    IterationTestManager::update_global_chunk_position_system,
+                )
+                    .run_if(in_state(AppState::Game))
+                    .run_if(in_state(SimulationState::Running)),
             )
-                .run_if(in_state(AppState::Game))
-                .run_if(in_state(SimulationState::Running)),
-        )
-        // Exit Systems
-        .add_systems(OnExit(AppState::Game), IterationTestManager::terminate);
+            // Exit Systems
+            .add_systems(OnExit(AppState::Game), IterationTestManager::terminate);
     }
 }
 
@@ -186,15 +182,10 @@ impl IterationTestManager {
     ) {
         for mut text in &mut text_query {
             if let Ok(player_transform) = player_query.get_single() {
-                let local_chunk_pos = local_chunk_pos_from_entity_pos(
-                    (
-                        player_transform.translation.x,
-                        player_transform.translation.y,
-                    ),
-                    crate::universe::chunk::CHUNK_SIZE,
-                );
+                let entity_pos: EntityPos = player_transform.translation.into();
+                let local_chunk_pos: ChunkPos = entity_pos.into();
                 text.sections[1].value =
-                    format!("x: {:.2}, y: {:.2}", local_chunk_pos.0, local_chunk_pos.1);
+                    format!("x: {:.2}, y: {:.2}", local_chunk_pos.x, local_chunk_pos.y);
             }
         }
     }
@@ -205,14 +196,7 @@ impl IterationTestManager {
     ) {
         for mut text in &mut text_query {
             if let Ok(player_transform) = player_query.get_single() {
-                let global_chunk_pos = get_global_chunk_pos(
-                    (
-                        player_transform.translation.x,
-                        player_transform.translation.y,
-                    ),
-                    crate::universe::chunk::CHUNK_SIZE,
-                    0,
-                );
+                let global_chunk_pos = vec![(0, 0)];
                 text.sections[1].value = format!("{:?}", global_chunk_pos);
             }
         }
@@ -220,25 +204,3 @@ impl IterationTestManager {
 }
 
 // Module Functions
-pub fn local_chunk_pos_from_entity_pos(scene_pos: (f32, f32), chunk_size: u16) -> (i32, i32) {
-    let half_chunk = (chunk_size as f32) / 2.0;
-    let x = ((scene_pos.0 + half_chunk) / chunk_size as f32).floor() as i32;
-    let y = ((scene_pos.1 + half_chunk) / chunk_size as f32).floor() as i32;
-
-    (x, y)
-}
-
-pub fn entity_pos_from_local_chunk_pos(local_chunk_pos: (i32, i32), chunk_size: u16) -> (f32, f32) {
-    let x = local_chunk_pos.0 as f32 * chunk_size as f32;
-    let y = local_chunk_pos.1 as f32 * chunk_size as f32;
-
-    (x, y)
-}
-
-pub fn get_global_chunk_pos(
-    scene_pos: (f32, f32),
-    chunk_size: u16,
-    current_scale_index: u8,
-) -> Vec<(u8, u8)> {
-    vec![(0, 0)]
-}

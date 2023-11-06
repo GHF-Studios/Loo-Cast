@@ -4,6 +4,7 @@
 
 // Internal imports
 use crate::game::SimulationState;
+use crate::universe::entity::EntityPos;
 use crate::AppState;
 
 // External imports
@@ -127,6 +128,16 @@ impl ChunkManager {
     }
 }
 
+impl From<EntityPos> for ChunkPos {
+    fn from(entity_pos: EntityPos) -> Self {
+        let half_chunk = (CHUNK_SIZE as f32) / 2.0;
+        Self {
+            x: ((entity_pos.x + half_chunk) / CHUNK_SIZE as f32).floor() as i32,
+            y: ((entity_pos.y + half_chunk) / CHUNK_SIZE as f32).floor() as i32,
+        }
+    }
+}
+
 impl ChunkPos {
     pub fn new(x: i32, y: i32) -> ChunkPos {
         Self { x, y }
@@ -137,11 +148,8 @@ impl Chunk {
     fn render_system(mut gizmos: Gizmos, chunk_query: Query<&Chunk>) {
         for chunk in chunk_query.iter() {
             let chunk_pos = chunk.local_chunk_pos;
-            let gizmo_position = crate::iteration_test::entity_pos_from_local_chunk_pos(
-                (chunk_pos.x, chunk_pos.y),
-                CHUNK_SIZE,
-            );
-            let gizmo_position = Vec2::new(gizmo_position.0, gizmo_position.1);
+            let gizmo_position: EntityPos = chunk_pos.into();
+            let gizmo_position: Vec2 = gizmo_position.into();
             gizmos.rect_2d(
                 gizmo_position,
                 0.,
@@ -169,9 +177,7 @@ impl ChunkViewer {
         Self::process_chunk_positions(&mut chunk_viewer_query, chunk_manager);
     }
 
-    fn gather_chunk_positions(
-        chunk_viewer_query: &mut Query<(&mut ChunkViewer, &Transform)>,
-    ) {
+    fn gather_chunk_positions(chunk_viewer_query: &mut Query<(&mut ChunkViewer, &Transform)>) {
         for (mut chunk_viewer, chunk_viewer_transform) in chunk_viewer_query.iter_mut() {
             if chunk_viewer.previously_viewed_chunk_positions.len() > 0 {
                 panic!("Chunk viewer's previously viewed chunk positions are not empty");
@@ -180,21 +186,29 @@ impl ChunkViewer {
                 panic!("Chunk viewer's newly viewed chunk positions are not empty");
             }
 
-            let chunk_viewer_scene_position = (chunk_viewer_transform.translation.x, chunk_viewer_transform.translation.y);
-            let chunk_viewer_local_chunk_position = crate::iteration_test::local_chunk_pos_from_entity_pos(chunk_viewer_scene_position, CHUNK_SIZE);
-            let chunk_viewer_local_chunk_position = ChunkPos::new(chunk_viewer_local_chunk_position.0, chunk_viewer_local_chunk_position.1);
-            let detected_chunk_positions = Self::get_chunks_in_range(&chunk_viewer_local_chunk_position);
-            let currently_viewed_chunk_positions = chunk_viewer.currently_viewed_chunk_positions.clone();
+            let chunk_viewer_entity_pos: EntityPos = chunk_viewer_transform.translation.into();
+            let chunk_viewer_local_chunk_position: ChunkPos = chunk_viewer_entity_pos.into();
+            let detected_chunk_positions =
+                Self::get_chunks_in_range(&chunk_viewer_local_chunk_position);
+            let currently_viewed_chunk_positions =
+                chunk_viewer.currently_viewed_chunk_positions.clone();
 
             for currently_viewed_chunk_position in currently_viewed_chunk_positions {
                 if !detected_chunk_positions.contains(&currently_viewed_chunk_position) {
-                    chunk_viewer.previously_viewed_chunk_positions.push(currently_viewed_chunk_position);
+                    chunk_viewer
+                        .previously_viewed_chunk_positions
+                        .push(currently_viewed_chunk_position);
                 }
             }
 
             for detected_chunk_position in &detected_chunk_positions {
-                if !chunk_viewer.currently_viewed_chunk_positions.contains(detected_chunk_position) {
-                    chunk_viewer.newly_viewed_chunk_positions.push(*detected_chunk_position);
+                if !chunk_viewer
+                    .currently_viewed_chunk_positions
+                    .contains(detected_chunk_position)
+                {
+                    chunk_viewer
+                        .newly_viewed_chunk_positions
+                        .push(*detected_chunk_position);
                 }
             }
         }
