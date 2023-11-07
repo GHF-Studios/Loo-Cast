@@ -194,22 +194,13 @@ impl ClusterMetadata {
         }
     }
 
-    pub fn register_child_cluster(&mut self, chunk_id: ChunkID) -> Arc<Mutex<Chunk>> {
-        if self.registered_chunks.contains_key(&chunk_id) {
-            panic!("Chunk already registered.");
-        }
-
-        let chunk = Arc::new(Mutex::new(Chunk::Registered { id: chunk_id.clone() }));
-        self.registered_chunks.insert(chunk_id, chunk.clone());
-        chunk
+    pub fn register_child_cluster(&mut self, cluster_id: ChunkID) -> Arc<Mutex<Chunk>> {
     }
 
-    pub fn get_registered_chunk(&mut self, chunk_id: ChunkID) -> Option<Arc<Mutex<Chunk>>> {
-        self.registered_chunks.get(&chunk_id).map(|chunk| chunk.clone())
+    pub fn get_registered_cluster(&mut self, chunk_id: ChunkID) -> Option<Arc<Mutex<Chunk>>> {
     }
 
     pub fn is_chunk_registered(&mut self, chunk_id: ChunkID) -> bool {
-        self.registered_chunks.contains_key(&chunk_id)
     }
 }
 
