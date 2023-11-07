@@ -15,7 +15,7 @@ lazy_static! {
     pub static ref BASE10X10_CONVERTER: Arc<Base10x10Converter> =
         Arc::new(Base10x10Converter::new(64).unwrap());
     pub static ref BASE57_CONVERTER: Arc<Base57Converter> =
-        Arc::new(Base57Converter::new(75).unwrap());
+        Arc::new(Base57Converter::new(73).unwrap());
 }
 
 // Constant variables

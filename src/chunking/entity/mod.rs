@@ -61,7 +61,7 @@ pub struct EntityData {
 impl EntityID {
     pub fn new(chunk_id: ChunkID, local_id: u64) -> Result<Self, String> {
         if self.local_id == u64::MAX {
-            return Err("Invalid local entity id.");
+            return Err("Cannot create entity id: Local id space has been exhausted.".to_string());
         }
 
         Ok(EntityID {

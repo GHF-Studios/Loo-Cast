@@ -181,7 +181,7 @@ impl ChunkMetadata {
                     registered_entities: HashMap::new(),
                 });
             } else if parent_scale_index > 63 {
-                panic!("Cannot create a chunk with a scale index higher than 63.");
+                return Err("Cannot create chunk with a scale index higher than 63".to_string());
             }
         } else {
             return Ok(ChunkMetadata {
@@ -219,7 +219,7 @@ impl Chunk {
 
     pub fn create_chunk_id(&mut self, local_chunk_id: u8) -> Result<ChunkID, String> {
         if local_chunk_id > 99 {
-            return Err("Invalid local chunk id".to_string());
+            return Err("Invalid local chunk id.".to_string());
         }
 
         let mut parent_chunk_id_base10x10;
@@ -235,10 +235,14 @@ impl Chunk {
             }
         }
 
-        let chunk_id = vec![(local_chunk_id / 10, local_chunk_id % 10)].append(parent_chunk_id_base10x10);
-        match ChunkID::try_from(chunk_id) {
+        if parent_chunk_id_base10x10.len() == 63 {
+            return Err("Cannot create chunk id: Max scale index reached.".to_string());
+        }
+
+        let chunk_id_base10x10 = parent_chunk_id_base10x10.append(vec![(local_chunk_id / 10, local_chunk_id % 10)]);
+        match ChunkID::try_from(chunk_id_base10x10) {
             Ok(chunk_id) => Ok(chunk_id),
-            Err(e) => Err(format!("Generating a chunk id failed: {}", e)),
+            Err(e) => Err(format!("Generating chunk id failed: {}", e)),
         }
     }
 
@@ -247,7 +251,7 @@ impl Chunk {
         let mut chunk_metadata; 
         match self {
             Chunk::Registered { .. } => {
-                return Err("Cannot generate an entity id: No metadata is loaded.".to_string());
+                return Err("Cannot generate entity id: No metadata is loaded.".to_string());
             },
             Chunk::Metadata { id, metadata, .. } => {
                 parent_chunk_id = id.lock().unwrap().clone();
@@ -268,7 +272,7 @@ impl Chunk {
             }
         } else {
             if chunk_metadata.current_local_entity_id == u64::MAX {
-                return Err("Local entity id space used up".to_string());
+                return Err("Local entity id space used up.".to_string());
             }
 
             match EntityID::new(parent_chunk_id, chunk_metadata.current_local_entity_id) {
@@ -285,7 +289,7 @@ impl Chunk {
         let mut chunk_metadata; 
         match self {
             Chunk::Registered { .. } => {
-                return Err("Cannot recycle an entity id: No metadata is loaded.".to_string());
+                return Err("Cannot recycle entity id: No metadata is loaded.".to_string());
             },
             Chunk::Metadata { metadata, .. } => {
                 chunk_metadata = metadata;
@@ -296,7 +300,7 @@ impl Chunk {
         }
 
         if chunk_metadata.recycled_local_entity_ids.contains(&entity_id.get_local_id()) {
-            return Err("Entity id already recycled".to_string());
+            return Err("Entity id already recycled.".to_string());
         }
 
         chunk_metadata.recycled_local_entity_ids.push(entity_id.get_local_id());
@@ -307,7 +311,7 @@ impl Chunk {
         let mut chunk_metadata; 
         match self {
             Chunk::Registered { .. } => {
-                return Err("Cannot register a chunk: No metadata is loaded.".to_string());
+                return Err("Cannot register chunk: No metadata is loaded.".to_string());
             },
             Chunk::Metadata { metadata, .. } => {
                 chunk_metadata = metadata;
@@ -317,20 +321,27 @@ impl Chunk {
             }
         }
 
-        if chunk_metadata.child_chunks.contains_key(&chunk_id) {
-            panic!("Chunk already registered");
+        match chunk_metadata.child_chunks {
+            Some(child_chunks) => {
+                if child_chunks.contains_key(&chunk_id) {
+                    return Err("Cannot register chunk: Chunk already registered.".to_string());
+                }
+        
+                let chunk = Arc::new(Mutex::new(Chunk::Registered { id: chunk_id.clone(), }));
+                child_chunks.insert(chunk_id, chunk.clone());
+                return chunk;
+            },
+            None => {
+                return Err("Cannot register chunk: Max scale index reached.".to_string());
+            }
         }
-
-        let chunk = Arc::new(Mutex::new(Chunk::Registered { id: chunk_id.clone(), }));
-        chunk_metadata.child_chunks.insert(chunk_id, chunk.clone());
-        chunk
     }
 
     pub fn register_entity(&mut self, entity_id: EntityID) -> Arc<Mutex<Entity>> {
         let mut chunk_metadata;
         match self {
             Chunk::Registered { .. } => {
-                return Err("Cannot register an entity: No metadata is loaded.".to_string());
+                return Err("Cannot register entity: No metadata is loaded.".to_string());
             },
             Chunk::Metadata { metadata, .. } => {
                 chunk_metadata = metadata;
@@ -340,20 +351,27 @@ impl Chunk {
             }
         }
 
-        if chunk_metadata.registered_entities.contains_key(&entity_id) {
-            panic!("Entity already registered");
+        match chunk_metadata.registered_entities {
+            Some(registered_entities) => {
+                if registered_entities.contains_key(&entity_id) {
+                    return Err("Cannot register entity: Entity already registered.".to_string());
+                }
+        
+                let entity = Arc::new(Mutex::new(Entity::Registered { id: entity_id.clone(), }));
+                registered_entities.insert(entity_id, entity.clone());
+                return entity;
+            },
+            None => {
+                return Err("Cannot register entity: Max scale index reached.".to_string());
+            }
         }
-
-        let entity = Arc::new(Mutex::new(Entity::Registered { id: entity_id.clone(), }));
-        chunk_metadata.registered_entities.insert(entity_id, entity.clone());
-        entity
     }
 
-    pub fn get_registered_chunk(&mut self, chunk_id: ChunkID) -> Option<Arc<Mutex<Chunk>>> {
+    pub fn get_registered_chunk(&mut self, chunk_id: ChunkID) -> Result<Option<Arc<Mutex<Chunk>>>, String> {
         let mut chunk_metadata;
         match self {
             Chunk::Registered { .. } => {
-                return Err("Cannot get a chunk: No metadata is loaded.".to_string());
+                return Err("Cannot get chunk: No metadata is loaded.".to_string());
             },
             Chunk::Metadata { metadata, .. } => {
                 chunk_metadata = metadata;
@@ -363,14 +381,21 @@ impl Chunk {
             }
         }
 
-        chunk_metadata.child_chunks.get(&chunk_id).map(|chunk| chunk.clone())
+        match chunk_metadata.child_chunks {
+            Some(child_chunks) => {
+                return Ok(child_chunks.get(&chunk_id).map(|chunk| chunk.clone()));
+            },
+            None => {
+                return Err("Cannot get chunk: Max scale index reached.".to_string());
+            }
+        }
     }
 
     pub fn get_registered_entity(&mut self, entity_id: EntityID) -> Option<Arc<Mutex<Entity>>> {
         let mut chunk_metadata;
         match self {
             Chunk::Registered { .. } => {
-                return Err("Cannot get an entity: No metadata is loaded.".to_string());
+                return Err("Cannot get entity: No metadata is loaded.".to_string());
             },
             Chunk::Metadata { metadata, .. } => {
                 chunk_metadata = metadata;
@@ -383,11 +408,11 @@ impl Chunk {
         chunk_metadata.registered_entities.get(&entity_id).map(|entity| entity.clone())
     }
 
-    pub fn is_chunk_registered(&mut self, chunk_id: ChunkID) -> bool {
+    pub fn is_chunk_registered(&mut self, chunk_id: ChunkID) -> Result<bool, String> {
         let mut chunk_metadata;
         match self {
             Chunk::Registered { .. } => {
-                return Err("Cannot check if a chunk is registered: No metadata is loaded.".to_string());
+                return Err("Cannot check if chunk is registered: No metadata is loaded.".to_string());
             },
             Chunk::Metadata { metadata, .. } => {
                 chunk_metadata = metadata;
@@ -397,14 +422,21 @@ impl Chunk {
             }
         }
 
-        chunk_metadata.child_chunks.contains_key(&chunk_id)
+        match chunk_metadata.child_chunks {
+            Some(child_chunks) => {
+                Ok(child_chunks.contains_key(&chunk_id))
+            },
+            None => {
+                Err("Cannot check if chunk is registered: Max scale index reached.".to_string())
+            }
+        }
     }
 
     pub fn is_entity_registered(&mut self, entity_id: EntityID) -> bool {
         let mut chunk_metadata;
         match self {
             Chunk::Registered { .. } => {
-                return Err("Cannot check if an entity is registered: No metadata is loaded.".to_string());
+                return Err("Cannot check if entity is registered: No metadata is loaded.".to_string());
             },
             Chunk::Metadata { metadata, .. } => {
                 chunk_metadata = metadata;
