@@ -8,11 +8,13 @@
 use crate::math::*;
 use super::cluster::*;
 use super::entity::*;
+use crate::chunking::identification::LocalID::*;
 
 // External imports
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
 use std::sync::{Arc, Mutex, RwLock};
+use std::collections::HashMap;
 
 // Static variables
 
@@ -48,106 +50,23 @@ pub enum ChunkLoadState {
 // Structs
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChunkID {
-    scale_level: u8,
-    local_id: u8,
-    cluster_id: Option<ClusterID>,
-    global_id_base10: BigUint,
-    global_id_base10x10: Vec<(u8, u8)>,
-    global_id_base57: String,
+    parent_cluster_id: Option<ClusterID>
 }
 
 pub struct ChunkMetadata {
-    placeholder_metadata: Option<i32>,
+    current_local_entity_id: u64,
+    parent_cluster: Arc<Mutex<Cluster>>,
+    registered_entities: Hashmap<u64, Arc<Mutex<Entity>>>,
 }
 
 pub struct ChunkData {
     placeholder_data: Option<i32>,
 }
 
-pub struct ChunkManager {
-    registered_chunks: Arc<Mutex<Vec<Chunk>>>,
-}
-
-
 // Implementations
 impl From<EntityID> for ChunkID {
     fn from(entity_id: EntityID) -> Self {
         entity_id.get_chunk_id()
-    }
-}
-
-impl TryFrom<BigUint> for ChunkID {
-    type Error = String;
-
-    fn try_from(global_id_base10: BigUint) -> Result<Self, Self::Error> {
-        let global_id_base10x10 = BASE10X10_CONVERTER
-            .convert_to_base10x10(global_id_base10.clone())
-            .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
-        let global_id_base57 = BASE57_CONVERTER
-            .convert_to_base57(global_id_base10.clone())
-            .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
-
-        let mut chunk_id = ChunkID {
-            scale_level: global_id_base10x10.len() as u8,
-            local_id: (global_id_base10.clone() % BigUint::from(100u32)).to_u8().unwrap(),
-            cluster_id: None,
-            global_id_base10,
-            global_id_base10x10,
-            global_id_base57,
-        };
-        chunk_id.cluster_id = Some(ClusterID::from_chunk_id(chunk_id.clone()));
-
-        Ok(chunk_id)
-    }
-}
-
-impl TryFrom<Vec<(u8, u8)>> for ChunkID {
-    type Error = String;
-
-    fn try_from(global_id_base10x10: Vec<(u8, u8)>) -> Result<Self, Self::Error> {
-        let global_id_base10 = BASE10X10_CONVERTER
-            .convert_from_base10x10(global_id_base10x10.clone())
-            .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
-        let global_id_base57 = BASE57_CONVERTER
-            .convert_to_base57(global_id_base10.clone())
-            .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
-
-        let mut chunk_id = ChunkID {
-            scale_level: global_id_base10x10.len() as u8,
-            local_id: (global_id_base10.clone() % BigUint::from(100u32)).to_u8().unwrap(),
-            cluster_id: None,
-            global_id_base10,
-            global_id_base10x10,
-            global_id_base57,
-        };
-        chunk_id.cluster_id = Some(ClusterID::from_chunk_id(chunk_id.clone()));
-
-        Ok(chunk_id)
-    }
-}
-
-impl TryFrom<&str> for ChunkID {
-    type Error = String;
-
-    fn try_from(global_id_base57: &str) -> Result<Self, Self::Error> {
-        let global_id_base10 = BASE57_CONVERTER
-            .convert_from_base57(global_id_base57.clone())
-            .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
-        let global_id_base10x10 = BASE10X10_CONVERTER
-            .convert_to_base10x10(global_id_base10.clone())
-            .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
-
-        let mut chunk_id = ChunkID {
-            scale_level: global_id_base10x10.len() as u8,
-            local_id: (global_id_base10.clone() % BigUint::from(100u32)).to_u8().unwrap(),
-            cluster_id: None,
-            global_id_base10,
-            global_id_base10x10,
-            global_id_base57: global_id_base57.to_string(),
-        };
-        chunk_id.cluster_id = Some(ClusterID::from_chunk_id(chunk_id.clone()));
-
-        Ok(chunk_id)
     }
 }
 
@@ -158,28 +77,71 @@ impl PartialEq for ChunkID {
 }
 
 impl ChunkID {
-    pub fn get_scale_level(&self) -> u8 {
-        return self.scale_level;
-    }
+    pub fn new(cluster_id: Option<ClusterID>, local_id: u8) -> Result<ChunkID, String> {
+        if local_id > 99u8 {
+            return Err("Invalid local chunk id");
+        }
 
-    pub fn get_local_id(&self) -> u8 {
-        return self.local_id;
+        let y = local_id % 10u8;
+        let x = local_id / 10u8;
+
+        Ok(ChunkID {
+            cluster_id,
+            local_id,
+            global_id_base10,
+            global_id_base10x10,
+            global_id_base57,
+        })
     }
 
     pub fn get_cluster_id(&self) -> &ClusterID {
         return self.cluster_id.as_ref().unwrap();
     }
 
-    pub fn get_global_id_base10(&self) -> &BigUint {
-        return &self.global_id_base10;
+    pub fn get_local_id(&self) -> u8 {
+        return self.local_id;
     }
 
-    pub fn get_global_id_base10x10(&self) -> &Vec<(u8, u8)> {
-        return &self.global_id_base10x10;
+    pub fn get_scale_level(&self) -> u8 {
+        return self.scale_level;
+    }
+}
+
+impl ChunkMetadata {
+    pub fn new(current_local_entity_id: u64, parent_cluster: Arc<Mutex<Cluster>>) -> Self {
+        ChunkMetadata {
+            current_local_entity_id,
+            parent_cluster,
+            registered_entities: Vec::new(),
+        }
     }
 
-    pub fn get_global_id_base57(&self) -> &String {
-        return &self.global_id_base57;
+    pub fn generate_entity_id(&mut self, chunk_id: ChunkID) -> EntityID {
+        match EntityID::new(chunk_id, self.current_local_entity_id) {
+            Ok(entity_id) => {
+                self.current_local_entity_id += 1;
+                return entity_id;
+            },
+            Err(e) => panic!("Generating a local entity id failed: {}", e),
+        }
+    }
+
+    pub fn register_entity(&mut self, entity_id: EntityID) -> Arc<Mutex<Entity>> {
+        if self.registered_entities.contains_key(&entity_id) {
+            panic!("Entity already registered.");
+        }
+
+        let entity = Arc::new(Mutex::new(Entity::Registered { id: entity_id.clone(), }));
+        self.registered_entities.insert(entity_id, entity.clone());
+        entity
+    }
+
+    pub fn get_registered_entity(&mut self, entity_id: EntityID) -> Option<Arc<Mutex<Entity>>> {
+        self.registered_entities.get(&entity_id).map(|entity| entity.clone())
+    }
+
+    pub fn is_entity_registered(&mut self, entity_id: EntityID) -> bool {
+        self.registered_entities.contains_key(&entity_id)
     }
 }
 

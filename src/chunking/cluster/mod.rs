@@ -11,6 +11,7 @@ use super::chunk::*;
 // External imports
 use num_bigint::BigUint;
 use std::sync::{Arc, Mutex, RwLock};
+use std::collections::HashMap;
 
 // Static variables
 
@@ -44,23 +45,22 @@ pub enum ClusterLoadState {
 }
 
 // Structs
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ClusterID {
     global_id_base10: BigUint,
     global_id_base10x10: Vec<(u8, u8)>,
     global_id_base57: String,
+    scale_level: u8,
 }
 
 pub struct ClusterMetadata {
-    placeholder_metadata: Option<i32>,
+    parent_cluster: Option<Arc<Mutex<Cluster>>>,
+    child_clusters: Option<HashMap<u8, Cluster>>,
+    child_chunk: Arc<Mutex<Chunk>>,
 }
 
 pub struct ClusterData {
     placeholder_data: Option<i32>,
-}
-
-pub struct ClusterManager {
-    registered_clusters: Arc<Mutex<Vec<Cluster>>>,
 }
 
 // Implementations
@@ -73,6 +73,72 @@ impl From<EntityID> for ClusterID {
 impl From<ChunkID> for ClusterID {
     fn from(chunk_id: ChunkID) -> Self {
         chunk_id.get_cluster_id()
+    }
+}
+
+impl TryFrom<BigUint> for ClusterID {
+    type Error = String;
+
+    fn try_from(global_id_base10: BigUint) -> Result<Self, Self::Error> {
+        let global_id_base10x10 = BASE10X10_CONVERTER
+            .convert_to_base10x10(global_id_base10.clone())
+            .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
+        let global_id_base57 = BASE57_CONVERTER
+            .convert_to_base57(global_id_base10.clone())
+            .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
+
+        let mut chunk_id = ClusterID {
+            global_id_base10,
+            global_id_base10x10,
+            global_id_base57,
+            scale_level: global_id_base10x10.len() as u8,
+        };
+
+        Ok(chunk_id)
+    }
+}
+
+impl TryFrom<Vec<(u8, u8)>> for ClusterID {
+    type Error = String;
+
+    fn try_from(global_id_base10x10: Vec<(u8, u8)>) -> Result<Self, Self::Error> {
+        let global_id_base10 = BASE10X10_CONVERTER
+            .convert_from_base10x10(global_id_base10x10.clone())
+            .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
+        let global_id_base57 = BASE57_CONVERTER
+            .convert_to_base57(global_id_base10.clone())
+            .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
+
+        let mut chunk_id = ChunkID {
+            global_id_base10,
+            global_id_base10x10,
+            global_id_base57,
+            scale_level: global_id_base10x10.len() as u8,
+        };
+
+        Ok(chunk_id)
+    }
+}
+
+impl TryFrom<&str> for ClusterID {
+    type Error = String;
+
+    fn try_from(global_id_base57: &str) -> Result<Self, Self::Error> {
+        let global_id_base10 = BASE57_CONVERTER
+            .convert_from_base57(global_id_base57.clone())
+            .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
+        let global_id_base10x10 = BASE10X10_CONVERTER
+            .convert_to_base10x10(global_id_base10.clone())
+            .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
+
+        let mut chunk_id = ChunkID {
+            global_id_base10,
+            global_id_base10x10,
+            global_id_base57: global_id_base57.to_string(),
+            scale_level: global_id_base10x10.len() as u8,
+        };
+
+        Ok(chunk_id)
     }
 }
 
@@ -94,21 +160,56 @@ impl ClusterID {
     pub fn get_global_id_base57(&self) -> &String {
         return &self.global_id_base57;
     }
+
+    pub fn get_scale_level(&self) -> u8 {
+        return self.scale_level;
+    }
 }
 
 impl ClusterMetadata {
-    fn new() -> ClusterMetadata {
-        ClusterMetadata {
-            placeholder_metadata: None,
+    fn new(parent_cluster: Option<Arc<Mutex<Cluster>>>, child_chunk: Arc<Mutex<Chunk>>) -> Result<ClusterMetadata, String> {
+        if let Some(parent_cluster) = parent_cluster {
+            let parent_scale_index = parent_cluster.lock().unwrap().get_global_id_base10x10().len() - 1;
+            if parent_scale_index < 63 {
+                return Ok(ClusterMetadata {
+                    parent_cluster,
+                    child_clusters: Some(HashMap::new()), 
+                    child_chunk
+                });
+            } else if parent_scale_index == 63 {
+                return Ok(ClusterMetadata {
+                    parent_cluster,
+                    child_clusters: None, 
+                    child_chunk
+                });
+            } else if parent_scale_index > 63 {
+                panic!("Cannot create a cluster with a scale index higher than 63.");
+            }
+        } else {
+            return Ok(ClusterMetadata {
+                None,
+                child_clusters: HashMap::new(), 
+                child_chunk
+            });
         }
     }
 
-    fn get_placeholder_metadata(&self) -> Option<i32> {
-        return self.placeholder_metadata;
+    pub fn register_child_cluster(&mut self, chunk_id: ChunkID) -> Arc<Mutex<Chunk>> {
+        if self.registered_chunks.contains_key(&chunk_id) {
+            panic!("Chunk already registered.");
+        }
+
+        let chunk = Arc::new(Mutex::new(Chunk::Registered { id: chunk_id.clone() }));
+        self.registered_chunks.insert(chunk_id, chunk.clone());
+        chunk
     }
 
-    fn set_placeholder_metadata(&mut self, placeholder_metadata: Option<i32>) {
-        self.placeholder_metadata = placeholder_metadata;
+    pub fn get_registered_chunk(&mut self, chunk_id: ChunkID) -> Option<Arc<Mutex<Chunk>>> {
+        self.registered_chunks.get(&chunk_id).map(|chunk| chunk.clone())
+    }
+
+    pub fn is_chunk_registered(&mut self, chunk_id: ChunkID) -> bool {
+        self.registered_chunks.contains_key(&chunk_id)
     }
 }
 
@@ -236,14 +337,6 @@ impl Cluster {
             Cluster::Registered { .. } => ClusterLoadState::Registered,
             Cluster::MetadataLoaded { .. } => ClusterLoadState::MetadataLoaded,
             Cluster::DataLoaded { .. } => ClusterLoadState::DataLoaded,
-        }
-    }
-}
-
-impl ClusterManager {
-    pub fn new() -> ClusterManager {
-        ClusterManager {
-            registered_clusters: Arc::new(Mutex::new(Vec::new())),
         }
     }
 }
