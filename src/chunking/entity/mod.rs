@@ -65,7 +65,7 @@ impl PartialEq for EntityID {
 
 impl EntityID {
     pub fn new(chunk_id: ChunkID, local_id: u64) -> Result<Self, String> {
-        if self.local_id == u64::MAX {
+        if local_id == u64::MAX {
             return Err("Cannot create entity id: Local id space has been exhausted.".to_string());
         }
 
@@ -75,11 +75,11 @@ impl EntityID {
         })
     }
 
-    pub fn get_chunk_id(&self) -> u8 {
+    pub fn get_chunk_id(&self) -> ChunkID {
         return self.chunk_id;
     }
 
-    pub fn get_local_id(&self) -> u8 {
+    pub fn get_local_id(&self) -> u64 {
         return self.local_id;
     }
 }
