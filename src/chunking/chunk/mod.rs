@@ -163,7 +163,7 @@ impl ChunkID {
 }
 
 impl ChunkMetadata {
-    fn new(parent_chunk: Option<Arc<Mutex<Chunk>>>) -> Result<ChunkMetadata, String> {
+    pub fn new(parent_chunk: Option<Arc<Mutex<Chunk>>>) -> Result<ChunkMetadata, String> {
         if let Some(parent_chunk) = parent_chunk {
             let parent_scale_index = parent_chunk.lock().unwrap().get_global_id_base10x10().len() - 1;
             if parent_scale_index < 63 {
@@ -192,20 +192,24 @@ impl ChunkMetadata {
             });
         }
     }
+
+    pub fn get_parent_chunk(&self) -> Option<Arc<Mutex<Chunk>>> {
+        return self.parent_chunk;
+    }
 }
 
 impl ChunkData {
-    fn new() -> ChunkData {
+    pub fn new() -> ChunkData {
         ChunkData {
             placeholder_data: None,
         }
     }
 
-    fn get_placeholder_data(&self) -> Option<i32> {
+    pub fn get_placeholder_data(&self) -> Option<i32> {
         return self.placeholder_data;
     }
 
-    fn set_placeholder_data(&mut self, placeholder_data: Option<i32>) {
+    pub fn set_placeholder_data(&mut self, placeholder_data: Option<i32>) {
         self.placeholder_data = placeholder_data;
     }
 }
@@ -213,7 +217,7 @@ impl ChunkData {
 impl Chunk {
     fn new(id: ChunkID) -> Self {
         Chunk::Registered {
-            id: Arc::new(RwLock::new(ChunkID::new(id))),
+            id: Arc::new(RwLock::new(id)),
         }
     }
 
@@ -449,7 +453,7 @@ impl Chunk {
         chunk_metadata.registered_entities.contains_key(&entity_id)
     }
 
-    fn load_metadata(&mut self, metadata: ChunkMetadata) -> Result<(), String> {
+    pub fn load_metadata(&mut self, metadata: ChunkMetadata) -> Result<(), String> {
         match self {
             Chunk::Registered { .. } => {
                 *self = Chunk::MetadataLoaded {
@@ -467,7 +471,7 @@ impl Chunk {
         }
     }
 
-    fn load_data(&mut self, data: ChunkData) -> Result<(), String> {
+    pub fn load_data(&mut self, data: ChunkData) -> Result<(), String> {
         match self {
             Chunk::Registered { .. } => {
                 Err("Cannot load data: Metadata must be loaded first.".to_string())
@@ -486,7 +490,7 @@ impl Chunk {
         }
     }
 
-    fn unload_metadata(&mut self) -> Result<(), String> {
+    pub fn unload_metadata(&mut self) -> Result<(), String> {
         match self {
             Chunk::Registered { .. } => {
                 Err("Cannot unload metadata: No metadata is loaded.".to_string())
@@ -503,7 +507,7 @@ impl Chunk {
         }
     }
 
-    fn unload_data(&mut self) -> Result<(), String> {
+    pub fn unload_data(&mut self) -> Result<(), String> {
         match self {
             Chunk::Registered { .. } => {
                 Err("Cannot unload data: Neither metadata nor data are loaded.".to_string())
@@ -521,7 +525,7 @@ impl Chunk {
         }
     }
 
-    fn get_id(&self) -> &Arc<RwLock<ChunkID>> {
+    pub fn get_id(&self) -> &Arc<RwLock<ChunkID>> {
         match self {
             Chunk::Registered { id } => id,
             Chunk::MetadataLoaded { id, .. } => id,
@@ -529,7 +533,7 @@ impl Chunk {
         }
     }
 
-    fn get_metadata(&self) -> Result<&Arc<Mutex<ChunkMetadata>>, String> {
+    pub fn get_metadata(&self) -> Result<&Arc<Mutex<ChunkMetadata>>, String> {
         match self {
             Chunk::Registered { .. } => Err("No metadata is loaded.".to_string()),
             Chunk::MetadataLoaded { metadata, .. } => Ok(metadata),
@@ -537,7 +541,7 @@ impl Chunk {
         }
     }
 
-    fn get_data(&self) -> Result<&Arc<Mutex<ChunkData>>, String> {
+    pub fn get_data(&self) -> Result<&Arc<Mutex<ChunkData>>, String> {
         match self {
             Chunk::Registered { .. } => Err("No data is loaded.".to_string()),
             Chunk::MetadataLoaded { .. } => Err("No data is loaded.".to_string()),
@@ -545,7 +549,7 @@ impl Chunk {
         }
     }
 
-    fn get_load_state(&self) -> ChunkLoadState {
+    pub fn get_load_state(&self) -> ChunkLoadState {
         match self {
             Chunk::Registered { .. } => ChunkLoadState::Registered,
             Chunk::MetadataLoaded { .. } => ChunkLoadState::MetadataLoaded,
