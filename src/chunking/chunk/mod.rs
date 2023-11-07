@@ -6,13 +6,10 @@
 
 // Internal imports
 use crate::math::*;
-use super::cluster::*;
 use super::entity::*;
-use crate::chunking::identification::LocalID::*;
 
 // External imports
 use num_bigint::BigUint;
-use num_traits::ToPrimitive;
 use std::sync::{Arc, Mutex, RwLock};
 use std::collections::HashMap;
 
@@ -50,13 +47,18 @@ pub enum ChunkLoadState {
 // Structs
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChunkID {
-    parent_cluster_id: Option<ClusterID>
+    global_id_base10: BigUint,
+    global_id_base10x10: Vec<(u8, u8)>,
+    global_id_base57: String,
+    scale_level: u8,
 }
 
 pub struct ChunkMetadata {
+    parent_chunk: Option<Arc<Mutex<Chunk>>>,
+    child_chunks: Option<HashMap<ChunkID, Arc<Mutex<Chunk>>>>,
     current_local_entity_id: u64,
-    parent_cluster: Arc<Mutex<Cluster>>,
-    registered_entities: Hashmap<u64, Arc<Mutex<Entity>>>,
+    recycled_local_entity_ids: Vec<u64>,
+    registered_entities: Hashmap<EntityID, Arc<Mutex<Entity>>>,
 }
 
 pub struct ChunkData {
@@ -70,6 +72,72 @@ impl From<EntityID> for ChunkID {
     }
 }
 
+impl TryFrom<BigUint> for ChunkID {
+    type Error = String;
+
+    fn try_from(global_id_base10: BigUint) -> Result<Self, Self::Error> {
+        let global_id_base10x10 = BASE10X10_CONVERTER
+            .convert_to_base10x10(global_id_base10.clone())
+            .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
+        let global_id_base57 = BASE57_CONVERTER
+            .convert_to_base57(global_id_base10.clone())
+            .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
+
+        let mut chunk_id = ChunkID {
+            global_id_base10,
+            global_id_base10x10,
+            global_id_base57,
+            scale_level: global_id_base10x10.len() as u8,
+        };
+
+        Ok(chunk_id)
+    }
+}
+
+impl TryFrom<Vec<(u8, u8)>> for ChunkID {
+    type Error = String;
+
+    fn try_from(global_id_base10x10: Vec<(u8, u8)>) -> Result<Self, Self::Error> {
+        let global_id_base10 = BASE10X10_CONVERTER
+            .convert_from_base10x10(global_id_base10x10.clone())
+            .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
+        let global_id_base57 = BASE57_CONVERTER
+            .convert_to_base57(global_id_base10.clone())
+            .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
+
+        let mut chunk_id = ChunkID {
+            global_id_base10,
+            global_id_base10x10,
+            global_id_base57,
+            scale_level: global_id_base10x10.len() as u8,
+        };
+
+        Ok(chunk_id)
+    }
+}
+
+impl TryFrom<&str> for ChunkID {
+    type Error = String;
+
+    fn try_from(global_id_base57: &str) -> Result<Self, Self::Error> {
+        let global_id_base10 = BASE57_CONVERTER
+            .convert_from_base57(global_id_base57.clone())
+            .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
+        let global_id_base10x10 = BASE10X10_CONVERTER
+            .convert_to_base10x10(global_id_base10.clone())
+            .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
+
+        let mut chunk_id = ChunkID {
+            global_id_base10,
+            global_id_base10x10,
+            global_id_base57: global_id_base57.to_string(),
+            scale_level: global_id_base10x10.len() as u8,
+        };
+
+        Ok(chunk_id)
+    }
+}
+
 impl PartialEq for ChunkID {
     fn eq(&self, other: &Self) -> bool {
         self.global_id_base10x10 == other.global_id_base10x10
@@ -77,29 +145,16 @@ impl PartialEq for ChunkID {
 }
 
 impl ChunkID {
-    pub fn new(cluster_id: Option<ClusterID>, local_id: u8) -> Result<ChunkID, String> {
-        if local_id > 99u8 {
-            return Err("Invalid local chunk id");
-        }
-
-        let y = local_id % 10u8;
-        let x = local_id / 10u8;
-
-        Ok(ChunkID {
-            cluster_id,
-            local_id,
-            global_id_base10,
-            global_id_base10x10,
-            global_id_base57,
-        })
+    pub fn get_global_id_base10(&self) -> &BigUint {
+        return &self.global_id_base10;
     }
 
-    pub fn get_cluster_id(&self) -> &ClusterID {
-        return self.cluster_id.as_ref().unwrap();
+    pub fn get_global_id_base10x10(&self) -> &Vec<(u8, u8)> {
+        return &self.global_id_base10x10;
     }
 
-    pub fn get_local_id(&self) -> u8 {
-        return self.local_id;
+    pub fn get_global_id_base57(&self) -> &String {
+        return &self.global_id_base57;
     }
 
     pub fn get_scale_level(&self) -> u8 {
@@ -108,40 +163,362 @@ impl ChunkID {
 }
 
 impl ChunkMetadata {
-    pub fn new(current_local_entity_id: u64, parent_cluster: Arc<Mutex<Cluster>>) -> Self {
-        ChunkMetadata {
-            current_local_entity_id,
-            parent_cluster,
-            registered_entities: Vec::new(),
+    fn new(parent_chunk: Option<Arc<Mutex<Chunk>>>) -> Result<ChunkMetadata, String> {
+        if let Some(parent_chunk) = parent_chunk {
+            let parent_scale_index = parent_chunk.lock().unwrap().get_global_id_base10x10().len() - 1;
+            if parent_scale_index < 63 {
+                return Ok(ChunkMetadata {
+                    parent_chunk,
+                    child_chunks: Some(HashMap::new()), 
+                    current_local_entity_id: 0,
+                    registered_entities: HashMap::new(),
+                });
+            } else if parent_scale_index == 63 {
+                return Ok(ChunkMetadata {
+                    parent_chunk,
+                    child_chunks: None, 
+                    current_local_entity_id: 0,
+                    registered_entities: HashMap::new(),
+                });
+            } else if parent_scale_index > 63 {
+                panic!("Cannot create a chunk with a scale index higher than 63.");
+            }
+        } else {
+            return Ok(ChunkMetadata {
+                parent_chunk: None,
+                child_chunks: HashMap::new(), 
+                current_local_entity_id: 0,
+                registered_entities: HashMap::new(),
+            });
+        }
+    }
+}
+
+impl ChunkData {
+    fn new() -> ChunkData {
+        ChunkData {
+            placeholder_data: None,
         }
     }
 
-    pub fn generate_entity_id(&mut self, chunk_id: ChunkID) -> EntityID {
-        match EntityID::new(chunk_id, self.current_local_entity_id) {
-            Ok(entity_id) => {
-                self.current_local_entity_id += 1;
-                return entity_id;
-            },
-            Err(e) => panic!("Generating a local entity id failed: {}", e),
+    fn get_placeholder_data(&self) -> Option<i32> {
+        return self.placeholder_data;
+    }
+
+    fn set_placeholder_data(&mut self, placeholder_data: Option<i32>) {
+        self.placeholder_data = placeholder_data;
+    }
+}
+
+impl Chunk {
+    fn new(id: ChunkID) -> Self {
+        Chunk::Registered {
+            id: Arc::new(RwLock::new(ChunkID::new(id))),
         }
+    }
+
+    pub fn create_chunk_id(&mut self, local_chunk_id: u8) -> Result<ChunkID, String> {
+        if local_chunk_id > 99 {
+            return Err("Invalid local chunk id".to_string());
+        }
+
+        let mut parent_chunk_id_base10x10;
+        match self {
+            Chunk::Registered { id, .. } => {
+                parent_chunk_id_base10x10 = id.lock().unwrap().get_global_id_base10x10().clone();
+            },
+            Chunk::Metadata { id, .. } => {
+                parent_chunk_id_base10x10 = id.lock().unwrap().get_global_id_base10x10().clone();
+            },
+            Chunk::Data { id, .. } => {
+                parent_chunk_id_base10x10 = id.lock().unwrap().get_global_id_base10x10().clone();
+            }
+        }
+
+        let chunk_id = vec![(local_chunk_id / 10, local_chunk_id % 10)].append(parent_chunk_id_base10x10);
+        match ChunkID::try_from(chunk_id) {
+            Ok(chunk_id) => Ok(chunk_id),
+            Err(e) => Err(format!("Generating a chunk id failed: {}", e)),
+        }
+    }
+
+    pub fn generate_entity_id(&mut self) -> Result<EntityID, String> {
+        let mut parent_chunk_id;
+        let mut chunk_metadata; 
+        match self {
+            Chunk::Registered { .. } => {
+                return Err("Cannot generate an entity id: No metadata is loaded.".to_string());
+            },
+            Chunk::Metadata { id, metadata, .. } => {
+                parent_chunk_id = id.lock().unwrap().clone();
+                chunk_metadata = metadata;
+            },
+            Chunk::Data { id, metadata, .. } => {
+                parent_chunk_id = id.lock().unwrap().clone();
+                chunk_metadata = metadata;
+            }
+        }
+
+        if chunk_metadata.recycled_local_entity_ids.len() != 0 {
+            match EntityID::new(parent_chunk_id, chunk_metadata.recycled_local_entity_ids.pop().unwrap()) {
+                Ok(entity_id) => {
+                    return Ok(entity_id);
+                },
+                Err(e) => Err(format!("Generating a local entity id failed: {}", e)),
+            }
+        } else {
+            if chunk_metadata.current_local_entity_id == u64::MAX {
+                return Err("Local entity id space used up".to_string());
+            }
+
+            match EntityID::new(parent_chunk_id, chunk_metadata.current_local_entity_id) {
+                Ok(entity_id) => {
+                    chunk_metadata.current_local_entity_id += 1;
+                    return Ok(entity_id);
+                },
+                Err(e) => Err(format!("Generating a local entity id failed: {}", e)),
+            }
+        }
+    }
+
+    pub fn recycle_entity_id(&mut self, entity_id: EntityID) -> Result<(), String> {
+        let mut chunk_metadata; 
+        match self {
+            Chunk::Registered { .. } => {
+                return Err("Cannot recycle an entity id: No metadata is loaded.".to_string());
+            },
+            Chunk::Metadata { metadata, .. } => {
+                chunk_metadata = metadata;
+            },
+            Chunk::Data { metadata, .. } => {
+                chunk_metadata = metadata;
+            }
+        }
+
+        if chunk_metadata.recycled_local_entity_ids.contains(&entity_id.get_local_id()) {
+            return Err("Entity id already recycled".to_string());
+        }
+
+        chunk_metadata.recycled_local_entity_ids.push(entity_id.get_local_id());
+        Ok(())
+    }
+
+    pub fn register_chunk(&mut self, chunk_id: ChunkID) -> Arc<Mutex<Chunk>> {
+        let mut chunk_metadata; 
+        match self {
+            Chunk::Registered { .. } => {
+                return Err("Cannot register a chunk: No metadata is loaded.".to_string());
+            },
+            Chunk::Metadata { metadata, .. } => {
+                chunk_metadata = metadata;
+            },
+            Chunk::Data { metadata, .. } => {
+                chunk_metadata = metadata;
+            }
+        }
+
+        if chunk_metadata.child_chunks.contains_key(&chunk_id) {
+            panic!("Chunk already registered");
+        }
+
+        let chunk = Arc::new(Mutex::new(Chunk::Registered { id: chunk_id.clone(), }));
+        chunk_metadata.child_chunks.insert(chunk_id, chunk.clone());
+        chunk
     }
 
     pub fn register_entity(&mut self, entity_id: EntityID) -> Arc<Mutex<Entity>> {
-        if self.registered_entities.contains_key(&entity_id) {
-            panic!("Entity already registered.");
+        let mut chunk_metadata;
+        match self {
+            Chunk::Registered { .. } => {
+                return Err("Cannot register an entity: No metadata is loaded.".to_string());
+            },
+            Chunk::Metadata { metadata, .. } => {
+                chunk_metadata = metadata;
+            },
+            Chunk::Data { metadata, .. } => {
+                chunk_metadata = metadata;
+            }
+        }
+
+        if chunk_metadata.registered_entities.contains_key(&entity_id) {
+            panic!("Entity already registered");
         }
 
         let entity = Arc::new(Mutex::new(Entity::Registered { id: entity_id.clone(), }));
-        self.registered_entities.insert(entity_id, entity.clone());
+        chunk_metadata.registered_entities.insert(entity_id, entity.clone());
         entity
     }
 
+    pub fn get_registered_chunk(&mut self, chunk_id: ChunkID) -> Option<Arc<Mutex<Chunk>>> {
+        let mut chunk_metadata;
+        match self {
+            Chunk::Registered { .. } => {
+                return Err("Cannot get a chunk: No metadata is loaded.".to_string());
+            },
+            Chunk::Metadata { metadata, .. } => {
+                chunk_metadata = metadata;
+            },
+            Chunk::Data { metadata, .. } => {
+                chunk_metadata = metadata;
+            }
+        }
+
+        chunk_metadata.child_chunks.get(&chunk_id).map(|chunk| chunk.clone())
+    }
+
     pub fn get_registered_entity(&mut self, entity_id: EntityID) -> Option<Arc<Mutex<Entity>>> {
-        self.registered_entities.get(&entity_id).map(|entity| entity.clone())
+        let mut chunk_metadata;
+        match self {
+            Chunk::Registered { .. } => {
+                return Err("Cannot get an entity: No metadata is loaded.".to_string());
+            },
+            Chunk::Metadata { metadata, .. } => {
+                chunk_metadata = metadata;
+            },
+            Chunk::Data { metadata, .. } => {
+                chunk_metadata = metadata;
+            }
+        }
+
+        chunk_metadata.registered_entities.get(&entity_id).map(|entity| entity.clone())
+    }
+
+    pub fn is_chunk_registered(&mut self, chunk_id: ChunkID) -> bool {
+        let mut chunk_metadata;
+        match self {
+            Chunk::Registered { .. } => {
+                return Err("Cannot check if a chunk is registered: No metadata is loaded.".to_string());
+            },
+            Chunk::Metadata { metadata, .. } => {
+                chunk_metadata = metadata;
+            },
+            Chunk::Data { metadata, .. } => {
+                chunk_metadata = metadata;
+            }
+        }
+
+        chunk_metadata.child_chunks.contains_key(&chunk_id)
     }
 
     pub fn is_entity_registered(&mut self, entity_id: EntityID) -> bool {
-        self.registered_entities.contains_key(&entity_id)
+        let mut chunk_metadata;
+        match self {
+            Chunk::Registered { .. } => {
+                return Err("Cannot check if an entity is registered: No metadata is loaded.".to_string());
+            },
+            Chunk::Metadata { metadata, .. } => {
+                chunk_metadata = metadata;
+            },
+            Chunk::Data { metadata, .. } => {
+                chunk_metadata = metadata;
+            }
+        }
+
+        chunk_metadata.registered_entities.contains_key(&entity_id)
+    }
+
+    fn load_metadata(&mut self, metadata: ChunkMetadata) -> Result<(), String> {
+        match self {
+            Chunk::Registered { .. } => {
+                *self = Chunk::MetadataLoaded {
+                    id: self.get_id().clone(),
+                    metadata: Arc::new(Mutex::new(metadata)),
+                };
+                Ok(())
+            },
+            Chunk::MetadataLoaded { .. } => {
+                Err("Cannot load metadata: Metadata is already loaded.".to_string())
+            }
+            Chunk::DataLoaded { .. } => {
+                Err("Cannot load metadata: Both metadata and data are already loaded.".to_string())
+            }
+        }
+    }
+
+    fn load_data(&mut self, data: ChunkData) -> Result<(), String> {
+        match self {
+            Chunk::Registered { .. } => {
+                Err("Cannot load data: Metadata must be loaded first.".to_string())
+            }
+            Chunk::MetadataLoaded { .. } => {
+                *self = Chunk::DataLoaded {
+                    id: self.get_id().clone(),
+                    metadata: self.get_metadata().unwrap().clone(),
+                    data: Arc::new(Mutex::new(data)),
+                };
+                Ok(())
+            },
+            Chunk::DataLoaded { .. } => {
+                Err("Cannot load data: Data is already loaded.".to_string())
+            }
+        }
+    }
+
+    fn unload_metadata(&mut self) -> Result<(), String> {
+        match self {
+            Chunk::Registered { .. } => {
+                Err("Cannot unload metadata: No metadata is loaded.".to_string())
+            }
+            Chunk::MetadataLoaded { .. } => {
+                *self = Chunk::Registered {
+                    id: self.get_id().clone(),
+                };
+                Ok(())
+            }
+            Chunk::DataLoaded { .. } => {
+                Err("Cannot unload metadata: Data must be unloaded first.".to_string())
+            }
+        }
+    }
+
+    fn unload_data(&mut self) -> Result<(), String> {
+        match self {
+            Chunk::Registered { .. } => {
+                Err("Cannot unload data: Neither metadata nor data are loaded.".to_string())
+            }
+            Chunk::MetadataLoaded { .. } => {
+                Err("Cannot unload data: No data is loaded.".to_string())
+            }
+            Chunk::DataLoaded { .. } => {
+                *self = Chunk::MetadataLoaded {
+                    id: self.get_id().clone(),
+                    metadata: self.get_metadata().unwrap().clone(),
+                };
+                Ok(())
+            }
+        }
+    }
+
+    fn get_id(&self) -> &Arc<RwLock<ChunkID>> {
+        match self {
+            Chunk::Registered { id } => id,
+            Chunk::MetadataLoaded { id, .. } => id,
+            Chunk::DataLoaded { id, .. } => id,
+        }
+    }
+
+    fn get_metadata(&self) -> Result<&Arc<Mutex<ChunkMetadata>>, String> {
+        match self {
+            Chunk::Registered { .. } => Err("No metadata is loaded.".to_string()),
+            Chunk::MetadataLoaded { metadata, .. } => Ok(metadata),
+            Chunk::DataLoaded { metadata, .. } => Ok(metadata),
+        }
+    }
+
+    fn get_data(&self) -> Result<&Arc<Mutex<ChunkData>>, String> {
+        match self {
+            Chunk::Registered { .. } => Err("No data is loaded.".to_string()),
+            Chunk::MetadataLoaded { .. } => Err("No data is loaded.".to_string()),
+            Chunk::DataLoaded { data, .. } => Ok(data),
+        }
+    }
+
+    fn get_load_state(&self) -> ChunkLoadState {
+        match self {
+            Chunk::Registered { .. } => ChunkLoadState::Registered,
+            Chunk::MetadataLoaded { .. } => ChunkLoadState::MetadataLoaded,
+            Chunk::DataLoaded { .. } => ChunkLoadState::DataLoaded,
+        }
     }
 }
 
