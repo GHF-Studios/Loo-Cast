@@ -27,7 +27,7 @@ use std::collections::HashMap;
 pub struct ChunkMetadata {
     pos: ChunkPos,
     parent_chunk: Option<Arc<Mutex<Chunk>>>,
-    child_chunks: Option<HashMap<ChunkID, Arc<Mutex<Chunk>>>>,
+    child_chunks: Option<HashMap<LocalChunkPos, Arc<Mutex<Chunk>>>>,
     current_local_entity_id: u64,
     recycled_local_entity_ids: Vec<u64>,
     registered_entities: Hashmap<EntityID, Arc<Mutex<crate::chunking::entity::Entity>>>,

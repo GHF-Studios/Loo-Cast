@@ -38,6 +38,28 @@ impl From<EntityID> for ChunkID {
     }
 }
 
+impl TryFrom<(u8, u8)> for ChunkID {
+    type Error = String;
+
+    fn try_from(global_id_base10x10: (u8, u8)) -> Result<Self, Self::Error> {
+        let global_id_base10 = BASE10X10_CONVERTER
+            .convert_from_base10x10(vec![global_id_base10x10.clone()])
+            .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
+        let global_id_base57 = BASE57_CONVERTER
+            .convert_to_base57(global_id_base10.clone())
+            .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
+
+        let mut chunk_id = ChunkID {
+            global_id_base10,
+            global_id_base10x10: vec![global_id_base10x10],
+            global_id_base57,
+            scale_index: 1,
+        };
+
+        Ok(chunk_id)
+    }
+}
+
 impl TryFrom<BigUint> for ChunkID {
     type Error = String;
 
@@ -125,6 +147,14 @@ impl ChunkID {
 
     pub fn get_scale_index(&self) -> u8 {
         return self.scale_index;
+    }
+
+    pub fn compute_local_pos(&self) -> LocalChunkPos {
+        return self.global_id_base10x10.last().into();
+    }
+
+    pub fn compute_pos(&self) -> ChunkPos {
+        // TODO: Implement this
     }
 }
 
