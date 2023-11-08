@@ -28,7 +28,7 @@ pub struct ChunkID {
     global_id_base10: BigUint,
     global_id_base10x10: Vec<(u8, u8)>,
     global_id_base57: String,
-    scale_level: u8,
+    scale_index: u8,
 }
 
 // Implementations
@@ -53,7 +53,7 @@ impl TryFrom<BigUint> for ChunkID {
             global_id_base10,
             global_id_base10x10,
             global_id_base57,
-            scale_level: global_id_base10x10.len() as u8,
+            scale_index: global_id_base10x10.len() as u8,
         };
 
         Ok(chunk_id)
@@ -75,7 +75,7 @@ impl TryFrom<Vec<(u8, u8)>> for ChunkID {
             global_id_base10,
             global_id_base10x10,
             global_id_base57,
-            scale_level: global_id_base10x10.len() as u8,
+            scale_index: global_id_base10x10.len() as u8,
         };
 
         Ok(chunk_id)
@@ -97,7 +97,7 @@ impl TryFrom<&str> for ChunkID {
             global_id_base10,
             global_id_base10x10,
             global_id_base57: global_id_base57.to_string(),
-            scale_level: global_id_base10x10.len() as u8,
+            scale_index: global_id_base10x10.len() as u8,
         };
 
         Ok(chunk_id)
@@ -123,8 +123,8 @@ impl ChunkID {
         return &self.global_id_base57;
     }
 
-    pub fn get_scale_level(&self) -> u8 {
-        return self.scale_level;
+    pub fn get_scale_index(&self) -> u8 {
+        return self.scale_index;
     }
 }
 

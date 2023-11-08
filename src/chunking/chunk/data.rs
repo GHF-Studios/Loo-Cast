@@ -8,7 +8,7 @@
 
 
 // External imports
-
+use bevy::prelude::*;
 
 // Static variables
 
@@ -20,27 +20,32 @@
 
 
 // Enums
-
+pub enum ChunkRunState {
+    Despawned,
+    Spawned {
+        ecs_entity: Entity
+    }
+}
 
 // Structs
 pub struct ChunkData {
-    placeholder_data: Option<i32>,
+    run_state: ChunkRunState,
 }
 
 // Implementations
 impl ChunkData {
     pub fn new() -> ChunkData {
         ChunkData {
-            placeholder_data: None,
+            run_state: ChunkRunState::Despawned,
         }
     }
 
-    pub fn get_placeholder_data(&self) -> Option<i32> {
-        return self.placeholder_data;
+    pub fn get_run_state(&self) -> ChunkRunState {
+        return self.run_state;
     }
 
-    pub fn set_placeholder_data(&mut self, placeholder_data: Option<i32>) {
-        self.placeholder_data = placeholder_data;
+    pub fn set_run_state(&mut self, run_state: ChunkRunState) {
+        self.run_state = run_state;
     }
 }
 

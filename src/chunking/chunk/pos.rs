@@ -72,6 +72,21 @@ impl From<LocalEntityPos> for LocalChunkPos {
     }
 }
 
+impl From<(u8, u8)> for LocalChunkPos {
+    fn from((x, y): (u8, u8)) -> LocalChunkPos {
+        LocalChunkPos {
+            x: x as i8,
+            y: y as i8,
+        }
+    }
+}
+
+impl Into<(u8, u8)> for LocalChunkPos {
+    fn into(self) -> (u8, u8) {
+        (self.x as u8, self.y as u8)
+    }
+}
+
 impl LocalChunkPos {
     pub fn new(x: i8, y: i8) -> Self {
         LocalChunkPos {

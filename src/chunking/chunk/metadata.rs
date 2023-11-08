@@ -30,7 +30,7 @@ pub struct ChunkMetadata {
     child_chunks: Option<HashMap<ChunkID, Arc<Mutex<Chunk>>>>,
     current_local_entity_id: u64,
     recycled_local_entity_ids: Vec<u64>,
-    registered_entities: Hashmap<EntityID, Arc<Mutex<Entity>>>,
+    registered_entities: Hashmap<EntityID, Arc<Mutex<crate::chunking::entity::Entity>>>,
 }
 
 // Implementations
