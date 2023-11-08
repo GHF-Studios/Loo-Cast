@@ -24,29 +24,11 @@ pub const CHUNK_SIZE: u16 = 64;
 // Structs
 pub struct ChunkPlugin;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct ChunkPos {
-    pub x: i32,
-    pub y: i32,
-}
-
-#[derive(Component)]
-pub struct Chunk {
-    pub local_chunk_pos: ChunkPos,
-}
-
 #[derive(Component)]
 pub struct ChunkViewer {
     previously_viewed_chunk_positions: Vec<ChunkPos>,
     currently_viewed_chunk_positions: Vec<ChunkPos>,
     newly_viewed_chunk_positions: Vec<ChunkPos>,
-}
-
-#[derive(Resource)]
-pub struct ChunkManager {
-    loaded_chunks: HashMap<ChunkPos, Entity>,
-    load_requests: Vec<ChunkPos>,
-    unload_requests: Vec<ChunkPos>,
 }
 
 // Implementations
@@ -69,94 +51,6 @@ impl Plugin for ChunkPlugin {
             )
             // Exit Systems
             .add_systems(OnExit(AppState::Game), ChunkManager::terminate);
-    }
-}
-
-impl ChunkManager {
-    fn initialize(mut commands: Commands) {
-        let chunk_manager = Self {
-            loaded_chunks: HashMap::new(),
-            load_requests: Vec::new(),
-            unload_requests: Vec::new(),
-        };
-
-        commands.insert_resource(chunk_manager);
-    }
-
-    fn terminate(mut commands: Commands) {
-        commands.remove_resource::<Self>();
-    }
-
-    pub fn request_load(&mut self, chunk_pos: ChunkPos) {
-        self.load_requests.push(chunk_pos);
-    }
-
-    pub fn request_unload(&mut self, chunk_pos: ChunkPos) {
-        self.unload_requests.push(chunk_pos);
-    }
-
-    fn handle_load_requests(mut commands: Commands, mut chunk_manager: ResMut<ChunkManager>) {
-        let load_requests = chunk_manager.load_requests.clone();
-        for chunk_pos in load_requests {
-            match chunk_manager.loaded_chunks.get(&chunk_pos) {
-                Some(_) => panic!("Chunk already loaded"),
-                None => {
-                    let chunk_entity = commands
-                        .spawn(Chunk {
-                            local_chunk_pos: chunk_pos,
-                        })
-                        .id();
-                    chunk_manager.loaded_chunks.insert(chunk_pos, chunk_entity);
-                }
-            }
-        }
-        chunk_manager.load_requests.clear();
-    }
-
-    fn handle_unload_requests(mut commands: Commands, mut chunk_manager: ResMut<ChunkManager>) {
-        let unload_requests = chunk_manager.unload_requests.clone();
-        for chunk_pos in unload_requests {
-            match chunk_manager.loaded_chunks.get(&chunk_pos) {
-                Some(chunk_entity) => {
-                    commands.entity(*chunk_entity).despawn();
-                    chunk_manager.loaded_chunks.remove(&chunk_pos);
-                }
-                None => panic!("Chunk not loaded"),
-            }
-        }
-        chunk_manager.unload_requests.clear();
-    }
-}
-
-impl From<EntityPos> for ChunkPos {
-    fn from(entity_pos: EntityPos) -> Self {
-        let half_chunk = (CHUNK_SIZE as f32) / 2.0;
-        Self {
-            x: ((entity_pos.x + half_chunk) / CHUNK_SIZE as f32).floor() as i32,
-            y: ((entity_pos.y + half_chunk) / CHUNK_SIZE as f32).floor() as i32,
-        }
-    }
-}
-
-impl ChunkPos {
-    pub fn new(x: i32, y: i32) -> ChunkPos {
-        Self { x, y }
-    }
-}
-
-impl Chunk {
-    fn render_system(mut gizmos: Gizmos, chunk_query: Query<&Chunk>) {
-        for chunk in chunk_query.iter() {
-            let chunk_pos = chunk.local_chunk_pos;
-            let gizmo_position: EntityPos = chunk_pos.into();
-            let gizmo_position: Vec2 = gizmo_position.into();
-            gizmos.rect_2d(
-                gizmo_position,
-                0.,
-                Vec2::splat(CHUNK_SIZE as f32),
-                Color::RED,
-            );
-        }
     }
 }
 

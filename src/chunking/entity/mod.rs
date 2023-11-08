@@ -128,27 +128,27 @@ impl Entity {
         }
     }
 
-    pub fn get_id(&self) -> &Arc<RwLock<EntityID>> {
+    pub fn get_id(&self) -> Arc<RwLock<EntityID>> {
         match self {
-            Entity::Registered { id } => id,
-            Entity::MetadataLoaded { id, .. } => id,
-            Entity::DataLoaded { id, .. } => id,
+            Entity::Registered { id } => id.clone(),
+            Entity::MetadataLoaded { id, .. } => id.clone(),
+            Entity::DataLoaded { id, .. } => id.clone(),
         }
     }
 
-    pub fn get_metadata(&self) -> Result<&Arc<Mutex<EntityMetadata>>, String> {
+    pub fn get_metadata(&self) -> Result<Arc<Mutex<EntityMetadata>>, String> {
         match self {
             Entity::Registered { .. } => Err("No metadata is loaded.".to_string()),
-            Entity::MetadataLoaded { metadata, .. } => Ok(metadata),
-            Entity::DataLoaded { metadata, .. } => Ok(metadata),
+            Entity::MetadataLoaded { metadata, .. } => Ok(metadata.clone()),
+            Entity::DataLoaded { metadata, .. } => Ok(metadata.clone()),
         }
     }
 
-    pub fn get_data(&self) -> Result<&Arc<Mutex<EntityData>>, String> {
+    pub fn get_data(&self) -> Result<Arc<Mutex<EntityData>>, String> {
         match self {
             Entity::Registered { .. } => Err("No data is loaded.".to_string()),
             Entity::MetadataLoaded { .. } => Err("No data is loaded.".to_string()),
-            Entity::DataLoaded { data, .. } => Ok(data),
+            Entity::DataLoaded { data, .. } => Ok(data.clone()),
         }
     }
 

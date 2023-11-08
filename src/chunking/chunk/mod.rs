@@ -15,17 +15,19 @@ use super::entity::*;
 
 // External imports
 use std::sync::{Arc, Mutex, RwLock};
+use bevy::prelude::*;
 
 // Static variables
 
 
 // Constant variables
-
+pub const CHUNK_SIZE: u16 = 64;
 
 // Types
 
 
 // Enums
+#[derive(Component)]
 pub enum Chunk {
     Registered {
         id: Arc<RwLock<ChunkID>>,
@@ -48,7 +50,12 @@ pub enum ChunkLoadState {
 }
 
 // Structs
-
+#[derive(Resource)]
+pub struct ChunkManager {
+    loaded_chunks: HashMap<ChunkPos, bevy::prelude::Entity>,
+    load_requests: Vec<ChunkPos>,
+    unload_requests: Vec<ChunkPos>,
+}
 
 // Implementations
 impl Chunk {
@@ -362,27 +369,27 @@ impl Chunk {
         }
     }
 
-    pub fn get_id(&self) -> &Arc<RwLock<ChunkID>> {
+    pub fn get_id(&self) -> Arc<RwLock<ChunkID>> {
         match self {
-            Chunk::Registered { id } => id,
-            Chunk::MetadataLoaded { id, .. } => id,
-            Chunk::DataLoaded { id, .. } => id,
+            Chunk::Registered { id } => id.clone(),
+            Chunk::MetadataLoaded { id, .. } => id.clone(),
+            Chunk::DataLoaded { id, .. } => id.clone(),
         }
     }
 
-    pub fn get_metadata(&self) -> Result<&Arc<Mutex<ChunkMetadata>>, String> {
+    pub fn get_metadata(&self) -> Result<Arc<Mutex<ChunkMetadata>>, String> {
         match self {
             Chunk::Registered { .. } => Err("No metadata is loaded.".to_string()),
-            Chunk::MetadataLoaded { metadata, .. } => Ok(metadata),
-            Chunk::DataLoaded { metadata, .. } => Ok(metadata),
+            Chunk::MetadataLoaded { metadata, .. } => Ok(metadata.clone()),
+            Chunk::DataLoaded { metadata, .. } => Ok(metadata.clone()),
         }
     }
 
-    pub fn get_data(&self) -> Result<&Arc<Mutex<ChunkData>>, String> {
+    pub fn get_data(&self) -> Result<Arc<Mutex<ChunkData>>, String> {
         match self {
             Chunk::Registered { .. } => Err("No data is loaded.".to_string()),
             Chunk::MetadataLoaded { .. } => Err("No data is loaded.".to_string()),
-            Chunk::DataLoaded { data, .. } => Ok(data),
+            Chunk::DataLoaded { data, .. } => Ok(data.clone()),
         }
     }
 
@@ -392,6 +399,88 @@ impl Chunk {
             Chunk::MetadataLoaded { .. } => ChunkLoadState::MetadataLoaded,
             Chunk::DataLoaded { .. } => ChunkLoadState::DataLoaded,
         }
+    }
+
+    fn render_system(mut gizmos: Gizmos, chunk_query: Query<&Chunk>) {
+        for chunk in chunk_query.iter() {
+            let mut chunk_metadata;
+            match self {
+                Chunk::Registered { .. } => {
+                    continue;
+                },
+                Chunk::Metadata { metadata, .. } => {
+                    chunk_metadata = metadata;
+                },
+                Chunk::Data { metadata, .. } => {
+                    chunk_metadata = metadata;
+                }
+            }
+
+            let gizmo_position: LocalEntityPos = chunk_metadata.get_pos().get_local_pos().clone().into();
+            let gizmo_position: Vec2 = gizmo_position.into();
+            gizmos.rect_2d(
+                gizmo_position,
+                0.,
+                Vec2::splat(CHUNK_SIZE as f32),
+                Color::RED,
+            );
+        }
+    }
+}
+
+impl ChunkManager {
+    fn initialize(mut commands: Commands) {
+        let chunk_manager = Self {
+            loaded_chunks: HashMap::new(),
+            load_requests: Vec::new(),
+            unload_requests: Vec::new(),
+        };
+
+        commands.insert_resource(chunk_manager);
+    }
+
+    fn terminate(mut commands: Commands) {
+        commands.remove_resource::<Self>();
+    }
+
+    pub fn request_load(&mut self, chunk_pos: ChunkPos) {
+        self.load_requests.push(chunk_pos);
+    }
+
+    pub fn request_unload(&mut self, chunk_pos: ChunkPos) {
+        self.unload_requests.push(chunk_pos);
+    }
+
+    fn handle_load_requests(mut commands: Commands, mut chunk_manager: ResMut<ChunkManager>) {
+        let load_requests = chunk_manager.load_requests.clone();
+        for chunk_pos in load_requests {
+            match chunk_manager.loaded_chunks.get(&chunk_pos) {
+                Some(_) => panic!("Chunk already loaded"),
+                None => {
+                    let chunk_entity = commands
+                        .spawn(Chunk {
+                            local_chunk_pos: chunk_pos,
+                        })
+                        .id();
+                    chunk_manager.loaded_chunks.insert(chunk_pos, chunk_entity);
+                }
+            }
+        }
+        chunk_manager.load_requests.clear();
+    }
+
+    fn handle_unload_requests(mut commands: Commands, mut chunk_manager: ResMut<ChunkManager>) {
+        let unload_requests = chunk_manager.unload_requests.clone();
+        for chunk_pos in unload_requests {
+            match chunk_manager.loaded_chunks.get(&chunk_pos) {
+                Some(chunk_entity) => {
+                    commands.entity(*chunk_entity).despawn();
+                    chunk_manager.loaded_chunks.remove(&chunk_pos);
+                }
+                None => panic!("Chunk not loaded"),
+            }
+        }
+        chunk_manager.unload_requests.clear();
     }
 }
 
