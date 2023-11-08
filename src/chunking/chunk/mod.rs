@@ -1,17 +1,20 @@
 // Modules
-
+pub mod data;
+pub mod id;
+pub mod metadata;
+pub mod viewer;
 
 // Local imports
-
+use data::*;
+use id::*;
+use metadata::*;
+use viewer::*;
 
 // Internal imports
-use crate::math::*;
 use super::entity::*;
 
 // External imports
-use num_bigint::BigUint;
 use std::sync::{Arc, Mutex, RwLock};
-use std::collections::HashMap;
 
 // Static variables
 
@@ -45,175 +48,9 @@ pub enum ChunkLoadState {
 }
 
 // Structs
-#[derive(Clone, Debug, PartialEq)]
-pub struct ChunkID {
-    global_id_base10: BigUint,
-    global_id_base10x10: Vec<(u8, u8)>,
-    global_id_base57: String,
-    scale_level: u8,
-}
 
-pub struct ChunkMetadata {
-    parent_chunk: Option<Arc<Mutex<Chunk>>>,
-    child_chunks: Option<HashMap<ChunkID, Arc<Mutex<Chunk>>>>,
-    current_local_entity_id: u64,
-    recycled_local_entity_ids: Vec<u64>,
-    registered_entities: Hashmap<EntityID, Arc<Mutex<Entity>>>,
-}
-
-pub struct ChunkData {
-    placeholder_data: Option<i32>,
-}
 
 // Implementations
-impl From<EntityID> for ChunkID {
-    fn from(entity_id: EntityID) -> Self {
-        entity_id.get_chunk_id()
-    }
-}
-
-impl TryFrom<BigUint> for ChunkID {
-    type Error = String;
-
-    fn try_from(global_id_base10: BigUint) -> Result<Self, Self::Error> {
-        let global_id_base10x10 = BASE10X10_CONVERTER
-            .convert_to_base10x10(global_id_base10.clone())
-            .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
-        let global_id_base57 = BASE57_CONVERTER
-            .convert_to_base57(global_id_base10.clone())
-            .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
-
-        let mut chunk_id = ChunkID {
-            global_id_base10,
-            global_id_base10x10,
-            global_id_base57,
-            scale_level: global_id_base10x10.len() as u8,
-        };
-
-        Ok(chunk_id)
-    }
-}
-
-impl TryFrom<Vec<(u8, u8)>> for ChunkID {
-    type Error = String;
-
-    fn try_from(global_id_base10x10: Vec<(u8, u8)>) -> Result<Self, Self::Error> {
-        let global_id_base10 = BASE10X10_CONVERTER
-            .convert_from_base10x10(global_id_base10x10.clone())
-            .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
-        let global_id_base57 = BASE57_CONVERTER
-            .convert_to_base57(global_id_base10.clone())
-            .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
-
-        let mut chunk_id = ChunkID {
-            global_id_base10,
-            global_id_base10x10,
-            global_id_base57,
-            scale_level: global_id_base10x10.len() as u8,
-        };
-
-        Ok(chunk_id)
-    }
-}
-
-impl TryFrom<&str> for ChunkID {
-    type Error = String;
-
-    fn try_from(global_id_base57: &str) -> Result<Self, Self::Error> {
-        let global_id_base10 = BASE57_CONVERTER
-            .convert_from_base57(global_id_base57.clone())
-            .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
-        let global_id_base10x10 = BASE10X10_CONVERTER
-            .convert_to_base10x10(global_id_base10.clone())
-            .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
-
-        let mut chunk_id = ChunkID {
-            global_id_base10,
-            global_id_base10x10,
-            global_id_base57: global_id_base57.to_string(),
-            scale_level: global_id_base10x10.len() as u8,
-        };
-
-        Ok(chunk_id)
-    }
-}
-
-impl PartialEq for ChunkID {
-    fn eq(&self, other: &Self) -> bool {
-        self.global_id_base10x10 == other.global_id_base10x10
-    }
-}
-
-impl ChunkID {
-    pub fn get_global_id_base10(&self) -> &BigUint {
-        return &self.global_id_base10;
-    }
-
-    pub fn get_global_id_base10x10(&self) -> &Vec<(u8, u8)> {
-        return &self.global_id_base10x10;
-    }
-
-    pub fn get_global_id_base57(&self) -> &String {
-        return &self.global_id_base57;
-    }
-
-    pub fn get_scale_level(&self) -> u8 {
-        return self.scale_level;
-    }
-}
-
-impl ChunkMetadata {
-    pub fn new(parent_chunk: Option<Arc<Mutex<Chunk>>>) -> Result<ChunkMetadata, String> {
-        if let Some(parent_chunk) = parent_chunk {
-            let parent_scale_index = parent_chunk.lock().unwrap().get_global_id_base10x10().len() - 1;
-            if parent_scale_index < 63 {
-                return Ok(ChunkMetadata {
-                    parent_chunk,
-                    child_chunks: Some(HashMap::new()), 
-                    current_local_entity_id: 0,
-                    registered_entities: HashMap::new(),
-                });
-            } else if parent_scale_index == 63 {
-                return Ok(ChunkMetadata {
-                    parent_chunk,
-                    child_chunks: None, 
-                    current_local_entity_id: 0,
-                    registered_entities: HashMap::new(),
-                });
-            } else if parent_scale_index > 63 {
-                return Err("Cannot create chunk with a scale index higher than 63".to_string());
-            }
-        } else {
-            return Ok(ChunkMetadata {
-                parent_chunk: None,
-                child_chunks: HashMap::new(), 
-                current_local_entity_id: 0,
-                registered_entities: HashMap::new(),
-            });
-        }
-    }
-
-    pub fn get_parent_chunk(&self) -> Option<Arc<Mutex<Chunk>>> {
-        return self.parent_chunk;
-    }
-}
-
-impl ChunkData {
-    pub fn new() -> ChunkData {
-        ChunkData {
-            placeholder_data: None,
-        }
-    }
-
-    pub fn get_placeholder_data(&self) -> Option<i32> {
-        return self.placeholder_data;
-    }
-
-    pub fn set_placeholder_data(&mut self, placeholder_data: Option<i32>) {
-        self.placeholder_data = placeholder_data;
-    }
-}
-
 impl Chunk {
     fn new(id: ChunkID) -> Self {
         Chunk::Registered {

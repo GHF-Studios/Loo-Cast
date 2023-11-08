@@ -1,11 +1,14 @@
 // Modules
-
+pub mod data;
+pub mod id;
+pub mod metadata;
 
 // Local imports
-
+use data::*;
+use id::*;
+use metadata::*;
 
 // Internal imports
-use crate::math::*;
 use super::chunk::*;
 
 // External imports
@@ -43,75 +46,9 @@ pub enum EntityLoadState {
 }
 
 // Structs
-pub struct EntityID {
-    chunk_id: ChunkID,
-    local_id: u64,
-}
 
-pub struct EntityMetadata {
-    parent_chunk: Arc<Mutex<Chunk>>,
-}
-
-pub struct EntityData {
-    placeholder_data: Option<i32>,
-}
 
 // Implementations
-impl PartialEq for EntityID {
-    fn eq(&self, other: &Self) -> bool {
-        self.chunk_id == other.chunk_id && self.local_id == other.local_id
-    }
-}
-
-impl EntityID {
-    pub fn new(chunk_id: ChunkID, local_id: u64) -> Result<Self, String> {
-        if local_id == u64::MAX {
-            return Err("Cannot create entity id: Local id space has been exhausted.".to_string());
-        }
-
-        Ok(EntityID {
-            chunk_id,
-            local_id,
-        })
-    }
-
-    pub fn get_chunk_id(&self) -> ChunkID {
-        return self.chunk_id;
-    }
-
-    pub fn get_local_id(&self) -> u64 {
-        return self.local_id;
-    }
-}
-
-impl EntityMetadata {
-    pub fn new(parent_chunk: Arc<Mutex<Chunk>>) -> EntityMetadata {
-        EntityMetadata {
-            parent_chunk,
-        }
-    }
-
-    pub fn get_parent_chunk(&self) -> Arc<Mutex<Chunk>> {
-        return self.parent_chunk;
-    }
-}
-
-impl EntityData {
-    pub fn new() -> EntityData {
-        EntityData {
-            placeholder_data: None,
-        }
-    }
-
-    pub fn get_placeholder_data(&self) -> Option<i32> {
-        return self.placeholder_data;
-    }
-
-    pub fn set_placeholder_data(&mut self, placeholder_data: Option<i32>) {
-        self.placeholder_data = placeholder_data;
-    }
-}
-
 impl Entity {
     pub fn new(id: EntityID) -> Self {
         Entity::Registered {
