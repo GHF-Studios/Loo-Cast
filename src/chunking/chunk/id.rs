@@ -149,6 +149,17 @@ impl ChunkID {
         return self.scale_index;
     }
 
+    pub fn compute_parent_id(&self) -> Result<ChunkID, String> {
+        if self.scale_index == 0 {
+            return Err("Cannot compute parent ID from a root chunk ID.".to_string());
+        }
+
+        let mut id_base10x10 = self.clone();
+        id_base10x10.pop();
+        
+        return id_base10x10.try_into().unwrap_or_else(|e| return Err(format!("Failed to compute parent ID: {}", e)));
+    }
+
     pub fn compute_local_pos(&self) -> LocalChunkPos {
         return self.global_id_base10x10.last().into();
     }

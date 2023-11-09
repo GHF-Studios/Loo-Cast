@@ -27,7 +27,6 @@ pub const CHUNK_SIZE: u16 = 64;
 
 
 // Enums
-#[derive(Component)]
 pub enum Chunk {
     Registered {
         id: ChunkID,
@@ -56,12 +55,17 @@ pub struct ChunkManager {
     registered_root_chunks: Arc<Mutex<HashMap<ChunkID, Arc<Mutex<Chunk>>>>>,
     register_requests: Arc<Mutex<Vec<ChunkID>>>,
     unregister_requests: Arc<Mutex<Vec<ChunkID>>>,
-    load_metadata_requests: Arc<Mutex<Vec<ChunkID>>>,
+    load_metadata_requests: Arc<Mutex<Vec<(ChunkID, ChunkMetadata)>>>,
     unload_metadata_requests: Arc<Mutex<Vec<ChunkID>>>,
-    load_data_requests: Arc<Mutex<Vec<ChunkID>>>,
+    load_data_requests: Arc<Mutex<Vec<(ChunkID, ChunkData)>>>,
     unload_data_requests: Arc<Mutex<Vec<ChunkID>>>,
     spawn_requests: Arc<Mutex<Vec<ChunkID>>>,
     despawn_requests: Arc<Mutex<Vec<ChunkID>>>,
+}
+
+#[derive(Component)]
+pub struct ChunkECSEntity {
+    pub chunk: Arc<Mutex<Chunk>>,
 }
 
 // Implementations
@@ -348,7 +352,7 @@ impl ChunkManager {
         let load_metadata_requests = self.load_metadata_requests.lock().unwrap_or_else(|_| 
             return Err("Failed to request chunk metadata loading: Load metadata requests mutex poisoned.".to_string())
         );
-        load_metadata_requests.push(id);
+        load_metadata_requests.push((id, metadata));
     }
 
     pub fn request_unload_metadata(&mut self, id: ChunkID) -> Result<(), String> {
@@ -362,7 +366,7 @@ impl ChunkManager {
         let load_data_requests = self.load_data_requests.lock().unwrap_or_else(|_| 
             return Err("Failed to request chunk data loading: Load data requests mutex poisoned.".to_string())
         );
-        load_data_requests.push(id);
+        load_data_requests.push((id, data));
     }
 
     pub fn request_unload_data(&mut self, id: ChunkID) -> Result<(), String> {
@@ -431,17 +435,36 @@ impl ChunkManager {
     }
 
     fn handle_register_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let register_requests: Vec<ChunkPos> = Vec::new();
-        register_requests.append(chunk_manager.register_requests);
+        let chunk_manager_register_requests = chunk_manager.register_requests.lock().unwrap_or_else(|_| 
+            panic!("Failed to handle chunk registration requests: Register requests mutex poisoned.")
+        );
+
+        let register_requests: Vec<ChunkID> = Vec::new();
+        register_requests.append(chunk_manager_register_requests);
+
+        drop(chunk_manager_register_requests);
+
         let mut failed_register_requests = Vec::new();
     
         for id in register_requests {
-            fn fail_request() {
+            fn fail_request(error: String) {
                 failed_register_requests.push(id);
                 continue;
             }
 
             if chunk_manager.get_registered_chunk(id).is_some() { fail_request(); }
+
+            if id.get_scale_index() == 0 {
+                let mut registered_root_chunks = chunk_manager.registered_root_chunks.lock().unwrap_or_else(|_| fail_request());
+
+                let local_chunk_pos = id.compute_local_pos();
+
+                let chunk = Arc::new(Mutex::new(Chunk::new(id)));
+
+                registered_root_chunks.insert(local_chunk_pos, chunk);
+
+                continue;
+            }
 
             let mut parent_id_base10x10 = id.get_global_id_base10x10().clone();
             parent_chunk_id_base10x10.pop();
@@ -450,12 +473,14 @@ impl ChunkManager {
             let parent_chunk = chunk_manager.get_registered_chunk(parent_id).unwrap_or_else(|_| fail_request());
             let parent_chunk = parent_chunk.lock().unwrap_or_else(|_| fail_request());
 
-            let parent_chunk_metadata = chunk_manager.get_metadata(&parent_chunk).unwrap_or_else(|_| fail_request());
+            let parent_chunk_metadata = Self::get_metadata(&parent_chunk).unwrap_or_else(|_| fail_request());
 
             let mut parent_chunk_child_chunks = parent_chunk_metadata.child_chunks.unwrap_or_else(|_| fail_request());
 
             let local_chunk_pos = id.compute_local_pos();
+
             let chunk = Arc::new(Mutex::new(Chunk::new(id)));
+
             parent_chunk_child_chunks.insert(local_chunk_pos, chunk);
         }
     
@@ -465,8 +490,15 @@ impl ChunkManager {
     }
 
     fn handle_unregister_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let unregister_requests: Vec<ChunkPos> = Vec::new();
-        unregister_requests.append(chunk_manager.unregister_requests);
+        let chunk_manager_unregister_requests = chunk_manager.unregister_requests.lock().unwrap_or_else(|_| 
+            panic!("Failed to handle chunk unregistration requests: Unregister requests mutex poisoned.")
+        );
+
+        let unregister_requests: Vec<ChunkID> = Vec::new();
+        unregister_requests.append(chunk_manager_unregister_requests);
+
+        drop(chunk_manager_unregister_requests);
+
         let mut failed_unregister_requests = Vec::new();
 
         for id in unregister_requests {
@@ -474,6 +506,31 @@ impl ChunkManager {
                 failed_unregister_requests.push(id);
                 continue;
             }
+
+            let chunk = chunk_manager.get_registered_chunk(id).unwrap_or_else(|_| fail_request());
+
+            if id.get_scale_index() == 0 { 
+                let registered_root_chunks = chunk_manager.registered_root_chunks.lock().unwrap_or_else(|_| fail_request());
+
+                registered_root_chunks.remove(id).unwrap_or_else(|_| fail_request());
+
+                continue;
+            }
+
+            let chunk = chunk.lock().unwrap_or_else(|_| fail_request());
+
+            let parent_chunk_id = id.compute_parent_id().unwrap_or_else(|_| fail_request());
+
+            let parent_chunk = chunk_manager.get_registered_chunk(id).unwrap_or_else(|| fail_request());
+            let parent_chunk = parent_chunk.lock().unwrap_or_else(|_| fail_request());
+
+            let parent_chunk_metadata = Self::get_metadata(&parent_chunk).unwrap_or_else(|_| fail_request());
+
+            let mut parent_chunk_child_chunks = parent_chunk_metadata.child_chunks.unwrap_or_else(|_| fail_request());
+
+            let local_chunk_pos = id.compute_local_pos();
+
+            parent_chunk_child_chunks.remove(&local_chunk_pos).unwrap_or_else(|_| fail_request());
         }
 
         for failed_unregister_request in failed_unregister_requests {
@@ -482,14 +539,39 @@ impl ChunkManager {
     }
 
     fn handle_load_metadata_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let load_metadata_requests: Vec<ChunkPos> = Vec::new();
-        load_metadata_requests.append(chunk_manager.load_metadata_requests);
+        let chunk_manager_load_metadata_requests = chunk_manager.load_metadata_requests.lock().unwrap_or_else(|_| 
+            panic!("Failed to handle chunk metadata loading requests: Load metadata requests mutex poisoned.")
+        );
+
+        let load_metadata_requests: Vec<(ChunkID, ChunkMetadata)> = Vec::new();
+        load_metadata_requests.append(chunk_manager_load_metadata_requests);
+
+        drop(chunk_manager_load_metadata_requests);
+
         let mut failed_load_metadata_requests = Vec::new();
 
-        for id in load_metadata_requests {
+        for (id, metadata) in load_metadata_requests {
             fn fail_request() {
                 failed_load_metadata_requests.push(id);
                 continue;
+            }
+
+            let chunk = chunk_manager.get_registered_chunk(id).unwrap_or_else(|_| fail_request());
+            let mut chunk = chunk.lock().unwrap_or_else(|_| fail_request());
+
+            match *chunk {
+                Chunk::Registered { id } => {
+                    *chunk = Chunk::Metadata {
+                        id,
+                        metadata,
+                    };
+                },
+                Chunk::Metadata { .. } => {
+                    fail_request();
+                },
+                Chunk::Data { .. } => {
+                    fail_request();
+                }
             }
         }
 
@@ -499,14 +581,43 @@ impl ChunkManager {
     }
 
     fn handle_unload_metadata_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let unload_metadata_requests: Vec<ChunkPos> = Vec::new();
+        let chunk_manager_unload_metadata_requests = chunk_manager.unload_metadata_requests.lock().unwrap_or_else(|_| 
+            panic!("Failed to handle chunk metadata unloading requests: Unload metadata requests mutex poisoned.")
+        );
+
+        let unload_metadata_requests: Vec<ChunkID> = Vec::new();
         unload_metadata_requests.append(chunk_manager.unload_metadata_requests);
+
+        drop(chunk_manager_unload_metadata_requests);
+
         let mut failed_unload_metadata_requests = Vec::new();
 
         for id in unload_metadata_requests {
             fn fail_request() {
                 failed_unload_metadata_requests.push(id);
                 continue;
+            }
+
+            let chunk = chunk_manager.get_registered_chunk(id).unwrap_or_else(|_| fail_request());
+            let mut chunk = chunk.lock().unwrap_or_else(|_| fail_request());
+
+            let chunk_metadata = Self::get_metadata(&chunk).unwrap_or_else(|_| fail_request());
+            if chunk_metadata.child_chunks.as_ref().map_or(false, |c| !c.is_empty()) {
+                fail_request();
+            }
+            
+            match *chunk {
+                Chunk::Registered { .. } => {
+                    fail_request();
+                },
+                Chunk::Metadata { id, .. } => {
+                    *chunk = Chunk::Registered {
+                        id,
+                    };
+                },
+                Chunk::Data { .. } => {
+                    fail_request();
+                }
             }
         }
 
@@ -516,14 +627,40 @@ impl ChunkManager {
     }
 
     fn handle_load_data_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let load_data_requests: Vec<ChunkPos> = Vec::new();
-        load_data_requests.append(chunk_manager.load_data_requests);
+        let chunk_manager_load_data_requests = chunk_manager.load_data_requests.lock().unwrap_or_else(|_| 
+            panic!("Failed to handle chunk data loading requests: Load data requests mutex poisoned.")
+        );
+
+        let load_data_requests: Vec<(ChunkID, ChunkMetadata)> = Vec::new();
+        load_data_requests.append(chunk_manager_load_data_requests);
+
+        drop(chunk_manager_load_data_requests);
+
         let mut failed_load_data_requests = Vec::new();
 
-        for id in load_data_requests {
+        for (id, data) in load_data_requests {
             fn fail_request() {
                 failed_load_data_requests.push(id);
                 continue;
+            }
+
+            let chunk = chunk_manager.get_registered_chunk(id).unwrap_or_else(|_| fail_request());
+            let mut chunk = chunk.lock().unwrap_or_else(|_| fail_request());
+
+            match *chunk {
+                Chunk::Registered { .. } => {
+                    fail_request();
+                },
+                Chunk::Metadata { id, metadata } => {
+                    *chunk = Chunk::Data {
+                        id,
+                        metadata,
+                        data,
+                    };
+                },
+                Chunk::Data { .. } => {
+                    fail_request();
+                }
             }
         }
 
@@ -533,14 +670,44 @@ impl ChunkManager {
     }
 
     fn handle_unload_data_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let unload_data_requests: Vec<ChunkPos> = Vec::new();
-        unload_data_requests.append(chunk_manager.unload_data_requests);
+        let chunk_manager_unload_data_requests = chunk_manager.unload_data_requests.lock().unwrap_or_else(|_| 
+            panic!("Failed to handle chunk data unloading requests: Unload data requests mutex poisoned.")
+        );
+
+        let unload_data_requests: Vec<ChunkID> = Vec::new();
+        unload_data_requests.append(chunk_manager_unload_data_requests);
+
+        drop(chunk_manager_unload_data_requests);
+
         let mut failed_unload_data_requests = Vec::new();
 
         for id in unload_data_requests {
             fn fail_request() {
                 failed_unload_data_requests.push(id);
                 continue;
+            }
+
+            let chunk = chunk_manager.get_registered_chunk(id).unwrap_or_else(|_| fail_request());
+            let mut chunk = chunk.lock().unwrap_or_else(|_| fail_request());
+
+            let chunk_data = Self::get_data(&chunk).unwrap_or_else(|_| fail_request());
+            if chunk_data.run_state != ChunkRunState::Despawned {
+                fail_request();
+            }
+
+            match *chunk {
+                Chunk::Registered { .. } => {
+                    fail_request();
+                },
+                Chunk::Metadata { .. } => {
+                    fail_request();
+                },
+                Chunk::Data { id, metadata, .. } => {
+                    *chunk = Chunk::Metadata {
+                        id,
+                        metadata,
+                    };
+                }
             }
         }
 
@@ -550,8 +717,15 @@ impl ChunkManager {
     }
 
     fn handle_spawn_requests(mut commands: Commands, mut chunk_manager: ResMut<ChunkManager>) {
-        let spawn_requests: Vec<ChunkPos> = Vec::new();
-        spawn_requests.append(chunk_manager.spawn_requests);
+        let chunk_manager_spawn_requests = chunk_manager.spawn_requests.lock().unwrap_or_else(|_| 
+            panic!("Failed to handle chunk spawning requests: Spawn requests mutex poisoned.")
+        );
+
+        let spawn_requests: Vec<ChunkID> = Vec::new();
+        spawn_requests.append(chunk_manager_spawn_requests);
+
+        drop(chunk_manager_spawn_requests);
+
         let mut failed_spawn_requests = Vec::new();
 
         for id in spawn_requests {
@@ -559,6 +733,24 @@ impl ChunkManager {
                 failed_spawn_requests.push(id);
                 continue;
             }
+
+            let chunk_mutex = chunk_manager.get_registered_chunk(id).unwrap_or_else(|_| fail_request());
+            let mut chunk = chunk_mutex.lock().unwrap_or_else(|_| fail_request());
+
+            let mut chunk_data = Self::get_data_mut(&mut chunk).unwrap_or_else(|_| fail_request());
+
+            match chunk_data.run_state {
+                ChunkRunState::Despawned => {
+                    chunk_data.run_state = ChunkRunState::Spawned {
+                        ecs_entity: commands.spawn(ChunkECSEntity {
+                            chunk: chunk_mutex.clone(),
+                        }).id(),
+                    };
+                },
+                ChunkRunState::Spawned { .. } => {
+                    fail_request();
+                }
+            } 
         }
 
         for failed_spawn_request in failed_spawn_requests {
@@ -567,8 +759,15 @@ impl ChunkManager {
     }
 
     fn handle_despawn_requests(mut commands: Commands, mut chunk_manager: ResMut<ChunkManager>) {
-        let despawn_requests: Vec<ChunkPos> = Vec::new();
-        despawn_requests.append(chunk_manager.despawn_requests);
+        let chunk_manager_despawn_requests = chunk_manager.despawn_requests.lock().unwrap_or_else(|_| 
+            panic!("Failed to handle chunk despawning requests: Despawn requests mutex poisoned.")
+        );
+
+        let despawn_requests: Vec<ChunkID> = Vec::new();
+        despawn_requests.append(chunk_manager_despawn_requests);
+
+        drop(chunk_manager_despawn_requests);
+
         let mut failed_despawn_requests = Vec::new();
 
         for id in despawn_requests {
@@ -576,6 +775,21 @@ impl ChunkManager {
                 failed_despawn_requests.push(id);
                 continue;
             }
+
+            let chunk = chunk_manager.get_registered_chunk(id).unwrap_or_else(|_| fail_request());
+            let mut chunk = chunk.lock().unwrap_or_else(|_| fail_request());
+
+            let mut chunk_data = Self::get_data_mut(&mut chunk).unwrap_or_else(|_| fail_request());
+
+            match chunk_data.run_state {
+                ChunkRunState::Despawned => {
+                    fail_request();
+                },
+                ChunkRunState::Spawned { ecs_entity } => {
+                    commands.entity(ecs_entity).despawn();
+                    chunk_data.run_state = ChunkRunState::Despawned;
+                }
+            } 
         }
 
         for failed_despawn_request in failed_despawn_requests {
