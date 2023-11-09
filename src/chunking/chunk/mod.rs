@@ -30,16 +30,16 @@ pub const CHUNK_SIZE: u16 = 64;
 #[derive(Component)]
 pub enum Chunk {
     Registered {
-        id: Arc<RwLock<ChunkID>>,
+        id: ChunkID,
     },
     MetadataLoaded {
-        id: Arc<RwLock<ChunkID>>,
-        metadata: Arc<Mutex<ChunkMetadata>>,
+        id: ChunkID,
+        metadata: ChunkMetadata,
     },
     DataLoaded {
-        id: Arc<RwLock<ChunkID>>,
-        metadata: Arc<Mutex<ChunkMetadata>>,
-        data: Arc<Mutex<ChunkData>>,
+        id: ChunkID,
+        metadata: ChunkMetadata,
+        data: ChunkData,
     },
 }
 
@@ -53,15 +53,15 @@ pub enum ChunkLoadState {
 // Structs
 #[derive(Resource)]
 pub struct ChunkManager {
-    registered_root_chunks: HashMap<ChunkID, Arc<Mutex<Chunk>>>,
-    register_requests: Vec<ChunkID>,
-    unregister_requests: Vec<ChunkID>,
-    load_metadata_requests: Vec<ChunkID>,
-    unload_metadata_requests: Vec<ChunkID>,
-    load_data_requests: Vec<ChunkID>,
-    unload_data_requests: Vec<ChunkID>,
-    spawn_requests: Vec<ChunkID>,
-    despawn_requests: Vec<ChunkID>,
+    registered_root_chunks: Arc<Mutex<HashMap<ChunkID, Arc<Mutex<Chunk>>>>>,
+    register_requests: Arc<Mutex<Vec<ChunkID>>>,
+    unregister_requests: Arc<Mutex<Vec<ChunkID>>>,
+    load_metadata_requests: Arc<Mutex<Vec<ChunkID>>>,
+    unload_metadata_requests: Arc<Mutex<Vec<ChunkID>>>,
+    load_data_requests: Arc<Mutex<Vec<ChunkID>>>,
+    unload_data_requests: Arc<Mutex<Vec<ChunkID>>>,
+    spawn_requests: Arc<Mutex<Vec<ChunkID>>>,
+    despawn_requests: Arc<Mutex<Vec<ChunkID>>>,
 }
 
 // Implementations
@@ -266,9 +266,15 @@ impl Chunk {
 impl ChunkManager {
     fn initialize(mut commands: Commands) {
         let chunk_manager = Self {
-            registered_root_chunks: HashMap::new(),
-            spawn_requests: Vec::new(),
-            despawn_requests: Vec::new(),
+            registered_root_chunks: Arc::new(Mutex::new(HashMap::new())),
+            register_requests: Arc::new(Mutex::new(Vec::new())),
+            unregister_requests: Arc::new(Mutex::new(Vec::new())),
+            load_metadata_requests: Arc::new(Mutex::new(Vec::new())),
+            unload_metadata_requests: Arc::new(Mutex::new(Vec::new())),
+            load_data_requests: Arc::new(Mutex::new(Vec::new())),
+            unload_data_requests: Arc::new(Mutex::new(Vec::new())),
+            spawn_requests: Arc::new(Mutex::new(Vec::new())),
+            despawn_requests: Arc::new(Mutex::new(Vec::new())),
         };
 
         commands.insert_resource(chunk_manager);
@@ -280,142 +286,144 @@ impl ChunkManager {
 
     pub fn get_registered_chunk(&self, id: ChunkID) -> Option<Arc<Mutex<Chunk>>> {
         let mut path = id.get_global_id_base10x10().clone();
-    
         if path.is_empty() {
             return None;
         }
-    
         let root_chunk_id = path.remove(0);
-        let root_chunk_arc = self.registered_root_chunks.get(root_chunk_id.into())?.clone();
-    
-        let mut current_chunk_arc = root_chunk_arc;
+        let registered_root_chunks = self.registered_root_chunks.lock().ok()?;
+        let mut registered_chunk = registered_root_chunks.get(root_chunk_id.into())?.clone();
+        drop(registered_root_chunks);
     
         for &local_id in &path {
-            let next_chunk_arc = {
-                let current_chunk = current_chunk_arc.lock().ok()?;
-                let local_id: LocalChunkPosition = local_id.into();
-                let current_chunk_metadata = match current_chunk {
-                    Chunk::Registered { .. } => return None,
-                    Chunk::Metadata { metadata, .. } | Chunk::Data { metadata, .. } => metadata,
-                };
-    
-                let metadata = current_chunk_metadata.lock().ok()?;
-                metadata.child_chunks.get(&local_id)?.clone()
+            let local_id: LocalChunkPosition = local_id.into();
+            let current_chunk = registered_chunk.lock().ok()?;
+            let current_chunk_metadata = match current_chunk {
+                Chunk::Registered { .. } => return None,
+                Chunk::Metadata { metadata, .. } | Chunk::Data { metadata, .. } => metadata,
             };
-    
-            current_chunk_arc = next_chunk_arc;
+            registered_chunk = current_chunk_metadata.child_chunks.get(&local_id)?.clone();
         }
     
-        Some(current_chunk_arc)
+        Some(registered_chunk)
     }
     
     pub fn is_chunk_registered(&self, id: ChunkID) -> bool {
         let mut path = id.get_global_id_base10x10().clone();
-    
         if path.is_empty() {
             return false;
         }
-    
         let root_chunk_id = path.remove(0);
-        let mut current_chunk_arc = match self.registered_root_chunks.get(root_chunk_id.into()) {
-            Some(arc) => arc.clone(),
-            None => return false,
-        };
+        let registered_root_chunks = self.registered_root_chunks.lock().unwrap_or_else(|_| return false);
+        let mut registered_chunk = registered_root_chunks.get(root_chunk_id.into()).unwrap_or_else(|_| return false);
+        drop(registered_root_chunks);
     
         for &local_id in &path {
             let local_id: LocalChunkPosition = local_id.into();
-            let current_chunk_guard = match current_chunk_arc.lock() {
-                Ok(guard) => guard,
-                Err(_) => return false,
-            };
-    
-            match &*current_chunk_guard {
+            let current_chunk = registered_chunk.lock().unwrap_or_else(|_| return false);
+            let current_chunk_metadata = match current_chunk {
                 Chunk::Registered { .. } => return false,
-                Chunk::Metadata { metadata, .. } | Chunk::Data { metadata, .. } => {
-                    let metadata_guard = match metadata.lock() {
-                        Ok(guard) => guard,
-                        Err(_) => return false,
-                    };
-    
-                    if !metadata_guard.child_chunks.contains_key(&local_id) {
-                        return false;
-                    }
-    
-                    current_chunk_arc = match metadata_guard.child_chunks.get(&local_id) {
-                        Some(arc) => arc.clone(),
-                        None => return false,
-                    };
-                }
-            }
+                Chunk::Metadata { metadata, .. } | Chunk::Data { metadata, .. } => metadata,
+            };
+            registered_chunk = current_chunk_metadata.child_chunks.get(&local_id).unwrap_or_else(|_| return false);
         }
     
         true
     }
 
-    pub fn request_register(&mut self, id: ChunkID) {
-        self.register_requests.push(id);
+    pub fn request_register(&mut self, id: ChunkID) -> Result<(), String> {
+        let register_requests = self.register_requests.lock().unwrap_or_else(|_| 
+            return Err("Failed to request chunk registration: Register requests mutex poisoned.".to_string())
+        );
+        register_requests.push(id);
     }
 
-    pub fn request_unregister(&mut self, id: ChunkID) {
-        self.unregister_requests.push(id);
+    pub fn request_unregister(&mut self, id: ChunkID) -> Result<(), String> {
+        let unregister_requests = self.unregister_requests.lock().unwrap_or_else(|_| 
+            return Err("Failed to request chunk unregistration: Unregister requests mutex poisoned.".to_string())
+        );
+        unregister_requests.push(id);
     }
 
-    pub fn request_load_metadata(&mut self, id: ChunkID, metadata: ChunkMetadata) {
-        self.load_metadata_requests.push(id);
+    pub fn request_load_metadata(&mut self, id: ChunkID, metadata: ChunkMetadata) -> Result<(), String> {
+        let load_metadata_requests = self.load_metadata_requests.lock().unwrap_or_else(|_| 
+            return Err("Failed to request chunk metadata loading: Load metadata requests mutex poisoned.".to_string())
+        );
+        load_metadata_requests.push(id);
     }
 
-    pub fn request_unload_metadata(&mut self, id: ChunkID) {
-        self.unload_metadata_requests.push(id);
+    pub fn request_unload_metadata(&mut self, id: ChunkID) -> Result<(), String> {
+        let unload_metadata_requests = self.unload_metadata_requests.lock().unwrap_or_else(|_| 
+            return Err("Failed to request chunk metadata unloading: Unload metadata requests mutex poisoned.".to_string())
+        );
+        unload_metadata_requests.push(id);
     }
 
-    pub fn request_load_data(&mut self, id: ChunkID, data: ChunkData) {
-        self.load_data_requests.push(id);
+    pub fn request_load_data(&mut self, id: ChunkID, data: ChunkData) -> Result<(), String> {
+        let load_data_requests = self.load_data_requests.lock().unwrap_or_else(|_| 
+            return Err("Failed to request chunk data loading: Load data requests mutex poisoned.".to_string())
+        );
+        load_data_requests.push(id);
     }
 
-    pub fn request_unload_data(&mut self, id: ChunkID) {
-        self.unload_data_requests.push(id);
+    pub fn request_unload_data(&mut self, id: ChunkID) -> Result<(), String> {
+        let unload_data_requests = self.unload_data_requests.lock().unwrap_or_else(|_| 
+            return Err("Failed to request chunk data unloading: Unload data requests mutex poisoned.".to_string())
+        );
+        unload_data_requests.push(id);
     }
 
-    pub fn request_spawn(&mut self, id: ChunkID) {
-        self.spawn_requests.push(id);
+    pub fn request_spawn(&mut self, id: ChunkID) -> Result<(), String> {
+        let spawn_requests = self.spawn_requests.lock().unwrap_or_else(|_| 
+            return Err("Failed to request chunk spawning: Spawn requests mutex poisoned.".to_string())
+        );
+        spawn_requests.push(id);
     }
 
-    pub fn request_despawn(&mut self, id: ChunkID) {
-        self.despawn_requests.push(id);
+    pub fn request_despawn(&mut self, id: ChunkID) -> Result<(), String> {
+        let despawn_requests = self.despawn_requests.lock().unwrap_or_else(|_| 
+            return Err("Failed to request chunk despawning: Despawn requests mutex poisoned.".to_string())
+        );
+        despawn_requests.push(id);
     }
 
-    pub fn get_id(&mut self, chunk: Arc<Mutex<Chunk>>) -> Result<Arc<RwLock<ChunkID>>, String> {
-        let locked_chunk = chunk.lock().map_err(|_| "Failed to get chunk id: Chunk mutex poisoned.".to_string())?;
-    
-        return Ok(match *locked_chunk {
+    pub fn get_id(chunk: &Chunk) -> Result<&ChunkID, String> {
+        return Ok(match *chunk {
             Chunk::Registered { ref id, .. }
             | Chunk::Metadata { ref id, .. }
             | Chunk::Data { ref id, .. } => id,
         });
     }
 
-    pub fn get_metadata(&mut self, chunk: Arc<Mutex<Chunk>>) -> Result<Arc<Mutex<ChunkMetadata>>, String> {
-        let locked_chunk = chunk.lock().map_err(|_| "Failed to get chunk metadata: Chunk mutex poisoned.".to_string())?;
-    
-        return Ok(match *locked_chunk {
+    pub fn get_metadata(chunk: &Chunk) -> Result<&ChunkMetadata, String> {
+        return Ok(match *chunk {
             Chunk::Registered { .. } => return Err("Failed to get chunk metadata: Chunk is not loaded.".to_string()),
             Chunk::Metadata { ref metadata, .. } | Chunk::Data { ref metadata, .. } => metadata,
         });
     }
 
-    pub fn get_data(&mut self, chunk: Arc<Mutex<Chunk>>) -> Result<Arc<Mutex<ChunkData>>, String> {
-        let locked_chunk = chunk.lock().map_err(|_| "Failed to get chunk data: Chunk mutex poisoned.".to_string())?;
-    
-        return Ok(match *locked_chunk {
+    pub fn get_metadata_mut(chunk: &mut Chunk) -> Result<&mut ChunkMetadata, String> {
+        return Ok(match *chunk {
+            Chunk::Registered { .. } => return Err("Failed to get chunk metadata: Chunk is not loaded.".to_string()),
+            Chunk::Metadata { ref mut metadata, .. } | Chunk::Data { ref mut metadata, .. } => metadata,
+        });
+    }
+
+    pub fn get_data(chunk: &Chunk) -> Result<&ChunkData, String> {
+        return Ok(match *chunk {
             Chunk::Registered { .. } | Chunk::Metadata { .. } => return Err("Failed to get chunk data: Chunk is not loaded.".to_string()),
             Chunk::Data { ref data, .. } => data,
         });
     }
 
-    pub fn get_load_state(&mut self, chunk: Arc<Mutex<Chunk>>) -> Result<ChunkLoadState, String> {
-        let locked_chunk = chunk.lock().map_err(|_| "Failed to get chunk load state: Chunk mutex poisoned.".to_string())?;
+    pub fn get_data_mut(chunk: &mut Chunk) -> Result<&mut ChunkData, String> {
+        return Ok(match *chunk {
+            Chunk::Registered { .. } | Chunk::Metadata { .. } => return Err("Failed to get chunk data: Chunk is not loaded.".to_string()),
+            Chunk::Data { ref mut data, .. } => data,
+        });
+    }
 
-        return match *locked_chunk {
+    pub fn get_load_state(chunk: &Chunk) -> Result<ChunkLoadState, String> {
+        return match *chunk {
             Chunk::Registered { .. } => Ok(ChunkLoadState::Registered),
             Chunk::Metadata { .. } => Ok(ChunkLoadState::MetadataLoaded),
             Chunk::Data { .. } => Ok(ChunkLoadState::DataLoaded),
@@ -423,98 +431,46 @@ impl ChunkManager {
     }
 
     fn handle_register_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let register_requests = chunk_manager.register_requests.clone();
+        let register_requests: Vec<ChunkPos> = Vec::new();
+        register_requests.append(chunk_manager.register_requests);
         let mut failed_register_requests = Vec::new();
     
         for id in register_requests {
-            if chunk_manager.get_registered_chunk(id).is_some() {
+            fn fail_request() {
                 failed_register_requests.push(id);
                 continue;
             }
-    
+
+            if chunk_manager.get_registered_chunk(id).is_some() { fail_request(); }
+
             let mut parent_id_base10x10 = id.get_global_id_base10x10().clone();
             parent_chunk_id_base10x10.pop();
-            let mut parent_id = match ChunkID::try_from(parent_id_base10x10) {
-                Ok(id) => id,
-                Err(e) => {
-                    failed_register_requests.push(id);
-                    continue;
-                }
-            };
-    
-            let parent_chunk_mutex = match chunk_manager.get_registered_chunk(parent_id) {
-                Some(mutex) => mutex,
-                None => {
-                    failed_register_requests.push(id);
-                    continue;
-                }
-            };
-    
-            let locked_parent_chunk = match parent_chunk_mutex.lock() {
-                Ok(chunk) => chunk,
-                Err(_) => {
-                    failed_register_requests.push(id);
-                    continue;
-                }
-            };
-    
-            let parent_chunk_metadata_mutex = match chunk_manager.get_metadata(&locked_parent_chunk) {
-                Ok(mutex) => mutex,
-                Err(_) => {
-                    failed_register_requests.push(id);
-                    continue;
-                }
-            };
+            let parent_id = ChunkID::try_from(parent_id_base10x10).unwrap_or_else(|_| fail_request());
 
-            let locked_parent_chunk_metadata = match parent_chunk_metadata_mutex.lock() {
-                Ok(metadata) => metadata,
-                Err(_) => {
-                    failed_register_requests.push(id);
-                    continue;
-                }
-            };
-    
-            let parent_chunk_child_chunks_mutex = match &locked_parent_chunk_metadata.child_chunks {
-                Some(child_chunks) => child_chunks,
-                None => {
-                    failed_register_requests.push(id);
-                    continue;
-                }
-            };
-    
-            let mut locked_parent_chunk_child_chunks = match parent_chunk_child_chunks_mutex.lock() {
-                Ok(child_chunks) => child_chunks,
-                Err(_) => {
-                    failed_register_requests.push(id);
-                    continue;
-                }
-            };
-    
+            let parent_chunk = chunk_manager.get_registered_chunk(parent_id).unwrap_or_else(|_| fail_request());
+            let parent_chunk = parent_chunk.lock().unwrap_or_else(|_| fail_request());
+
+            let parent_chunk_metadata = chunk_manager.get_metadata(&parent_chunk).unwrap_or_else(|_| fail_request());
+
+            let mut parent_chunk_child_chunks = parent_chunk_metadata.child_chunks.unwrap_or_else(|_| fail_request());
+
             let local_chunk_pos = id.compute_local_pos();
             let chunk = Arc::new(Mutex::new(Chunk::new(id)));
-            locked_parent_chunk_child_chunks.insert(local_chunk_pos, chunk.clone());
+            parent_chunk_child_chunks.insert(local_chunk_pos, chunk);
         }
     
         for failed_register_request in &failed_register_requests {
             println!("Failed to register chunk: {}", failed_register_request);
         }
-    
-        chunk_manager.register_requests = failed_register_requests;
     }
 
     fn handle_unregister_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let unregister_requests = chunk_manager.unregister_requests.clone();
+        let unregister_requests: Vec<ChunkPos> = Vec::new();
+        unregister_requests.append(chunk_manager.unregister_requests);
         let mut failed_unregister_requests = Vec::new();
 
         for id in unregister_requests {
-            if let Some(chunk_mutex) = chunk_manager.get_registered_chunk(id) {
-                if let Ok(locked_chunk) = chunk_mutex.lock() {
-                    // unregister the chunk
-                } else {
-                    failed_unregister_requests.push(id);
-                    continue;
-                }
-            } else {
+            fn fail_request() {
                 failed_unregister_requests.push(id);
                 continue;
             }
@@ -523,23 +479,15 @@ impl ChunkManager {
         for failed_unregister_request in failed_unregister_requests {
             println!("Failed to unregister chunk: {}", failed_unregister_request);
         }
-
-        chunk_manager.unregister_requests = failed_unregister_requests;
     }
 
     fn handle_load_metadata_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let load_metadata_requests = chunk_manager.load_metadata_requests.clone();
+        let load_metadata_requests: Vec<ChunkPos> = Vec::new();
+        load_metadata_requests.append(chunk_manager.load_metadata_requests);
         let mut failed_load_metadata_requests = Vec::new();
 
         for id in load_metadata_requests {
-            if let Some(chunk_mutex) = chunk_manager.get_registered_chunk(id) {
-                if let Ok(locked_chunk) = chunk_mutex.lock() {
-                    // load the metadata
-                } else {
-                    failed_load_metadata_requests.push(id);
-                    continue;
-                }
-            } else {
+            fn fail_request() {
                 failed_load_metadata_requests.push(id);
                 continue;
             }
@@ -548,23 +496,15 @@ impl ChunkManager {
         for failed_load_metadata_request in failed_load_metadata_requests {
             println!("Failed to load chunk metadata: {}", failed_load_metadata_request);
         }
-
-        chunk_manager.load_metadata_requests = failed_load_metadata_requests;
     }
 
     fn handle_unload_metadata_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let unload_metadata_requests = chunk_manager.unload_metadata_requests.clone();
+        let unload_metadata_requests: Vec<ChunkPos> = Vec::new();
+        unload_metadata_requests.append(chunk_manager.unload_metadata_requests);
         let mut failed_unload_metadata_requests = Vec::new();
 
         for id in unload_metadata_requests {
-            if let Some(chunk_mutex) = chunk_manager.get_registered_chunk(id) {
-                if let Ok(locked_chunk) = chunk_mutex.lock() {
-                    // unload the metadata
-                } else {
-                    failed_unload_metadata_requests.push(id);
-                    continue;
-                }
-            } else {
+            fn fail_request() {
                 failed_unload_metadata_requests.push(id);
                 continue;
             }
@@ -573,23 +513,15 @@ impl ChunkManager {
         for failed_unload_metadata_request in failed_unload_metadata_requests {
             println!("Failed to unload chunk metadata: {}", failed_unload_metadata_request);
         }
-
-        chunk_manager.unload_metadata_requests = failed_unload_metadata_requests;
     }
 
     fn handle_load_data_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let load_data_requests = chunk_manager.load_data_requests.clone();
+        let load_data_requests: Vec<ChunkPos> = Vec::new();
+        load_data_requests.append(chunk_manager.load_data_requests);
         let mut failed_load_data_requests = Vec::new();
 
         for id in load_data_requests {
-            if let Some(chunk_mutex) = chunk_manager.get_registered_chunk(id) {
-                if let Ok(locked_chunk) = chunk_mutex.lock() {
-                    // load the data
-                } else {
-                    failed_load_data_requests.push(id);
-                    continue;
-                }
-            } else {
+            fn fail_request() {
                 failed_load_data_requests.push(id);
                 continue;
             }
@@ -598,23 +530,15 @@ impl ChunkManager {
         for failed_load_data_request in failed_load_data_requests {
             println!("Failed to load chunk data: {}", failed_load_data_request);
         }
-
-        chunk_manager.load_data_requests = failed_load_data_requests;
     }
 
     fn handle_unload_data_requests(mut chunk_manager: ResMut<ChunkManager>) {
-        let unload_data_requests = chunk_manager.unload_data_requests.clone();
+        let unload_data_requests: Vec<ChunkPos> = Vec::new();
+        unload_data_requests.append(chunk_manager.unload_data_requests);
         let mut failed_unload_data_requests = Vec::new();
 
         for id in unload_data_requests {
-            if let Some(chunk_mutex) = chunk_manager.get_registered_chunk(id) {
-                if let Ok(locked_chunk) = chunk_mutex.lock() {
-                    // unload the data
-                } else {
-                    failed_unload_data_requests.push(id);
-                    continue;
-                }
-            } else {
+            fn fail_request() {
                 failed_unload_data_requests.push(id);
                 continue;
             }
@@ -623,23 +547,15 @@ impl ChunkManager {
         for failed_unload_data_request in failed_unload_data_requests {
             println!("Failed to unload chunk data: {}", failed_unload_data_request);
         }
-
-        chunk_manager.unload_data_requests = failed_unload_data_requests;
     }
 
     fn handle_spawn_requests(mut commands: Commands, mut chunk_manager: ResMut<ChunkManager>) {
-        let spawn_requests = chunk_manager.spawn_requests.clone();
+        let spawn_requests: Vec<ChunkPos> = Vec::new();
+        spawn_requests.append(chunk_manager.spawn_requests);
         let mut failed_spawn_requests = Vec::new();
 
         for id in spawn_requests {
-            if let Some(chunk_mutex) = chunk_manager.get_registered_chunk(id) {
-                if let Ok(locked_chunk) = chunk_mutex.lock() {
-                    // spawn the chunk
-                } else {
-                    failed_spawn_requests.push(id);
-                    continue;
-                }
-            } else {
+            fn fail_request() {
                 failed_spawn_requests.push(id);
                 continue;
             }
@@ -648,23 +564,15 @@ impl ChunkManager {
         for failed_spawn_request in failed_spawn_requests {
             println!("Failed to spawn chunk: {}", failed_spawn_request);
         }
-
-        chunk_manager.spawn_requests = failed_spawn_requests;
     }
 
     fn handle_despawn_requests(mut commands: Commands, mut chunk_manager: ResMut<ChunkManager>) {
-        let despawn_requests = chunk_manager.despawn_requests.clone();
+        let despawn_requests: Vec<ChunkPos> = Vec::new();
+        despawn_requests.append(chunk_manager.despawn_requests);
         let mut failed_despawn_requests = Vec::new();
 
         for id in despawn_requests {
-            if let Some(chunk_mutex) = chunk_manager.get_registered_chunk(id) {
-                if let Ok(locked_chunk) = chunk_mutex.lock() {
-                    // despawn the chunk
-                } else {
-                    failed_despawn_requests.push(id);
-                    continue;
-                }
-            } else {
+            fn fail_request() {
                 failed_despawn_requests.push(id);
                 continue;
             }
@@ -673,8 +581,6 @@ impl ChunkManager {
         for failed_despawn_request in failed_despawn_requests {
             println!("Failed to despawn chunk: {}", failed_despawn_request);
         }
-
-        chunk_manager.despawn_requests = failed_despawn_requests;
     }
 }
 
