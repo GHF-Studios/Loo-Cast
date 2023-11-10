@@ -5,8 +5,8 @@
 
 
 // Internal imports
-use crate::chunking::chunk::*;
-use crate::chunking::chunk::pos::*;
+use crate::universe::chunk::*;
+use crate::universe::chunk::pos::*;
 
 // External imports
 use bevy::prelude::*;
@@ -24,16 +24,16 @@ use bevy::prelude::*;
 
 
 // Structs
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct EntityPos {
     parent_chunk_pos: ChunkPos,
     local_pos: LocalEntityPos,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct LocalEntityPos {
-    x: f32,
-    y: f32,
+    pub x: f32,
+    pub y: f32,
 }
 
 // Implementations
@@ -103,26 +103,10 @@ impl Into<Vec3> for LocalEntityPos {
 
 impl LocalEntityPos {
     pub fn new(x: f32, y: f32) -> Self {
-        EntityLocalPos {
+        LocalEntityPos {
             x,
             y,
         }
-    }
-
-    pub fn get_x(&self) -> f32 {
-        self.x
-    }
-
-    pub fn get_y(&self) -> f32 {
-        self.y
-    }
-
-    pub fn set_x(&mut self, x: f32) {
-        self.x = x;
-    }
-
-    pub fn set_y(&mut self, y: f32) {
-        self.y = y;
     }
 }
 

@@ -1,71 +1,201 @@
 // Modules
+pub mod data;
+pub mod id;
+pub mod metadata;
+pub mod pos;
 
 // Local imports
+use data::*;
+use id::*;
+use metadata::*;
+use pos::*;
 
 // Internal imports
-use crate::universe::chunk::*;
+use crate::AppState;
+use crate::game::SimulationState;
 
 // External imports
 use bevy::prelude::*;
+use std::sync::{Arc, Mutex, RwLock};
 
 // Static variables
 
+
 // Constant variables
+
 
 // Types
 
+
 // Enums
+pub enum Entity {
+    Registered {
+        id: Arc<RwLock<EntityID>>,
+    },
+    MetadataLoaded {
+        id: Arc<RwLock<EntityID>>,
+        metadata: Arc<Mutex<EntityMetadata>>,
+    },
+    DataLoaded {
+        id: Arc<RwLock<EntityID>>,
+        metadata: Arc<Mutex<EntityMetadata>>,
+        data: Arc<Mutex<EntityData>>,
+    },
+}
+
+pub enum EntityLoadState {
+    Registered,
+    MetadataLoaded,
+    DataLoaded,
+}
 
 // Structs
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub struct EntityPos {
-    pub x: f32,
-    pub y: f32,
+pub struct EntityPlugin;
+
+#[derive(Resource)]
+pub struct EntityManager {
+
 }
 
 // Implementations
-impl From<ChunkPos> for EntityPos {
-    fn from(chunk_pos: ChunkPos) -> Self {
-        EntityPos {
-            x: chunk_pos.x as f32 * CHUNK_SIZE as f32,
-            y: chunk_pos.y as f32 * CHUNK_SIZE as f32,
+impl Plugin for EntityPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            // Enter Systems
+            .add_systems(OnEnter(AppState::Game), EntityManager::initialize)
+            // Update Systems
+            .add_systems(
+                Update,
+                (
+
+                )
+                    .run_if(in_state(AppState::Game))
+                    .run_if(in_state(SimulationState::Running))
+            )
+            // Exit Systems
+            .add_systems(OnExit(AppState::Game), EntityManager::terminate);
+    }
+}
+
+impl Entity {
+    pub fn new(id: EntityID) -> Self {
+        Entity::Registered {
+            id: Arc::new(RwLock::new(id)),
+        }
+    }
+
+    pub fn load_metadata(&mut self, metadata: EntityMetadata) -> Result<(), String> {
+        match self {
+            Entity::Registered { .. } => {
+                *self = Entity::MetadataLoaded {
+                    id: self.get_id().clone(),
+                    metadata: Arc::new(Mutex::new(metadata)),
+                };
+                Ok(())
+            },
+            Entity::MetadataLoaded { .. } => {
+                Err("Cannot load metadata: Metadata is already loaded.".to_string())
+            }
+            Entity::DataLoaded { .. } => {
+                Err("Cannot load metadata: Both metadata and data are already loaded.".to_string())
+            }
+        }
+    }
+
+    pub fn load_data(&mut self, data: EntityData) -> Result<(), String> {
+        match self {
+            Entity::Registered { .. } => {
+                Err("Cannot load data: Metadata must be loaded first.".to_string())
+            }
+            Entity::MetadataLoaded { .. } => {
+                *self = Entity::DataLoaded {
+                    id: self.get_id().clone(),
+                    metadata: self.get_metadata().unwrap().clone(),
+                    data: Arc::new(Mutex::new(data)),
+                };
+                Ok(())
+            },
+            Entity::DataLoaded { .. } => {
+                Err("Cannot load data: Data is already loaded.".to_string())
+            }
+        }
+    }
+
+    pub fn unload_metadata(&mut self) -> Result<(), String> {
+        match self {
+            Entity::Registered { .. } => {
+                Err("Cannot unload metadata: No metadata is loaded.".to_string())
+            }
+            Entity::MetadataLoaded { .. } => {
+                *self = Entity::Registered {
+                    id: self.get_id().clone(),
+                };
+                Ok(())
+            }
+            Entity::DataLoaded { .. } => {
+                Err("Cannot unload metadata: Data must be unloaded first.".to_string())
+            }
+        }
+    }
+
+    pub fn unload_data(&mut self) -> Result<(), String> {
+        match self {
+            Entity::Registered { .. } => {
+                Err("Cannot unload data: Neither metadata nor data are loaded.".to_string())
+            }
+            Entity::MetadataLoaded { .. } => {
+                Err("Cannot unload data: No data is loaded.".to_string())
+            }
+            Entity::DataLoaded { .. } => {
+                *self = Entity::MetadataLoaded {
+                    id: self.get_id().clone(),
+                    metadata: self.get_metadata().unwrap().clone(),
+                };
+                Ok(())
+            }
+        }
+    }
+
+    pub fn get_id(&self) -> Arc<RwLock<EntityID>> {
+        match self {
+            Entity::Registered { id } => id.clone(),
+            Entity::MetadataLoaded { id, .. } => id.clone(),
+            Entity::DataLoaded { id, .. } => id.clone(),
+        }
+    }
+
+    pub fn get_metadata(&self) -> Result<Arc<Mutex<EntityMetadata>>, String> {
+        match self {
+            Entity::Registered { .. } => Err("No metadata is loaded.".to_string()),
+            Entity::MetadataLoaded { metadata, .. } => Ok(metadata.clone()),
+            Entity::DataLoaded { metadata, .. } => Ok(metadata.clone()),
+        }
+    }
+
+    pub fn get_data(&self) -> Result<Arc<Mutex<EntityData>>, String> {
+        match self {
+            Entity::Registered { .. } => Err("No data is loaded.".to_string()),
+            Entity::MetadataLoaded { .. } => Err("No data is loaded.".to_string()),
+            Entity::DataLoaded { data, .. } => Ok(data.clone()),
+        }
+    }
+
+    pub fn get_load_state(&self) -> EntityLoadState {
+        match self {
+            Entity::Registered { .. } => EntityLoadState::Registered,
+            Entity::MetadataLoaded { .. } => EntityLoadState::MetadataLoaded,
+            Entity::DataLoaded { .. } => EntityLoadState::DataLoaded,
         }
     }
 }
 
-impl From<Vec2> for EntityPos {
-    fn from(vec2: Vec2) -> Self {
-        EntityPos {
-            x: vec2.x,
-            y: vec2.y,
-        }
+impl EntityManager {
+    pub fn initialize(mut commands: Commands) {
+        commands.insert_resource(EntityManager {});
     }
-}
 
-impl From<Vec3> for EntityPos {
-    fn from(vec3: Vec3) -> Self {
-        EntityPos {
-            x: vec3.x,
-            y: vec3.y,
-        }
-    }
-}
-
-impl Into<Vec2> for EntityPos {
-    fn into(self) -> Vec2 {
-        Vec2::new(self.x, self.y)
-    }
-}
-
-impl Into<Vec3> for EntityPos {
-    fn into(self) -> Vec3 {
-        Vec3::new(self.x, self.y, 0.0)
-    }
-}
-
-impl EntityPos {
-    pub fn new(x: f32, y: f32) -> EntityPos {
-        EntityPos { x, y }
+    pub fn terminate(mut commands: Commands) {
+        commands.remove_resource::<EntityManager>();
     }
 }
 

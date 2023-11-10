@@ -29,7 +29,7 @@ pub enum ChunkRunState {
 
 // Structs
 pub struct ChunkData {
-    run_state: ChunkRunState,
+    pub(super) run_state: ChunkRunState,
 }
 
 // Implementations
@@ -38,14 +38,6 @@ impl ChunkData {
         ChunkData {
             run_state: ChunkRunState::Despawned,
         }
-    }
-
-    pub fn get_run_state(&self) -> ChunkRunState {
-        return self.run_state;
-    }
-
-    pub fn set_run_state(&mut self, run_state: ChunkRunState) {
-        self.run_state = run_state;
     }
 }
 

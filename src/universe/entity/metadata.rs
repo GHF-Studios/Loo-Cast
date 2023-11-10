@@ -5,7 +5,7 @@
 
 
 // Internal imports
-use crate::chunking::entity::pos::*;
+use crate::universe::entity::pos::*;
 
 // External imports
 use std::sync::{Arc, Mutex};
@@ -24,8 +24,8 @@ use std::sync::{Arc, Mutex};
 
 // Structs
 pub struct EntityMetadata {
-    pos: EntityPos,
-    parent_chunk: Arc<Mutex<Chunk>>,
+    pub(super) pos: EntityPos,
+    pub(super) parent_chunk: Arc<Mutex<Chunk>>,
 }
 
 // Implementations

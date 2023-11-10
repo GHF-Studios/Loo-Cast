@@ -6,6 +6,8 @@
 
 // Internal imports
 use crate::math::*;
+use crate::universe::entity::id::*;
+use crate::universe::chunk::pos::*;
 
 // External imports
 use num_bigint::BigUint;
@@ -23,7 +25,7 @@ use num_bigint::BigUint;
 
 
 // Structs
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct ChunkID {
     global_id_base10: BigUint,
     global_id_base10x10: Vec<(u8, u8)>,

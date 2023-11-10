@@ -24,7 +24,7 @@
 
 // Structs
 pub struct EntityData {
-    placeholder_data: Option<i32>,
+    pub(super) placeholder_data: Option<i32>,
 }
 
 // Implementations

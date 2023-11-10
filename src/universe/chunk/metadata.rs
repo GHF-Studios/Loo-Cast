@@ -5,7 +5,9 @@
 
 
 // Internal imports
-use crate::chunking::chunk::pos::*;
+use crate::universe::chunk::pos::*;
+use crate::universe::chunk::*;
+use crate::universe::entity::id::*;
 
 // External imports
 use std::sync::{Arc, Mutex};
@@ -25,12 +27,12 @@ use std::collections::HashMap;
 
 // Structs
 pub struct ChunkMetadata {
-    pos: ChunkPos,
-    parent_chunk: Option<Arc<Mutex<Chunk>>>,
-    child_chunks: Option<HashMap<LocalChunkPos, Arc<Mutex<Chunk>>>>,
-    current_local_entity_id: u64,
-    recycled_local_entity_ids: Vec<u64>,
-    registered_entities: Hashmap<EntityID, Arc<Mutex<crate::chunking::entity::Entity>>>,
+    pub(super) pos: ChunkPos,
+    pub(super) parent_chunk: Option<Arc<Mutex<Chunk>>>,
+    pub(super) child_chunks: Option<HashMap<LocalChunkPos, Arc<Mutex<Chunk>>>>,
+    pub(super) current_local_entity_id: u64,
+    pub(super) recycled_local_entity_ids: Vec<u64>,
+    pub(super) registered_entities: HashMap<EntityID, Arc<Mutex<crate::universe::entity::Entity>>>,
 }
 
 // Implementations
@@ -45,17 +47,19 @@ impl ChunkMetadata {
             if parent_scale_index < 63 {
                 return Ok(ChunkMetadata {
                     pos: ChunkPos::new(Some(parent_chunk_pos), local_chunk_pos),
-                    parent_chunk,
+                    parent_chunk: Some(parent_chunk),
                     child_chunks: Some(HashMap::new()), 
                     current_local_entity_id: 0,
+                    recycled_local_entity_ids: Vec::new(),
                     registered_entities: HashMap::new(),
                 });
             } else if parent_scale_index == 63 {
                 return Ok(ChunkMetadata {
                     pos: ChunkPos::new(Some(parent_chunk_pos), local_chunk_pos),
-                    parent_chunk,
+                    parent_chunk: Some(parent_chunk),
                     child_chunks: None, 
                     current_local_entity_id: 0,
+                    recycled_local_entity_ids: Vec::new(),
                     registered_entities: HashMap::new(),
                 });
             } else if parent_scale_index > 63 {
@@ -65,8 +69,9 @@ impl ChunkMetadata {
             return Ok(ChunkMetadata {
                 pos: ChunkPos::new(None, local_chunk_pos),
                 parent_chunk: None,
-                child_chunks: HashMap::new(), 
+                child_chunks: Some(HashMap::new()), 
                 current_local_entity_id: 0,
+                recycled_local_entity_ids: Vec::new(),
                 registered_entities: HashMap::new(),
             });
         }

@@ -14,11 +14,15 @@ use bevy::prelude::*;
 
 // Static variables
 
+
 // Constant variables
+
 
 // Types
 
+
 // Enums
+
 
 // Structs
 pub struct UniversePlugin;
@@ -40,7 +44,7 @@ impl Plugin for UniversePlugin {
             // Events
             .add_event::<LoadUniverse>()
             // Plugins
-            .add_plugins(ChunkPlugin)
+            .add_plugins((ChunkPlugin, EntityPlugin))
             // Update Systems
             .add_systems(
                 Update,

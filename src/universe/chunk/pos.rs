@@ -5,8 +5,8 @@
 
 
 // Internal imports
-use crate::chunking::chunk::*;
-use crate::chunking::entity::pos::*;
+use crate::universe::chunk::*;
+use crate::universe::entity::pos::*;
 
 // External imports
 
@@ -24,16 +24,16 @@ use crate::chunking::entity::pos::*;
 
 
 // Structs
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ChunkPos {
-    parent_pos: Option<ChunkPos>,
+    parent_pos: Option<Box<ChunkPos>>,
     local_pos: LocalChunkPos,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct LocalChunkPos {
-    x: i8,
-    y: i8
+    pub x: i8,
+    pub y: i8
 }
 
 // Implementations
@@ -93,22 +93,6 @@ impl LocalChunkPos {
             x,
             y,
         }
-    }
-
-    pub fn get_x(&self) -> i8 {
-        self.x
-    }
-
-    pub fn get_y(&self) -> i8 {
-        self.y
-    }
-
-    pub fn set_x(&mut self, x: i8) {
-        self.x = x;
-    }
-
-    pub fn set_y(&mut self, y: i8) {
-        self.y = y;
     }
 }
 
