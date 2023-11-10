@@ -38,31 +38,35 @@ pub struct ChunkMetadata {
 // Implementations
 impl ChunkMetadata {
     pub fn new(parent_chunk: Option<Arc<Mutex<Chunk>>>, local_chunk_pos: LocalChunkPos) -> Result<ChunkMetadata, String> {
-        if let Some(parent_chunk) = parent_chunk {
-            let parent_chunk_temp = parent_chunk.lock().unwrap();
-            let parent_scale_index = parent_chunk.get_id().lock().unwrap().get_global_id_base10x10().len() - 1;
-            let parent_chunk_pos = parent_chunk.get_metadata().lock().unwrap().get_pos();
-            drop(parent_chunk_temp);
+        if let Some(parent_chunk_mutex) = parent_chunk {
+            let parent_chunk = parent_chunk_mutex.lock().unwrap();
+            let parent_scale_index = ChunkManager::get_id(&*parent_chunk).get_scale_index();
+            let parent_chunk_metadata = match ChunkManager::get_metadata(&*parent_chunk) {
+                Ok(parent_chunk_metadata) => parent_chunk_metadata,
+                Err(error) => return Err(format!("Failed to get parent chunk metadata: {}", error)),
+            };
+            let parent_chunk_pos = parent_chunk_metadata.get_pos();
+            drop(parent_chunk);
 
-            if parent_scale_index < 63 {
+            if parent_scale_index < 62 {
                 return Ok(ChunkMetadata {
-                    pos: ChunkPos::new(Some(parent_chunk_pos), local_chunk_pos),
-                    parent_chunk: Some(parent_chunk),
+                    pos: ChunkPos::new(Some(Box::new(parent_chunk_pos)), local_chunk_pos),
+                    parent_chunk: Some(parent_chunk_mutex),
                     child_chunks: Some(HashMap::new()), 
                     current_local_entity_id: 0,
                     recycled_local_entity_ids: Vec::new(),
                     registered_entities: HashMap::new(),
                 });
-            } else if parent_scale_index == 63 {
+            } else if parent_scale_index == 62 {
                 return Ok(ChunkMetadata {
-                    pos: ChunkPos::new(Some(parent_chunk_pos), local_chunk_pos),
-                    parent_chunk: Some(parent_chunk),
+                    pos: ChunkPos::new(Some(Box::new(parent_chunk_pos)), local_chunk_pos),
+                    parent_chunk: Some(parent_chunk_mutex),
                     child_chunks: None, 
                     current_local_entity_id: 0,
                     recycled_local_entity_ids: Vec::new(),
                     registered_entities: HashMap::new(),
                 });
-            } else if parent_scale_index > 63 {
+            } else {
                 return Err("Cannot create chunk with a scale index higher than 63".to_string());
             }
         } else {

@@ -38,14 +38,14 @@ pub struct LocalChunkPos {
 
 // Implementations
 impl ChunkPos {
-    pub fn new(parent_pos: Option<ChunkPos>, local_pos: LocalChunkPos) -> Self {
+    pub fn new(parent_pos: Option<Box<ChunkPos>>, local_pos: LocalChunkPos) -> Self {
         ChunkPos {
             parent_pos,
             local_pos,
         }
     }
 
-    pub fn get_parent_pos(&self) -> Option<ChunkPos> {
+    pub fn get_parent_pos(&self) -> Option<Box<ChunkPos>> {
         self.parent_pos
     }
 
@@ -53,7 +53,7 @@ impl ChunkPos {
         self.local_pos
     }
 
-    pub fn set_parent_pos(&mut self, parent_pos: Option<ChunkPos>) {
+    pub fn set_parent_pos(&mut self, parent_pos: Option<Box<ChunkPos>>) {
         self.parent_pos = parent_pos;
     }
 
@@ -65,10 +65,7 @@ impl ChunkPos {
 impl From<LocalEntityPos> for LocalChunkPos {
     fn from(local_entity_pos: LocalEntityPos) -> LocalChunkPos {
         let half_chunk = (CHUNK_SIZE as f32) / 2.0;
-        LocalChunkPos {
-            x: ((local_entity_pos.x + half_chunk) / CHUNK_SIZE as f32).floor() as i32,
-            y: ((local_entity_pos.y + half_chunk) / CHUNK_SIZE as f32).floor() as i32,
-        }
+        LocalChunkPos::new(((local_entity_pos.x + half_chunk) / CHUNK_SIZE as f32).floor() as i8, ((local_entity_pos.y + half_chunk) / CHUNK_SIZE as f32).floor() as i8)
     }
 }
 

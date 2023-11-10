@@ -156,18 +156,45 @@ impl ChunkID {
             return Err("Cannot compute parent ID from a root chunk ID.".to_string());
         }
 
-        let mut id_base10x10 = self.clone();
+        let mut id_base10x10 = self.global_id_base10x10.clone();
         id_base10x10.pop();
         
-        return id_base10x10.try_into().unwrap_or_else(|e| return Err(format!("Failed to compute parent ID: {}", e)));
+        return ChunkID::try_from(id_base10x10);
     }
 
-    pub fn compute_local_pos(&self) -> LocalChunkPos {
-        return self.global_id_base10x10.last().into();
+    pub fn compute_local_pos(&self) -> Result<LocalChunkPos, String> {
+        let local_pos_base10x10 = match self.global_id_base10x10.last() {
+            Some(local_pos_base10x10) => local_pos_base10x10.clone(),
+            None => return Err("Cannot compute local position from chunk ID: Invalid chunk ID.".to_string()),
+        };
+
+        return Ok(LocalChunkPos::from(local_pos_base10x10));
     }
 
-    pub fn compute_pos(&self) -> ChunkPos {
-        // TODO: Implement this
+    pub fn compute_pos(&self) -> Result<ChunkPos, String> {
+        let mut id_base10x10 = self.global_id_base10x10.clone();
+
+        if id_base10x10.len() == 0 {
+            return Err("Cannot compute position from chunk ID: Invalid chunk ID.".to_string());
+        }
+
+        let mut chunk_pos;
+
+        loop {
+            if id_base10x10.len() == 0 {
+                break;
+            } else if id_base10x10.len() == 1 {
+                let local_pos_base10x10 = id_base10x10.pop().unwrap();
+                chunk_pos = ChunkPos::new(None, local_pos_base10x10.into());
+                break;
+            } else {
+                let local_pos_base10x10 = id_base10x10.pop().unwrap();
+                chunk_pos = ChunkPos::new(Some(Box::new(chunk_pos)), local_pos_base10x10.into());
+            }
+
+        }
+
+        Ok(chunk_pos)
     }
 }
 

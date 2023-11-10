@@ -58,9 +58,9 @@ pub struct ChunkPlugin;
 
 #[derive(Component)]
 pub struct ChunkViewer {
-    previously_viewed_chunk_positions: Vec<ChunkPos>,
-    currently_viewed_chunk_positions: Vec<ChunkPos>,
-    newly_viewed_chunk_positions: Vec<ChunkPos>,
+    previously_viewed_chunk_positions: Vec<LocalChunkPos>,
+    currently_viewed_chunk_positions: Vec<LocalChunkPos>,
+    newly_viewed_chunk_positions: Vec<LocalChunkPos>,
 }
 
 #[derive(Component)]
@@ -475,7 +475,13 @@ impl ChunkManager {
                     }
                 };
 
-                let local_chunk_pos = id.compute_local_pos();
+                let local_chunk_pos = match id.compute_local_pos() {
+                    Ok(local_chunk_pos) => local_chunk_pos,
+                    Err(_) => {
+                        failed_register_requests.push(id);
+                        continue;
+                    }
+                };
 
                 let chunk = Arc::new(Mutex::new(Chunk::new(id)));
 
@@ -525,7 +531,13 @@ impl ChunkManager {
                 }
             };
 
-            let local_chunk_pos = id.compute_local_pos();
+            let local_chunk_pos = match id.compute_local_pos() {
+                Ok(local_chunk_pos) => local_chunk_pos,
+                Err(_) => {
+                    failed_register_requests.push(id);
+                    continue;
+                }
+            };
 
             let chunk = Arc::new(Mutex::new(Chunk::new(id)));
 
@@ -567,7 +579,15 @@ impl ChunkManager {
                     }
                 };
 
-                match registered_root_chunks.remove(&id.compute_local_pos()) {
+                let local_chunk_pos = match id.compute_local_pos() {
+                    Ok(local_chunk_pos) => local_chunk_pos,
+                    Err(_) => {
+                        failed_unregister_requests.push(id);
+                        continue;
+                    }
+                };
+
+                match registered_root_chunks.remove(&local_chunk_pos) {
                     Some(_) => {},
                     None => {
                         failed_unregister_requests.push(id);
@@ -625,7 +645,13 @@ impl ChunkManager {
                 }
             };
 
-            let local_chunk_pos = id.compute_local_pos();
+            let local_chunk_pos = match id.compute_local_pos() {
+                Ok(local_chunk_pos) => local_chunk_pos,
+                Err(_) => {
+                    failed_unregister_requests.push(id);
+                    continue;
+                }
+            };
 
             match parent_chunk_child_chunks.remove(&local_chunk_pos) {
                 Some(_) => {},
@@ -1005,8 +1031,8 @@ impl ChunkViewer {
                 panic!("Chunk viewer's newly viewed chunk positions are not empty");
             }
 
-            let chunk_viewer_entity_pos: EntityPos = chunk_viewer_transform.translation.into();
-            let chunk_viewer_local_chunk_position: ChunkPos = chunk_viewer_entity_pos.into();
+            let chunk_viewer_local_entity_pos: LocalEntityPos = chunk_viewer_transform.translation.into();
+            let chunk_viewer_local_chunk_position: LocalChunkPos = chunk_viewer_local_entity_pos.into();
             let detected_chunk_positions =
                 Self::get_chunks_in_range(&chunk_viewer_local_chunk_position);
             let currently_viewed_chunk_positions =
