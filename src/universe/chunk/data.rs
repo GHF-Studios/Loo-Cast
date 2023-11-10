@@ -20,6 +20,7 @@ use bevy::prelude::*;
 
 
 // Enums
+#[derive(PartialEq)]
 pub enum ChunkRunState {
     Despawned,
     Spawned {

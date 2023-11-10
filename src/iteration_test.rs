@@ -3,11 +3,11 @@
 // Local imports
 
 // Internal imports
+use crate::AppState;
 use crate::game::SimulationState;
 use crate::player::Player;
-use crate::universe::chunk::*;
-use crate::universe::entity::*;
-use crate::AppState;
+use crate::universe::chunk::pos::*;
+use crate::universe::entity::pos::*;
 
 // External imports
 use bevy::prelude::*;
@@ -155,7 +155,7 @@ impl IterationTestManager {
 
     fn terminate(
         mut commands: Commands,
-        debug_text_panel_query: Query<Entity, With<DebugTextPanel>>,
+        debug_text_panel_query: Query<bevy::prelude::Entity, With<DebugTextPanel>>,
     ) {
         if let Ok(entity) = debug_text_panel_query.get_single() {
             commands.entity(entity).despawn();
@@ -182,8 +182,8 @@ impl IterationTestManager {
     ) {
         for mut text in &mut text_query {
             if let Ok(player_transform) = player_query.get_single() {
-                let entity_pos: EntityPos = player_transform.translation.into();
-                let local_chunk_pos: ChunkPos = entity_pos.into();
+                let local_entity_pos: LocalEntityPos = player_transform.translation.into();
+                let local_chunk_pos: LocalChunkPos = local_entity_pos.into();
                 text.sections[1].value =
                     format!("x: {:.2}, y: {:.2}", local_chunk_pos.x, local_chunk_pos.y);
             }
