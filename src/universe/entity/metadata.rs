@@ -6,6 +6,7 @@
 
 // Internal imports
 use crate::universe::entity::pos::*;
+use crate::universe::chunk::*;
 
 // External imports
 use std::sync::{Arc, Mutex};

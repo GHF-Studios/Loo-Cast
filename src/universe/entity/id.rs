@@ -5,7 +5,7 @@
 
 
 // Internal imports
-use crate::math::*;
+use crate::universe::chunk::id::*;
 
 // External imports
 
