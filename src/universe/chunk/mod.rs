@@ -98,14 +98,6 @@ pub struct ChunkECSEntity {
 #[derive(Resource)]
 pub struct ChunkManager {
     registered_root_chunks: Arc<Mutex<HashMap<LocalChunkPos, Arc<Mutex<Chunk>>>>>,
-    register_requests: Arc<Mutex<Vec<ChunkID>>>,
-    unregister_requests: Arc<Mutex<Vec<ChunkID>>>,
-    load_metadata_requests: Arc<Mutex<Vec<(ChunkID, ChunkMetadata)>>>,
-    unload_metadata_requests: Arc<Mutex<Vec<ChunkID>>>,
-    load_data_requests: Arc<Mutex<Vec<(ChunkID, ChunkData)>>>,
-    unload_data_requests: Arc<Mutex<Vec<ChunkID>>>,
-    spawn_requests: Arc<Mutex<Vec<ChunkID>>>,
-    despawn_requests: Arc<Mutex<Vec<ChunkID>>>,
     operation_requests: Arc<
         Mutex<
             Vec<(
@@ -127,14 +119,7 @@ impl Plugin for ChunkPlugin {
             .add_systems(
                 Update,
                 (
-                    ChunkManager::handle_register_requests,
-                    ChunkManager::handle_unregister_requests,
-                    ChunkManager::handle_load_metadata_requests,
-                    ChunkManager::handle_unload_metadata_requests,
-                    ChunkManager::handle_load_data_requests,
-                    ChunkManager::handle_unload_data_requests,
-                    ChunkManager::handle_spawn_requests,
-                    ChunkManager::handle_despawn_requests,
+                    ChunkManager::handle_operation_requests,
                     Chunk::render_system,
                     ChunkViewer::detect_chunks_system,
                 )
@@ -285,14 +270,6 @@ impl ChunkManager {
     fn initialize(mut commands: Commands) {
         let chunk_manager = Self {
             registered_root_chunks: Arc::new(Mutex::new(HashMap::new())),
-            register_requests: Arc::new(Mutex::new(Vec::new())),
-            unregister_requests: Arc::new(Mutex::new(Vec::new())),
-            load_metadata_requests: Arc::new(Mutex::new(Vec::new())),
-            unload_metadata_requests: Arc::new(Mutex::new(Vec::new())),
-            load_data_requests: Arc::new(Mutex::new(Vec::new())),
-            unload_data_requests: Arc::new(Mutex::new(Vec::new())),
-            spawn_requests: Arc::new(Mutex::new(Vec::new())),
-            despawn_requests: Arc::new(Mutex::new(Vec::new())),
             operation_requests: Arc::new(Mutex::new(Vec::new())),
         };
 
