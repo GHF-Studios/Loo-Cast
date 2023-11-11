@@ -1063,7 +1063,7 @@ impl ChunkViewer {
             let old_chunk_positions = chunk_viewer.previously_viewed_chunk_positions.clone();
 
             for chunk_pos in &old_chunk_positions {
-                chunk_manager.request_unload(*chunk_pos);
+                // TODO: Despawn and fully unload chunk
             }
 
             chunk_viewer
@@ -1076,7 +1076,7 @@ impl ChunkViewer {
             let mut new_chunks_positions = chunk_viewer.newly_viewed_chunk_positions.clone();
 
             for chunk_pos in &new_chunks_positions {
-                chunk_manager.request_load(*chunk_pos);
+                // TODO: Fully load anf spawn chunk
             }
 
             chunk_viewer
