@@ -1,28 +1,22 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::universe::chunk::id::*;
 
 // External imports
 
-
 // Static variables
-
 
 // Constant variables
 
-
 // Types
-
 
 // Enums
 
-
 // Structs
+#[derive(Clone)]
 pub struct EntityID {
     chunk_id: ChunkID,
     local_id: u64,
@@ -41,10 +35,7 @@ impl EntityID {
             return Err("Cannot create entity id: Local id space has been exhausted.".to_string());
         }
 
-        Ok(EntityID {
-            chunk_id,
-            local_id,
-        })
+        Ok(EntityID { chunk_id, local_id })
     }
 
     pub fn get_chunk_id(&self) -> ChunkID {

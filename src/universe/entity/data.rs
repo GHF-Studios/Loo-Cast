@@ -1,28 +1,21 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 
-
 // External imports
-
 
 // Static variables
 
-
 // Constant variables
-
 
 // Types
 
-
 // Enums
 
-
 // Structs
+#[derive(Clone)]
 pub struct EntityData {
     pub(super) placeholder_data: Option<i32>,
 }

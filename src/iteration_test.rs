@@ -3,11 +3,11 @@
 // Local imports
 
 // Internal imports
-use crate::AppState;
 use crate::game::SimulationState;
 use crate::player::Player;
 use crate::universe::chunk::pos::*;
 use crate::universe::entity::pos::*;
+use crate::AppState;
 
 // External imports
 use bevy::prelude::*;

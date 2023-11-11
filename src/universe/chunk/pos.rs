@@ -1,8 +1,6 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::universe::chunk::*;
@@ -10,18 +8,13 @@ use crate::universe::entity::pos::*;
 
 // External imports
 
-
 // Static variables
-
 
 // Constant variables
 
-
 // Types
 
-
 // Enums
-
 
 // Structs
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
@@ -33,7 +26,7 @@ pub struct ChunkPos {
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct LocalChunkPos {
     pub x: i8,
-    pub y: i8
+    pub y: i8,
 }
 
 // Implementations
@@ -65,7 +58,10 @@ impl ChunkPos {
 impl From<LocalEntityPos> for LocalChunkPos {
     fn from(local_entity_pos: LocalEntityPos) -> LocalChunkPos {
         let half_chunk = (CHUNK_SIZE as f32) / 2.0;
-        LocalChunkPos::new(((local_entity_pos.x + half_chunk) / CHUNK_SIZE as f32).floor() as i8, ((local_entity_pos.y + half_chunk) / CHUNK_SIZE as f32).floor() as i8)
+        LocalChunkPos::new(
+            ((local_entity_pos.x + half_chunk) / CHUNK_SIZE as f32).floor() as i8,
+            ((local_entity_pos.y + half_chunk) / CHUNK_SIZE as f32).floor() as i8,
+        )
     }
 }
 
@@ -86,10 +82,7 @@ impl Into<(u8, u8)> for LocalChunkPos {
 
 impl LocalChunkPos {
     pub fn new(x: i8, y: i8) -> Self {
-        LocalChunkPos {
-            x,
-            y,
-        }
+        LocalChunkPos { x, y }
     }
 }
 

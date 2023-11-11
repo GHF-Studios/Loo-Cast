@@ -11,8 +11,8 @@ use metadata::*;
 use pos::*;
 
 // Internal imports
-use crate::AppState;
 use crate::game::SimulationState;
+use crate::AppState;
 
 // External imports
 use bevy::prelude::*;
@@ -20,12 +20,9 @@ use std::sync::{Arc, Mutex, RwLock};
 
 // Static variables
 
-
 // Constant variables
 
-
 // Types
-
 
 // Enums
 pub enum Entity {
@@ -53,9 +50,7 @@ pub enum EntityLoadState {
 pub struct EntityPlugin;
 
 #[derive(Resource)]
-pub struct EntityManager {
-
-}
+pub struct EntityManager {}
 
 // Implementations
 impl Plugin for EntityPlugin {
@@ -66,11 +61,8 @@ impl Plugin for EntityPlugin {
             // Update Systems
             .add_systems(
                 Update,
-                (
-
-                )
-                    .run_if(in_state(AppState::Game))
-                    .run_if(in_state(SimulationState::Running))
+                ().run_if(in_state(AppState::Game))
+                    .run_if(in_state(SimulationState::Running)),
             )
             // Exit Systems
             .add_systems(OnExit(AppState::Game), EntityManager::terminate);
@@ -92,7 +84,7 @@ impl Entity {
                     metadata: Arc::new(Mutex::new(metadata)),
                 };
                 Ok(())
-            },
+            }
             Entity::MetadataLoaded { .. } => {
                 Err("Cannot load metadata: Metadata is already loaded.".to_string())
             }
@@ -114,7 +106,7 @@ impl Entity {
                     data: Arc::new(Mutex::new(data)),
                 };
                 Ok(())
-            },
+            }
             Entity::DataLoaded { .. } => {
                 Err("Cannot load data: Data is already loaded.".to_string())
             }

@@ -14,15 +14,11 @@ use bevy::prelude::*;
 
 // Static variables
 
-
 // Constant variables
-
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct UniversePlugin;

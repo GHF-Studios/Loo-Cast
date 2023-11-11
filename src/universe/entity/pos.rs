@@ -1,27 +1,21 @@
 // Modules
 
-
 // Local imports
 
-
 // Internal imports
-use crate::universe::chunk::*;
 use crate::universe::chunk::pos::*;
+use crate::universe::chunk::*;
 
 // External imports
 use bevy::prelude::*;
 
 // Static variables
 
-
 // Constant variables
-
 
 // Types
 
-
 // Enums
-
 
 // Structs
 #[derive(Clone, PartialEq, Debug)]
@@ -103,10 +97,7 @@ impl Into<Vec3> for LocalEntityPos {
 
 impl LocalEntityPos {
     pub fn new(x: f32, y: f32) -> Self {
-        LocalEntityPos {
-            x,
-            y,
-        }
+        LocalEntityPos { x, y }
     }
 }
 

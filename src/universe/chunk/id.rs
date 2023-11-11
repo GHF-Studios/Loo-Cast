@@ -1,28 +1,22 @@
 // Modules
 
-
 // Local imports
-
 
 // Internal imports
 use crate::math::*;
-use crate::universe::entity::id::*;
 use crate::universe::chunk::pos::*;
+use crate::universe::entity::id::*;
 
 // External imports
 use num_bigint::BigUint;
 
 // Static variables
 
-
 // Constant variables
-
 
 // Types
 
-
 // Enums
-
 
 // Structs
 #[derive(Clone, Debug)]
@@ -158,14 +152,18 @@ impl ChunkID {
 
         let mut id_base10x10 = self.global_id_base10x10.clone();
         id_base10x10.pop();
-        
+
         return ChunkID::try_from(id_base10x10);
     }
 
     pub fn compute_local_pos(&self) -> Result<LocalChunkPos, String> {
         let local_pos_base10x10 = match self.global_id_base10x10.last() {
             Some(local_pos_base10x10) => local_pos_base10x10.clone(),
-            None => return Err("Cannot compute local position from chunk ID: Invalid chunk ID.".to_string()),
+            None => {
+                return Err(
+                    "Cannot compute local position from chunk ID: Invalid chunk ID.".to_string(),
+                )
+            }
         };
 
         return Ok(LocalChunkPos::from(local_pos_base10x10));
@@ -191,7 +189,6 @@ impl ChunkID {
                 let local_pos_base10x10 = id_base10x10.pop().unwrap();
                 chunk_pos = ChunkPos::new(Some(Box::new(chunk_pos)), local_pos_base10x10.into());
             }
-
         }
 
         Ok(chunk_pos)
