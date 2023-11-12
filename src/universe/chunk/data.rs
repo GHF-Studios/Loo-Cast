@@ -14,14 +14,14 @@ use bevy::prelude::*;
 // Types
 
 // Enums
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ChunkRunState {
     Despawned,
     Spawned { ecs_entity: Entity },
 }
 
 // Structs
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ChunkData {
     pub(super) run_state: ChunkRunState,
 }

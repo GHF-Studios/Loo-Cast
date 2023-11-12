@@ -123,6 +123,10 @@ impl Base10x10Converter {
             return Err("Base10x10 input has more pairs than allowed by the specified max number of base10x10 digits!".to_string());
         }
 
+        if input.is_empty() {
+            return Err("Base10x10 input is empty!".to_string());
+        }
+
         let mut result = BigUint::zero();
         let mut num_pairs = 0;
 

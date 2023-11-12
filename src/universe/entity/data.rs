@@ -15,7 +15,7 @@
 // Enums
 
 // Structs
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct EntityData {
     pub(super) placeholder_data: Option<i32>,
 }

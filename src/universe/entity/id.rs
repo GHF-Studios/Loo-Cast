@@ -16,7 +16,7 @@ use crate::universe::chunk::id::*;
 // Enums
 
 // Structs
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct EntityID {
     chunk_id: ChunkID,
     local_id: u64,

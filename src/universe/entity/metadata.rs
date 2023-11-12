@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex};
 // Enums
 
 // Structs
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct EntityMetadata {
     pub(super) pos: EntityPos,
     pub(super) parent_chunk: Arc<Mutex<Chunk>>,

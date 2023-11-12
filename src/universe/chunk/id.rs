@@ -49,7 +49,7 @@ impl TryFrom<(u8, u8)> for ChunkID {
             global_id_base10,
             global_id_base10x10: vec![global_id_base10x10],
             global_id_base57,
-            scale_index: 1,
+            scale_index: 0,
         };
 
         Ok(chunk_id)
@@ -67,7 +67,7 @@ impl TryFrom<BigUint> for ChunkID {
             .convert_to_base57(global_id_base10.clone())
             .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
 
-        let scale_index = global_id_base10x10.len() as u8;
+        let scale_index = global_id_base10x10.len() as u8 - 1;
 
         let chunk_id = ChunkID {
             global_id_base10,
@@ -84,6 +84,10 @@ impl TryFrom<Vec<(u8, u8)>> for ChunkID {
     type Error = String;
 
     fn try_from(global_id_base10x10: Vec<(u8, u8)>) -> Result<Self, Self::Error> {
+        if global_id_base10x10.is_empty() {
+            return Err("Cannot convert empty vector to chunk ID.".to_string());
+        }
+
         let global_id_base10 = BASE10X10_CONVERTER
             .convert_from_base10x10(global_id_base10x10.clone())
             .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
@@ -91,7 +95,7 @@ impl TryFrom<Vec<(u8, u8)>> for ChunkID {
             .convert_to_base57(global_id_base10.clone())
             .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
 
-        let scale_index = global_id_base10x10.len() as u8;
+        let scale_index = global_id_base10x10.len() as u8 - 1;
 
         let chunk_id = ChunkID {
             global_id_base10,
@@ -108,6 +112,10 @@ impl TryFrom<&str> for ChunkID {
     type Error = String;
 
     fn try_from(global_id_base57: &str) -> Result<Self, Self::Error> {
+        if global_id_base57.is_empty() {
+            return Err("Cannot convert empty string to chunk ID.".to_string());
+        }
+
         let global_id_base10 = BASE57_CONVERTER
             .convert_from_base57(global_id_base57.clone())
             .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
@@ -115,7 +123,7 @@ impl TryFrom<&str> for ChunkID {
             .convert_to_base10x10(global_id_base10.clone())
             .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
 
-        let scale_index = global_id_base10x10.len() as u8;
+        let scale_index = global_id_base10x10.len() as u8 - 1;
 
         let chunk_id = ChunkID {
             global_id_base10,

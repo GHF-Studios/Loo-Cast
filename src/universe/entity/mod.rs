@@ -25,6 +25,7 @@ use std::sync::{Arc, Mutex, RwLock};
 // Types
 
 // Enums
+#[derive(Debug)]
 pub enum Entity {
     Registered {
         id: Arc<RwLock<EntityID>>,

@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex};
 // Enums
 
 // Structs
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ChunkMetadata {
     pub(super) pos: ChunkPos,
     pub(super) parent_chunk: Option<Arc<Mutex<Chunk>>>,

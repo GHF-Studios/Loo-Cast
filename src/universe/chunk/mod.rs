@@ -23,12 +23,13 @@ use std::sync::{Arc, Mutex};
 // Static variables
 
 // Constant variables
-pub const CHUNK_SIZE: u16 = 64;
-pub const VIEW_RADIUS: u16 = 4;
+pub const CHUNK_SIZE: u16 = 512;
+pub const VIEW_RADIUS: u16 = 2;
 
 // Types
 
 // Enums
+#[derive(Debug)]
 pub enum Chunk {
     Registered {
         id: ChunkID,
@@ -96,6 +97,7 @@ pub enum ChunkOperation {
     },
 }
 
+#[derive(Debug)]
 pub enum RegisterChunkError {
     RegisteredRootChunksMutexPoisoned,
     ParentChunkMutexPoisoned,
@@ -107,6 +109,7 @@ pub enum RegisterChunkError {
     FailedToComputeParentChunkID,
 }
 
+#[derive(Debug)]
 pub enum UnregisterChunkError {
     RegisteredRootChunksMutexPoisoned,
     ParentChunkMutexPoisoned,
@@ -121,6 +124,7 @@ pub enum UnregisterChunkError {
     ChunkAlreadyUnregistered,
 }
 
+#[derive(Debug)]
 pub enum LoadChunkMetadataError {
     ChunkNotRegistered,
     ChunkMutexPoisoned,
@@ -128,6 +132,7 @@ pub enum LoadChunkMetadataError {
     FatalUnexpectedError,
 }
 
+#[derive(Debug)]
 pub enum UnloadChunkMetadataError {
     ChunkNotRegistered,
     ChunkMutexPoisoned,
@@ -137,6 +142,7 @@ pub enum UnloadChunkMetadataError {
     FatalUnexpectedError,
 }
 
+#[derive(Debug)]
 pub enum LoadChunkDataError {
     ChunkNotRegistered,
     ChunkMutexPoisoned,
@@ -145,6 +151,7 @@ pub enum LoadChunkDataError {
     FatalUnexpectedError,
 }
 
+#[derive(Debug)]
 pub enum UnloadChunkDataError {
     ChunkNotRegistered,
     ChunkMutexPoisoned,
@@ -153,6 +160,7 @@ pub enum UnloadChunkDataError {
     FatalUnexpectedError,
 }
 
+#[derive(Debug)]
 pub enum SpawnChunkError {
     ChunkNotRegistered,
     ChunkMutexPoisoned,
@@ -160,6 +168,7 @@ pub enum SpawnChunkError {
     ChunkAlreadySpawned,
 }
 
+#[derive(Debug)]
 pub enum DespawnChunkError {
     ChunkNotRegistered,
     ChunkMutexPoisoned,
@@ -1219,6 +1228,16 @@ impl ChunkViewer {
 
                 match chunk_manager.send_operation_request(ChunkOperationRequest {
                     operations: vec![
+                        ChunkOperation::Despawn {
+                            id: old_chunk_id.clone(),
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|_, _| {}),
+                        },
+                        ChunkOperation::UnloadData {
+                            id: old_chunk_id.clone(),
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|_, _| {}),
+                        },
                         ChunkOperation::UnloadMetadata {
                             id: old_chunk_id.clone(),
                             success_callback: Box::new(|_| {}),
@@ -1257,12 +1276,15 @@ impl ChunkViewer {
                         continue;
                     }
                 };
+
                 let new_chunk_metadata = match ChunkMetadata::new(None, new_local_chunk_pos) {
                     Ok(new_chunk_metadata) => new_chunk_metadata,
                     Err(_) => {
                         continue;
                     }
                 };
+
+                let new_chunk_data = ChunkData::new();
 
                 match chunk_manager.send_operation_request(ChunkOperationRequest {
                     operations: vec![
@@ -1272,10 +1294,21 @@ impl ChunkViewer {
                             failure_callback: Box::new(|_, _| {}),
                         },
                         ChunkOperation::LoadMetadata {
-                            id: new_chunk_id,
+                            id: new_chunk_id.clone(),
                             metadata: new_chunk_metadata,
                             success_callback: Box::new(|_| {}),
                             failure_callback: Box::new(|_, _, _| {}),
+                        },
+                        ChunkOperation::LoadData {
+                            id: new_chunk_id.clone(),
+                            data: new_chunk_data,
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|_, _, _| {}),
+                        },
+                        ChunkOperation::Spawn {
+                            id: new_chunk_id,
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|_, _| {}),
                         },
                     ],
                 }) {
