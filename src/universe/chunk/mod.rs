@@ -171,7 +171,7 @@ pub enum DespawnChunkError {
 pub struct ChunkPlugin;
 
 pub struct ChunkOperationRequest {
-    operations: Vec<ChunkOperation>
+    operations: Vec<ChunkOperation>,
 }
 
 pub struct RegisterChunkSuccess;
@@ -387,7 +387,9 @@ impl ChunkManager {
         }
         let root_chunk_id = path.remove(0);
         let registered_root_chunks = self.registered_root_chunks.lock().ok()?;
-        let mut registered_chunk = registered_root_chunks.get(&LocalChunkPos::from(root_chunk_id))?.clone();
+        let mut registered_chunk = registered_root_chunks
+            .get(&LocalChunkPos::from(root_chunk_id))?
+            .clone();
         drop(registered_root_chunks);
 
         for &local_id in &path {
@@ -396,9 +398,8 @@ impl ChunkManager {
                 let current_chunk = registered_chunk.lock().ok()?;
                 let current_chunk_metadata = match *current_chunk {
                     Chunk::Registered { .. } => return None,
-                    Chunk::MetadataLoaded { ref metadata, .. } | Chunk::DataLoaded { ref metadata, .. } => {
-                        metadata
-                    }
+                    Chunk::MetadataLoaded { ref metadata, .. }
+                    | Chunk::DataLoaded { ref metadata, .. } => metadata,
                 };
                 let current_chunk_child_chunks = match current_chunk_metadata.child_chunks {
                     Some(ref current_chunk_child_chunks) => current_chunk_child_chunks,
@@ -406,7 +407,7 @@ impl ChunkManager {
                 };
                 current_chunk_child_chunks.get(&local_id)?.clone()
             };
-        
+
             registered_chunk = next_chunk;
         }
 
@@ -423,10 +424,11 @@ impl ChunkManager {
             Ok(registered_root_chunks) => registered_root_chunks,
             Err(_) => return false,
         };
-        let mut registered_chunk = match registered_root_chunks.get(&LocalChunkPos::from(root_chunk_id)) {
-            Some(registered_chunk) => registered_chunk.clone(),
-            None => return false,
-        };
+        let mut registered_chunk =
+            match registered_root_chunks.get(&LocalChunkPos::from(root_chunk_id)) {
+                Some(registered_chunk) => registered_chunk.clone(),
+                None => return false,
+            };
         drop(registered_root_chunks);
 
         for &local_id in &path {
@@ -438,9 +440,8 @@ impl ChunkManager {
                 };
                 let current_chunk_metadata = match *current_chunk {
                     Chunk::Registered { .. } => return false,
-                    Chunk::MetadataLoaded { ref metadata, .. } | Chunk::DataLoaded { ref metadata, .. } => {
-                        metadata
-                    }
+                    Chunk::MetadataLoaded { ref metadata, .. }
+                    | Chunk::DataLoaded { ref metadata, .. } => metadata,
                 };
                 let current_chunk_child_chunks = match current_chunk_metadata.child_chunks {
                     Some(ref current_chunk_child_chunks) => current_chunk_child_chunks,
@@ -451,14 +452,14 @@ impl ChunkManager {
                     None => return false,
                 }
             };
-        
+
             registered_chunk = next_chunk;
         }
 
         true
     }
 
-    pub fn request_operation(&mut self, request: ChunkOperationRequest) -> Result<(), String> {
+    pub fn send_operation_request(&mut self, request: ChunkOperationRequest) -> Result<(), String> {
         let mut operation_requests = match self.operation_requests.lock() {
             Ok(operation_requests) => operation_requests,
             Err(_) => {
@@ -546,84 +547,102 @@ impl ChunkManager {
         for operation_request in operation_requests {
             for operation in operation_request.operations {
                 match operation {
-                    ChunkOperation::Register { id, success_callback, failure_callback } => {
-                        match Self::register_chunk(&mut chunk_manager, id) {
-                            Ok(success) => {
-                                success_callback(success);
-                            }
-                            Err((error, chunk_id)) => {
-                                failure_callback(error, chunk_id);
-                            }
+                    ChunkOperation::Register {
+                        id,
+                        success_callback,
+                        failure_callback,
+                    } => match Self::register_chunk(&mut chunk_manager, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err((error, chunk_id)) => {
+                            failure_callback(error, chunk_id);
                         }
                     },
-                    ChunkOperation::Unregister { id, success_callback, failure_callback } => {
-                        match Self::unregister_chunk(&mut chunk_manager, id) {
-                            Ok(success) => {
-                                success_callback(success);
-                            }
-                            Err((error, chunk_id)) => {
-                                failure_callback(error, chunk_id);
-                            }
+                    ChunkOperation::Unregister {
+                        id,
+                        success_callback,
+                        failure_callback,
+                    } => match Self::unregister_chunk(&mut chunk_manager, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err((error, chunk_id)) => {
+                            failure_callback(error, chunk_id);
                         }
                     },
-                    ChunkOperation::LoadMetadata { id, metadata, success_callback, failure_callback } => {
-                        match Self::load_chunk_metadata(&mut chunk_manager, id, metadata) {
-                            Ok(success) => {
-                                success_callback(success);
-                            }
-                            Err((error, chunk_id, chunk_metadata)) => {
-                                failure_callback(error, chunk_id, chunk_metadata);
-                            }
+                    ChunkOperation::LoadMetadata {
+                        id,
+                        metadata,
+                        success_callback,
+                        failure_callback,
+                    } => match Self::load_chunk_metadata(&mut chunk_manager, id, metadata) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err((error, chunk_id, chunk_metadata)) => {
+                            failure_callback(error, chunk_id, chunk_metadata);
                         }
                     },
-                    ChunkOperation::UnloadMetadata { id, success_callback, failure_callback } => {
-                        match Self::unload_chunk_metadata(&mut chunk_manager, id) {
-                            Ok(success) => {
-                                success_callback(success);
-                            }
-                            Err((error, chunk_id)) => {
-                                failure_callback(error, chunk_id);
-                            }
+                    ChunkOperation::UnloadMetadata {
+                        id,
+                        success_callback,
+                        failure_callback,
+                    } => match Self::unload_chunk_metadata(&mut chunk_manager, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err((error, chunk_id)) => {
+                            failure_callback(error, chunk_id);
                         }
                     },
-                    ChunkOperation::LoadData { id, data, success_callback, failure_callback } => {
-                        match Self::load_chunk_data(&mut chunk_manager, id, data) {
-                            Ok(success) => {
-                                success_callback(success);
-                            }
-                            Err((error, chunk_id, chunk_data)) => {
-                                failure_callback(error, chunk_id, chunk_data);
-                            }
+                    ChunkOperation::LoadData {
+                        id,
+                        data,
+                        success_callback,
+                        failure_callback,
+                    } => match Self::load_chunk_data(&mut chunk_manager, id, data) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err((error, chunk_id, chunk_data)) => {
+                            failure_callback(error, chunk_id, chunk_data);
                         }
                     },
-                    ChunkOperation::UnloadData { id, success_callback, failure_callback } => {
-                        match Self::unload_chunk_data(&mut chunk_manager, id) {
-                            Ok(success) => {
-                                success_callback(success);
-                            }
-                            Err((error, chunk_id)) => {
-                                failure_callback(error, chunk_id);
-                            }
+                    ChunkOperation::UnloadData {
+                        id,
+                        success_callback,
+                        failure_callback,
+                    } => match Self::unload_chunk_data(&mut chunk_manager, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err((error, chunk_id)) => {
+                            failure_callback(error, chunk_id);
                         }
                     },
-                    ChunkOperation::Spawn { id, success_callback, failure_callback } => {
-                        match Self::spawn_chunk(&mut commands, &mut chunk_manager, id) {
-                            Ok(success) => {
-                                success_callback(success);
-                            }
-                            Err((error, chunk_id)) => {
-                                failure_callback(error, chunk_id);
-                            }
+                    ChunkOperation::Spawn {
+                        id,
+                        success_callback,
+                        failure_callback,
+                    } => match Self::spawn_chunk(&mut commands, &mut chunk_manager, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err((error, chunk_id)) => {
+                            failure_callback(error, chunk_id);
                         }
                     },
-                    ChunkOperation::Despawn { id, success_callback, failure_callback } => {
-                        match Self::despawn_chunk(&mut commands, &mut chunk_manager, id) {
-                            Ok(success) => {
-                                success_callback(success);
-                            }
-                            Err((error, chunk_id)) => {
-                                failure_callback(error, chunk_id);
-                            }
+                    ChunkOperation::Despawn {
+                        id,
+                        success_callback,
+                        failure_callback,
+                    } => match Self::despawn_chunk(&mut commands, &mut chunk_manager, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err((error, chunk_id)) => {
+                            failure_callback(error, chunk_id);
                         }
                     },
                 }
@@ -672,39 +691,27 @@ impl ChunkManager {
         let parent_id = match ChunkID::try_from(parent_id_base10x10) {
             Ok(parent_id) => parent_id,
             Err(_) => {
-                return Err((
-                    RegisterChunkError::FailedToComputeParentChunkID,
-                    chunk_id,
-                ));
+                return Err((RegisterChunkError::FailedToComputeParentChunkID, chunk_id));
             }
         };
 
         let parent_chunk = match chunk_manager.get_registered_chunk(&parent_id) {
             Some(parent_chunk) => parent_chunk,
             None => {
-                return Err((
-                    RegisterChunkError::ParentChunkNotRegistered,
-                    chunk_id,
-                ));
+                return Err((RegisterChunkError::ParentChunkNotRegistered, chunk_id));
             }
         };
         let mut parent_chunk = match parent_chunk.lock() {
             Ok(parent_chunk) => parent_chunk,
             Err(_) => {
-                return Err((
-                    RegisterChunkError::ParentChunkMutexPoisoned,
-                    chunk_id,
-                ));
+                return Err((RegisterChunkError::ParentChunkMutexPoisoned, chunk_id));
             }
         };
 
         let parent_chunk_metadata = match Self::get_metadata_mut(&mut parent_chunk) {
             Ok(parent_chunk_metadata) => parent_chunk_metadata,
             Err(_) => {
-                return Err((
-                    RegisterChunkError::ParentChunkMetadataNotLoaded,
-                    chunk_id,
-                ));
+                return Err((RegisterChunkError::ParentChunkMetadataNotLoaded, chunk_id));
             }
         };
 
@@ -729,10 +736,7 @@ impl ChunkManager {
         };
 
         if parent_chunk_child_chunks.contains_key(&local_chunk_pos) {
-            return Err((
-                RegisterChunkError::ChunkAlreadyRegistered,
-                chunk_id,
-            ));
+            return Err((RegisterChunkError::ChunkAlreadyRegistered, chunk_id));
         }
 
         let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id)));
@@ -777,10 +781,7 @@ impl ChunkManager {
             match registered_root_chunks.remove(&local_chunk_pos) {
                 Some(_) => {}
                 None => {
-                    return Err((
-                        UnregisterChunkError::ChunkAlreadyUnregistered,
-                        chunk_id,
-                    ));
+                    return Err((UnregisterChunkError::ChunkAlreadyUnregistered, chunk_id));
                 }
             };
 
@@ -795,57 +796,39 @@ impl ChunkManager {
         };
 
         match *chunk {
-            Chunk::Registered { .. } => {},
+            Chunk::Registered { .. } => {}
             Chunk::MetadataLoaded { .. } => {
-                return Err((
-                    UnregisterChunkError::ChunkMetadataStillLoaded,
-                    chunk_id,
-                ));
-            },
+                return Err((UnregisterChunkError::ChunkMetadataStillLoaded, chunk_id));
+            }
             Chunk::DataLoaded { .. } => {
-                return Err((
-                    UnregisterChunkError::ChunkDataStillLoaded,
-                    chunk_id,
-                ));
+                return Err((UnregisterChunkError::ChunkDataStillLoaded, chunk_id));
             }
         }
 
         let parent_chunk_id = match chunk_id.compute_parent_id() {
             Ok(parent_chunk_id) => parent_chunk_id,
             Err(_) => {
-                return Err((
-                    UnregisterChunkError::FailedToComputeParentChunkID,
-                    chunk_id,
-                ));
+                return Err((UnregisterChunkError::FailedToComputeParentChunkID, chunk_id));
             }
         };
 
         let parent_chunk = match chunk_manager.get_registered_chunk(&parent_chunk_id) {
             Some(parent_chunk) => parent_chunk,
             None => {
-                return Err((
-                    UnregisterChunkError::ParentChunkNotRegistered,
-                    chunk_id,
-                ));
+                return Err((UnregisterChunkError::ParentChunkNotRegistered, chunk_id));
             }
         };
         let mut parent_chunk = match parent_chunk.lock() {
             Ok(parent_chunk) => parent_chunk,
             Err(_) => {
-                return Err((
-                    UnregisterChunkError::ParentChunkMutexPoisoned,
-                    chunk_id,
-                ));
+                return Err((UnregisterChunkError::ParentChunkMutexPoisoned, chunk_id));
             }
         };
 
         let parent_chunk_metadata = match Self::get_metadata_mut(&mut parent_chunk) {
             Ok(parent_chunk_metadata) => parent_chunk_metadata,
             Err(_) => {
-                return Err((
-                    UnregisterChunkError::ParentChunkMetadataNotLoaded,
-                    chunk_id,
-                ));
+                return Err((UnregisterChunkError::ParentChunkMetadataNotLoaded, chunk_id));
             }
         };
 
@@ -874,10 +857,7 @@ impl ChunkManager {
                 return Ok(UnregisterChunkSuccess);
             }
             None => {
-                return Err((
-                    UnregisterChunkError::ChunkAlreadyUnregistered,
-                    chunk_id,
-                ));
+                return Err((UnregisterChunkError::ChunkAlreadyUnregistered, chunk_id));
             }
         };
     }
@@ -890,7 +870,11 @@ impl ChunkManager {
         let chunk: Arc<Mutex<Chunk>> = match chunk_manager.get_registered_chunk(&chunk_id) {
             Some(chunk) => chunk,
             None => {
-                return Err((LoadChunkMetadataError::ChunkNotRegistered, chunk_id, chunk_metadata));
+                return Err((
+                    LoadChunkMetadataError::ChunkNotRegistered,
+                    chunk_id,
+                    chunk_metadata,
+                ));
             }
         };
         let mut chunk = match chunk.lock() {
@@ -911,7 +895,7 @@ impl ChunkManager {
                     let stolen_id = std::mem::take(&mut *id);
                     *chunk = Chunk::MetadataLoaded {
                         id: stolen_id,
-                        metadata: chunk_metadata
+                        metadata: chunk_metadata,
                     };
                     return Ok(LoadChunkMetadataSuccess);
                 } else {
@@ -952,7 +936,10 @@ impl ChunkManager {
         let chunk_metadata = match Self::get_metadata(&chunk) {
             Ok(chunk_metadata) => chunk_metadata,
             Err(_) => {
-                return Err((UnloadChunkMetadataError::ChunkMetadataAlreadyUnloaded, chunk_id));
+                return Err((
+                    UnloadChunkMetadataError::ChunkMetadataAlreadyUnloaded,
+                    chunk_id,
+                ));
             }
         };
         if chunk_metadata
@@ -968,7 +955,10 @@ impl ChunkManager {
 
         match &mut *chunk {
             Chunk::Registered { .. } => {
-                return Err((UnloadChunkMetadataError::ChunkMetadataAlreadyUnloaded, chunk_id));
+                return Err((
+                    UnloadChunkMetadataError::ChunkMetadataAlreadyUnloaded,
+                    chunk_id,
+                ));
             }
             Chunk::MetadataLoaded { id, .. } => {
                 let stolen_id = std::mem::take(id);
@@ -1001,7 +991,11 @@ impl ChunkManager {
 
         match &mut *chunk {
             Chunk::Registered { .. } => {
-                return Err((LoadChunkDataError::ChunkMetadataNotLoaded, chunk_id, chunk_data));
+                return Err((
+                    LoadChunkDataError::ChunkMetadataNotLoaded,
+                    chunk_id,
+                    chunk_data,
+                ));
             }
             Chunk::MetadataLoaded { id, metadata } => {
                 let stolen_id = std::mem::take(id);
@@ -1014,7 +1008,11 @@ impl ChunkManager {
                 return Ok(LoadChunkDataSuccess);
             }
             Chunk::DataLoaded { .. } => {
-                return Err((LoadChunkDataError::ChunkDataAlreadyLoaded, chunk_id, chunk_data));
+                return Err((
+                    LoadChunkDataError::ChunkDataAlreadyLoaded,
+                    chunk_id,
+                    chunk_data,
+                ));
             }
         }
     }
@@ -1053,7 +1051,10 @@ impl ChunkManager {
             Chunk::DataLoaded { id, metadata, .. } => {
                 let stolen_id = std::mem::take(id);
                 let stolen_metadata = std::mem::take(metadata);
-                *chunk = Chunk::MetadataLoaded { id: stolen_id, metadata: stolen_metadata };
+                *chunk = Chunk::MetadataLoaded {
+                    id: stolen_id,
+                    metadata: stolen_metadata,
+                };
                 return Ok(UnloadChunkDataSuccess);
             }
         }
@@ -1216,7 +1217,25 @@ impl ChunkViewer {
                     }
                 };
 
-                // TODO: Despawn and fully unload chunk
+                match chunk_manager.send_operation_request(ChunkOperationRequest {
+                    operations: vec![
+                        ChunkOperation::UnloadMetadata {
+                            id: old_chunk_id.clone(),
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|_, _| {}),
+                        },
+                        ChunkOperation::Despawn {
+                            id: old_chunk_id,
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|_, _| {}),
+                        },
+                    ],
+                }) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        continue;
+                    }
+                }
             }
 
             chunk_viewer
@@ -1231,15 +1250,40 @@ impl ChunkViewer {
 
             for new_local_chunk_pos in &new_local_chunk_positions {
                 let new_local_chunk_pos = new_local_chunk_pos.clone();
-                let new_local_chunk_pos_base10x10: (u8, u8) = new_local_chunk_pos.into();
+                let new_local_chunk_pos_base10x10: (u8, u8) = new_local_chunk_pos.clone().into();
                 let new_chunk_id = match ChunkID::try_from(new_local_chunk_pos_base10x10) {
                     Ok(new_chunk_id) => new_chunk_id,
                     Err(_) => {
                         continue;
                     }
                 };
+                let new_chunk_metadata = match ChunkMetadata::new(None, new_local_chunk_pos) {
+                    Ok(new_chunk_metadata) => new_chunk_metadata,
+                    Err(_) => {
+                        continue;
+                    }
+                };
 
-                // TODO: Fully load and spawn chunk
+                match chunk_manager.send_operation_request(ChunkOperationRequest {
+                    operations: vec![
+                        ChunkOperation::Register {
+                            id: new_chunk_id.clone(),
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|_, _| {}),
+                        },
+                        ChunkOperation::LoadMetadata {
+                            id: new_chunk_id,
+                            metadata: new_chunk_metadata,
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|_, _, _| {}),
+                        },
+                    ],
+                }) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        continue;
+                    }
+                }
             }
 
             chunk_viewer
