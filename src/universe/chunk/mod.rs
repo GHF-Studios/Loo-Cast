@@ -146,8 +146,10 @@ pub enum UnloadChunkMetadataError {
 pub enum LoadChunkDataError {
     ChunkNotRegistered,
     ChunkMutexPoisoned,
+    ParentChunkMutexPoisoned,
     ChunkMetadataNotLoaded,
     ChunkDataAlreadyLoaded,
+    ParentChunkDataNotLoaded,
     FatalUnexpectedError,
 }
 
@@ -157,6 +159,7 @@ pub enum UnloadChunkDataError {
     ChunkMutexPoisoned,
     ChunkStillSpawned,
     ChunkDataAlreadyUnloaded,
+    ChildChunksStillRegistered,
     FatalUnexpectedError,
 }
 
@@ -164,8 +167,10 @@ pub enum UnloadChunkDataError {
 pub enum SpawnChunkError {
     ChunkNotRegistered,
     ChunkMutexPoisoned,
+    ParentChunkMutexPoisoned,
     ChunkDataNotLoaded,
     ChunkAlreadySpawned,
+    ParentChunkNotSpawned,
 }
 
 #[derive(Debug)]
@@ -174,6 +179,7 @@ pub enum DespawnChunkError {
     ChunkMutexPoisoned,
     ChunkDataNotLoaded,
     ChunkAlreadyDespawned,
+    ChildChunksStillSpawned,
 }
 
 // Structs
@@ -998,7 +1004,7 @@ impl ChunkManager {
             }
         };
 
-        match &mut *chunk {
+        let (stolen_id, stolen_metadata) = match &mut *chunk {
             Chunk::Registered { .. } => {
                 return Err((
                     LoadChunkDataError::ChunkMetadataNotLoaded,
@@ -1009,12 +1015,8 @@ impl ChunkManager {
             Chunk::MetadataLoaded { id, metadata } => {
                 let stolen_id = std::mem::take(id);
                 let stolen_metadata = std::mem::take(metadata);
-                *chunk = Chunk::DataLoaded {
-                    id: stolen_id,
-                    metadata: stolen_metadata,
-                    data: chunk_data,
-                };
-                return Ok(LoadChunkDataSuccess);
+
+                (stolen_id, stolen_metadata)
             }
             Chunk::DataLoaded { .. } => {
                 return Err((
@@ -1023,7 +1025,40 @@ impl ChunkManager {
                     chunk_data,
                 ));
             }
+        };
+
+        let parent_chunk = stolen_metadata.parent_chunk.clone();
+
+        if let Some(parent_chunk) = parent_chunk {
+            let parent_chunk = match parent_chunk.lock() {
+                Ok(parent_chunk) => parent_chunk,
+                Err(_) => {
+                    return Err((
+                        LoadChunkDataError::ParentChunkMutexPoisoned,
+                        chunk_id,
+                        chunk_data,
+                    ));
+                }
+            };
+
+            match *parent_chunk {
+                Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
+                    return Err((
+                        LoadChunkDataError::ParentChunkDataNotLoaded,
+                        chunk_id,
+                        chunk_data,
+                    ));
+                },
+                Chunk::DataLoaded { .. } => {}
+            }
         }
+
+        *chunk = Chunk::DataLoaded {
+            id: stolen_id,
+            metadata: stolen_metadata,
+            data: chunk_data,
+        };
+        return Ok(LoadChunkDataSuccess);
     }
 
     fn unload_chunk_data(
@@ -1053,20 +1088,29 @@ impl ChunkManager {
             return Err((UnloadChunkDataError::ChunkStillSpawned, chunk_id));
         }
 
-        match &mut *chunk {
+        let (stolen_id, stolen_metadata) = match &mut *chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err((UnloadChunkDataError::ChunkDataAlreadyUnloaded, chunk_id));
             }
             Chunk::DataLoaded { id, metadata, .. } => {
                 let stolen_id = std::mem::take(id);
                 let stolen_metadata = std::mem::take(metadata);
-                *chunk = Chunk::MetadataLoaded {
-                    id: stolen_id,
-                    metadata: stolen_metadata,
-                };
-                return Ok(UnloadChunkDataSuccess);
+
+                (stolen_id, stolen_metadata)
+            }
+        };
+
+        if let Some(ref chunk_child_chunks) = stolen_metadata.child_chunks {
+            if !chunk_child_chunks.is_empty() {
+                return Err((UnloadChunkDataError::ChildChunksStillRegistered, chunk_id));
             }
         }
+
+        *chunk = Chunk::MetadataLoaded {
+            id: stolen_id,
+            metadata: stolen_metadata,
+        };
+        return Ok(UnloadChunkDataSuccess);
     }
 
     fn spawn_chunk(
@@ -1087,10 +1131,33 @@ impl ChunkManager {
             }
         };
 
-        let chunk_data = match Self::get_data_mut(&mut chunk) {
-            Ok(chunk_data) => chunk_data,
-            Err(_) => {
+        let (chunk_metadata, chunk_data) = match *chunk {
+            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err((SpawnChunkError::ChunkDataNotLoaded, chunk_id));
+            }
+            Chunk::DataLoaded { ref metadata, ref mut data, .. } => (metadata, data),
+        };
+
+        if let Some(ref parent_chunk) = chunk_metadata.parent_chunk {
+            let parent_chunk = match parent_chunk.lock() {
+                Ok(parent_chunk) => parent_chunk,
+                Err(_) => {
+                    return Err((SpawnChunkError::ParentChunkMutexPoisoned, chunk_id));
+                }
+            };
+
+            let parent_chunk_data = match Self::get_data(&parent_chunk) {
+                Ok(parent_chunk_data) => parent_chunk_data,
+                Err(_) => {
+                    return Err((SpawnChunkError::ParentChunkNotSpawned, chunk_id));
+                }
+            };
+
+            match parent_chunk_data.run_state {
+                ChunkRunState::Despawned => {
+                    return Err((SpawnChunkError::ParentChunkNotSpawned, chunk_id));
+                }
+                ChunkRunState::Spawned { .. } => {}
             }
         };
 
@@ -1129,10 +1196,16 @@ impl ChunkManager {
             }
         };
 
-        let chunk_data = match Self::get_data_mut(&mut chunk) {
-            Ok(chunk_data) => chunk_data,
-            Err(_) => {
-                return Err((DespawnChunkError::ChunkDataNotLoaded, chunk_id));
+        let (chunk_metadata, chunk_data) = match *chunk {
+            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
+                return Err((DespawnChunkError::ChunkAlreadyDespawned, chunk_id));
+            }
+            Chunk::DataLoaded { ref metadata, ref mut data, .. } => (metadata, data),
+        };
+
+        if let Some(ref chunk_child_chunks) = chunk_metadata.child_chunks {
+            if !chunk_child_chunks.is_empty() {
+                return Err((DespawnChunkError::ChildChunksStillSpawned, chunk_id));
             }
         };
 
