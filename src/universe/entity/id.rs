@@ -29,6 +29,15 @@ impl PartialEq for EntityID {
     }
 }
 
+impl Default for EntityID {
+    fn default() -> Self {
+        EntityID {
+            chunk_id: ChunkID::default(),
+            local_id: 0,
+        }
+    }
+}
+
 impl EntityID {
     pub fn new(chunk_id: ChunkID, local_id: u64) -> Result<Self, String> {
         if local_id == u64::MAX {
@@ -38,12 +47,12 @@ impl EntityID {
         Ok(EntityID { chunk_id, local_id })
     }
 
-    pub fn get_chunk_id(&self) -> ChunkID {
-        return self.chunk_id;
+    pub fn get_chunk_id(&self) -> &ChunkID {
+        return &self.chunk_id;
     }
 
-    pub fn get_local_id(&self) -> u64 {
-        return self.local_id;
+    pub fn get_local_id(&self) -> &u64 {
+        return &self.local_id;
     }
 }
 

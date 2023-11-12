@@ -25,6 +25,15 @@ pub struct EntityMetadata {
 }
 
 // Implementations
+impl Default for EntityMetadata {
+    fn default() -> Self {
+        Self {
+            pos: EntityPos::default(),
+            parent_chunk: Arc::new(Mutex::new(Chunk::default())),
+        }
+    }
+}
+
 impl EntityMetadata {
     pub fn new(
         parent_chunk: Arc<Mutex<Chunk>>,

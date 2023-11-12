@@ -61,11 +61,20 @@ impl Plugin for EntityPlugin {
             // Update Systems
             .add_systems(
                 Update,
-                ().run_if(in_state(AppState::Game))
+                (EntityManager::handle_operation_requests)
+                    .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
             )
             // Exit Systems
             .add_systems(OnExit(AppState::Game), EntityManager::terminate);
+    }
+}
+
+impl Default for Entity {
+    fn default() -> Self {
+        Entity::Registered {
+            id: Arc::new(RwLock::new(EntityID::default())),
+        }
     }
 }
 
@@ -188,6 +197,12 @@ impl EntityManager {
 
     pub fn terminate(mut commands: Commands) {
         commands.remove_resource::<EntityManager>();
+    }
+
+    fn handle_operation_requests(
+        mut commands: Commands,
+        mut entity_manager: ResMut<EntityManager>,
+    ) {
     }
 }
 

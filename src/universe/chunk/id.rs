@@ -30,7 +30,7 @@ pub struct ChunkID {
 // Implementations
 impl From<EntityID> for ChunkID {
     fn from(entity_id: EntityID) -> Self {
-        entity_id.get_chunk_id()
+        entity_id.get_chunk_id().clone()
     }
 }
 
@@ -67,11 +67,13 @@ impl TryFrom<BigUint> for ChunkID {
             .convert_to_base57(global_id_base10.clone())
             .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
 
-        let mut chunk_id = ChunkID {
+        let scale_index = global_id_base10x10.len() as u8;
+
+        let chunk_id = ChunkID {
             global_id_base10,
             global_id_base10x10,
             global_id_base57,
-            scale_index: global_id_base10x10.len() as u8,
+            scale_index,
         };
 
         Ok(chunk_id)
@@ -89,11 +91,13 @@ impl TryFrom<Vec<(u8, u8)>> for ChunkID {
             .convert_to_base57(global_id_base10.clone())
             .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
 
-        let mut chunk_id = ChunkID {
+        let scale_index = global_id_base10x10.len() as u8;
+
+        let chunk_id = ChunkID {
             global_id_base10,
             global_id_base10x10,
             global_id_base57,
-            scale_index: global_id_base10x10.len() as u8,
+            scale_index,
         };
 
         Ok(chunk_id)
@@ -111,11 +115,13 @@ impl TryFrom<&str> for ChunkID {
             .convert_to_base10x10(global_id_base10.clone())
             .map_err(|e| format!("Computing the Base10x10 ID failed: {}", e))?;
 
-        let mut chunk_id = ChunkID {
+        let scale_index = global_id_base10x10.len() as u8;
+
+        let chunk_id = ChunkID {
             global_id_base10,
             global_id_base10x10,
             global_id_base57: global_id_base57.to_string(),
-            scale_index: global_id_base10x10.len() as u8,
+            scale_index,
         };
 
         Ok(chunk_id)
@@ -125,6 +131,17 @@ impl TryFrom<&str> for ChunkID {
 impl PartialEq for ChunkID {
     fn eq(&self, other: &Self) -> bool {
         self.global_id_base10x10 == other.global_id_base10x10
+    }
+}
+
+impl Default for ChunkID {
+    fn default() -> Self {
+        Self {
+            global_id_base10: BigUint::from(0u8),
+            global_id_base10x10: vec![(0u8, 0u8)],
+            global_id_base57: "0".to_string(),
+            scale_index: 0,
+        }
     }
 }
 
@@ -141,13 +158,15 @@ impl ChunkID {
         return &self.global_id_base57;
     }
 
-    pub fn get_scale_index(&self) -> u8 {
-        return self.scale_index;
+    pub fn get_scale_index(&self) -> &u8 {
+        return &self.scale_index;
     }
 
     pub fn compute_parent_id(&self) -> Result<ChunkID, String> {
         if self.scale_index == 0 {
-            return Err("Cannot compute parent ID from a root chunk ID.".to_string());
+            return Err(
+                "Cannot compute parent ID: Chunk ID is already a root chunk ID.".to_string(),
+            );
         }
 
         let mut id_base10x10 = self.global_id_base10x10.clone();
@@ -161,7 +180,7 @@ impl ChunkID {
             Some(local_pos_base10x10) => local_pos_base10x10.clone(),
             None => {
                 return Err(
-                    "Cannot compute local position from chunk ID: Invalid chunk ID.".to_string(),
+                    "Cannot compute local position from chunk ID: Chunk ID is invalid.".to_string(),
                 )
             }
         };
@@ -172,23 +191,15 @@ impl ChunkID {
     pub fn compute_pos(&self) -> Result<ChunkPos, String> {
         let mut id_base10x10 = self.global_id_base10x10.clone();
 
-        if id_base10x10.len() == 0 {
-            return Err("Cannot compute position from chunk ID: Invalid chunk ID.".to_string());
+        if id_base10x10.is_empty() {
+            return Err("Cannot compute position from chunk ID: Chunk ID is invalid.".to_string());
         }
 
-        let mut chunk_pos;
+        let first_local_pos_base10x10 = id_base10x10.remove(0);
+        let mut chunk_pos = ChunkPos::new(None, first_local_pos_base10x10.into());
 
-        loop {
-            if id_base10x10.len() == 0 {
-                break;
-            } else if id_base10x10.len() == 1 {
-                let local_pos_base10x10 = id_base10x10.pop().unwrap();
-                chunk_pos = ChunkPos::new(None, local_pos_base10x10.into());
-                break;
-            } else {
-                let local_pos_base10x10 = id_base10x10.pop().unwrap();
-                chunk_pos = ChunkPos::new(Some(Box::new(chunk_pos)), local_pos_base10x10.into());
-            }
+        for local_pos_base10x10 in id_base10x10 {
+            chunk_pos = ChunkPos::new(Some(Box::new(chunk_pos)), local_pos_base10x10.into());
         }
 
         Ok(chunk_pos)

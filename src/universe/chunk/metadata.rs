@@ -31,6 +31,19 @@ pub struct ChunkMetadata {
 }
 
 // Implementations
+impl Default for ChunkMetadata {
+    fn default() -> Self {
+        Self {
+            pos: ChunkPos::new(None, LocalChunkPos::new(0, 0)),
+            parent_chunk: None,
+            child_chunks: None,
+            current_local_entity_id: 0,
+            recycled_local_entity_ids: Vec::new(),
+            registered_entities: HashMap::new(),
+        }
+    }
+}
+
 impl ChunkMetadata {
     pub fn new(
         parent_chunk: Option<Arc<Mutex<Chunk>>>,
@@ -38,7 +51,7 @@ impl ChunkMetadata {
     ) -> Result<ChunkMetadata, String> {
         if let Some(parent_chunk_mutex) = parent_chunk {
             let parent_chunk = parent_chunk_mutex.lock().unwrap();
-            let parent_scale_index = ChunkManager::get_id(&*parent_chunk).get_scale_index();
+            let parent_scale_index = ChunkManager::get_id(&*parent_chunk).get_scale_index().clone();
             let parent_chunk_metadata = match ChunkManager::get_metadata(&*parent_chunk) {
                 Ok(parent_chunk_metadata) => parent_chunk_metadata,
                 Err(error) => {

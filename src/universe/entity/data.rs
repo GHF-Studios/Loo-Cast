@@ -21,6 +21,14 @@ pub struct EntityData {
 }
 
 // Implementations
+impl Default for EntityData {
+    fn default() -> Self {
+        Self {
+            placeholder_data: None,
+        }
+    }
+}
+
 impl EntityData {
     pub fn new() -> EntityData {
         EntityData {

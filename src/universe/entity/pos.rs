@@ -31,6 +31,15 @@ pub struct LocalEntityPos {
 }
 
 // Implementations
+impl Default for EntityPos {
+    fn default() -> Self {
+        EntityPos {
+            parent_chunk_pos: ChunkPos::default(),
+            local_pos: LocalEntityPos::default(),
+        }
+    }
+}
+
 impl EntityPos {
     pub fn new(parent_chunk_pos: ChunkPos, local_pos: LocalEntityPos) -> Self {
         EntityPos {
@@ -39,12 +48,12 @@ impl EntityPos {
         }
     }
 
-    pub fn get_parent_chunk_pos(&self) -> ChunkPos {
-        self.parent_chunk_pos
+    pub fn get_parent_chunk_pos(&self) -> &ChunkPos {
+        &self.parent_chunk_pos
     }
 
-    pub fn get_local_pos(&self) -> LocalEntityPos {
-        self.local_pos
+    pub fn get_local_pos(&self) -> &LocalEntityPos {
+        &self.local_pos
     }
 
     pub fn set_parent_chunk_pos(&mut self, parent_chunk_pos: ChunkPos) {
@@ -92,6 +101,12 @@ impl Into<Vec2> for LocalEntityPos {
 impl Into<Vec3> for LocalEntityPos {
     fn into(self) -> Vec3 {
         Vec3::new(self.x, self.y, 0.0)
+    }
+}
+
+impl Default for LocalEntityPos {
+    fn default() -> Self {
+        LocalEntityPos { x: 0.0, y: 0.0 }
     }
 }
 

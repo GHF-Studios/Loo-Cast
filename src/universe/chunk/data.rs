@@ -27,6 +27,14 @@ pub struct ChunkData {
 }
 
 // Implementations
+impl Default for ChunkData {
+    fn default() -> Self {
+        Self {
+            run_state: ChunkRunState::Despawned,
+        }
+    }
+}
+
 impl ChunkData {
     pub fn new() -> ChunkData {
         ChunkData {
