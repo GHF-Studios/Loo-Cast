@@ -17,7 +17,7 @@
 // Structs
 #[derive(Debug, Clone)]
 pub struct EntityData {
-    pub(super) placeholder_data: Option<i32>,
+    pub(in crate::universe) placeholder_data: Option<i32>,
 }
 
 // Implementations

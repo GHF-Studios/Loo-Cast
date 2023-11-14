@@ -3,6 +3,7 @@
 // Local imports
 
 // Internal imports
+use crate::universe::*;
 use crate::universe::chunk::*;
 use crate::universe::entity::pos::*;
 
@@ -20,8 +21,8 @@ use std::sync::{Arc, Mutex};
 // Structs
 #[derive(Debug, Clone)]
 pub struct EntityMetadata {
-    pub(super) pos: EntityPos,
-    pub(super) parent_chunk: Arc<Mutex<Chunk>>,
+    pub(in crate::universe) pos: EntityPos,
+    pub(in crate::universe) parent_chunk: Arc<Mutex<Chunk>>,
 }
 
 // Implementations
@@ -40,7 +41,7 @@ impl EntityMetadata {
         local_entity_pos: LocalEntityPos,
     ) -> Result<EntityMetadata, String> {
         let parent_chunk_temp = parent_chunk.lock().unwrap();
-        let parent_chunk_metadata = match ChunkManager::get_metadata(&*parent_chunk_temp) {
+        let parent_chunk_metadata = match UniverseManager::get_chunk_metadata(&*parent_chunk_temp) {
             Ok(metadata) => metadata,
             Err(e) => {
                 return Err(format!(

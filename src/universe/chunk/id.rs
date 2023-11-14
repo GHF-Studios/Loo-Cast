@@ -19,7 +19,7 @@ use num_bigint::BigUint;
 // Enums
 
 // Structs
-#[derive(Clone, Debug)]
+#[derive(Eq, Hash, Clone, Debug)]
 pub struct ChunkID {
     global_id_base10: BigUint,
     global_id_base10x10: Vec<(u8, u8)>,

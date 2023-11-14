@@ -3,8 +3,10 @@
 // Local imports
 
 // Internal imports
+use crate::universe::*;
 use crate::universe::chunk::pos::*;
 use crate::universe::chunk::*;
+use crate::universe::entity::*;
 use crate::universe::entity::id::*;
 
 // External imports
@@ -22,12 +24,12 @@ use std::sync::{Arc, Mutex};
 // Structs
 #[derive(Debug, Clone)]
 pub struct ChunkMetadata {
-    pub(super) pos: ChunkPos,
-    pub(super) parent_chunk: Option<Arc<Mutex<Chunk>>>,
-    pub(super) child_chunks: Option<HashMap<LocalChunkPos, Arc<Mutex<Chunk>>>>,
-    pub(super) current_local_entity_id: u64,
-    pub(super) recycled_local_entity_ids: Vec<u64>,
-    pub(super) registered_entities: HashMap<EntityID, Arc<Mutex<crate::universe::entity::Entity>>>,
+    pub(in crate::universe) pos: ChunkPos,
+    pub(in crate::universe) parent_chunk: Option<Arc<Mutex<Chunk>>>,
+    pub(in crate::universe) child_chunks: Option<HashMap<LocalChunkPos, Arc<Mutex<Chunk>>>>,
+    pub(in crate::universe) current_local_entity_id: u64,
+    pub(in crate::universe) recycled_local_entity_ids: Vec<u64>,
+    pub(in crate::universe) registered_entities: HashMap<u64, Arc<Mutex<entity::Entity>>>,
 }
 
 // Implementations
@@ -51,10 +53,10 @@ impl ChunkMetadata {
     ) -> Result<ChunkMetadata, String> {
         if let Some(parent_chunk_mutex) = parent_chunk {
             let parent_chunk = parent_chunk_mutex.lock().unwrap();
-            let parent_scale_index = ChunkManager::get_id(&*parent_chunk)
+            let parent_scale_index = UniverseManager::get_chunk_id(&*parent_chunk)
                 .get_scale_index()
                 .clone();
-            let parent_chunk_metadata = match ChunkManager::get_metadata(&*parent_chunk) {
+            let parent_chunk_metadata = match UniverseManager::get_chunk_metadata(&*parent_chunk) {
                 Ok(parent_chunk_metadata) => parent_chunk_metadata,
                 Err(error) => {
                     return Err(format!("Failed to get parent chunk metadata: {}", error))

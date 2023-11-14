@@ -3,6 +3,7 @@
 // Local imports
 
 // Internal imports
+use crate::universe::*;
 
 // External imports
 use bevy::prelude::*;
@@ -17,13 +18,13 @@ use bevy::prelude::*;
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChunkRunState {
     Despawned,
-    Spawned { ecs_entity: Entity },
+    Spawned { bevy_entity: Entity },
 }
 
 // Structs
 #[derive(Debug, Clone)]
 pub struct ChunkData {
-    pub(super) run_state: ChunkRunState,
+    pub(in crate::universe) run_state: ChunkRunState,
 }
 
 // Implementations
