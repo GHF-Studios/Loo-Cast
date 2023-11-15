@@ -39,7 +39,7 @@ use std::sync::{Arc, Mutex};
 // Structs
 pub struct LocalUniversePlugin;
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct LocalUniverse {
     pub(in crate::universe) previously_viewed_local_chunk_positions: Vec<LocalChunkPos>,
     pub(in crate::universe) currently_viewed_local_chunk_positions: Vec<LocalChunkPos>,
@@ -59,6 +59,12 @@ impl Plugin for LocalUniversePlugin {
                 .run_if(in_state(AppState::Game))
                 .run_if(in_state(SimulationState::Running)),
         );
+    }
+}
+
+impl Default for LocalUniverse {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

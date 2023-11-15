@@ -3,9 +3,10 @@
 // Local imports
 
 // Internal imports
+use crate::universe::*;
 use crate::universe::chunk::*;
 use crate::universe::entity::pos::*;
-use crate::universe::*;
+use crate::universe::local::*;
 
 // External imports
 use std::sync::{Arc, Mutex};
@@ -21,22 +22,25 @@ use std::sync::{Arc, Mutex};
 // Structs
 #[derive(Debug, Clone)]
 pub struct EntityMetadata {
-    pub(in crate::universe) pos: EntityPos,
+    pub(in crate::universe) parent_local_universe: Arc<Mutex<LocalUniverse>>,
     pub(in crate::universe) parent_chunk: Arc<Mutex<Chunk>>,
+    pub(in crate::universe) pos: EntityPos,
 }
 
 // Implementations
 impl Default for EntityMetadata {
     fn default() -> Self {
         Self {
-            pos: EntityPos::default(),
+            parent_local_universe: Arc::new(Mutex::new(LocalUniverse::default())),
             parent_chunk: Arc::new(Mutex::new(Chunk::default())),
+            pos: EntityPos::default(),
         }
     }
 }
 
 impl EntityMetadata {
     pub fn new(
+        parent_local_universe: Arc<Mutex<LocalUniverse>>,
         parent_chunk: Arc<Mutex<Chunk>>,
         local_entity_pos: LocalEntityPos,
     ) -> Result<EntityMetadata, String> {
@@ -54,13 +58,22 @@ impl EntityMetadata {
         drop(parent_chunk_temp);
 
         Ok(EntityMetadata {
-            pos: EntityPos::new(parent_chunk_pos, local_entity_pos),
+            parent_local_universe,
             parent_chunk,
+            pos: EntityPos::new(parent_chunk_pos, local_entity_pos),
         })
+    }
+
+    pub fn get_parent_local_universe(&self) -> Arc<Mutex<LocalUniverse>> {
+        return self.parent_local_universe.clone();
     }
 
     pub fn get_parent_chunk(&self) -> Arc<Mutex<Chunk>> {
         return self.parent_chunk.clone();
+    }
+
+    pub fn get_pos(&self) -> EntityPos {
+        return self.pos.clone();
     }
 }
 
