@@ -51,10 +51,10 @@ impl ChunkMetadata {
     ) -> Result<ChunkMetadata, String> {
         if let Some(parent_chunk_mutex) = parent_chunk {
             let parent_chunk = parent_chunk_mutex.lock().unwrap();
-            let parent_scale_index = UniverseManager::get_chunk_id(&*parent_chunk)
+            let parent_scale_index = GlobalUniverse::get_chunk_id(&*parent_chunk)
                 .get_scale_index()
                 .clone();
-            let parent_chunk_metadata = match UniverseManager::get_chunk_metadata(&*parent_chunk) {
+            let parent_chunk_metadata = match GlobalUniverse::get_chunk_metadata(&*parent_chunk) {
                 Ok(parent_chunk_metadata) => parent_chunk_metadata,
                 Err(error) => {
                     return Err(format!("Failed to get parent chunk metadata: {}", error))

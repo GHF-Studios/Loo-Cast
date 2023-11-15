@@ -4,7 +4,7 @@
 
 // Internal imports
 use crate::game::SimulationState;
-use crate::universe::chunk::ChunkViewer;
+use crate::universe::local::LocalUniverse;
 use crate::AppState;
 
 // External imports
@@ -60,7 +60,7 @@ impl PlayerManager {
                 ..default()
             },
             Player {},
-            ChunkViewer::new(),
+            LocalUniverse::new(),
         ));
     }
 

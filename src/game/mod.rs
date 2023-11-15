@@ -99,7 +99,7 @@ impl GameManager {
     fn handle_load_game(
         mut commands: Commands,
         mut load_game_event_reader: EventReader<LoadGame>,
-        mut load_universe_event_writer: EventWriter<LoadUniverse>,
+        mut load_universe_event_writer: EventWriter<LoadGlobalUniverse>,
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut simulation_state_next_state: ResMut<NextState<SimulationState>>,
     ) {
@@ -132,7 +132,7 @@ impl GameManager {
             // Finalize Loading
             simulation_state_next_state.set(SimulationState::Paused);
             app_state_next_state.set(AppState::Game);
-            load_universe_event_writer.send(LoadUniverse {});
+            load_universe_event_writer.send(LoadGlobalUniverse {});
         }
     }
 

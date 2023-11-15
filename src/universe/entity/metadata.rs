@@ -41,7 +41,7 @@ impl EntityMetadata {
         local_entity_pos: LocalEntityPos,
     ) -> Result<EntityMetadata, String> {
         let parent_chunk_temp = parent_chunk.lock().unwrap();
-        let parent_chunk_metadata = match UniverseManager::get_chunk_metadata(&*parent_chunk_temp) {
+        let parent_chunk_metadata = match GlobalUniverse::get_chunk_metadata(&*parent_chunk_temp) {
             Ok(metadata) => metadata,
             Err(e) => {
                 return Err(format!(
