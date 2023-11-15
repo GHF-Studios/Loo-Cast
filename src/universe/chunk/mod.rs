@@ -11,14 +11,13 @@ use metadata::*;
 use pos::*;
 
 // Internal imports
-use crate::universe::*;
-use crate::universe::entity::pos::*;
 use crate::game::SimulationState;
+use crate::universe::entity::pos::*;
+use crate::universe::*;
 use crate::AppState;
 
 // External imports
 use bevy::prelude::*;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 // Static variables
@@ -102,13 +101,15 @@ pub enum ChunkOperation {
 pub enum RegisterChunkError {
     RegisteredRootChunksMutexPoisoned,
     ParentChunkMutexPoisoned,
+
     ParentChunkNotRegistered,
     ParentChunkMetadataNotLoaded,
     ParentChunkNotAllowedToHaveChildChunks,
     ChunkAlreadyRegistered,
-    FailedToComputeLocalChunkPosition,
+
     FailedToComputeParentChunkID,
     FailedToGetParentChunk,
+    FailedToComputeLocalChunkPosition,
 }
 
 #[derive(Debug)]
@@ -116,79 +117,93 @@ pub enum UnregisterChunkError {
     RegisteredRootChunksMutexPoisoned,
     ParentChunkMutexPoisoned,
     ChunkMutexPoisoned,
-    ChunkDataStillLoaded,
-    ChunkMetadataStillLoaded,
+
     ParentChunkNotRegistered,
     ParentChunkMetadataNotLoaded,
     ParentChunkNotAllowedToHaveChildChunks,
-    FailedToComputeLocalChunkPosition,
-    FailedToComputeParentChunkID,
-    FailedToGetChunk,
-    FailedToGetParentChunk,
+    ChunkDataStillLoaded,
+    ChunkMetadataStillLoaded,
     ChunkAlreadyUnregistered,
+
+    FailedToComputeParentChunkID,
+    FailedToGetParentChunk,
+    FailedToComputeLocalChunkPosition,
+    FailedToGetChunk,
 }
 
 #[derive(Debug)]
 pub enum LoadChunkMetadataError {
-    ChunkNotRegistered,
     ChunkMutexPoisoned,
+
+    ChunkNotRegistered,
     ChunkMetadataAlreadyLoaded,
+
     FailedToGetChunk,
     FatalUnexpectedError,
 }
 
 #[derive(Debug)]
 pub enum UnloadChunkMetadataError {
-    ChunkNotRegistered,
     ChunkMutexPoisoned,
+
+    ChunkNotRegistered,
     ChunkHasRegisteredChildChunks,
-    ChunkDataStillLoaded,
     ChunkMetadataAlreadyUnloaded,
+    ChunkDataStillLoaded,
+
     FailedToGetChunk,
     FatalUnexpectedError,
 }
 
 #[derive(Debug)]
 pub enum LoadChunkDataError {
-    ChunkNotRegistered,
     ChunkMutexPoisoned,
     ParentChunkMutexPoisoned,
+
+    ChunkNotRegistered,
     ChunkMetadataNotLoaded,
     ChunkDataAlreadyLoaded,
     ParentChunkDataNotLoaded,
+
     FailedToGetChunk,
     FatalUnexpectedError,
 }
 
 #[derive(Debug)]
 pub enum UnloadChunkDataError {
-    ChunkNotRegistered,
     ChunkMutexPoisoned,
-    ChunkStillSpawned,
-    ChunkDataAlreadyUnloaded,
+
+    ChunkNotRegistered,
     ChildChunksStillRegistered,
+    ChunkDataAlreadyUnloaded,
+    ChunkStillSpawned,
+
     FailedToGetChunk,
     FatalUnexpectedError,
 }
 
 #[derive(Debug)]
 pub enum SpawnChunkError {
-    ChunkNotRegistered,
     ChunkMutexPoisoned,
     ParentChunkMutexPoisoned,
+
+    ParentChunkNotSpawned,
+    ChunkNotRegistered,
     ChunkDataNotLoaded,
     ChunkAlreadySpawned,
-    ParentChunkNotSpawned,
+
     FailedToGetChunk,
 }
 
 #[derive(Debug)]
 pub enum DespawnChunkError {
-    ChunkNotRegistered,
     ChunkMutexPoisoned,
+
+    ChunkNotRegistered,
     ChunkDataNotLoaded,
     ChunkAlreadyDespawned,
     ChildChunksStillSpawned,
+
     FailedToGetChunk,
 }
 
@@ -216,7 +231,7 @@ pub struct ChunkViewer {
 }
 
 #[derive(Component)]
-pub struct ChunkBevyEntity {
+pub struct ChunkBevyComponent {
     pub chunk: Arc<Mutex<Chunk>>,
 }
 
@@ -250,7 +265,7 @@ impl Chunk {
         Chunk::Registered { id }
     }
 
-    fn debug_render_system(mut gizmos: Gizmos, chunk_ecs_entity_query: Query<&ChunkBevyEntity>) {
+    fn debug_render_system(mut gizmos: Gizmos, chunk_ecs_entity_query: Query<&ChunkBevyComponent>) {
         for chunk_ecs_entity in chunk_ecs_entity_query.iter() {
             let chunk = match chunk_ecs_entity.chunk.lock() {
                 Ok(chunk) => chunk,

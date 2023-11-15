@@ -3,16 +3,16 @@ pub mod chunk;
 pub mod entity;
 
 // Local imports
-use chunk::*;
 use chunk::data::*;
 use chunk::id::*;
 use chunk::metadata::*;
 use chunk::pos::*;
-use entity::*;
+use chunk::*;
 use entity::data::*;
 use entity::id::*;
 use entity::metadata::*;
 use entity::pos::*;
+use entity::*;
 
 // Internal imports
 use crate::game::SimulationState;
@@ -68,9 +68,7 @@ impl Plugin for UniversePlugin {
             )
             .add_systems(
                 Update,
-                (
-                    UniverseManager::handle_operation_requests,
-                )
+                (UniverseManager::handle_operation_requests,)
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
             )
@@ -112,7 +110,10 @@ impl UniverseManager {
     pub fn generate_entity_id(parent_chunk: &mut Chunk) -> Result<EntityID, String> {
         let (parent_chunk_id, parent_chunk_metadata) = match parent_chunk {
             Chunk::Registered { .. } => {
-                return Err("Generating a local entity id failed: Parent chunk metadata is not loaded.".to_string());
+                return Err(
+                    "Generating a local entity id failed: Parent chunk metadata is not loaded."
+                        .to_string(),
+                );
             }
             Chunk::MetadataLoaded { id, metadata, .. } | Chunk::DataLoaded { id, metadata, .. } => {
                 (id.clone(), metadata)
@@ -122,7 +123,10 @@ impl UniverseManager {
         if parent_chunk_metadata.recycled_local_entity_ids.len() != 0 {
             match EntityID::new(
                 parent_chunk_id,
-                parent_chunk_metadata.recycled_local_entity_ids.pop().unwrap(),
+                parent_chunk_metadata
+                    .recycled_local_entity_ids
+                    .pop()
+                    .unwrap(),
             ) {
                 Ok(entity_id) => {
                     return Ok(entity_id);
@@ -134,7 +138,10 @@ impl UniverseManager {
                 return Err("Generating a local entity id failed: ID space is used up.".to_string());
             }
 
-            match EntityID::new(parent_chunk_id, parent_chunk_metadata.current_local_entity_id) {
+            match EntityID::new(
+                parent_chunk_id,
+                parent_chunk_metadata.current_local_entity_id,
+            ) {
                 Ok(entity_id) => {
                     parent_chunk_metadata.current_local_entity_id += 1;
                     return Ok(entity_id);
@@ -150,7 +157,10 @@ impl UniverseManager {
         let chunk_metadata = match chunk_metadata {
             Some(chunk_metadata) => chunk_metadata,
             None => {
-                return Err("Recycling a local entity id failed: Parent chunk metadata is not loaded.".to_string());
+                return Err(
+                    "Recycling a local entity id failed: Parent chunk metadata is not loaded."
+                        .to_string(),
+                );
             }
         };
 
@@ -167,7 +177,10 @@ impl UniverseManager {
         Ok(())
     }
 
-    pub fn get_registered_chunk(&self, chunk_id: &ChunkID) -> Result<Option<Arc<Mutex<Chunk>>>, String> {
+    pub fn get_registered_chunk(
+        &self,
+        chunk_id: &ChunkID,
+    ) -> Result<Option<Arc<Mutex<Chunk>>>, String> {
         let mut path = chunk_id.get_global_id_base10x10().clone();
         if path.is_empty() {
             return Err("Failed to get registered chunk: Invalid chunk id.".to_string());
@@ -175,13 +188,21 @@ impl UniverseManager {
         let root_chunk_id = path.remove(0);
         let registered_root_chunks = match self.registered_root_chunks.lock().ok() {
             Some(registered_root_chunks) => registered_root_chunks,
-            None => return Err("Failed to get registered chunk: Registered root chunks mutex poisoned.".to_string()),	
+            None => {
+                return Err(
+                    "Failed to get registered chunk: Registered root chunks mutex poisoned."
+                        .to_string(),
+                )
+            }
         };
-        let mut registered_chunk = 
-            match registered_root_chunks.get(&LocalChunkPos::from(root_chunk_id)) {
-                Some(registered_chunk) => registered_chunk.clone(),
-                None => return Err("Failed to get registered chunk: Root chunk not registered.".to_string()),
-            };
+        let mut registered_chunk = match registered_root_chunks
+            .get(&LocalChunkPos::from(root_chunk_id))
+        {
+            Some(registered_chunk) => registered_chunk.clone(),
+            None => {
+                return Err("Failed to get registered chunk: Root chunk not registered.".to_string())
+            }
+        };
         drop(registered_root_chunks);
 
         for &local_chunk_id in &path {
@@ -189,13 +210,22 @@ impl UniverseManager {
             let next_chunk = {
                 let current_chunk = match registered_chunk.lock().ok() {
                     Some(current_chunk) => current_chunk,
-                    None => return Err("Failed to get registered chunk: Current chunk mutex poisoned.".to_string()),
+                    None => {
+                        return Err(
+                            "Failed to get registered chunk: Current chunk mutex poisoned."
+                                .to_string(),
+                        )
+                    }
                 };
-                let current_chunk_metadata = match *current_chunk {
-                    Chunk::Registered { .. } => return Err("Failed to get registered chunk: Current chunk metadata not loaded.".to_string()),
-                    Chunk::MetadataLoaded { ref metadata, .. }
-                    | Chunk::DataLoaded { ref metadata, .. } => metadata,
-                };
+                let current_chunk_metadata =
+                    match *current_chunk {
+                        Chunk::Registered { .. } => return Err(
+                            "Failed to get registered chunk: Current chunk metadata not loaded."
+                                .to_string(),
+                        ),
+                        Chunk::MetadataLoaded { ref metadata, .. }
+                        | Chunk::DataLoaded { ref metadata, .. } => metadata,
+                    };
                 let current_chunk_child_chunks = match current_chunk_metadata.child_chunks {
                     Some(ref current_chunk_child_chunks) => current_chunk_child_chunks,
                     None => return Err("Failed to get registered chunk: Current chunk not allowed to have child chunks.".to_string()),
@@ -220,22 +250,34 @@ impl UniverseManager {
         let root_chunk_id = path.remove(0);
         let registered_root_chunks = match self.registered_root_chunks.lock() {
             Ok(registered_root_chunks) => registered_root_chunks,
-            Err(_) => return Err("Failed to check if chunk is registered: Registered root chunks mutex poisoned.".to_string()),
+            Err(_) => return Err(
+                "Failed to check if chunk is registered: Registered root chunks mutex poisoned."
+                    .to_string(),
+            ),
         };
         let mut registered_chunk =
             match registered_root_chunks.get(&LocalChunkPos::from(root_chunk_id)) {
                 Some(registered_chunk) => registered_chunk.clone(),
-                None => return Err("Failed to check if chunk is registered: Root chunk not registered.".to_string()),
+                None => {
+                    return Err(
+                        "Failed to check if chunk is registered: Root chunk not registered."
+                            .to_string(),
+                    )
+                }
             };
         drop(registered_root_chunks);
 
         for &local_chunk_id in &path {
             let local_chunk_id: LocalChunkPos = local_chunk_id.into();
             let next_chunk = {
-                let current_chunk = match registered_chunk.lock() {
-                    Ok(current_chunk) => current_chunk,
-                    Err(_) => return Err("Failed to check if chunk is registered: Current chunk mutex poisoned.".to_string()),
-                };
+                let current_chunk =
+                    match registered_chunk.lock() {
+                        Ok(current_chunk) => current_chunk,
+                        Err(_) => return Err(
+                            "Failed to check if chunk is registered: Current chunk mutex poisoned."
+                                .to_string(),
+                        ),
+                    };
                 let current_chunk_metadata = match *current_chunk {
                     Chunk::Registered { .. } => return Err("Failed to check if chunk is registered: Current chunk metadata not loaded.".to_string()),
                     Chunk::MetadataLoaded { ref metadata, .. }
@@ -257,53 +299,76 @@ impl UniverseManager {
         Ok(true)
     }
 
-    pub fn get_registered_entity(parent_chunk: &Chunk, entity_id: &EntityID) -> Result<Option<Arc<Mutex<entity::Entity>>>, String> {
+    pub fn get_registered_entity(
+        parent_chunk: &Chunk,
+        entity_id: &EntityID,
+    ) -> Result<Option<Arc<Mutex<entity::Entity>>>, String> {
         let (_, parent_chunk_metadata, _) = Self::get_chunk_details(parent_chunk);
 
         let parent_chunk_metadata = match parent_chunk_metadata {
             Some(parent_chunk_metadata) => parent_chunk_metadata,
-            None => return Err("Failed to get registered entity: Parent chunk metadata not loaded.".to_string()),
+            None => {
+                return Err(
+                    "Failed to get registered entity: Parent chunk metadata not loaded."
+                        .to_string(),
+                )
+            }
         };
 
-        match parent_chunk_metadata.registered_entities.get(entity_id.get_local_id()) {
+        match parent_chunk_metadata
+            .registered_entities
+            .get(entity_id.get_local_id())
+        {
             Some(registered_entity) => Ok(Some(registered_entity.clone())),
             None => Ok(None),
         }
     }
 
-    pub fn is_entity_registered(parent_chunk: &Chunk, entity_id: &EntityID) -> Result<bool, String> {
+    pub fn is_entity_registered(
+        parent_chunk: &Chunk,
+        entity_id: &EntityID,
+    ) -> Result<bool, String> {
         let (_, parent_chunk_metadata, _) = Self::get_chunk_details(parent_chunk);
 
         match parent_chunk_metadata {
-            Some(parent_chunk_metadata) => {
-                Ok(parent_chunk_metadata.registered_entities.contains_key(entity_id.get_local_id()))
-            }
-            None => Err("Failed to check if entity is registered: Parent chunk metadata not loaded.".to_string()),
+            Some(parent_chunk_metadata) => Ok(parent_chunk_metadata
+                .registered_entities
+                .contains_key(entity_id.get_local_id())),
+            None => Err(
+                "Failed to check if entity is registered: Parent chunk metadata not loaded."
+                    .to_string(),
+            ),
         }
     }
 
-    pub fn send_chunk_operation_request(&mut self, request: ChunkOperationRequest) -> Result<(), String> {
-        let mut chunk_operation_requests = match self.chunk_operation_requests.lock() {
-            Ok(chunk_operation_requests) => chunk_operation_requests,
-            Err(_) => {
-                return Err(
-                    "Failed to request chunk operation: Chunk operation requests mutex poisoned.".to_string(),
-                )
-            }
-        };
+    pub fn send_chunk_operation_request(
+        &mut self,
+        request: ChunkOperationRequest,
+    ) -> Result<(), String> {
+        let mut chunk_operation_requests =
+            match self.chunk_operation_requests.lock() {
+                Ok(chunk_operation_requests) => chunk_operation_requests,
+                Err(_) => return Err(
+                    "Failed to request chunk operation: Chunk operation requests mutex poisoned."
+                        .to_string(),
+                ),
+            };
         chunk_operation_requests.push(request);
         return Ok(());
     }
 
-    pub fn send_entity_operation_request(&mut self, request: EntityOperationRequest) -> Result<(), String> {
-        let mut entity_operation_requests = match self.entity_operation_requests.lock() {
-            Ok(entity_operation_requests) => entity_operation_requests,
-            Err(_) => {
-                return Err(
-                    "Failed to request entity operation: Entity operation requests mutex poisoned.".to_string(),
-                )
-            }
-        };
+    pub fn send_entity_operation_request(
+        &mut self,
+        request: EntityOperationRequest,
+    ) -> Result<(), String> {
+        let mut entity_operation_requests =
+            match self.entity_operation_requests.lock() {
+                Ok(entity_operation_requests) => entity_operation_requests,
+                Err(_) => return Err(
+                    "Failed to request entity operation: Entity operation requests mutex poisoned."
+                        .to_string(),
+                ),
+            };
         entity_operation_requests.push(request);
         return Ok(());
     }
@@ -316,19 +381,37 @@ impl UniverseManager {
         };
     }
 
-    pub fn get_chunk_details(chunk: &Chunk) -> (&ChunkID, Option<&ChunkMetadata>, Option<&ChunkData>) {
+    pub fn get_chunk_details(
+        chunk: &Chunk,
+    ) -> (&ChunkID, Option<&ChunkMetadata>, Option<&ChunkData>) {
         return match *chunk {
             Chunk::Registered { ref id } => (id, None, None),
-            Chunk::MetadataLoaded { ref id, ref metadata } => (id, Some(metadata), None),
-            Chunk::DataLoaded { ref id, ref metadata, ref data } => (id, Some(metadata), Some(data)),
+            Chunk::MetadataLoaded {
+                ref id,
+                ref metadata,
+            } => (id, Some(metadata), None),
+            Chunk::DataLoaded {
+                ref id,
+                ref metadata,
+                ref data,
+            } => (id, Some(metadata), Some(data)),
         };
     }
 
-    pub fn get_chunk_details_mut(chunk: &mut Chunk) -> (&ChunkID, Option<&mut ChunkMetadata>, Option<&mut ChunkData>) {
+    pub fn get_chunk_details_mut(
+        chunk: &mut Chunk,
+    ) -> (&ChunkID, Option<&mut ChunkMetadata>, Option<&mut ChunkData>) {
         return match *chunk {
             Chunk::Registered { ref id } => (id, None, None),
-            Chunk::MetadataLoaded { ref id, ref mut metadata } => (id, Some(metadata), None),
-            Chunk::DataLoaded { ref id, ref mut metadata, ref mut data } => (id, Some(metadata), Some(data)),
+            Chunk::MetadataLoaded {
+                ref id,
+                ref mut metadata,
+            } => (id, Some(metadata), None),
+            Chunk::DataLoaded {
+                ref id,
+                ref mut metadata,
+                ref mut data,
+            } => (id, Some(metadata), Some(data)),
         };
     }
 
@@ -351,8 +434,12 @@ impl UniverseManager {
     pub fn get_chunk_metadata_mut(chunk: &mut Chunk) -> Result<&mut ChunkMetadata, String> {
         return match *chunk {
             Chunk::Registered { .. } => Err("Chunk metadata not loaded.".to_string()),
-            Chunk::MetadataLoaded { ref mut metadata, .. } => Ok(metadata),
-            Chunk::DataLoaded { ref mut metadata, .. } => Ok(metadata),
+            Chunk::MetadataLoaded {
+                ref mut metadata, ..
+            } => Ok(metadata),
+            Chunk::DataLoaded {
+                ref mut metadata, ..
+            } => Ok(metadata),
         };
     }
 
@@ -380,19 +467,39 @@ impl UniverseManager {
         };
     }
 
-    pub fn get_entity_details(entity: &entity::Entity) -> (&EntityID, Option<&EntityMetadata>, Option<&EntityData>) {
+    pub fn get_entity_details(
+        entity: &entity::Entity,
+    ) -> (&EntityID, Option<&EntityMetadata>, Option<&EntityData>) {
         return match *entity {
             entity::Entity::Registered { ref id } => (id, None, None),
-            entity::Entity::MetadataLoaded { ref id, ref metadata } => (id, Some(metadata), None),
-            entity::Entity::DataLoaded { ref id, ref metadata, ref data } => (id, Some(metadata), Some(data)),
+            entity::Entity::MetadataLoaded {
+                ref id,
+                ref metadata,
+            } => (id, Some(metadata), None),
+            entity::Entity::DataLoaded {
+                ref id,
+                ref metadata,
+                ref data,
+            } => (id, Some(metadata), Some(data)),
         };
     }
 
-    pub fn get_entity_details_mut(entity: &mut entity::Entity) -> (&EntityID, Option<&mut EntityMetadata>, Option<&mut EntityData>) {
+    pub fn get_entity_details_mut(entity: &mut entity::Entity) -> (
+        &EntityID,
+        Option<&mut EntityMetadata>,
+        Option<&mut EntityData>,
+    ) {
         return match *entity {
             entity::Entity::Registered { ref id } => (id, None, None),
-            entity::Entity::MetadataLoaded { ref id, ref mut metadata } => (id, Some(metadata), None),
-            entity::Entity::DataLoaded { ref id, ref mut metadata, ref mut data } => (id, Some(metadata), Some(data)),
+            entity::Entity::MetadataLoaded {
+                ref id,
+                ref mut metadata,
+            } => (id, Some(metadata), None),
+            entity::Entity::DataLoaded {
+                ref id,
+                ref mut metadata,
+                ref mut data,
+            } => (id, Some(metadata), Some(data)),
         };
     }
 
@@ -415,8 +522,12 @@ impl UniverseManager {
     pub fn get_entity_metadata_mut(entity: &mut entity::Entity) -> Result<&mut EntityMetadata, String> {
         return match *entity {
             entity::Entity::Registered { .. } => Err("Entity metadata not loaded.".to_string()),
-            entity::Entity::MetadataLoaded { ref mut metadata, .. } => Ok(metadata),
-            entity::Entity::DataLoaded { ref mut metadata, .. } => Ok(metadata),
+            entity::Entity::MetadataLoaded {
+                ref mut metadata, ..
+            } => Ok(metadata),
+            entity::Entity::DataLoaded {
+                ref mut metadata, ..
+            } => Ok(metadata),
         };
     }
 
@@ -436,7 +547,10 @@ impl UniverseManager {
         };
     }
 
-    fn handle_operation_requests(mut commands: Commands, mut universe_manager: ResMut<UniverseManager>) {
+    fn handle_operation_requests(
+        mut commands: Commands,
+        mut universe_manager: ResMut<UniverseManager>,
+    ) {
         let mut universe_manager_chunk_operation_requests =
             universe_manager.chunk_operation_requests.lock().unwrap_or_else(|_| {
                 panic!(
@@ -447,7 +561,7 @@ impl UniverseManager {
         let mut chunk_operation_requests = Vec::new();
         chunk_operation_requests.append(&mut *universe_manager_chunk_operation_requests);
 
-        drop(chunk_operation_requests);
+        drop(universe_manager_chunk_operation_requests);
 
         for chunk_operation_request in chunk_operation_requests {
             for chunk_operation in chunk_operation_request.operations {
@@ -564,7 +678,7 @@ impl UniverseManager {
         let mut entity_operation_requests = Vec::new();
         entity_operation_requests.append(&mut *universe_manager_entity_operation_requests);
 
-        drop(entity_operation_requests);
+        drop(universe_manager_entity_operation_requests);
 
         for entity_operation_request in entity_operation_requests {
             for entity_operation in entity_operation_request.operations {
@@ -602,8 +716,8 @@ impl UniverseManager {
                         Ok(success) => {
                             success_callback(success);
                         }
-                        Err((error, entity_id)) => {
-                            failure_callback(error, entity_id, metadata);
+                        Err((error, entity_id, chunk_metadata)) => {
+                            failure_callback(error, entity_id, chunk_metadata);
                         }
                     },
                     EntityOperation::UnloadMetadata {
@@ -627,8 +741,8 @@ impl UniverseManager {
                         Ok(success) => {
                             success_callback(success);
                         }
-                        Err((error, entity_id)) => {
-                            failure_callback(error, entity_id, data);
+                        Err((error, entity_id, entity_data)) => {
+                            failure_callback(error, entity_id, entity_data);
                         }
                     },
                     EntityOperation::UnloadData {
@@ -642,7 +756,7 @@ impl UniverseManager {
                         Err((error, entity_id)) => {
                             failure_callback(error, entity_id);
                         }
-                    },  
+                    },
                     EntityOperation::Spawn {
                         id,
                         success_callback,
@@ -1095,7 +1209,7 @@ impl UniverseManager {
                         chunk_id,
                         chunk_data,
                     ));
-                },
+                }
                 Chunk::DataLoaded { .. } => {}
             }
         }
@@ -1194,7 +1308,11 @@ impl UniverseManager {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err((SpawnChunkError::ChunkDataNotLoaded, chunk_id));
             }
-            Chunk::DataLoaded { ref metadata, ref mut data, .. } => (metadata, data),
+            Chunk::DataLoaded {
+                ref metadata,
+                ref mut data,
+                ..
+            } => (metadata, data),
         };
 
         if let Some(ref parent_chunk) = chunk_metadata.parent_chunk {
@@ -1224,7 +1342,7 @@ impl UniverseManager {
             ChunkRunState::Despawned => {
                 chunk_data.run_state = ChunkRunState::Spawned {
                     bevy_entity: commands
-                        .spawn(ChunkBevyEntity {
+                        .spawn(ChunkBevyComponent {
                             chunk: chunk_mutex.clone(),
                         })
                         .id(),
@@ -1265,7 +1383,11 @@ impl UniverseManager {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err((DespawnChunkError::ChunkAlreadyDespawned, chunk_id));
             }
-            Chunk::DataLoaded { ref metadata, ref mut data, .. } => (metadata, data),
+            Chunk::DataLoaded {
+                ref metadata,
+                ref mut data,
+                ..
+            } => (metadata, data),
         };
 
         if let Some(ref chunk_child_chunks) = chunk_metadata.child_chunks {
@@ -1278,7 +1400,9 @@ impl UniverseManager {
             ChunkRunState::Despawned => {
                 return Err((DespawnChunkError::ChunkAlreadyDespawned, chunk_id));
             }
-            ChunkRunState::Spawned { bevy_entity: ecs_entity } => {
+            ChunkRunState::Spawned {
+                bevy_entity: ecs_entity,
+            } => {
                 commands.entity(ecs_entity).despawn();
                 chunk_data.run_state = ChunkRunState::Despawned;
                 return Ok(DespawnChunkSuccess);
@@ -1290,38 +1414,358 @@ impl UniverseManager {
         universe_manager: &mut ResMut<UniverseManager>,
         entity_id: EntityID,
     ) -> Result<RegisterEntitySuccess, (RegisterEntityError, EntityID)> {
+        let parent_chunk = match universe_manager.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((RegisterEntityError::FailedToGetParentChunk, entity_id));
+            }
+        };
+
+        let parent_chunk = match parent_chunk {
+            Some(parent_chunk) => parent_chunk,
+            None => {
+                return Err((RegisterEntityError::ParentChunkNotRegistered, entity_id));
+            }
+        };
+
+        let mut parent_chunk = match parent_chunk.lock() {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((RegisterEntityError::ParentChunkMutexPoisoned, entity_id));
+            }
+        };
+
+        let parent_chunk_metadata = match Self::get_chunk_metadata_mut(&mut parent_chunk) {
+            Ok(parent_chunk_metadata) => parent_chunk_metadata,
+            Err(_) => {
+                return Err((RegisterEntityError::ParentChunkMetadataNotLoaded, entity_id));
+            }
+        };
+
+        let local_entity_id = entity_id.get_local_id();
+
+        if parent_chunk_metadata
+            .registered_entities
+            .contains_key(local_entity_id)
+        {
+            return Err((RegisterEntityError::EntityAlreadyRegistered, entity_id));
+        }
+
+        let entity = Arc::new(Mutex::new(entity::Entity::new(entity_id.clone())));
+
+        parent_chunk_metadata
+            .registered_entities
+            .insert(local_entity_id.clone(), entity);
+
+        return Ok(RegisterEntitySuccess);
     }
 
     fn unregister_entity(
         universe_manager: &mut ResMut<UniverseManager>,
         entity_id: EntityID,
     ) -> Result<UnregisterEntitySuccess, (UnregisterEntityError, EntityID)> {
+        let parent_chunk = match universe_manager.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((UnregisterEntityError::FailedToGetParentChunk, entity_id));
+            }
+        };
+        let parent_chunk = match parent_chunk {
+            Some(parent_chunk) => parent_chunk,
+            None => {
+                return Err((UnregisterEntityError::ParentChunkNotRegistered, entity_id));
+            }
+        };
+        let mut parent_chunk = match parent_chunk.lock() {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((UnregisterEntityError::ParentChunkMutexPoisoned, entity_id));
+            }
+        };
+
+        let parent_chunk_metadata = match Self::get_chunk_metadata_mut(&mut parent_chunk) {
+            Ok(parent_chunk_metadata) => parent_chunk_metadata,
+            Err(_) => {
+                return Err((
+                    UnregisterEntityError::ParentChunkMetadataNotLoaded,
+                    entity_id,
+                ));
+            }
+        };
+
+        let local_entity_id = entity_id.get_local_id();
+
+        match parent_chunk_metadata
+            .registered_entities
+            .remove(local_entity_id)
+        {
+            Some(_) => {
+                return Ok(UnregisterEntitySuccess);
+            }
+            None => {
+                return Err((UnregisterEntityError::EntityAlreadyUnregistered, entity_id));
+            }
+        };
     }
 
     fn load_entity_metadata(
         universe_manager: &mut ResMut<UniverseManager>,
         entity_id: EntityID,
         metadata: EntityMetadata,
-    ) -> Result<LoadEntityMetadataSuccess, (LoadEntityMetadataError, EntityID)> {
+    ) -> Result<LoadEntityMetadataSuccess, (LoadEntityMetadataError, EntityID, EntityMetadata)> {
+        let parent_chunk = match universe_manager.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((LoadEntityMetadataError::FailedToGetParentChunk, entity_id, metadata));
+            }
+        };
+        let parent_chunk = match parent_chunk {
+            Some(parent_chunk) => parent_chunk,
+            None => {
+                return Err((LoadEntityMetadataError::ParentChunkNotRegistered, entity_id, metadata));
+            }
+        };
+        let parent_chunk = match parent_chunk.lock() {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((LoadEntityMetadataError::ParentChunkMutexPoisoned, entity_id, metadata));
+            }
+        };
+
+        let entity = match Self::get_registered_entity(&parent_chunk, &entity_id) {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((LoadEntityMetadataError::FailedToGetEntity, entity_id, metadata));
+            }
+        };
+        let entity = match entity {
+            Some(entity) => entity,
+            None => {
+                return Err((LoadEntityMetadataError::EntityNotRegistered, entity_id, metadata));
+            }
+        };
+        let mut entity = match entity.lock() {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((LoadEntityMetadataError::EntityMutexPoisoned, entity_id, metadata));
+            }
+        };
+
+        match &mut *entity {
+            entity::Entity::Registered { .. } => {
+                let mut stolen_entity = std::mem::take(&mut *entity);
+                if let entity::Entity::Registered { id } = &mut stolen_entity {
+                    let stolen_id = std::mem::take(&mut *id);
+                    *entity = entity::Entity::MetadataLoaded {
+                        id: stolen_id,
+                        metadata,
+                    };
+                    return Ok(LoadEntityMetadataSuccess);
+                } else {
+                    return Err((LoadEntityMetadataError::FatalUnexpectedError, entity_id, metadata));
+                }
+            }
+            entity::Entity::MetadataLoaded { .. } | entity::Entity::DataLoaded { .. } => {
+                return Err((
+                    LoadEntityMetadataError::EntityMetadataAlreadyLoaded,
+                    entity_id,
+                    metadata,
+                ));
+            }
+        }
     }
 
     fn unload_entity_metadata(
         universe_manager: &mut ResMut<UniverseManager>,
         entity_id: EntityID,
     ) -> Result<UnloadEntityMetadataSuccess, (UnloadEntityMetadataError, EntityID)> {
+        let parent_chunk = match universe_manager.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((UnloadEntityMetadataError::FailedToGetParentChunk, entity_id));
+            }
+        };
+        let parent_chunk = match parent_chunk {
+            Some(parent_chunk) => parent_chunk,
+            None => {
+                return Err((
+                    UnloadEntityMetadataError::ParentChunkNotRegistered,
+                    entity_id,
+                ));
+            }
+        };
+        let parent_chunk = match parent_chunk.lock() {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((
+                    UnloadEntityMetadataError::ParentChunkMutexPoisoned,
+                    entity_id,
+                ));
+            }
+        };
+
+        let entity = match Self::get_registered_entity(&parent_chunk, &entity_id) {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((UnloadEntityMetadataError::FailedToGetEntity, entity_id));
+            }
+        };
+        let entity = match entity {
+            Some(entity) => entity,
+            None => {
+                return Err((UnloadEntityMetadataError::EntityNotRegistered, entity_id));
+            }
+        };
+        let mut entity = match entity.lock() {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((UnloadEntityMetadataError::EntityMutexPoisoned, entity_id));
+            }
+        };
+
+        match &mut *entity {
+            entity::Entity::Registered { .. } => {
+                return Err((
+                    UnloadEntityMetadataError::EntityMetadataAlreadyUnloaded,
+                    entity_id,
+                ));
+            }
+            entity::Entity::MetadataLoaded { id, .. } => {
+                let stolen_id = std::mem::take(id);
+                *entity = entity::Entity::Registered { id: stolen_id };
+                return Ok(UnloadEntityMetadataSuccess);
+            }
+            entity::Entity::DataLoaded { .. } => {
+                return Err((UnloadEntityMetadataError::EntityDataStillLoaded, entity_id));
+            }
+        }
     }
 
     fn load_entity_data(
         universe_manager: &mut ResMut<UniverseManager>,
         entity_id: EntityID,
         data: EntityData,
-    ) -> Result<LoadEntityDataSuccess, (LoadEntityDataError, EntityID)> {
+    ) -> Result<LoadEntityDataSuccess, (LoadEntityDataError, EntityID, EntityData)> {
+        let parent_chunk = match universe_manager.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((LoadEntityDataError::FailedToGetParentChunk, entity_id, data));
+            }
+        };
+        let parent_chunk = match parent_chunk {
+            Some(parent_chunk) => parent_chunk,
+            None => {
+                return Err((LoadEntityDataError::ParentChunkNotRegistered, entity_id, data));
+            }
+        };
+        let parent_chunk = match parent_chunk.lock() {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((LoadEntityDataError::ParentChunkMutexPoisoned, entity_id, data));
+            }
+        };
+
+        match Self::get_chunk_load_state(&parent_chunk) {
+            ChunkLoadState::Registered | ChunkLoadState::MetadataLoaded => {
+                return Err((LoadEntityDataError::ParentChunkDataNotLoaded, entity_id, data));
+            }
+            ChunkLoadState::DataLoaded => {}
+        }
+
+        let entity = match Self::get_registered_entity(&parent_chunk, &entity_id) {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((LoadEntityDataError::FailedToGetEntity, entity_id, data));
+            }
+        };
+        let entity = match entity {
+            Some(entity) => entity,
+            None => {
+                return Err((LoadEntityDataError::EntityNotRegistered, entity_id, data));
+            }
+        };
+        let mut entity = match entity.lock() {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((LoadEntityDataError::EntityMutexPoisoned, entity_id, data));
+            }
+        };
+
+        match &mut *entity {
+            entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {
+                return Err((LoadEntityDataError::EntityDataNotLoaded, entity_id, data));
+            }
+            entity::Entity::DataLoaded { id, metadata, .. } => {
+                let stolen_id = std::mem::take(id);
+                let stolen_metadata = std::mem::take(metadata);
+
+                *entity = entity::Entity::DataLoaded {
+                    id: stolen_id,
+                    metadata: stolen_metadata,
+                    data,
+                };
+                return Ok(LoadEntityDataSuccess);
+            }
+        }
     }
 
     fn unload_entity_data(
         universe_manager: &mut ResMut<UniverseManager>,
         entity_id: EntityID,
     ) -> Result<UnloadEntityDataSuccess, (UnloadEntityDataError, EntityID)> {
+        let parent_chunk = match universe_manager.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((UnloadEntityDataError::FailedToGetParentChunk, entity_id));
+            }
+        };
+        let parent_chunk = match parent_chunk {
+            Some(parent_chunk) => parent_chunk,
+            None => {
+                return Err((UnloadEntityDataError::ParentChunkNotRegistered, entity_id));
+            }
+        };
+        let parent_chunk = match parent_chunk.lock() {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((UnloadEntityDataError::ParentChunkMutexPoisoned, entity_id));
+            }
+        };
+
+        let entity = match Self::get_registered_entity(&parent_chunk, &entity_id) {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((UnloadEntityDataError::FailedToGetEntity, entity_id));
+            }
+        };
+        let entity = match entity {
+            Some(entity) => entity,
+            None => {
+                return Err((UnloadEntityDataError::EntityNotRegistered, entity_id));
+            }
+        };
+        let mut entity = match entity.lock() {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((UnloadEntityDataError::EntityMutexPoisoned, entity_id));
+            }
+        };
+
+        match &mut *entity {
+            entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {
+                return Err((UnloadEntityDataError::EntityDataAlreadyUnloaded, entity_id));
+            }
+            entity::Entity::DataLoaded { id, metadata, .. } => {
+                let stolen_id = std::mem::take(id);
+                let stolen_metadata = std::mem::take(metadata);
+
+                *entity = entity::Entity::MetadataLoaded {
+                    id: stolen_id,
+                    metadata: stolen_metadata,
+                };
+                return Ok(UnloadEntityDataSuccess);
+            }
+        }
     }
 
     fn spawn_entity(
@@ -1329,6 +1773,80 @@ impl UniverseManager {
         universe_manager: &mut ResMut<UniverseManager>,
         entity_id: EntityID,
     ) -> Result<SpawnEntitySuccess, (SpawnEntityError, EntityID)> {
+        let parent_chunk = match universe_manager.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((SpawnEntityError::FailedToGetParentChunk, entity_id));
+            }
+        };
+        let parent_chunk = match parent_chunk {
+            Some(parent_chunk) => parent_chunk,
+            None => {
+                return Err((SpawnEntityError::ParentChunkNotRegistered, entity_id));
+            }
+        };
+        let parent_chunk = match parent_chunk.lock() {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((SpawnEntityError::ParentChunkMutexPoisoned, entity_id));
+            }
+        };
+
+        let parent_chunk_data = match Self::get_chunk_data(&parent_chunk) {
+            Ok(parent_chunk_data) => parent_chunk_data,
+            Err(_) => {
+                return Err((SpawnEntityError::ParentChunkDataNotLoaded, entity_id));
+            }
+        };
+
+        match parent_chunk_data.run_state {
+            ChunkRunState::Despawned => {
+                return Err((SpawnEntityError::ParentChunkNotSpawned, entity_id));
+            }
+            ChunkRunState::Spawned { .. } => {}
+        }
+
+        let entity_mutex = match Self::get_registered_entity(&parent_chunk, &entity_id) {
+            Ok(entity_mutex) => entity_mutex,
+            Err(_) => {
+                return Err((SpawnEntityError::FailedToGetEntity, entity_id));
+            }
+        };
+        let entity_mutex = match entity_mutex {
+            Some(entity_mutex) => entity_mutex,
+            None => {
+                return Err((SpawnEntityError::EntityNotRegistered, entity_id));
+            }
+        };
+        let mut entity = match entity_mutex.lock() {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((SpawnEntityError::EntityMutexPoisoned, entity_id));
+            }
+        };
+
+        let entity_data = match Self::get_entity_data_mut(&mut entity) {
+            Ok(entity_data) => entity_data,
+            Err(_) => {
+                return Err((SpawnEntityError::EntityDataNotLoaded, entity_id));
+            }
+        };
+
+        match entity_data.run_state {
+            EntityRunState::Despawned => {
+                entity_data.run_state = EntityRunState::Spawned {
+                    bevy_entity: commands
+                        .spawn(EntityBevyComponent {
+                            entity: entity_mutex.clone(),
+                        })
+                        .id(),
+                };
+                return Ok(SpawnEntitySuccess);
+            }
+            EntityRunState::Spawned { .. } => {
+                return Err((SpawnEntityError::EntityAlreadySpawned, entity_id));
+            }
+        }
     }
 
     fn despawn_entity(
@@ -1336,6 +1854,63 @@ impl UniverseManager {
         universe_manager: &mut ResMut<UniverseManager>,
         entity_id: EntityID,
     ) -> Result<DespawnEntitySuccess, (DespawnEntityError, EntityID)> {
+        let parent_chunk = match universe_manager.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((DespawnEntityError::FailedToGetParentChunk, entity_id));
+            }
+        };
+        let parent_chunk = match parent_chunk {
+            Some(parent_chunk) => parent_chunk,
+            None => {
+                return Err((DespawnEntityError::ParentChunkNotRegistered, entity_id));
+            }
+        };
+        let parent_chunk = match parent_chunk.lock() {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((DespawnEntityError::ParentChunkMutexPoisoned, entity_id));
+            }
+        };
+
+        let entity = match Self::get_registered_entity(&parent_chunk, &entity_id) {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((DespawnEntityError::FailedToGetEntity, entity_id));
+            }
+        };
+        let entity = match entity {
+            Some(entity) => entity,
+            None => {
+                return Err((DespawnEntityError::EntityNotRegistered, entity_id));
+            }
+        };
+        let mut entity = match entity.lock() {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((DespawnEntityError::EntityMutexPoisoned, entity_id));
+            }
+        };
+
+        let entity_data = match Self::get_entity_data_mut(&mut entity) {
+            Ok(entity_data) => entity_data,
+            Err(_) => {
+                return Err((DespawnEntityError::EntityDataNotLoaded, entity_id));
+            }
+        };
+
+        match entity_data.run_state {
+            EntityRunState::Despawned => {
+                return Err((DespawnEntityError::EntityAlreadyDespawned, entity_id));
+            }
+            EntityRunState::Spawned {
+                bevy_entity: ecs_entity,
+            } => {
+                commands.entity(ecs_entity).despawn();
+                entity_data.run_state = EntityRunState::Despawned;
+                return Ok(DespawnEntitySuccess);
+            }
+        }
     }
 }
 

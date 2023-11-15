@@ -5,6 +5,7 @@
 // Internal imports
 
 // External imports
+use bevy::prelude::*;
 
 // Static variables
 
@@ -13,18 +14,23 @@
 // Types
 
 // Enums
+#[derive(Debug, Clone, PartialEq)]
+pub enum EntityRunState {
+    Despawned,
+    Spawned { bevy_entity: Entity },
+}
 
 // Structs
 #[derive(Debug, Clone)]
 pub struct EntityData {
-    pub(in crate::universe) placeholder_data: Option<i32>,
+    pub(in crate::universe) run_state: EntityRunState,
 }
 
 // Implementations
 impl Default for EntityData {
     fn default() -> Self {
         Self {
-            placeholder_data: None,
+            run_state: EntityRunState::Despawned,
         }
     }
 }
@@ -32,16 +38,8 @@ impl Default for EntityData {
 impl EntityData {
     pub fn new() -> EntityData {
         EntityData {
-            placeholder_data: None,
+            run_state: EntityRunState::Despawned,
         }
-    }
-
-    pub fn get_placeholder_data(&self) -> Option<i32> {
-        return self.placeholder_data;
-    }
-
-    pub fn set_placeholder_data(&mut self, placeholder_data: Option<i32>) {
-        self.placeholder_data = placeholder_data;
     }
 }
 

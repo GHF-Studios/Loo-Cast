@@ -3,11 +3,9 @@
 // Local imports
 
 // Internal imports
-use crate::universe::*;
 use crate::universe::chunk::pos::*;
 use crate::universe::chunk::*;
-use crate::universe::entity::*;
-use crate::universe::entity::id::*;
+use crate::universe::*;
 
 // External imports
 use std::collections::HashMap;

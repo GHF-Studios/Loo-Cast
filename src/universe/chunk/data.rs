@@ -3,7 +3,6 @@
 // Local imports
 
 // Internal imports
-use crate::universe::*;
 
 // External imports
 use bevy::prelude::*;

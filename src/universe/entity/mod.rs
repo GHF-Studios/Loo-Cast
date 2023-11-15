@@ -8,15 +8,12 @@ pub mod pos;
 use data::*;
 use id::*;
 use metadata::*;
-use pos::*;
 
 // Internal imports
-use crate::game::SimulationState;
-use crate::AppState;
-use crate::universe::chunk::*;
 
 // External imports
 use bevy::prelude::*;
+use std::sync::{Arc, Mutex};
 
 // Static variables
 
@@ -94,34 +91,109 @@ pub enum EntityOperation {
 
 #[derive(Debug)]
 pub enum RegisterEntityError {
+    ParentChunkMutexPoisoned,
+
+    ParentChunkNotRegistered,
+    ParentChunkMetadataNotLoaded,
+    EntityAlreadyRegistered,
+
+    FailedToGetParentChunk,
 }
 
 #[derive(Debug)]
 pub enum UnregisterEntityError {
+    ParentChunkMutexPoisoned,
+
+    ParentChunkNotRegistered,
+    ParentChunkMetadataNotLoaded,
+    EntityAlreadyUnregistered,
+
+    FailedToGetParentChunk,
 }
 
 #[derive(Debug)]
 pub enum LoadEntityMetadataError {
+    ParentChunkMutexPoisoned,
+    EntityMutexPoisoned,
+
+    ParentChunkNotRegistered,
+    EntityNotRegistered,
+    EntityMetadataAlreadyLoaded,
+
+    FailedToGetParentChunk,
+    FailedToGetEntity,
+    FatalUnexpectedError,
 }
 
 #[derive(Debug)]
 pub enum UnloadEntityMetadataError {
+    ParentChunkMutexPoisoned,
+    EntityMutexPoisoned,
+
+    ParentChunkNotRegistered,
+    EntityNotRegistered,
+    EntityMetadataAlreadyUnloaded,
+    EntityDataStillLoaded,
+
+    FailedToGetParentChunk,
+    FailedToGetEntity,
 }
 
 #[derive(Debug)]
 pub enum LoadEntityDataError {
+    ParentChunkMutexPoisoned,
+    EntityMutexPoisoned,
+
+    ParentChunkNotRegistered,
+    ParentChunkDataNotLoaded,
+    EntityNotRegistered,
+    EntityDataNotLoaded,
+
+    FailedToGetParentChunk,
+    FailedToGetEntity,
 }
 
 #[derive(Debug)]
 pub enum UnloadEntityDataError {
+    ParentChunkMutexPoisoned,
+    EntityMutexPoisoned,
+
+    ParentChunkNotRegistered,
+    EntityNotRegistered,
+    EntityDataAlreadyUnloaded,
+
+    FailedToGetParentChunk,
+    FailedToGetEntity,
 }
 
 #[derive(Debug)]
 pub enum SpawnEntityError {
+    ParentChunkMutexPoisoned,
+    EntityMutexPoisoned,
+
+    ParentChunkNotRegistered,
+    ParentChunkDataNotLoaded,
+    ParentChunkNotSpawned,
+    EntityNotRegistered,
+    EntityDataNotLoaded,
+    EntityAlreadySpawned,
+
+    FailedToGetParentChunk,
+    FailedToGetEntity,
 }
 
 #[derive(Debug)]
 pub enum DespawnEntityError {
+    ParentChunkMutexPoisoned,
+    EntityMutexPoisoned,
+
+    ParentChunkNotRegistered,
+    EntityNotRegistered,
+    EntityDataNotLoaded,
+    EntityAlreadyDespawned,
+
+    FailedToGetParentChunk,
+    FailedToGetEntity,
 }
 
 // Structs
@@ -140,10 +212,14 @@ pub struct UnloadEntityDataSuccess;
 pub struct SpawnEntitySuccess;
 pub struct DespawnEntitySuccess;
 
+#[derive(Component)]
+pub struct EntityBevyComponent {
+    pub entity: Arc<Mutex<Entity>>,
+}
+
 // Implementations
 impl Plugin for EntityPlugin {
-    fn build(&self, app: &mut App) {
-    }
+    fn build(&self, app: &mut App) {}
 }
 
 impl Default for Entity {
@@ -156,9 +232,7 @@ impl Default for Entity {
 
 impl Entity {
     pub(in crate::universe) fn new(id: EntityID) -> Self {
-        Entity::Registered {
-            id,
-        }
+        Entity::Registered { id }
     }
 }
 

@@ -30,7 +30,7 @@ pub struct ChunkID {
 // Implementations
 impl From<EntityID> for ChunkID {
     fn from(entity_id: EntityID) -> Self {
-        entity_id.get_chunk_id().clone()
+        entity_id.get_parent_chunk_id().clone()
     }
 }
 
