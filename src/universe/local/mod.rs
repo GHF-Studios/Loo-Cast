@@ -5,8 +5,7 @@ pub mod id;
 
 // Internal imports
 use crate::game::SimulationState;
-use crate::AppState;
-use crate::universe::*;
+use crate::player::*;
 use crate::universe::chunk::data::*;
 use crate::universe::chunk::id::*;
 use crate::universe::chunk::metadata::*;
@@ -18,6 +17,8 @@ use crate::universe::entity::metadata::*;
 use crate::universe::entity::pos::*;
 use crate::universe::entity::*;
 use crate::universe::global::*;
+use crate::universe::*;
+use crate::AppState;
 
 // External imports
 use bevy::prelude::*;
@@ -26,21 +27,18 @@ use std::sync::{Arc, Mutex};
 
 // Static variables
 
-
 // Constant variables
-
 
 // Types
 
-
 // Enums
-
 
 // Structs
 pub struct LocalUniversePlugin;
 
-#[derive(Component, Debug)]
+#[derive(Debug)]
 pub struct LocalUniverse {
+    pub(in crate::universe) id: LocalUniverseID,
     pub(in crate::universe) previously_viewed_local_chunk_positions: Vec<LocalChunkPos>,
     pub(in crate::universe) currently_viewed_local_chunk_positions: Vec<LocalChunkPos>,
     pub(in crate::universe) newly_viewed_local_chunk_positions: Vec<LocalChunkPos>,
@@ -50,27 +48,26 @@ pub struct LocalUniverse {
 impl Plugin for LocalUniversePlugin {
     fn build(&self, app: &mut App) {
         app
-        // Update Systems
-        .add_systems(
-            Update,
-            (
-                LocalUniverse::detect_local_chunks_system,
-            )
-                .run_if(in_state(AppState::Game))
-                .run_if(in_state(SimulationState::Running)),
-        );
+            // Update Systems
+            .add_systems(
+                Update,
+                (LocalUniverse::detect_local_chunks_system,)
+                    .run_if(in_state(AppState::Game))
+                    .run_if(in_state(SimulationState::Running)),
+            );
     }
 }
 
 impl Default for LocalUniverse {
     fn default() -> Self {
-        Self::new()
+        Self::new(LocalUniverseID::default())
     }
 }
 
 impl LocalUniverse {
-    pub fn new() -> LocalUniverse {
+    pub fn new(id: LocalUniverseID) -> LocalUniverse {
         Self {
+            id,
             previously_viewed_local_chunk_positions: Vec::new(),
             currently_viewed_local_chunk_positions: Vec::new(),
             newly_viewed_local_chunk_positions: Vec::new(),
@@ -78,179 +75,201 @@ impl LocalUniverse {
     }
 
     fn detect_local_chunks_system(
-        mut local_universe_query: Query<(&mut LocalUniverse, &Transform)>,
+        player_transform_query: Query<&Transform, With<Player>>,
         mut universe_manager: ResMut<UniverseManager>,
     ) {
-        let mut global_universe = match universe_manager.registered_global_universe {
-            Some(ref mut global_universe) => global_universe,
+        let global_universe = match universe_manager.get_global_universe() {
+            Some(global_universe) => global_universe,
             None => {
                 return;
             }
         };
+        let mut global_universe = match global_universe.lock() {
+            Ok(global_universe) => global_universe,
+            Err(_) => {
+                return;
+            }
+        };
 
-        Self::gather_local_chunk_positions(&mut local_universe_query);
-        Self::process_local_chunk_positions(&mut local_universe_query, &mut global_universe);
+        let local_universe = match universe_manager.get_local_universe(LocalUniverseID::default()) {
+            Some(local_universe) => local_universe,
+            None => {
+                return;
+            }
+        };
+        let mut local_universe = match local_universe.lock() {
+            Ok(local_universe) => local_universe,
+            Err(_) => {
+                return;
+            }
+        };
+
+        let player_transform = player_transform_query.single(); 
+
+        Self::gather_local_chunk_positions(&mut local_universe, player_transform);
+        Self::process_local_chunk_positions(&mut global_universe, &mut local_universe);
     }
 
     fn gather_local_chunk_positions(
-        local_universe_query: &mut Query<(&mut LocalUniverse, &Transform)>,
+        local_universe: &mut LocalUniverse,
+        local_universe_transform: &Transform,
     ) {
-        for (mut local_universe, local_universe_transform) in local_universe_query.iter_mut() {
-            if local_universe.previously_viewed_local_chunk_positions.len() > 0 {
-                panic!("Chunk viewer's previously viewed chunk positions are not empty");
-            }
-            if local_universe.newly_viewed_local_chunk_positions.len() > 0 {
-                panic!("Chunk viewer's newly viewed chunk positions are not empty");
-            }
+        if local_universe.previously_viewed_local_chunk_positions.len() > 0 {
+            panic!("Chunk viewer's previously viewed chunk positions are not empty");
+        }
+        if local_universe.newly_viewed_local_chunk_positions.len() > 0 {
+            panic!("Chunk viewer's newly viewed chunk positions are not empty");
+        }
 
-            let local_universe_local_entity_pos: LocalEntityPos =
-                local_universe_transform.translation.into();
-            let local_universe_local_chunk_position: LocalChunkPos =
-                local_universe_local_entity_pos.into();
-            let detected_chunk_positions =
-                Self::get_chunks_in_range(&local_universe_local_chunk_position);
-            let currently_viewed_chunk_positions =
-                local_universe.currently_viewed_local_chunk_positions.clone();
+        let local_universe_local_entity_pos: LocalEntityPos =
+            local_universe_transform.translation.into();
+        let local_universe_local_chunk_position: LocalChunkPos =
+            local_universe_local_entity_pos.into();
+        let detected_chunk_positions =
+            Self::get_chunks_in_range(&local_universe_local_chunk_position);
+        let currently_viewed_chunk_positions = local_universe
+            .currently_viewed_local_chunk_positions
+            .clone();
 
-            for currently_viewed_chunk_position in currently_viewed_chunk_positions {
-                if !detected_chunk_positions.contains(&currently_viewed_chunk_position) {
-                    local_universe
-                        .previously_viewed_local_chunk_positions
-                        .push(currently_viewed_chunk_position);
-                }
+        for currently_viewed_chunk_position in currently_viewed_chunk_positions {
+            if !detected_chunk_positions.contains(&currently_viewed_chunk_position) {
+                local_universe
+                    .previously_viewed_local_chunk_positions
+                    .push(currently_viewed_chunk_position);
             }
+        }
 
-            for detected_chunk_position in &detected_chunk_positions {
-                if !local_universe
-                    .currently_viewed_local_chunk_positions
-                    .contains(detected_chunk_position)
-                {
-                    local_universe
-                        .newly_viewed_local_chunk_positions
-                        .push(detected_chunk_position.clone());
-                }
+        for detected_chunk_position in &detected_chunk_positions {
+            if !local_universe
+                .currently_viewed_local_chunk_positions
+                .contains(detected_chunk_position)
+            {
+                local_universe
+                    .newly_viewed_local_chunk_positions
+                    .push(detected_chunk_position.clone());
             }
         }
     }
 
     fn process_local_chunk_positions(
-        local_universe_query: &mut Query<(&mut LocalUniverse, &Transform)>,
         global_universe: &mut GlobalUniverse,
+        local_universe: &mut LocalUniverse,
     ) {
-        for (mut local_universe, _) in local_universe_query.iter_mut() {
-            // Unload chunks that have exited the view
-            let old_local_chunk_positions =
-                local_universe.previously_viewed_local_chunk_positions.clone();
+        // Unload chunks that have exited the view
+        let old_local_chunk_positions = local_universe
+            .previously_viewed_local_chunk_positions
+            .clone();
 
-            for old_local_chunk_pos in &old_local_chunk_positions {
-                let old_local_chunk_pos = old_local_chunk_pos.clone();
-                let old_local_chunk_pos_base10x10: (u8, u8) = old_local_chunk_pos.into();
-                let old_chunk_id = match ChunkID::try_from(old_local_chunk_pos_base10x10) {
-                    Ok(old_chunk_id) => old_chunk_id,
-                    Err(_) => {
-                        continue;
-                    }
-                };
+        for old_local_chunk_pos in &old_local_chunk_positions {
+            let old_local_chunk_pos = old_local_chunk_pos.clone();
+            let old_local_chunk_pos_base10x10: (u8, u8) = old_local_chunk_pos.into();
+            let old_chunk_id = match ChunkID::try_from(old_local_chunk_pos_base10x10) {
+                Ok(old_chunk_id) => old_chunk_id,
+                Err(_) => {
+                    continue;
+                }
+            };
 
-                match global_universe.send_chunk_operation_request(ChunkOperationRequest {
-                    operations: vec![
-                        ChunkOperation::Despawn {
-                            id: old_chunk_id.clone(),
-                            success_callback: Box::new(|_| {}),
-                            failure_callback: Box::new(|_, _| {}),
-                        },
-                        ChunkOperation::UnloadData {
-                            id: old_chunk_id.clone(),
-                            success_callback: Box::new(|_| {}),
-                            failure_callback: Box::new(|_, _| {}),
-                        },
-                        ChunkOperation::UnloadMetadata {
-                            id: old_chunk_id.clone(),
-                            success_callback: Box::new(|_| {}),
-                            failure_callback: Box::new(|_, _| {}),
-                        },
-                        ChunkOperation::Despawn {
-                            id: old_chunk_id,
-                            success_callback: Box::new(|_| {}),
-                            failure_callback: Box::new(|_, _| {}),
-                        },
-                    ],
-                }) {
-                    Ok(_) => {}
-                    Err(_) => {
-                        continue;
-                    }
+            match global_universe.send_chunk_operation_request(ChunkOperationRequest {
+                operations: vec![
+                    ChunkOperation::Despawn {
+                        id: old_chunk_id.clone(),
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|_, _| {}),
+                    },
+                    ChunkOperation::UnloadData {
+                        id: old_chunk_id.clone(),
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|_, _| {}),
+                    },
+                    ChunkOperation::UnloadMetadata {
+                        id: old_chunk_id.clone(),
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|_, _| {}),
+                    },
+                    ChunkOperation::Despawn {
+                        id: old_chunk_id,
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|_, _| {}),
+                    },
+                ],
+            }) {
+                Ok(_) => {}
+                Err(_) => {
+                    continue;
                 }
             }
-
-            local_universe
-                .currently_viewed_local_chunk_positions
-                .retain(|chunk_pos| !old_local_chunk_positions.contains(chunk_pos));
-
-            local_universe.previously_viewed_local_chunk_positions.clear();
-
-            // Load chunks that have entered the view
-            let mut new_local_chunk_positions =
-                local_universe.newly_viewed_local_chunk_positions.clone();
-
-            for new_local_chunk_pos in &new_local_chunk_positions {
-                let new_local_chunk_pos = new_local_chunk_pos.clone();
-                let new_local_chunk_pos_base10x10: (u8, u8) = new_local_chunk_pos.clone().into();
-                let new_chunk_id = match ChunkID::try_from(new_local_chunk_pos_base10x10) {
-                    Ok(new_chunk_id) => new_chunk_id,
-                    Err(_) => {
-                        continue;
-                    }
-                };
-
-                let new_chunk_metadata = match ChunkMetadata::new(None, new_local_chunk_pos) {
-                    Ok(new_chunk_metadata) => new_chunk_metadata,
-                    Err(_) => {
-                        continue;
-                    }
-                };
-
-                let new_chunk_data = ChunkData::new();
-
-                match global_universe.send_chunk_operation_request(ChunkOperationRequest {
-                    operations: vec![
-                        ChunkOperation::Register {
-                            id: new_chunk_id.clone(),
-                            success_callback: Box::new(|_| {}),
-                            failure_callback: Box::new(|_, _| {}),
-                        },
-                        ChunkOperation::LoadMetadata {
-                            id: new_chunk_id.clone(),
-                            metadata: new_chunk_metadata,
-                            success_callback: Box::new(|_| {}),
-                            failure_callback: Box::new(|_, _, _| {}),
-                        },
-                        ChunkOperation::LoadData {
-                            id: new_chunk_id.clone(),
-                            data: new_chunk_data,
-                            success_callback: Box::new(|_| {}),
-                            failure_callback: Box::new(|_, _, _| {}),
-                        },
-                        ChunkOperation::Spawn {
-                            id: new_chunk_id,
-                            success_callback: Box::new(|_| {}),
-                            failure_callback: Box::new(|_, _| {}),
-                        },
-                    ],
-                }) {
-                    Ok(_) => {}
-                    Err(_) => {
-                        continue;
-                    }
-                }
-            }
-
-            local_universe
-                .currently_viewed_local_chunk_positions
-                .append(&mut new_local_chunk_positions);
-
-            local_universe.newly_viewed_local_chunk_positions.clear();
         }
+
+        local_universe
+            .currently_viewed_local_chunk_positions
+            .retain(|chunk_pos| !old_local_chunk_positions.contains(chunk_pos));
+
+        local_universe
+            .previously_viewed_local_chunk_positions
+            .clear();
+
+        // Load chunks that have entered the view
+        let mut new_local_chunk_positions =
+            local_universe.newly_viewed_local_chunk_positions.clone();
+
+        for new_local_chunk_pos in &new_local_chunk_positions {
+            let new_local_chunk_pos = new_local_chunk_pos.clone();
+            let new_local_chunk_pos_base10x10: (u8, u8) = new_local_chunk_pos.clone().into();
+            let new_chunk_id = match ChunkID::try_from(new_local_chunk_pos_base10x10) {
+                Ok(new_chunk_id) => new_chunk_id,
+                Err(_) => {
+                    continue;
+                }
+            };
+
+            let new_chunk_metadata = match ChunkMetadata::new(None, new_local_chunk_pos) {
+                Ok(new_chunk_metadata) => new_chunk_metadata,
+                Err(_) => {
+                    continue;
+                }
+            };
+
+            let new_chunk_data = ChunkData::new();
+
+            match global_universe.send_chunk_operation_request(ChunkOperationRequest {
+                operations: vec![
+                    ChunkOperation::Register {
+                        id: new_chunk_id.clone(),
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|_, _| {}),
+                    },
+                    ChunkOperation::LoadMetadata {
+                        id: new_chunk_id.clone(),
+                        metadata: new_chunk_metadata,
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|_, _, _| {}),
+                    },
+                    ChunkOperation::LoadData {
+                        id: new_chunk_id.clone(),
+                        data: new_chunk_data,
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|_, _, _| {}),
+                    },
+                    ChunkOperation::Spawn {
+                        id: new_chunk_id,
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|_, _| {}),
+                    },
+                ],
+            }) {
+                Ok(_) => {}
+                Err(_) => {
+                    continue;
+                }
+            }
+        }
+
+        local_universe
+            .currently_viewed_local_chunk_positions
+            .append(&mut new_local_chunk_positions);
+
+        local_universe.newly_viewed_local_chunk_positions.clear();
     }
 
     fn get_chunks_in_range(center: &LocalChunkPos) -> Vec<LocalChunkPos> {
@@ -262,6 +281,10 @@ impl LocalUniverse {
             }
         }
         chunks
+    }
+
+    pub fn get_id(&self) -> &LocalUniverseID {
+        &self.id
     }
 }
 

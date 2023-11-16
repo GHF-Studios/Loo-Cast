@@ -3,10 +3,10 @@
 // Local imports
 
 // Internal imports
-use crate::universe::*;
 use crate::universe::chunk::*;
 use crate::universe::entity::pos::*;
 use crate::universe::local::*;
+use crate::universe::*;
 
 // External imports
 use std::sync::{Arc, Mutex};

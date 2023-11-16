@@ -39,12 +39,18 @@ impl Default for EntityID {
 }
 
 impl EntityID {
-    pub(in crate::universe) fn new(parent_chunk_id: ChunkID, local_id: u64) -> Result<Self, String> {
+    pub(in crate::universe) fn new(
+        parent_chunk_id: ChunkID,
+        local_id: u64,
+    ) -> Result<Self, String> {
         if local_id == u64::MAX {
             return Err("Cannot create entity id: Local id space has been exhausted.".to_string());
         }
 
-        Ok(EntityID { parent_chunk_id, local_id })
+        Ok(EntityID {
+            parent_chunk_id,
+            local_id,
+        })
     }
 
     pub fn get_parent_chunk_id(&self) -> &ChunkID {

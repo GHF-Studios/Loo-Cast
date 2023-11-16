@@ -23,6 +23,9 @@ const CAMERA_SPEED: f32 = 10.0;
 // Structs
 pub struct CameraPlugin;
 
+#[derive(Component)]
+pub struct MainCamera;
+
 #[derive(Resource)]
 pub struct CameraManager;
 
@@ -45,10 +48,13 @@ impl Plugin for CameraPlugin {
 impl CameraManager {
     fn initialize(mut commands: Commands) {
         commands.insert_resource(CameraManager {});
-        commands.spawn(Camera2dBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            ..default()
-        });
+        commands.spawn((
+            Camera2dBundle {
+                transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                ..default()
+            },
+            MainCamera {},
+        ));
     }
 
     fn camera_movement_system(

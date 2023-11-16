@@ -147,7 +147,8 @@ pub enum LoadEntityDataError {
     ParentChunkNotRegistered,
     ParentChunkDataNotLoaded,
     EntityNotRegistered,
-    EntityDataNotLoaded,
+    EntityMetadataNotLoaded,
+    EntityDataAlreadyLoaded,
 
     FailedToGetParentChunk,
     FailedToGetEntity,
@@ -220,6 +221,12 @@ pub struct EntityBevyComponent {
 // Implementations
 impl Plugin for EntityPlugin {
     fn build(&self, app: &mut App) {}
+}
+
+impl EntityOperationRequest {
+    pub fn new(operations: Vec<EntityOperation>) -> Self {
+        EntityOperationRequest { operations }
+    }
 }
 
 impl Default for Entity {

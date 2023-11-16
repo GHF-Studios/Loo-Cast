@@ -235,12 +235,16 @@ impl Plugin for ChunkPlugin {
             // Update Systems
             .add_systems(
                 Update,
-                (
-                    Chunk::debug_render_system,
-                )
+                (Chunk::debug_render_system,)
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
             );
+    }
+}
+
+impl ChunkOperationRequest {
+    pub fn new(operations: Vec<ChunkOperation>) -> Self {
+        ChunkOperationRequest { operations }
     }
 }
 
