@@ -13,6 +13,7 @@ use metadata::*;
 
 // External imports
 use bevy::prelude::*;
+use bevy::ecs::system::EntityCommands;
 use std::sync::{Arc, Mutex};
 
 // Static variables
@@ -86,6 +87,12 @@ pub enum EntityOperation {
         id: EntityID,
         success_callback: Box<dyn Fn(DespawnEntitySuccess) + Send>,
         failure_callback: Box<dyn Fn(DespawnEntityError, EntityID) + Send>,
+    },
+    CommandEntity {
+        id: EntityID,
+        command: Box<dyn FnOnce(&mut EntityCommands) + Send>,
+        success_callback: Box<dyn Fn(CommandEntitySuccess) + Send>,
+        failure_callback: Box<dyn Fn(CommandEntityError, EntityID) + Send>,
     },
 }
 
@@ -197,6 +204,20 @@ pub enum DespawnEntityError {
     FailedToGetEntity,
 }
 
+#[derive(Debug)]
+pub enum CommandEntityError {
+    ParentChunkMutexPoisoned,
+    EntityMutexPoisoned,
+
+    ParentChunkNotRegistered,
+    EntityNotRegistered,
+    EntityDataNotLoaded,
+    EntityNotSpawned,
+    
+    FailedToGetParentChunk,
+    FailedToGetEntity,
+}
+
 // Structs
 pub struct EntityPlugin;
 
@@ -212,6 +233,7 @@ pub struct LoadEntityDataSuccess;
 pub struct UnloadEntityDataSuccess;
 pub struct SpawnEntitySuccess;
 pub struct DespawnEntitySuccess;
+pub struct CommandEntitySuccess;
 
 #[derive(Component)]
 pub struct EntityBevyComponent {

@@ -227,7 +227,22 @@ impl PlayerManager {
                     failure_callback: Box::new(|_, _, _| {}) 
                 },
                 EntityOperation::Spawn { 
-                    id: entity_id, 
+                    id: entity_id.clone(), 
+                    success_callback: Box::new(|_| {}), 
+                    failure_callback: Box::new(|_, _| {}) 
+                },
+                EntityOperation::CommandEntity {
+                    id: entity_id,
+                    command: Box::new(move |entity_commands| {
+                        entity_commands.insert(SpriteBundle {
+                            sprite: Sprite {
+                                custom_size: Some(Vec2::new(64.0, 64.0)),
+                                ..default()
+                            },
+                            transform: Transform::from_xyz(world_position.x, world_position.y, 0.0),
+                            ..default()
+                        });
+                    }),
                     success_callback: Box::new(|_| {}), 
                     failure_callback: Box::new(|_, _| {}) 
                 },

@@ -21,6 +21,7 @@ use crate::AppState;
 
 // External imports
 use bevy::prelude::*;
+use bevy::ecs::system::EntityCommands;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -748,6 +749,20 @@ impl GlobalUniverse {
                             failure_callback(error, entity_id);
                         }
                     },
+                    EntityOperation::CommandEntity { 
+                        id, 
+                        command, 
+                        success_callback, 
+                        failure_callback 
+                    } => match Self::command_entity(command, &mut commands, &mut global_universe, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err((error, entity_id)) => {
+                            failure_callback(error, entity_id);
+                        }
+
+                    }
                 }
             }
         }
@@ -1930,6 +1945,69 @@ impl GlobalUniverse {
                 return Ok(DespawnEntitySuccess);
             }
         }
+    }
+
+    fn command_entity(
+        command: Box<dyn FnOnce(&mut EntityCommands) + Send>,
+        commands: &mut Commands,
+        global_universe: &mut GlobalUniverse,
+        entity_id: EntityID,
+    ) -> Result<CommandEntitySuccess, (CommandEntityError, EntityID)> {
+        let parent_chunk = match global_universe.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((CommandEntityError::FailedToGetParentChunk, entity_id));
+            }
+        };
+        let parent_chunk = match parent_chunk {
+            Some(parent_chunk) => parent_chunk,
+            None => {
+                return Err((CommandEntityError::ParentChunkNotRegistered, entity_id));
+            }
+        };
+        let parent_chunk = match parent_chunk.lock() {
+            Ok(parent_chunk) => parent_chunk,
+            Err(_) => {
+                return Err((CommandEntityError::ParentChunkMutexPoisoned, entity_id));
+            }
+        };
+
+        let entity = match Self::get_registered_entity(&parent_chunk, &entity_id) {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((CommandEntityError::FailedToGetEntity, entity_id));
+            }
+        };
+        let entity = match entity {
+            Some(entity) => entity,
+            None => {
+                return Err((CommandEntityError::EntityNotRegistered, entity_id));
+            }
+        };
+        let mut entity = match entity.lock() {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((CommandEntityError::EntityMutexPoisoned, entity_id));
+            }
+        };
+
+        let entity_data = match Self::get_entity_data_mut(&mut entity) {
+            Ok(entity_data) => entity_data,
+            Err(_) => {
+                return Err((CommandEntityError::EntityDataNotLoaded, entity_id));
+            }
+        };
+
+        let entity_bevy_entity = match entity_data.run_state {
+            EntityRunState::Despawned => {
+                return Err((CommandEntityError::EntityNotSpawned, entity_id));
+            }
+            EntityRunState::Spawned { bevy_entity } => bevy_entity
+        };
+
+        command(&mut commands.entity(entity_bevy_entity));
+
+        return Ok(CommandEntitySuccess);
     }
 }
 
