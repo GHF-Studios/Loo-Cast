@@ -88,7 +88,7 @@ pub enum EntityOperation {
         success_callback: Box<dyn Fn(DespawnEntitySuccess) + Send>,
         failure_callback: Box<dyn Fn(DespawnEntityError, EntityID) + Send>,
     },
-    CommandEntity {
+    Command {
         id: EntityID,
         command: Box<dyn FnOnce(&mut EntityCommands) + Send>,
         success_callback: Box<dyn Fn(CommandEntitySuccess) + Send>,

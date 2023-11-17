@@ -26,6 +26,7 @@ use crate::player::*;
 
 // External imports
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -78,7 +79,10 @@ impl UniverseManager {
     fn initialize(
         mut commands: Commands,
         mut initialize_player_event_writer: EventWriter<InitializePlayer>,
+        mut rapier_configuration: ResMut<RapierConfiguration>,
     ) {
+        rapier_configuration.gravity = Vec2::splat(0.0);
+
         let universe_manager = Self {
             registered_global_universe: None,
             registered_local_universes: HashMap::new(),

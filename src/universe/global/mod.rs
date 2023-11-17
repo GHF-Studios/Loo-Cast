@@ -749,7 +749,7 @@ impl GlobalUniverse {
                             failure_callback(error, entity_id);
                         }
                     },
-                    EntityOperation::CommandEntity { 
+                    EntityOperation::Command { 
                         id, 
                         command, 
                         success_callback, 

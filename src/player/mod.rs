@@ -20,11 +20,14 @@ use crate::AppState;
 // External imports
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+use bevy_rapier2d::prelude::*;
 
 // Static variables
 
 // Constant variables
-pub const PLAYER_SPEED: f32 = 500.0;
+pub const ACCELERATION: f32 = 5000.0;
+pub const MAX_SPEED: f32 = 1000.0;
+pub const LINEAR_DAMPING: f32 = 5.0;
 
 // Types
 
@@ -81,6 +84,7 @@ impl PlayerManager {
         if let Some(_) = initialize_player_event_reader.iter().next() {
             commands.insert_resource(PlayerManager {});
             commands.spawn((
+                Player {},
                 SpriteBundle {
                     sprite: Sprite {
                         custom_size: Some(Vec2::new(64.0, 64.0)),
@@ -90,7 +94,14 @@ impl PlayerManager {
                     texture: asset_server.load("sprites/circle.png"),
                     ..default()
                 },
-                Player {},
+                RigidBody::Dynamic,
+                Collider::ball(32.0),
+                Velocity {
+                    linvel: Vec2::splat(0.0),
+                    angvel: 0.0,
+                },
+                LockedAxes::ROTATION_LOCKED,
+                Damping { linear_damping: LINEAR_DAMPING, angular_damping: 0.0 }
             ));
             universe_manager.register_local_universe(LocalUniverse::default());
         }
@@ -111,30 +122,32 @@ impl PlayerManager {
 
     fn player_movement_system(
         keyboard_input: Res<Input<KeyCode>>,
-        mut player_query: Query<&mut Transform, With<Player>>,
+        mut player_velocity_query: Query<&mut Velocity, With<Player>>,
         time: Res<Time>,
     ) {
-        if let Ok(mut transform) = player_query.get_single_mut() {
-            let mut direction = Vec3::ZERO;
+        if let Ok(mut player_velocity) = player_velocity_query.get_single_mut() {
+            let mut direction = Vec2::ZERO;
 
             if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
-                direction += Vec3::new(-1.0, 0.0, 0.0);
+                direction += Vec2::new(-1.0, 0.0);
             }
             if keyboard_input.pressed(KeyCode::Right) || keyboard_input.pressed(KeyCode::D) {
-                direction += Vec3::new(1.0, 0.0, 0.0);
+                direction += Vec2::new(1.0, 0.0);
             }
             if keyboard_input.pressed(KeyCode::Up) || keyboard_input.pressed(KeyCode::W) {
-                direction += Vec3::new(0.0, 1.0, 0.0);
+                direction += Vec2::new(0.0, 1.0);
             }
             if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
-                direction += Vec3::new(0.0, -1.0, 0.0);
+                direction += Vec2::new(0.0, -1.0);
             }
 
             if direction.length() > 0.0 {
                 direction = direction.normalize();
+                player_velocity.linvel += direction * ACCELERATION * time.delta_seconds();
+                if player_velocity.linvel.length() > MAX_SPEED {
+                    player_velocity.linvel = player_velocity.linvel.normalize() * MAX_SPEED;
+                }
             }
-
-            transform.translation += direction * PLAYER_SPEED * time.delta_seconds();
         }
     }
 
@@ -231,17 +244,21 @@ impl PlayerManager {
                     success_callback: Box::new(|_| {}), 
                     failure_callback: Box::new(|_, _| {}) 
                 },
-                EntityOperation::CommandEntity {
+                EntityOperation::Command {
                     id: entity_id,
                     command: Box::new(move |entity_commands| {
-                        entity_commands.insert(SpriteBundle {
-                            sprite: Sprite {
-                                custom_size: Some(Vec2::new(64.0, 64.0)),
+                        entity_commands.insert((
+                            SpriteBundle {
+                                sprite: Sprite {
+                                    custom_size: Some(Vec2::new(64.0, 64.0)),
+                                    ..default()
+                                },
+                                transform: Transform::from_xyz(world_position.x, world_position.y, 0.0),
                                 ..default()
                             },
-                            transform: Transform::from_xyz(world_position.x, world_position.y, 0.0),
-                            ..default()
-                        });
+                            RigidBody::Fixed,
+                            Collider::cuboid(32.0, 32.0),
+                        ));
                     }),
                     success_callback: Box::new(|_| {}), 
                     failure_callback: Box::new(|_, _| {}) 

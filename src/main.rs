@@ -21,6 +21,7 @@ use universe::UniversePlugin;
 
 // External imports
 use bevy::{app::PluginGroupBuilder, prelude::*};
+use bevy_rapier2d::prelude::*;
 
 // Static variables
 
@@ -41,6 +42,8 @@ pub enum AppState {
 // Structs
 pub struct LooCastBasePlugins;
 
+pub struct RapierPlugins;
+
 // Implementations
 impl PluginGroup for LooCastBasePlugins {
     fn build(self) -> PluginGroupBuilder {
@@ -60,11 +63,25 @@ impl PluginGroup for LooCastBasePlugins {
     }
 }
 
+impl PluginGroup for RapierPlugins {
+    fn build(self) -> PluginGroupBuilder {
+        let mut group = PluginGroupBuilder::start::<Self>();
+
+        group = group
+            .add(RapierDebugRenderPlugin::default())
+            .add(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0));
+
+        group
+    }
+}
+
 // Module Functions
 fn main() {
     App::new()
         // Bevy Plugins
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        // Rapier Plugins
+        .add_plugins(RapierPlugins)
         // States
         .add_state::<AppState>()
         // Loo Cast Base Plugins
