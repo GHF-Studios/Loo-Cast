@@ -23,7 +23,7 @@ use std::sync::{Arc, Mutex};
 // Static variables
 
 // Constant variables
-pub const CHUNK_SIZE: u16 = 512;
+pub const CHUNK_SIZE: u16 = 64;
 pub const VIEW_RADIUS: u16 = 2;
 
 // Types
@@ -278,14 +278,19 @@ impl Chunk {
                 Chunk::DataLoaded { ref metadata, .. } => metadata,
             };
 
-            let gizmo_position: LocalEntityPos =
-                chunk_metadata.get_pos().get_local_pos().clone().into();
+            let local_chunk_pos = chunk_metadata.get_pos().get_local_pos().clone();
+            let color = if local_chunk_pos.x == 0 || local_chunk_pos.x == 9 || local_chunk_pos.y == 0 || local_chunk_pos.y == 9 {
+                Color::RED
+            } else {
+                Color::GREEN
+            };
+            let gizmo_position: LocalEntityPos = local_chunk_pos.into();
             let gizmo_position: Vec2 = gizmo_position.into();
             gizmos.rect_2d(
                 gizmo_position,
                 0.,
                 Vec2::splat(CHUNK_SIZE as f32),
-                Color::RED,
+                color,
             );
         }
     }
