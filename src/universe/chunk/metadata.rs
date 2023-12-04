@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex};
 pub struct ChunkMetadata {
     pub(in crate::universe) pos: ChunkPos,
     pub(in crate::universe) parent_chunk: Option<Arc<Mutex<Chunk>>>,
-    pub(in crate::universe) child_chunks: Option<HashMap<LocalChunkPos, Arc<Mutex<Chunk>>>>,
+    pub(in crate::universe) child_chunks: Option<HashMap<AbsoluteLocalChunkPos, Arc<Mutex<Chunk>>>>,
     pub(in crate::universe) current_local_entity_id: u64,
     pub(in crate::universe) recycled_local_entity_ids: Vec<u64>,
     pub(in crate::universe) registered_entities: HashMap<u64, Arc<Mutex<entity::Entity>>>,
@@ -34,7 +34,7 @@ pub struct ChunkMetadata {
 impl Default for ChunkMetadata {
     fn default() -> Self {
         Self {
-            pos: ChunkPos::new(None, LocalChunkPos::new(0, 0)),
+            pos: ChunkPos::from_absolute(None, AbsoluteLocalChunkPos::new(0, 0)),
             parent_chunk: None,
             child_chunks: None,
             current_local_entity_id: 0,
@@ -47,7 +47,7 @@ impl Default for ChunkMetadata {
 impl ChunkMetadata {
     pub fn new(
         parent_chunk: Option<Arc<Mutex<Chunk>>>,
-        local_chunk_pos: LocalChunkPos,
+        apparent_local_pos: ApparentLocalChunkPos,
     ) -> Result<ChunkMetadata, String> {
         if let Some(parent_chunk_mutex) = parent_chunk {
             let parent_chunk = parent_chunk_mutex.lock().unwrap();
@@ -65,7 +65,7 @@ impl ChunkMetadata {
 
             if parent_scale_index < 62 {
                 return Ok(ChunkMetadata {
-                    pos: ChunkPos::new(Some(Box::new(parent_chunk_pos)), local_chunk_pos),
+                    pos: ChunkPos::from_apparent(Some(Box::new(parent_chunk_pos)), apparent_local_pos),
                     parent_chunk: Some(parent_chunk_mutex),
                     child_chunks: Some(HashMap::new()),
                     current_local_entity_id: 0,
@@ -74,7 +74,7 @@ impl ChunkMetadata {
                 });
             } else if parent_scale_index == 62 {
                 return Ok(ChunkMetadata {
-                    pos: ChunkPos::new(Some(Box::new(parent_chunk_pos)), local_chunk_pos),
+                    pos: ChunkPos::from_apparent(Some(Box::new(parent_chunk_pos)), apparent_local_pos),
                     parent_chunk: Some(parent_chunk_mutex),
                     child_chunks: None,
                     current_local_entity_id: 0,
@@ -86,7 +86,7 @@ impl ChunkMetadata {
             }
         } else {
             return Ok(ChunkMetadata {
-                pos: ChunkPos::new(None, local_chunk_pos),
+                pos: ChunkPos::from_apparent(None, apparent_local_pos),
                 parent_chunk: None,
                 child_chunks: Some(HashMap::new()),
                 current_local_entity_id: 0,

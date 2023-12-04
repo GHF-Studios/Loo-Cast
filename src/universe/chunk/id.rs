@@ -183,34 +183,17 @@ impl ChunkID {
         return ChunkID::try_from(id_base10x10);
     }
 
-    pub fn compute_local_pos(&self) -> Result<LocalChunkPos, String> {
-        let local_pos_base10x10 = match self.global_id_base10x10.last() {
-            Some(local_pos_base10x10) => local_pos_base10x10.clone(),
+    pub fn compute_absolute_local_pos(&self) -> Result<AbsoluteLocalChunkPos, String> {
+        let absolute_local_pos_base10x10 = match self.global_id_base10x10.last() {
+            Some(absolute_local_pos_base10x10) => absolute_local_pos_base10x10.clone(),
             None => {
                 return Err(
-                    "Cannot compute local position from chunk ID: Chunk ID is invalid.".to_string(),
+                    "Cannot compute absolute local position from chunk ID: Chunk ID is invalid.".to_string(),
                 )
             }
         };
 
-        return Ok(LocalChunkPos::from(local_pos_base10x10));
-    }
-
-    pub fn compute_pos(&self) -> Result<ChunkPos, String> {
-        let mut id_base10x10 = self.global_id_base10x10.clone();
-
-        if id_base10x10.is_empty() {
-            return Err("Cannot compute position from chunk ID: Chunk ID is invalid.".to_string());
-        }
-
-        let first_local_pos_base10x10 = id_base10x10.remove(0);
-        let mut chunk_pos = ChunkPos::new(None, first_local_pos_base10x10.into());
-
-        for local_pos_base10x10 in id_base10x10 {
-            chunk_pos = ChunkPos::new(Some(Box::new(chunk_pos)), local_pos_base10x10.into());
-        }
-
-        Ok(chunk_pos)
+        return Ok(AbsoluteLocalChunkPos::from(absolute_local_pos_base10x10));
     }
 }
 

@@ -20,11 +20,18 @@ use crate::universe::entity::pos::*;
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ChunkPos {
     parent_pos: Option<Box<ChunkPos>>,
-    local_pos: LocalChunkPos,
+    absolute_local_pos: AbsoluteLocalChunkPos,
+    apparent_local_pos: ApparentLocalChunkPos,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct LocalChunkPos {
+pub struct AbsoluteLocalChunkPos {
+    pub x: i8,
+    pub y: i8,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct ApparentLocalChunkPos {
     pub x: i8,
     pub y: i8,
 }
@@ -34,16 +41,26 @@ impl Default for ChunkPos {
     fn default() -> Self {
         ChunkPos {
             parent_pos: None,
-            local_pos: LocalChunkPos::default(),
+            absolute_local_pos: AbsoluteLocalChunkPos::default(),
+            apparent_local_pos: ApparentLocalChunkPos::default(),
         }
     }
 }
 
 impl ChunkPos {
-    pub fn new(parent_pos: Option<Box<ChunkPos>>, local_pos: LocalChunkPos) -> Self {
+    pub fn from_absolute(parent_pos: Option<Box<ChunkPos>>, absolute_local_pos: AbsoluteLocalChunkPos) -> Self {
         ChunkPos {
             parent_pos,
-            local_pos,
+            absolute_local_pos: absolute_local_pos.clone(),
+            apparent_local_pos: absolute_local_pos.into(),
+        }
+    }
+
+    pub fn from_apparent(parent_pos: Option<Box<ChunkPos>>, apparent_local_pos: ApparentLocalChunkPos) -> Self {
+        ChunkPos {
+            parent_pos,
+            absolute_local_pos: apparent_local_pos.clone().into(),
+            apparent_local_pos,
         }
     }
 
@@ -51,53 +68,100 @@ impl ChunkPos {
         &self.parent_pos
     }
 
-    pub fn get_local_pos(&self) -> &LocalChunkPos {
-        &self.local_pos
+    pub fn get_absolute_local_pos(&self) -> &AbsoluteLocalChunkPos {
+        &self.absolute_local_pos
     }
-
-    pub fn set_parent_pos(&mut self, parent_pos: Option<Box<ChunkPos>>) {
-        self.parent_pos = parent_pos;
-    }
-
-    pub fn set_local_pos(&mut self, local_pos: LocalChunkPos) {
-        self.local_pos = local_pos;
+    pub fn get_apparent_local_pos(&self) -> &ApparentLocalChunkPos {
+        &self.apparent_local_pos
     }
 }
 
-impl From<LocalEntityPos> for LocalChunkPos {
-    fn from(local_entity_pos: LocalEntityPos) -> LocalChunkPos {
-        let half_chunk = (CHUNK_SIZE as f32) / 2.0;
-        LocalChunkPos::new(
-            ((local_entity_pos.x + half_chunk) / CHUNK_SIZE as f32).floor() as i8,
-            ((local_entity_pos.y + half_chunk) / CHUNK_SIZE as f32).floor() as i8,
-        )
-    }
-}
-
-impl From<(u8, u8)> for LocalChunkPos {
-    fn from((x, y): (u8, u8)) -> LocalChunkPos {
-        LocalChunkPos {
+impl From<(u8, u8)> for AbsoluteLocalChunkPos {
+    fn from((x, y): (u8, u8)) -> AbsoluteLocalChunkPos {
+        AbsoluteLocalChunkPos {
             x: x as i8,
             y: y as i8,
         }
     }
 }
 
-impl Into<(u8, u8)> for LocalChunkPos {
+impl Into<(u8, u8)> for AbsoluteLocalChunkPos {
     fn into(self) -> (u8, u8) {
         (self.x as u8, self.y as u8)
     }
 }
 
-impl Default for LocalChunkPos {
-    fn default() -> Self {
-        LocalChunkPos { x: 0, y: 0 }
+impl Into<ApparentLocalChunkPos> for AbsoluteLocalChunkPos {
+    fn into(self) -> ApparentLocalChunkPos {
+        ApparentLocalChunkPos {
+            x: self.x,
+            y: self.y,
+        }
     }
 }
 
-impl LocalChunkPos {
+impl From<LocalEntityPos> for AbsoluteLocalChunkPos {
+    fn from(local_entity_pos: LocalEntityPos) -> AbsoluteLocalChunkPos {
+        let apparent_local_chunk_pos = ApparentLocalChunkPos::from(local_entity_pos);
+        apparent_local_chunk_pos.into()
+    }
+}
+
+impl Default for AbsoluteLocalChunkPos {
+    fn default() -> Self {
+        AbsoluteLocalChunkPos { x: 0, y: 0 }
+    }
+}
+
+impl AbsoluteLocalChunkPos {
     pub fn new(x: i8, y: i8) -> Self {
-        LocalChunkPos { x, y }
+        AbsoluteLocalChunkPos { x, y }
+    }
+}
+
+impl From<(u8, u8)> for ApparentLocalChunkPos {
+    fn from((x, y): (u8, u8)) -> ApparentLocalChunkPos {
+        ApparentLocalChunkPos {
+            x: x as i8,
+            y: y as i8,
+        }
+    }
+}
+
+impl Into<(u8, u8)> for ApparentLocalChunkPos {
+    fn into(self) -> (u8, u8) {
+        (self.x as u8, self.y as u8)
+    }
+}
+
+impl From<LocalEntityPos> for ApparentLocalChunkPos {
+    fn from(local_entity_pos: LocalEntityPos) -> ApparentLocalChunkPos {
+        let half_chunk = (CHUNK_SIZE as f32) / 2.0;
+        ApparentLocalChunkPos::new(
+            ((local_entity_pos.x + half_chunk) / CHUNK_SIZE as f32).floor() as i8,
+            ((local_entity_pos.y + half_chunk) / CHUNK_SIZE as f32).floor() as i8,
+        )
+    }
+}
+
+impl Default for ApparentLocalChunkPos {
+    fn default() -> Self {
+        ApparentLocalChunkPos { x: 0, y: 0 }
+    }
+}
+
+impl ApparentLocalChunkPos {
+    pub fn new(x: i8, y: i8) -> Self {
+        ApparentLocalChunkPos { x, y }
+    }
+}
+
+impl Into<AbsoluteLocalChunkPos> for ApparentLocalChunkPos {
+    fn into(self) -> AbsoluteLocalChunkPos {
+        AbsoluteLocalChunkPos {
+            x: self.x % 10,
+            y: self.y % 10,
+        }
     }
 }
 
