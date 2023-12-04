@@ -275,14 +275,9 @@ impl LocalUniverse {
     fn get_chunks_in_range(center: &LocalChunkPos) -> Vec<LocalChunkPos> {
         let mut chunks = Vec::new();
         let r = VIEW_RADIUS as i8;
-        let max_coord = 10;
-    
         for x in (center.x - r)..=(center.x + r) {
             for y in (center.y - r)..=(center.y + r) {
-                let wrapped_x = ((x + max_coord) % max_coord) as i8;
-                let wrapped_y = ((y + max_coord) % max_coord) as i8;
-    
-                chunks.push(LocalChunkPos::new(wrapped_x, wrapped_y));
+                chunks.push(LocalChunkPos::new(x, y));
             }
         }
         chunks
