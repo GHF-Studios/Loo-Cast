@@ -65,11 +65,20 @@ impl EntityPos {
     }
 }
 
-impl From<LocalChunkPos> for LocalEntityPos {
-    fn from(local_chunk_pos: LocalChunkPos) -> Self {
+impl From<AbsoluteLocalChunkPos> for LocalEntityPos {
+    fn from(absolute_local_chunk_pos: AbsoluteLocalChunkPos) -> Self {
         LocalEntityPos {
-            x: local_chunk_pos.x as f32 * CHUNK_SIZE as f32,
-            y: local_chunk_pos.y as f32 * CHUNK_SIZE as f32,
+            x: absolute_local_chunk_pos.x as f32 * CHUNK_SIZE as f32,
+            y: absolute_local_chunk_pos.y as f32 * CHUNK_SIZE as f32,
+        }
+    }
+}
+
+impl From<ApparentLocalChunkPos> for LocalEntityPos {
+    fn from(apparent_local_chunk_pos: ApparentLocalChunkPos) -> Self {
+        LocalEntityPos {
+            x: apparent_local_chunk_pos.x as f32 * CHUNK_SIZE as f32,
+            y: apparent_local_chunk_pos.y as f32 * CHUNK_SIZE as f32,
         }
     }
 }

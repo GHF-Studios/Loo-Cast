@@ -25,9 +25,10 @@ use bevy_rapier2d::prelude::*;
 // Static variables
 
 // Constant variables
-pub const ACCELERATION: f32 = 5000.0;
-pub const MAX_SPEED: f32 = 1000.0;
+pub const ACCELERATION: f32 = 1000.0;
+pub const MAX_SPEED: f32 = 200.0;
 pub const LINEAR_DAMPING: f32 = 5.0;
+pub const SPRINT_MULTIPLIER: f32 = 5.0;
 
 // Types
 
@@ -127,7 +128,7 @@ impl PlayerManager {
     ) {
         if let Ok(mut player_velocity) = player_velocity_query.get_single_mut() {
             let mut direction = Vec2::ZERO;
-
+    
             if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
                 direction += Vec2::new(-1.0, 0.0);
             }
@@ -140,12 +141,22 @@ impl PlayerManager {
             if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
                 direction += Vec2::new(0.0, -1.0);
             }
-
+    
             if direction.length() > 0.0 {
+                let sprinting = keyboard_input.pressed(KeyCode::ShiftLeft);
+    
                 direction = direction.normalize();
-                player_velocity.linvel += direction * ACCELERATION * time.delta_seconds();
-                if player_velocity.linvel.length() > MAX_SPEED {
-                    player_velocity.linvel = player_velocity.linvel.normalize() * MAX_SPEED;
+    
+                if sprinting {
+                    player_velocity.linvel += direction * ACCELERATION * SPRINT_MULTIPLIER * time.delta_seconds();
+                    if player_velocity.linvel.length() > MAX_SPEED * SPRINT_MULTIPLIER {
+                        player_velocity.linvel = player_velocity.linvel.normalize() * MAX_SPEED * SPRINT_MULTIPLIER;
+                    }
+                } else {
+                    player_velocity.linvel += direction * ACCELERATION * time.delta_seconds();
+                    if player_velocity.linvel.length() > MAX_SPEED {
+                        player_velocity.linvel = player_velocity.linvel.normalize() * MAX_SPEED;
+                    }
                 }
             }
         }
@@ -182,9 +193,9 @@ impl PlayerManager {
 
         if mouse_button_input.just_pressed(MouseButton::Left) {
             let local_entity_pos = LocalEntityPos::from(world_position);
-            let local_chunk_pos = LocalChunkPos::from(local_entity_pos.clone());
-            let local_chunk_pos_base10x10: (u8, u8) = local_chunk_pos.into();
-            let chunk_id = match ChunkID::try_from(local_chunk_pos_base10x10) {
+            let absolute_local_chunk_pos = AbsoluteLocalChunkPos::from(local_entity_pos.clone());
+            let absolute_local_chunk_pos_base10x10: (u8, u8) = absolute_local_chunk_pos.into();
+            let chunk_id = match ChunkID::try_from(absolute_local_chunk_pos_base10x10) {
                 Ok(chunk_id) => chunk_id,
                 Err(_) => return,
             };
@@ -224,24 +235,24 @@ impl PlayerManager {
             let _ = global_universe.send_entity_operation_request(EntityOperationRequest::new(vec![
                 EntityOperation::Register { 
                     id: entity_id.clone(), 
-                    success_callback: Box::new(|_| {}), 
+                    success_callback: Box::new(|_, _| {}), 
                     failure_callback: Box::new(|_, _| {})
                 },
                 EntityOperation::LoadMetadata { 
                     id: entity_id.clone(), 
                     metadata: entity_metadata, 
-                    success_callback: Box::new(|_| {}), 
+                    success_callback: Box::new(|_, _| {}), 
                     failure_callback: Box::new(|_, _, _| {}) 
                 },
                 EntityOperation::LoadData { 
                     id: entity_id.clone(), 
                     data: entity_data, 
-                    success_callback: Box::new(|_| {}), 
+                    success_callback: Box::new(|_, _| {}), 
                     failure_callback: Box::new(|_, _, _| {}) 
                 },
                 EntityOperation::Spawn { 
                     id: entity_id.clone(), 
-                    success_callback: Box::new(|_| {}), 
+                    success_callback: Box::new(|_, _| {}), 
                     failure_callback: Box::new(|_, _| {}) 
                 },
                 EntityOperation::Command {
@@ -260,7 +271,7 @@ impl PlayerManager {
                             Collider::cuboid(32.0, 32.0),
                         ));
                     }),
-                    success_callback: Box::new(|_| {}), 
+                    success_callback: Box::new(|_, _| {}), 
                     failure_callback: Box::new(|_, _| {}) 
                 },
             ]));

@@ -48,50 +48,50 @@ pub enum EntityLoadState {
 pub enum EntityOperation {
     Register {
         id: EntityID,
-        success_callback: Box<dyn Fn(RegisterEntitySuccess) + Send>,
+        success_callback: Box<dyn Fn(RegisterEntitySuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(RegisterEntityError, EntityID) + Send>,
     },
     Unregister {
         id: EntityID,
-        success_callback: Box<dyn Fn(UnregisterEntitySuccess) + Send>,
+        success_callback: Box<dyn Fn(UnregisterEntitySuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(UnregisterEntityError, EntityID) + Send>,
     },
     LoadMetadata {
         id: EntityID,
         metadata: EntityMetadata,
-        success_callback: Box<dyn Fn(LoadEntityMetadataSuccess) + Send>,
+        success_callback: Box<dyn Fn(LoadEntityMetadataSuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(LoadEntityMetadataError, EntityID, EntityMetadata) + Send>,
     },
     UnloadMetadata {
         id: EntityID,
-        success_callback: Box<dyn Fn(UnloadEntityMetadataSuccess) + Send>,
+        success_callback: Box<dyn Fn(UnloadEntityMetadataSuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(UnloadEntityMetadataError, EntityID) + Send>,
     },
     LoadData {
         id: EntityID,
         data: EntityData,
-        success_callback: Box<dyn Fn(LoadEntityDataSuccess) + Send>,
+        success_callback: Box<dyn Fn(LoadEntityDataSuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(LoadEntityDataError, EntityID, EntityData) + Send>,
     },
     UnloadData {
         id: EntityID,
-        success_callback: Box<dyn Fn(UnloadEntityDataSuccess) + Send>,
+        success_callback: Box<dyn Fn(UnloadEntityDataSuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(UnloadEntityDataError, EntityID) + Send>,
     },
     Spawn {
         id: EntityID,
-        success_callback: Box<dyn Fn(SpawnEntitySuccess) + Send>,
+        success_callback: Box<dyn Fn(SpawnEntitySuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(SpawnEntityError, EntityID) + Send>,
     },
     Despawn {
         id: EntityID,
-        success_callback: Box<dyn Fn(DespawnEntitySuccess) + Send>,
+        success_callback: Box<dyn Fn(DespawnEntitySuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(DespawnEntityError, EntityID) + Send>,
     },
     Command {
         id: EntityID,
         command: Box<dyn FnOnce(&mut EntityCommands) + Send>,
-        success_callback: Box<dyn Fn(CommandEntitySuccess) + Send>,
+        success_callback: Box<dyn Fn(CommandEntitySuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(CommandEntityError, EntityID) + Send>,
     },
 }
@@ -225,14 +225,31 @@ pub struct EntityOperationRequest {
     pub(in crate::universe) operations: Vec<EntityOperation>,
 }
 
+#[derive(Debug)]
 pub struct RegisterEntitySuccess;
+
+#[derive(Debug)]
 pub struct UnregisterEntitySuccess;
+
+#[derive(Debug)]
 pub struct LoadEntityMetadataSuccess;
+
+#[derive(Debug)]
 pub struct UnloadEntityMetadataSuccess;
+
+#[derive(Debug)]
 pub struct LoadEntityDataSuccess;
+
+#[derive(Debug)]
 pub struct UnloadEntityDataSuccess;
+
+#[derive(Debug)]
 pub struct SpawnEntitySuccess;
+
+#[derive(Debug)]
 pub struct DespawnEntitySuccess;
+
+#[derive(Debug)]
 pub struct CommandEntitySuccess;
 
 #[derive(Component)]

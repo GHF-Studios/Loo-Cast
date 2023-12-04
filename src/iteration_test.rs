@@ -27,10 +27,13 @@ pub struct IterationTestPlugin;
 pub struct DebugTextPanel;
 
 #[derive(Component)]
-pub struct ScenePositionText;
+pub struct LocalEntityPositionText;
 
 #[derive(Component)]
-pub struct LocalChunkPositionText;
+pub struct AbsoluteLocalChunkPositionText;
+
+#[derive(Component)]
+pub struct ApparentLocalChunkPositionText;
 
 #[derive(Component)]
 pub struct CurrentScaleIndexText;
@@ -54,7 +57,8 @@ impl Plugin for IterationTestPlugin {
                 Update,
                 (
                     IterationTestManager::update_scene_position_system,
-                    IterationTestManager::update_local_chunk_position_system,
+                    IterationTestManager::update_absolute_local_chunk_position_system,
+                    IterationTestManager::update_apparent_local_chunk_position_system,
                     IterationTestManager::update_global_chunk_position_system,
                 )
                     .run_if(in_state(AppState::Game))
@@ -88,7 +92,7 @@ impl IterationTestManager {
                 parent.spawn((
                     TextBundle::from_sections([
                         TextSection::new(
-                            "Scene Position: ",
+                            "Local Entity Position: ",
                             TextStyle {
                                 font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                                 font_size: 20.0,
@@ -101,12 +105,12 @@ impl IterationTestManager {
                             color: Color::WHITE,
                         }),
                     ]),
-                    ScenePositionText,
+                    LocalEntityPositionText,
                 ));
                 parent.spawn((
                     TextBundle::from_sections([
                         TextSection::new(
-                            "Local Chunk Position: ",
+                            "Absolute Local Chunk Position: ",
                             TextStyle {
                                 font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                                 font_size: 20.0,
@@ -119,7 +123,25 @@ impl IterationTestManager {
                             color: Color::WHITE,
                         }),
                     ]),
-                    LocalChunkPositionText,
+                    AbsoluteLocalChunkPositionText,
+                ));
+                parent.spawn((
+                    TextBundle::from_sections([
+                        TextSection::new(
+                            "Apparent Local Chunk Position: ",
+                            TextStyle {
+                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font_size: 20.0,
+                                color: Color::WHITE,
+                            },
+                        ),
+                        TextSection::from_style(TextStyle {
+                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font_size: 20.0,
+                            color: Color::WHITE,
+                        }),
+                    ]),
+                    ApparentLocalChunkPositionText,
                 ));
                 parent.spawn((
                     TextBundle::from_sections([TextSection::new(
@@ -163,7 +185,7 @@ impl IterationTestManager {
     }
 
     fn update_scene_position_system(
-        mut text_query: Query<&mut Text, With<ScenePositionText>>,
+        mut text_query: Query<&mut Text, With<LocalEntityPositionText>>,
         player_query: Query<&Transform, With<Player>>,
     ) {
         for mut text in &mut text_query {
@@ -176,16 +198,30 @@ impl IterationTestManager {
         }
     }
 
-    fn update_local_chunk_position_system(
-        mut text_query: Query<&mut Text, With<LocalChunkPositionText>>,
+    fn update_absolute_local_chunk_position_system(
+        mut text_query: Query<&mut Text, With<AbsoluteLocalChunkPositionText>>,
         player_query: Query<&Transform, With<Player>>,
     ) {
         for mut text in &mut text_query {
             if let Ok(player_transform) = player_query.get_single() {
                 let local_entity_pos: LocalEntityPos = player_transform.translation.into();
-                let local_chunk_pos: LocalChunkPos = local_entity_pos.into();
+                let absolute_local_chunk_pos: AbsoluteLocalChunkPos = local_entity_pos.into();
                 text.sections[1].value =
-                    format!("x: {:.2}, y: {:.2}", local_chunk_pos.x, local_chunk_pos.y);
+                    format!("x: {:.2}, y: {:.2}", absolute_local_chunk_pos.x, absolute_local_chunk_pos.y);
+            }
+        }
+    }
+
+    fn update_apparent_local_chunk_position_system(
+        mut text_query: Query<&mut Text, With<ApparentLocalChunkPositionText>>,
+        player_query: Query<&Transform, With<Player>>,
+    ) {
+        for mut text in &mut text_query {
+            if let Ok(player_transform) = player_query.get_single() {
+                let local_entity_pos: LocalEntityPos = player_transform.translation.into();
+                let apparent_local_chunk_pos: ApparentLocalChunkPos = local_entity_pos.into();
+                text.sections[1].value =
+                    format!("x: {:.2}, y: {:.2}", apparent_local_chunk_pos.x, apparent_local_chunk_pos.y);
             }
         }
     }

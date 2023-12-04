@@ -79,8 +79,8 @@ impl ChunkPos {
 impl From<(u8, u8)> for AbsoluteLocalChunkPos {
     fn from((x, y): (u8, u8)) -> AbsoluteLocalChunkPos {
         AbsoluteLocalChunkPos {
-            x: x as i8,
-            y: y as i8,
+            x: x as i8 % 10,
+            y: y as i8 % 10,
         }
     }
 }
@@ -91,19 +91,19 @@ impl Into<(u8, u8)> for AbsoluteLocalChunkPos {
     }
 }
 
-impl Into<ApparentLocalChunkPos> for AbsoluteLocalChunkPos {
-    fn into(self) -> ApparentLocalChunkPos {
-        ApparentLocalChunkPos {
-            x: self.x,
-            y: self.y,
-        }
-    }
-}
-
 impl From<LocalEntityPos> for AbsoluteLocalChunkPos {
     fn from(local_entity_pos: LocalEntityPos) -> AbsoluteLocalChunkPos {
         let apparent_local_chunk_pos = ApparentLocalChunkPos::from(local_entity_pos);
         apparent_local_chunk_pos.into()
+    }
+}
+
+impl From<ApparentLocalChunkPos> for AbsoluteLocalChunkPos {
+    fn from(apparent_local_chunk_pos: ApparentLocalChunkPos) -> AbsoluteLocalChunkPos {
+        AbsoluteLocalChunkPos {
+            x: (apparent_local_chunk_pos.x + 10) % 10,
+            y: (apparent_local_chunk_pos.y + 10) % 10,
+        }
     }
 }
 
@@ -144,6 +144,15 @@ impl From<LocalEntityPos> for ApparentLocalChunkPos {
     }
 }
 
+impl From<AbsoluteLocalChunkPos> for ApparentLocalChunkPos {
+    fn from(absolute_local_chunk_pos: AbsoluteLocalChunkPos) -> ApparentLocalChunkPos {
+        ApparentLocalChunkPos {
+            x: absolute_local_chunk_pos.x,
+            y: absolute_local_chunk_pos.y,
+        }
+    }
+}
+
 impl Default for ApparentLocalChunkPos {
     fn default() -> Self {
         ApparentLocalChunkPos { x: 0, y: 0 }
@@ -153,15 +162,6 @@ impl Default for ApparentLocalChunkPos {
 impl ApparentLocalChunkPos {
     pub fn new(x: i8, y: i8) -> Self {
         ApparentLocalChunkPos { x, y }
-    }
-}
-
-impl Into<AbsoluteLocalChunkPos> for ApparentLocalChunkPos {
-    fn into(self) -> AbsoluteLocalChunkPos {
-        AbsoluteLocalChunkPos {
-            x: self.x % 10,
-            y: self.y % 10,
-        }
     }
 }
 
