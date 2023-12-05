@@ -19,6 +19,11 @@ use num_bigint::BigUint;
 // Enums
 
 // Structs
+#[derive(Eq, Hash, Clone, Copy, Debug)]
+pub struct LocalChunkID {
+    id: u8,
+}
+
 #[derive(Eq, Hash, Clone, Debug)]
 pub struct ChunkID {
     global_id_base10: BigUint,
@@ -28,6 +33,18 @@ pub struct ChunkID {
 }
 
 // Implementations
+impl PartialEq for LocalChunkID {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Default for LocalChunkID {
+    fn default() -> Self {
+        LocalChunkID { id: 0 }
+    }
+}
+
 impl From<EntityID> for ChunkID {
     fn from(entity_id: EntityID) -> Self {
         entity_id.get_parent_chunk_id().clone()

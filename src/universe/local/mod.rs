@@ -200,15 +200,10 @@ impl LocalUniverse {
                 }
             };
 
-            let old_local_entity_ids = old_chunk_metadata.registered_entities.keys().cloned().collect::<Vec<u64>>();
+            let old_local_entity_ids = old_chunk_metadata.registered_entities.keys().cloned().collect::<Vec<LocalEntityID>>();
 
             for old_local_entity_id in old_local_entity_ids {
-                let old_entity_id = match EntityID::new(old_chunk_id.clone(), old_local_entity_id.clone()) {
-                    Ok(old_entity_id) => old_entity_id,
-                    Err(_) => {
-                        continue;
-                    }
-                };
+                let old_entity_id = EntityID::new(old_chunk_id.clone(), old_local_entity_id.clone());
                 
                 match global_universe.send_entity_operation_request(EntityOperationRequest {
                     operations: vec![

@@ -27,7 +27,7 @@ pub struct ChunkMetadata {
     pub(in crate::universe) child_chunks: Option<HashMap<AbsoluteLocalChunkPos, Arc<Mutex<Chunk>>>>,
     pub(in crate::universe) current_local_entity_id: u64,
     pub(in crate::universe) recycled_local_entity_ids: Vec<u64>,
-    pub(in crate::universe) registered_entities: HashMap<u64, Arc<Mutex<entity::Entity>>>,
+    pub(in crate::universe) registered_entities: HashMap<LocalEntityID, Arc<Mutex<entity::Entity>>>,
 }
 
 // Implementations
@@ -108,15 +108,7 @@ impl ChunkMetadata {
         return &self.child_chunks;
     }
 
-    pub fn get_current_local_entity_id(&self) -> u64 {
-        return self.current_local_entity_id;
-    }
-
-    pub fn get_recycled_local_entity_ids(&self) -> &Vec<u64> {
-        return &self.recycled_local_entity_ids;
-    }
-
-    pub fn get_registered_entities(&self) -> &HashMap<u64, Arc<Mutex<entity::Entity>>> {
+    pub fn get_registered_entities(&self) -> &HashMap<LocalEntityID, Arc<Mutex<entity::Entity>>> {
         return &self.registered_entities;
     }
 }
