@@ -77,7 +77,9 @@ impl GlobalUniverse {
         let local_entity_id = if parent_chunk_metadata.recycled_local_entity_ids.len() != 0 {
             parent_chunk_metadata.recycled_local_entity_ids.pop().unwrap()
         } else {
-            parent_chunk_metadata.current_local_entity_id
+            let local_entity_id = parent_chunk_metadata.current_local_entity_id;
+            parent_chunk_metadata.current_local_entity_id += 1;
+            local_entity_id
         };
 
         let local_entity_id = match LocalEntityID::new(local_entity_id) {

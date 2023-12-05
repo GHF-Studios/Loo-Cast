@@ -275,8 +275,14 @@ impl PlayerManager {
                                 transform: Transform::from_xyz(world_position.x, world_position.y, 0.0),
                                 ..default()
                             },
-                            RigidBody::Fixed,
+                            RigidBody::Dynamic,
                             Collider::cuboid(32.0, 32.0),
+                            Velocity {
+                                linvel: Vec2::splat(0.0),
+                                angvel: 0.0,
+                            },
+                            LockedAxes::ROTATION_LOCKED,
+                            Damping { linear_damping: LINEAR_DAMPING, angular_damping: 0.0 }
                         ));
                     }),
                     success_callback: Box::new(|_, _| {}), 

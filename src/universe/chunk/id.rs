@@ -26,10 +26,10 @@ pub struct LocalChunkID {
 
 #[derive(Eq, Hash, Clone, Debug)]
 pub struct ChunkID {
+    scale_index: u8,
     global_id_base10: BigUint,
     global_id_base10x10: Vec<(u8, u8)>,
     global_id_base57: String,
-    scale_index: u8,
 }
 
 // Implementations
@@ -62,11 +62,11 @@ impl TryFrom<(u8, u8)> for ChunkID {
             .convert_to_base57(global_id_base10.clone())
             .map_err(|e| format!("Computing the Base57 ID failed: {}", e))?;
 
-        let mut chunk_id = ChunkID {
+        let chunk_id = ChunkID {
+            scale_index: 0,
             global_id_base10,
             global_id_base10x10: vec![global_id_base10x10],
             global_id_base57,
-            scale_index: 0,
         };
 
         Ok(chunk_id)
@@ -87,10 +87,10 @@ impl TryFrom<BigUint> for ChunkID {
         let scale_index = global_id_base10x10.len() as u8 - 1;
 
         let chunk_id = ChunkID {
+            scale_index,
             global_id_base10,
             global_id_base10x10,
             global_id_base57,
-            scale_index,
         };
 
         Ok(chunk_id)
@@ -115,10 +115,10 @@ impl TryFrom<Vec<(u8, u8)>> for ChunkID {
         let scale_index = global_id_base10x10.len() as u8 - 1;
 
         let chunk_id = ChunkID {
+            scale_index,
             global_id_base10,
             global_id_base10x10,
             global_id_base57,
-            scale_index,
         };
 
         Ok(chunk_id)
@@ -143,10 +143,10 @@ impl TryFrom<&str> for ChunkID {
         let scale_index = global_id_base10x10.len() as u8 - 1;
 
         let chunk_id = ChunkID {
+            scale_index,
             global_id_base10,
             global_id_base10x10,
             global_id_base57: global_id_base57.to_string(),
-            scale_index,
         };
 
         Ok(chunk_id)
@@ -162,15 +162,19 @@ impl PartialEq for ChunkID {
 impl Default for ChunkID {
     fn default() -> Self {
         Self {
+            scale_index: 0,
             global_id_base10: BigUint::from(0u8),
             global_id_base10x10: vec![(0u8, 0u8)],
             global_id_base57: "0".to_string(),
-            scale_index: 0,
         }
     }
 }
 
 impl ChunkID {
+    pub fn get_scale_index(&self) -> &u8 {
+        return &self.scale_index;
+    }
+
     pub fn get_global_id_base10(&self) -> &BigUint {
         return &self.global_id_base10;
     }
@@ -181,10 +185,6 @@ impl ChunkID {
 
     pub fn get_global_id_base57(&self) -> &String {
         return &self.global_id_base57;
-    }
-
-    pub fn get_scale_index(&self) -> &u8 {
-        return &self.scale_index;
     }
 
     pub fn compute_parent_id(&self) -> Result<ChunkID, String> {
