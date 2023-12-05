@@ -268,7 +268,7 @@ impl GlobalUniverse {
 
         match parent_chunk_metadata
             .registered_entities
-            .get(entity_id.get_local_id())
+            .get(&entity_id.get_local_id())
         {
             Some(registered_entity) => Ok(Some(registered_entity.clone())),
             None => Ok(None),
@@ -284,7 +284,7 @@ impl GlobalUniverse {
         match parent_chunk_metadata {
             Some(parent_chunk_metadata) => Ok(parent_chunk_metadata
                 .registered_entities
-                .contains_key(entity_id.get_local_id())),
+                .contains_key(&entity_id.get_local_id())),
             None => Err(
                 "Failed to check if entity is registered: Parent chunk metadata not loaded."
                     .to_string(),
@@ -1094,6 +1094,7 @@ impl GlobalUniverse {
                 ));
             }
         };
+
         if chunk_metadata
             .child_chunks
             .as_ref()
@@ -1101,6 +1102,13 @@ impl GlobalUniverse {
         {
             return Err((
                 UnloadChunkMetadataError::ChunkHasRegisteredChildChunks,
+                chunk_id,
+            ));
+        }
+
+        if !chunk_metadata.registered_entities.is_empty() {
+            return Err((
+                UnloadChunkMetadataError::ChunkHasRegisteredEntities,
                 chunk_id,
             ));
         }
@@ -1255,6 +1263,22 @@ impl GlobalUniverse {
             }
         }
 
+        for (_, entity) in stolen_metadata.registered_entities.iter() {
+            let entity = match entity.lock() {
+                Ok(entity) => entity,
+                Err(_) => {
+                    return Err((UnloadChunkDataError::RegisteredEntityMutexPoisoned, chunk_id));
+                }
+            };
+
+            match *entity {
+                entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {}
+                entity::Entity::DataLoaded { .. } => {
+                    return Err((UnloadChunkDataError::RegisteredEntityDataStilloaded, chunk_id));
+                }
+            }
+        }
+
         *chunk = Chunk::MetadataLoaded {
             id: stolen_id,
             metadata: stolen_metadata,
@@ -1378,6 +1402,29 @@ impl GlobalUniverse {
             }
         };
 
+        for (_, entity) in chunk_metadata.registered_entities.iter() {
+            let entity = match entity.lock() {
+                Ok(entity) => entity,
+                Err(_) => {
+                    return Err((DespawnChunkError::RegisteredEntityMutexPoisoned, chunk_id));
+                }
+            };
+
+            let entity_data = match Self::get_entity_data(&entity) {
+                Ok(entity_data) => entity_data,
+                Err(_) => {
+                    continue;
+                }
+            };
+
+            match entity_data.run_state {
+                EntityRunState::Despawned => {}
+                EntityRunState::Spawned { .. } => {
+                    return Err((DespawnChunkError::RegisteredEntityStillSpawned, chunk_id));
+                }
+            }
+        }
+
         match chunk_data.run_state {
             ChunkRunState::Despawned => {
                 return Err((DespawnChunkError::ChunkAlreadyDespawned, chunk_id));
@@ -1429,7 +1476,7 @@ impl GlobalUniverse {
 
         if parent_chunk_metadata
             .registered_entities
-            .contains_key(local_entity_id)
+            .contains_key(&local_entity_id)
         {
             return Err((RegisterEntityError::EntityAlreadyRegistered, entity_id));
         }
@@ -1481,7 +1528,7 @@ impl GlobalUniverse {
 
         match parent_chunk_metadata
             .registered_entities
-            .remove(local_entity_id)
+            .remove(&local_entity_id)
         {
             Some(_) => {
                 return Ok((UnregisterEntitySuccess, entity_id));
@@ -1496,8 +1543,7 @@ impl GlobalUniverse {
         global_universe: &mut GlobalUniverse,
         entity_id: EntityID,
         metadata: EntityMetadata,
-    ) -> Result<(LoadEntityMetadataSuccess, EntityID), (LoadEntityMetadataError, EntityID, EntityMetadata)>
-    {
+    ) -> Result<(LoadEntityMetadataSuccess, EntityID), (LoadEntityMetadataError, EntityID, EntityMetadata)> {
         let parent_chunk =
             match global_universe.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
                 Ok(parent_chunk) => parent_chunk,

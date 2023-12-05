@@ -41,6 +41,10 @@ impl EntityData {
             run_state: EntityRunState::Despawned,
         }
     }
+
+    pub fn get_run_state(&self) -> EntityRunState {
+        self.run_state.clone()
+    }
 }
 
 // Module Functions

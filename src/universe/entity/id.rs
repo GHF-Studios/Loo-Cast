@@ -57,8 +57,8 @@ impl EntityID {
         return &self.parent_chunk_id;
     }
 
-    pub fn get_local_id(&self) -> &u64 {
-        return &self.local_id;
+    pub fn get_local_id(&self) -> u64 {
+        return self.local_id;
     }
 }
 

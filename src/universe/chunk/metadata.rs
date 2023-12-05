@@ -96,12 +96,28 @@ impl ChunkMetadata {
         }
     }
 
+    pub fn get_pos(&self) -> ChunkPos {
+        return self.pos.clone();
+    }
+
     pub fn get_parent_chunk(&self) -> Option<Arc<Mutex<Chunk>>> {
         return self.parent_chunk.clone();
     }
 
-    pub fn get_pos(&self) -> ChunkPos {
-        return self.pos.clone();
+    pub fn get_child_chunks(&self) -> &Option<HashMap<AbsoluteLocalChunkPos, Arc<Mutex<Chunk>>>> {
+        return &self.child_chunks;
+    }
+
+    pub fn get_current_local_entity_id(&self) -> u64 {
+        return self.current_local_entity_id;
+    }
+
+    pub fn get_recycled_local_entity_ids(&self) -> &Vec<u64> {
+        return &self.recycled_local_entity_ids;
+    }
+
+    pub fn get_registered_entities(&self) -> &HashMap<u64, Arc<Mutex<entity::Entity>>> {
+        return &self.registered_entities;
     }
 }
 

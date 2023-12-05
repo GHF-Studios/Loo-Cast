@@ -148,6 +148,7 @@ pub enum UnloadChunkMetadataError {
 
     ChunkNotRegistered,
     ChunkHasRegisteredChildChunks,
+    ChunkHasRegisteredEntities,
     ChunkMetadataAlreadyUnloaded,
     ChunkDataStillLoaded,
 
@@ -172,11 +173,13 @@ pub enum LoadChunkDataError {
 #[derive(Debug)]
 pub enum UnloadChunkDataError {
     ChunkMutexPoisoned,
+    RegisteredEntityMutexPoisoned,
 
     ChunkNotRegistered,
     ChildChunksStillRegistered,
     ChunkDataAlreadyUnloaded,
     ChunkStillSpawned,
+    RegisteredEntityDataStilloaded,
 
     FailedToGetChunk,
     FatalUnexpectedError,
@@ -198,11 +201,13 @@ pub enum SpawnChunkError {
 #[derive(Debug)]
 pub enum DespawnChunkError {
     ChunkMutexPoisoned,
+    RegisteredEntityMutexPoisoned,
 
     ChunkNotRegistered,
     ChunkDataNotLoaded,
     ChunkAlreadyDespawned,
     ChildChunksStillSpawned,
+    RegisteredEntityStillSpawned,
 
     FailedToGetChunk,
 }

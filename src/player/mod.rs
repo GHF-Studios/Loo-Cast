@@ -236,7 +236,9 @@ impl PlayerManager {
             let _ = global_universe.send_entity_operation_request(EntityOperationRequest::new(vec![
                 EntityOperation::Register { 
                     id: entity_id.clone(), 
-                    success_callback: Box::new(|_, _| {}), 
+                    success_callback: Box::new(|_, _| {
+
+                    }), 
                     failure_callback: Box::new(|err, _| {
                         println!("Failed to register entity: {:?}", err);
                     })

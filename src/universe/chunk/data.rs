@@ -41,6 +41,10 @@ impl ChunkData {
             run_state: ChunkRunState::Despawned,
         }
     }
+
+    pub fn get_run_state(&self) -> ChunkRunState {
+        self.run_state.clone()
+    }
 }
 
 // Module Functions
