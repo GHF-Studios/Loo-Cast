@@ -171,27 +171,70 @@ impl LocalUniverse {
                 }
             };
 
+            // get chunk
+            let old_chunk = match global_universe.get_registered_chunk(&old_chunk_id.clone()) {
+                Ok(old_chunk) => old_chunk,
+                Err(_) => {
+                    continue;
+                }
+            };
+
+            let old_chunk = match old_chunk {
+                Some(old_chunk) => old_chunk,
+                None => {
+                    continue;
+                }
+            };
+
+            let old_chunk = match old_chunk.lock() {
+                Ok(old_chunk) => old_chunk,
+                Err(_) => {
+                    continue;
+                }
+            };
+
+            let old_chunk_metadata = match GlobalUniverse::get_chunk_metadata(&old_chunk) {
+                Ok(old_chunk_metadata) => old_chunk_metadata,
+                Err(_) => {
+                    continue;
+                }
+            };
+
+            let old_chunk_entity_ids = old_chunk_metadata.registered_entities.keys().cloned().collect::<Vec<u64>>();
+
+            for old_chunk_entity_id in old_chunk_entity_ids {
+                // TODO: unload the entity
+            }
+
             match global_universe.send_chunk_operation_request(ChunkOperationRequest {
                 operations: vec![
                     ChunkOperation::Despawn {
                         id: old_chunk_id.clone(),
                         success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|_, _| {}),
+                        failure_callback: Box::new(|err, _| {
+                            println!("Failed to despawn chunk: {:?}", err);
+                        }),
                     },
                     ChunkOperation::UnloadData {
                         id: old_chunk_id.clone(),
                         success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|_, _| {}),
+                        failure_callback: Box::new(|err, _| {
+                            println!("Failed to unload chunk data: {:?}", err);
+                        }),
                     },
                     ChunkOperation::UnloadMetadata {
                         id: old_chunk_id.clone(),
                         success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|_, _| {}),
+                        failure_callback: Box::new(|err, _| {
+                            println!("Failed to unload chunk metadata: {:?}", err);
+                        }),
                     },
-                    ChunkOperation::Despawn {
+                    ChunkOperation::Unregister {
                         id: old_chunk_id,
                         success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|_, _| {}),
+                        failure_callback: Box::new(|err, _| {
+                            println!("Failed to unregister chunk: {:?}", err);
+                        }),
                     },
                 ],
             }) {
@@ -238,25 +281,33 @@ impl LocalUniverse {
                 operations: vec![
                     ChunkOperation::Register {
                         id: new_chunk_id.clone(),
-                        success_callback: Box::new(|success, id| {}),
-                        failure_callback: Box::new(|error, id| {}),
+                        success_callback: Box::new(|_, _| {}),
+                        failure_callback: Box::new(|err, _| {
+                            println!("Failed to register chunk: {:?}", err);
+                        }),
                     },
                     ChunkOperation::LoadMetadata {
                         id: new_chunk_id.clone(),
                         metadata: new_chunk_metadata,
                         success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|_, _, _| {}),
+                        failure_callback: Box::new(|err, _, _| {
+                            println!("Failed to load chunk metadata: {:?}", err);
+                        }),
                     },
                     ChunkOperation::LoadData {
                         id: new_chunk_id.clone(),
                         data: new_chunk_data,
                         success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|_, _, _| {}),
+                        failure_callback: Box::new(|err, _, _| {
+                            println!("Failed to load chunk data: {:?}", err);
+                        }),
                     },
                     ChunkOperation::Spawn {
                         id: new_chunk_id,
                         success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|_, _| {}),
+                        failure_callback: Box::new(|err, _| {
+                            println!("Failed to spawn chunk: {:?}", err);
+                        }),
                     },
                 ],
             }) {

@@ -167,7 +167,7 @@ impl PlayerManager {
         main_camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
         primary_window_query: Query<&Window, With<PrimaryWindow>>,
         mouse_button_input: Res<Input<MouseButton>>,
-        mut universe_manager: ResMut<UniverseManager>,
+        universe_manager: ResMut<UniverseManager>,
     ) {
         let (camera, camera_transform) = main_camera_query.single();
 
@@ -232,28 +232,37 @@ impl PlayerManager {
 
             let entity_data = EntityData::new();
 
+            // TODO: Check why this either never actually registers the entity, or why upon unloading the parent chunk, there is no error about entities still being registered
             let _ = global_universe.send_entity_operation_request(EntityOperationRequest::new(vec![
                 EntityOperation::Register { 
                     id: entity_id.clone(), 
                     success_callback: Box::new(|_, _| {}), 
-                    failure_callback: Box::new(|_, _| {})
+                    failure_callback: Box::new(|err, _| {
+                        println!("Failed to register entity: {:?}", err);
+                    })
                 },
                 EntityOperation::LoadMetadata { 
                     id: entity_id.clone(), 
                     metadata: entity_metadata, 
                     success_callback: Box::new(|_, _| {}), 
-                    failure_callback: Box::new(|_, _, _| {}) 
+                    failure_callback: Box::new(|err, _, _| {
+                        println!("Failed to load entity metadata: {:?}", err);
+                    }) 
                 },
                 EntityOperation::LoadData { 
                     id: entity_id.clone(), 
                     data: entity_data, 
                     success_callback: Box::new(|_, _| {}), 
-                    failure_callback: Box::new(|_, _, _| {}) 
+                    failure_callback: Box::new(|err, _, _| {
+                        println!("Failed to load entity data: {:?}", err);
+                    }) 
                 },
                 EntityOperation::Spawn { 
                     id: entity_id.clone(), 
                     success_callback: Box::new(|_, _| {}), 
-                    failure_callback: Box::new(|_, _| {}) 
+                    failure_callback: Box::new(|err, _| {
+                        println!("Failed to spawn entity: {:?}", err);
+                    }) 
                 },
                 EntityOperation::Command {
                     id: entity_id,
@@ -272,7 +281,9 @@ impl PlayerManager {
                         ));
                     }),
                     success_callback: Box::new(|_, _| {}), 
-                    failure_callback: Box::new(|_, _| {}) 
+                    failure_callback: Box::new(|err, _| {
+                        println!("Failed to command entity: {:?}", err);
+                    }) 
                 },
             ]));
         }
