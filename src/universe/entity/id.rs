@@ -44,7 +44,7 @@ impl EntityID {
         local_id: u64,
     ) -> Result<Self, String> {
         if local_id == u64::MAX {
-            return Err("Cannot create entity id: Local id space has been exhausted.".to_string());
+            return Err("Cannot create entity id: Local id cannot be the largest valid 64-bit unsigned integer value.".to_string());
         }
 
         Ok(EntityID {

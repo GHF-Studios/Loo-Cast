@@ -32,6 +32,10 @@ use std::sync::{Arc, Mutex};
 // Types
 
 // Enums
+pub enum OperationRequest {
+    Chunk(ChunkOperationRequest),
+    Entity(EntityOperationRequest),
+}
 
 // Structs
 pub struct GlobalUniversePlugin;
@@ -39,8 +43,7 @@ pub struct GlobalUniversePlugin;
 pub struct GlobalUniverse {
     pub(in crate::universe) registered_root_chunks:
         Arc<Mutex<HashMap<AbsoluteLocalChunkPos, Arc<Mutex<Chunk>>>>>,
-    pub(in crate::universe) chunk_operation_requests: Arc<Mutex<Vec<ChunkOperationRequest>>>,
-    pub(in crate::universe) entity_operation_requests: Arc<Mutex<Vec<EntityOperationRequest>>>,
+    pub(in crate::universe) operation_requests: Arc<Mutex<Vec<OperationRequest>>>,
 }
 
 // Implementations
@@ -296,15 +299,15 @@ impl GlobalUniverse {
         &mut self,
         request: ChunkOperationRequest,
     ) -> Result<(), String> {
-        let mut chunk_operation_requests =
-            match self.chunk_operation_requests.lock() {
-                Ok(chunk_operation_requests) => chunk_operation_requests,
+        let mut operation_requests =
+            match self.operation_requests.lock() {
+                Ok(operation_requests) => operation_requests,
                 Err(_) => return Err(
-                    "Failed to request chunk operation: Chunk operation requests mutex poisoned."
+                    "Failed to request chunk operation: Operation requests mutex poisoned."
                         .to_string(),
                 ),
             };
-        chunk_operation_requests.push(request);
+        operation_requests.push(OperationRequest::Chunk(request));
         return Ok(());
     }
 
@@ -312,15 +315,15 @@ impl GlobalUniverse {
         &mut self,
         request: EntityOperationRequest,
     ) -> Result<(), String> {
-        let mut entity_operation_requests =
-            match self.entity_operation_requests.lock() {
-                Ok(entity_operation_requests) => entity_operation_requests,
+        let mut operation_reuests =
+            match self.operation_requests.lock() {
+                Ok(operation_reuests) => operation_reuests,
                 Err(_) => return Err(
-                    "Failed to request entity operation: Entity operation requests mutex poisoned."
+                    "Failed to request entity operation: Operation requests mutex poisoned."
                         .to_string(),
                 ),
             };
-        entity_operation_requests.push(request);
+            operation_reuests.push(OperationRequest::Entity(request));
         return Ok(());
     }
 
@@ -519,249 +522,240 @@ impl GlobalUniverse {
             }
         };
 
-        let mut global_universe_chunk_operation_requests =
-            global_universe.chunk_operation_requests.lock().unwrap_or_else(|_| {
+        let mut global_universe_operation_requests =
+            global_universe.operation_requests.lock().unwrap_or_else(|_| {
                 panic!(
-                    "Failed to handle chunk operation requests: Chunk operation requests mutex poisoned."
+                    "Failed to handle operation requests: Operation requests mutex poisoned."
                 )
             });
 
-        let mut chunk_operation_requests = Vec::new();
-        chunk_operation_requests.append(&mut *global_universe_chunk_operation_requests);
+        let mut operation_requests = Vec::new();
+        operation_requests.append(&mut *global_universe_operation_requests);
 
-        drop(global_universe_chunk_operation_requests);
+        drop(global_universe_operation_requests);
 
-        for chunk_operation_request in chunk_operation_requests {
-            for chunk_operation in chunk_operation_request.operations {
-                match chunk_operation {
-                    ChunkOperation::Register {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::register_chunk(&mut global_universe, id) {
-                        Ok((success, chunk_id)) => {
-                            success_callback(success, chunk_id);
+        for operation_request in operation_requests {
+            match operation_request {
+                OperationRequest::Chunk(chunk_operation_request) => {
+                    for chunk_operation in chunk_operation_request.operations {
+                        match chunk_operation {
+                            ChunkOperation::Register {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::register_chunk(&mut global_universe, id) {
+                                Ok((success, chunk_id)) => {
+                                    success_callback(success, chunk_id);
+                                }
+                                Err((error, chunk_id)) => {
+                                    failure_callback(error, chunk_id);
+                                }
+                            },
+                            ChunkOperation::Unregister {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::unregister_chunk(&mut global_universe, id) {
+                                Ok((success, chunk_id)) => {
+                                    success_callback(success, chunk_id);
+                                }
+                                Err((error, chunk_id)) => {
+                                    failure_callback(error, chunk_id);
+                                }
+                            },
+                            ChunkOperation::LoadMetadata {
+                                id,
+                                metadata,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::load_chunk_metadata(&mut global_universe, id, metadata) {
+                                Ok((success, chunk_id)) => {
+                                    success_callback(success, chunk_id);
+                                }
+                                Err((error, chunk_id, chunk_metadata)) => {
+                                    failure_callback(error, chunk_id, chunk_metadata);
+                                }
+                            },
+                            ChunkOperation::UnloadMetadata {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::unload_chunk_metadata(&mut global_universe, id) {
+                                Ok((success, chunk_id)) => {
+                                    success_callback(success, chunk_id);
+                                }
+                                Err((error, chunk_id)) => {
+                                    failure_callback(error, chunk_id);
+                                }
+                            },
+                            ChunkOperation::LoadData {
+                                id,
+                                data,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::load_chunk_data(&mut global_universe, id, data) {
+                                Ok((success, chunk_id)) => {
+                                    success_callback(success, chunk_id);
+                                }
+                                Err((error, chunk_id, chunk_data)) => {
+                                    failure_callback(error, chunk_id, chunk_data);
+                                }
+                            },
+                            ChunkOperation::UnloadData {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::unload_chunk_data(&mut global_universe, id) {
+                                Ok((success, chunk_id)) => {
+                                    success_callback(success, chunk_id);
+                                }
+                                Err((error, chunk_id)) => {
+                                    failure_callback(error, chunk_id);
+                                }
+                            },
+                            ChunkOperation::Spawn {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::spawn_chunk(&mut commands, &mut global_universe, id) {
+                                Ok((success, chunk_id)) => {
+                                    success_callback(success, chunk_id);
+                                }
+                                Err((error, chunk_id)) => {
+                                    failure_callback(error, chunk_id);
+                                }
+                            },
+                            ChunkOperation::Despawn {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::despawn_chunk(&mut commands, &mut global_universe, id) {
+                                Ok((success, chunk_id)) => {
+                                    success_callback(success, chunk_id);
+                                }
+                                Err((error, chunk_id)) => {
+                                    failure_callback(error, chunk_id);
+                                }
+                            },
                         }
-                        Err((error, chunk_id)) => {
-                            failure_callback(error, chunk_id);
+                    }
+                },
+                OperationRequest::Entity(entity_operation_request) => {
+                    for entity_operation in entity_operation_request.operations {
+                        match entity_operation {
+                            EntityOperation::Register {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::register_entity(&mut global_universe, id) {
+                                Ok((success, entity_id)) => {
+                                    success_callback(success, entity_id);
+                                }
+                                Err((error, entity_id)) => {
+                                    failure_callback(error, entity_id);
+                                }
+                            },
+                            EntityOperation::Unregister {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::unregister_entity(&mut global_universe, id) {
+                                Ok((success, entity_id)) => {
+                                    success_callback(success, entity_id);
+                                }
+                                Err((error, entity_id)) => {
+                                    failure_callback(error, entity_id);
+                                }
+                            },
+                            EntityOperation::LoadMetadata {
+                                id,
+                                metadata,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::load_entity_metadata(&mut global_universe, id, metadata) {
+                                Ok((success, entity_id)) => {
+                                    success_callback(success, entity_id);
+                                }
+                                Err((error, entity_id, chunk_metadata)) => {
+                                    failure_callback(error, entity_id, chunk_metadata);
+                                }
+                            },
+                            EntityOperation::UnloadMetadata {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::unload_entity_metadata(&mut global_universe, id) {
+                                Ok((success, entity_id)) => {
+                                    success_callback(success, entity_id);
+                                }
+                                Err((error, entity_id)) => {
+                                    failure_callback(error, entity_id);
+                                }
+                            },
+                            EntityOperation::LoadData {
+                                id,
+                                data,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::load_entity_data(&mut global_universe, id, data) {
+                                Ok((success, entity_id)) => {
+                                    success_callback(success, entity_id);
+                                }
+                                Err((error, entity_id, entity_data)) => {
+                                    failure_callback(error, entity_id, entity_data);
+                                }
+                            },
+                            EntityOperation::UnloadData {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::unload_entity_data(&mut global_universe, id) {
+                                Ok((success, entity_id)) => {
+                                    success_callback(success, entity_id);
+                                }
+                                Err((error, entity_id)) => {
+                                    failure_callback(error, entity_id);
+                                }
+                            },
+                            EntityOperation::Spawn {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::spawn_entity(&mut commands, &mut global_universe, id) {
+                                Ok((success, entity_id)) => {
+                                    success_callback(success, entity_id);
+                                }
+                                Err((error, entity_id)) => {
+                                    failure_callback(error, entity_id);
+                                }
+                            },
+                            EntityOperation::Despawn {
+                                id,
+                                success_callback,
+                                failure_callback,
+                            } => match Self::despawn_entity(&mut commands, &mut global_universe, id) {
+                                Ok((success, entity_id)) => {
+                                    success_callback(success, entity_id);
+                                }
+                                Err((error, entity_id)) => {
+                                    failure_callback(error, entity_id);
+                                }
+                            },
+                            EntityOperation::Command { 
+                                id, 
+                                command, 
+                                success_callback, 
+                                failure_callback 
+                            } => match Self::command_entity(command, &mut commands, &mut global_universe, id) {
+                                Ok((success, entity_id)) => {
+                                    success_callback(success, entity_id);
+                                }
+                                Err((error, entity_id)) => {
+                                    failure_callback(error, entity_id);
+                                }
+        
+                            }
                         }
-                    },
-                    ChunkOperation::Unregister {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::unregister_chunk(&mut global_universe, id) {
-                        Ok((success, chunk_id)) => {
-                            success_callback(success, chunk_id);
-                        }
-                        Err((error, chunk_id)) => {
-                            failure_callback(error, chunk_id);
-                        }
-                    },
-                    ChunkOperation::LoadMetadata {
-                        id,
-                        metadata,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::load_chunk_metadata(&mut global_universe, id, metadata) {
-                        Ok((success, chunk_id)) => {
-                            success_callback(success, chunk_id);
-                        }
-                        Err((error, chunk_id, chunk_metadata)) => {
-                            failure_callback(error, chunk_id, chunk_metadata);
-                        }
-                    },
-                    ChunkOperation::UnloadMetadata {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::unload_chunk_metadata(&mut global_universe, id) {
-                        Ok((success, chunk_id)) => {
-                            success_callback(success, chunk_id);
-                        }
-                        Err((error, chunk_id)) => {
-                            failure_callback(error, chunk_id);
-                        }
-                    },
-                    ChunkOperation::LoadData {
-                        id,
-                        data,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::load_chunk_data(&mut global_universe, id, data) {
-                        Ok((success, chunk_id)) => {
-                            success_callback(success, chunk_id);
-                        }
-                        Err((error, chunk_id, chunk_data)) => {
-                            failure_callback(error, chunk_id, chunk_data);
-                        }
-                    },
-                    ChunkOperation::UnloadData {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::unload_chunk_data(&mut global_universe, id) {
-                        Ok((success, chunk_id)) => {
-                            success_callback(success, chunk_id);
-                        }
-                        Err((error, chunk_id)) => {
-                            failure_callback(error, chunk_id);
-                        }
-                    },
-                    ChunkOperation::Spawn {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::spawn_chunk(&mut commands, &mut global_universe, id) {
-                        Ok((success, chunk_id)) => {
-                            success_callback(success, chunk_id);
-                        }
-                        Err((error, chunk_id)) => {
-                            failure_callback(error, chunk_id);
-                        }
-                    },
-                    ChunkOperation::Despawn {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::despawn_chunk(&mut commands, &mut global_universe, id) {
-                        Ok((success, chunk_id)) => {
-                            success_callback(success, chunk_id);
-                        }
-                        Err((error, chunk_id)) => {
-                            failure_callback(error, chunk_id);
-                        }
-                    },
-                }
-            }
-        }
-
-        let mut global_universe_entity_operation_requests =
-            global_universe.entity_operation_requests.lock().unwrap_or_else(|_| {
-                panic!(
-                    "Failed to handle entity operation requests: Entity operation requests mutex poisoned."
-                )
-            });
-
-        let mut entity_operation_requests = Vec::new();
-        entity_operation_requests.append(&mut *global_universe_entity_operation_requests);
-
-        drop(global_universe_entity_operation_requests);
-
-        for entity_operation_request in entity_operation_requests {
-            for entity_operation in entity_operation_request.operations {
-                match entity_operation {
-                    EntityOperation::Register {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::register_entity(&mut global_universe, id) {
-                        Ok((success, entity_id)) => {
-                            success_callback(success, entity_id);
-                        }
-                        Err((error, entity_id)) => {
-                            failure_callback(error, entity_id);
-                        }
-                    },
-                    EntityOperation::Unregister {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::unregister_entity(&mut global_universe, id) {
-                        Ok((success, entity_id)) => {
-                            success_callback(success, entity_id);
-                        }
-                        Err((error, entity_id)) => {
-                            failure_callback(error, entity_id);
-                        }
-                    },
-                    EntityOperation::LoadMetadata {
-                        id,
-                        metadata,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::load_entity_metadata(&mut global_universe, id, metadata) {
-                        Ok((success, entity_id)) => {
-                            success_callback(success, entity_id);
-                        }
-                        Err((error, entity_id, chunk_metadata)) => {
-                            failure_callback(error, entity_id, chunk_metadata);
-                        }
-                    },
-                    EntityOperation::UnloadMetadata {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::unload_entity_metadata(&mut global_universe, id) {
-                        Ok((success, entity_id)) => {
-                            success_callback(success, entity_id);
-                        }
-                        Err((error, entity_id)) => {
-                            failure_callback(error, entity_id);
-                        }
-                    },
-                    EntityOperation::LoadData {
-                        id,
-                        data,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::load_entity_data(&mut global_universe, id, data) {
-                        Ok((success, entity_id)) => {
-                            success_callback(success, entity_id);
-                        }
-                        Err((error, entity_id, entity_data)) => {
-                            failure_callback(error, entity_id, entity_data);
-                        }
-                    },
-                    EntityOperation::UnloadData {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::unload_entity_data(&mut global_universe, id) {
-                        Ok((success, entity_id)) => {
-                            success_callback(success, entity_id);
-                        }
-                        Err((error, entity_id)) => {
-                            failure_callback(error, entity_id);
-                        }
-                    },
-                    EntityOperation::Spawn {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::spawn_entity(&mut commands, &mut global_universe, id) {
-                        Ok((success, entity_id)) => {
-                            success_callback(success, entity_id);
-                        }
-                        Err((error, entity_id)) => {
-                            failure_callback(error, entity_id);
-                        }
-                    },
-                    EntityOperation::Despawn {
-                        id,
-                        success_callback,
-                        failure_callback,
-                    } => match Self::despawn_entity(&mut commands, &mut global_universe, id) {
-                        Ok((success, entity_id)) => {
-                            success_callback(success, entity_id);
-                        }
-                        Err((error, entity_id)) => {
-                            failure_callback(error, entity_id);
-                        }
-                    },
-                    EntityOperation::Command { 
-                        id, 
-                        command, 
-                        success_callback, 
-                        failure_callback 
-                    } => match Self::command_entity(command, &mut commands, &mut global_universe, id) {
-                        Ok((success, entity_id)) => {
-                            success_callback(success, entity_id);
-                        }
-                        Err((error, entity_id)) => {
-                            failure_callback(error, entity_id);
-                        }
-
                     }
                 }
             }

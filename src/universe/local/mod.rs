@@ -200,10 +200,53 @@ impl LocalUniverse {
                 }
             };
 
-            let old_chunk_entity_ids = old_chunk_metadata.registered_entities.keys().cloned().collect::<Vec<u64>>();
+            let old_local_entity_ids = old_chunk_metadata.registered_entities.keys().cloned().collect::<Vec<u64>>();
 
-            for old_chunk_entity_id in old_chunk_entity_ids {
-                // TODO: unload the entity
+            for old_local_entity_id in old_local_entity_ids {
+                let old_entity_id = match EntityID::new(old_chunk_id.clone(), old_local_entity_id.clone()) {
+                    Ok(old_entity_id) => old_entity_id,
+                    Err(_) => {
+                        continue;
+                    }
+                };
+                
+                match global_universe.send_entity_operation_request(EntityOperationRequest {
+                    operations: vec![
+                        EntityOperation::Despawn {
+                            id: old_entity_id.clone(),
+                            success_callback: Box::new(|_, _| {}),
+                            failure_callback: Box::new(|err, _| {
+                                println!("Failed to despawn entity: {:?}", err);
+                            }),
+                        },
+                        EntityOperation::UnloadData {
+                            id: old_entity_id.clone(),
+                            success_callback: Box::new(|_, _| {}),
+                            failure_callback: Box::new(|err, _| {
+                                println!("Failed to unload entity data: {:?}", err);
+                            }),
+                        },
+                        EntityOperation::UnloadMetadata {
+                            id: old_entity_id.clone(),
+                            success_callback: Box::new(|_, _| {}),
+                            failure_callback: Box::new(|err, _| {
+                                println!("Failed to unload entity metadata: {:?}", err);
+                            }),
+                        },
+                        EntityOperation::Unregister {
+                            id: old_entity_id,
+                            success_callback: Box::new(|_, _| {}),
+                            failure_callback: Box::new(|err, _| {
+                                println!("Failed to unregister entity: {:?}", err);
+                            }),
+                        },
+                    ]
+                }) {
+                    Ok(_) => {}
+                    Err(_) => {
+                        continue;
+                    }
+                }
             }
 
             match global_universe.send_chunk_operation_request(ChunkOperationRequest {

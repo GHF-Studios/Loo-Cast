@@ -101,8 +101,8 @@ impl From<LocalEntityPos> for AbsoluteLocalChunkPos {
 impl From<ApparentLocalChunkPos> for AbsoluteLocalChunkPos {
     fn from(apparent_local_chunk_pos: ApparentLocalChunkPos) -> AbsoluteLocalChunkPos {
         AbsoluteLocalChunkPos {
-            x: (apparent_local_chunk_pos.x + 10) % 10,
-            y: (apparent_local_chunk_pos.y + 10) % 10,
+            x: (apparent_local_chunk_pos.x % 10 + 10) % 10,
+            y: (apparent_local_chunk_pos.y % 10 + 10) % 10,
         }
     }
 }
