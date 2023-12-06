@@ -91,6 +91,12 @@ pub enum EntityOperation {
         success_callback: Box<dyn Fn(DespawnEntitySuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(DespawnEntityError, EntityID) + Send>,
     },
+    Command {
+        id: EntityID,
+        command: Box<dyn FnOnce(&mut EntityCommands) + Send>,
+        success_callback: Box<dyn Fn(CommandEntitySuccess, EntityID) + Send>,
+        failure_callback: Box<dyn Fn(CommandEntityError, EntityID) + Send>,
+    },
 }
 
 #[derive(Debug)]
@@ -202,6 +208,18 @@ pub enum DespawnEntityError {
     FailedToGetEntity,
 }
 
+#[derive(Debug)]
+pub enum CommandEntityError {
+    ParentChunkMutexPoisoned,
+    EntityMutexPoisoned,
+
+    ParentChunkNotRegistered,
+    EntityNotRegistered,
+    
+    FailedToGetParentChunk,
+    FailedToGetEntity,
+}
+
 // Structs
 pub struct EntityPlugin;
 
@@ -232,6 +250,9 @@ pub struct SpawnEntitySuccess;
 
 #[derive(Debug)]
 pub struct DespawnEntitySuccess;
+
+#[derive(Debug)]
+pub struct CommandEntitySuccess;
 
 #[derive(Component)]
 pub struct EntityBevyComponent {
