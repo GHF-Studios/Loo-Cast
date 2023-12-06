@@ -1,10 +1,8 @@
 // Modules
-pub mod engine;
-pub mod base_mod;
+
 
 // Local imports
-use engine::kernel;
-use engine::system::*;
+
 
 // Internal imports
 
@@ -31,6 +29,3 @@ use engine::system::*;
 
 
 // Module Functions
-fn main() {
-    kernel::main()
-}
