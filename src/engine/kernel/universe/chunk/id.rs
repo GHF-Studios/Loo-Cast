@@ -171,8 +171,8 @@ impl Default for ChunkID {
 }
 
 impl ChunkID {
-    pub fn get_scale_index(&self) -> &u8 {
-        return &self.scale_index;
+    pub fn get_scale_index(&self) -> u8 {
+        return self.scale_index;
     }
 
     pub fn get_global_id_base10(&self) -> &BigUint {

@@ -27,13 +27,16 @@ use std::sync::{Arc, Mutex};
 pub enum Entity {
     Registered {
         id: EntityID,
+        bevy_entity: bevy::ecs::entity::Entity,
     },
     MetadataLoaded {
         id: EntityID,
+        bevy_entity: bevy::ecs::entity::Entity,
         metadata: EntityMetadata,
     },
     DataLoaded {
         id: EntityID,
+        bevy_entity: bevy::ecs::entity::Entity,
         metadata: EntityMetadata,
         data: EntityData,
     },
@@ -88,12 +91,6 @@ pub enum EntityOperation {
         success_callback: Box<dyn Fn(DespawnEntitySuccess, EntityID) + Send>,
         failure_callback: Box<dyn Fn(DespawnEntityError, EntityID) + Send>,
     },
-    Command {
-        id: EntityID,
-        command: Box<dyn FnOnce(&mut EntityCommands) + Send>,
-        success_callback: Box<dyn Fn(CommandEntitySuccess, EntityID) + Send>,
-        failure_callback: Box<dyn Fn(CommandEntityError, EntityID) + Send>,
-    },
 }
 
 #[derive(Debug)]
@@ -110,6 +107,7 @@ pub enum RegisterEntityError {
 #[derive(Debug)]
 pub enum UnregisterEntityError {
     ParentChunkMutexPoisoned,
+    EntityMutexPoisoned,
 
     ParentChunkNotRegistered,
     ParentChunkMetadataNotLoaded,
@@ -204,20 +202,6 @@ pub enum DespawnEntityError {
     FailedToGetEntity,
 }
 
-#[derive(Debug)]
-pub enum CommandEntityError {
-    ParentChunkMutexPoisoned,
-    EntityMutexPoisoned,
-
-    ParentChunkNotRegistered,
-    EntityNotRegistered,
-    EntityDataNotLoaded,
-    EntityNotSpawned,
-    
-    FailedToGetParentChunk,
-    FailedToGetEntity,
-}
-
 // Structs
 pub struct EntityPlugin;
 
@@ -249,9 +233,6 @@ pub struct SpawnEntitySuccess;
 #[derive(Debug)]
 pub struct DespawnEntitySuccess;
 
-#[derive(Debug)]
-pub struct CommandEntitySuccess;
-
 #[derive(Component)]
 pub struct EntityBevyComponent {
     pub entity: Arc<Mutex<Entity>>,
@@ -272,13 +253,14 @@ impl Default for Entity {
     fn default() -> Self {
         Entity::Registered {
             id: EntityID::default(),
+            bevy_entity: bevy::ecs::entity::Entity::PLACEHOLDER
         }
     }
 }
 
 impl Entity {
-    pub(in crate::engine::kernel::universe) fn new(id: EntityID) -> Self {
-        Entity::Registered { id }
+    pub(in crate::engine::kernel::universe) fn new(id: EntityID, bevy_entity: bevy::ecs::entity::Entity) -> Self {
+        Entity::Registered { id, bevy_entity }
     }
 }
 

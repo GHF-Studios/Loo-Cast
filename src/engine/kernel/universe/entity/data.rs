@@ -17,7 +17,7 @@ use bevy::prelude::*;
 #[derive(Debug, Clone, PartialEq)]
 pub enum EntityRunState {
     Despawned,
-    Spawned { bevy_entity: Entity },
+    Spawned,
 }
 
 // Structs

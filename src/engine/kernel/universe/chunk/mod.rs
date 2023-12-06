@@ -33,13 +33,16 @@ pub const VIEW_RADIUS: u16 = 2;
 pub enum Chunk {
     Registered {
         id: ChunkID,
+        bevy_entity: Entity
     },
     MetadataLoaded {
         id: ChunkID,
+        bevy_entity: bevy::ecs::entity::Entity,
         metadata: ChunkMetadata,
     },
     DataLoaded {
         id: ChunkID,
+        bevy_entity: bevy::ecs::entity::Entity,
         metadata: ChunkMetadata,
         data: ChunkData,
     },
@@ -245,7 +248,7 @@ pub struct DespawnChunkSuccess;
 
 #[derive(Component)]
 pub struct ChunkBevyComponent {
-    pub chunk: Arc<Mutex<Chunk>>,
+    pub chunk: Arc<Mutex<Chunk>>
 }
 
 // Implementations
@@ -272,13 +275,14 @@ impl Default for Chunk {
     fn default() -> Self {
         Chunk::Registered {
             id: ChunkID::default(),
+            bevy_entity: bevy::ecs::entity::Entity::PLACEHOLDER
         }
     }
 }
 
 impl Chunk {
-    pub(in crate::engine::kernel::universe) fn new(id: ChunkID) -> Self {
-        Chunk::Registered { id }
+    pub(in crate::engine::kernel::universe) fn new(id: ChunkID, bevy_entity: bevy::ecs::entity::Entity) -> Self {
+        Chunk::Registered { id, bevy_entity }
     }
 
     fn debug_render_system(mut gizmos: Gizmos, chunk_ecs_entity_query: Query<&ChunkBevyComponent>) {

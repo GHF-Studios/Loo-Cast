@@ -248,11 +248,11 @@ impl GlobalUniverse {
         parent_chunk: &Chunk,
         entity_id: &EntityID,
     ) -> Result<Option<Arc<Mutex<entity::Entity>>>, String> {
-        let (_, parent_chunk_metadata, _) = Self::get_chunk_details(parent_chunk);
+        let parent_chunk_metadata = Self::get_chunk_metadata(parent_chunk);
 
         let parent_chunk_metadata = match parent_chunk_metadata {
-            Some(parent_chunk_metadata) => parent_chunk_metadata,
-            None => {
+            Ok(parent_chunk_metadata) => parent_chunk_metadata,
+            Err(_) => {
                 return Err(
                     "Failed to get registered entity: Parent chunk metadata not loaded."
                         .to_string(),
@@ -273,13 +273,13 @@ impl GlobalUniverse {
         parent_chunk: &Chunk,
         entity_id: &EntityID,
     ) -> Result<bool, String> {
-        let (_, parent_chunk_metadata, _) = Self::get_chunk_details(parent_chunk);
+        let parent_chunk_metadata = Self::get_chunk_metadata(parent_chunk);
 
         match parent_chunk_metadata {
-            Some(parent_chunk_metadata) => Ok(parent_chunk_metadata
+            Ok(parent_chunk_metadata) => Ok(parent_chunk_metadata
                 .registered_entities
                 .contains_key(&entity_id.get_local_entity_id())),
-            None => Err(
+            Err(_) => Err(
                 "Failed to check if entity is registered: Parent chunk metadata not loaded."
                     .to_string(),
             ),
@@ -328,43 +328,61 @@ impl GlobalUniverse {
 
     pub fn get_chunk_details(
         chunk: &Chunk,
-    ) -> (&ChunkID, Option<&ChunkMetadata>, Option<&ChunkData>) {
+    ) -> (&ChunkID, &bevy::ecs::entity::Entity, Option<&ChunkMetadata>, Option<&ChunkData>) {
         return match *chunk {
-            Chunk::Registered { ref id } => (id, None, None),
+            Chunk::Registered { 
+                ref id, 
+                ref bevy_entity 
+            } => (id, bevy_entity, None, None),
             Chunk::MetadataLoaded {
                 ref id,
+                ref bevy_entity,
                 ref metadata,
-            } => (id, Some(metadata), None),
+            } => (id, bevy_entity, Some(metadata), None),
             Chunk::DataLoaded {
                 ref id,
+                ref bevy_entity,
                 ref metadata,
                 ref data,
-            } => (id, Some(metadata), Some(data)),
+            } => (id, bevy_entity, Some(metadata), Some(data)),
         };
     }
 
     pub fn get_chunk_details_mut(
         chunk: &mut Chunk,
-    ) -> (&ChunkID, Option<&mut ChunkMetadata>, Option<&mut ChunkData>) {
+    ) -> (&ChunkID, &bevy::ecs::entity::Entity, Option<&mut ChunkMetadata>, Option<&mut ChunkData>) {
         return match *chunk {
-            Chunk::Registered { ref id } => (id, None, None),
+            Chunk::Registered { 
+                ref id,
+                ref bevy_entity 
+            } => (id, bevy_entity, None, None),
             Chunk::MetadataLoaded {
                 ref id,
+                ref bevy_entity,
                 ref mut metadata,
-            } => (id, Some(metadata), None),
+            } => (id, bevy_entity, Some(metadata), None),
             Chunk::DataLoaded {
                 ref id,
+                ref bevy_entity,
                 ref mut metadata,
                 ref mut data,
-            } => (id, Some(metadata), Some(data)),
+            } => (id, bevy_entity, Some(metadata), Some(data)),
         };
     }
 
     pub fn get_chunk_id(chunk: &Chunk) -> &ChunkID {
         return match *chunk {
-            Chunk::Registered { ref id } => id,
+            Chunk::Registered { ref id, .. } => id,
             Chunk::MetadataLoaded { ref id, .. } => id,
             Chunk::DataLoaded { ref id, .. } => id,
+        };
+    }
+
+    pub fn get_chunk_bevy_entity(chunk: &Chunk) -> &bevy::ecs::entity::Entity {
+        return match *chunk {
+            Chunk::Registered { ref bevy_entity, .. } => bevy_entity,
+            Chunk::MetadataLoaded { ref bevy_entity, .. } => bevy_entity,
+            Chunk::DataLoaded { ref bevy_entity, .. } => bevy_entity,
         };
     }
 
@@ -414,47 +432,61 @@ impl GlobalUniverse {
 
     pub fn get_entity_details(
         entity: &entity::Entity,
-    ) -> (&EntityID, Option<&EntityMetadata>, Option<&EntityData>) {
+    ) -> (&EntityID, &bevy::ecs::entity::Entity, Option<&EntityMetadata>, Option<&EntityData>) {
         return match *entity {
-            entity::Entity::Registered { ref id } => (id, None, None),
+            entity::Entity::Registered { 
+                ref id,
+                ref bevy_entity,
+            } => (id, bevy_entity, None, None),
             entity::Entity::MetadataLoaded {
                 ref id,
+                ref bevy_entity,
                 ref metadata,
-            } => (id, Some(metadata), None),
+            } => (id, bevy_entity, Some(metadata), None),
             entity::Entity::DataLoaded {
                 ref id,
+                ref bevy_entity,
                 ref metadata,
                 ref data,
-            } => (id, Some(metadata), Some(data)),
+            } => (id, bevy_entity, Some(metadata), Some(data)),
         };
     }
 
     pub fn get_entity_details_mut(
         entity: &mut entity::Entity,
-    ) -> (
-        &EntityID,
-        Option<&mut EntityMetadata>,
-        Option<&mut EntityData>,
-    ) {
+    ) -> (&EntityID, &bevy::ecs::entity::Entity, Option<&mut EntityMetadata>, Option<&mut EntityData>, ) {
         return match *entity {
-            entity::Entity::Registered { ref id } => (id, None, None),
+            entity::Entity::Registered { 
+                ref id,
+                ref bevy_entity,
+            } => (id, bevy_entity, None, None),
             entity::Entity::MetadataLoaded {
                 ref id,
+                ref bevy_entity,
                 ref mut metadata,
-            } => (id, Some(metadata), None),
+            } => (id, bevy_entity, Some(metadata), None),
             entity::Entity::DataLoaded {
                 ref id,
+                ref bevy_entity,
                 ref mut metadata,
                 ref mut data,
-            } => (id, Some(metadata), Some(data)),
+            } => (id, bevy_entity, Some(metadata), Some(data)),
         };
     }
 
     pub fn get_entity_id(entity: &entity::Entity) -> &EntityID {
         return match *entity {
-            entity::Entity::Registered { ref id } => id,
+            entity::Entity::Registered { ref id, .. } => id,
             entity::Entity::MetadataLoaded { ref id, .. } => id,
             entity::Entity::DataLoaded { ref id, .. } => id,
+        };
+    }
+
+    pub fn get_entity_bevy_entity(entity: &entity::Entity) -> &bevy::ecs::entity::Entity {
+        return match *entity {
+            entity::Entity::Registered { ref bevy_entity, .. } => bevy_entity,
+            entity::Entity::MetadataLoaded { ref bevy_entity, .. } => bevy_entity,
+            entity::Entity::DataLoaded { ref bevy_entity, .. } => bevy_entity,
         };
     }
 
@@ -556,7 +588,7 @@ impl GlobalUniverse {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::register_chunk(global_universe, id) {
+                } => match Self::register_chunk(commands, global_universe, id) {
                     Ok((success, chunk_id)) => {
                         success_callback(success, chunk_id);
                     }
@@ -568,7 +600,7 @@ impl GlobalUniverse {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::unregister_chunk(global_universe, id) {
+                } => match Self::unregister_chunk(commands, global_universe, id) {
                     Ok((success, chunk_id)) => {
                         success_callback(success, chunk_id);
                     }
@@ -665,7 +697,7 @@ impl GlobalUniverse {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::register_entity(global_universe, id) {
+                } => match Self::register_entity(commands, global_universe, id) {
                     Ok((success, entity_id)) => {
                         success_callback(success, entity_id);
                     }
@@ -677,7 +709,7 @@ impl GlobalUniverse {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::unregister_entity(global_universe, id) {
+                } => match Self::unregister_entity(commands, global_universe, id) {
                     Ok((success, entity_id)) => {
                         success_callback(success, entity_id);
                     }
@@ -759,25 +791,12 @@ impl GlobalUniverse {
                         failure_callback(error, entity_id);
                     }
                 },
-                EntityOperation::Command { 
-                    id, 
-                    command, 
-                    success_callback, 
-                    failure_callback 
-                } => match Self::command_entity(command, commands, global_universe, id) {
-                    Ok((success, entity_id)) => {
-                        success_callback(success, entity_id);
-                    }
-                    Err((error, entity_id)) => {
-                        failure_callback(error, entity_id);
-                    }
-
-                }
             }
         }
     }
 
     fn register_chunk(
+        commands: &mut Commands,
         global_universe: &mut GlobalUniverse,
         chunk_id: ChunkID,
     ) -> Result<(RegisterChunkSuccess, ChunkID), (RegisterChunkError, ChunkID)> {
@@ -785,7 +804,7 @@ impl GlobalUniverse {
             return Err((RegisterChunkError::ChunkAlreadyRegistered, chunk_id));
         }
 
-        if chunk_id.get_scale_index().clone() == 0 {
+        if chunk_id.get_scale_index() == 0 {
             let mut registered_root_chunks = match global_universe.registered_root_chunks.lock() {
                 Ok(registered_root_chunks) => registered_root_chunks,
                 Err(_) => {
@@ -806,7 +825,11 @@ impl GlobalUniverse {
                 }
             };
 
-            let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id.clone())));
+            let chunk_bevy_entity = commands.spawn(()).id();
+            let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id.clone(), chunk_bevy_entity.clone())));
+            commands.entity(chunk_bevy_entity).insert(ChunkBevyComponent {
+                chunk: chunk.clone(),
+            });
 
             registered_root_chunks.insert(local_chunk_pos, chunk);
 
@@ -872,7 +895,11 @@ impl GlobalUniverse {
             return Err((RegisterChunkError::ChunkAlreadyRegistered, chunk_id));
         }
 
-        let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id.clone())));
+        let chunk_bevy_entity = commands.spawn(()).id();
+        let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id.clone(), chunk_bevy_entity)));
+        commands.entity(chunk_bevy_entity).insert(ChunkBevyComponent {
+            chunk: chunk.clone(),
+        });
 
         parent_chunk_child_chunks.insert(local_chunk_pos, chunk);
 
@@ -880,6 +907,7 @@ impl GlobalUniverse {
     }
 
     fn unregister_chunk(
+        commands: &mut Commands,
         global_universe: &mut GlobalUniverse,
         chunk_id: ChunkID,
     ) -> Result<(UnregisterChunkSuccess, ChunkID), (UnregisterChunkError, ChunkID)> {
@@ -934,15 +962,17 @@ impl GlobalUniverse {
             }
         };
 
-        match *chunk {
-            Chunk::Registered { .. } => {}
+        let chunk_bevy_entity = match *chunk {
+            Chunk::Registered { ref bevy_entity, .. } => { bevy_entity }
             Chunk::MetadataLoaded { .. } => {
                 return Err((UnregisterChunkError::ChunkMetadataStillLoaded, chunk_id));
             }
             Chunk::DataLoaded { .. } => {
                 return Err((UnregisterChunkError::ChunkDataStillLoaded, chunk_id));
             }
-        }
+        };
+
+        commands.entity(chunk_bevy_entity.clone()).despawn();
 
         let parent_chunk_id = match chunk_id.compute_parent_id() {
             Ok(parent_chunk_id) => parent_chunk_id,
@@ -1046,10 +1076,12 @@ impl GlobalUniverse {
         match &mut *chunk {
             Chunk::Registered { .. } => {
                 let mut stolen_chunk = std::mem::take(&mut *chunk);
-                if let Chunk::Registered { id, .. } = &mut stolen_chunk {
+                if let Chunk::Registered { id, bevy_entity } = &mut stolen_chunk {
                     let stolen_id = std::mem::take(&mut *id);
+                    let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                     *chunk = Chunk::MetadataLoaded {
                         id: stolen_id,
+                        bevy_entity: stolen_bevy_entity,
                         metadata: chunk_metadata,
                     };
                     return Ok((LoadChunkMetadataSuccess, chunk_id));
@@ -1129,9 +1161,10 @@ impl GlobalUniverse {
                     chunk_id,
                 ));
             }
-            Chunk::MetadataLoaded { id, .. } => {
+            Chunk::MetadataLoaded { id, bevy_entity, .. } => {
                 let stolen_id = std::mem::take(id);
-                *chunk = Chunk::Registered { id: stolen_id };
+                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+                *chunk = Chunk::Registered { id: stolen_id, bevy_entity: stolen_bevy_entity };
                 return Ok((UnloadChunkMetadataSuccess, chunk_id));
             }
             Chunk::DataLoaded { .. } => {
@@ -1164,7 +1197,7 @@ impl GlobalUniverse {
             }
         };
 
-        let (stolen_id, stolen_metadata) = match &mut *chunk {
+        let (stolen_id, stolen_bevy_entity, stolen_metadata) = match &mut *chunk {
             Chunk::Registered { .. } => {
                 return Err((
                     LoadChunkDataError::ChunkMetadataNotLoaded,
@@ -1172,11 +1205,12 @@ impl GlobalUniverse {
                     chunk_data,
                 ));
             }
-            Chunk::MetadataLoaded { id, metadata } => {
+            Chunk::MetadataLoaded { id, bevy_entity, metadata } => {
                 let stolen_id = std::mem::take(id);
+                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 let stolen_metadata = std::mem::take(metadata);
 
-                (stolen_id, stolen_metadata)
+                (stolen_id, stolen_bevy_entity, stolen_metadata)
             }
             Chunk::DataLoaded { .. } => {
                 return Err((
@@ -1215,6 +1249,7 @@ impl GlobalUniverse {
 
         *chunk = Chunk::DataLoaded {
             id: stolen_id,
+            bevy_entity: stolen_bevy_entity,
             metadata: stolen_metadata,
             data: chunk_data,
         };
@@ -1254,15 +1289,16 @@ impl GlobalUniverse {
             return Err((UnloadChunkDataError::ChunkStillSpawned, chunk_id));
         }
 
-        let (stolen_id, stolen_metadata) = match &mut *chunk {
+        let (stolen_id, stolen_bevy_entity, stolen_metadata) = match &mut *chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err((UnloadChunkDataError::ChunkDataAlreadyUnloaded, chunk_id));
             }
-            Chunk::DataLoaded { id, metadata, .. } => {
+            Chunk::DataLoaded { id, bevy_entity, metadata, .. } => {
                 let stolen_id = std::mem::take(id);
+                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 let stolen_metadata = std::mem::take(metadata);
 
-                (stolen_id, stolen_metadata)
+                (stolen_id, stolen_bevy_entity, stolen_metadata)
             }
         };
 
@@ -1290,6 +1326,7 @@ impl GlobalUniverse {
 
         *chunk = Chunk::MetadataLoaded {
             id: stolen_id,
+            bevy_entity: stolen_bevy_entity,
             metadata: stolen_metadata,
         };
         return Ok((UnloadChunkDataSuccess, chunk_id));
@@ -1349,22 +1386,16 @@ impl GlobalUniverse {
                 ChunkRunState::Despawned => {
                     return Err((SpawnChunkError::ParentChunkNotSpawned, chunk_id));
                 }
-                ChunkRunState::Spawned { .. } => {}
+                ChunkRunState::Spawned => {}
             }
         };
 
         match chunk_data.run_state {
             ChunkRunState::Despawned => {
-                chunk_data.run_state = ChunkRunState::Spawned {
-                    bevy_entity: commands
-                        .spawn(ChunkBevyComponent {
-                            chunk: chunk_mutex.clone(),
-                        })
-                        .id(),
-                };
+                chunk_data.run_state = ChunkRunState::Spawned;
                 return Ok((SpawnChunkSuccess, chunk_id));
             }
-            ChunkRunState::Spawned { .. } => {
+            ChunkRunState::Spawned => {
                 return Err((SpawnChunkError::ChunkAlreadySpawned, chunk_id));
             }
         }
@@ -1438,10 +1469,7 @@ impl GlobalUniverse {
             ChunkRunState::Despawned => {
                 return Err((DespawnChunkError::ChunkAlreadyDespawned, chunk_id));
             }
-            ChunkRunState::Spawned {
-                bevy_entity: ecs_entity,
-            } => {
-                commands.entity(ecs_entity).despawn();
+            ChunkRunState::Spawned => {
                 chunk_data.run_state = ChunkRunState::Despawned;
                 return Ok((DespawnChunkSuccess, chunk_id));
             }
@@ -1449,6 +1477,7 @@ impl GlobalUniverse {
     }
 
     fn register_entity(
+        commands: &mut Commands,
         global_universe: &mut GlobalUniverse,
         entity_id: EntityID,
     ) -> Result<(RegisterEntitySuccess, EntityID), (RegisterEntityError, EntityID)> {
@@ -1490,7 +1519,11 @@ impl GlobalUniverse {
             return Err((RegisterEntityError::EntityAlreadyRegistered, entity_id));
         }
 
-        let entity = Arc::new(Mutex::new(entity::Entity::new(entity_id.clone())));
+        let entity_bevy_entity = commands.spawn(()).id();
+        let entity = Arc::new(Mutex::new(entity::Entity::new(entity_id.clone(), entity_bevy_entity.clone())));
+        commands.entity(entity_bevy_entity).insert(EntityBevyComponent {
+            entity: entity.clone(),
+        });
 
         parent_chunk_metadata
             .registered_entities
@@ -1500,6 +1533,7 @@ impl GlobalUniverse {
     }
 
     fn unregister_entity(
+        commands: &mut Commands,
         global_universe: &mut GlobalUniverse,
         entity_id: EntityID,
     ) -> Result<(UnregisterEntitySuccess, EntityID), (UnregisterEntityError, EntityID)> {
@@ -1534,6 +1568,23 @@ impl GlobalUniverse {
         };
 
         let local_entity_id = entity_id.get_local_entity_id();
+
+        let entity = parent_chunk_metadata.registered_entities.get(&local_entity_id);
+        let entity = match entity {
+            Some(entity) => entity,
+            None => {
+                return Err((UnregisterEntityError::EntityAlreadyUnregistered, entity_id));
+            }
+        };
+        let entity = match entity.lock() {
+            Ok(entity) => entity,
+            Err(_) => {
+                return Err((UnregisterEntityError::EntityMutexPoisoned, entity_id));
+            }
+        };
+
+        let entity_bevy_entity = Self::get_entity_bevy_entity(&entity);
+        commands.entity(entity_bevy_entity.clone()).despawn();
 
         match parent_chunk_metadata
             .registered_entities
@@ -1619,10 +1670,12 @@ impl GlobalUniverse {
         match &mut *entity {
             entity::Entity::Registered { .. } => {
                 let mut stolen_entity = std::mem::take(&mut *entity);
-                if let entity::Entity::Registered { id } = &mut stolen_entity {
+                if let entity::Entity::Registered { id, bevy_entity } = &mut stolen_entity {
                     let stolen_id = std::mem::take(&mut *id);
+                    let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                     *entity = entity::Entity::MetadataLoaded {
                         id: stolen_id,
+                        bevy_entity: stolen_bevy_entity,
                         metadata,
                     };
                     return Ok((LoadEntityMetadataSuccess, entity_id));
@@ -1700,9 +1753,10 @@ impl GlobalUniverse {
                     entity_id,
                 ));
             }
-            entity::Entity::MetadataLoaded { id, .. } => {
+            entity::Entity::MetadataLoaded { id, bevy_entity, .. } => {
                 let stolen_id = std::mem::take(id);
-                *entity = entity::Entity::Registered { id: stolen_id };
+                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+                *entity = entity::Entity::Registered { id: stolen_id, bevy_entity: stolen_bevy_entity };
                 return Ok((UnloadEntityMetadataSuccess, entity_id));
             }
             entity::Entity::DataLoaded { .. } => {
@@ -1778,12 +1832,14 @@ impl GlobalUniverse {
             entity::Entity::Registered { .. } => {
                 return Err((LoadEntityDataError::EntityMetadataNotLoaded, entity_id, data));
             },
-            entity::Entity::MetadataLoaded { id, metadata, .. } => {
+            entity::Entity::MetadataLoaded { id, bevy_entity, metadata, .. } => {
                 let stolen_id = std::mem::take(id);
+                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 let stolen_metadata = std::mem::take(metadata);
 
                 *entity = entity::Entity::DataLoaded {
                     id: stolen_id,
+                    bevy_entity: stolen_bevy_entity,
                     metadata: stolen_metadata,
                     data,
                 };
@@ -1842,12 +1898,14 @@ impl GlobalUniverse {
             entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {
                 return Err((UnloadEntityDataError::EntityDataAlreadyUnloaded, entity_id));
             }
-            entity::Entity::DataLoaded { id, metadata, .. } => {
+            entity::Entity::DataLoaded { id, bevy_entity, metadata, .. } => {
                 let stolen_id = std::mem::take(id);
+                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 let stolen_metadata = std::mem::take(metadata);
 
                 *entity = entity::Entity::MetadataLoaded {
                     id: stolen_id,
+                    bevy_entity: stolen_bevy_entity,
                     metadata: stolen_metadata,
                 };
                 return Ok((UnloadEntityDataSuccess, entity_id));
@@ -1922,13 +1980,7 @@ impl GlobalUniverse {
 
         match entity_data.run_state {
             EntityRunState::Despawned => {
-                entity_data.run_state = EntityRunState::Spawned {
-                    bevy_entity: commands
-                        .spawn(EntityBevyComponent {
-                            entity: entity_mutex.clone(),
-                        })
-                        .id(),
-                };
+                entity_data.run_state = EntityRunState::Spawned;
                 return Ok((SpawnEntitySuccess, entity_id));
             }
             EntityRunState::Spawned { .. } => {
@@ -1992,77 +2044,11 @@ impl GlobalUniverse {
             EntityRunState::Despawned => {
                 return Err((DespawnEntityError::EntityAlreadyDespawned, entity_id));
             }
-            EntityRunState::Spawned {
-                bevy_entity: ecs_entity,
-            } => {
-                commands.entity(ecs_entity).despawn();
+            EntityRunState::Spawned => {
                 entity_data.run_state = EntityRunState::Despawned;
                 return Ok((DespawnEntitySuccess, entity_id));
             }
         }
-    }
-
-    fn command_entity(
-        command: Box<dyn FnOnce(&mut EntityCommands) + Send>,
-        commands: &mut Commands,
-        global_universe: &mut GlobalUniverse,
-        entity_id: EntityID,
-    ) -> Result<(CommandEntitySuccess, EntityID), (CommandEntityError, EntityID)> {
-        let parent_chunk = match global_universe.get_registered_chunk(&entity_id.get_parent_chunk_id()) {
-            Ok(parent_chunk) => parent_chunk,
-            Err(_) => {
-                return Err((CommandEntityError::FailedToGetParentChunk, entity_id));
-            }
-        };
-        let parent_chunk = match parent_chunk {
-            Some(parent_chunk) => parent_chunk,
-            None => {
-                return Err((CommandEntityError::ParentChunkNotRegistered, entity_id));
-            }
-        };
-        let parent_chunk = match parent_chunk.lock() {
-            Ok(parent_chunk) => parent_chunk,
-            Err(_) => {
-                return Err((CommandEntityError::ParentChunkMutexPoisoned, entity_id));
-            }
-        };
-
-        let entity = match Self::get_registered_entity(&parent_chunk, &entity_id) {
-            Ok(entity) => entity,
-            Err(_) => {
-                return Err((CommandEntityError::FailedToGetEntity, entity_id));
-            }
-        };
-        let entity = match entity {
-            Some(entity) => entity,
-            None => {
-                return Err((CommandEntityError::EntityNotRegistered, entity_id));
-            }
-        };
-        let mut entity = match entity.lock() {
-            Ok(entity) => entity,
-            Err(_) => {
-                return Err((CommandEntityError::EntityMutexPoisoned, entity_id));
-            }
-        };
-
-        let entity_data = match Self::get_entity_data_mut(&mut entity) {
-            Ok(entity_data) => entity_data,
-            Err(_) => {
-                return Err((CommandEntityError::EntityDataNotLoaded, entity_id));
-            }
-        };
-
-        let entity_bevy_entity = match entity_data.run_state {
-            EntityRunState::Despawned => {
-                return Err((CommandEntityError::EntityNotSpawned, entity_id));
-            }
-            EntityRunState::Spawned { bevy_entity } => bevy_entity
-        };
-
-        command(&mut commands.entity(entity_bevy_entity));
-
-        return Ok((CommandEntitySuccess, entity_id));
     }
 }
 
