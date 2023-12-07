@@ -106,7 +106,7 @@ pub enum RegisterChunkError {
     ParentChunkMutexPoisoned,
 
     ParentChunkNotRegistered,
-    ParentChunkMetadataNotLoaded,
+    ParentChunkDataNotLoaded,
     ParentChunkNotAllowedToHaveChildChunks,
     ChunkAlreadyRegistered,
 
@@ -122,7 +122,7 @@ pub enum UnregisterChunkError {
     ChunkMutexPoisoned,
 
     ParentChunkNotRegistered,
-    ParentChunkMetadataNotLoaded,
+    ParentChunkDataNotLoaded,
     ParentChunkNotAllowedToHaveChildChunks,
     ChunkDataStillLoaded,
     ChunkMetadataStillLoaded,
@@ -150,9 +150,7 @@ pub enum UnloadChunkMetadataError {
     ChunkMutexPoisoned,
 
     ChunkNotRegistered,
-    ChunkHasRegisteredChildChunks,
-    ChunkHasRegisteredEntities,
-    ChunkMetadataAlreadyUnloaded,
+    ChunkDataAlreadyUnloaded,
     ChunkDataStillLoaded,
 
     FailedToGetChunk,
@@ -176,13 +174,12 @@ pub enum LoadChunkDataError {
 #[derive(Debug)]
 pub enum UnloadChunkDataError {
     ChunkMutexPoisoned,
-    RegisteredEntityMutexPoisoned,
 
     ChunkNotRegistered,
     ChildChunksStillRegistered,
     ChunkDataAlreadyUnloaded,
     ChunkStillSpawned,
-    RegisteredEntityDataStilloaded,
+    EntitiesStillRegistered,
 
     FailedToGetChunk,
     FatalUnexpectedError,
@@ -303,7 +300,7 @@ impl Chunk {
 
             let absolute_local_chunk_pos = chunk_metadata.absolute_local_chunk_pos.clone();
             let apparent_chunk_pos_shift = chunk_data.apparent_chunk_pos_shift.clone();
-            let apparent_local_chunk_pos: ApparentLocalChunkPos = (absolute_local_chunk_pos, apparent_chunk_pos_shift).into();
+            let apparent_local_chunk_pos: ApparentLocalChunkPos = (absolute_local_chunk_pos.clone(), apparent_chunk_pos_shift).into();
             
             let color = if absolute_local_chunk_pos.x == 0 || absolute_local_chunk_pos.x == 9 || absolute_local_chunk_pos.y == 0 || absolute_local_chunk_pos.y == 9 {
                 Color::RED

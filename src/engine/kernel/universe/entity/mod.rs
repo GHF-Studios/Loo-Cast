@@ -104,7 +104,7 @@ pub enum RegisterEntityError {
     ParentChunkMutexPoisoned,
 
     ParentChunkNotRegistered,
-    ParentChunkMetadataNotLoaded,
+    ParentChunkDataNotLoaded,
     EntityAlreadyRegistered,
 
     FailedToGetParentChunk,
@@ -116,7 +116,7 @@ pub enum UnregisterEntityError {
     EntityMutexPoisoned,
 
     ParentChunkNotRegistered,
-    ParentChunkMetadataNotLoaded,
+    ParentChunkDataNotLoaded,
     EntityAlreadyUnregistered,
 
     FailedToGetParentChunk,

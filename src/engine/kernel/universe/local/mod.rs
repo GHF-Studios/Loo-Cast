@@ -298,7 +298,7 @@ impl LocalUniverse {
         for new_local_chunk_pos in &new_local_chunk_positions {
             let new_apparent_local_chunk_pos = new_local_chunk_pos.clone();
             let new_absolute_local_chunk_pos: AbsoluteLocalChunkPos = new_apparent_local_chunk_pos.clone().into();
-            let new_absolute_local_chunk_pos_base10x10: (u8, u8) = new_absolute_local_chunk_pos.into();
+            let new_absolute_local_chunk_pos_base10x10: (u8, u8) = new_absolute_local_chunk_pos.clone().into();
             let new_chunk_id = match ChunkID::try_from(new_absolute_local_chunk_pos_base10x10) {
                 Ok(new_chunk_id) => new_chunk_id,
                 Err(_) => {
