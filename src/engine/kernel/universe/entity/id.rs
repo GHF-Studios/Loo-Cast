@@ -72,8 +72,6 @@ impl Hash for EntityID {
     }
 }
 
-
-
 impl EntityID {
     pub(in crate::engine::kernel::universe) fn new(
         parent_chunk_id: ChunkID,
