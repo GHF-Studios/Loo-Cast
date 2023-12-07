@@ -39,7 +39,7 @@ impl EntityMetadata {
     }
 
     pub fn get_parent_chunk(&self) -> Arc<Mutex<Chunk>> {
-        return self.parent_chunk.clone();
+        self.parent_chunk.clone()
     }
 }
 

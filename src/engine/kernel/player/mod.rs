@@ -81,7 +81,7 @@ impl PlayerManager {
         asset_server: Res<AssetServer>,
         mut universe_manager: ResMut<UniverseManager>,
     ) {
-        if let Some(_) = initialize_player_event_reader.iter().next() {
+        if initialize_player_event_reader.iter().next().is_some() {
             commands.insert_resource(PlayerManager {});
             commands.spawn((
                 Player {},
@@ -112,7 +112,7 @@ impl PlayerManager {
         mut terminate_player_event_reader: EventReader<TerminatePlayer>,
         player_query: Query<Entity, With<Player>>
     ) {
-        if let Some(_) = terminate_player_event_reader.iter().next() {
+        if terminate_player_event_reader.iter().next().is_some() {
             commands.remove_resource::<PlayerManager>();
             if let Ok(player_entity) = player_query.get_single() {
                 commands.entity(player_entity).despawn();
@@ -191,7 +191,7 @@ impl PlayerManager {
 
         if mouse_button_input.just_pressed(MouseButton::Left) {
             let local_entity_pos = LocalEntityPos::from(world_position);
-            let absolute_local_parent_chunk_pos = AbsoluteLocalChunkPos::from(local_entity_pos.clone());
+            let absolute_local_parent_chunk_pos = AbsoluteLocalChunkPos::from(local_entity_pos);
             let absolute_local_parent_chunk_pos_base10x10: (u8, u8) = absolute_local_parent_chunk_pos.into();
             let parent_chunk_id = match ChunkID::try_from(absolute_local_parent_chunk_pos_base10x10) {
                 Ok(parent_chunk_id) => parent_chunk_id,

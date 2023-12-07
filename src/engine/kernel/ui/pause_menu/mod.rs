@@ -199,7 +199,7 @@ impl PauseMenuManager {
                             text: Text {
                                 sections: vec![TextSection::new(
                                     "Pause Menu",
-                                    UIManager::get_title_text_style(&asset_server),
+                                    UIManager::get_title_text_style(asset_server),
                                 )],
                                 alignment: TextAlignment::Center,
                                 ..default()
@@ -222,7 +222,7 @@ impl PauseMenuManager {
                                     text: Text {
                                         sections: vec![TextSection::new(
                                             "Resume",
-                                            UIManager::get_button_text_style(&asset_server),
+                                            UIManager::get_button_text_style(asset_server),
                                         )],
                                         alignment: TextAlignment::Center,
                                         ..default()
@@ -246,7 +246,7 @@ impl PauseMenuManager {
                                     text: Text {
                                         sections: vec![TextSection::new(
                                             "Main Menu",
-                                            UIManager::get_button_text_style(&asset_server),
+                                            UIManager::get_button_text_style(asset_server),
                                         )],
                                         alignment: TextAlignment::Center,
                                         ..default()
@@ -270,7 +270,7 @@ impl PauseMenuManager {
                                     text: Text {
                                         sections: vec![TextSection::new(
                                             "Quit",
-                                            UIManager::get_button_text_style(&asset_server),
+                                            UIManager::get_button_text_style(asset_server),
                                         )],
                                         alignment: TextAlignment::Center,
                                         ..default()

@@ -97,7 +97,7 @@ impl UniverseManager {
         mut load_global_universe_event_reader: EventReader<LoadGlobalUniverse>,
         mut universe_manager: ResMut<UniverseManager>,
     ) {
-        if let Some(_) = load_global_universe_event_reader.iter().last() {
+        if load_global_universe_event_reader.iter().last().is_some() {
             universe_manager.registered_global_universe = Some(Arc::new(Mutex::new(GlobalUniverse {
                 registered_root_chunks: Arc::new(Mutex::new(HashMap::new())),
                 operation_requests: Arc::new(Mutex::new(Vec::new())),
@@ -119,7 +119,7 @@ impl UniverseManager {
             ));
         }
 
-        self.registered_local_universes.insert(local_universe_id.clone(), Arc::new(Mutex::new(local_universe)));
+        self.registered_local_universes.insert(*local_universe_id, Arc::new(Mutex::new(local_universe)));
 
         Ok(())
     }

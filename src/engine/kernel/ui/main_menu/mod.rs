@@ -164,7 +164,7 @@ impl MainMenuManager {
                             text: Text {
                                 sections: vec![TextSection::new(
                                     "Loo Cast",
-                                    UIManager::get_title_text_style(&asset_server),
+                                    UIManager::get_title_text_style(asset_server),
                                 )],
                                 alignment: TextAlignment::Center,
                                 ..default()
@@ -187,7 +187,7 @@ impl MainMenuManager {
                             text: Text {
                                 sections: vec![TextSection::new(
                                     "Play",
-                                    UIManager::get_button_text_style(&asset_server),
+                                    UIManager::get_button_text_style(asset_server),
                                 )],
                                 alignment: TextAlignment::Center,
                                 ..default()
@@ -210,7 +210,7 @@ impl MainMenuManager {
                             text: Text {
                                 sections: vec![TextSection::new(
                                     "Quit",
-                                    UIManager::get_button_text_style(&asset_server),
+                                    UIManager::get_button_text_style(asset_server),
                                 )],
                                 alignment: TextAlignment::Center,
                                 ..default()

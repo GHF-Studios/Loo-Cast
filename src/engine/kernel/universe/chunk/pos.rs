@@ -18,6 +18,7 @@ use crate::engine::kernel::universe::entity::pos::*;
 
 // Structs
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Default)]
 pub struct ChunkPos {
     parent_pos: Option<Box<ChunkPos>>,
     absolute_local_pos: AbsoluteLocalChunkPos,
@@ -25,39 +26,34 @@ pub struct ChunkPos {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Default)]
 pub struct AbsoluteLocalChunkPos {
     pub x: i8,
     pub y: i8,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Default)]
 pub struct ApparentLocalChunkPos {
     pub x: i8,
     pub y: i8,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Default)]
 pub struct ApparentChunkPosShift {
     pub x: i8,
     pub y: i8,
 }
 
 // Implementations
-impl Default for ChunkPos {
-    fn default() -> Self {
-        ChunkPos {
-            parent_pos: None,
-            absolute_local_pos: AbsoluteLocalChunkPos::default(),
-            apparent_local_pos: ApparentLocalChunkPos::default(),
-        }
-    }
-}
+
 
 impl ChunkPos {
     pub fn from_absolute(parent_pos: Option<Box<ChunkPos>>, absolute_local_pos: AbsoluteLocalChunkPos) -> Self {
         ChunkPos {
             parent_pos,
-            absolute_local_pos: absolute_local_pos.clone(),
+            absolute_local_pos,
             apparent_local_pos: absolute_local_pos.into(),
         }
     }
@@ -65,7 +61,7 @@ impl ChunkPos {
     pub fn from_apparent(parent_pos: Option<Box<ChunkPos>>, apparent_local_pos: ApparentLocalChunkPos) -> Self {
         ChunkPos {
             parent_pos,
-            absolute_local_pos: apparent_local_pos.clone().into(),
+            absolute_local_pos: apparent_local_pos.into(),
             apparent_local_pos,
         }
     }
@@ -91,9 +87,9 @@ impl From<(u8, u8)> for AbsoluteLocalChunkPos {
     }
 }
 
-impl Into<(u8, u8)> for AbsoluteLocalChunkPos {
-    fn into(self) -> (u8, u8) {
-        (self.x as u8, self.y as u8)
+impl From<AbsoluteLocalChunkPos> for (u8, u8) {
+    fn from(val: AbsoluteLocalChunkPos) -> Self {
+        (val.x as u8, val.y as u8)
     }
 }
 
@@ -113,11 +109,7 @@ impl From<ApparentLocalChunkPos> for AbsoluteLocalChunkPos {
     }
 }
 
-impl Default for AbsoluteLocalChunkPos {
-    fn default() -> Self {
-        AbsoluteLocalChunkPos { x: 0, y: 0 }
-    }
-}
+
 
 impl AbsoluteLocalChunkPos {
     pub fn new(x: i8, y: i8) -> Self {
@@ -134,9 +126,9 @@ impl From<(u8, u8)> for ApparentLocalChunkPos {
     }
 }
 
-impl Into<(u8, u8)> for ApparentLocalChunkPos {
-    fn into(self) -> (u8, u8) {
-        (self.x as u8, self.y as u8)
+impl From<ApparentLocalChunkPos> for (u8, u8) {
+    fn from(val: ApparentLocalChunkPos) -> Self {
+        (val.x as u8, val.y as u8)
     }
 }
 
@@ -168,11 +160,7 @@ impl From<(AbsoluteLocalChunkPos, ApparentChunkPosShift)> for ApparentLocalChunk
     }
 }
 
-impl Default for ApparentLocalChunkPos {
-    fn default() -> Self {
-        ApparentLocalChunkPos { x: 0, y: 0 }
-    }
-}
+
 
 impl ApparentLocalChunkPos {
     pub fn new(x: i8, y: i8) -> Self {
@@ -180,6 +168,22 @@ impl ApparentLocalChunkPos {
     }
 }
 
+/*
+This is the intended logic
+
+if value >= 0 {
+    value / 10
+} else {
+    (value - 9) / 10
+}
+
+It has intentionally been optimized into the following logic
+
+(value + 9 * (value >> 7)) / 10
+
+
+Note: This will only work if value is an i8
+*/
 impl From<ApparentLocalChunkPos> for ApparentChunkPosShift {
     fn from(apparent_local_chunk_pos: ApparentLocalChunkPos) -> ApparentChunkPosShift {
         ApparentChunkPosShift {
@@ -189,10 +193,6 @@ impl From<ApparentLocalChunkPos> for ApparentChunkPosShift {
     }
 }
 
-impl Default for ApparentChunkPosShift {
-    fn default() -> Self {
-        ApparentChunkPosShift { x: 0, y: 0 }
-    }
-}
+
 
 // Module Functions

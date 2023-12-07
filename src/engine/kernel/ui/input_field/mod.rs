@@ -46,6 +46,7 @@ pub struct InputFieldBundle {
 }
 
 #[derive(Component, Debug)]
+#[derive(Default)]
 pub struct InputField {
     pub value: String,
 }
@@ -78,7 +79,7 @@ impl Default for InputFieldBundle {
         Self {
             node: Node::default(),
             input_field: InputField::default(),
-            button: Button::default(),
+            button: Button,
             style: Style::default(),
             interaction: Interaction::default(),
             text: Text::default(),
@@ -98,13 +99,7 @@ impl Default for InputFieldBundle {
     }
 }
 
-impl Default for InputField {
-    fn default() -> Self {
-        Self {
-            value: String::new(),
-        }
-    }
-}
+
 
 impl InputFieldManager {
     fn initialize(mut commands: Commands) {

@@ -96,17 +96,15 @@ impl Base10x10Converter {
                     return Err("An unexpected error occured!".to_string());
                 }
                 break;
-            } else {
-                if let Some(second) = input_digits.pop() {
-                    if let Some(first) = input_digits.pop() {
-                        input_digit_pairs.push((first, second));
-                        continue;
-                    } else {
-                        return Err("An unexpected error occured!".to_string());
-                    }
+            } else if let Some(second) = input_digits.pop() {
+                if let Some(first) = input_digits.pop() {
+                    input_digit_pairs.push((first, second));
+                    continue;
                 } else {
                     return Err("An unexpected error occured!".to_string());
                 }
+            } else {
+                return Err("An unexpected error occured!".to_string());
             }
         }
 
@@ -172,11 +170,11 @@ impl Base57Converter {
             ) {
                 result.push(character);
             }
-            input = input / &base;
+            input /= &base;
         }
 
         while result.chars().count() < self.max_digits {
-            if let Some(character) = charset.chars().nth(0) {
+            if let Some(character) = charset.chars().next() {
                 result.push(character);
             } else {
                 return Err("An unexpected error occured!".to_string());
@@ -218,7 +216,7 @@ impl Base57Converter {
                 return Err(format!("Invalid digit '{}' in the base57 input!", char));
             }
 
-            multiplier = multiplier * &base;
+            multiplier *= &base;
         }
 
         Ok(result)

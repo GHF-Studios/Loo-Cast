@@ -21,6 +21,7 @@ use std::hash::*;
 
 // Structs
 #[derive(Eq, Clone, Copy, Debug)]
+#[derive(Default)]
 pub struct LocalChunkID {
     id: u8,
 }
@@ -46,11 +47,7 @@ impl Hash for LocalChunkID {
     }
 }
 
-impl Default for LocalChunkID {
-    fn default() -> Self {
-        LocalChunkID { id: 0 }
-    }
-}
+
 
 impl From<EntityID> for ChunkID {
     fn from(entity_id: EntityID) -> Self {
@@ -63,7 +60,7 @@ impl TryFrom<(u8, u8)> for ChunkID {
 
     fn try_from(global_id_base10x10: (u8, u8)) -> Result<Self, Self::Error> {
         let global_id_base10 = BASE10X10_CONVERTER
-            .convert_from_base10x10(vec![global_id_base10x10.clone()])
+            .convert_from_base10x10(vec![global_id_base10x10])
             .map_err(|e| format!("Computing the Base10 ID failed: {}", e))?;
         let global_id_base57 = BASE57_CONVERTER
             .convert_to_base57(global_id_base10.clone())
@@ -185,19 +182,19 @@ impl Default for ChunkID {
 
 impl ChunkID {
     pub fn get_scale_index(&self) -> u8 {
-        return self.scale_index;
+        self.scale_index
     }
 
     pub fn get_global_id_base10(&self) -> &BigUint {
-        return &self.global_id_base10;
+        &self.global_id_base10
     }
 
     pub fn get_global_id_base10x10(&self) -> &Vec<(u8, u8)> {
-        return &self.global_id_base10x10;
+        &self.global_id_base10x10
     }
 
     pub fn get_global_id_base57(&self) -> &String {
-        return &self.global_id_base57;
+        &self.global_id_base57
     }
 
     pub fn compute_parent_id(&self) -> Result<ChunkID, String> {
@@ -210,12 +207,12 @@ impl ChunkID {
         let mut id_base10x10 = self.global_id_base10x10.clone();
         id_base10x10.pop();
 
-        return ChunkID::try_from(id_base10x10);
+        ChunkID::try_from(id_base10x10)
     }
 
     pub fn compute_absolute_local_pos(&self) -> Result<AbsoluteLocalChunkPos, String> {
         let absolute_local_pos_base10x10 = match self.global_id_base10x10.last() {
-            Some(absolute_local_pos_base10x10) => absolute_local_pos_base10x10.clone(),
+            Some(absolute_local_pos_base10x10) => *absolute_local_pos_base10x10,
             None => {
                 return Err(
                     "Cannot compute absolute local position from chunk ID: Chunk ID is invalid.".to_string(),
@@ -223,7 +220,7 @@ impl ChunkID {
             }
         };
 
-        return Ok(AbsoluteLocalChunkPos::from(absolute_local_pos_base10x10));
+        Ok(AbsoluteLocalChunkPos::from(absolute_local_pos_base10x10))
     }
 }
 

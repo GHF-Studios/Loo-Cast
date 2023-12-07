@@ -115,7 +115,7 @@ impl GameManager {
                 std::fs::create_dir_all(&dir_path).expect("Failed to create config directory");
 
                 let file_path = format!("{}/info.json", dir_path);
-                File::create(&file_path).expect("Failed to create info.json for config");
+                File::create(file_path).expect("Failed to create info.json for config");
             }
             GameConfigManager::initialize(&mut commands);
 
@@ -125,7 +125,7 @@ impl GameManager {
                 std::fs::create_dir_all(&dir_path).expect("Failed to create state directory");
 
                 let file_path = format!("{}/info.json", dir_path);
-                File::create(&file_path).expect("Failed to create info.json for state");
+                File::create(file_path).expect("Failed to create info.json for state");
             }
             GameStateManager::initialize(&mut commands);
 

@@ -31,6 +31,7 @@ pub struct Background {
 }
 
 #[derive(Resource)]
+#[derive(Default)]
 pub struct BackgroundManager {
     pub background_origin_x: i32,
     pub background_origin_y: i32,
@@ -54,14 +55,7 @@ impl Plugin for BackgroundPlugin {
     }
 }
 
-impl Default for BackgroundManager {
-    fn default() -> BackgroundManager {
-        BackgroundManager {
-            background_origin_x: 0,
-            background_origin_y: 0,
-        }
-    }
-}
+
 
 impl BackgroundManager {
     fn initialize(
@@ -90,7 +84,7 @@ impl BackgroundManager {
                             ..default()
                         },
                         transform: Transform::from_xyz(x, y, -1.0),
-                        texture: asset_server.load("sprites/background.png").into(),
+                        texture: asset_server.load("sprites/background.png"),
                         ..default()
                     },
                     Background {
@@ -128,7 +122,7 @@ impl BackgroundManager {
             let window_width = window.width();
             let window_height = window.height();
 
-            if difference_x.abs() > window_width as f32 {
+            if difference_x.abs() > window_width {
                 if difference_x > 0.0 {
                     background_manager.background_origin_x += window_width as i32;
 
@@ -147,7 +141,7 @@ impl BackgroundManager {
                     }
                 }
             }
-            if difference_y.abs() > window_height as f32 {
+            if difference_y.abs() > window_height {
                 if difference_y > 0.0 {
                     background_manager.background_origin_y += window_height as i32;
 

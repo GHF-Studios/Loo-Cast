@@ -16,16 +16,13 @@
 
 // Structs
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Default)]
 pub struct LocalUniverseID {
     id: u32,
 }
 
 // Implementations
-impl Default for LocalUniverseID {
-    fn default() -> Self {
-        Self { id: 0 }
-    }
-}
+
 
 impl LocalUniverseID {
     pub fn new(id: u32) -> Self {

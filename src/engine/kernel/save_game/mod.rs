@@ -45,6 +45,7 @@ pub struct DeleteSaveGame {
 }
 
 #[derive(Resource)]
+#[derive(Default)]
 pub struct SaveGameManager {
     pub registered_save_games: Vec<SaveGameInfo>,
 }
@@ -125,7 +126,7 @@ impl SaveGameManager {
             let path = Path::new(&string_path);
             let display = path.display();
 
-            let mut file = match File::create(&path) {
+            let mut file = match File::create(path) {
                 Err(why) => panic!("Couldn't create {}: {}", display, why),
                 Ok(file) => file,
             };
@@ -151,7 +152,7 @@ impl SaveGameManager {
             let path = Path::new(&string_path);
             let display = path.display();
 
-            match std::fs::remove_file(&path) {
+            match std::fs::remove_file(path) {
                 Err(why) => panic!("Couldn't delete {}: {}", display, why),
                 Ok(_) => println!("Successfully deleted {}", display),
             }
@@ -185,12 +186,6 @@ impl SaveGameManager {
     }
 }
 
-impl Default for SaveGameManager {
-    fn default() -> SaveGameManager {
-        SaveGameManager {
-            registered_save_games: Vec::new(),
-        }
-    }
-}
+
 
 // Module Functions

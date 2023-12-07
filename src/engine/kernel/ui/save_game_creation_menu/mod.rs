@@ -237,7 +237,7 @@ impl SaveGameCreationMenuManager {
                             text: Text {
                                 sections: vec![TextSection::new(
                                     "New Save Game",
-                                    UIManager::get_title_text_style(&asset_server),
+                                    UIManager::get_title_text_style(asset_server),
                                 )],
                                 alignment: TextAlignment::Center,
                                 ..default()
@@ -258,7 +258,7 @@ impl SaveGameCreationMenuManager {
                                 text: Text {
                                     sections: vec![TextSection::new(
                                         "Sex",
-                                        UIManager::get_label_text_style(&asset_server),
+                                        UIManager::get_label_text_style(asset_server),
                                     )],
                                     ..default()
                                 },

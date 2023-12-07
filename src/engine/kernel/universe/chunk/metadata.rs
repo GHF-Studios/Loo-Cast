@@ -19,20 +19,14 @@ use std::sync::{Arc, Mutex};
 
 // Structs
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct ChunkMetadata {
     pub(in crate::engine::kernel::universe) parent_chunk: Option<Arc<Mutex<Chunk>>>,
     pub(in crate::engine::kernel::universe) absolute_local_chunk_pos: AbsoluteLocalChunkPos,
 }
 
 // Implementations
-impl Default for ChunkMetadata {
-    fn default() -> Self {
-        Self {
-            parent_chunk: None,
-            absolute_local_chunk_pos: AbsoluteLocalChunkPos::default(),
-        }
-    }
-}
+
 
 impl ChunkMetadata {
     pub fn new_node(

@@ -19,6 +19,7 @@ use bevy::prelude::*;
 
 // Structs
 #[derive(Clone, PartialEq, Debug)]
+#[derive(Default)]
 pub struct EntityPos {
     parent_chunk_pos: ChunkPos,
     local_pos: LocalEntityPos,
@@ -31,14 +32,7 @@ pub struct LocalEntityPos {
 }
 
 // Implementations
-impl Default for EntityPos {
-    fn default() -> Self {
-        EntityPos {
-            parent_chunk_pos: ChunkPos::default(),
-            local_pos: LocalEntityPos::default(),
-        }
-    }
-}
+
 
 impl EntityPos {
     pub fn new(parent_chunk_pos: ChunkPos, local_pos: LocalEntityPos) -> Self {
@@ -101,15 +95,15 @@ impl From<Vec3> for LocalEntityPos {
     }
 }
 
-impl Into<Vec2> for LocalEntityPos {
-    fn into(self) -> Vec2 {
-        Vec2::new(self.x, self.y)
+impl From<LocalEntityPos> for Vec2 {
+    fn from(val: LocalEntityPos) -> Self {
+        Vec2::new(val.x, val.y)
     }
 }
 
-impl Into<Vec3> for LocalEntityPos {
-    fn into(self) -> Vec3 {
-        Vec3::new(self.x, self.y, 0.0)
+impl From<LocalEntityPos> for Vec3 {
+    fn from(val: LocalEntityPos) -> Self {
+        Vec3::new(val.x, val.y, 0.0)
     }
 }
 

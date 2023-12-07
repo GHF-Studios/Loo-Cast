@@ -18,11 +18,13 @@ use std::hash::*;
 
 // Structs
 #[derive(Eq, Debug, Clone, Copy)]
+#[derive(Default)]
 pub struct LocalEntityID {
     id: u64,
 }
 
 #[derive(Eq, Debug, Clone)]
+#[derive(Default)]
 pub struct EntityID {
     parent_chunk_id: ChunkID,
     local_entity_id: LocalEntityID,
@@ -41,11 +43,7 @@ impl Hash for LocalEntityID {
     }
 }
 
-impl Default for LocalEntityID {
-    fn default() -> Self {
-        LocalEntityID { id: 0 }
-    }
-}
+
 
 impl LocalEntityID {
     pub(in crate::engine::kernel::universe) fn new(id: u64) -> Result<Self, String> {
@@ -57,7 +55,7 @@ impl LocalEntityID {
     }
 
     pub fn get_id(&self) -> u64 {
-        return self.id;
+        self.id
     }
 }
 
@@ -74,14 +72,7 @@ impl Hash for EntityID {
     }
 }
 
-impl Default for EntityID {
-    fn default() -> Self {
-        EntityID {
-            parent_chunk_id: ChunkID::default(),
-            local_entity_id: LocalEntityID::default(),
-        }
-    }
-}
+
 
 impl EntityID {
     pub(in crate::engine::kernel::universe) fn new(
@@ -95,11 +86,11 @@ impl EntityID {
     }
 
     pub fn get_parent_chunk_id(&self) -> &ChunkID {
-        return &self.parent_chunk_id;
+        &self.parent_chunk_id
     }
 
     pub fn get_local_entity_id(&self) -> LocalEntityID {
-        return self.local_entity_id;
+        self.local_entity_id
     }
 }
 

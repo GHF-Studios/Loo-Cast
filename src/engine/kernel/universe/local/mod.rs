@@ -110,10 +110,10 @@ impl LocalUniverse {
         local_universe: &mut LocalUniverse,
         local_universe_transform: &Transform,
     ) {
-        if local_universe.previously_viewed_local_chunk_positions.len() > 0 {
+        if !local_universe.previously_viewed_local_chunk_positions.is_empty() {
             panic!("Chunk viewer's previously viewed chunk positions are not empty");
         }
-        if local_universe.newly_viewed_local_chunk_positions.len() > 0 {
+        if !local_universe.newly_viewed_local_chunk_positions.is_empty() {
             panic!("Chunk viewer's newly viewed chunk positions are not empty");
         }
 
@@ -142,7 +142,7 @@ impl LocalUniverse {
             {
                 local_universe
                     .newly_viewed_local_chunk_positions
-                    .push(detected_chunk_position.clone());
+                    .push(*detected_chunk_position);
             }
         }
     }
@@ -157,8 +157,8 @@ impl LocalUniverse {
             .clone();
 
         for old_local_chunk_pos in &old_local_chunk_positions {
-            let old_apparent_local_chunk_pos = old_local_chunk_pos.clone();
-            let old_absolute_local_chunk_pos: AbsoluteLocalChunkPos = old_apparent_local_chunk_pos.clone().into();
+            let old_apparent_local_chunk_pos = *old_local_chunk_pos;
+            let old_absolute_local_chunk_pos: AbsoluteLocalChunkPos = old_apparent_local_chunk_pos.into();
             let old_absolute_local_chunk_pos_base10x10: (u8, u8) = old_absolute_local_chunk_pos.into();
             let old_chunk_id = match ChunkID::try_from(old_absolute_local_chunk_pos_base10x10) {
                 Ok(old_chunk_id) => old_chunk_id,
@@ -204,7 +204,7 @@ impl LocalUniverse {
             let old_local_entity_ids = old_chunk_data.registered_entities.keys().cloned().collect::<Vec<LocalEntityID>>();
 
             for old_local_entity_id in old_local_entity_ids {
-                let old_entity_id = EntityID::new(old_chunk_id.clone(), old_local_entity_id.clone());
+                let old_entity_id = EntityID::new(old_chunk_id.clone(), old_local_entity_id);
                 
                 match global_universe.send_entity_operation_request(EntityOperationRequest {
                     operations: vec![
@@ -299,9 +299,9 @@ impl LocalUniverse {
             local_universe.newly_viewed_local_chunk_positions.clone();
 
         for new_local_chunk_pos in &new_local_chunk_positions {
-            let new_apparent_local_chunk_pos = new_local_chunk_pos.clone();
-            let new_absolute_local_chunk_pos: AbsoluteLocalChunkPos = new_apparent_local_chunk_pos.clone().into();
-            let new_absolute_local_chunk_pos_base10x10: (u8, u8) = new_absolute_local_chunk_pos.clone().into();
+            let new_apparent_local_chunk_pos = *new_local_chunk_pos;
+            let new_absolute_local_chunk_pos: AbsoluteLocalChunkPos = new_apparent_local_chunk_pos.into();
+            let new_absolute_local_chunk_pos_base10x10: (u8, u8) = new_absolute_local_chunk_pos.into();
             let new_chunk_id = match ChunkID::try_from(new_absolute_local_chunk_pos_base10x10) {
                 Ok(new_chunk_id) => new_chunk_id,
                 Err(error) => {

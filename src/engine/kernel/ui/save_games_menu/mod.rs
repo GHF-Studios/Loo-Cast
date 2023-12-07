@@ -357,7 +357,7 @@ impl SaveGamesMenuManager {
                             text: Text {
                                 sections: vec![TextSection::new(
                                     "Save Games",
-                                    UIManager::get_title_text_style(&asset_server),
+                                    UIManager::get_title_text_style(asset_server),
                                 )],
                                 alignment: TextAlignment::Center,
                                 ..default()
@@ -423,7 +423,7 @@ impl SaveGamesMenuManager {
                                                     sections: vec![TextSection::new(
                                                         save_game_info.name.clone(),
                                                         Self::get_save_game_name_text_style(
-                                                            &asset_server,
+                                                            asset_server,
                                                         ),
                                                     )],
                                                     alignment: TextAlignment::Center,

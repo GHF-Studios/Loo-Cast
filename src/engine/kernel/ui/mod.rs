@@ -48,6 +48,7 @@ pub struct LoseFocus {
 }
 
 #[derive(Resource)]
+#[derive(Default)]
 pub struct UIManager {
     pub focus: Option<Entity>,
 }
@@ -74,11 +75,7 @@ impl Plugin for UIPlugin {
     }
 }
 
-impl Default for UIManager {
-    fn default() -> Self {
-        Self { focus: None }
-    }
-}
+
 
 impl UIManager {
     fn initialize(mut commands: Commands) {

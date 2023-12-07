@@ -294,9 +294,9 @@ impl Chunk {
                 Chunk::DataLoaded { ref metadata, ref data, .. } => (metadata, data),
             };
 
-            let absolute_local_chunk_pos = chunk_metadata.absolute_local_chunk_pos.clone();
-            let apparent_chunk_pos_shift = chunk_data.apparent_chunk_pos_shift.clone();
-            let apparent_local_chunk_pos: ApparentLocalChunkPos = (absolute_local_chunk_pos.clone(), apparent_chunk_pos_shift).into();
+            let absolute_local_chunk_pos = chunk_metadata.absolute_local_chunk_pos;
+            let apparent_chunk_pos_shift = chunk_data.apparent_chunk_pos_shift;
+            let apparent_local_chunk_pos: ApparentLocalChunkPos = (absolute_local_chunk_pos, apparent_chunk_pos_shift).into();
             
             let color = if absolute_local_chunk_pos.x == 0 || absolute_local_chunk_pos.x == 9 || absolute_local_chunk_pos.y == 0 || absolute_local_chunk_pos.y == 9 {
                 Color::RED
