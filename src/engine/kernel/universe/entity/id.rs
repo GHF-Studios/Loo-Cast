@@ -6,6 +6,7 @@
 use crate::engine::kernel::universe::chunk::id::*;
 
 // External imports
+use std::hash::*;
 
 // Static variables
 
@@ -16,12 +17,12 @@ use crate::engine::kernel::universe::chunk::id::*;
 // Enums
 
 // Structs
-#[derive(Eq, Hash, Debug, Clone, Copy)]
+#[derive(Eq, Debug, Clone, Copy)]
 pub struct LocalEntityID {
     id: u64,
 }
 
-#[derive(Eq, Hash, Debug, Clone)]
+#[derive(Eq, Debug, Clone)]
 pub struct EntityID {
     parent_chunk_id: ChunkID,
     local_entity_id: LocalEntityID,
@@ -31,6 +32,12 @@ pub struct EntityID {
 impl PartialEq for LocalEntityID {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
+    }
+}
+
+impl Hash for LocalEntityID {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
     }
 }
 
@@ -57,6 +64,13 @@ impl LocalEntityID {
 impl PartialEq for EntityID {
     fn eq(&self, other: &Self) -> bool {
         self.parent_chunk_id == other.parent_chunk_id && self.local_entity_id == other.local_entity_id
+    }
+}
+
+impl Hash for EntityID {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.parent_chunk_id.hash(state);
+        self.local_entity_id.hash(state);
     }
 }
 

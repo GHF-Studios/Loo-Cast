@@ -9,6 +9,7 @@ use crate::engine::kernel::universe::entity::id::*;
 
 // External imports
 use num_bigint::BigUint;
+use std::hash::*;
 
 // Static variables
 
@@ -19,12 +20,12 @@ use num_bigint::BigUint;
 // Enums
 
 // Structs
-#[derive(Eq, Hash, Clone, Copy, Debug)]
+#[derive(Eq, Clone, Copy, Debug)]
 pub struct LocalChunkID {
     id: u8,
 }
 
-#[derive(Eq, Hash, Clone, Debug)]
+#[derive(Eq, Clone, Debug)]
 pub struct ChunkID {
     scale_index: u8,
     global_id_base10: BigUint,
@@ -36,6 +37,12 @@ pub struct ChunkID {
 impl PartialEq for LocalChunkID {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
+    }
+}
+
+impl Hash for LocalChunkID {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
     }
 }
 
@@ -156,6 +163,12 @@ impl TryFrom<&str> for ChunkID {
 impl PartialEq for ChunkID {
     fn eq(&self, other: &Self) -> bool {
         self.global_id_base10x10 == other.global_id_base10x10
+    }
+}
+
+impl Hash for ChunkID {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.global_id_base10x10.hash(state);
     }
 }
 
