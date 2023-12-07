@@ -23,7 +23,7 @@ use std::sync::{Arc, Mutex};
 // Static variables
 
 // Constant variables
-pub const CHUNK_SIZE: u16 = 128;
+pub const CHUNK_SIZE: u16 = 32;
 pub const VIEW_RADIUS: u16 = 2;
 
 // Types

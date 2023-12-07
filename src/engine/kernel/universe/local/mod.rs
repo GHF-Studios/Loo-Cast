@@ -166,7 +166,8 @@ impl LocalUniverse {
             let old_absolute_local_chunk_pos_base10x10: (u8, u8) = old_absolute_local_chunk_pos.into();
             let old_chunk_id = match ChunkID::try_from(old_absolute_local_chunk_pos_base10x10) {
                 Ok(old_chunk_id) => old_chunk_id,
-                Err(_) => {
+                Err(error) => {
+                    println!("Failed to create chunk id: {:?}", error);
                     continue;
                 }
             };
@@ -174,7 +175,8 @@ impl LocalUniverse {
             // get chunk
             let old_chunk = match global_universe.get_registered_chunk(&old_chunk_id.clone()) {
                 Ok(old_chunk) => old_chunk,
-                Err(_) => {
+                Err(error) => {
+                    println!("Failed to get chunk: {:?}", error);
                     continue;
                 }
             };
@@ -182,20 +184,23 @@ impl LocalUniverse {
             let old_chunk = match old_chunk {
                 Some(old_chunk) => old_chunk,
                 None => {
+                    println!("Failed to get chunk: {:?}", old_chunk_id);
                     continue;
                 }
             };
 
             let old_chunk = match old_chunk.lock() {
                 Ok(old_chunk) => old_chunk,
-                Err(_) => {
+                Err(error) => {
+                    println!("Failed to lock chunk: {:?}", error);
                     continue;
                 }
             };
 
             let old_chunk_data = match GlobalUniverse::get_chunk_data(&old_chunk) {
                 Ok(old_chunk_data) => old_chunk_data,
-                Err(_) => {
+                Err(error) => {
+                    println!("Failed to get chunk data: {:?}", error);
                     continue;
                 }
             };
@@ -238,7 +243,8 @@ impl LocalUniverse {
                     ]
                 }) {
                     Ok(_) => {}
-                    Err(_) => {
+                    Err(error) => {
+                        println!("Failed to send entity operation request: {:?}", error);
                         continue;
                     }
                 }
@@ -277,7 +283,8 @@ impl LocalUniverse {
                 ],
             }) {
                 Ok(_) => {}
-                Err(_) => {
+                Err(error) => {
+                    println!("Failed to send chunk operation request: {:?}", error);
                     continue;
                 }
             }
@@ -296,12 +303,14 @@ impl LocalUniverse {
             local_universe.newly_viewed_local_chunk_positions.clone();
 
         for new_local_chunk_pos in &new_local_chunk_positions {
+            println!("Loading chunk: {:?}", new_local_chunk_pos);
             let new_apparent_local_chunk_pos = new_local_chunk_pos.clone();
             let new_absolute_local_chunk_pos: AbsoluteLocalChunkPos = new_apparent_local_chunk_pos.clone().into();
             let new_absolute_local_chunk_pos_base10x10: (u8, u8) = new_absolute_local_chunk_pos.clone().into();
             let new_chunk_id = match ChunkID::try_from(new_absolute_local_chunk_pos_base10x10) {
                 Ok(new_chunk_id) => new_chunk_id,
-                Err(_) => {
+                Err(error) => {
+                    println!("Failed to create chunk id: {:?}", error);
                     continue;
                 }
             };
@@ -344,7 +353,8 @@ impl LocalUniverse {
                 ],
             }) {
                 Ok(_) => {}
-                Err(_) => {
+                Err(error) => {
+                    println!("Failed to send chunk operation request: {:?}", error);
                     continue;
                 }
             }
