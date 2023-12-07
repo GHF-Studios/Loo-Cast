@@ -182,17 +182,9 @@ impl ApparentLocalChunkPos {
 
 impl From<ApparentLocalChunkPos> for ApparentChunkPosShift {
     fn from(apparent_local_chunk_pos: ApparentLocalChunkPos) -> ApparentChunkPosShift {
-        if apparent_local_chunk_pos.x < 0 || apparent_local_chunk_pos.y < 0 {
-            println!("local pos: {:?}", apparent_local_chunk_pos);
-            let apparent_chunk_pos_shift = ApparentChunkPosShift {
-                x: apparent_local_chunk_pos.x / 10,
-                y: apparent_local_chunk_pos.y / 10,
-            };
-            println!("pos shift: {:?}\n", apparent_chunk_pos_shift)
-        }
         ApparentChunkPosShift {
-            x: apparent_local_chunk_pos.x / 10,
-            y: apparent_local_chunk_pos.y / 10,
+            x: (apparent_local_chunk_pos.x + 9 * (apparent_local_chunk_pos.x >> 7)) / 10,
+            y: (apparent_local_chunk_pos.y + 9 * (apparent_local_chunk_pos.y >> 7)) / 10,
         }
     }
 }
