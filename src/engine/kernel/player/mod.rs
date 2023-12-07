@@ -193,43 +193,39 @@ impl PlayerManager {
 
         if mouse_button_input.just_pressed(MouseButton::Left) {
             let local_entity_pos = LocalEntityPos::from(world_position);
-            let absolute_local_chunk_pos = AbsoluteLocalChunkPos::from(local_entity_pos.clone());
-            let absolute_local_chunk_pos_base10x10: (u8, u8) = absolute_local_chunk_pos.into();
-            let chunk_id = match ChunkID::try_from(absolute_local_chunk_pos_base10x10) {
-                Ok(chunk_id) => chunk_id,
+            let absolute_local_parent_chunk_pos = AbsoluteLocalChunkPos::from(local_entity_pos.clone());
+            let absolute_local_parent_chunk_pos_base10x10: (u8, u8) = absolute_local_parent_chunk_pos.into();
+            let parent_chunk_id = match ChunkID::try_from(absolute_local_parent_chunk_pos_base10x10) {
+                Ok(parent_chunk_id) => parent_chunk_id,
                 Err(_) => return,
             };
 
-            let chunk_mutex = match global_universe.get_registered_chunk(&chunk_id) {
-                Ok(chunk_mutex) => chunk_mutex,
+            let parent_chunk_mutex = match global_universe.get_registered_chunk(&parent_chunk_id) {
+                Ok(parent_chunk_mutex) => parent_chunk_mutex,
                 Err(_) => return,
             };
-            let chunk_mutex = match chunk_mutex {
-                Some(chunk_mutex) => chunk_mutex,
+            let parent_chunk_mutex = match parent_chunk_mutex {
+                Some(parent_chunk_mutex) => parent_chunk_mutex,
                 None => return,
             };
-            let mut chunk = match chunk_mutex.lock() {
-                Ok(chunk) => chunk,
+            let mut parent_chunk = match parent_chunk_mutex.lock() {
+                Ok(parent_chunk) => parent_chunk,
                 Err(_) => return,
             };
 
-            let entity_id = match GlobalUniverse::generate_entity_id(&mut chunk) {
+            let entity_id = match GlobalUniverse::generate_entity_id(&mut parent_chunk) {
                 Ok(entity_id) => entity_id,
                 Err(_) => return,
             };
 
-            drop(chunk);
+            drop(parent_chunk);
 
             let local_universe = match universe_manager.get_local_universe(LocalUniverseID::default()) {
                 Some(local_universe) => local_universe,
                 None => return,
             };
 
-            let entity_metadata = match EntityMetadata::new(local_universe, chunk_mutex.clone(), local_entity_pos) {
-                Ok(entity_metadata) => entity_metadata,
-                Err(_) => return,
-            };
-
+            let entity_metadata = EntityMetadata::new(parent_chunk_mutex.clone());
             let entity_data = EntityData::new();
 
             let _ = global_universe.send_entity_operation_request(EntityOperationRequest::new(vec![

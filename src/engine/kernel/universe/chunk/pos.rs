@@ -36,6 +36,12 @@ pub struct ApparentLocalChunkPos {
     pub y: i8,
 }
 
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct ApparentChunkPosShift {
+    pub x: i8,
+    pub y: i8,
+}
+
 // Implementations
 impl Default for ChunkPos {
     fn default() -> Self {
@@ -153,6 +159,15 @@ impl From<AbsoluteLocalChunkPos> for ApparentLocalChunkPos {
     }
 }
 
+impl From<(AbsoluteLocalChunkPos, ApparentChunkPosShift)> for ApparentLocalChunkPos {
+    fn from((absolute_local_chunk_pos, apparent_chunk_pos_shift): (AbsoluteLocalChunkPos, ApparentChunkPosShift)) -> ApparentLocalChunkPos {
+        ApparentLocalChunkPos {
+            x: absolute_local_chunk_pos.x + (apparent_chunk_pos_shift.x * 10),
+            y: absolute_local_chunk_pos.y + (apparent_chunk_pos_shift.y * 10),
+        }
+    }
+}
+
 impl Default for ApparentLocalChunkPos {
     fn default() -> Self {
         ApparentLocalChunkPos { x: 0, y: 0 }
@@ -162,6 +177,21 @@ impl Default for ApparentLocalChunkPos {
 impl ApparentLocalChunkPos {
     pub fn new(x: i8, y: i8) -> Self {
         ApparentLocalChunkPos { x, y }
+    }
+}
+
+impl From<ApparentLocalChunkPos> for ApparentChunkPosShift {
+    fn from(apparent_local_chunk_pos: ApparentLocalChunkPos) -> ApparentChunkPosShift {
+        ApparentChunkPosShift {
+            x: apparent_local_chunk_pos.x / 10,
+            y: apparent_local_chunk_pos.y / 10,
+        }
+    }
+}
+
+impl Default for ApparentChunkPosShift {
+    fn default() -> Self {
+        ApparentChunkPosShift { x: 0, y: 0 }
     }
 }
 

@@ -62,23 +62,23 @@ impl Plugin for GlobalUniversePlugin {
 
 impl GlobalUniverse {
     pub fn generate_entity_id(parent_chunk: &mut Chunk) -> Result<EntityID, String> {
-        let (parent_chunk_id, parent_chunk_metadata) = match parent_chunk {
-            Chunk::Registered { .. } => {
+        let (parent_chunk_id, parent_chunk_data) = match parent_chunk {
+            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(
-                    "Generating a local entity id failed: Parent chunk metadata is not loaded."
+                    "Generating a local entity id failed: Parent chunk data is not loaded."
                         .to_string(),
                 );
             }
-            Chunk::MetadataLoaded { id, metadata, .. } | Chunk::DataLoaded { id, metadata, .. } => {
-                (id.clone(), metadata)
+            Chunk::DataLoaded { id, data, .. } => {
+                (id.clone(), data)
             }
         };
 
-        let local_entity_id = if parent_chunk_metadata.recycled_local_entity_ids.len() != 0 {
-            parent_chunk_metadata.recycled_local_entity_ids.pop().unwrap()
+        let local_entity_id = if parent_chunk_data.recycled_local_entity_ids.len() != 0 {
+            parent_chunk_data.recycled_local_entity_ids.pop().unwrap()
         } else {
-            let local_entity_id = parent_chunk_metadata.current_local_entity_id;
-            parent_chunk_metadata.current_local_entity_id += 1;
+            let local_entity_id = parent_chunk_data.current_local_entity_id;
+            parent_chunk_data.current_local_entity_id += 1;
             local_entity_id
         };
 
@@ -98,25 +98,24 @@ impl GlobalUniverse {
     }
 
     pub fn recycle_entity_id(parent_chunk: &mut Chunk, entity_id: EntityID) -> Result<(), String> {
-        let chunk_metadata = GlobalUniverse::get_chunk_metadata_mut(parent_chunk);
-        let chunk_metadata = match chunk_metadata {
-            Ok(chunk_metadata) => chunk_metadata,
-            Err(error) => {
-                return Err(format!(
-                    "Recycling an entity id failed: {}",
-                    error
-                ));
+        let chunk_data = match parent_chunk {
+            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
+                return Err(
+                    "Recycling a local entity id failed: Parent chunk data is not loaded."
+                        .to_string(),
+                );
             }
+            Chunk::DataLoaded { data, .. } => data,
         };
 
-        if chunk_metadata
+        if chunk_data
             .recycled_local_entity_ids
             .contains(&entity_id.get_local_entity_id().get_id())
         {
             return Err("Entity id already recycled.".to_string());
         }
 
-        chunk_metadata
+        chunk_data
             .recycled_local_entity_ids
             .push(entity_id.get_local_entity_id().get_id());
         Ok(())
@@ -162,16 +161,15 @@ impl GlobalUniverse {
                         )
                     }
                 };
-                let current_chunk_metadata =
+                let current_chunk_data =
                     match *current_chunk {
-                        Chunk::Registered { .. } => return Err(
-                            "Failed to get registered chunk: Current chunk metadata not loaded."
+                        Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => return Err(
+                            "Failed to get registered chunk: Current chunk data not loaded."
                                 .to_string(),
                         ),
-                        Chunk::MetadataLoaded { ref metadata, .. }
-                        | Chunk::DataLoaded { ref metadata, .. } => metadata,
+                        Chunk::DataLoaded { ref data, .. } => data,
                     };
-                let current_chunk_child_chunks = match current_chunk_metadata.child_chunks {
+                let current_chunk_child_chunks = match current_chunk_data.child_chunks {
                     Some(ref current_chunk_child_chunks) => current_chunk_child_chunks,
                     None => return Err("Failed to get registered chunk: Current chunk not allowed to have child chunks.".to_string()),
                 };
@@ -223,12 +221,14 @@ impl GlobalUniverse {
                                 .to_string(),
                         ),
                     };
-                let current_chunk_metadata = match *current_chunk {
-                    Chunk::Registered { .. } => return Err("Failed to check if chunk is registered: Current chunk metadata not loaded.".to_string()),
-                    Chunk::MetadataLoaded { ref metadata, .. }
-                    | Chunk::DataLoaded { ref metadata, .. } => metadata,
+                let current_chunk_data = match *current_chunk {
+                    Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => return Err(
+                        "Failed to check if chunk is registered: Current chunk data not loaded."
+                        .to_string()
+                    ),
+                    Chunk::DataLoaded { ref data, .. } => data,
                 };
-                let current_chunk_child_chunks = match current_chunk_metadata.child_chunks {
+                let current_chunk_child_chunks = match current_chunk_data.child_chunks {
                     Some(ref current_chunk_child_chunks) => current_chunk_child_chunks,
                     None => return Err("Failed to check if chunk is registered: Current chunk not allowed to have child chunks.".to_string()),
                 };
@@ -248,19 +248,17 @@ impl GlobalUniverse {
         parent_chunk: &Chunk,
         entity_id: &EntityID,
     ) -> Result<Option<Arc<Mutex<entity::Entity>>>, String> {
-        let parent_chunk_metadata = Self::get_chunk_metadata(parent_chunk);
-
-        let parent_chunk_metadata = match parent_chunk_metadata {
-            Ok(parent_chunk_metadata) => parent_chunk_metadata,
-            Err(_) => {
+        let parent_chunk_data = match parent_chunk {
+            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(
-                    "Failed to get registered entity: Parent chunk metadata not loaded."
+                    "Failed to get registered entity: Parent chunk data is not loaded."
                         .to_string(),
-                )
+                );
             }
+            Chunk::DataLoaded { data, .. } => data,
         };
 
-        match parent_chunk_metadata
+        match parent_chunk_data
             .registered_entities
             .get(&entity_id.get_local_entity_id())
         {
@@ -273,17 +271,17 @@ impl GlobalUniverse {
         parent_chunk: &Chunk,
         entity_id: &EntityID,
     ) -> Result<bool, String> {
-        let parent_chunk_metadata = Self::get_chunk_metadata(parent_chunk);
+        let parent_chunk_data = match parent_chunk {
+            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
+                return Err(
+                    "Failed to check if entity is registered: Parent chunk data is not loaded."
+                        .to_string(),
+                );
+            }
+            Chunk::DataLoaded { data, .. } => data,
+        };
 
-        match parent_chunk_metadata {
-            Ok(parent_chunk_metadata) => Ok(parent_chunk_metadata
-                .registered_entities
-                .contains_key(&entity_id.get_local_entity_id())),
-            Err(_) => Err(
-                "Failed to check if entity is registered: Parent chunk metadata not loaded."
-                    .to_string(),
-            ),
-        }
+        Ok(parent_chunk_data.registered_entities.contains_key(&entity_id.get_local_entity_id()))
     }
 
     pub fn send_chunk_operation_request(

@@ -193,14 +193,14 @@ impl LocalUniverse {
                 }
             };
 
-            let old_chunk_metadata = match GlobalUniverse::get_chunk_metadata(&old_chunk) {
-                Ok(old_chunk_metadata) => old_chunk_metadata,
+            let old_chunk_data = match GlobalUniverse::get_chunk_data(&old_chunk) {
+                Ok(old_chunk_data) => old_chunk_data,
                 Err(_) => {
                     continue;
                 }
             };
 
-            let old_local_entity_ids = old_chunk_metadata.registered_entities.keys().cloned().collect::<Vec<LocalEntityID>>();
+            let old_local_entity_ids = old_chunk_data.registered_entities.keys().cloned().collect::<Vec<LocalEntityID>>();
 
             for old_local_entity_id in old_local_entity_ids {
                 let old_entity_id = EntityID::new(old_chunk_id.clone(), old_local_entity_id.clone());
@@ -306,14 +306,8 @@ impl LocalUniverse {
                 }
             };
 
-            let new_chunk_metadata = match ChunkMetadata::new(None, new_apparent_local_chunk_pos) {
-                Ok(new_chunk_metadata) => new_chunk_metadata,
-                Err(_) => {
-                    continue;
-                }
-            };
-
-            let new_chunk_data = ChunkData::new();
+            let new_chunk_metadata = ChunkMetadata::new_root(new_absolute_local_chunk_pos);
+            let new_chunk_data = ChunkData::new_node(new_apparent_local_chunk_pos.into());
 
             match global_universe.send_chunk_operation_request(ChunkOperationRequest {
                 operations: vec![

@@ -294,16 +294,17 @@ impl Chunk {
                 }
             };
 
-            let chunk_metadata = match *chunk {
-                Chunk::Registered { .. } => {
+            let (chunk_metadata, chunk_data) = match *chunk {
+                Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                     continue;
-                }
-                Chunk::MetadataLoaded { ref metadata, .. } => metadata,
-                Chunk::DataLoaded { ref metadata, .. } => metadata,
+                },
+                Chunk::DataLoaded { ref metadata, ref data, .. } => (metadata, data),
             };
 
-            let absolute_local_chunk_pos = chunk_metadata.get_pos().get_absolute_local_pos().clone();
-            let apparent_local_chunk_pos = chunk_metadata.get_pos().get_apparent_local_pos().clone();
+            let absolute_local_chunk_pos = chunk_metadata.absolute_local_chunk_pos.clone();
+            let apparent_chunk_pos_shift = chunk_data.apparent_chunk_pos_shift.clone();
+            let apparent_local_chunk_pos: ApparentLocalChunkPos = (absolute_local_chunk_pos, apparent_chunk_pos_shift).into();
+            
             let color = if absolute_local_chunk_pos.x == 0 || absolute_local_chunk_pos.x == 9 || absolute_local_chunk_pos.y == 0 || absolute_local_chunk_pos.y == 9 {
                 Color::RED
             } else {

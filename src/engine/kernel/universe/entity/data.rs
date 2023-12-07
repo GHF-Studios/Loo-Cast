@@ -5,7 +5,6 @@
 // Internal imports
 
 // External imports
-use bevy::prelude::*;
 
 // Static variables
 
