@@ -322,205 +322,11 @@ impl GlobalUniverse {
         }
     }
 
-    pub fn get_chunk_details(
-        chunk: &Chunk,
-    ) -> (&ChunkID, &bevy::ecs::entity::Entity, Option<&ChunkMetadata>, Option<&ChunkData>) {
-        match *chunk {
-            Chunk::Registered { 
-                ref id, 
-                ref bevy_entity 
-            } => (id, bevy_entity, None, None),
-            Chunk::MetadataLoaded {
-                ref id,
-                ref bevy_entity,
-                ref metadata,
-            } => (id, bevy_entity, Some(metadata), None),
-            Chunk::DataLoaded {
-                ref id,
-                ref bevy_entity,
-                ref metadata,
-                ref data,
-            } => (id, bevy_entity, Some(metadata), Some(data)),
-        }
-    }
-
-    pub fn get_chunk_details_mut(
-        chunk: &mut Chunk,
-    ) -> (&ChunkID, &bevy::ecs::entity::Entity, Option<&mut ChunkMetadata>, Option<&mut ChunkData>) {
-        match *chunk {
-            Chunk::Registered { 
-                ref id,
-                ref bevy_entity 
-            } => (id, bevy_entity, None, None),
-            Chunk::MetadataLoaded {
-                ref id,
-                ref bevy_entity,
-                ref mut metadata,
-            } => (id, bevy_entity, Some(metadata), None),
-            Chunk::DataLoaded {
-                ref id,
-                ref bevy_entity,
-                ref mut metadata,
-                ref mut data,
-            } => (id, bevy_entity, Some(metadata), Some(data)),
-        }
-    }
-
-    pub fn get_chunk_id(chunk: &Chunk) -> &ChunkID {
-        match *chunk {
-            Chunk::Registered { ref id, .. } => id,
-            Chunk::MetadataLoaded { ref id, .. } => id,
-            Chunk::DataLoaded { ref id, .. } => id,
-        }
-    }
-
-    pub fn get_chunk_bevy_entity(chunk: &Chunk) -> &bevy::ecs::entity::Entity {
-        match *chunk {
-            Chunk::Registered { ref bevy_entity, .. } => bevy_entity,
-            Chunk::MetadataLoaded { ref bevy_entity, .. } => bevy_entity,
-            Chunk::DataLoaded { ref bevy_entity, .. } => bevy_entity,
-        }
-    }
-
-    pub fn get_chunk_metadata(chunk: &Chunk) -> Result<&ChunkMetadata, String> {
-        match *chunk {
-            Chunk::Registered { .. } => Err("Chunk metadata not loaded.".to_string()),
-            Chunk::MetadataLoaded { ref metadata, .. } => Ok(metadata),
-            Chunk::DataLoaded { ref metadata, .. } => Ok(metadata),
-        }
-    }
-
-    pub fn get_chunk_metadata_mut(chunk: &mut Chunk) -> Result<&mut ChunkMetadata, String> {
-        match *chunk {
-            Chunk::Registered { .. } => Err("Chunk metadata not loaded.".to_string()),
-            Chunk::MetadataLoaded {
-                ref mut metadata, ..
-            } => Ok(metadata),
-            Chunk::DataLoaded {
-                ref mut metadata, ..
-            } => Ok(metadata),
-        }
-    }
-
-    pub fn get_chunk_data(chunk: &Chunk) -> Result<&ChunkData, String> {
-        match *chunk {
-            Chunk::Registered { .. } => Err("Chunk data not loaded.".to_string()),
-            Chunk::MetadataLoaded { .. } => Err("Chunk data not loaded.".to_string()),
-            Chunk::DataLoaded { ref data, .. } => Ok(data),
-        }
-    }
-
-    pub fn get_chunk_data_mut(chunk: &mut Chunk) -> Result<&mut ChunkData, String> {
-        match *chunk {
-            Chunk::Registered { .. } => Err("Chunk data not loaded.".to_string()),
-            Chunk::MetadataLoaded { .. } => Err("Chunk data not loaded.".to_string()),
-            Chunk::DataLoaded { ref mut data, .. } => Ok(data),
-        }
-    }
-
     pub fn get_entity_load_state(entity: &entity::Entity) -> EntityLoadState {
         match *entity {
             entity::Entity::Registered { .. } => EntityLoadState::Registered,
             entity::Entity::MetadataLoaded { .. } => EntityLoadState::MetadataLoaded,
             entity::Entity::DataLoaded { .. } => EntityLoadState::DataLoaded,
-        }
-    }
-
-    pub fn get_entity_details(
-        entity: &entity::Entity,
-    ) -> (&EntityID, &bevy::ecs::entity::Entity, Option<&EntityMetadata>, Option<&EntityData>) {
-        match *entity {
-            entity::Entity::Registered { 
-                ref id,
-                ref bevy_entity,
-            } => (id, bevy_entity, None, None),
-            entity::Entity::MetadataLoaded {
-                ref id,
-                ref bevy_entity,
-                ref metadata,
-            } => (id, bevy_entity, Some(metadata), None),
-            entity::Entity::DataLoaded {
-                ref id,
-                ref bevy_entity,
-                ref metadata,
-                ref data,
-            } => (id, bevy_entity, Some(metadata), Some(data)),
-        }
-    }
-
-    pub fn get_entity_details_mut(
-        entity: &mut entity::Entity,
-    ) -> (&EntityID, &bevy::ecs::entity::Entity, Option<&mut EntityMetadata>, Option<&mut EntityData>, ) {
-        match *entity {
-            entity::Entity::Registered { 
-                ref id,
-                ref bevy_entity,
-            } => (id, bevy_entity, None, None),
-            entity::Entity::MetadataLoaded {
-                ref id,
-                ref bevy_entity,
-                ref mut metadata,
-            } => (id, bevy_entity, Some(metadata), None),
-            entity::Entity::DataLoaded {
-                ref id,
-                ref bevy_entity,
-                ref mut metadata,
-                ref mut data,
-            } => (id, bevy_entity, Some(metadata), Some(data)),
-        }
-    }
-
-    pub fn get_entity_id(entity: &entity::Entity) -> &EntityID {
-        match *entity {
-            entity::Entity::Registered { ref id, .. } => id,
-            entity::Entity::MetadataLoaded { ref id, .. } => id,
-            entity::Entity::DataLoaded { ref id, .. } => id,
-        }
-    }
-
-    pub fn get_entity_bevy_entity(entity: &entity::Entity) -> &bevy::ecs::entity::Entity {
-        match *entity {
-            entity::Entity::Registered { ref bevy_entity, .. } => bevy_entity,
-            entity::Entity::MetadataLoaded { ref bevy_entity, .. } => bevy_entity,
-            entity::Entity::DataLoaded { ref bevy_entity, .. } => bevy_entity,
-        }
-    }
-
-    pub fn get_entity_metadata(entity: &entity::Entity) -> Result<&EntityMetadata, String> {
-        match *entity {
-            entity::Entity::Registered { .. } => Err("Entity metadata not loaded.".to_string()),
-            entity::Entity::MetadataLoaded { ref metadata, .. } => Ok(metadata),
-            entity::Entity::DataLoaded { ref metadata, .. } => Ok(metadata),
-        }
-    }
-
-    pub fn get_entity_metadata_mut(
-        entity: &mut entity::Entity,
-    ) -> Result<&mut EntityMetadata, String> {
-        match *entity {
-            entity::Entity::Registered { .. } => Err("Entity metadata not loaded.".to_string()),
-            entity::Entity::MetadataLoaded {
-                ref mut metadata, ..
-            } => Ok(metadata),
-            entity::Entity::DataLoaded {
-                ref mut metadata, ..
-            } => Ok(metadata),
-        }
-    }
-
-    pub fn get_entity_data(entity: &entity::Entity) -> Result<&EntityData, String> {
-        match *entity {
-            entity::Entity::Registered { .. } => Err("Entity data not loaded.".to_string()),
-            entity::Entity::MetadataLoaded { .. } => Err("Entity data not loaded.".to_string()),
-            entity::Entity::DataLoaded { ref data, .. } => Ok(data),
-        }
-    }
-
-    pub fn get_entity_data_mut(entity: &mut entity::Entity) -> Result<&mut EntityData, String> {
-        match *entity {
-            entity::Entity::Registered { .. } => Err("Entity data not loaded.".to_string()),
-            entity::Entity::MetadataLoaded { .. } => Err("Entity data not loaded.".to_string()),
-            entity::Entity::DataLoaded { ref mut data, .. } => Ok(data),
         }
     }
 
@@ -1257,12 +1063,13 @@ impl GlobalUniverse {
             }
         };
 
-        let chunk_data = match Self::get_chunk_data(&chunk) {
-            Ok(chunk_data) => chunk_data,
-            Err(_) => {
+        let chunk_data = match *chunk {
+            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err((UnloadChunkDataError::ChunkDataAlreadyUnloaded, chunk_id));
             }
+            Chunk::DataLoaded { ref data, .. } => data,
         };
+
         if chunk_data.run_state != ChunkRunState::Despawned {
             return Err((UnloadChunkDataError::ChunkStillSpawned, chunk_id));
         }
@@ -1341,11 +1148,11 @@ impl GlobalUniverse {
                 }
             };
 
-            let parent_chunk_data = match Self::get_chunk_data(&parent_chunk) {
-                Ok(parent_chunk_data) => parent_chunk_data,
-                Err(_) => {
+            let parent_chunk_data = match *parent_chunk {
+                Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                     return Err((SpawnChunkError::ParentChunkNotSpawned, chunk_id));
                 }
+                Chunk::DataLoaded { ref data, .. } => data,
             };
 
             match parent_chunk_data.run_state {
@@ -1412,11 +1219,11 @@ impl GlobalUniverse {
                 }
             };
 
-            let entity_data = match Self::get_entity_data(&entity) {
-                Ok(entity_data) => entity_data,
-                Err(_) => {
+            let entity_data = match *entity {
+                entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {
                     continue;
                 }
+                entity::Entity::DataLoaded { ref data, .. } => data,
             };
 
             match entity_data.run_state {
@@ -1542,7 +1349,11 @@ impl GlobalUniverse {
             }
         };
 
-        let entity_bevy_entity = Self::get_entity_bevy_entity(&entity);
+        let entity_bevy_entity = match *entity {
+            entity::Entity::Registered { ref bevy_entity, .. } 
+            | entity::Entity::MetadataLoaded { ref bevy_entity, .. } 
+            | entity::Entity::DataLoaded { ref bevy_entity, .. } => bevy_entity,
+        };
         commands.entity(*entity_bevy_entity).despawn();
 
         drop(entity);
@@ -1893,11 +1704,11 @@ impl GlobalUniverse {
             }
         };
 
-        let parent_chunk_data = match Self::get_chunk_data(&parent_chunk) {
-            Ok(parent_chunk_data) => parent_chunk_data,
-            Err(_) => {
+        let parent_chunk_data = match *parent_chunk {
+            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err((SpawnEntityError::ParentChunkDataNotLoaded, entity_id));
             }
+            Chunk::DataLoaded { ref data, .. } => data,
         };
 
         match parent_chunk_data.run_state {
@@ -1926,11 +1737,11 @@ impl GlobalUniverse {
             }
         };
 
-        let entity_data = match Self::get_entity_data_mut(&mut entity) {
-            Ok(entity_data) => entity_data,
-            Err(_) => {
+        let entity_data = match *entity {
+            entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {
                 return Err((SpawnEntityError::EntityDataNotLoaded, entity_id));
             }
+            entity::Entity::DataLoaded { ref mut data, .. } => data,
         };
 
         match entity_data.run_state {
@@ -1988,11 +1799,11 @@ impl GlobalUniverse {
             }
         };
 
-        let entity_data = match Self::get_entity_data_mut(&mut entity) {
-            Ok(entity_data) => entity_data,
-            Err(_) => {
+        let entity_data = match *entity {
+            entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {
                 return Err((DespawnEntityError::EntityDataNotLoaded, entity_id));
             }
+            entity::Entity::DataLoaded { ref mut data, .. } => data,
         };
 
         match entity_data.run_state {
@@ -2050,7 +1861,11 @@ impl GlobalUniverse {
             }
         };
 
-        let entity_bevy_entity = Self::get_entity_bevy_entity(&entity);
+        let entity_bevy_entity = match *entity {
+            entity::Entity::Registered { ref bevy_entity, .. } 
+            | entity::Entity::MetadataLoaded { ref bevy_entity, .. } 
+            | entity::Entity::DataLoaded { ref bevy_entity, .. } => bevy_entity,
+        };
 
         command(&mut commands.entity(*entity_bevy_entity));
 

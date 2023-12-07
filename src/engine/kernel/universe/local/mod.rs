@@ -193,12 +193,12 @@ impl LocalUniverse {
                 }
             };
 
-            let old_chunk_data = match GlobalUniverse::get_chunk_data(&old_chunk) {
-                Ok(old_chunk_data) => old_chunk_data,
-                Err(error) => {
-                    println!("Failed to get chunk data: {:?}", error);
+            let old_chunk_data = match *old_chunk {
+                Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
+                    println!("Chunk data is not loaded: {:?}", old_chunk_id);
                     continue;
-                }
+                },
+                Chunk::DataLoaded { ref data, .. } => { data }
             };
 
             let old_local_entity_ids = old_chunk_data.registered_entities.keys().cloned().collect::<Vec<LocalEntityID>>();
