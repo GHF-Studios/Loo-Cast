@@ -303,7 +303,6 @@ impl LocalUniverse {
             local_universe.newly_viewed_local_chunk_positions.clone();
 
         for new_local_chunk_pos in &new_local_chunk_positions {
-            println!("Loading chunk: {:?}", new_local_chunk_pos);
             let new_apparent_local_chunk_pos = new_local_chunk_pos.clone();
             let new_absolute_local_chunk_pos: AbsoluteLocalChunkPos = new_apparent_local_chunk_pos.clone().into();
             let new_absolute_local_chunk_pos_base10x10: (u8, u8) = new_absolute_local_chunk_pos.clone().into();
