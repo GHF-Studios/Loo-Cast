@@ -13,7 +13,6 @@ use crate::engine::kernel::universe::entity::metadata::*;
 use crate::engine::kernel::universe::entity::pos::*;
 use crate::engine::kernel::universe::global::*;
 use crate::engine::kernel::universe::local::*;
-use crate::engine::kernel::universe::local::id::*;
 use crate::engine::kernel::universe::*;
 use crate::engine::kernel::AppState;
 
@@ -104,7 +103,7 @@ impl PlayerManager {
                 LockedAxes::ROTATION_LOCKED,
                 Damping { linear_damping: LINEAR_DAMPING, angular_damping: 0.0 }
             ));
-            universe_manager.register_local_universe(LocalUniverse::default());
+            let _ = universe_manager.register_local_universe(LocalUniverse::default());
         }
     }
 
@@ -163,7 +162,6 @@ impl PlayerManager {
     }
 
     fn player_god_system(
-        mut commands: Commands,
         main_camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
         primary_window_query: Query<&Window, With<PrimaryWindow>>,
         mouse_button_input: Res<Input<MouseButton>>,
@@ -219,11 +217,6 @@ impl PlayerManager {
             };
 
             drop(parent_chunk);
-
-            let local_universe = match universe_manager.get_local_universe(LocalUniverseID::default()) {
-                Some(local_universe) => local_universe,
-                None => return,
-            };
 
             let entity_metadata = EntityMetadata::new(parent_chunk_mutex.clone());
             let entity_data = EntityData::new();

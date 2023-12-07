@@ -13,9 +13,7 @@ use crate::engine::kernel::universe::chunk::*;
 use crate::engine::kernel::universe::entity::data::*;
 use crate::engine::kernel::universe::entity::id::*;
 use crate::engine::kernel::universe::entity::metadata::*;
-use crate::engine::kernel::universe::entity::pos::*;
 use crate::engine::kernel::universe::entity::*;
-use crate::engine::kernel::universe::local::*;
 use crate::engine::kernel::universe::*;
 use crate::engine::kernel::AppState;
 
@@ -1098,11 +1096,7 @@ impl GlobalUniverse {
                     };
                     return Ok((LoadChunkMetadataSuccess, chunk_id));
                 } else {
-                    return Err((
-                        LoadChunkMetadataError::FatalUnexpectedError,
-                        chunk_id,
-                        chunk_metadata,
-                    ));
+                    unreachable!();
                 }
             }
             Chunk::MetadataLoaded { .. } | Chunk::DataLoaded { .. } => {
@@ -1305,7 +1299,7 @@ impl GlobalUniverse {
     }
 
     fn spawn_chunk(
-        commands: &mut Commands,
+        _commands: &mut Commands,
         global_universe: &mut GlobalUniverse,
         chunk_id: ChunkID,
     ) -> Result<(SpawnChunkSuccess, ChunkID), (SpawnChunkError, ChunkID)> {
@@ -1374,7 +1368,7 @@ impl GlobalUniverse {
     }
 
     fn despawn_chunk(
-        commands: &mut Commands,
+        _commands: &mut Commands,
         global_universe: &mut GlobalUniverse,
         chunk_id: ChunkID,
     ) -> Result<(DespawnChunkSuccess, ChunkID), (DespawnChunkError, ChunkID)> {
@@ -1645,11 +1639,7 @@ impl GlobalUniverse {
                     };
                     return Ok((LoadEntityMetadataSuccess, entity_id));
                 } else {
-                    return Err((
-                        LoadEntityMetadataError::FatalUnexpectedError,
-                        entity_id,
-                        metadata,
-                    ));
+                    unreachable!();
                 }
             }
             entity::Entity::MetadataLoaded { .. } | entity::Entity::DataLoaded { .. } => {
@@ -1810,7 +1800,7 @@ impl GlobalUniverse {
                 };
                 return Ok((LoadEntityDataSuccess, entity_id));
             }
-            entity::Entity::DataLoaded { id, metadata, .. } => {
+            entity::Entity::DataLoaded { .. } => {
                 return Err((LoadEntityDataError::EntityDataAlreadyLoaded, entity_id, data));
             }
         }
@@ -1879,7 +1869,7 @@ impl GlobalUniverse {
     }
 
     fn spawn_entity(
-        commands: &mut Commands,
+        _commands: &mut Commands,
         global_universe: &mut GlobalUniverse,
         entity_id: EntityID,
     ) -> Result<(SpawnEntitySuccess, EntityID), (SpawnEntityError, EntityID)> {
@@ -1955,7 +1945,7 @@ impl GlobalUniverse {
     }
 
     fn despawn_entity(
-        commands: &mut Commands,
+        _commands: &mut Commands,
         global_universe: &mut GlobalUniverse,
         entity_id: EntityID,
     ) -> Result<(DespawnEntitySuccess, EntityID), (DespawnEntityError, EntityID)> {

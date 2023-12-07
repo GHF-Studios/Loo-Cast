@@ -133,7 +133,6 @@ pub enum LoadEntityMetadataError {
 
     FailedToGetParentChunk,
     FailedToGetEntity,
-    FatalUnexpectedError,
 }
 
 #[derive(Debug)]
@@ -261,7 +260,7 @@ pub struct EntityBevyComponent {
 
 // Implementations
 impl Plugin for EntityPlugin {
-    fn build(&self, app: &mut App) {}
+    fn build(&self, _app: &mut App) {}
 }
 
 impl EntityOperationRequest {

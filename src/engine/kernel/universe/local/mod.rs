@@ -11,9 +11,7 @@ use crate::engine::kernel::universe::chunk::id::*;
 use crate::engine::kernel::universe::chunk::metadata::*;
 use crate::engine::kernel::universe::chunk::pos::*;
 use crate::engine::kernel::universe::chunk::*;
-use crate::engine::kernel::universe::entity::data::*;
 use crate::engine::kernel::universe::entity::id::*;
-use crate::engine::kernel::universe::entity::metadata::*;
 use crate::engine::kernel::universe::entity::pos::*;
 use crate::engine::kernel::universe::entity::*;
 use crate::engine::kernel::universe::global::*;
@@ -22,8 +20,6 @@ use crate::engine::kernel::AppState;
 
 // External imports
 use bevy::prelude::*;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 
 // Static variables
 
@@ -76,7 +72,7 @@ impl LocalUniverse {
 
     fn detect_local_chunks_system(
         player_transform_query: Query<&Transform, With<Player>>,
-        mut universe_manager: ResMut<UniverseManager>,
+        universe_manager: Res<UniverseManager>,
     ) {
         let global_universe = match universe_manager.get_global_universe() {
             Some(global_universe) => global_universe,

@@ -24,7 +24,7 @@ pub struct EntityPos {
     local_pos: LocalEntityPos,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct LocalEntityPos {
     pub x: f32,
     pub y: f32,

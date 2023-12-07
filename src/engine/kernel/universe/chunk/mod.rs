@@ -142,7 +142,6 @@ pub enum LoadChunkMetadataError {
     ChunkMetadataAlreadyLoaded,
 
     FailedToGetChunk,
-    FatalUnexpectedError,
 }
 
 #[derive(Debug)]
@@ -154,7 +153,6 @@ pub enum UnloadChunkMetadataError {
     ChunkDataStillLoaded,
 
     FailedToGetChunk,
-    FatalUnexpectedError,
 }
 
 #[derive(Debug)]
@@ -168,7 +166,6 @@ pub enum LoadChunkDataError {
     ParentChunkDataNotLoaded,
 
     FailedToGetChunk,
-    FatalUnexpectedError,
 }
 
 #[derive(Debug)]
@@ -182,7 +179,6 @@ pub enum UnloadChunkDataError {
     EntitiesStillRegistered,
 
     FailedToGetChunk,
-    FatalUnexpectedError,
 }
 
 #[derive(Debug)]

@@ -231,7 +231,7 @@ impl IterationTestManager {
         player_query: Query<&Transform, With<Player>>,
     ) {
         for mut text in &mut text_query {
-            if let Ok(player_transform) = player_query.get_single() {
+            if let Ok(_player_transform) = player_query.get_single() {
                 let global_chunk_pos = vec![(0, 0)];
                 text.sections[1].value = format!("{:?}", global_chunk_pos);
             }

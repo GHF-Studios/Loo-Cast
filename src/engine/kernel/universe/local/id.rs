@@ -15,7 +15,7 @@
 // Enums
 
 // Structs
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct LocalUniverseID {
     id: u32,
 }

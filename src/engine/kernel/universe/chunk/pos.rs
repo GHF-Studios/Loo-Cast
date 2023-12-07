@@ -24,19 +24,19 @@ pub struct ChunkPos {
     apparent_local_pos: ApparentLocalChunkPos,
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct AbsoluteLocalChunkPos {
     pub x: i8,
     pub y: i8,
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ApparentLocalChunkPos {
     pub x: i8,
     pub y: i8,
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ApparentChunkPosShift {
     pub x: i8,
     pub y: i8,

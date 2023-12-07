@@ -4,7 +4,6 @@ pub mod base_mod;
 
 // Local imports
 use engine::kernel;
-use engine::system::*;
 
 // Internal imports
 
