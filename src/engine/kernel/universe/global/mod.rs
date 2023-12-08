@@ -747,255 +747,107 @@ impl GlobalUniverse {
     }
 
     fn load_chunk_metadata(
-        global_universe: &mut GlobalUniverse,
-        chunk_id: ChunkID,
+        chunk: &mut Chunk,
         chunk_metadata: ChunkMetadata,
-    ) -> Result<(LoadChunkMetadataSuccess, ChunkID), (LoadChunkMetadataError, ChunkID, ChunkMetadata)> {
-        let chunk = match global_universe.get_registered_chunk(&chunk_id) {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((
-                    LoadChunkMetadataError::FailedToGetChunk,
-                    chunk_id,
-                    chunk_metadata,
-                ));
-            }
-        };
-        let chunk = match chunk {
-            Some(chunk) => chunk,
-            None => {
-                return Err((
-                    LoadChunkMetadataError::ChunkNotRegistered,
-                    chunk_id,
-                    chunk_metadata,
-                ));
-            }
-        };
-        let mut chunk = match chunk.lock() {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((
-                    LoadChunkMetadataError::ChunkMutexPoisoned,
-                    chunk_id,
-                    chunk_metadata,
-                ));
-            }
-        };
-
-        match &mut *chunk {
-            Chunk::Registered { .. } => {
-                let mut stolen_chunk = std::mem::take(&mut *chunk);
-                if let Chunk::Registered { id, bevy_entity } = &mut stolen_chunk {
-                    let stolen_id = std::mem::take(&mut *id);
-                    let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
-                    *chunk = Chunk::MetadataLoaded {
-                        id: stolen_id,
-                        bevy_entity: stolen_bevy_entity,
-                        metadata: chunk_metadata,
-                    };
-                    Ok((LoadChunkMetadataSuccess, chunk_id))
-                } else {
-                    unreachable!();
-                }
+    ) -> Result<LoadChunkMetadataSuccess, LoadChunkMetadataError> {
+        match *chunk {
+            Chunk::Registered { ref mut id, ref mut bevy_entity } => {
+                let stolen_id = std::mem::take(id);
+                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+                *chunk = Chunk::MetadataLoaded {
+                    id: stolen_id,
+                    bevy_entity: stolen_bevy_entity,
+                    metadata: chunk_metadata,
+                };
+                Ok(LoadChunkMetadataSuccess)
             }
             Chunk::MetadataLoaded { .. } | Chunk::DataLoaded { .. } => {
-                Err((
-                    LoadChunkMetadataError::ChunkMetadataAlreadyLoaded,
-                    chunk_id,
-                    chunk_metadata,
-                ))
+                Err(LoadChunkMetadataError::ChunkMetadataAlreadyLoaded)
             }
         }
     }
 
     fn unload_chunk_metadata(
-        global_universe: &mut GlobalUniverse,
-        chunk_id: ChunkID,
-    ) -> Result<(UnloadChunkMetadataSuccess, ChunkID), (UnloadChunkMetadataError, ChunkID)> {
-        let chunk = match global_universe.get_registered_chunk(&chunk_id) {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((UnloadChunkMetadataError::FailedToGetChunk, chunk_id));
-            }
-        };
-        let chunk = match chunk {
-            Some(chunk) => chunk,
-            None => {
-                return Err((UnloadChunkMetadataError::ChunkNotRegistered, chunk_id));
-            }
-        };
-        let mut chunk = match chunk.lock() {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((UnloadChunkMetadataError::ChunkMutexPoisoned, chunk_id));
-            }
-        };
-
-        match &mut *chunk {
+        chunk: &mut Chunk,
+    ) -> Result<UnloadChunkMetadataSuccess, UnloadChunkMetadataError> {
+        match *chunk {
             Chunk::Registered { .. } => {
-                Err((
-                    UnloadChunkMetadataError::ChunkDataAlreadyUnloaded,
-                    chunk_id,
-                ))
+                Err(UnloadChunkMetadataError::ChunkMetadataAlreadyUnloaded)
             }
-            Chunk::MetadataLoaded { id, bevy_entity, .. } => {
+            Chunk::MetadataLoaded { ref mut id, ref mut bevy_entity, .. } => {
                 let stolen_id = std::mem::take(id);
                 let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 *chunk = Chunk::Registered { id: stolen_id, bevy_entity: stolen_bevy_entity };
-                Ok((UnloadChunkMetadataSuccess, chunk_id))
+                Ok(UnloadChunkMetadataSuccess)
             }
             Chunk::DataLoaded { .. } => {
-                Err((UnloadChunkMetadataError::ChunkDataStillLoaded, chunk_id))
+                Err(UnloadChunkMetadataError::ChunkDataStillLoaded)
             }
         }
     }
 
     fn load_chunk_data(
-        global_universe: &mut GlobalUniverse,
-        chunk_id: ChunkID,
+        chunk: &mut Chunk,
         chunk_data: ChunkData,
-    ) -> Result<(LoadChunkDataSuccess, ChunkID), (LoadChunkDataError, ChunkID, ChunkData)> {
-        let chunk = match global_universe.get_registered_chunk(&chunk_id) {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((LoadChunkDataError::FailedToGetChunk, chunk_id, chunk_data));
-            }
-        };
-        let chunk = match chunk {
-            Some(chunk) => chunk,
-            None => {
-                return Err((LoadChunkDataError::ChunkNotRegistered, chunk_id, chunk_data));
-            }
-        };
-        let mut chunk = match chunk.lock() {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((LoadChunkDataError::ChunkMutexPoisoned, chunk_id, chunk_data));
-            }
-        };
-
-        let (stolen_id, stolen_bevy_entity, stolen_metadata) = match &mut *chunk {
+    ) -> Result<LoadChunkDataSuccess, LoadChunkDataError> {
+        match *chunk {
             Chunk::Registered { .. } => {
-                return Err((
-                    LoadChunkDataError::ChunkMetadataNotLoaded,
-                    chunk_id,
-                    chunk_data,
-                ));
+                return Err(LoadChunkDataError::ChunkMetadataNotLoaded);
             }
-            Chunk::MetadataLoaded { id, bevy_entity, metadata } => {
+            Chunk::MetadataLoaded { ref mut id, ref mut bevy_entity, ref mut metadata } => {
                 let stolen_id = std::mem::take(id);
                 let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 let stolen_metadata = std::mem::take(metadata);
 
-                (stolen_id, stolen_bevy_entity, stolen_metadata)
+                *chunk = Chunk::DataLoaded {
+                    id: stolen_id,
+                    bevy_entity: stolen_bevy_entity,
+                    metadata: stolen_metadata,
+                    data: chunk_data,
+                };
+                Ok(LoadChunkDataSuccess)
             }
             Chunk::DataLoaded { .. } => {
-                return Err((
-                    LoadChunkDataError::ChunkDataAlreadyLoaded,
-                    chunk_id,
-                    chunk_data,
-                ));
-            }
-        };
-
-        let parent_chunk = stolen_metadata.parent_chunk.clone();
-
-        if let Some(parent_chunk) = parent_chunk {
-            let parent_chunk = match parent_chunk.lock() {
-                Ok(parent_chunk) => parent_chunk,
-                Err(_) => {
-                    return Err((
-                        LoadChunkDataError::ParentChunkMutexPoisoned,
-                        chunk_id,
-                        chunk_data,
-                    ));
-                }
-            };
-
-            match *parent_chunk {
-                Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
-                    return Err((
-                        LoadChunkDataError::ParentChunkDataNotLoaded,
-                        chunk_id,
-                        chunk_data,
-                    ));
-                }
-                Chunk::DataLoaded { .. } => {}
+                return Err(LoadChunkDataError::ChunkDataAlreadyLoaded);
             }
         }
-
-        *chunk = Chunk::DataLoaded {
-            id: stolen_id,
-            bevy_entity: stolen_bevy_entity,
-            metadata: stolen_metadata,
-            data: chunk_data,
-        };
-        Ok((LoadChunkDataSuccess, chunk_id))
     }
 
     fn unload_chunk_data(
-        global_universe: &mut GlobalUniverse,
-        chunk_id: ChunkID,
-    ) -> Result<(UnloadChunkDataSuccess, ChunkID), (UnloadChunkDataError, ChunkID)> {
-        let chunk = match global_universe.get_registered_chunk(&chunk_id) {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((UnloadChunkDataError::FailedToGetChunk, chunk_id));
-            }
-        };
-        let chunk = match chunk {
-            Some(chunk) => chunk,
-            None => {
-                return Err((UnloadChunkDataError::ChunkNotRegistered, chunk_id));
-            }
-        };
-        let mut chunk = match chunk.lock() {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((UnloadChunkDataError::ChunkMutexPoisoned, chunk_id));
-            }
-        };
-
-        let chunk_data = match *chunk {
+        chunk: &mut Chunk,
+    ) -> Result<UnloadChunkDataSuccess, UnloadChunkDataError> {
+        match *chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
-                return Err((UnloadChunkDataError::ChunkDataAlreadyUnloaded, chunk_id));
+                return Err(UnloadChunkDataError::ChunkDataAlreadyUnloaded);
             }
-            Chunk::DataLoaded { ref data, .. } => data,
-        };
+            Chunk::DataLoaded { ref mut id, ref mut bevy_entity, ref mut metadata, ref mut data } => {
+                if data.run_state == ChunkRunState::Spawned {
+                    return Err(UnloadChunkDataError::ChunkStillSpawned);
+                }
 
-        if chunk_data.run_state != ChunkRunState::Despawned {
-            return Err((UnloadChunkDataError::ChunkStillSpawned, chunk_id));
-        }
+                if let Some(ref chunk_child_chunks) = data.child_chunks {
+                    if !chunk_child_chunks.is_empty() {
+                        return Err(UnloadChunkDataError::ChildChunksStillRegistered);
+                    }
+                }
+        
+                if !data.registered_entities.is_empty() {
+                    return Err(UnloadChunkDataError::EntitiesStillRegistered);
+                }
 
-        let (stolen_id, stolen_bevy_entity, stolen_metadata, chunk_data) = match &mut *chunk {
-            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
-                return Err((UnloadChunkDataError::ChunkDataAlreadyUnloaded, chunk_id));
-            }
-            Chunk::DataLoaded { id, bevy_entity, metadata, data, .. } => {
                 let stolen_id = std::mem::take(id);
                 let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 let stolen_metadata = std::mem::take(metadata);
+        
+                *chunk = Chunk::MetadataLoaded {
+                    id: stolen_id,
+                    bevy_entity: stolen_bevy_entity,
+                    metadata: stolen_metadata,
+                };
 
-                (stolen_id, stolen_bevy_entity, stolen_metadata, data)
-            }
-        };
-
-        if let Some(ref chunk_child_chunks) = chunk_data.child_chunks {
-            if !chunk_child_chunks.is_empty() {
-                return Err((UnloadChunkDataError::ChildChunksStillRegistered, chunk_id));
-            }
+                Ok(UnloadChunkDataSuccess)
+            },
         }
-
-        if !chunk_data.registered_entities.is_empty() {
-            return Err((UnloadChunkDataError::EntitiesStillRegistered, chunk_id));
-        }
-
-        *chunk = Chunk::MetadataLoaded {
-            id: stolen_id,
-            bevy_entity: stolen_bevy_entity,
-            metadata: stolen_metadata,
-        };
-        Ok((UnloadChunkDataSuccess, chunk_id))
     }
 
     fn spawn_chunk(

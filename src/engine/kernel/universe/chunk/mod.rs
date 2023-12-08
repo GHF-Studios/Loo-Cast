@@ -120,36 +120,19 @@ pub enum UnregisterChunkError {
 
 #[derive(Debug)]
 pub enum LoadChunkMetadataError {
-    ChunkMutexPoisoned,
-
-    ChunkNotRegistered,
     ChunkMetadataAlreadyLoaded,
-
-    FailedToGetChunk,
 }
 
 #[derive(Debug)]
 pub enum UnloadChunkMetadataError {
-    ChunkMutexPoisoned,
-
-    ChunkNotRegistered,
-    ChunkDataAlreadyUnloaded,
+    ChunkMetadataAlreadyUnloaded,
     ChunkDataStillLoaded,
-
-    FailedToGetChunk,
 }
 
 #[derive(Debug)]
 pub enum LoadChunkDataError {
-    ChunkMutexPoisoned,
-    ParentChunkMutexPoisoned,
-
-    ChunkNotRegistered,
     ChunkMetadataNotLoaded,
     ChunkDataAlreadyLoaded,
-    ParentChunkDataNotLoaded,
-
-    FailedToGetChunk,
 }
 
 #[derive(Debug)]
