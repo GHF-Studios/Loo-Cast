@@ -38,18 +38,18 @@ pub enum OperationRequest {
 pub struct GlobalUniversePlugin;
 
 pub struct GlobalUniverse {
-    pub(in crate::engine::kernel::universe) registered_root_chunks:
+    pub registered_root_chunks:
         HashMap<LocalChunkID, Arc<Mutex<Chunk>>>,
-    pub(in crate::engine::kernel::universe) operation_requests: Arc<Mutex<Vec<OperationRequest>>>,
-    pub(in crate::engine::kernel::universe) chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy,
+    pub operation_requests: Arc<Mutex<Vec<OperationRequest>>>,
+    pub chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy,
 }
 
-struct ChunkEntityInfoHierarchy {
+pub(in crate::engine::kernel::universe) struct ChunkEntityInfoHierarchy {
     root_chunks: HashMap<LocalChunkID, Arc<Mutex<ChunkInfo>>>,
 }
 
 #[derive(Clone)]
-struct ChunkInfo {
+pub(in crate::engine::kernel::universe) struct ChunkInfo {
     parent_chunk_info_mutex: Option<Arc<Mutex<ChunkInfo>>>,
     local_chunk_id: LocalChunkID,
     chunk_id: ChunkID,
@@ -59,7 +59,7 @@ struct ChunkInfo {
 }
 
 #[derive(Clone)]
-struct EntityInfo {
+pub(in crate::engine::kernel::universe) struct EntityInfo {
     parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>,
     local_entity_id: LocalEntityID,
     entity_id: EntityID,
@@ -1352,13 +1352,13 @@ impl GlobalUniverse {
 }
 
 impl ChunkEntityInfoHierarchy {
-    fn new() -> Self {
+    pub(in crate::engine::kernel::universe) fn new() -> Self {
         Self {
             root_chunks: HashMap::new(),
         }
     }
 
-    fn get_chunk_info(&self, chunk_id: &ChunkID) -> Option<Arc<Mutex<ChunkInfo>>> {
+    pub(in crate::engine::kernel::universe) fn get_chunk_info(&self, chunk_id: &ChunkID) -> Option<Arc<Mutex<ChunkInfo>>> {
         if let Some(parent_chunk_id) = chunk_id.get_parent_chunk_id() {
             let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
                 Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
@@ -1387,7 +1387,7 @@ impl ChunkEntityInfoHierarchy {
         }
     }
 
-    fn is_chunk_info_registered(&self, chunk_id: &ChunkID) -> bool {
+    pub(in crate::engine::kernel::universe) fn is_chunk_info_registered(&self, chunk_id: &ChunkID) -> bool {
         if let Some(parent_chunk_id) = chunk_id.get_parent_chunk_id() {
             let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
                 Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
@@ -1416,7 +1416,7 @@ impl ChunkEntityInfoHierarchy {
         }
     }
 
-    fn insert_chunk_info(&self, parent_chunk_id: Option<&ChunkID>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<(), String> {
+    pub(in crate::engine::kernel::universe) fn insert_chunk_info(&self, parent_chunk_id: Option<&ChunkID>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<(), String> {
         match parent_chunk_id {
             Some(parent_chunk_id) => {
                 let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
@@ -1469,7 +1469,7 @@ impl ChunkEntityInfoHierarchy {
         }
     }
 
-    fn remove_chunk_info(&self, chunk_id: &ChunkID) -> Result<(), String> {
+    pub(in crate::engine::kernel::universe) fn remove_chunk_info(&self, chunk_id: &ChunkID) -> Result<(), String> {
         match chunk_id.get_parent_chunk_id() {
             Some(parent_chunk_id) => {
                 let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
@@ -1519,7 +1519,7 @@ impl ChunkEntityInfoHierarchy {
         }
     }
 
-    fn get_entity_info(&self, entity_id: &EntityID) -> Option<Arc<Mutex<EntityInfo>>> {
+    pub(in crate::engine::kernel::universe) fn get_entity_info(&self, entity_id: &EntityID) -> Option<Arc<Mutex<EntityInfo>>> {
         let parent_chunk_info_mutex = match self.get_chunk_info(entity_id.get_parent_chunk_id()) {
             Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
             None => {
@@ -1537,7 +1537,7 @@ impl ChunkEntityInfoHierarchy {
         parent_chunk_info.child_entities.get(&entity_id.get_local_entity_id()).cloned()
     }
 
-    fn is_entity_info_registered(&self, entity_id: &EntityID) -> bool {
+    pub(in crate::engine::kernel::universe) fn is_entity_info_registered(&self, entity_id: &EntityID) -> bool {
         let parent_chunk_info_mutex = match self.get_chunk_info(entity_id.get_parent_chunk_id()) {
             Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
             None => {
@@ -1555,7 +1555,7 @@ impl ChunkEntityInfoHierarchy {
         parent_chunk_info.child_entities.contains_key(&entity_id.get_local_entity_id())
     }
 
-    fn insert_entity_info(&self, parent_chunk_id: &ChunkID, local_entity_id: LocalEntityID, entity_mutex: Arc<Mutex<entity::Entity>>) -> Result<(), String> {
+    pub(in crate::engine::kernel::universe) fn insert_entity_info(&self, parent_chunk_id: &ChunkID, local_entity_id: LocalEntityID, entity_mutex: Arc<Mutex<entity::Entity>>) -> Result<(), String> {
         let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
             Some(parent_chunk_info) => parent_chunk_info,
             None => {
@@ -1581,7 +1581,7 @@ impl ChunkEntityInfoHierarchy {
         Ok(())
     }
 
-    fn remove_entity_info(&self, entity_id: &EntityID) -> Result<(), String> {
+    pub(in crate::engine::kernel::universe) fn remove_entity_info(&self, entity_id: &EntityID) -> Result<(), String> {
         let parent_chunk_info_mutex = match self.get_chunk_info(entity_id.get_parent_chunk_id()) {
             Some(parent_chunk_info) => parent_chunk_info,
             None => {

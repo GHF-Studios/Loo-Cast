@@ -1,5 +1,4 @@
 // Modules
-pub mod api;
 pub mod chunk;
 pub mod entity;
 pub mod global;
@@ -102,6 +101,7 @@ impl UniverseManager {
             universe_manager.registered_global_universe = Some(Arc::new(Mutex::new(GlobalUniverse {
                 registered_root_chunks: HashMap::new(),
                 operation_requests: Arc::new(Mutex::new(Vec::new())),
+                chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy::new(),
             })));
         }
     }
