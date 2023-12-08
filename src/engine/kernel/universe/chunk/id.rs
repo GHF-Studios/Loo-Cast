@@ -5,7 +5,6 @@
 // Internal imports
 use crate::engine::kernel::math::*;
 use crate::engine::kernel::universe::chunk::pos::*;
-use crate::engine::kernel::universe::entity::id::*;
 
 // External imports
 use num_bigint::BigUint;
@@ -35,9 +34,29 @@ pub struct ChunkID {
 }
 
 // Implementations
-impl Into<(u8, u8)> for LocalChunkID {
-    fn into(self) -> (u8, u8) {
-        (self.id / 10, self.id % 10)
+impl TryFrom<(u8, u8)> for LocalChunkID {
+    type Error = String;
+
+    fn try_from(local_chunk_id_base10x10: (u8, u8)) -> Result<Self, Self::Error> {
+        if local_chunk_id_base10x10.0 > 9 || local_chunk_id_base10x10.1 > 9 {
+            return Err("Cannot create local chunk integer ID from tuple ID: Tuple ID is too big.".to_string());
+        }
+
+        Ok(Self {
+            id: local_chunk_id_base10x10.0 * 10 + local_chunk_id_base10x10.1,
+        })
+    }
+}
+
+impl TryInto<(u8, u8)> for LocalChunkID {
+    type Error = String;
+
+    fn try_into(self) -> Result<(u8, u8), Self::Error> {
+        if self.id > 99 {
+            return Err("Cannot convert local chunk ID to tuple: Local chunk ID is too big.".to_string());
+        }
+
+        Ok((self.id / 10, self.id % 10))
     }
 }
 
@@ -193,13 +212,19 @@ impl Default for ChunkID {
 }
 
 impl ChunkID {
-    pub fn new_id(parent_chunk_id: ChunkID, local_chunk_id: LocalChunkID) -> Result<ChunkID, String> {
+    pub fn new_id(parent_chunk_id: &ChunkID, local_chunk_id: LocalChunkID) -> Result<ChunkID, String> {
         if parent_chunk_id.scale_index == 63 {
             return Err("Cannot create chunk ID: Parent chunk already has max scale index.".to_string());
         }
 
         let mut global_id_base10x10 = parent_chunk_id.global_id_base10x10.clone();
-        global_id_base10x10.push(local_chunk_id.into());
+
+        let local_chunk_id_base10x10: (u8, u8) = match local_chunk_id.try_into() {
+            Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
+            Err(e) => return Err(format!("Cannot create chunk ID: {}", e)),
+        };
+
+        global_id_base10x10.push(local_chunk_id_base10x10);
 
         let global_id_base10 = BASE10X10_CONVERTER
             .convert_from_base10x10(global_id_base10x10.clone())
@@ -218,8 +243,13 @@ impl ChunkID {
         })
     }
 
-    pub fn new_root_id(local_chunk_id: LocalChunkID) -> ChunkID {
-        let global_id_base10x10 = vec![local_chunk_id.into()];
+    pub fn new_root_id(local_chunk_id: LocalChunkID) -> Result<ChunkID, String> {
+        let local_chunk_id_base10x10: (u8, u8) = match local_chunk_id.try_into() {
+            Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
+            Err(e) => return Err(format!("Cannot create chunk ID: {}", e)),
+        };
+
+        let global_id_base10x10 = vec![local_chunk_id_base10x10];
 
         let global_id_base10 = BASE10X10_CONVERTER
             .convert_from_base10x10(global_id_base10x10.clone())
@@ -230,12 +260,12 @@ impl ChunkID {
 
         let scale_index = global_id_base10x10.len() as u8 - 1;
 
-        ChunkID {
+        Ok(ChunkID {
             scale_index,
             global_id_base10,
             global_id_base10x10,
             global_id_base57,
-        }
+        })
     }
 
     pub fn get_scale_index(&self) -> u8 {
@@ -254,7 +284,7 @@ impl ChunkID {
         &self.global_id_base57
     }
 
-    pub fn compute_parent_id(&self) -> Result<ChunkID, String> {
+    pub fn compute_parent_chunk_id(&self) -> Result<ChunkID, String> {
         if self.scale_index == 0 {
             return Err(
                 "Cannot compute parent ID: Chunk ID is already a root chunk ID.".to_string(),
@@ -278,6 +308,24 @@ impl ChunkID {
         };
 
         Ok(AbsoluteLocalChunkPos::from(absolute_local_pos_base10x10))
+    }
+
+    pub fn compute_local_chunk_id(&self) -> Result<LocalChunkID, String> {
+        let local_chunk_id_base10x10 = match self.global_id_base10x10.last() {
+            Some(local_chunk_id_base10x10) => *local_chunk_id_base10x10,
+            None => {
+                return Err(
+                    "Cannot compute local chunk ID from chunk ID: Chunk ID is invalid.".to_string(),
+                )
+            }
+        };
+
+        let local_chunk_id = match LocalChunkID::try_from(local_chunk_id_base10x10) {
+            Ok(local_chunk_id) => local_chunk_id,
+            Err(e) => return Err(format!("Cannot compute local chunk ID from chunk ID: {}", e)),
+        };
+
+        Ok(local_chunk_id)
     }
 }
 

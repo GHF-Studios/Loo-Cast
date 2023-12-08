@@ -637,7 +637,7 @@ impl GlobalUniverse {
                     return Err(RegisterChunkError::ChunkAlreadyRegistered);
                 }
 
-                let chunk_id = match ChunkID::new_id(parent_chunk_id.clone(), local_chunk_id) {
+                let chunk_id = match ChunkID::new_id(&parent_chunk_id.clone(), local_chunk_id) {
                     Ok(chunk_id) => chunk_id,
                     Err(_) => {
                         return Err(RegisterChunkError::FailedToCreateChunkID);
@@ -661,7 +661,12 @@ impl GlobalUniverse {
                     return Err(RegisterChunkError::ChunkAlreadyRegistered);
                 }
 
-                let chunk_id = ChunkID::new_root_id(local_chunk_id);
+                let chunk_id = match ChunkID::new_root_id(local_chunk_id) {
+                    Ok(chunk_id) => chunk_id,
+                    Err(_) => {
+                        return Err(RegisterChunkError::FailedToCreateChunkID);
+                    }
+                };
 
                 let chunk_bevy_entity = commands.spawn(()).id();
 
