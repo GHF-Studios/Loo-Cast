@@ -131,7 +131,6 @@ pub enum RegisterChunkError {
 pub enum UnregisterRootChunkError {
     ChunkMetadataStillLoaded,
     ChunkDataStillLoaded,
-    FailedToComputeLocalChunkID,
     ChunkAlreadyUnregistered,
 }
 
@@ -139,7 +138,6 @@ pub enum UnregisterRootChunkError {
 pub enum UnregisterChunkError {
     ChunkMetadataStillLoaded,
     ChunkDataStillLoaded,
-    FailedToComputeLocalChunkID,
     ParentChunkDataNotLoaded,
     ParentChunkNotAllowedToHaveChildChunks,
     ChunkAlreadyUnregistered,
@@ -177,7 +175,6 @@ pub enum SpawnChunkError {
     ParentChunkNotAllowedToHaveChildChunks,
     ChunkDataNotLoaded,
     ChunkAlreadySpawned,
-    FailedToComputeLocalChunkID,
     WrongParentChunk,
 }
 

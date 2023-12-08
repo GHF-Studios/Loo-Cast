@@ -41,6 +41,7 @@ pub struct GlobalUniverse {
     pub(in crate::engine::kernel::universe) registered_root_chunks:
         HashMap<LocalChunkID, Arc<Mutex<Chunk>>>,
     pub(in crate::engine::kernel::universe) operation_requests: Arc<Mutex<Vec<OperationRequest>>>,
+    pub(in crate::engine::kernel::universe) chunk_entity_hierarchy: ChunkEntityHierarchy,
 }
 
 // Implementations
@@ -58,7 +59,7 @@ impl Plugin for GlobalUniversePlugin {
 }
 
 impl GlobalUniverse {
-    pub(in crate::engine::kernel::universe::api) fn generate_entity_id(parent_chunk: &mut Chunk) -> Result<EntityID, String> {
+    pub(in crate::engine::kernel::universe) fn generate_entity_id(parent_chunk: &mut Chunk) -> Result<EntityID, String> {
         let (parent_chunk_id, parent_chunk_data) = match parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(
@@ -96,7 +97,7 @@ impl GlobalUniverse {
         Ok(entity_id)
     }
 
-    pub(in crate::engine::kernel::universe::api) fn recycle_entity_id(parent_chunk: &mut Chunk, entity_id: EntityID) -> Result<(), String> {
+    pub(in crate::engine::kernel::universe) fn recycle_entity_id(parent_chunk: &mut Chunk, entity_id: EntityID) -> Result<(), String> {
         let chunk_data = match parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(
@@ -121,7 +122,7 @@ impl GlobalUniverse {
         Ok(())
     }
 
-    pub(in crate::engine::kernel::universe::api) fn get_registered_chunk(&self,chunk_id: &ChunkID,) -> Result<Option<Arc<Mutex<Chunk>>>, String> {
+    pub(in crate::engine::kernel::universe) fn get_registered_chunk(&self,chunk_id: &ChunkID,) -> Result<Option<Arc<Mutex<Chunk>>>, String> {
         let mut path = chunk_id.get_global_id_base10x10().clone();
 
         if path.is_empty() {
@@ -195,7 +196,7 @@ impl GlobalUniverse {
         Ok(Some(registered_chunk))
     }
 
-    pub(in crate::engine::kernel::universe::api) fn is_chunk_registered(&self, chunk_id: &ChunkID) -> Result<bool, String> {
+    pub(in crate::engine::kernel::universe) fn is_chunk_registered(&self, chunk_id: &ChunkID) -> Result<bool, String> {
         let mut path = chunk_id.get_global_id_base10x10().clone();
 
         if path.is_empty() {
@@ -268,7 +269,7 @@ impl GlobalUniverse {
         Ok(true)
     }
 
-    pub(in crate::engine::kernel::universe::api) fn get_chunk_load_state(chunk: &Chunk) -> ChunkLoadState {
+    pub(in crate::engine::kernel::universe) fn get_chunk_load_state(chunk: &Chunk) -> ChunkLoadState {
         match *chunk {
             Chunk::Registered { .. } => ChunkLoadState::Registered,
             Chunk::MetadataLoaded { .. } => ChunkLoadState::MetadataLoaded,
@@ -276,7 +277,7 @@ impl GlobalUniverse {
         }
     }
 
-    pub(in crate::engine::kernel::universe::api) fn get_registered_entity(
+    pub(in crate::engine::kernel::universe) fn get_registered_entity(
         parent_chunk: &Chunk,
         entity_id: &EntityID,
     ) -> Result<Option<Arc<Mutex<entity::Entity>>>, String> {
@@ -299,7 +300,7 @@ impl GlobalUniverse {
         }
     }
 
-    pub(in crate::engine::kernel::universe::api) fn is_entity_registered(
+    pub(in crate::engine::kernel::universe) fn is_entity_registered(
         parent_chunk: &Chunk,
         entity_id: &EntityID,
     ) -> Result<bool, String> {
@@ -316,7 +317,7 @@ impl GlobalUniverse {
         Ok(parent_chunk_data.registered_entities.contains_key(&entity_id.get_local_entity_id()))
     }
 
-    pub(in crate::engine::kernel::universe::api) fn get_entity_load_state(entity: &entity::Entity) -> EntityLoadState {
+    pub(in crate::engine::kernel::universe) fn get_entity_load_state(entity: &entity::Entity) -> EntityLoadState {
         match *entity {
             entity::Entity::Registered { .. } => EntityLoadState::Registered,
             entity::Entity::MetadataLoaded { .. } => EntityLoadState::MetadataLoaded,
@@ -324,7 +325,7 @@ impl GlobalUniverse {
         }
     }
 
-    pub(in crate::engine::kernel::universe::api) fn send_chunk_operation_request(
+    pub(in crate::engine::kernel::universe) fn send_chunk_operation_request(
         &mut self,
         request: ChunkOperationRequest,
     ) -> Result<(), String> {
@@ -340,7 +341,7 @@ impl GlobalUniverse {
         Ok(())
     }
 
-    pub(in crate::engine::kernel::universe::api) fn send_entity_operation_request(
+    pub(in crate::engine::kernel::universe) fn send_entity_operation_request(
         &mut self,
         request: EntityOperationRequest,
     ) -> Result<(), String> {
@@ -945,12 +946,7 @@ impl GlobalUniverse {
             }
         };
 
-        let local_chunk_id = match chunk_id.compute_local_chunk_id() {
-            Ok(local_chunk_id) => local_chunk_id,
-            Err(_) => {
-                return Err(UnregisterRootChunkError::FailedToComputeLocalChunkID);
-            }
-        };
+        let local_chunk_id = chunk_id.get_local_chunk_id();
 
         if !self.registered_root_chunks.contains_key(&local_chunk_id) {
             return Err(UnregisterRootChunkError::ChunkAlreadyUnregistered);
@@ -978,12 +974,7 @@ impl GlobalUniverse {
             }
         };
 
-        let local_chunk_id = match chunk_id.compute_local_chunk_id() {
-            Ok(local_chunk_id) => local_chunk_id,
-            Err(_) => {
-                return Err(UnregisterChunkError::FailedToComputeLocalChunkID);
-            }
-        };
+        let local_chunk_id = chunk_id.get_local_chunk_id();
 
         let parent_chunk_data = match *parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
@@ -1159,12 +1150,7 @@ impl GlobalUniverse {
             }
         };
 
-        let local_chunk_id = match chunk_id.compute_local_chunk_id() {
-            Ok(local_chunk_id) => local_chunk_id,
-            Err(_) => {
-                return Err(SpawnChunkError::FailedToComputeLocalChunkID);
-            }
-        };
+        let local_chunk_id = chunk_id.get_local_chunk_id();
 
         if !parent_chunk_child_chunks.contains_key(&local_chunk_id) {
             return Err(SpawnChunkError::WrongParentChunk);
