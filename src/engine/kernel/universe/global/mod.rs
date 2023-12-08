@@ -612,114 +612,70 @@ impl GlobalUniverse {
     }
 
     fn register_chunk(
+        &mut self,
         commands: &mut Commands,
-        global_universe: &mut GlobalUniverse,
-        chunk_id: ChunkID,
-    ) -> Result<(RegisterChunkSuccess, ChunkID), (RegisterChunkError, ChunkID)> {
-        if global_universe.get_registered_chunk(&chunk_id).is_ok() {
-            return Err((RegisterChunkError::ChunkAlreadyRegistered, chunk_id));
-        }
+        parent_chunk: Option<&mut Chunk>,
+        local_chunk_id: LocalChunkID,
+    ) -> Result<RegisterChunkSuccess, RegisterChunkError> {
+        match parent_chunk {
+            Some(parent_chunk) => {
+                let (parent_chunk_id, parent_chunk_data) = match *parent_chunk {
+                    Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
+                        return Err(RegisterChunkError::ParentChunkDataNotLoaded);
+                    },
+                    Chunk::DataLoaded { ref id, ref mut data, .. } => (id, data),
+                };
 
-        if chunk_id.get_scale_index() == 0 {
-            let mut registered_root_chunks = match global_universe.registered_root_chunks.lock() {
-                Ok(registered_root_chunks) => registered_root_chunks,
-                Err(_) => {
-                    return Err((
-                        RegisterChunkError::RegisteredRootChunksMutexPoisoned,
-                        chunk_id,
-                    ));
+                let parent_chunk_child_chunks = match parent_chunk_data.child_chunks {
+                    Some(ref mut parent_chunk_child_chunks) => parent_chunk_child_chunks,
+                    None => {
+                        return Err(RegisterChunkError::ParentChunkNotAllowedToHaveChildChunks);
+                    }
+                };
+
+                if parent_chunk_child_chunks.contains_key(&local_chunk_id) {
+                    return Err(RegisterChunkError::ChunkAlreadyRegistered);
                 }
-            };
 
-            let local_chunk_pos = match chunk_id.compute_absolute_local_pos() {
-                Ok(local_chunk_pos) => local_chunk_pos,
-                Err(_) => {
-                    return Err((
-                        RegisterChunkError::FailedToComputeLocalChunkPosition,
-                        chunk_id,
-                    ));
+                let chunk_id = match ChunkID::new_id(parent_chunk_id.clone(), local_chunk_id) {
+                    Ok(chunk_id) => chunk_id,
+                    Err(_) => {
+                        return Err(RegisterChunkError::FailedToCreateChunkID);
+                    }
+                };
+
+                let chunk_bevy_entity = commands.spawn(()).id();
+
+                let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id.clone(), chunk_bevy_entity)));
+
+                commands.entity(chunk_bevy_entity).insert(ChunkBevyComponent {
+                    chunk: chunk.clone(),
+                });
+
+                parent_chunk_child_chunks.insert(local_chunk_id, chunk);
+
+                return Ok(RegisterChunkSuccess);
+            },
+            None => {
+                if self.registered_root_chunks.contains_key(&local_chunk_id) {
+                    return Err(RegisterChunkError::ChunkAlreadyRegistered);
                 }
-            };
 
-            let chunk_bevy_entity = commands.spawn(()).id();
-            let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id.clone(), chunk_bevy_entity)));
-            commands.entity(chunk_bevy_entity).insert(ChunkBevyComponent {
-                chunk: chunk.clone(),
-            });
+                let chunk_id = ChunkID::new_root_id(local_chunk_id);
 
-            registered_root_chunks.insert(local_chunk_pos, chunk);
+                let chunk_bevy_entity = commands.spawn(()).id();
 
-            return Ok((RegisterChunkSuccess, chunk_id));
+                let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id.clone(), chunk_bevy_entity)));
+
+                commands.entity(chunk_bevy_entity).insert(ChunkBevyComponent {
+                    chunk: chunk.clone(),
+                });
+
+                self.registered_root_chunks.insert(local_chunk_id, chunk);
+
+                return Ok(RegisterChunkSuccess);
+            }
         }
-
-        let mut parent_id_base10x10 = chunk_id.get_global_id_base10x10().clone();
-        parent_id_base10x10.pop();
-        let parent_id = match ChunkID::try_from(parent_id_base10x10) {
-            Ok(parent_id) => parent_id,
-            Err(_) => {
-                return Err((RegisterChunkError::FailedToComputeParentChunkID, chunk_id));
-            }
-        };
-
-        let parent_chunk = match global_universe.get_registered_chunk(&parent_id) {
-            Ok(parent_chunk) => parent_chunk,
-            Err(_) => {
-                return Err((RegisterChunkError::FailedToGetParentChunk, chunk_id));
-            }
-        };
-        let parent_chunk = match parent_chunk {
-            Some(parent_chunk) => parent_chunk,
-            None => {
-                return Err((RegisterChunkError::ParentChunkNotRegistered, chunk_id));
-            }
-        };
-        let mut parent_chunk = match parent_chunk.lock() {
-            Ok(parent_chunk) => parent_chunk,
-            Err(_) => {
-                return Err((RegisterChunkError::ParentChunkMutexPoisoned, chunk_id));
-            }
-        };
-
-        let parent_chunk_data = match *parent_chunk {
-            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
-                return Err((RegisterChunkError::ParentChunkDataNotLoaded, chunk_id));
-            }
-            Chunk::DataLoaded { ref mut data, .. } => data,
-        };
-
-        let parent_chunk_child_chunks = match parent_chunk_data.child_chunks {
-            Some(ref mut parent_chunk_child_chunks) => parent_chunk_child_chunks,
-            None => {
-                return Err((
-                    RegisterChunkError::ParentChunkNotAllowedToHaveChildChunks,
-                    chunk_id,
-                ));
-            }
-        };
-
-        let local_chunk_pos = match chunk_id.compute_absolute_local_pos() {
-            Ok(local_chunk_pos) => local_chunk_pos,
-            Err(_) => {
-                return Err((
-                    RegisterChunkError::FailedToComputeLocalChunkPosition,
-                    chunk_id,
-                ));
-            }
-        };
-
-        if parent_chunk_child_chunks.contains_key(&local_chunk_pos) {
-            return Err((RegisterChunkError::ChunkAlreadyRegistered, chunk_id));
-        }
-
-        let chunk_bevy_entity = commands.spawn(()).id();
-        let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id.clone(), chunk_bevy_entity)));
-        commands.entity(chunk_bevy_entity).insert(ChunkBevyComponent {
-            chunk: chunk.clone(),
-        });
-
-        parent_chunk_child_chunks.insert(local_chunk_pos, chunk);
-
-        Ok((RegisterChunkSuccess, chunk_id))
     }
 
     fn unregister_chunk(

@@ -102,17 +102,10 @@ pub enum ChunkOperation {
 
 #[derive(Debug)]
 pub enum RegisterChunkError {
-    RegisteredRootChunksMutexPoisoned,
-    ParentChunkMutexPoisoned,
-
-    ParentChunkNotRegistered,
     ParentChunkDataNotLoaded,
     ParentChunkNotAllowedToHaveChildChunks,
     ChunkAlreadyRegistered,
-
-    FailedToComputeParentChunkID,
-    FailedToGetParentChunk,
-    FailedToComputeLocalChunkPosition,
+    FailedToCreateChunkID,
 }
 
 #[derive(Debug)]
