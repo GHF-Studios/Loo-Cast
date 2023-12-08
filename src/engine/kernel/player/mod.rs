@@ -199,10 +199,6 @@ impl PlayerManager {
             };
 
             let parent_chunk_mutex = match global_universe.get_registered_chunk(&parent_chunk_id) {
-                Ok(parent_chunk_mutex) => parent_chunk_mutex,
-                Err(_) => return,
-            };
-            let parent_chunk_mutex = match parent_chunk_mutex {
                 Some(parent_chunk_mutex) => parent_chunk_mutex,
                 None => return,
             };

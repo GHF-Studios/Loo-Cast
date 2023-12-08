@@ -21,7 +21,6 @@ use bevy::prelude::*;
 use bevy::ecs::system::EntityCommands;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::rc::Rc;
 
 // Static variables
 
@@ -46,22 +45,22 @@ pub struct GlobalUniverse {
 }
 
 struct ChunkEntityInfoHierarchy {
-    root_chunks: HashMap<LocalChunkID, ChunkInfo>,
+    root_chunks: HashMap<LocalChunkID, Arc<Mutex<ChunkInfo>>>,
 }
 
 #[derive(Clone)]
 struct ChunkInfo {
-    parent_chunk_info_mutex: Option<Rc<Mutex<ChunkInfo>>>,
+    parent_chunk_info_mutex: Option<Arc<Mutex<ChunkInfo>>>,
     local_chunk_id: LocalChunkID,
     chunk_id: ChunkID,
     chunk_mutex: Arc<Mutex<Chunk>>,
-    child_chunks: Option<HashMap<LocalChunkID, Rc<Mutex<ChunkInfo>>>>,
-    child_entities: HashMap<LocalEntityID, Rc<Mutex<EntityInfo>>>,
+    child_chunks: Option<HashMap<LocalChunkID, Arc<Mutex<ChunkInfo>>>>,
+    child_entities: HashMap<LocalEntityID, Arc<Mutex<EntityInfo>>>,
 }
 
 #[derive(Clone)]
 struct EntityInfo {
-    parent_chunk_info_mutex: Rc<Mutex<ChunkInfo>>,
+    parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>,
     local_entity_id: LocalEntityID,
     entity_id: EntityID,
     entity_mutex: Arc<Mutex<entity::Entity>>,
@@ -145,217 +144,48 @@ impl GlobalUniverse {
         Ok(())
     }
 
-    pub(in crate::engine::kernel::universe) fn get_registered_chunk(&self, chunk_id: &ChunkID,) -> Result<Option<Arc<Mutex<Chunk>>>, String> {
-        let mut path: Vec<(u8, u8)> = match chunk_id.clone().try_into() {
-            Ok(path) => path,
-            Err(_) => {
-                return Err("Failed to check if chunk is registered: Invalid chunk id.".to_string());
-            }
-        };
-
-        if path.is_empty() {
-            return Err("Failed to get registered chunk: Invalid chunk id.".to_string());
-        }
-
-        let root_local_chunk_id: LocalChunkID = match path.remove(0).try_into() {
-            Ok(root_local_chunk_id) => root_local_chunk_id,
-            Err(_) => {
-                return Err(
-                    "Failed to check if chunk is registered: Invalid root local chunk id."
-                        .to_string(),
-                )
-            }
-        };
-
-        let mut registered_chunk = match self.registered_root_chunks
-            .get(&root_local_chunk_id)
-        {
-            Some(registered_chunk) => registered_chunk.clone(),
+    pub(in crate::engine::kernel::universe) fn get_registered_chunk(&self, chunk_id: &ChunkID,) -> Option<Arc<Mutex<Chunk>>> {
+        let chunk_info_mutex = match self.chunk_entity_info_hierarchy.get_chunk_info(chunk_id) {
+            Some(chunk_info_mutex) => chunk_info_mutex,
             None => {
-                return Err("Failed to get registered chunk: Root chunk not registered.".to_string())
+                return None;
             }
         };
 
-        for &local_chunk_id in &path {
-            let local_chunk_id: LocalChunkID = match local_chunk_id.try_into() {
-                Ok(local_chunk_id) => local_chunk_id,
-                Err(_) => {
-                    return Err(
-                        "Failed to get registered chunk: Invalid local chunk id."
-                            .to_string(),
-                    )
-                }
-            };
-
-            let next_chunk = {
-                let current_chunk = match registered_chunk.lock().ok() {
-                    Some(current_chunk) => current_chunk,
-                    None => {
-                        return Err(
-                            "Failed to get registered chunk: Current chunk mutex poisoned."
-                                .to_string(),
-                        )
-                    }
-                };
-
-                let current_chunk_data =
-                    match *current_chunk {
-                        Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => return Err(
-                            "Failed to get registered chunk: Current chunk data not loaded."
-                                .to_string(),
-                        ),
-                        Chunk::DataLoaded { ref data, .. } => data,
-                    };
-
-                let current_chunk_child_chunks = match current_chunk_data.child_chunks {
-                    Some(ref current_chunk_child_chunks) => current_chunk_child_chunks,
-                    None => return Err("Failed to get registered chunk: Current chunk not allowed to have child chunks.".to_string()),
-                };
-
-                match current_chunk_child_chunks.get(&local_chunk_id) {
-                    Some(registered_chunk) => registered_chunk.clone(),
-                    None => return Ok(None),
-                }
-            };
-
-            registered_chunk = next_chunk;
-        }
-
-        Ok(Some(registered_chunk))
-    }
-
-    pub(in crate::engine::kernel::universe) fn is_chunk_registered(&self, chunk_id: &ChunkID) -> Result<bool, String> {
-        let mut path: Vec<(u8, u8)> = match chunk_id.clone().try_into() {
-            Ok(path) => path,
+        let chunk_info = match chunk_info_mutex.lock() {
+            Ok(chunk_info) => chunk_info,
             Err(_) => {
-                return Err("Failed to check if chunk is registered: Invalid chunk id.".to_string());
+                panic!("Failed to get registered chunk: Chunk info mutex poisoned.");
             }
         };
 
-        if path.is_empty() {
-            return Err("Failed to check if chunk is registered: Invalid chunk id.".to_string());
-        }
+        Some(chunk_info.chunk_mutex.clone())
+    }
 
-        let root_local_chunk_id: LocalChunkID = match path.remove(0).try_into() {
-            Ok(root_local_chunk_id) => root_local_chunk_id,
+    pub(in crate::engine::kernel::universe) fn is_chunk_registered(&self, chunk_id: &ChunkID) -> bool {
+        self.chunk_entity_info_hierarchy.is_chunk_info_registered(chunk_id)
+    }
+
+    pub(in crate::engine::kernel::universe) fn get_registered_entity(&self, entity_id: &EntityID,) -> Option<Arc<Mutex<entity::Entity>>> {
+        let entity_info_mutex = match self.chunk_entity_info_hierarchy.get_entity_info(entity_id) {
+            Some(entity_info_mutex) => entity_info_mutex,
+            None => {
+                return None;
+            }
+        };
+
+        let entity_info = match entity_info_mutex.lock() {
+            Ok(entity_info) => entity_info,
             Err(_) => {
-                return Err(
-                    "Failed to check if chunk is registered: Invalid root local chunk id."
-                        .to_string(),
-                )
+                panic!("Failed to get registered entity: Entity info mutex poisoned.");
             }
         };
 
-        let mut registered_chunk = match self.registered_root_chunks.get(&root_local_chunk_id) {
-                Some(registered_chunk) => registered_chunk.clone(),
-                None => {
-                    return Err(
-                        "Failed to check if chunk is registered: Root chunk not registered."
-                            .to_string(),
-                    )
-                }
-            };
-
-        for local_chunk_id in path {
-            let local_chunk_id: LocalChunkID = match local_chunk_id.try_into() {
-                Ok(local_chunk_id) => local_chunk_id,
-                Err(_) => {
-                    return Err(
-                        "Failed to check if chunk is registered: Invalid local chunk id."
-                            .to_string(),
-                    )
-                }
-            };
-
-            let next_chunk = {
-                let current_chunk =
-                    match registered_chunk.lock() {
-                        Ok(current_chunk) => current_chunk,
-                        Err(_) => return Err(
-                            "Failed to check if chunk is registered: Current chunk mutex poisoned."
-                                .to_string(),
-                        ),
-                    };
-
-                let current_chunk_data = match *current_chunk {
-                    Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => return Err(
-                        "Failed to check if chunk is registered: Current chunk data not loaded."
-                        .to_string()
-                    ),
-                    Chunk::DataLoaded { ref data, .. } => data,
-                };
-
-                let current_chunk_child_chunks = match current_chunk_data.child_chunks {
-                    Some(ref current_chunk_child_chunks) => current_chunk_child_chunks,
-                    None => return Err("Failed to check if chunk is registered: Current chunk not allowed to have child chunks.".to_string()),
-                };
-
-                match current_chunk_child_chunks.get(&local_chunk_id) {
-                    Some(registered_chunk) => registered_chunk.clone(),
-                    None => return Ok(false),
-                }
-            };
-
-            registered_chunk = next_chunk;
-        }
-
-        Ok(true)
+        Some(entity_info.entity_mutex.clone())
     }
 
-    pub(in crate::engine::kernel::universe) fn get_chunk_load_state(chunk: &Chunk) -> ChunkLoadState {
-        match *chunk {
-            Chunk::Registered { .. } => ChunkLoadState::Registered,
-            Chunk::MetadataLoaded { .. } => ChunkLoadState::MetadataLoaded,
-            Chunk::DataLoaded { .. } => ChunkLoadState::DataLoaded,
-        }
-    }
-
-    pub(in crate::engine::kernel::universe) fn get_registered_entity(
-        parent_chunk: &Chunk,
-        entity_id: &EntityID,
-    ) -> Result<Option<Arc<Mutex<entity::Entity>>>, String> {
-        let parent_chunk_data = match parent_chunk {
-            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
-                return Err(
-                    "Failed to get registered entity: Parent chunk data is not loaded."
-                        .to_string(),
-                );
-            }
-            Chunk::DataLoaded { data, .. } => data,
-        };
-
-        match parent_chunk_data
-            .registered_entities
-            .get(&entity_id.get_local_entity_id())
-        {
-            Some(registered_entity) => Ok(Some(registered_entity.clone())),
-            None => Ok(None),
-        }
-    }
-
-    pub(in crate::engine::kernel::universe) fn is_entity_registered(
-        parent_chunk: &Chunk,
-        entity_id: &EntityID,
-    ) -> Result<bool, String> {
-        let parent_chunk_data = match parent_chunk {
-            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
-                return Err(
-                    "Failed to check if entity is registered: Parent chunk data is not loaded."
-                        .to_string(),
-                );
-            }
-            Chunk::DataLoaded { data, .. } => data,
-        };
-
-        Ok(parent_chunk_data.registered_entities.contains_key(&entity_id.get_local_entity_id()))
-    }
-
-    pub(in crate::engine::kernel::universe) fn get_entity_load_state(entity: &entity::Entity) -> EntityLoadState {
-        match *entity {
-            entity::Entity::Registered { .. } => EntityLoadState::Registered,
-            entity::Entity::MetadataLoaded { .. } => EntityLoadState::MetadataLoaded,
-            entity::Entity::DataLoaded { .. } => EntityLoadState::DataLoaded,
-        }
+    pub(in crate::engine::kernel::universe) fn is_entity_registered(&self, entity_id: &EntityID) -> bool {
+        self.chunk_entity_info_hierarchy.is_entity_info_registered(entity_id)
     }
 
     pub(in crate::engine::kernel::universe) fn send_chunk_operation_request(
@@ -473,7 +303,7 @@ impl GlobalUniverse {
                         }
                     };
 
-                    match Self::register_chunk(commands, &mut *parent_chunk, local_chunk_id) {
+                    match self.register_chunk(commands, &mut *parent_chunk, local_chunk_id) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -523,7 +353,7 @@ impl GlobalUniverse {
                         }
                     };
 
-                    match Self::unregister_chunk(commands, &mut *parent_chunk, &*chunk) {
+                    match self.unregister_chunk(commands, &mut *parent_chunk, &*chunk) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -912,11 +742,13 @@ impl GlobalUniverse {
         });
 
         self.registered_root_chunks.insert(local_chunk_id, chunk);
+        self.chunk_entity_info_hierarchy.insert_chunk_info(None, local_chunk_id, chunk);
 
         return Ok(RegisterRootChunkSuccess);
     }
 
     fn register_chunk(
+        &mut self,
         commands: &mut Commands,
         parent_chunk: &mut Chunk,
         local_chunk_id: LocalChunkID,
@@ -955,6 +787,8 @@ impl GlobalUniverse {
         });
 
         parent_chunk_child_chunks.insert(local_chunk_id, chunk);
+        self.chunk_entity_info_hierarchy.insert_chunk_info(Some(parent_chunk_id), local_chunk_id, chunk);
+        
 
         return Ok(RegisterChunkSuccess);
     }
@@ -981,6 +815,7 @@ impl GlobalUniverse {
         }
 
         self.registered_root_chunks.remove(&local_chunk_id);
+        self.chunk_entity_info_hierarchy.remove_chunk_info(&chunk_id);
 
         commands.entity(chunk_bevy_entity).despawn();
 
@@ -988,6 +823,7 @@ impl GlobalUniverse {
     }
 
     fn unregister_chunk(
+        &mut self,
         commands: &mut Commands,
         parent_chunk: &mut Chunk,
         chunk: &Chunk
@@ -1023,6 +859,7 @@ impl GlobalUniverse {
         }
 
         parent_chunk_child_chunks.remove(&local_chunk_id);
+        self.chunk_entity_info_hierarchy.remove_chunk_info(&chunk_id);
 
         commands.entity(chunk_bevy_entity).despawn();
 
@@ -1521,9 +1358,9 @@ impl ChunkEntityInfoHierarchy {
         }
     }
 
-    fn get_chunk_info_mutex(&self, chunk_id: ChunkID) -> Option<Rc<Mutex<ChunkInfo>>> {
+    fn get_chunk_info(&self, chunk_id: &ChunkID) -> Option<Arc<Mutex<ChunkInfo>>> {
         if let Some(parent_chunk_id) = chunk_id.get_parent_chunk_id() {
-            let parent_chunk_info_mutex = match self.get_chunk_info_mutex(parent_chunk_id) {
+            let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
                 Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
                 None => {
                     return None;
@@ -1550,17 +1387,46 @@ impl ChunkEntityInfoHierarchy {
         }
     }
 
-    fn insert_chunk_info(&self, parent_chunk_id: Option<ChunkID>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<(), String> {
+    fn is_chunk_info_registered(&self, chunk_id: &ChunkID) -> bool {
+        if let Some(parent_chunk_id) = chunk_id.get_parent_chunk_id() {
+            let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
+                Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
+                None => {
+                    return false;
+                }
+            };
+
+            let parent_chunk_info = match parent_chunk_info_mutex.lock() {
+                Ok(parent_chunk_info) => parent_chunk_info,
+                Err(_) => {
+                    panic!("Failed to check if chunk info is registered: Parent chunk info mutex poisoned.");
+                }
+            };
+
+            let child_chunk_infos = match parent_chunk_info.child_chunks {
+                Some(ref child_chunk_infos) => child_chunk_infos,
+                None => {
+                    return false;
+                }
+            };
+
+            child_chunk_infos.contains_key(&chunk_id.get_local_chunk_id())
+        } else {
+            self.root_chunks.contains_key(&chunk_id.get_local_chunk_id())
+        }
+    }
+
+    fn insert_chunk_info(&self, parent_chunk_id: Option<&ChunkID>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<(), String> {
         match parent_chunk_id {
             Some(parent_chunk_id) => {
-                let parent_chunk_info_mutex = match self.get_chunk_info_mutex(parent_chunk_id) {
+                let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
                     Some(parent_chunk_info) => parent_chunk_info,
                     None => {
                         return Err(format!("Failed to insert chunk info: Parent chunk info not found."));
                     }
                 };
         
-                let parent_chunk_info = match parent_chunk_info_mutex.lock() {
+                let mut parent_chunk_info = match parent_chunk_info_mutex.lock() {
                     Ok(parent_chunk_info) => parent_chunk_info,
                     Err(_) => {
                         panic!("Failed to insert chunk info: Parent chunk info mutex poisoned.");
@@ -1568,7 +1434,7 @@ impl ChunkEntityInfoHierarchy {
                 };
         
                 let child_chunks = match parent_chunk_info.child_chunks {
-                    Some(ref parent_chunk_child_chunks) => parent_chunk_child_chunks,
+                    Some(ref mut parent_chunk_child_chunks) => parent_chunk_child_chunks,
                     None => {
                         return Err(format!("Failed to insert chunk info: Parent chunk info not allowed to have child chunk infos."));
                     }
@@ -1578,9 +1444,14 @@ impl ChunkEntityInfoHierarchy {
                     return Err(format!("Failed to insert chunk info: Chunk info already registered."));
                 }
         
-                let chunk_info = ChunkInfo::new(Rc::new(Mutex::new(parent_chunk_info_mutex)), local_chunk_id, chunk_mutex);
+                let chunk_info = match ChunkInfo::new(parent_chunk_info_mutex, local_chunk_id, chunk_mutex) {
+                    Ok(chunk_info) => chunk_info,
+                    Err(error) => {
+                        return Err(format!("Failed to insert chunk info: {}", error));
+                    }
+                };
         
-                child_chunks.insert(local_chunk_id, Rc::new(Mutex::new(chunk_info)));
+                child_chunks.insert(local_chunk_id, Arc::new(Mutex::new(chunk_info)));
         
                 Ok(())
             },
@@ -1591,24 +1462,24 @@ impl ChunkEntityInfoHierarchy {
         
                 let chunk_info = ChunkInfo::new_root(local_chunk_id, chunk_mutex);
         
-                self.root_chunks.insert(local_chunk_id, Rc::new(Mutex::new(chunk_info)));
+                self.root_chunks.insert(local_chunk_id, Arc::new(Mutex::new(chunk_info)));
         
                 Ok(())
             }
         }
     }
 
-    fn remove_chunk_info(&self, chunk_id: ChunkID) -> Result<(), String> {
+    fn remove_chunk_info(&self, chunk_id: &ChunkID) -> Result<(), String> {
         match chunk_id.get_parent_chunk_id() {
             Some(parent_chunk_id) => {
-                let parent_chunk_info_mutex = match self.get_chunk_info_mutex(chunk_id.get_parent_chunk_id()) {
+                let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
                     Some(parent_chunk_info) => parent_chunk_info,
                     None => {
                         return Err(format!("Failed to remove chunk info: Parent chunk info not found."));
                     }
                 };
         
-                let parent_chunk_info = match parent_chunk_info_mutex.lock() {
+                let mut parent_chunk_info = match parent_chunk_info_mutex.lock() {
                     Ok(parent_chunk_info) => parent_chunk_info,
                     Err(_) => {
                         panic!("Failed to remove chunk info: Parent chunk info mutex poisoned.");
@@ -1616,28 +1487,121 @@ impl ChunkEntityInfoHierarchy {
                 };
         
                 let child_chunks = match parent_chunk_info.child_chunks {
-                    Some(ref parent_chunk_child_chunks) => parent_chunk_child_chunks,
+                    Some(ref mut parent_chunk_child_chunks) => parent_chunk_child_chunks,
                     None => {
                         return Err(format!("Failed to remove chunk info: Parent chunk info not allowed to have child chunk infos."));
                     }
                 };
 
-                if !child_chunks.contains_key(&chunk_id.get_local_chunk_id()) {
-                    return Err(format!("Failed to remove chunk info: Chunk info not registered."));
+                match child_chunks.remove(&chunk_id.get_local_chunk_id()) {
+                    Some(_) => {
+                        Ok(())
+                    }
+                    None => {
+                        Err(format!("Failed to remove chunk info: Chunk info not registered."))
+                    }
                 }
-
-                child_chunks.remove(&chunk_id.get_local_chunk_id());
-
-                Ok(())
             },
             None => {
                 if !self.root_chunks.contains_key(&chunk_id.get_local_chunk_id()) {
                     return Err(format!("Failed to remove chunk info: Chunk info not registered."));
                 }
 
-                self.root_chunks.remove(&chunk_id.get_local_chunk_id());
+                match self.root_chunks.remove(&chunk_id.get_local_chunk_id()) {
+                    Some(_) => {
+                        Ok(())
+                    }
+                    None => {
+                        Err(format!("Failed to remove chunk info: Chunk info not registered."))
+                    }
+                }
+            }
+        }
+    }
 
+    fn get_entity_info(&self, entity_id: &EntityID) -> Option<Arc<Mutex<EntityInfo>>> {
+        let parent_chunk_info_mutex = match self.get_chunk_info(entity_id.get_parent_chunk_id()) {
+            Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
+            None => {
+                return None;
+            }
+        };
+
+        let parent_chunk_info = match parent_chunk_info_mutex.lock() {
+            Ok(parent_chunk_info) => parent_chunk_info,
+            Err(_) => {
+                panic!("Failed to get entity info: Parent chunk info mutex poisoned.");
+            }
+        };
+
+        parent_chunk_info.child_entities.get(&entity_id.get_local_entity_id()).cloned()
+    }
+
+    fn is_entity_info_registered(&self, entity_id: &EntityID) -> bool {
+        let parent_chunk_info_mutex = match self.get_chunk_info(entity_id.get_parent_chunk_id()) {
+            Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
+            None => {
+                return false;
+            }
+        };
+
+        let parent_chunk_info = match parent_chunk_info_mutex.lock() {
+            Ok(parent_chunk_info) => parent_chunk_info,
+            Err(_) => {
+                panic!("Failed to check if entity info is registered: Parent chunk info mutex poisoned.");
+            }
+        };
+
+        parent_chunk_info.child_entities.contains_key(&entity_id.get_local_entity_id())
+    }
+
+    fn insert_entity_info(&self, parent_chunk_id: &ChunkID, local_entity_id: LocalEntityID, entity_mutex: Arc<Mutex<entity::Entity>>) -> Result<(), String> {
+        let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
+            Some(parent_chunk_info) => parent_chunk_info,
+            None => {
+                return Err(format!("Failed to insert entity info: Parent chunk info not found."));
+            }
+        };
+
+        let mut parent_chunk_info = match parent_chunk_info_mutex.lock() {
+            Ok(parent_chunk_info) => parent_chunk_info,
+            Err(_) => {
+                panic!("Failed to insert entity info: Parent chunk info mutex poisoned.");
+            }
+        };
+
+        if parent_chunk_info.child_entities.contains_key(&local_entity_id) {
+            return Err(format!("Failed to insert entity info: Entity info already registered."));
+        }
+
+        let entity_info = EntityInfo::new(parent_chunk_info_mutex, local_entity_id, entity_mutex);
+
+        parent_chunk_info.child_entities.insert(local_entity_id, Arc::new(Mutex::new(entity_info)));
+
+        Ok(())
+    }
+
+    fn remove_entity_info(&self, entity_id: &EntityID) -> Result<(), String> {
+        let parent_chunk_info_mutex = match self.get_chunk_info(entity_id.get_parent_chunk_id()) {
+            Some(parent_chunk_info) => parent_chunk_info,
+            None => {
+                return Err(format!("Failed to remove entity info: Parent chunk info not found."));
+            }
+        };
+
+        let mut parent_chunk_info = match parent_chunk_info_mutex.lock() {
+            Ok(parent_chunk_info) => parent_chunk_info,
+            Err(_) => {
+                panic!("Failed to remove entity info: Parent chunk info mutex poisoned.");
+            }
+        };
+
+        match parent_chunk_info.child_entities.remove(&entity_id.get_local_entity_id()) {
+            Some(_) => {
                 Ok(())
+            }
+            None => {
+                Err(format!("Failed to remove entity info: Entity info not registered."))
             }
         }
     }
@@ -1655,25 +1619,7 @@ impl ChunkInfo {
         }
     }
 
-    fn new(parent_chunk_info_mutex: Rc<Mutex<ChunkInfo>>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Self {
-        let parent_chunk_id = match parent_chunk_info_mutex.lock() {
-            Ok(parent_chunk_info) => parent_chunk_info.chunk_id.clone(),
-            Err(_) => {
-                panic!("Failed to create chunk info: Parent chunk info mutex poisoned.");
-            }
-        };
-        
-        Self {
-            parent_chunk_info_mutex: Some(parent_chunk_info_mutex),
-            local_chunk_id,
-            chunk_id: ChunkID::new(parent_chunk_id, local_chunk_id),
-            chunk_mutex,
-            child_chunks: Some(HashMap::new()),
-            child_entities: HashMap::new(),
-        }
-    }
-
-    fn new_leaf(parent_chunk_info_mutex: Rc<Mutex<ChunkInfo>>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<(), String> {
+    fn new(parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<Self, String> {
         let parent_chunk_id = match parent_chunk_info_mutex.lock() {
             Ok(parent_chunk_info) => parent_chunk_info.chunk_id.clone(),
             Err(_) => {
@@ -1688,19 +1634,44 @@ impl ChunkInfo {
             }
         };
         
-        Self {
+        Ok(Self {
+            parent_chunk_info_mutex: Some(parent_chunk_info_mutex),
+            local_chunk_id,
+            chunk_id,
+            chunk_mutex,
+            child_chunks: Some(HashMap::new()),
+            child_entities: HashMap::new(),
+        })
+    }
+
+    fn new_leaf(parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<Self, String> {
+        let parent_chunk_id = match parent_chunk_info_mutex.lock() {
+            Ok(parent_chunk_info) => parent_chunk_info.chunk_id.clone(),
+            Err(_) => {
+                panic!("Failed to create chunk info: Parent chunk info mutex poisoned.");
+            }
+        };
+
+        let chunk_id = match ChunkID::new(parent_chunk_id, local_chunk_id) {
+            Ok(chunk_id) => chunk_id,
+            Err(error) => {
+                return Err(format!("Failed to create chunk info: {}", error));
+            }
+        };
+        
+        Ok(Self {
             parent_chunk_info_mutex: Some(parent_chunk_info_mutex),
             local_chunk_id,
             chunk_id,
             chunk_mutex,
             child_chunks: None,
             child_entities: HashMap::new(),
-        }
+        })
     }
 }
 
 impl EntityInfo {
-    fn new(parent_chunk_info_mutex: Rc<Mutex<ChunkInfo>>, local_entity_id: LocalEntityID, entity_mutex: Arc<Mutex<entity::Entity>>) -> Self {
+    fn new(parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>, local_entity_id: LocalEntityID, entity_mutex: Arc<Mutex<entity::Entity>>) -> Self {
         let parent_chunk_id = match parent_chunk_info_mutex.lock() {
             Ok(parent_chunk_info) => parent_chunk_info.chunk_id.clone(),
             Err(_) => {

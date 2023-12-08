@@ -170,14 +170,6 @@ impl LocalUniverse {
 
             // get chunk
             let old_chunk = match global_universe.get_registered_chunk(&old_chunk_id.clone()) {
-                Ok(old_chunk) => old_chunk,
-                Err(error) => {
-                    println!("Failed to get chunk: {:?}", error);
-                    continue;
-                }
-            };
-
-            let old_chunk = match old_chunk {
                 Some(old_chunk) => old_chunk,
                 None => {
                     println!("Failed to get chunk: {:?}", old_chunk_id);

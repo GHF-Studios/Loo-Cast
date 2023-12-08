@@ -43,12 +43,6 @@ pub enum Entity {
     },
 }
 
-pub enum EntityLoadState {
-    Registered,
-    MetadataLoaded,
-    DataLoaded,
-}
-
 pub enum EntityOperation {
     Register {
         parent_chunk: Arc<Mutex<Chunk>>,

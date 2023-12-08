@@ -48,13 +48,6 @@ pub enum Chunk {
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum ChunkLoadState {
-    Registered,
-    MetadataLoaded,
-    DataLoaded,
-}
-
 pub enum ChunkOperation {
     RegisterRoot {
         local_chunk_id: LocalChunkID,
