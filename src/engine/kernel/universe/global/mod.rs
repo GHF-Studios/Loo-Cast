@@ -8,7 +8,6 @@ use crate::engine::kernel::game::SimulationState;
 use crate::engine::kernel::universe::chunk::data::*;
 use crate::engine::kernel::universe::chunk::id::*;
 use crate::engine::kernel::universe::chunk::metadata::*;
-use crate::engine::kernel::universe::chunk::pos::*;
 use crate::engine::kernel::universe::chunk::*;
 use crate::engine::kernel::universe::entity::data::*;
 use crate::engine::kernel::universe::entity::id::*;
@@ -433,7 +432,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::register_chunk(commands, parent_chunk, local_chunk_id) {
+                    let mut parent_chunk = match parent_chunk.lock() {
+                        Ok(parent_chunk) => parent_chunk,
+                        Err(_) => {
+                            panic!("Failed to register chunk: Parent chunk mutex poisoned.");
+                        }
+                    };
+
+                    match Self::register_chunk(commands, &mut *parent_chunk, local_chunk_id) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -447,7 +453,14 @@ impl GlobalUniverse {
                     success_callback, 
                     failure_callback 
                 } => {
-                    match self.unregister_root_chunk(commands, id) {
+                    let chunk = match chunk.lock() {
+                        Ok(chunk) => chunk,
+                        Err(_) => {
+                            panic!("Failed to unregister chunk: Chunk mutex poisoned.");
+                        }
+                    };
+
+                    match self.unregister_root_chunk(commands, &*chunk) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -462,7 +475,21 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::unregister_chunk(commands, id) {
+                    let mut parent_chunk = match parent_chunk.lock() {
+                        Ok(parent_chunk) => parent_chunk,
+                        Err(_) => {
+                            panic!("Failed to unregister chunk: Parent chunk mutex poisoned.");
+                        }
+                    };
+
+                    let chunk = match chunk.lock() {
+                        Ok(chunk) => chunk,
+                        Err(_) => {
+                            panic!("Failed to unregister chunk: Chunk mutex poisoned.");
+                        }
+                    };
+
+                    match Self::unregister_chunk(commands, &mut *parent_chunk, &*chunk) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -477,7 +504,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::load_chunk_metadata(id, metadata) {
+                    let mut chunk = match chunk.lock() {
+                        Ok(chunk) => chunk,
+                        Err(_) => {
+                            panic!("Failed to load chunk metadata: Chunk mutex poisoned.");
+                        }
+                    };
+
+                    match Self::load_chunk_metadata(&mut *chunk, metadata) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -491,7 +525,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::unload_chunk_metadata(id) {
+                    let mut chunk = match chunk.lock() {
+                        Ok(chunk) => chunk,
+                        Err(_) => {
+                            panic!("Failed to unload chunk metadata: Chunk mutex poisoned.");
+                        }
+                    };
+
+                    match Self::unload_chunk_metadata(&mut *chunk) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -506,7 +547,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::load_chunk_data(id, data) {
+                    let mut chunk = match chunk.lock() {
+                        Ok(chunk) => chunk,
+                        Err(_) => {
+                            panic!("Failed to load chunk data: Chunk mutex poisoned.");
+                        }
+                    };
+
+                    match Self::load_chunk_data(&mut *chunk, data) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -520,7 +568,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::unload_chunk_data(id) {
+                    let mut chunk = match chunk.lock() {
+                        Ok(chunk) => chunk,
+                        Err(_) => {
+                            panic!("Failed to unload chunk data: Chunk mutex poisoned.");
+                        }
+                    };
+
+                    match Self::unload_chunk_data(&mut *chunk) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -535,7 +590,21 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::spawn_chunk(commands, id) {
+                    let parent_chunk = match parent_chunk.lock() {
+                        Ok(parent_chunk) => parent_chunk,
+                        Err(_) => {
+                            panic!("Failed to spawn chunk: Parent chunk mutex poisoned.");
+                        }
+                    };
+
+                    let mut chunk = match chunk.lock() {
+                        Ok(chunk) => chunk,
+                        Err(_) => {
+                            panic!("Failed to spawn chunk: Chunk mutex poisoned.");
+                        }
+                    };
+
+                    match Self::spawn_chunk(commands, &*parent_chunk, &mut *chunk) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -549,7 +618,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::despawn_chunk(commands, id) {
+                    let mut chunk = match chunk.lock() {
+                        Ok(chunk) => chunk,
+                        Err(_) => {
+                            panic!("Failed to despawn chunk: Chunk mutex poisoned.");
+                        }
+                    };
+
+                    match Self::despawn_chunk(commands, &mut *chunk) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -574,7 +650,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::register_entity(commands, id) {
+                    let mut parent_chunk = match parent_chunk.lock() {
+                        Ok(parent_chunk) => parent_chunk,
+                        Err(_) => {
+                            panic!("Failed to register entity: Parent chunk mutex poisoned.");
+                        }
+                    };
+
+                    match Self::register_entity(commands, &mut *parent_chunk, local_entity_id) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -589,7 +672,21 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::unregister_entity(commands, id) {
+                    let mut parent_chunk = match parent_chunk.lock() {
+                        Ok(parent_chunk) => parent_chunk,
+                        Err(_) => {
+                            panic!("Failed to unregister entity: Parent chunk mutex poisoned.");
+                        }
+                    };
+
+                    let entity = match entity.lock() {
+                        Ok(entity) => entity,
+                        Err(_) => {
+                            panic!("Failed to unregister entity: Entity mutex poisoned.");
+                        }
+                    };
+                    
+                    match Self::unregister_entity(commands, &mut *parent_chunk, &*entity) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -604,7 +701,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::load_entity_metadata(id, metadata) {
+                    let mut entity = match entity.lock() {
+                        Ok(entity) => entity,
+                        Err(_) => {
+                            panic!("Failed to load entity metadata: Entity mutex poisoned.");
+                        }
+                    };
+
+                    match Self::load_entity_metadata(&mut *entity, metadata) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -618,7 +722,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::unload_entity_metadata(id) {
+                    let mut entity = match entity.lock() {
+                        Ok(entity) => entity,
+                        Err(_) => {
+                            panic!("Failed to unload entity metadata: Entity mutex poisoned.");
+                        }
+                    };
+
+                    match Self::unload_entity_metadata(&mut *entity) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -633,7 +744,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::load_entity_data(id, data) {
+                    let mut entity = match entity.lock() {
+                        Ok(entity) => entity,
+                        Err(_) => {
+                            panic!("Failed to load entity data: Entity mutex poisoned.");
+                        }
+                    };
+
+                    match Self::load_entity_data(&mut *entity, data) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -647,7 +765,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::unload_entity_data(id) {
+                    let mut entity = match entity.lock() {
+                        Ok(entity) => entity,
+                        Err(_) => {
+                            panic!("Failed to unload entity data: Entity mutex poisoned.");
+                        }
+                    };
+
+                    match Self::unload_entity_data(&mut *entity) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -662,7 +787,21 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::spawn_entity(commands, id) {
+                    let parent_chunk = match parent_chunk.lock() {
+                        Ok(parent_chunk) => parent_chunk,
+                        Err(_) => {
+                            panic!("Failed to spawn entity: Parent chunk mutex poisoned.");
+                        }
+                    };
+
+                    let mut entity = match entity.lock() {
+                        Ok(entity) => entity,
+                        Err(_) => {
+                            panic!("Failed to spawn entity: Entity mutex poisoned.");
+                        }
+                    };
+
+                    match Self::spawn_entity(commands, &*parent_chunk, &mut *entity) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -676,7 +815,14 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    match Self::despawn_entity(commands, id) {
+                    let mut entity = match entity.lock() {
+                        Ok(entity) => entity,
+                        Err(_) => {
+                            panic!("Failed to despawn entity: Entity mutex poisoned.");
+                        }
+                    };
+
+                    match Self::despawn_entity(commands, &mut *entity) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -686,12 +832,19 @@ impl GlobalUniverse {
                     }
                 },
                 EntityOperation::Command { 
-                    entity_commands: command, 
+                    entity_commands, 
                     entity, 
                     success_callback, 
                     failure_callback 
                 } => {
-                    match Self::command_entity(command, commands, id) {
+                    let entity = match entity.lock() {
+                        Ok(entity) => entity,
+                        Err(_) => {
+                            panic!("Failed to command entity: Entity mutex poisoned.");
+                        }
+                    };
+
+                    match Self::command_entity(commands, entity_commands, &*entity) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -968,7 +1121,7 @@ impl GlobalUniverse {
 
     fn spawn_chunk(
         _commands: &mut Commands,
-        parent_chunk: &mut Chunk,
+        parent_chunk: &Chunk,
         chunk: &mut Chunk,
     ) -> Result<SpawnChunkSuccess, SpawnChunkError> {
         let parent_chunk_data = match *parent_chunk {
@@ -1128,7 +1281,7 @@ impl GlobalUniverse {
     fn unregister_entity(
         commands: &mut Commands,
         parent_chunk: &mut Chunk,
-        entity: &mut crate::engine::kernel::universe::entity::Entity,
+        entity: &crate::engine::kernel::universe::entity::Entity,
     ) -> Result<UnregisterEntitySuccess, UnregisterEntityError> {
         let parent_chunk_data = match *parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
@@ -1266,7 +1419,7 @@ impl GlobalUniverse {
 
     fn spawn_entity(
         _commands: &mut Commands,
-        parent_chunk: &mut Chunk,
+        parent_chunk: &Chunk,
         entity: &mut crate::engine::kernel::universe::entity::Entity,
     ) -> Result<SpawnEntitySuccess, SpawnEntityError> {
         let parent_chunk_data = match *parent_chunk {
@@ -1328,7 +1481,7 @@ impl GlobalUniverse {
     fn command_entity(
         commands: &mut Commands,
         entity_commands: Box<dyn FnOnce(EntityCommands) + Send>,
-        entity: &mut crate::engine::kernel::universe::entity::Entity,
+        entity: &crate::engine::kernel::universe::entity::Entity,
     ) -> Result<CommandEntitySuccess, CommandEntityError> {
         match *entity {
             entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {

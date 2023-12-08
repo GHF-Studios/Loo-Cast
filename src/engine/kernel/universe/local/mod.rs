@@ -269,7 +269,7 @@ impl LocalUniverse {
                             println!("Failed to unload chunk metadata: {:?}", err);
                         }),
                     },
-                    ChunkOperation::Unregister {
+                    ChunkOperation::UnregisterRoot {
                         id: old_chunk_id,
                         success_callback: Box::new(|_| {}),
                         failure_callback: Box::new(|err| {
@@ -315,7 +315,7 @@ impl LocalUniverse {
 
             match global_universe.send_chunk_operation_request(ChunkOperationRequest {
                 operations: vec![
-                    ChunkOperation::Register {
+                    ChunkOperation::RegisterRoot {
                         id: new_chunk_id.clone(),
                         success_callback: Box::new(|_| {}),
                         failure_callback: Box::new(|err| {
