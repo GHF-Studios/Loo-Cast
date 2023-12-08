@@ -51,172 +51,110 @@ pub enum EntityLoadState {
 pub enum EntityOperation {
     Register {
         id: EntityID,
-        success_callback: Box<dyn Fn(RegisterEntitySuccess, EntityID) + Send>,
-        failure_callback: Box<dyn Fn(RegisterEntityError, EntityID) + Send>,
+        success_callback: Box<dyn FnOnce(RegisterEntitySuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(RegisterEntityError) + Send>,
     },
     Unregister {
         id: EntityID,
-        success_callback: Box<dyn Fn(UnregisterEntitySuccess, EntityID) + Send>,
-        failure_callback: Box<dyn Fn(UnregisterEntityError, EntityID) + Send>,
+        success_callback: Box<dyn FnOnce(UnregisterEntitySuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(UnregisterEntityError) + Send>,
     },
     LoadMetadata {
         id: EntityID,
         metadata: EntityMetadata,
-        success_callback: Box<dyn Fn(LoadEntityMetadataSuccess, EntityID) + Send>,
-        failure_callback: Box<dyn Fn(LoadEntityMetadataError, EntityID, EntityMetadata) + Send>,
+        success_callback: Box<dyn FnOnce(LoadEntityMetadataSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(LoadEntityMetadataError) + Send>,
     },
     UnloadMetadata {
         id: EntityID,
-        success_callback: Box<dyn Fn(UnloadEntityMetadataSuccess, EntityID) + Send>,
-        failure_callback: Box<dyn Fn(UnloadEntityMetadataError, EntityID) + Send>,
+        success_callback: Box<dyn FnOnce(UnloadEntityMetadataSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(UnloadEntityMetadataError) + Send>,
     },
     LoadData {
         id: EntityID,
         data: EntityData,
-        success_callback: Box<dyn Fn(LoadEntityDataSuccess, EntityID) + Send>,
-        failure_callback: Box<dyn Fn(LoadEntityDataError, EntityID, EntityData) + Send>,
+        success_callback: Box<dyn FnOnce(LoadEntityDataSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(LoadEntityDataError) + Send>,
     },
     UnloadData {
         id: EntityID,
-        success_callback: Box<dyn Fn(UnloadEntityDataSuccess, EntityID) + Send>,
-        failure_callback: Box<dyn Fn(UnloadEntityDataError, EntityID) + Send>,
+        success_callback: Box<dyn FnOnce(UnloadEntityDataSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(UnloadEntityDataError) + Send>,
     },
     Spawn {
         id: EntityID,
-        success_callback: Box<dyn Fn(SpawnEntitySuccess, EntityID) + Send>,
-        failure_callback: Box<dyn Fn(SpawnEntityError, EntityID) + Send>,
+        success_callback: Box<dyn FnOnce(SpawnEntitySuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(SpawnEntityError) + Send>,
     },
     Despawn {
         id: EntityID,
-        success_callback: Box<dyn Fn(DespawnEntitySuccess, EntityID) + Send>,
-        failure_callback: Box<dyn Fn(DespawnEntityError, EntityID) + Send>,
+        success_callback: Box<dyn FnOnce(DespawnEntitySuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(DespawnEntityError) + Send>,
     },
     Command {
         id: EntityID,
-        command: Box<dyn FnOnce(&mut EntityCommands) + Send>,
-        success_callback: Box<dyn Fn(CommandEntitySuccess, EntityID) + Send>,
-        failure_callback: Box<dyn Fn(CommandEntityError, EntityID) + Send>,
+        command: Box<dyn FnOnce(EntityCommands) + Send>,
+        success_callback: Box<dyn FnOnce(CommandEntitySuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(CommandEntityError) + Send>,
     },
 }
 
 #[derive(Debug)]
 pub enum RegisterEntityError {
-    ParentChunkMutexPoisoned,
-
-    ParentChunkNotRegistered,
     ParentChunkDataNotLoaded,
     EntityAlreadyRegistered,
-
-    FailedToGetParentChunk,
 }
 
 #[derive(Debug)]
 pub enum UnregisterEntityError {
-    ParentChunkMutexPoisoned,
-    EntityMutexPoisoned,
-
-    ParentChunkNotRegistered,
     ParentChunkDataNotLoaded,
+    EntityMetadataStillLoaded,
+    EntityDataStillLoaded,
     EntityAlreadyUnregistered,
-
-    FailedToGetParentChunk,
 }
 
 #[derive(Debug)]
 pub enum LoadEntityMetadataError {
-    ParentChunkMutexPoisoned,
-    EntityMutexPoisoned,
-
-    ParentChunkNotRegistered,
-    EntityNotRegistered,
     EntityMetadataAlreadyLoaded,
-
-    FailedToGetParentChunk,
-    FailedToGetEntity,
 }
 
 #[derive(Debug)]
 pub enum UnloadEntityMetadataError {
-    ParentChunkMutexPoisoned,
-    EntityMutexPoisoned,
-
-    ParentChunkNotRegistered,
-    EntityNotRegistered,
     EntityMetadataAlreadyUnloaded,
     EntityDataStillLoaded,
-
-    FailedToGetParentChunk,
-    FailedToGetEntity,
 }
 
 #[derive(Debug)]
 pub enum LoadEntityDataError {
-    ParentChunkMutexPoisoned,
-    EntityMutexPoisoned,
-
-    ParentChunkNotRegistered,
-    ParentChunkDataNotLoaded,
-    EntityNotRegistered,
     EntityMetadataNotLoaded,
     EntityDataAlreadyLoaded,
-
-    FailedToGetParentChunk,
-    FailedToGetEntity,
 }
 
 #[derive(Debug)]
 pub enum UnloadEntityDataError {
-    ParentChunkMutexPoisoned,
-    EntityMutexPoisoned,
-
-    ParentChunkNotRegistered,
-    EntityNotRegistered,
     EntityDataAlreadyUnloaded,
-
-    FailedToGetParentChunk,
-    FailedToGetEntity,
+    EntityStillSpawned,
 }
 
 #[derive(Debug)]
 pub enum SpawnEntityError {
-    ParentChunkMutexPoisoned,
-    EntityMutexPoisoned,
-
-    ParentChunkNotRegistered,
     ParentChunkDataNotLoaded,
     ParentChunkNotSpawned,
-    EntityNotRegistered,
     EntityDataNotLoaded,
     EntityAlreadySpawned,
-
-    FailedToGetParentChunk,
-    FailedToGetEntity,
+    WrongParentChunk
 }
 
 #[derive(Debug)]
 pub enum DespawnEntityError {
-    ParentChunkMutexPoisoned,
-    EntityMutexPoisoned,
-
-    ParentChunkNotRegistered,
-    EntityNotRegistered,
     EntityDataNotLoaded,
     EntityAlreadyDespawned,
-
-    FailedToGetParentChunk,
-    FailedToGetEntity,
 }
 
 #[derive(Debug)]
 pub enum CommandEntityError {
-    ParentChunkMutexPoisoned,
-    EntityMutexPoisoned,
-
-    ParentChunkNotRegistered,
-    EntityNotRegistered,
-    
-    FailedToGetParentChunk,
-    FailedToGetEntity,
+    EntityDataNotLoaded,
+    EntityNotSpawned,
 }
 
 // Structs

@@ -56,48 +56,64 @@ pub enum ChunkLoadState {
 }
 
 pub enum ChunkOperation {
+    RegisterRoot {
+        id: ChunkID,
+        success_callback: Box<dyn FnOnce(RegisterRootChunkSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(RegisterRootChunkError) + Send>,
+    },
     Register {
         id: ChunkID,
-        success_callback: Box<dyn Fn(RegisterChunkSuccess, ChunkID) + Send>,
-        failure_callback: Box<dyn Fn(RegisterChunkError, ChunkID) + Send>,
+        success_callback: Box<dyn FnOnce(RegisterChunkSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(RegisterChunkError) + Send>,
+    },
+    UnregisterRoot {
+        id: ChunkID,
+        success_callback: Box<dyn FnOnce(UnregisterRootChunkSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(UnregisterRootChunkError) + Send>,
     },
     Unregister {
         id: ChunkID,
-        success_callback: Box<dyn Fn(UnregisterChunkSuccess, ChunkID) + Send>,
-        failure_callback: Box<dyn Fn(UnregisterChunkError, ChunkID) + Send>,
+        success_callback: Box<dyn FnOnce(UnregisterChunkSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(UnregisterChunkError) + Send>,
     },
     LoadMetadata {
         id: ChunkID,
         metadata: ChunkMetadata,
-        success_callback: Box<dyn Fn(LoadChunkMetadataSuccess, ChunkID) + Send>,
-        failure_callback: Box<dyn Fn(LoadChunkMetadataError, ChunkID, ChunkMetadata) + Send>,
+        success_callback: Box<dyn FnOnce(LoadChunkMetadataSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(LoadChunkMetadataError) + Send>,
     },
     UnloadMetadata {
         id: ChunkID,
-        success_callback: Box<dyn Fn(UnloadChunkMetadataSuccess, ChunkID) + Send>,
-        failure_callback: Box<dyn Fn(UnloadChunkMetadataError, ChunkID) + Send>,
+        success_callback: Box<dyn FnOnce(UnloadChunkMetadataSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(UnloadChunkMetadataError) + Send>,
     },
     LoadData {
         id: ChunkID,
         data: ChunkData,
-        success_callback: Box<dyn Fn(LoadChunkDataSuccess, ChunkID) + Send>,
-        failure_callback: Box<dyn Fn(LoadChunkDataError, ChunkID, ChunkData) + Send>,
+        success_callback: Box<dyn FnOnce(LoadChunkDataSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(LoadChunkDataError) + Send>,
     },
     UnloadData {
         id: ChunkID,
-        success_callback: Box<dyn Fn(UnloadChunkDataSuccess, ChunkID) + Send>,
-        failure_callback: Box<dyn Fn(UnloadChunkDataError, ChunkID) + Send>,
+        success_callback: Box<dyn FnOnce(UnloadChunkDataSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(UnloadChunkDataError) + Send>,
     },
     Spawn {
         id: ChunkID,
-        success_callback: Box<dyn Fn(SpawnChunkSuccess, ChunkID) + Send>,
-        failure_callback: Box<dyn Fn(SpawnChunkError, ChunkID) + Send>,
+        success_callback: Box<dyn FnOnce(SpawnChunkSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(SpawnChunkError) + Send>,
     },
     Despawn {
         id: ChunkID,
-        success_callback: Box<dyn Fn(DespawnChunkSuccess, ChunkID) + Send>,
-        failure_callback: Box<dyn Fn(DespawnChunkError, ChunkID) + Send>,
+        success_callback: Box<dyn FnOnce(DespawnChunkSuccess) + Send>,
+        failure_callback: Box<dyn FnOnce(DespawnChunkError) + Send>,
     },
+}
+
+#[derive(Debug)]
+pub enum RegisterRootChunkError {
+    ChunkAlreadyRegistered,
+    FailedToCreateChunkID,
 }
 
 #[derive(Debug)]
@@ -109,13 +125,21 @@ pub enum RegisterChunkError {
 }
 
 #[derive(Debug)]
+pub enum UnregisterRootChunkError {
+    ChunkMetadataStillLoaded,
+    ChunkDataStillLoaded,
+    FailedToComputeLocalChunkID,
+    ChunkAlreadyUnregistered,
+}
+
+#[derive(Debug)]
 pub enum UnregisterChunkError {
+    ChunkMetadataStillLoaded,
+    ChunkDataStillLoaded,
+    FailedToComputeLocalChunkID,
     ParentChunkDataNotLoaded,
     ParentChunkNotAllowedToHaveChildChunks,
-    ChunkDataStillLoaded,
-    ChunkMetadataStillLoaded,
     ChunkAlreadyUnregistered,
-    FailedToComputeLocalChunkID,
 }
 
 #[derive(Debug)]
@@ -172,7 +196,13 @@ pub struct ChunkOperationRequest {
 }
 
 #[derive(Debug)]
+pub struct RegisterRootChunkSuccess;
+
+#[derive(Debug)]
 pub struct RegisterChunkSuccess;
+
+#[derive(Debug)]
+pub struct UnregisterRootChunkSuccess;
 
 #[derive(Debug)]
 pub struct UnregisterChunkSuccess;
