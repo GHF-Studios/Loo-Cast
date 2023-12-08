@@ -254,7 +254,7 @@ impl PlayerManager {
                 },
                 EntityOperation::Command {
                     id: entity_id,
-                    command: Box::new(move |mut entity_commands| {
+                    entity_commands: Box::new(move |mut entity_commands| {
                         entity_commands.insert((
                             SpriteBundle {
                                 sprite: Sprite {

@@ -57,54 +57,57 @@ pub enum ChunkLoadState {
 
 pub enum ChunkOperation {
     RegisterRoot {
-        id: ChunkID,
+        local_chunk_id: LocalChunkID,
         success_callback: Box<dyn FnOnce(RegisterRootChunkSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(RegisterRootChunkError) + Send>,
     },
     Register {
-        id: ChunkID,
+        parent_chunk: Arc<Mutex<Chunk>>,
+        local_chunk_id: LocalChunkID,
         success_callback: Box<dyn FnOnce(RegisterChunkSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(RegisterChunkError) + Send>,
     },
     UnregisterRoot {
-        id: ChunkID,
+        chunk: Arc<Mutex<Chunk>>,
         success_callback: Box<dyn FnOnce(UnregisterRootChunkSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(UnregisterRootChunkError) + Send>,
     },
     Unregister {
-        id: ChunkID,
+        parent_chunk: Arc<Mutex<Chunk>>,
+        chunk: Arc<Mutex<Chunk>>,
         success_callback: Box<dyn FnOnce(UnregisterChunkSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(UnregisterChunkError) + Send>,
     },
     LoadMetadata {
-        id: ChunkID,
+        chunk: Arc<Mutex<Chunk>>,
         metadata: ChunkMetadata,
         success_callback: Box<dyn FnOnce(LoadChunkMetadataSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(LoadChunkMetadataError) + Send>,
     },
     UnloadMetadata {
-        id: ChunkID,
+        chunk: Arc<Mutex<Chunk>>,
         success_callback: Box<dyn FnOnce(UnloadChunkMetadataSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(UnloadChunkMetadataError) + Send>,
     },
     LoadData {
-        id: ChunkID,
+        chunk: Arc<Mutex<Chunk>>,
         data: ChunkData,
         success_callback: Box<dyn FnOnce(LoadChunkDataSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(LoadChunkDataError) + Send>,
     },
     UnloadData {
-        id: ChunkID,
+        chunk: Arc<Mutex<Chunk>>,
         success_callback: Box<dyn FnOnce(UnloadChunkDataSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(UnloadChunkDataError) + Send>,
     },
     Spawn {
-        id: ChunkID,
+        parent_chunk: Arc<Mutex<Chunk>>,
+        chunk: Arc<Mutex<Chunk>>,
         success_callback: Box<dyn FnOnce(SpawnChunkSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(SpawnChunkError) + Send>,
     },
     Despawn {
-        id: ChunkID,
+        chunk: Arc<Mutex<Chunk>>,
         success_callback: Box<dyn FnOnce(DespawnChunkSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(DespawnChunkError) + Send>,
     },

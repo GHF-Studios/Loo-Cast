@@ -269,6 +269,14 @@ impl GlobalUniverse {
         Ok(true)
     }
 
+    pub fn get_chunk_load_state(chunk: &Chunk) -> ChunkLoadState {
+        match *chunk {
+            Chunk::Registered { .. } => ChunkLoadState::Registered,
+            Chunk::MetadataLoaded { .. } => ChunkLoadState::MetadataLoaded,
+            Chunk::DataLoaded { .. } => ChunkLoadState::DataLoaded,
+        }
+    }
+
     pub fn get_registered_entity(
         parent_chunk: &Chunk,
         entity_id: &EntityID,
@@ -309,6 +317,14 @@ impl GlobalUniverse {
         Ok(parent_chunk_data.registered_entities.contains_key(&entity_id.get_local_entity_id()))
     }
 
+    pub fn get_entity_load_state(entity: &entity::Entity) -> EntityLoadState {
+        match *entity {
+            entity::Entity::Registered { .. } => EntityLoadState::Registered,
+            entity::Entity::MetadataLoaded { .. } => EntityLoadState::MetadataLoaded,
+            entity::Entity::DataLoaded { .. } => EntityLoadState::DataLoaded,
+        }
+    }
+
     pub fn send_chunk_operation_request(
         &mut self,
         request: ChunkOperationRequest,
@@ -339,22 +355,6 @@ impl GlobalUniverse {
             };
             operation_reuests.push(OperationRequest::Entity(request));
         Ok(())
-    }
-
-    pub fn get_chunk_load_state(chunk: &Chunk) -> ChunkLoadState {
-        match *chunk {
-            Chunk::Registered { .. } => ChunkLoadState::Registered,
-            Chunk::MetadataLoaded { .. } => ChunkLoadState::MetadataLoaded,
-            Chunk::DataLoaded { .. } => ChunkLoadState::DataLoaded,
-        }
-    }
-
-    pub fn get_entity_load_state(entity: &entity::Entity) -> EntityLoadState {
-        match *entity {
-            entity::Entity::Registered { .. } => EntityLoadState::Registered,
-            entity::Entity::MetadataLoaded { .. } => EntityLoadState::MetadataLoaded,
-            entity::Entity::DataLoaded { .. } => EntityLoadState::DataLoaded,
-        }
     }
 
     fn handle_operation_requests(
@@ -413,102 +413,149 @@ impl GlobalUniverse {
     ) {
         for chunk_operation in chunk_operation_request.operations {
             match chunk_operation {
+                ChunkOperation::RegisterRoot { 
+                    local_chunk_id, 
+                    success_callback, 
+                    failure_callback 
+                } => {
+                    match self.register_root_chunk(commands, local_chunk_id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
+                    }
+                },
                 ChunkOperation::Register {
-                    id,
+                    parent_chunk,
+                    local_chunk_id,
                     success_callback,
                     failure_callback,
-                } => match Self::register_chunk(commands, id) {
-                    Ok(success) => {
-                        success_callback(success);
+                } => {
+                    match Self::register_chunk(commands, parent_chunk, local_chunk_id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
-                    Err(error) => {
-                        failure_callback(error);
+                },
+                ChunkOperation::UnregisterRoot { 
+                    chunk, 
+                    success_callback, 
+                    failure_callback 
+                } => {
+                    match self.unregister_root_chunk(commands, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 ChunkOperation::Unregister {
-                    id,
+                    parent_chunk,
+                    chunk,
                     success_callback,
                     failure_callback,
-                } => match Self::unregister_chunk(commands, id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::unregister_chunk(commands, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 ChunkOperation::LoadMetadata {
-                    id,
+                    chunk,
                     metadata,
                     success_callback,
                     failure_callback,
-                } => match Self::load_chunk_metadata(id, metadata) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::load_chunk_metadata(id, metadata) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 ChunkOperation::UnloadMetadata {
-                    id,
+                    chunk,
                     success_callback,
                     failure_callback,
-                } => match Self::unload_chunk_metadata(id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::unload_chunk_metadata(id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 ChunkOperation::LoadData {
-                    id,
+                    chunk,
                     data,
                     success_callback,
                     failure_callback,
-                } => match Self::load_chunk_data(id, data) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::load_chunk_data(id, data) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 ChunkOperation::UnloadData {
-                    id,
+                    chunk,
                     success_callback,
                     failure_callback,
-                } => match Self::unload_chunk_data(id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::unload_chunk_data(id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 ChunkOperation::Spawn {
-                    id,
+                    parent_chunk,
+                    chunk,
                     success_callback,
                     failure_callback,
-                } => match Self::spawn_chunk(commands, id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::spawn_chunk(commands, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 ChunkOperation::Despawn {
-                    id,
+                    chunk,
                     success_callback,
                     failure_callback,
-                } => match Self::despawn_chunk(commands, id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::despawn_chunk(commands, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
             }
@@ -522,114 +569,135 @@ impl GlobalUniverse {
         for entity_operation in entity_operation_request.operations {
             match entity_operation {
                 EntityOperation::Register {
-                    id,
+                    parent_chunk,
+                    local_entity_id,
                     success_callback,
                     failure_callback,
-                } => match Self::register_entity(commands, id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::register_entity(commands, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 EntityOperation::Unregister {
-                    id,
+                    parent_chunk,
+                    entity,
                     success_callback,
                     failure_callback,
-                } => match Self::unregister_entity(commands, id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::unregister_entity(commands, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 EntityOperation::LoadMetadata {
-                    id,
+                    entity,
                     metadata,
                     success_callback,
                     failure_callback,
-                } => match Self::load_entity_metadata(id, metadata) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::load_entity_metadata(id, metadata) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 EntityOperation::UnloadMetadata {
-                    id,
+                    entity,
                     success_callback,
                     failure_callback,
-                } => match Self::unload_entity_metadata(id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::unload_entity_metadata(id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 EntityOperation::LoadData {
-                    id,
+                    entity,
                     data,
                     success_callback,
                     failure_callback,
-                } => match Self::load_entity_data(id, data) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::load_entity_data(id, data) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 EntityOperation::UnloadData {
-                    id,
+                    entity,
                     success_callback,
                     failure_callback,
-                } => match Self::unload_entity_data(id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::unload_entity_data(id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 EntityOperation::Spawn {
-                    id,
+                    parent_chunk,
+                    entity,
                     success_callback,
                     failure_callback,
-                } => match Self::spawn_entity(commands, id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::spawn_entity(commands, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 EntityOperation::Despawn {
-                    id,
+                    entity,
                     success_callback,
                     failure_callback,
-                } => match Self::despawn_entity(commands, id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::despawn_entity(commands, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
                 },
                 EntityOperation::Command { 
-                    id, 
-                    command, 
+                    entity_commands: command, 
+                    entity, 
                     success_callback, 
                     failure_callback 
-                } => match Self::command_entity(command, commands, id) {
-                    Ok(success) => {
-                        success_callback(success);
-                    }
-                    Err(error) => {
-                        failure_callback(error);
+                } => {
+                    match Self::command_entity(command, commands, id) {
+                        Ok(success) => {
+                            success_callback(success);
+                        }
+                        Err(error) => {
+                            failure_callback(error);
+                        }
                     }
 
                 }

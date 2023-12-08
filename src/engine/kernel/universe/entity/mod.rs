@@ -10,6 +10,7 @@ use id::*;
 use metadata::*;
 
 // Internal imports
+use crate::engine::kernel::universe::chunk::*;
 
 // External imports
 use bevy::prelude::*;
@@ -50,50 +51,53 @@ pub enum EntityLoadState {
 
 pub enum EntityOperation {
     Register {
-        id: EntityID,
+        parent_chunk: Arc<Mutex<Chunk>>,
+        local_entity_id: LocalEntityID,
         success_callback: Box<dyn FnOnce(RegisterEntitySuccess) + Send>,
         failure_callback: Box<dyn FnOnce(RegisterEntityError) + Send>,
     },
     Unregister {
-        id: EntityID,
+        parent_chunk: Arc<Mutex<Chunk>>,
+        entity: Arc<Mutex<Entity>>,
         success_callback: Box<dyn FnOnce(UnregisterEntitySuccess) + Send>,
         failure_callback: Box<dyn FnOnce(UnregisterEntityError) + Send>,
     },
     LoadMetadata {
-        id: EntityID,
+        entity: Arc<Mutex<Entity>>,
         metadata: EntityMetadata,
         success_callback: Box<dyn FnOnce(LoadEntityMetadataSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(LoadEntityMetadataError) + Send>,
     },
     UnloadMetadata {
-        id: EntityID,
+        entity: Arc<Mutex<Entity>>,
         success_callback: Box<dyn FnOnce(UnloadEntityMetadataSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(UnloadEntityMetadataError) + Send>,
     },
     LoadData {
-        id: EntityID,
+        entity: Arc<Mutex<Entity>>,
         data: EntityData,
         success_callback: Box<dyn FnOnce(LoadEntityDataSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(LoadEntityDataError) + Send>,
     },
     UnloadData {
-        id: EntityID,
+        entity: Arc<Mutex<Entity>>,
         success_callback: Box<dyn FnOnce(UnloadEntityDataSuccess) + Send>,
         failure_callback: Box<dyn FnOnce(UnloadEntityDataError) + Send>,
     },
     Spawn {
-        id: EntityID,
+        parent_chunk: Arc<Mutex<Chunk>>,
+        entity: Arc<Mutex<Entity>>,
         success_callback: Box<dyn FnOnce(SpawnEntitySuccess) + Send>,
         failure_callback: Box<dyn FnOnce(SpawnEntityError) + Send>,
     },
     Despawn {
-        id: EntityID,
+        entity: Arc<Mutex<Entity>>,
         success_callback: Box<dyn FnOnce(DespawnEntitySuccess) + Send>,
         failure_callback: Box<dyn FnOnce(DespawnEntityError) + Send>,
     },
     Command {
-        id: EntityID,
-        command: Box<dyn FnOnce(EntityCommands) + Send>,
+        entity_commands: Box<dyn FnOnce(EntityCommands) + Send>,
+        entity: Arc<Mutex<Entity>>,
         success_callback: Box<dyn FnOnce(CommandEntitySuccess) + Send>,
         failure_callback: Box<dyn FnOnce(CommandEntityError) + Send>,
     },
