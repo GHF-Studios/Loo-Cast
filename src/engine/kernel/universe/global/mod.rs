@@ -684,132 +684,64 @@ impl GlobalUniverse {
     }
 
     fn unregister_chunk(
+        &mut self,
         commands: &mut Commands,
-        global_universe: &mut GlobalUniverse,
-        chunk_id: ChunkID,
-    ) -> Result<(UnregisterChunkSuccess, ChunkID), (UnregisterChunkError, ChunkID)> {
-        let chunk = match global_universe.get_registered_chunk(&chunk_id) {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((UnregisterChunkError::FailedToGetChunk, chunk_id));
-            }
-        };
-        let chunk = match chunk {
-            Some(chunk) => chunk,
-            None => {
-                return Err((UnregisterChunkError::ChunkAlreadyUnregistered, chunk_id));
-            }
-        };
-
-        if chunk_id.get_scale_index() == 0 {
-            let mut registered_root_chunks = match global_universe.registered_root_chunks.lock() {
-                Ok(registered_root_chunks) => registered_root_chunks,
-                Err(_) => {
-                    return Err((
-                        UnregisterChunkError::RegisteredRootChunksMutexPoisoned,
-                        chunk_id,
-                    ));
-                }
-            };
-
-            let local_chunk_pos = match chunk_id.compute_absolute_local_pos() {
-                Ok(local_chunk_pos) => local_chunk_pos,
-                Err(_) => {
-                    return Err((
-                        UnregisterChunkError::FailedToComputeLocalChunkPosition,
-                        chunk_id,
-                    ));
-                }
-            };
-
-            match registered_root_chunks.remove(&local_chunk_pos) {
-                Some(_) => {}
-                None => {
-                    return Err((UnregisterChunkError::ChunkAlreadyUnregistered, chunk_id));
-                }
-            };
-
-            return Ok((UnregisterChunkSuccess, chunk_id));
-        }
-
-        let chunk = match chunk.lock() {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((UnregisterChunkError::ChunkMutexPoisoned, chunk_id));
-            }
-        };
-
-        let chunk_bevy_entity = match *chunk {
-            Chunk::Registered { ref bevy_entity, .. } => { bevy_entity }
+        parent_chunk: Option<&mut Chunk>,
+        chunk: &Chunk
+    ) -> Result<UnregisterChunkSuccess, UnregisterChunkError> {
+        let (chunk_id, chunk_bevy_entity) = match *chunk {
+            Chunk::Registered { ref id, ref bevy_entity } => (id.clone(), bevy_entity.clone()),
             Chunk::MetadataLoaded { .. } => {
-                return Err((UnregisterChunkError::ChunkMetadataStillLoaded, chunk_id));
-            }
+                return Err(UnregisterChunkError::ChunkMetadataStillLoaded);
+            },
             Chunk::DataLoaded { .. } => {
-                return Err((UnregisterChunkError::ChunkDataStillLoaded, chunk_id));
+                return Err(UnregisterChunkError::ChunkDataStillLoaded);
             }
         };
 
-        commands.entity(*chunk_bevy_entity).despawn();
-
-        let parent_chunk_id = match chunk_id.compute_parent_id() {
-            Ok(parent_chunk_id) => parent_chunk_id,
+        let local_chunk_id = match chunk_id.compute_local_chunk_id() {
+            Ok(local_chunk_id) => local_chunk_id,
             Err(_) => {
-                return Err((UnregisterChunkError::FailedToComputeParentChunkID, chunk_id));
+                return Err(UnregisterChunkError::FailedToComputeLocalChunkID);
             }
         };
 
-        let parent_chunk = match global_universe.get_registered_chunk(&parent_chunk_id) {
-            Ok(parent_chunk) => parent_chunk,
-            Err(_) => {
-                return Err((UnregisterChunkError::FailedToGetParentChunk, chunk_id));
-            }
-        };
-        let parent_chunk = match parent_chunk {
-            Some(parent_chunk) => parent_chunk,
+        match parent_chunk {
+            Some(parent_chunk) => {
+                let parent_chunk_data = match *parent_chunk {
+                    Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
+                        return Err(UnregisterChunkError::ParentChunkDataNotLoaded);
+                    },
+                    Chunk::DataLoaded { ref mut data, .. } => data,
+                };
+
+                let parent_chunk_child_chunks = match parent_chunk_data.child_chunks {
+                    Some(ref mut parent_chunk_child_chunks) => parent_chunk_child_chunks,
+                    None => {
+                        return Err(UnregisterChunkError::ParentChunkNotAllowedToHaveChildChunks);
+                    }
+                };
+
+                if !parent_chunk_child_chunks.contains_key(&local_chunk_id) {
+                    return Err(UnregisterChunkError::ChunkAlreadyUnregistered);
+                }
+
+                parent_chunk_child_chunks.remove(&local_chunk_id);
+
+                commands.entity(chunk_bevy_entity).despawn();
+
+                return Ok(UnregisterChunkSuccess);
+            },
             None => {
-                return Err((UnregisterChunkError::ParentChunkNotRegistered, chunk_id));
-            }
-        };
-        let mut parent_chunk = match parent_chunk.lock() {
-            Ok(parent_chunk) => parent_chunk,
-            Err(_) => {
-                return Err((UnregisterChunkError::ParentChunkMutexPoisoned, chunk_id));
-            }
-        };
+                if !self.registered_root_chunks.contains_key(&local_chunk_id) {
+                    return Err(UnregisterChunkError::ChunkAlreadyUnregistered);
+                }
 
-        let parent_chunk_data = match *parent_chunk {
-            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
-                return Err((UnregisterChunkError::ParentChunkDataNotLoaded, chunk_id));
-            }
-            Chunk::DataLoaded { ref mut data, .. } => data,
-        };
+                self.registered_root_chunks.remove(&local_chunk_id);
 
-        let parent_chunk_child_chunks = match parent_chunk_data.child_chunks {
-            Some(ref mut parent_chunk_child_chunks) => parent_chunk_child_chunks,
-            None => {
-                return Err((
-                    UnregisterChunkError::ParentChunkNotAllowedToHaveChildChunks,
-                    chunk_id,
-                ));
-            }
-        };
+                commands.entity(chunk_bevy_entity).despawn();
 
-        let local_chunk_pos = match chunk_id.compute_absolute_local_pos() {
-            Ok(local_chunk_pos) => local_chunk_pos,
-            Err(_) => {
-                return Err((
-                    UnregisterChunkError::FailedToComputeLocalChunkPosition,
-                    chunk_id,
-                ));
-            }
-        };
-
-        match parent_chunk_child_chunks.remove(&local_chunk_pos) {
-            Some(_) => {
-                Ok((UnregisterChunkSuccess, chunk_id))
-            }
-            None => {
-                Err((UnregisterChunkError::ChunkAlreadyUnregistered, chunk_id))
+                return Ok(UnregisterChunkSuccess);
             }
         }
     }

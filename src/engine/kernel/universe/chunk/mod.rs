@@ -110,21 +110,12 @@ pub enum RegisterChunkError {
 
 #[derive(Debug)]
 pub enum UnregisterChunkError {
-    RegisteredRootChunksMutexPoisoned,
-    ParentChunkMutexPoisoned,
-    ChunkMutexPoisoned,
-
-    ParentChunkNotRegistered,
     ParentChunkDataNotLoaded,
     ParentChunkNotAllowedToHaveChildChunks,
     ChunkDataStillLoaded,
     ChunkMetadataStillLoaded,
     ChunkAlreadyUnregistered,
-
-    FailedToComputeParentChunkID,
-    FailedToGetParentChunk,
-    FailedToComputeLocalChunkPosition,
-    FailedToGetChunk,
+    FailedToComputeLocalChunkID,
 }
 
 #[derive(Debug)]
