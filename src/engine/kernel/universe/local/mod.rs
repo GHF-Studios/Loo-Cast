@@ -210,29 +210,29 @@ impl LocalUniverse {
                     operations: vec![
                         EntityOperation::Despawn {
                             id: old_entity_id.clone(),
-                            success_callback: Box::new(|_, _| {}),
-                            failure_callback: Box::new(|err, _| {
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|err| {
                                 println!("Failed to despawn entity: {:?}", err);
                             }),
                         },
                         EntityOperation::UnloadData {
                             id: old_entity_id.clone(),
-                            success_callback: Box::new(|_, _| {}),
-                            failure_callback: Box::new(|err, _| {
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|err| {
                                 println!("Failed to unload entity data: {:?}", err);
                             }),
                         },
                         EntityOperation::UnloadMetadata {
                             id: old_entity_id.clone(),
-                            success_callback: Box::new(|_, _| {}),
-                            failure_callback: Box::new(|err, _| {
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|err| {
                                 println!("Failed to unload entity metadata: {:?}", err);
                             }),
                         },
                         EntityOperation::Unregister {
                             id: old_entity_id,
-                            success_callback: Box::new(|_, _| {}),
-                            failure_callback: Box::new(|err, _| {
+                            success_callback: Box::new(|_| {}),
+                            failure_callback: Box::new(|err| {
                                 println!("Failed to unregister entity: {:?}", err);
                             }),
                         },
@@ -250,29 +250,29 @@ impl LocalUniverse {
                 operations: vec![
                     ChunkOperation::Despawn {
                         id: old_chunk_id.clone(),
-                        success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|err, _| {
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|err| {
                             println!("Failed to despawn chunk: {:?}", err);
                         }),
                     },
                     ChunkOperation::UnloadData {
                         id: old_chunk_id.clone(),
-                        success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|err, _| {
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|err| {
                             println!("Failed to unload chunk data: {:?}", err);
                         }),
                     },
                     ChunkOperation::UnloadMetadata {
                         id: old_chunk_id.clone(),
-                        success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|err, _| {
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|err| {
                             println!("Failed to unload chunk metadata: {:?}", err);
                         }),
                     },
                     ChunkOperation::Unregister {
                         id: old_chunk_id,
-                        success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|err, _| {
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|err| {
                             println!("Failed to unregister chunk: {:?}", err);
                         }),
                     },
@@ -317,31 +317,31 @@ impl LocalUniverse {
                 operations: vec![
                     ChunkOperation::Register {
                         id: new_chunk_id.clone(),
-                        success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|err, _| {
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|err| {
                             println!("Failed to register chunk: {:?}", err);
                         }),
                     },
                     ChunkOperation::LoadMetadata {
                         id: new_chunk_id.clone(),
                         metadata: new_chunk_metadata,
-                        success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|err, _, _| {
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|err| {
                             println!("Failed to load chunk metadata: {:?}", err);
                         }),
                     },
                     ChunkOperation::LoadData {
                         id: new_chunk_id.clone(),
                         data: new_chunk_data,
-                        success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|err, _, _| {
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|err| {
                             println!("Failed to load chunk data: {:?}", err);
                         }),
                     },
                     ChunkOperation::Spawn {
                         id: new_chunk_id,
-                        success_callback: Box::new(|_, _| {}),
-                        failure_callback: Box::new(|err, _| {
+                        success_callback: Box::new(|_| {}),
+                        failure_callback: Box::new(|err| {
                             println!("Failed to spawn chunk: {:?}", err);
                         }),
                     },

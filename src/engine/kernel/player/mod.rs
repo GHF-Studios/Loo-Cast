@@ -224,37 +224,37 @@ impl PlayerManager {
             let _ = global_universe.send_entity_operation_request(EntityOperationRequest::new(vec![
                 EntityOperation::Register { 
                     id: entity_id.clone(), 
-                    success_callback: Box::new(|_, _| {}), 
-                    failure_callback: Box::new(|err, _| {
+                    success_callback: Box::new(|_| {}), 
+                    failure_callback: Box::new(|err| {
                         println!("Failed to register entity: {:?}", err);
                     })
                 },
                 EntityOperation::LoadMetadata { 
                     id: entity_id.clone(), 
                     metadata: entity_metadata, 
-                    success_callback: Box::new(|_, _| {}), 
-                    failure_callback: Box::new(|err, _, _| {
+                    success_callback: Box::new(|_| {}), 
+                    failure_callback: Box::new(|err| {
                         println!("Failed to load entity metadata: {:?}", err);
                     }) 
                 },
                 EntityOperation::LoadData { 
                     id: entity_id.clone(), 
                     data: entity_data, 
-                    success_callback: Box::new(|_, _| {}), 
-                    failure_callback: Box::new(|err, _, _| {
+                    success_callback: Box::new(|_| {}), 
+                    failure_callback: Box::new(|err| {
                         println!("Failed to load entity data: {:?}", err);
                     }) 
                 },
                 EntityOperation::Spawn { 
                     id: entity_id.clone(), 
-                    success_callback: Box::new(|_, _| {}), 
-                    failure_callback: Box::new(|err, _| {
+                    success_callback: Box::new(|_| {}), 
+                    failure_callback: Box::new(|err| {
                         println!("Failed to spawn entity: {:?}", err);
                     }) 
                 },
                 EntityOperation::Command {
                     id: entity_id,
-                    command: Box::new(move |entity_commands| {
+                    command: Box::new(move |mut entity_commands| {
                         entity_commands.insert((
                             SpriteBundle {
                                 sprite: Sprite {
@@ -274,8 +274,8 @@ impl PlayerManager {
                             Damping { linear_damping: LINEAR_DAMPING, angular_damping: 0.0 }
                         ));
                     }),
-                    success_callback: Box::new(|_, _| {}), 
-                    failure_callback: Box::new(|err, _| {
+                    success_callback: Box::new(|_| {}), 
+                    failure_callback: Box::new(|err| {
                         println!("Failed to command entity: {:?}", err);
                     }) 
                 },

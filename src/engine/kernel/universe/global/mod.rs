@@ -76,7 +76,9 @@ impl GlobalUniverse {
             parent_chunk_data.recycled_local_entity_ids.pop().unwrap()
         } else {
             let local_entity_id = parent_chunk_data.current_local_entity_id;
+
             parent_chunk_data.current_local_entity_id += 1;
+            
             local_entity_id
         };
 
@@ -116,39 +118,47 @@ impl GlobalUniverse {
         chunk_data
             .recycled_local_entity_ids
             .push(entity_id.get_local_entity_id().get_id());
+
         Ok(())
     }
 
-    pub fn get_registered_chunk(
-        &self,
-        chunk_id: &ChunkID,
-    ) -> Result<Option<Arc<Mutex<Chunk>>>, String> {
+    pub fn get_registered_chunk(&self,chunk_id: &ChunkID,) -> Result<Option<Arc<Mutex<Chunk>>>, String> {
         let mut path = chunk_id.get_global_id_base10x10().clone();
+
         if path.is_empty() {
             return Err("Failed to get registered chunk: Invalid chunk id.".to_string());
         }
-        let root_chunk_id = path.remove(0);
-        let registered_root_chunks = match self.registered_root_chunks.lock().ok() {
-            Some(registered_root_chunks) => registered_root_chunks,
-            None => {
+
+        let root_local_chunk_id: LocalChunkID = match path.remove(0).try_into() {
+            Ok(root_local_chunk_id) => root_local_chunk_id,
+            Err(_) => {
                 return Err(
-                    "Failed to get registered chunk: Registered root chunks mutex poisoned."
+                    "Failed to check if chunk is registered: Invalid root local chunk id."
                         .to_string(),
                 )
             }
         };
-        let mut registered_chunk = match registered_root_chunks
-            .get(&AbsoluteLocalChunkPos::from(root_chunk_id))
+
+        let mut registered_chunk = match self.registered_root_chunks
+            .get(&root_local_chunk_id)
         {
             Some(registered_chunk) => registered_chunk.clone(),
             None => {
                 return Err("Failed to get registered chunk: Root chunk not registered.".to_string())
             }
         };
-        drop(registered_root_chunks);
 
         for &local_chunk_id in &path {
-            let absolute_local_chunk_pos: AbsoluteLocalChunkPos = local_chunk_id.into();
+            let local_chunk_id: LocalChunkID = match local_chunk_id.try_into() {
+                Ok(local_chunk_id) => local_chunk_id,
+                Err(_) => {
+                    return Err(
+                        "Failed to get registered chunk: Invalid local chunk id."
+                            .to_string(),
+                    )
+                }
+            };
+
             let next_chunk = {
                 let current_chunk = match registered_chunk.lock().ok() {
                     Some(current_chunk) => current_chunk,
@@ -159,6 +169,7 @@ impl GlobalUniverse {
                         )
                     }
                 };
+
                 let current_chunk_data =
                     match *current_chunk {
                         Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => return Err(
@@ -167,11 +178,13 @@ impl GlobalUniverse {
                         ),
                         Chunk::DataLoaded { ref data, .. } => data,
                     };
+
                 let current_chunk_child_chunks = match current_chunk_data.child_chunks {
                     Some(ref current_chunk_child_chunks) => current_chunk_child_chunks,
                     None => return Err("Failed to get registered chunk: Current chunk not allowed to have child chunks.".to_string()),
                 };
-                match current_chunk_child_chunks.get(&absolute_local_chunk_pos) {
+
+                match current_chunk_child_chunks.get(&local_chunk_id) {
                     Some(registered_chunk) => registered_chunk.clone(),
                     None => return Ok(None),
                 }
@@ -185,19 +198,22 @@ impl GlobalUniverse {
 
     pub fn is_chunk_registered(&self, chunk_id: &ChunkID) -> Result<bool, String> {
         let mut path = chunk_id.get_global_id_base10x10().clone();
+
         if path.is_empty() {
             return Err("Failed to check if chunk is registered: Invalid chunk id.".to_string());
         }
-        let root_chunk_id = path.remove(0);
-        let registered_root_chunks = match self.registered_root_chunks.lock() {
-            Ok(registered_root_chunks) => registered_root_chunks,
-            Err(_) => return Err(
-                "Failed to check if chunk is registered: Registered root chunks mutex poisoned."
-                    .to_string(),
-            ),
+
+        let root_local_chunk_id: LocalChunkID = match path.remove(0).try_into() {
+            Ok(root_local_chunk_id) => root_local_chunk_id,
+            Err(_) => {
+                return Err(
+                    "Failed to check if chunk is registered: Invalid root local chunk id."
+                        .to_string(),
+                )
+            }
         };
-        let mut registered_chunk =
-            match registered_root_chunks.get(&AbsoluteLocalChunkPos::from(root_chunk_id)) {
+
+        let mut registered_chunk = match self.registered_root_chunks.get(&root_local_chunk_id) {
                 Some(registered_chunk) => registered_chunk.clone(),
                 None => {
                     return Err(
@@ -206,10 +222,18 @@ impl GlobalUniverse {
                     )
                 }
             };
-        drop(registered_root_chunks);
 
-        for &local_chunk_id in &path {
-            let absolute_local_chunk_pos: AbsoluteLocalChunkPos = local_chunk_id.into();
+        for local_chunk_id in path {
+            let local_chunk_id: LocalChunkID = match local_chunk_id.try_into() {
+                Ok(local_chunk_id) => local_chunk_id,
+                Err(_) => {
+                    return Err(
+                        "Failed to check if chunk is registered: Invalid local chunk id."
+                            .to_string(),
+                    )
+                }
+            };
+
             let next_chunk = {
                 let current_chunk =
                     match registered_chunk.lock() {
@@ -219,6 +243,7 @@ impl GlobalUniverse {
                                 .to_string(),
                         ),
                     };
+
                 let current_chunk_data = match *current_chunk {
                     Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => return Err(
                         "Failed to check if chunk is registered: Current chunk data not loaded."
@@ -226,11 +251,13 @@ impl GlobalUniverse {
                     ),
                     Chunk::DataLoaded { ref data, .. } => data,
                 };
+
                 let current_chunk_child_chunks = match current_chunk_data.child_chunks {
                     Some(ref current_chunk_child_chunks) => current_chunk_child_chunks,
                     None => return Err("Failed to check if chunk is registered: Current chunk not allowed to have child chunks.".to_string()),
                 };
-                match current_chunk_child_chunks.get(&absolute_local_chunk_pos) {
+
+                match current_chunk_child_chunks.get(&local_chunk_id) {
                     Some(registered_chunk) => registered_chunk.clone(),
                     None => return Ok(false),
                 }
@@ -359,30 +386,30 @@ impl GlobalUniverse {
 
         drop(global_universe_operation_requests);
 
-        Self::process_operation_requests(operation_requests, &mut commands, &mut global_universe);
+        global_universe.process_operation_requests(operation_requests, &mut commands);
     }
 
     fn process_operation_requests(
+        &mut self,
         operation_requests: Vec<OperationRequest>,
         commands: &mut Commands,
-        global_universe: &mut GlobalUniverse,
     ) {
         for operation_request in operation_requests {
             match operation_request {
                 OperationRequest::Chunk(chunk_operation_request) => {
-                    Self::process_chunk_operations(chunk_operation_request, commands, global_universe);
+                    self.process_chunk_operations(chunk_operation_request, commands);
                 },
                 OperationRequest::Entity(entity_operation_request) => {
-                    Self::process_entity_operations(entity_operation_request, commands, global_universe);
+                    Self::process_entity_operations(entity_operation_request, commands);
                 },
             }
         }
     }
 
     fn process_chunk_operations(
+        &mut self,
         chunk_operation_request: ChunkOperationRequest,
         commands: &mut Commands,
-        global_universe: &mut GlobalUniverse,
     ) {
         for chunk_operation in chunk_operation_request.operations {
             match chunk_operation {
@@ -390,24 +417,24 @@ impl GlobalUniverse {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::register_chunk(commands, global_universe, id) {
-                    Ok((success, chunk_id)) => {
-                        success_callback(success, chunk_id);
+                } => match Self::register_chunk(commands, id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, chunk_id)) => {
-                        failure_callback(error, chunk_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 ChunkOperation::Unregister {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::unregister_chunk(commands, global_universe, id) {
-                    Ok((success, chunk_id)) => {
-                        success_callback(success, chunk_id);
+                } => match Self::unregister_chunk(commands, id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, chunk_id)) => {
-                        failure_callback(error, chunk_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 ChunkOperation::LoadMetadata {
@@ -415,24 +442,24 @@ impl GlobalUniverse {
                     metadata,
                     success_callback,
                     failure_callback,
-                } => match Self::load_chunk_metadata(global_universe, id, metadata) {
-                    Ok((success, chunk_id)) => {
-                        success_callback(success, chunk_id);
+                } => match Self::load_chunk_metadata(id, metadata) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, chunk_id, chunk_metadata)) => {
-                        failure_callback(error, chunk_id, chunk_metadata);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 ChunkOperation::UnloadMetadata {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::unload_chunk_metadata(global_universe, id) {
-                    Ok((success, chunk_id)) => {
-                        success_callback(success, chunk_id);
+                } => match Self::unload_chunk_metadata(id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, chunk_id)) => {
-                        failure_callback(error, chunk_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 ChunkOperation::LoadData {
@@ -440,48 +467,48 @@ impl GlobalUniverse {
                     data,
                     success_callback,
                     failure_callback,
-                } => match Self::load_chunk_data(global_universe, id, data) {
-                    Ok((success, chunk_id)) => {
-                        success_callback(success, chunk_id);
+                } => match Self::load_chunk_data(id, data) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, chunk_id, chunk_data)) => {
-                        failure_callback(error, chunk_id, chunk_data);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 ChunkOperation::UnloadData {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::unload_chunk_data(global_universe, id) {
-                    Ok((success, chunk_id)) => {
-                        success_callback(success, chunk_id);
+                } => match Self::unload_chunk_data(id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, chunk_id)) => {
-                        failure_callback(error, chunk_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 ChunkOperation::Spawn {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::spawn_chunk(commands, global_universe, id) {
-                    Ok((success, chunk_id)) => {
-                        success_callback(success, chunk_id);
+                } => match Self::spawn_chunk(commands, id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, chunk_id)) => {
-                        failure_callback(error, chunk_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 ChunkOperation::Despawn {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::despawn_chunk(commands, global_universe, id) {
-                    Ok((success, chunk_id)) => {
-                        success_callback(success, chunk_id);
+                } => match Self::despawn_chunk(commands, id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, chunk_id)) => {
-                        failure_callback(error, chunk_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
             }
@@ -491,7 +518,6 @@ impl GlobalUniverse {
     fn process_entity_operations(
         entity_operation_request: EntityOperationRequest,
         commands: &mut Commands,
-        global_universe: &mut GlobalUniverse,
     ) {
         for entity_operation in entity_operation_request.operations {
             match entity_operation {
@@ -499,24 +525,24 @@ impl GlobalUniverse {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::register_entity(commands, global_universe, id) {
-                    Ok((success, entity_id)) => {
-                        success_callback(success, entity_id);
+                } => match Self::register_entity(commands, id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, entity_id)) => {
-                        failure_callback(error, entity_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 EntityOperation::Unregister {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::unregister_entity(commands, global_universe, id) {
-                    Ok((success, entity_id)) => {
-                        success_callback(success, entity_id);
+                } => match Self::unregister_entity(commands, id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, entity_id)) => {
-                        failure_callback(error, entity_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 EntityOperation::LoadMetadata {
@@ -524,24 +550,24 @@ impl GlobalUniverse {
                     metadata,
                     success_callback,
                     failure_callback,
-                } => match Self::load_entity_metadata(global_universe, id, metadata) {
-                    Ok((success, entity_id)) => {
-                        success_callback(success, entity_id);
+                } => match Self::load_entity_metadata(id, metadata) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, entity_id, chunk_metadata)) => {
-                        failure_callback(error, entity_id, chunk_metadata);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 EntityOperation::UnloadMetadata {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::unload_entity_metadata(global_universe, id) {
-                    Ok((success, entity_id)) => {
-                        success_callback(success, entity_id);
+                } => match Self::unload_entity_metadata(id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, entity_id)) => {
-                        failure_callback(error, entity_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 EntityOperation::LoadData {
@@ -549,48 +575,48 @@ impl GlobalUniverse {
                     data,
                     success_callback,
                     failure_callback,
-                } => match Self::load_entity_data(global_universe, id, data) {
-                    Ok((success, entity_id)) => {
-                        success_callback(success, entity_id);
+                } => match Self::load_entity_data(id, data) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, entity_id, entity_data)) => {
-                        failure_callback(error, entity_id, entity_data);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 EntityOperation::UnloadData {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::unload_entity_data(global_universe, id) {
-                    Ok((success, entity_id)) => {
-                        success_callback(success, entity_id);
+                } => match Self::unload_entity_data(id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, entity_id)) => {
-                        failure_callback(error, entity_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 EntityOperation::Spawn {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::spawn_entity(commands, global_universe, id) {
-                    Ok((success, entity_id)) => {
-                        success_callback(success, entity_id);
+                } => match Self::spawn_entity(commands, id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, entity_id)) => {
-                        failure_callback(error, entity_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 EntityOperation::Despawn {
                     id,
                     success_callback,
                     failure_callback,
-                } => match Self::despawn_entity(commands, global_universe, id) {
-                    Ok((success, entity_id)) => {
-                        success_callback(success, entity_id);
+                } => match Self::despawn_entity(commands, id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, entity_id)) => {
-                        failure_callback(error, entity_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 EntityOperation::Command { 
@@ -598,12 +624,12 @@ impl GlobalUniverse {
                     command, 
                     success_callback, 
                     failure_callback 
-                } => match Self::command_entity(command, commands, global_universe, id) {
-                    Ok((success, entity_id)) => {
-                        success_callback(success, entity_id);
+                } => match Self::command_entity(command, commands, id) {
+                    Ok(success) => {
+                        success_callback(success);
                     }
-                    Err((error, entity_id)) => {
-                        failure_callback(error, entity_id);
+                    Err(error) => {
+                        failure_callback(error);
                     }
 
                 }
@@ -641,7 +667,6 @@ impl GlobalUniverse {
     }
 
     fn register_chunk(
-        &mut self,
         commands: &mut Commands,
         parent_chunk: &mut Chunk,
         local_chunk_id: LocalChunkID,
