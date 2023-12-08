@@ -852,142 +852,125 @@ impl GlobalUniverse {
 
     fn spawn_chunk(
         _commands: &mut Commands,
-        global_universe: &mut GlobalUniverse,
-        chunk_id: ChunkID,
-    ) -> Result<(SpawnChunkSuccess, ChunkID), (SpawnChunkError, ChunkID)> {
-        let chunk_mutex = match global_universe.get_registered_chunk(&chunk_id) {
-            Ok(chunk_mutex) => chunk_mutex,
-            Err(_) => {
-                return Err((SpawnChunkError::FailedToGetChunk, chunk_id));
-            }
-        };
-        let chunk_mutex = match chunk_mutex {
-            Some(chunk_mutex) => chunk_mutex,
-            None => {
-                return Err((SpawnChunkError::ChunkNotRegistered, chunk_id));
-            }
-        };
-        let mut chunk = match chunk_mutex.lock() {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((SpawnChunkError::ChunkMutexPoisoned, chunk_id));
-            }
-        };
-
-        let (chunk_metadata, chunk_data) = match *chunk {
+        parent_chunk: &mut Chunk,
+        chunk: &mut Chunk,
+    ) -> Result<SpawnChunkSuccess, SpawnChunkError> {
+        let parent_chunk_data = match *parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
-                return Err((SpawnChunkError::ChunkDataNotLoaded, chunk_id));
-            }
-            Chunk::DataLoaded {
-                ref metadata,
-                ref mut data,
-                ..
-            } => (metadata, data),
-        };
-
-        if let Some(ref parent_chunk) = chunk_metadata.parent_chunk {
-            let parent_chunk = match parent_chunk.lock() {
-                Ok(parent_chunk) => parent_chunk,
-                Err(_) => {
-                    return Err((SpawnChunkError::ParentChunkMutexPoisoned, chunk_id));
-                }
-            };
-
-            let parent_chunk_data = match *parent_chunk {
-                Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
-                    return Err((SpawnChunkError::ParentChunkNotSpawned, chunk_id));
-                }
-                Chunk::DataLoaded { ref data, .. } => data,
-            };
-
-            match parent_chunk_data.run_state {
-                ChunkRunState::Despawned => {
-                    return Err((SpawnChunkError::ParentChunkNotSpawned, chunk_id));
-                }
-                ChunkRunState::Spawned => {}
-            }
-        };
-
-        match chunk_data.run_state {
-            ChunkRunState::Despawned => {
-                chunk_data.run_state = ChunkRunState::Spawned;
-                Ok((SpawnChunkSuccess, chunk_id))
-            }
-            ChunkRunState::Spawned => {
-                Err((SpawnChunkError::ChunkAlreadySpawned, chunk_id))
-            }
-        }
-    }
-
-    fn despawn_chunk(
-        _commands: &mut Commands,
-        global_universe: &mut GlobalUniverse,
-        chunk_id: ChunkID,
-    ) -> Result<(DespawnChunkSuccess, ChunkID), (DespawnChunkError, ChunkID)> {
-        let chunk = match global_universe.get_registered_chunk(&chunk_id) {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((DespawnChunkError::FailedToGetChunk, chunk_id));
-            }
-        };
-        let chunk = match chunk {
-            Some(chunk) => chunk,
-            None => {
-                return Err((DespawnChunkError::ChunkNotRegistered, chunk_id));
-            }
-        };
-        let mut chunk = match chunk.lock() {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return Err((DespawnChunkError::ChunkMutexPoisoned, chunk_id));
-            }
-        };
-
-        let chunk_data = match *chunk {
-            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
-                return Err((DespawnChunkError::ChunkAlreadyDespawned, chunk_id));
+                return Err(SpawnChunkError::ParentChunkDataNotLoaded);
             }
             Chunk::DataLoaded { ref mut data, .. } => data,
         };
 
-        if let Some(ref chunk_child_chunks) = chunk_data.child_chunks {
-            if !chunk_child_chunks.is_empty() {
-                return Err((DespawnChunkError::ChildChunksStillSpawned, chunk_id));
+        match parent_chunk_data.run_state {
+            ChunkRunState::Despawned => {
+                return Err(SpawnChunkError::ParentChunkNotSpawned);
+            }
+            ChunkRunState::Spawned => {}
+        }
+
+        let parent_chunk_child_chunks = match parent_chunk_data.child_chunks {
+            Some(ref mut parent_chunk_child_chunks) => parent_chunk_child_chunks,
+            None => {
+                return Err(SpawnChunkError::ParentChunkNotAllowedToHaveChildChunks);
             }
         };
 
-        for (_, entity) in chunk_data.registered_entities.iter() {
-            let entity = match entity.lock() {
-                Ok(entity) => entity,
+        let (chunk_id, chunk_data) = match *chunk {
+            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
+                return Err(SpawnChunkError::ChunkDataNotLoaded);
+            }
+            Chunk::DataLoaded { ref id, ref mut data, .. } => (id, data),
+        };
+
+        match chunk_data.run_state {
+            ChunkRunState::Despawned => {}
+            ChunkRunState::Spawned => {
+                return Err(SpawnChunkError::ChunkAlreadySpawned);
+            }
+        };
+
+        let local_chunk_id = match chunk_id.compute_local_chunk_id() {
+            Ok(local_chunk_id) => local_chunk_id,
+            Err(_) => {
+                return Err(SpawnChunkError::FailedToComputeLocalChunkID);
+            }
+        };
+
+        if !parent_chunk_child_chunks.contains_key(&local_chunk_id) {
+            return Err(SpawnChunkError::WrongParentChunk);
+        }
+
+        chunk_data.run_state = ChunkRunState::Spawned;
+
+        Ok(SpawnChunkSuccess)
+    }
+
+    fn despawn_chunk(
+        _commands: &mut Commands,
+        chunk: &mut Chunk,
+    ) -> Result<DespawnChunkSuccess, DespawnChunkError> {
+        let chunk_data = match *chunk {
+            Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
+                return Err(DespawnChunkError::ChunkDataNotLoaded);
+            }
+            Chunk::DataLoaded { ref mut data, .. } => data,
+        };
+
+        if chunk_data.run_state == ChunkRunState::Despawned {
+            return Err(DespawnChunkError::ChunkAlreadyDespawned);
+        }
+
+        if let Some(child_chunks) = chunk_data.child_chunks {
+            for child_chunk in child_chunks.values() {
+                let child_chunk = match child_chunk.lock() {
+                    Ok(child_chunk) => child_chunk,
+                    Err(_) => {
+                        return Err(DespawnChunkError::ChildChunkMutexPoisoned);
+                    }
+                };
+
+                let child_chunk_data = match *child_chunk {
+                    Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
+                        continue;
+                    }
+                    Chunk::DataLoaded { ref data, .. } => data,
+                };
+
+                match child_chunk_data.run_state {
+                    ChunkRunState::Despawned => {}
+                    ChunkRunState::Spawned => {
+                        return Err(DespawnChunkError::ChildChunkStillSpawned);
+                    }
+                }
+            }
+        }
+
+        for registered_entity in chunk_data.registered_entities.values() {
+            let registered_entity = match registered_entity.lock() {
+                Ok(registered_entity) => registered_entity,
                 Err(_) => {
-                    return Err((DespawnChunkError::RegisteredEntityMutexPoisoned, chunk_id));
+                    return Err(DespawnChunkError::RegisteredEntityMutexPoisoned);
                 }
             };
 
-            let entity_data = match *entity {
+            let registered_entity_data = match *registered_entity {
                 entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {
                     continue;
                 }
                 entity::Entity::DataLoaded { ref data, .. } => data,
             };
 
-            match entity_data.run_state {
+            match registered_entity_data.run_state {
                 EntityRunState::Despawned => {}
-                EntityRunState::Spawned { .. } => {
-                    return Err((DespawnChunkError::RegisteredEntityStillSpawned, chunk_id));
+                EntityRunState::Spawned => {
+                    return Err(DespawnChunkError::RegisteredEntityStillSpawned);
                 }
             }
         }
 
-        match chunk_data.run_state {
-            ChunkRunState::Despawned => {
-                Err((DespawnChunkError::ChunkAlreadyDespawned, chunk_id))
-            }
-            ChunkRunState::Spawned => {
-                chunk_data.run_state = ChunkRunState::Despawned;
-                Ok((DespawnChunkSuccess, chunk_id))
-            }
-        }
+        chunk_data.run_state = ChunkRunState::Despawned;
+        Ok(DespawnChunkSuccess)
     }
 
     fn register_entity(

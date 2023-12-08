@@ -137,42 +137,31 @@ pub enum LoadChunkDataError {
 
 #[derive(Debug)]
 pub enum UnloadChunkDataError {
-    ChunkMutexPoisoned,
-
-    ChunkNotRegistered,
-    ChildChunksStillRegistered,
     ChunkDataAlreadyUnloaded,
     ChunkStillSpawned,
+    ChildChunksStillRegistered,
     EntitiesStillRegistered,
-
-    FailedToGetChunk,
 }
 
 #[derive(Debug)]
 pub enum SpawnChunkError {
-    ChunkMutexPoisoned,
-    ParentChunkMutexPoisoned,
-
+    ParentChunkDataNotLoaded,
     ParentChunkNotSpawned,
-    ChunkNotRegistered,
+    ParentChunkNotAllowedToHaveChildChunks,
     ChunkDataNotLoaded,
     ChunkAlreadySpawned,
-
-    FailedToGetChunk,
+    FailedToComputeLocalChunkID,
+    WrongParentChunk,
 }
 
 #[derive(Debug)]
 pub enum DespawnChunkError {
-    ChunkMutexPoisoned,
-    RegisteredEntityMutexPoisoned,
-
-    ChunkNotRegistered,
     ChunkDataNotLoaded,
     ChunkAlreadyDespawned,
-    ChildChunksStillSpawned,
+    ChildChunkMutexPoisoned,
+    ChildChunkStillSpawned,
+    RegisteredEntityMutexPoisoned,
     RegisteredEntityStillSpawned,
-
-    FailedToGetChunk,
 }
 
 // Structs
