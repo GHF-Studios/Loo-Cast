@@ -310,12 +310,19 @@ impl ChunkID {
         })
     }
 
-    pub fn get_scale_index(&self) -> u8 {
-        self.scale_index
+    pub fn get_parent_chunk_id(&self) -> Option<&ChunkID> {
+        match &self.parent_chunk_id {
+            Some(parent_chunk_id) => Some(parent_chunk_id),
+            None => None,
+        }
     }
 
     pub fn get_local_chunk_id(&self) -> LocalChunkID {
         self.local_chunk_id
+    }
+
+    pub fn get_scale_index(&self) -> u8 {
+        self.scale_index
     }
 }
 
