@@ -58,7 +58,7 @@ impl Plugin for GlobalUniversePlugin {
 }
 
 impl GlobalUniverse {
-    pub fn generate_entity_id(parent_chunk: &mut Chunk) -> Result<EntityID, String> {
+    pub(in crate::engine::kernel::universe::api) fn generate_entity_id(parent_chunk: &mut Chunk) -> Result<EntityID, String> {
         let (parent_chunk_id, parent_chunk_data) = match parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(
@@ -96,7 +96,7 @@ impl GlobalUniverse {
         Ok(entity_id)
     }
 
-    pub fn recycle_entity_id(parent_chunk: &mut Chunk, entity_id: EntityID) -> Result<(), String> {
+    pub(in crate::engine::kernel::universe::api) fn recycle_entity_id(parent_chunk: &mut Chunk, entity_id: EntityID) -> Result<(), String> {
         let chunk_data = match parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(
@@ -121,7 +121,7 @@ impl GlobalUniverse {
         Ok(())
     }
 
-    pub fn get_registered_chunk(&self,chunk_id: &ChunkID,) -> Result<Option<Arc<Mutex<Chunk>>>, String> {
+    pub(in crate::engine::kernel::universe::api) fn get_registered_chunk(&self,chunk_id: &ChunkID,) -> Result<Option<Arc<Mutex<Chunk>>>, String> {
         let mut path = chunk_id.get_global_id_base10x10().clone();
 
         if path.is_empty() {
@@ -195,7 +195,7 @@ impl GlobalUniverse {
         Ok(Some(registered_chunk))
     }
 
-    pub fn is_chunk_registered(&self, chunk_id: &ChunkID) -> Result<bool, String> {
+    pub(in crate::engine::kernel::universe::api) fn is_chunk_registered(&self, chunk_id: &ChunkID) -> Result<bool, String> {
         let mut path = chunk_id.get_global_id_base10x10().clone();
 
         if path.is_empty() {
@@ -268,7 +268,7 @@ impl GlobalUniverse {
         Ok(true)
     }
 
-    pub fn get_chunk_load_state(chunk: &Chunk) -> ChunkLoadState {
+    pub(in crate::engine::kernel::universe::api) fn get_chunk_load_state(chunk: &Chunk) -> ChunkLoadState {
         match *chunk {
             Chunk::Registered { .. } => ChunkLoadState::Registered,
             Chunk::MetadataLoaded { .. } => ChunkLoadState::MetadataLoaded,
@@ -276,7 +276,7 @@ impl GlobalUniverse {
         }
     }
 
-    pub fn get_registered_entity(
+    pub(in crate::engine::kernel::universe::api) fn get_registered_entity(
         parent_chunk: &Chunk,
         entity_id: &EntityID,
     ) -> Result<Option<Arc<Mutex<entity::Entity>>>, String> {
@@ -299,7 +299,7 @@ impl GlobalUniverse {
         }
     }
 
-    pub fn is_entity_registered(
+    pub(in crate::engine::kernel::universe::api) fn is_entity_registered(
         parent_chunk: &Chunk,
         entity_id: &EntityID,
     ) -> Result<bool, String> {
@@ -316,7 +316,7 @@ impl GlobalUniverse {
         Ok(parent_chunk_data.registered_entities.contains_key(&entity_id.get_local_entity_id()))
     }
 
-    pub fn get_entity_load_state(entity: &entity::Entity) -> EntityLoadState {
+    pub(in crate::engine::kernel::universe::api) fn get_entity_load_state(entity: &entity::Entity) -> EntityLoadState {
         match *entity {
             entity::Entity::Registered { .. } => EntityLoadState::Registered,
             entity::Entity::MetadataLoaded { .. } => EntityLoadState::MetadataLoaded,
@@ -324,7 +324,7 @@ impl GlobalUniverse {
         }
     }
 
-    pub fn send_chunk_operation_request(
+    pub(in crate::engine::kernel::universe::api) fn send_chunk_operation_request(
         &mut self,
         request: ChunkOperationRequest,
     ) -> Result<(), String> {
@@ -340,7 +340,7 @@ impl GlobalUniverse {
         Ok(())
     }
 
-    pub fn send_entity_operation_request(
+    pub(in crate::engine::kernel::universe::api) fn send_entity_operation_request(
         &mut self,
         request: EntityOperationRequest,
     ) -> Result<(), String> {

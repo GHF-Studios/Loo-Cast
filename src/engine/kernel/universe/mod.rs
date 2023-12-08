@@ -1,4 +1,5 @@
 // Modules
+pub mod api;
 pub mod chunk;
 pub mod entity;
 pub mod global;
