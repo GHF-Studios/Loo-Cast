@@ -35,6 +35,12 @@ pub struct ChunkID {
 }
 
 // Implementations
+impl Into<(u8, u8)> for LocalChunkID {
+    fn into(self) -> (u8, u8) {
+        (self.id / 10, self.id % 10)
+    }
+}
+
 impl PartialEq for LocalChunkID {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
@@ -47,11 +53,17 @@ impl Hash for LocalChunkID {
     }
 }
 
+impl LocalChunkID {
+    pub fn new(id: u8) -> Result<Self, String> {
+        if id > 99 {
+            return Err("Cannot create local chunk ID: ID is too big.".to_string());
+        }
 
+        Ok(Self { id })
+    }
 
-impl From<EntityID> for ChunkID {
-    fn from(entity_id: EntityID) -> Self {
-        entity_id.get_parent_chunk_id().clone()
+    pub fn get_id(&self) -> u8 {
+        self.id
     }
 }
 
@@ -181,6 +193,51 @@ impl Default for ChunkID {
 }
 
 impl ChunkID {
+    pub fn new_id(parent_chunk_id: ChunkID, local_chunk_id: LocalChunkID) -> Result<ChunkID, String> {
+        if parent_chunk_id.scale_index == 63 {
+            return Err("Cannot create chunk ID: Parent chunk already has max scale index.".to_string());
+        }
+
+        let mut global_id_base10x10 = parent_chunk_id.global_id_base10x10.clone();
+        global_id_base10x10.push(local_chunk_id.into());
+
+        let global_id_base10 = BASE10X10_CONVERTER
+            .convert_from_base10x10(global_id_base10x10.clone())
+            .expect("Computing the Base10 ID failed.");
+        let global_id_base57 = BASE57_CONVERTER
+            .convert_to_base57(global_id_base10.clone())
+            .expect("Computing the Base57 ID failed.");
+
+        let scale_index = global_id_base10x10.len() as u8 - 1;
+
+        Ok(ChunkID {
+            scale_index,
+            global_id_base10,
+            global_id_base10x10,
+            global_id_base57,
+        })
+    }
+
+    pub fn new_root_id(local_chunk_id: LocalChunkID) -> ChunkID {
+        let global_id_base10x10 = vec![local_chunk_id.into()];
+
+        let global_id_base10 = BASE10X10_CONVERTER
+            .convert_from_base10x10(global_id_base10x10.clone())
+            .expect("Computing the Base10 ID failed.");
+        let global_id_base57 = BASE57_CONVERTER
+            .convert_to_base57(global_id_base10.clone())
+            .expect("Computing the Base57 ID failed.");
+
+        let scale_index = global_id_base10x10.len() as u8 - 1;
+
+        ChunkID {
+            scale_index,
+            global_id_base10,
+            global_id_base10x10,
+            global_id_base57,
+        }
+    }
+
     pub fn get_scale_index(&self) -> u8 {
         self.scale_index
     }

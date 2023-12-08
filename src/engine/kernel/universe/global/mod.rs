@@ -40,7 +40,7 @@ pub struct GlobalUniversePlugin;
 
 pub struct GlobalUniverse {
     pub(in crate::engine::kernel::universe) registered_root_chunks:
-        Arc<Mutex<HashMap<AbsoluteLocalChunkPos, Arc<Mutex<Chunk>>>>>,
+        HashMap<LocalChunkID, Arc<Mutex<Chunk>>>,
     pub(in crate::engine::kernel::universe) operation_requests: Arc<Mutex<Vec<OperationRequest>>>,
 }
 

@@ -28,7 +28,7 @@ pub enum ChunkRunState {
 #[derive(Debug, Clone)]
 pub struct ChunkData {
     pub(in crate::engine::kernel::universe) run_state: ChunkRunState,
-    pub(in crate::engine::kernel::universe) child_chunks: Option<HashMap<AbsoluteLocalChunkPos, Arc<Mutex<Chunk>>>>,
+    pub(in crate::engine::kernel::universe) child_chunks: Option<HashMap<LocalChunkID, Arc<Mutex<Chunk>>>>,
     pub(in crate::engine::kernel::universe) current_local_entity_id: u64,
     pub(in crate::engine::kernel::universe) recycled_local_entity_ids: Vec<u64>,
     pub(in crate::engine::kernel::universe) registered_entities: HashMap<LocalEntityID, Arc<Mutex<entity::Entity>>>,

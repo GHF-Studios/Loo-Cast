@@ -99,7 +99,7 @@ impl UniverseManager {
     ) {
         if load_global_universe_event_reader.iter().last().is_some() {
             universe_manager.registered_global_universe = Some(Arc::new(Mutex::new(GlobalUniverse {
-                registered_root_chunks: Arc::new(Mutex::new(HashMap::new())),
+                registered_root_chunks: HashMap::new(),
                 operation_requests: Arc::new(Mutex::new(Vec::new())),
             })));
         }
