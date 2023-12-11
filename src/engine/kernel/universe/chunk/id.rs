@@ -18,9 +18,34 @@ use std::hash::*;
 // Enums
 
 // Structs
-#[derive(Eq, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
+pub struct LocalChunkIDBase10x10 {
+    id: (u8, u8),
+}
+
+#[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
+pub struct LocalChunkIDBase10 {
+    id: u8,
+}
+
+#[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
 pub struct LocalChunkID {
     id: u8,
+}
+
+#[derive(PartialEq, Eq, Clone, Hash, Debug)]
+pub struct GlobalChunkIDBase10x10 {
+    id: Vec<(u8, u8)>,
+}
+
+#[derive(PartialEq, Eq, Clone, Hash, Debug)]
+pub struct GlobalChunkIDBase10 {
+    id: BigUint,
+}
+
+#[derive(PartialEq, Eq, Clone, Hash, Debug)]
+pub struct GlobalChunkIDBase57 {
+    id: String,
 }
 
 #[derive(Eq, Clone, Debug)]
@@ -31,67 +56,129 @@ pub struct ChunkID {
 }
 
 // Implementations
-impl TryFrom<(u8, u8)> for LocalChunkID {
-    type Error = String;
+impl Default for LocalChunkIDBase10x10 {
+    fn default() -> Self {
+        Self { id: (0, 0) }
+    }
+}
 
-    fn try_from(local_chunk_id_base10x10: (u8, u8)) -> Result<Self, Self::Error> {
-        if local_chunk_id_base10x10.0 > 9 || local_chunk_id_base10x10.1 > 9 {
-            return Err("Cannot create local chunk integer ID from tuple ID: Tuple ID is too big.".to_string());
+impl LocalChunkIDBase10x10 {
+    pub fn new_from_tuple(id: (u8, u8)) -> Result<LocalChunkIDBase10x10, String> {
+        if id.0 > 9 || id.1 > 9 {
+            return Err("Cannot create local chunk ID Base10x10 from tuple: Tuple ID is too big.".to_string());
         }
 
         Ok(Self {
-            id: local_chunk_id_base10x10.0 * 10 + local_chunk_id_base10x10.1,
+            id,
         })
     }
-}
 
-impl TryInto<(u8, u8)> for LocalChunkID {
-    type Error = String;
-
-    fn try_into(self) -> Result<(u8, u8), Self::Error> {
-        if self.id > 99 {
-            return Err("Cannot convert local chunk ID to tuple: Local chunk ID is too big.".to_string());
-        }
-
-        Ok((self.id / 10, self.id % 10))
-    }
-}
-
-impl TryFrom<u8> for LocalChunkID {
-    type Error = String;
-
-    fn try_from(local_chunk_id_base10: u8) -> Result<Self, Self::Error> {
-        if local_chunk_id_base10 > 99 {
-            return Err("Cannot create local chunk integer ID from integer ID: Integer ID is too big.".to_string());
-        }
-
-        Ok(Self {
-            id: local_chunk_id_base10,
-        })
-    }
-}
-
-impl Into<u8> for LocalChunkID {
-    fn into(self) -> u8 {
+    pub fn get_id(&self) -> (u8, u8) {
         self.id
     }
 }
 
-impl PartialEq for LocalChunkID {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+impl Default for LocalChunkIDBase10 {
+    fn default() -> Self {
+        Self { id: 0 }
     }
 }
 
-impl Hash for LocalChunkID {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
+impl LocalChunkIDBase10 {
+    pub fn new_from_integer(id: u8) -> Result<LocalChunkIDBase10, String> {
+        if id > 9 {
+            return Err("Cannot create local chunk ID Base10 from integer: Integer ID is too big.".to_string());
+        }
+
+        Ok(Self {
+            id,
+        })
+    }
+
+    pub fn get_id(&self) -> u8 {
+        self.id
     }
 }
 
 impl Default for LocalChunkID {
     fn default() -> Self {
         Self { id: 0 }
+    }
+}
+
+impl LocalChunkID {
+    pub fn new_from_base10x10(id: LocalChunkIDBase10x10) -> LocalChunkID {
+        let id = id.get_id();
+
+        Self {
+            id: id.0 * 10 + id.1,
+        }
+    }
+
+    pub fn new_from_base10(id: LocalChunkIDBase10) -> LocalChunkID {
+        let id = id.get_id();
+
+        Self {
+            id,
+        }
+    }
+
+    pub fn get_base10x10(&self) -> (u8, u8) {
+        (self.id / 10, self.id % 10)
+    }
+
+    pub fn get_base10(&self) -> u8 {
+        self.id
+    }
+}
+
+impl GlobalChunkIDBase10x10 {
+    pub fn new_from_vec(id: Vec<(u8, u8)>) -> Result<GlobalChunkIDBase10x10, String> {
+        if id.is_empty() {
+            return Err("Cannot create global chunk ID Base10x10 from vector: Vector is empty.".to_string());
+        }
+
+        for id in &id {
+            if id.0 > 9 || id.1 > 9 {
+                return Err("Cannot create global chunk ID Base10x10 from vector: Vector ID element is too big.".to_string());
+            }
+        }
+
+        Ok(Self {
+            id,
+        })
+    }
+
+    pub fn get_id(&self) -> &Vec<(u8, u8)> {
+        &self.id
+    }
+}
+
+impl GlobalChunkIDBase10 {
+    pub fn new_from_biguint(id: BigUint) -> GlobalChunkIDBase10 {
+        Self {
+            id,
+        }
+    }
+
+    pub fn get_id(&self) -> &BigUint {
+        &self.id
+    }
+}
+
+impl GlobalChunkIDBase57 {
+    pub fn new_from_string(id: String) -> Result<GlobalChunkIDBase57, String> {
+        if id.is_empty() {
+            return Err("Cannot create global chunk ID Base57 from string: String is empty.".to_string());
+        }
+
+        Ok(Self {
+            id,
+        })
+    }
+
+    pub fn get_id(&self) -> &String {
+        &self.id
     }
 }
 
@@ -109,7 +196,7 @@ impl TryFrom<Vec<(u8, u8)>> for ChunkID {
         };
 
         for local_chunk_id_base10x10 in chunk_id_base10x10 {
-            let local_chunk_id = match LocalChunkID::try_from(local_chunk_id_base10x10) {
+            let local_chunk_id = match LocalChunkID::new_from_base10x10(local_chunk_id_base10x10) {
                 Ok(local_chunk_id) => local_chunk_id,
                 Err(e) => return Err(format!("Cannot convert chunk ID Base10x10 to chunk ID: {}", e)),
             };
@@ -148,11 +235,11 @@ impl TryInto<Vec<(u8, u8)>> for ChunkID {
     }
 }
 
-impl TryFrom<BigUint> for ChunkID {
+impl TryFrom<GlobalChunkIDBase10> for ChunkID {
     type Error = String;
 
-    fn try_from(chunk_id_base10: BigUint) -> Result<Self, Self::Error> {
-        let chunk_id_base10x10 = match BASE10X10_CONVERTER.convert_to_base10x10(chunk_id_base10) {
+    fn try_from(chunk_id_base10: GlobalChunkIDBase10) -> Result<Self, Self::Error> {
+        let chunk_id_base10x10 = match BASE10X10_CONVERTER.convert_to_base10x10(chunk_id_base10.get_id().clone()) {
             Ok(global_id_base10x10) => global_id_base10x10,
             Err(e) => return Err(format!("Cannot convert chunk ID Base10 to chunk ID Base10x10: {}", e)),
         };
@@ -166,10 +253,10 @@ impl TryFrom<BigUint> for ChunkID {
     }
 }
 
-impl TryInto<BigUint> for ChunkID {
+impl TryInto<GlobalChunkIDBase10> for ChunkID {
     type Error = String;
 
-    fn try_into(self) -> Result<BigUint, Self::Error> {
+    fn try_into(self) -> Result<GlobalChunkIDBase10, Self::Error> {
         let chunk_id_base10x10: Vec<(u8, u8)> = match self.try_into() {
             Ok(chunk_id_base10x10) => chunk_id_base10x10,
             Err(e) => return Err(format!("Cannot convert chunk ID to chunk ID Base10x10: {}", e)),
@@ -180,22 +267,22 @@ impl TryInto<BigUint> for ChunkID {
             Err(e) => return Err(format!("Cannot convert chunk ID Base10x10 to chunk ID Base10: {}", e)),
         };
 
-        Ok(chunk_id_base10)
+        Ok(GlobalChunkIDBase10::new_from_biguint(chunk_id_base10))
     }
 }
 
-impl TryFrom<&str> for ChunkID {
+impl TryFrom<GlobalChunkIDBase57> for ChunkID {
     type Error = String;
 
-    fn try_from(chunk_id_base57: &str) -> Result<Self, Self::Error> {
-        let chunk_id_base10 = match BASE57_CONVERTER.convert_from_base57(chunk_id_base57) {
+    fn try_from(chunk_id_base57: GlobalChunkIDBase57) -> Result<Self, Self::Error> {
+        let chunk_id_base10 = match BASE57_CONVERTER.convert_from_base57(chunk_id_base57.get_id().as_str()) {
             Ok(global_id_base10) => global_id_base10,
-            Err(e) => return Err(format!("Cannot convert chunk ID Base57 to chunk ID: {}", e)),
+            Err(e) => return Err(format!("Cannot convert chunk ID Base57 to chunk ID Base10: {}", e)),
         };
 
         let chunk_id_base10x10 = match BASE10X10_CONVERTER.convert_to_base10x10(chunk_id_base10) {
             Ok(global_id_base10x10) => global_id_base10x10,
-            Err(e) => return Err(format!("Cannot convert chunk ID Base57 to chunk ID: {}", e)),
+            Err(e) => return Err(format!("Cannot convert chunk ID Base57 to chunk ID Base10x10: {}", e)),
         };
 
         let chunk_id: ChunkID = match chunk_id_base10x10.try_into() {
@@ -207,10 +294,10 @@ impl TryFrom<&str> for ChunkID {
     }
 }
 
-impl TryInto<String> for ChunkID {
+impl TryInto<GlobalChunkIDBase57> for ChunkID {
     type Error = String;
 
-    fn try_into(self) -> Result<String, Self::Error> {
+    fn try_into(self) -> Result<GlobalChunkIDBase57, Self::Error> {
         let chunk_id_base10x10: Vec<(u8, u8)> = match self.try_into() {
             Ok(chunk_id_base10x10) => chunk_id_base10x10,
             Err(e) => return Err(format!("Cannot convert chunk ID to chunk ID Base10x10: {}", e)),
@@ -226,37 +313,32 @@ impl TryInto<String> for ChunkID {
             Err(e) => return Err(format!("Cannot convert chunk ID Base10 to chunk ID Base57: {}", e)),
         };
 
+        let chunk_id_base57 = match GlobalChunkIDBase57::new_from_string(chunk_id_base57) {
+            Ok(global_id_base57) => global_id_base57,
+            Err(e) => return Err(format!("Cannot convert chunk ID Base57 to chunk ID: {}", e)),
+        };
+
         Ok(chunk_id_base57)
     }
 }
 
-impl TryFrom<(u8, u8)> for ChunkID {
-    type Error = String;
-
-    fn try_from(local_chunk_id_base10x10: (u8, u8)) -> Result<Self, Self::Error> {
-        let local_chunk_id = match LocalChunkID::try_from(local_chunk_id_base10x10) {
-            Ok(local_chunk_id) => local_chunk_id,
-            Err(e) => return Err(format!("Cannot convert local chunk ID Base10x10 to root chunk ID: {}", e)),
-        };
-
-        let chunk_id = ChunkID::new_root(local_chunk_id);
-
-        Ok(chunk_id)
+impl From<LocalChunkID> for ChunkID {
+    fn from(local_chunk_id: LocalChunkID) -> Self {
+        ChunkID::new_root(local_chunk_id)
     }
 }
 
-impl TryInto<(u8, u8)> for ChunkID {
+impl TryInto<LocalChunkID> for ChunkID {
     type Error = String;
 
-    fn try_into(self) -> Result<(u8, u8), Self::Error> {
+    fn try_into(self) -> Result<LocalChunkID, Self::Error> {
+        if self.parent_chunk_id.is_some() {
+            return Err("Cannot convert chunk ID to local chunk ID: Chunk ID is not a root chunk ID.".to_string());
+        }
+
         let local_chunk_id = self.local_chunk_id;
 
-        let local_chunk_id_base10x10: (u8, u8) = match local_chunk_id.try_into() {
-            Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
-            Err(e) => return Err(format!("Cannot convert root chunk ID to local chunk ID Base10x10: {}", e)),
-        };
-
-        Ok(local_chunk_id_base10x10)
+        Ok(local_chunk_id)
     }
 }
 
