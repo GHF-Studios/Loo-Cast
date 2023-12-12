@@ -93,7 +93,8 @@ impl GlobalChunkIDBase10x10Converter {
         }
     }
 
-    pub fn convert_to_base10x10(&self, mut input: BigUint) -> Result<Vec<(u8, u8)>, String> {
+    pub fn convert_to_base10x10(&self, mut input: GlobalChunkIDBase10) -> Result<GlobalChunkIDBase10x10, String> {
+        let mut input = input.id;
         let mut expected_pairs = 1u32;
 
         for sum in &self.power_sums {
@@ -151,10 +152,17 @@ impl GlobalChunkIDBase10x10Converter {
 
         input_digit_pairs.reverse();
 
-        Ok(input_digit_pairs)
+        let output = match GlobalChunkIDBase10x10::new_from_vec(input_digit_pairs) {
+            Ok(output) => output,
+            Err(e) => return Err(format!("Cannot convert chunk ID Base10 to chunk ID Base10x10: {}", e)),
+        };
+
+        Ok(output)
     }
 
-    pub fn convert_from_base10x10(&self, input: Vec<(u8, u8)>) -> Result<BigUint, String> {
+    pub fn convert_from_base10x10(&self, input: GlobalChunkIDBase10x10) -> Result<GlobalChunkIDBase10, String> {
+        let mut input = input.id;
+        
         if input.len() > self.max_digits {
             return Err("Base10x10 input has more pairs than allowed by the specified max number of base10x10 digits!".to_string());
         }
@@ -182,7 +190,9 @@ impl GlobalChunkIDBase10x10Converter {
             result += self.offsets[i].clone();
         }
 
-        Ok(result)
+        let output = GlobalChunkIDBase10::new_from_biguint(result);
+
+        Ok(output)
     }
 }
 
@@ -193,7 +203,8 @@ impl GlobalChunkIDBase57Converter {
         GlobalChunkIDBase57Converter { max_digits }
     }
 
-    pub fn convert_to_base57(&self, mut input: BigUint) -> Result<String, String> {
+    pub fn convert_to_base57(&self, mut input: GlobalChunkIDBase10) -> Result<GlobalChunkIDBase57, String> {
+        let mut input = input.id;
         let charset = "abcdefghijklmnopqrstuvwxyz0123456789+,;_-'~`´@!$%&()[]{}=";
         let base = BigUint::from(57u32);
         let mut result = String::new();
@@ -227,10 +238,17 @@ impl GlobalChunkIDBase57Converter {
 
         result = result.chars().rev().collect::<String>();
 
-        Ok(result)
+        let output = match GlobalChunkIDBase57::new_from_string(result) {
+            Ok(output) => output,
+            Err(e) => return Err(format!("Cannot convert chunk ID Base10 to chunk ID Base57: {}", e)),
+        };
+
+        Ok(output)
     }
 
-    pub fn convert_from_base57(&self, input: &str) -> Result<BigUint, String> {
+    pub fn convert_from_base57(&self, input: GlobalChunkIDBase57) -> Result<GlobalChunkIDBase10, String> {
+        let input = input.id;
+        
         if input.chars().count() > self.max_digits {
             return Err(
                 "Base57 input is too large for the specified max number of base57 digits!"
@@ -259,7 +277,9 @@ impl GlobalChunkIDBase57Converter {
             multiplier *= &base;
         }
 
-        Ok(result)
+        let output = GlobalChunkIDBase10::new_from_biguint(result);
+
+        Ok(output)
     }
 }
 
@@ -452,7 +472,10 @@ impl TryInto<GlobalChunkIDBase10x10> for ChunkID {
     type Error = String;
 
     fn try_into(self) -> Result<GlobalChunkIDBase10x10, Self::Error> {
-        let local_chunk_id_base10x10 = self.local_chunk_id.get_base10x10();
+        let local_chunk_id_base10x10 = match self.local_chunk_id.get_base10x10() {
+            Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
+            Err(e) => return Err(format!("Cannot convert chunk ID to chunk ID Base10x10: {}", e)),
+        };
 
         if let Some(parent_chunk_id) = self.parent_chunk_id {
             let parent_chunk_id_base10x10: GlobalChunkIDBase10x10 = match (*parent_chunk_id).try_into() {
@@ -485,7 +508,7 @@ impl TryFrom<GlobalChunkIDBase10> for ChunkID {
     type Error = String;
 
     fn try_from(chunk_id_base10: GlobalChunkIDBase10) -> Result<Self, Self::Error> {
-        let chunk_id_base10x10 = match BASE10X10_CONVERTER.convert_to_base10x10(chunk_id_base10.get_id().clone()) {
+        let chunk_id_base10x10 = match BASE10X10_CONVERTER.convert_to_base10x10(chunk_id_base10) {
             Ok(global_id_base10x10) => global_id_base10x10,
             Err(e) => return Err(format!("Cannot convert chunk ID Base10 to chunk ID Base10x10: {}", e)),
         };
@@ -503,7 +526,7 @@ impl TryInto<GlobalChunkIDBase10> for ChunkID {
     type Error = String;
 
     fn try_into(self) -> Result<GlobalChunkIDBase10, Self::Error> {
-        let chunk_id_base10x10: Vec<(u8, u8)> = match self.try_into() {
+        let chunk_id_base10x10: GlobalChunkIDBase10x10 = match self.try_into() {
             Ok(chunk_id_base10x10) => chunk_id_base10x10,
             Err(e) => return Err(format!("Cannot convert chunk ID to chunk ID Base10x10: {}", e)),
         };
@@ -513,7 +536,7 @@ impl TryInto<GlobalChunkIDBase10> for ChunkID {
             Err(e) => return Err(format!("Cannot convert chunk ID Base10x10 to chunk ID Base10: {}", e)),
         };
 
-        Ok(GlobalChunkIDBase10::new_from_biguint(chunk_id_base10))
+        Ok(chunk_id_base10)
     }
 }
 
@@ -521,7 +544,7 @@ impl TryFrom<GlobalChunkIDBase57> for ChunkID {
     type Error = String;
 
     fn try_from(chunk_id_base57: GlobalChunkIDBase57) -> Result<Self, Self::Error> {
-        let chunk_id_base10 = match BASE57_CONVERTER.convert_from_base57(chunk_id_base57.get_id().as_str()) {
+        let chunk_id_base10 = match BASE57_CONVERTER.convert_from_base57(chunk_id_base57) {
             Ok(global_id_base10) => global_id_base10,
             Err(e) => return Err(format!("Cannot convert chunk ID Base57 to chunk ID Base10: {}", e)),
         };
@@ -544,7 +567,7 @@ impl TryInto<GlobalChunkIDBase57> for ChunkID {
     type Error = String;
 
     fn try_into(self) -> Result<GlobalChunkIDBase57, Self::Error> {
-        let chunk_id_base10x10: Vec<(u8, u8)> = match self.try_into() {
+        let chunk_id_base10x10: GlobalChunkIDBase10x10 = match self.try_into() {
             Ok(chunk_id_base10x10) => chunk_id_base10x10,
             Err(e) => return Err(format!("Cannot convert chunk ID to chunk ID Base10x10: {}", e)),
         };
@@ -557,11 +580,6 @@ impl TryInto<GlobalChunkIDBase57> for ChunkID {
         let chunk_id_base57 = match BASE57_CONVERTER.convert_to_base57(chunk_id_base10) {
             Ok(global_id_base57) => global_id_base57,
             Err(e) => return Err(format!("Cannot convert chunk ID Base10 to chunk ID Base57: {}", e)),
-        };
-
-        let chunk_id_base57 = match GlobalChunkIDBase57::new_from_string(chunk_id_base57) {
-            Ok(global_id_base57) => global_id_base57,
-            Err(e) => return Err(format!("Cannot convert chunk ID Base57 to chunk ID: {}", e)),
         };
 
         Ok(chunk_id_base57)
