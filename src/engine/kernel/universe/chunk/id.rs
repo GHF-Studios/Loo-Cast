@@ -3,13 +3,18 @@
 // Local imports
 
 // Internal imports
-use crate::engine::kernel::math::*;
 
 // External imports
+use lazy_static::*;
 use num_bigint::BigUint;
+use num_traits::{One, ToPrimitive, Zero};
 use std::hash::*;
 
 // Static variables
+lazy_static! {
+    static ref BASE10X10_CONVERTER: GlobalChunkIDBase10x10Converter = GlobalChunkIDBase10x10Converter::new();
+    static ref BASE57_CONVERTER: GlobalChunkIDBase57Converter = GlobalChunkIDBase57Converter::new();
+}
 
 // Constant variables
 
@@ -18,6 +23,16 @@ use std::hash::*;
 // Enums
 
 // Structs
+struct GlobalChunkIDBase10x10Converter {
+    max_digits: usize,
+    power_sums: Vec<BigUint>,
+    offsets: Vec<BigUint>,
+}
+
+struct GlobalChunkIDBase57Converter {
+    max_digits: usize,
+}
+
 #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
 pub struct LocalChunkIDBase10x10 {
     id: (u8, u8),
@@ -56,6 +71,198 @@ pub struct ChunkID {
 }
 
 // Implementations
+impl GlobalChunkIDBase10x10Converter {
+    pub fn new() -> Self {
+        let max_digits = 64;
+        let mut power_sums = Vec::with_capacity(max_digits);
+        let mut offsets = Vec::with_capacity(max_digits);
+        let mut power_sum = BigUint::from(0u32);
+
+        for i in 1..=max_digits {
+            power_sum += BigUint::from(100u32).pow(i as u32);
+
+            power_sums.push(power_sum.clone());
+
+            offsets.push(BigUint::from(100u32).pow(i as u32));
+        }
+
+        GlobalChunkIDBase10x10Converter {
+            max_digits,
+            power_sums,
+            offsets,
+        }
+    }
+
+    pub fn convert_to_base10x10(&self, mut input: BigUint) -> Result<Vec<(u8, u8)>, String> {
+        let mut expected_pairs = 1u32;
+
+        for sum in &self.power_sums {
+            if input >= *sum {
+                expected_pairs += 1u32;
+            } else {
+                break;
+            }
+        }
+        if expected_pairs > self.max_digits as u32 {
+            return Err(
+                "Base10 input is too large for the specified max number of base10x10 digits!"
+                    .to_string(),
+            );
+        }
+
+        for offset in &self.offsets {
+            if input >= *offset {
+                input -= offset.clone();
+            }
+        }
+
+        let mut input_digits = input.to_radix_le(10);
+
+        input_digits.reverse();
+
+        let mut input_digit_pairs = Vec::new();
+
+        while !input_digits.is_empty() {
+            if input_digits.len() == 1 {
+                if let Some(second) = input_digits.pop() {
+                    let first = 0u8;
+
+                    input_digit_pairs.push((first, second));
+                } else {
+                    unreachable!();
+                }
+                break;
+            } else if let Some(second) = input_digits.pop() {
+                if let Some(first) = input_digits.pop() {
+                    input_digit_pairs.push((first, second));
+
+                    continue;
+                } else {
+                    unreachable!();
+                }
+            } else {
+                unreachable!();
+            }
+        }
+
+        while input_digit_pairs.len() < expected_pairs as usize {
+            input_digit_pairs.push((0, 0));
+        }
+
+        input_digit_pairs.reverse();
+
+        Ok(input_digit_pairs)
+    }
+
+    pub fn convert_from_base10x10(&self, input: Vec<(u8, u8)>) -> Result<BigUint, String> {
+        if input.len() > self.max_digits {
+            return Err("Base10x10 input has more pairs than allowed by the specified max number of base10x10 digits!".to_string());
+        }
+
+        if input.is_empty() {
+            return Err("Base10x10 input is empty!".to_string());
+        }
+
+        let mut result = BigUint::zero();
+        let mut num_pairs = 0;
+
+        for (i, &(first, second)) in input.iter().rev().enumerate() {
+            if first >= 10 || second >= 10 {
+                return Err("Invalid digits in base10x10 input!".to_string());
+            }
+
+            let pair_value = BigUint::from((first as u32) * 10 + (second as u32));
+
+            result += pair_value * BigUint::from(100u32).pow(i as u32);
+
+            num_pairs += 1;
+        }
+
+        for i in 0..num_pairs - 1 {
+            result += self.offsets[i].clone();
+        }
+
+        Ok(result)
+    }
+}
+
+impl GlobalChunkIDBase57Converter {
+    pub fn new() -> Self {
+        let max_digits = 73;
+
+        GlobalChunkIDBase57Converter { max_digits }
+    }
+
+    pub fn convert_to_base57(&self, mut input: BigUint) -> Result<String, String> {
+        let charset = "abcdefghijklmnopqrstuvwxyz0123456789+,;_-'~`´@!$%&()[]{}=";
+        let base = BigUint::from(57u32);
+        let mut result = String::new();
+
+        while input != BigUint::zero() {
+            let rem = &input % &base;
+
+            if let Some(character) = charset.chars().nth(
+                rem.to_usize().ok_or(
+                    "Base10 input is too large for the specified max number of base57 digits!"
+                        .to_string(),
+                )?,
+            ) {
+                result.push(character);
+            }
+
+            input /= &base;
+        }
+
+        while result.chars().count() < self.max_digits {
+            if let Some(character) = charset.chars().next() {
+                result.push(character);
+            } else {
+                unreachable!();
+            }
+        }
+
+        if result.chars().count() > self.max_digits {
+            unreachable!();
+        }
+
+        result = result.chars().rev().collect::<String>();
+
+        Ok(result)
+    }
+
+    pub fn convert_from_base57(&self, input: &str) -> Result<BigUint, String> {
+        if input.chars().count() > self.max_digits {
+            return Err(
+                "Base57 input is too large for the specified max number of base57 digits!"
+                    .to_string(),
+            );
+        }
+
+        let charset = "abcdefghijklmnopqrstuvwxyz0123456789+,;_-'~`´@!$%&()[]{}=";
+        let base = BigUint::from(57u32);
+        let mut result = BigUint::zero();
+        let mut multiplier = BigUint::one();
+
+        for char in input.chars().rev() {
+            if let Some(position) = charset.chars().position(|c| c == char) {
+                let value = BigUint::from(
+                    position
+                        .to_u32()
+                        .ok_or("An unexpected error occured!".to_string())?,
+                );
+
+                result += value * &multiplier;
+            } else {
+                return Err(format!("Invalid digit '{}' in the base57 input!", char));
+            }
+
+            multiplier *= &base;
+        }
+
+        Ok(result)
+    }
+}
+
 impl Default for LocalChunkIDBase10x10 {
     fn default() -> Self {
         Self { id: (0, 0) }
@@ -123,12 +330,28 @@ impl LocalChunkID {
         }
     }
 
-    pub fn get_base10x10(&self) -> (u8, u8) {
-        (self.id / 10, self.id % 10)
+    pub fn get_base10x10(&self) -> Result<LocalChunkIDBase10x10, String> {
+        let id = self.id;
+
+        let id = (id / 10, id % 10);
+
+        let id = match LocalChunkIDBase10x10::new_from_tuple(id) {
+            Ok(id) => id,
+            Err(e) => return Err(format!("Cannot convert local chunk ID to local chunk ID Base10x10: {}", e)),
+        };
+
+        Ok(id)
     }
 
-    pub fn get_base10(&self) -> u8 {
-        self.id
+    pub fn get_base10(&self) -> Result<LocalChunkIDBase10, String> {
+        let id = self.id;
+
+        let id = match LocalChunkIDBase10::new_from_integer(id) {
+            Ok(id) => id,
+            Err(e) => return Err(format!("Cannot convert local chunk ID to local chunk ID Base10: {}", e)),
+        };
+
+        Ok(id)
     }
 }
 
@@ -182,26 +405,38 @@ impl GlobalChunkIDBase57 {
     }
 }
 
-impl TryFrom<Vec<(u8, u8)>> for ChunkID {
+impl TryFrom<GlobalChunkIDBase10x10> for ChunkID {
     type Error = String;
 
-    fn try_from(mut chunk_id_base10x10: Vec<(u8, u8)>) -> Result<Self, Self::Error> {
+    fn try_from(mut chunk_id_base10x10: GlobalChunkIDBase10x10) -> Result<Self, Self::Error> {
+        let chunk_id_base10x10 = chunk_id_base10x10.get_id();
         if chunk_id_base10x10.is_empty() {
             return Err(format!("Cannot convert chunk ID Base10x10 to chunk ID: Vector is empty."));
         }
 
-        let chunk_id: ChunkID = match chunk_id_base10x10.remove(0).try_into() {
-            Ok(parent_chunk_id) => parent_chunk_id,
+        let mut chunk_id_base10x10 = chunk_id_base10x10.clone();
+
+        let local_chunk_id_base10x10 = match LocalChunkIDBase10x10::new_from_tuple(chunk_id_base10x10.remove(0)) {
+            Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
             Err(e) => return Err(format!("Cannot convert chunk ID Base10x10 to chunk ID: {}", e)),
         };
 
-        for local_chunk_id_base10x10 in chunk_id_base10x10 {
-            let local_chunk_id = match LocalChunkID::new_from_base10x10(local_chunk_id_base10x10) {
-                Ok(local_chunk_id) => local_chunk_id,
+        let local_chunk_id = LocalChunkID::new_from_base10x10(local_chunk_id_base10x10);
+
+        let chunk_id: ChunkID = match local_chunk_id.try_into() {
+            Ok(chunk_id) => chunk_id,
+            Err(e) => return Err(format!("Cannot convert chunk ID Base10x10 to chunk ID: {}", e)),
+        };
+
+        for chunk_id_base10x10_part in chunk_id_base10x10 {
+            let local_chunk_id_base10x10 = match LocalChunkIDBase10x10::new_from_tuple(chunk_id_base10x10_part) {
+                Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
                 Err(e) => return Err(format!("Cannot convert chunk ID Base10x10 to chunk ID: {}", e)),
             };
 
-            let next_chunk_id = match ChunkID::new(chunk_id, local_chunk_id) {
+            let local_chunk_id = LocalChunkID::new_from_base10x10(local_chunk_id_base10x10);
+
+            let next_chunk_id: ChunkID = match local_chunk_id.try_into() {
                 Ok(chunk_id) => chunk_id,
                 Err(e) => return Err(format!("Cannot convert chunk ID Base10x10 to chunk ID: {}", e)),
             };
@@ -213,24 +448,35 @@ impl TryFrom<Vec<(u8, u8)>> for ChunkID {
     }
 }
 
-impl TryInto<Vec<(u8, u8)>> for ChunkID {
+impl TryInto<GlobalChunkIDBase10x10> for ChunkID {
     type Error = String;
 
-    fn try_into(self) -> Result<Vec<(u8, u8)>, Self::Error> {
-        let local_chunk_id_base10x10: (u8, u8) = match self.local_chunk_id.try_into() {
-            Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
-            Err(e) => return Err(format!("Cannot convert chunk ID to chunk ID Base10x10: {}", e)),
-        };
+    fn try_into(self) -> Result<GlobalChunkIDBase10x10, Self::Error> {
+        let local_chunk_id_base10x10 = self.local_chunk_id.get_base10x10();
 
         if let Some(parent_chunk_id) = self.parent_chunk_id {
-            let parent_chunk_id_base10x10: Vec<(u8, u8)> = match (*parent_chunk_id).try_into() {
+            let parent_chunk_id_base10x10: GlobalChunkIDBase10x10 = match (*parent_chunk_id).try_into() {
                 Ok(parent_chunk_id_base10x10) => parent_chunk_id_base10x10,
                 Err(e) => return Err(format!("Cannot convert chunk ID to chunk ID Base10x10: {}", e)),
             };
             
-            Ok([parent_chunk_id_base10x10, vec![local_chunk_id_base10x10]].concat())
+            let chunk_id_base10x10 = [parent_chunk_id_base10x10.get_id().clone(), vec![local_chunk_id_base10x10.get_id()]].concat();
+
+            let chunk_id_base10x10 = match GlobalChunkIDBase10x10::new_from_vec(chunk_id_base10x10) {
+                Ok(chunk_id_base10x10) => chunk_id_base10x10,
+                Err(e) => return Err(format!("Cannot convert chunk ID to chunk ID Base10x10: {}", e)),
+            };
+
+            Ok(chunk_id_base10x10)
         } else {
-            Ok(vec![local_chunk_id_base10x10])
+            let chunk_id_base10x10 = vec![local_chunk_id_base10x10.get_id()];
+
+            let chunk_id_base10x10 = match GlobalChunkIDBase10x10::new_from_vec(chunk_id_base10x10) {
+                Ok(chunk_id_base10x10) => chunk_id_base10x10,
+                Err(e) => return Err(format!("Cannot convert chunk ID to chunk ID Base10x10: {}", e)),
+            };
+
+            Ok(chunk_id_base10x10)
         }
     }
 }
