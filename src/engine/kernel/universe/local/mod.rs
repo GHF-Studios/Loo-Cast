@@ -160,7 +160,15 @@ impl LocalUniverse {
             let old_apparent_local_chunk_pos = *old_local_chunk_pos;
             let old_absolute_local_chunk_pos: AbsoluteLocalChunkPos = old_apparent_local_chunk_pos.into();
             let old_absolute_local_chunk_pos_base10x10: (u8, u8) = old_absolute_local_chunk_pos.into();
-            let old_chunk_id = match ChunkID::try_from(old_absolute_local_chunk_pos_base10x10) {
+            let old_local_chunk_id_base10x10 = match LocalChunkIDBase10x10::new_from_tuple(old_absolute_local_chunk_pos_base10x10) {
+                Ok(old_local_chunk_id_base10x10) => old_local_chunk_id_base10x10,
+                Err(error) => {
+                    println!("Failed to create local chunk id: {:?}", error);
+                    continue;
+                }
+            };
+            let old_local_chunk_id = LocalChunkID::new_from_base10x10(old_local_chunk_id_base10x10);
+            let old_chunk_id = match ChunkID::try_from(old_local_chunk_id) {
                 Ok(old_chunk_id) => old_chunk_id,
                 Err(error) => {
                     println!("Failed to create chunk id: {:?}", error);
@@ -294,7 +302,15 @@ impl LocalUniverse {
             let new_apparent_local_chunk_pos = *new_local_chunk_pos;
             let new_absolute_local_chunk_pos: AbsoluteLocalChunkPos = new_apparent_local_chunk_pos.into();
             let new_absolute_local_chunk_pos_base10x10: (u8, u8) = new_absolute_local_chunk_pos.into();
-            let new_chunk_id = match ChunkID::try_from(new_absolute_local_chunk_pos_base10x10) {
+            let new_local_chunk_id_base10x10: LocalChunkIDBase10x10 = match LocalChunkIDBase10x10::new_from_tuple(new_absolute_local_chunk_pos_base10x10) {
+                Ok(new_local_chunk_id_base10x10) => new_local_chunk_id_base10x10,
+                Err(error) => {
+                    println!("Failed to create local chunk id: {:?}", error);
+                    continue;
+                }
+            };
+            let new_local_chunk_id = LocalChunkID::new_from_base10x10(new_local_chunk_id_base10x10);
+            let new_chunk_id = match ChunkID::try_from(new_local_chunk_id) {
                 Ok(new_chunk_id) => new_chunk_id,
                 Err(error) => {
                     println!("Failed to create chunk id: {:?}", error);

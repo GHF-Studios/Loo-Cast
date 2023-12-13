@@ -193,7 +193,12 @@ impl PlayerManager {
             let local_entity_pos = LocalEntityPos::from(world_position);
             let absolute_local_parent_chunk_pos = AbsoluteLocalChunkPos::from(local_entity_pos);
             let absolute_local_parent_chunk_pos_base10x10: (u8, u8) = absolute_local_parent_chunk_pos.into();
-            let parent_chunk_id = match ChunkID::try_from(absolute_local_parent_chunk_pos_base10x10) {
+            let local_chunk_id_base10x10 = match LocalChunkIDBase10x10::new_from_tuple(absolute_local_parent_chunk_pos_base10x10) {
+                Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
+                Err(_) => return,
+            };
+            let local_chunk_id = LocalChunkID::new_from_base10x10(local_chunk_id_base10x10);
+            let parent_chunk_id = match ChunkID::try_from(local_chunk_id) {
                 Ok(parent_chunk_id) => parent_chunk_id,
                 Err(_) => return,
             };
