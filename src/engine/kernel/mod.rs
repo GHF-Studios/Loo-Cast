@@ -1,10 +1,13 @@
 // Modules
 pub mod background;
 pub mod camera;
+pub mod data;
+pub mod event;
 pub mod game;
 pub mod iteration_test;
 pub mod math;
 pub mod player;
+pub mod resource;
 pub mod save_game;
 pub mod ui;
 pub mod universe;

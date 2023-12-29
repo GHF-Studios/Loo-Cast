@@ -12,6 +12,8 @@
 
 // Types
 
+// Traits
+
 // Enums
 
 // Structs
