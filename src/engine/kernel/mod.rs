@@ -82,7 +82,13 @@ impl PluginGroup for RapierPlugins {
 pub(in crate) fn main() {
     App::new()
         // Bevy Plugins
-        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugins(DefaultPlugins
+            .set(ImagePlugin::default_nearest())
+            .set(AssetPlugin {
+                asset_folder: "resources".to_string(),
+                ..default()
+            })
+        )
         // Rapier Plugins
         .add_plugins(RapierPlugins)
         // States

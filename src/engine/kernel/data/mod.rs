@@ -6,8 +6,8 @@
 
 // External imports
 use std::any::Any;
-use std::collections::HashMap;
 use std::any::TypeId;
+use std::collections::HashMap;
 
 // Static variables
 
@@ -34,7 +34,7 @@ impl DataManager {
         DataManager { data_hashmap: HashMap::new(), unused_data_id: 0 }
     }
 
-    pub fn register_data_type<T: 'static + Any + Data + Default>(&mut self) -> Result<(), String> {
+    pub fn register_data_type<T: 'static + Any + Data>(&mut self) -> Result<(), String> {
         if self.data_hashmap.contains_key(&TypeId::of::<T>()) {
             return Err(format!("Data type already registered: {}", std::any::type_name::<T>()));
         }
@@ -44,7 +44,7 @@ impl DataManager {
         Ok(())
     }
 
-    pub fn unregister_data_type<T: 'static + Any + Data + Default>(&mut self) -> Result<(), String> {
+    pub fn unregister_data_type<T: 'static + Any + Data>(&mut self) -> Result<(), String> {
         if !self.data_hashmap.contains_key(&TypeId::of::<T>()) {
             return Err(format!("Data type not registered: {}", std::any::type_name::<T>()));
         }
@@ -54,11 +54,11 @@ impl DataManager {
         Ok(())
     }
 
-    pub fn is_data_type_registered<T: 'static + Any + Data + Default>(&self) -> Result<bool, String> {
+    pub fn is_data_type_registered<T: 'static + Any + Data>(&self) -> Result<bool, String> {
         Ok(self.data_hashmap.contains_key(&TypeId::of::<T>()))
     }
 
-    pub fn register_data<T: 'static + Any + Data + Default>(&mut self, data: T) -> Result<(), String> {
+    pub fn register_data<T: 'static + Any + Data>(&mut self, data: T) -> Result<(), String> {
         if let Some(id) = data.get_id() {
             return Err(format!("Data already registered: {}", id));
         }
@@ -80,7 +80,7 @@ impl DataManager {
         Ok(())
     }
 
-    pub fn unregister_data<T: 'static + Any + Data + Default>(&mut self, id: u64) -> Result<T, String> {
+    pub fn unregister_data<T: 'static + Any + Data>(&mut self, id: u64) -> Result<T, String> {
         let data_hashmap = match self.data_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
             None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
@@ -95,7 +95,7 @@ impl DataManager {
         Ok(*data.downcast::<T>().unwrap())
     }
 
-    pub fn is_data_registered<T: 'static + Any + Data + Default>(&self, id: u64) -> Result<bool, String> {
+    pub fn is_data_registered<T: 'static + Any + Data>(&self, id: u64) -> Result<bool, String> {
         let data_hashmap = match self.data_hashmap.get(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
             None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
@@ -104,7 +104,7 @@ impl DataManager {
         Ok(data_hashmap.contains_key(&id))
     }
 
-    pub fn get_data<T: 'static + Any + Data + Default>(&self, id: u64) -> Result<Option<&T>, String> {
+    pub fn get_data<T: 'static + Any + Data>(&self, id: u64) -> Result<Option<&T>, String> {
         let data_hashmap = match self.data_hashmap.get(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
             None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
@@ -119,7 +119,7 @@ impl DataManager {
         Ok(data.downcast_ref::<T>())
     }
 
-    pub fn get_data_mut<T: 'static + Any + Data + Default>(&mut self, id: u64) -> Result<Option<&mut T>, String> {
+    pub fn get_data_mut<T: 'static + Any + Data>(&mut self, id: u64) -> Result<Option<&mut T>, String> {
         let data_hashmap = match self.data_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
             None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
@@ -138,8 +138,16 @@ impl DataManager {
 // Module Functions
 pub fn test() {
     let mut manager = DataManager::new();
-    manager.register_data_type::<TestData>();
-    manager.register_data(TestData::default());
+
+    match manager.register_data_type::<TestData>() {
+        Ok(_) => println!("Registered data type: {}", std::any::type_name::<TestData>()),
+        Err(error) => println!("Failed to register data type: {}", error),
+    };
+
+    match manager.register_data(TestData { id: None }) {
+        Ok(_) => println!("Registered data: {}", std::any::type_name::<TestData>()),
+        Err(error) => println!("Failed to register data: {}", error),
+    };
 }
 
 // TEMPORARY
@@ -150,11 +158,5 @@ pub struct TestData {
 impl Data for TestData {
     fn get_id(&self) -> Option<u64> {
         self.id
-    }
-}
-
-impl Default for TestData {
-    fn default() -> Self {
-        TestData { id: None }
     }
 }
