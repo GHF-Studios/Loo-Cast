@@ -3,13 +3,14 @@
 // Local imports
 
 // Internal imports
-use super::data::*;
 
 // External imports
 use std::any::Any;
 use std::any::TypeId;
 use std::collections::HashMap;
 use std::fs::File;
+use std::io::Read;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 // Static variables
@@ -19,16 +20,17 @@ use std::path::{Path, PathBuf};
 // Types
 
 // Traits
-trait Resource {
-    fn get_file_handle(&self) -> &File;
+pub trait Resource {
+    fn new(file_path: &Path) -> Self;
     fn get_file_path(&self) -> &Path;
-    fn load_data<T: 'static + Any + super::data::Data>(&self) -> Result<T, String>;
+    fn get_file_content(&self) -> Result<&[u8], String>;
+    fn set_file_content(&mut self, file_content: &[u8]) -> Result<(), String>;
 }
 
 // Enums
 
 // Structs
-struct ResourceManager {
+pub struct ResourceManager {
     resource_hashmap: HashMap<TypeId, HashMap<PathBuf, Box<dyn Any>>>
 }
 
@@ -165,11 +167,46 @@ pub struct TestResource {
 }
 
 impl Resource for TestResource {
-    fn get_file_handle(&self) -> &File {
-        &self.file_handle
+    fn new(file_path: &Path) -> Self {
+        let file_handle = match File::open(file_path) {
+            Ok(file_handle) => file_handle,
+            Err(error) => panic!("Failed to open file: {}", error),
+        };
+
+        TestResource { file_handle, file_path: file_path.to_path_buf() }
     }
 
     fn get_file_path(&self) -> &Path {
         &self.file_path
+    }
+
+    fn get_file_content(&self) -> Result<&[u8], String> {
+        let mut file_handle = match File::open(self.get_file_path()) {
+            Ok(file_handle) => file_handle,
+            Err(error) => return Err(format!("Failed to open file: {}", error)),
+        };
+
+        let mut file_content = Vec::new();
+
+        match file_handle.read(&mut file_content) {
+            Ok(_) => (),
+            Err(error) => return Err(format!("Failed to read file: {}", error)),
+        };
+
+        Ok(&file_content)
+    }
+
+    fn set_file_content(&mut self, file_content: &[u8]) -> Result<(), String> {
+        let mut file_handle = match File::create(self.get_file_path()) {
+            Ok(file_handle) => file_handle,
+            Err(error) => return Err(format!("Failed to create file: {}", error)),
+        };
+
+        match file_handle.write_all(file_content) {
+            Ok(_) => (),
+            Err(error) => return Err(format!("Failed to write file: {}", error)),
+        };
+
+        Ok(())
     }
 }

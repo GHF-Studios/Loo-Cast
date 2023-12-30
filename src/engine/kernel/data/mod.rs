@@ -5,6 +5,7 @@
 // Internal imports
 
 // External imports
+use serde::{Serialize, Deserialize};
 use std::any::Any;
 use std::any::TypeId;
 use std::collections::HashMap;
@@ -16,19 +17,31 @@ use std::collections::HashMap;
 // Types
 
 // Traits
-trait Data {
-    fn get_id(&self) -> Option<u64>;
+pub trait Data {
+    fn get_metadata(&self) -> Option<Metadata>;
+    fn load_data<'a, TData: 'static + Any + super::data::Data + Deserialize<'a>, TResource: 'static + Any + super::resource::Resource>(resource: &TResource) -> Result<TData, String>;
+    fn save_data<TData: 'static + Any + super::data::Data + Serialize, TResource: 'static + Any + super::resource::Resource>(self, resource: &mut TResource) -> Result<(), String>;
 }
 
 // Enums
 
 // Structs
-struct DataManager {
+pub struct Metadata {
+    data_id: u64,
+}
+
+pub struct DataManager {
     data_hashmap: HashMap<TypeId, HashMap<u64, Box<dyn Any>>>,
     unused_data_id: u64,
 }
 
 // Implementations
+impl Metadata {
+    fn get_data_id(&self) -> u64 {
+        self.data_id
+    }
+}
+
 impl DataManager {
     pub fn new() -> Self {
         DataManager { data_hashmap: HashMap::new(), unused_data_id: 0 }
@@ -59,8 +72,9 @@ impl DataManager {
     }
 
     pub fn register_data<T: 'static + Any + Data>(&mut self, data: T) -> Result<(), String> {
-        if let Some(id) = data.get_id() {
-            return Err(format!("Data already registered: {}", id));
+        if let Some(metadata) = data.get_metadata() {
+            let data_id = metadata.get_data_id();
+            return Err(format!("Data already registered: {}", data_id));
         }
         
         let data_hashmap = match self.data_hashmap.get_mut(&TypeId::of::<T>()) {
@@ -72,7 +86,7 @@ impl DataManager {
         self.unused_data_id += 1;
 
         if data_hashmap.contains_key(&id) {
-            return Err(format!("Data id '{}' has already been registered. The registration will be aborted and the data manager should be restarted immediately!", id));
+            return Err(format!("Supposedly unused data ID '{}' already in use!", id));
         }
 
         data_hashmap.insert(id, Box::new(data));
@@ -144,19 +158,50 @@ pub fn test() {
         Err(error) => println!("Failed to register data type: {}", error),
     };
 
-    match manager.register_data(TestData { id: None }) {
+    match manager.register_data(TestData { metadata: None }) {
         Ok(_) => println!("Registered data: {}", std::any::type_name::<TestData>()),
         Err(error) => println!("Failed to register data: {}", error),
     };
 }
 
 // TEMPORARY
+#[derive(Serialize, Deserialize)]
 pub struct TestData {
-    id: Option<u64>,
+    #[serde(skip)]
+    metadata: Option<Metadata>
 }
 
 impl Data for TestData {
-    fn get_id(&self) -> Option<u64> {
-        self.id
+    fn get_metadata(&self) -> Option<Metadata> {
+        self.metadata
+    }
+
+    fn load_data<'a, TData: 'static + Any + super::data::Data + Deserialize<'a>, TResource: 'static + Any + super::resource::Resource>(resource: &TResource) -> Result<TData, String> {
+        let mut serialized_data = match resource.get_file_content() {
+            Ok(data) => data,
+            Err(error) => return Err(format!("Failed to read resource file: {}", error)),
+        };
+        let serialized_data: String = match String::from_utf8(serialized_data.to_vec()) {
+            Ok(data) => data,
+            Err(error) => return Err(format!("Failed to convert resource file to string: {}", error)),
+        };
+
+        match serde_json::from_str(&serialized_data) {
+            Ok(data) => Ok(data),
+            Err(error) => Err(format!("Failed to deserialize data: {}", error)),
+        }
+    }
+
+    fn save_data<TData: 'static + Any + super::data::Data + Serialize, TResource: 'static + Any + super::resource::Resource>(self, resource: &mut TResource) -> Result<(), String> {
+        let serialized_data = match serde_json::to_string_pretty(&self) {
+            Ok(data) => data,
+            Err(error) => return Err(format!("Failed to serialize data: {}", error)),
+        };
+        let serialized_data: &[u8] = (&serialized_data).as_bytes();
+
+        match resource.set_file_content(serialized_data) {
+            Ok(_) => Ok(()),
+            Err(error) => Err(format!("Failed to write resource file: {}", error)),
+        }
     }
 }
