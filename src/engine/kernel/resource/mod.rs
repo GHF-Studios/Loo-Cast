@@ -145,14 +145,14 @@ pub fn test() {
         Err(error) => println!("Failed to register resource type: {}", error),
     };
 
-    let file_path = Path::new("test.txt");
+    let file_path = Path::new("test.txt").to_path_buf();
 
     let file_handle = match File::open(file_path) {
         Ok(file_handle) => file_handle,
         Err(error) => panic!("Failed to open file: {}", error),
     };
 
-    let resource = TestResource { file_handle, file_path: file_path.to_path_buf() };
+    let resource = TestResource { file_handle, file_path };
 
     match resource_manager.register_resource(resource) {
         Ok(_) => println!("Registered resource: {}", file_path.display()),

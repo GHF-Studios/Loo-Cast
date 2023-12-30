@@ -18,7 +18,7 @@ use std::collections::HashMap;
 
 // Traits
 pub trait Data {
-    fn get_metadata(&self) -> Metadata;
+    fn get_runtime_id(&self) -> Option<u64>;
     fn load_data<'a, TData: 'static + Any + super::data::Data + Deserialize<'a>, TResource: 'static + Any + super::resource::Resource>(resource: &TResource) -> Result<TData, String>;
     fn save_data<TData: 'static + Any + super::data::Data + Serialize, TResource: 'static + Any + super::resource::Resource>(self, resource: &mut TResource) -> Result<(), String>;
 }
@@ -26,23 +26,12 @@ pub trait Data {
 // Enums
 
 // Structs
-#[derive(Default)]
-pub struct Metadata {
-    id: Option<u64>,
-}
-
 pub struct DataManager {
     data_hashmap: HashMap<TypeId, HashMap<u64, Box<dyn Any>>>,
     next_data_id: u64,
 }
 
 // Implementations
-impl Metadata {
-    fn get_data_id(&self) -> Option<u64> {
-        self.id
-    }
-}
-
 impl DataManager {
     pub fn new() -> Self {
         DataManager { data_hashmap: HashMap::new(), next_data_id: 0 }
@@ -73,7 +62,7 @@ impl DataManager {
     }
 
     pub fn register_data<T: 'static + Any + Data>(&mut self, data: T) -> Result<(), String> {
-        if let Some(id) = data.get_metadata().get_data_id() {
+        if let Some(id) = data.get_runtime_id() {
             return Err(format!("Data already registered: {}", id));
         }
         
@@ -158,7 +147,9 @@ pub fn test() {
         Err(error) => println!("Failed to register data type: {}", error),
     };
 
-    match manager.register_data(TestData { metadata: Metadata { id: None } }) {
+    let data = TestData { runtime_id: None };
+
+    match manager.register_data(data) {
         Ok(_) => println!("Registered data: {}", std::any::type_name::<TestData>()),
         Err(error) => println!("Failed to register data: {}", error),
     };
@@ -168,12 +159,12 @@ pub fn test() {
 #[derive(Serialize, Deserialize)]
 pub struct TestData {
     #[serde(skip)]
-    metadata: Metadata
+    runtime_id: Option<u64>
 }
 
 impl Data for TestData {
-    fn get_metadata(&self) -> Metadata {
-        self.metadata
+    fn get_runtime_id(&self) -> Option<u64> {
+        self.runtime_id
     }
 
     fn load_data<'a, TData: 'static + Any + super::data::Data + Deserialize<'a>, TResource: 'static + Any + super::resource::Resource>(resource: &TResource) -> Result<TData, String> {
