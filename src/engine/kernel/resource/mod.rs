@@ -12,15 +12,20 @@ use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use lazy_static::*;
 
 // Static variables
+lazy_static! {
+    pub static ref RESOURCE_MANAGER: Arc<Mutex<ResourceManager>> = Arc::new(Mutex::new(ResourceManager::new()));
+}
 
 // Constant variables
 
 // Types
 
 // Traits
-pub trait Resource {
+pub trait Resource: Any + Send {
     fn new(file_path: &Path) -> Self;
     fn get_file_path(&self) -> &Path;
     fn get_file_content(&self) -> Result<&[u8], String>;
@@ -31,7 +36,7 @@ pub trait Resource {
 
 // Structs
 pub struct ResourceManager {
-    resource_hashmap: HashMap<TypeId, HashMap<PathBuf, Box<dyn Any>>>
+    resource_hashmap: HashMap<TypeId, HashMap<PathBuf, Box<dyn Any + Send>>>
 }
 
 // Implementations
@@ -40,7 +45,7 @@ impl ResourceManager {
         ResourceManager { resource_hashmap: HashMap::new() }
     }
 
-    pub fn register_resource_type<T: 'static + Any + Resource>(&mut self) -> Result<(), String> {
+    pub fn register_resource_type<T: Resource>(&mut self) -> Result<(), String> {
         if self.resource_hashmap.contains_key(&TypeId::of::<T>()) {
             return Err(format!("Resource type already registered: {}", std::any::type_name::<T>()));
         }
@@ -50,7 +55,7 @@ impl ResourceManager {
         Ok(())
     }
 
-    pub fn unregister_resource_type<T: 'static + Any + Resource>(&mut self) -> Result<(), String> {
+    pub fn unregister_resource_type<T: Resource>(&mut self) -> Result<(), String> {
         if !self.resource_hashmap.contains_key(&TypeId::of::<T>()) {
             return Err(format!("Resource type not registered: {}", std::any::type_name::<T>()));
         }
@@ -60,11 +65,11 @@ impl ResourceManager {
         Ok(())
     }
 
-    pub fn is_resource_type_registered<T: 'static + Any + Resource>(&self) -> Result<bool, String> {
+    pub fn is_resource_type_registered<T: Resource>(&self) -> Result<bool, String> {
         Ok(self.resource_hashmap.contains_key(&TypeId::of::<T>()))
     }
 
-    pub fn register_resource<T: 'static + Any + Resource>(&mut self, resource: T) -> Result<(), String> {
+    pub fn register_resource<T: Resource>(&mut self, resource: T) -> Result<(), String> {
         let id = resource.get_file_path();
 
         let resource_hashmap = match self.resource_hashmap.get_mut(&TypeId::of::<T>()) {
@@ -81,7 +86,7 @@ impl ResourceManager {
         Ok(())
     }
 
-    pub fn unregister_resource<T: 'static + Any + Resource>(&mut self, resource: T) -> Result<T, String> {
+    pub fn unregister_resource<T: Resource>(&mut self, resource: T) -> Result<T, String> {
         let resource_hashmap = match self.resource_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(resource_hashmap) => resource_hashmap,
             None => return Err(format!("Resource type not registered: {}", std::any::type_name::<T>())),
@@ -96,7 +101,7 @@ impl ResourceManager {
         Ok(*resource.downcast::<T>().unwrap())
     }
 
-    pub fn is_resource_registered<T: 'static + Any + Resource>(&self, resource: T) -> Result<bool, String> {
+    pub fn is_resource_registered<T: Resource>(&self, resource: T) -> Result<bool, String> {
         let resource_hashmap = match self.resource_hashmap.get(&TypeId::of::<T>()) {
             Some(resource_hashmap) => resource_hashmap,
             None => return Err(format!("Resource type not registered: {}", std::any::type_name::<T>())),
@@ -105,7 +110,7 @@ impl ResourceManager {
         Ok(resource_hashmap.contains_key(resource.get_file_path()))
     }
 
-    pub fn get_resource<T: 'static + Any + Resource>(&self, resource: T) -> Result<Option<&T>, String> {
+    pub fn get_resource<T: Resource>(&self, resource: T) -> Result<Option<&T>, String> {
         let resource_hashmap = match self.resource_hashmap.get(&TypeId::of::<T>()) {
             Some(resource_hashmap) => resource_hashmap,
             None => return Err(format!("Resource type not registered: {}", std::any::type_name::<T>())),
@@ -120,7 +125,7 @@ impl ResourceManager {
         Ok(resource.downcast_ref::<T>())
     }
 
-    pub fn get_resource_mut<T: 'static + Any + Resource>(&mut self, resource: T) -> Result<Option<&mut T>, String> {
+    pub fn get_resource_mut<T: Resource>(&mut self, resource: T) -> Result<Option<&mut T>, String> {
         let resource_hashmap = match self.resource_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(resource_hashmap) => resource_hashmap,
             None => return Err(format!("Resource type not registered: {}", std::any::type_name::<T>())),

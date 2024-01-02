@@ -9,25 +9,30 @@ use serde::{Serialize, Deserialize};
 use std::any::Any;
 use std::any::TypeId;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use lazy_static::*;
 
 // Static variables
+lazy_static! {
+    pub static ref DATA_MANAGER: Arc<Mutex<DataManager>> = Arc::new(Mutex::new(DataManager::new()));
+}
 
 // Constant variables
 
 // Types
 
 // Traits
-pub trait Data {
+pub trait Data: Any + Send {
     fn get_runtime_id(&self) -> Option<u64>;
-    fn load_data<'a, TData: 'static + Any + super::data::Data + Deserialize<'a>, TResource: 'static + Any + super::resource::Resource>(resource: &TResource) -> Result<TData, String>;
-    fn save_data<TData: 'static + Any + super::data::Data + Serialize, TResource: 'static + Any + super::resource::Resource>(self, resource: &mut TResource) -> Result<(), String>;
+    fn load_data<'a, TData: super::data::Data + Deserialize<'a>, TResource: super::resource::Resource>(resource: &TResource) -> Result<TData, String>;
+    fn save_data<TData: super::data::Data + Serialize, TResource: super::resource::Resource>(self, resource: &mut TResource) -> Result<(), String>;
 }
 
 // Enums
 
 // Structs
 pub struct DataManager {
-    data_hashmap: HashMap<TypeId, HashMap<u64, Box<dyn Any>>>,
+    data_hashmap: HashMap<TypeId, HashMap<u64, Box<dyn Any + Send>>>,
     next_data_id: u64,
 }
 
@@ -37,7 +42,7 @@ impl DataManager {
         DataManager { data_hashmap: HashMap::new(), next_data_id: 0 }
     }
 
-    pub fn register_data_type<T: 'static + Any + Data>(&mut self) -> Result<(), String> {
+    pub fn register_data_type<T: Data>(&mut self) -> Result<(), String> {
         if self.data_hashmap.contains_key(&TypeId::of::<T>()) {
             return Err(format!("Data type already registered: {}", std::any::type_name::<T>()));
         }
@@ -47,7 +52,7 @@ impl DataManager {
         Ok(())
     }
 
-    pub fn unregister_data_type<T: 'static + Any + Data>(&mut self) -> Result<(), String> {
+    pub fn unregister_data_type<T: Data>(&mut self) -> Result<(), String> {
         if !self.data_hashmap.contains_key(&TypeId::of::<T>()) {
             return Err(format!("Data type not registered: {}", std::any::type_name::<T>()));
         }
@@ -57,11 +62,11 @@ impl DataManager {
         Ok(())
     }
 
-    pub fn is_data_type_registered<T: 'static + Any + Data>(&self) -> Result<bool, String> {
+    pub fn is_data_type_registered<T: Data>(&self) -> Result<bool, String> {
         Ok(self.data_hashmap.contains_key(&TypeId::of::<T>()))
     }
 
-    pub fn register_data<T: 'static + Any + Data>(&mut self, data: T) -> Result<(), String> {
+    pub fn register_data<T: Data>(&mut self, data: T) -> Result<(), String> {
         if let Some(id) = data.get_runtime_id() {
             return Err(format!("Data already registered: {}", id));
         }
@@ -83,7 +88,7 @@ impl DataManager {
         Ok(())
     }
 
-    pub fn unregister_data<T: 'static + Any + Data>(&mut self, id: u64) -> Result<T, String> {
+    pub fn unregister_data<T: Data>(&mut self, id: u64) -> Result<T, String> {
         let data_hashmap = match self.data_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
             None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
@@ -98,7 +103,7 @@ impl DataManager {
         Ok(*data.downcast::<T>().unwrap())
     }
 
-    pub fn is_data_registered<T: 'static + Any + Data>(&self, id: u64) -> Result<bool, String> {
+    pub fn is_data_registered<T: Data>(&self, id: u64) -> Result<bool, String> {
         let data_hashmap = match self.data_hashmap.get(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
             None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
@@ -107,7 +112,7 @@ impl DataManager {
         Ok(data_hashmap.contains_key(&id))
     }
 
-    pub fn get_data<T: 'static + Any + Data>(&self, id: u64) -> Result<Option<&T>, String> {
+    pub fn get_data<T: Data>(&self, id: u64) -> Result<Option<&T>, String> {
         let data_hashmap = match self.data_hashmap.get(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
             None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
@@ -122,7 +127,7 @@ impl DataManager {
         Ok(data.downcast_ref::<T>())
     }
 
-    pub fn get_data_mut<T: 'static + Any + Data>(&mut self, id: u64) -> Result<Option<&mut T>, String> {
+    pub fn get_data_mut<T: Data>(&mut self, id: u64) -> Result<Option<&mut T>, String> {
         let data_hashmap = match self.data_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
             None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
