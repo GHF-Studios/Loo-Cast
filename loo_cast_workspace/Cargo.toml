@@ -1,0 +1,5 @@
+[workspace]
+members = [
+  "loo_cast_base_mod",
+  "spacetime_engine"
+]
