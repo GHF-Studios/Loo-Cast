@@ -28,7 +28,7 @@ lazy_static! {
 pub trait Resource: Any + Send {
     fn new(file_path: &Path) -> Self;
     fn get_file_path(&self) -> &Path;
-    fn get_file_content(&self) -> Result<&[u8], String>;
+    fn get_file_content(&self) -> Result<Box<[u8]>, String>;
     fn set_file_content(&mut self, file_content: &[u8]) -> Result<(), String>;
 }
 
@@ -152,12 +152,12 @@ pub fn test() {
 
     let file_path = Path::new("test.txt").to_path_buf();
 
-    let file_handle = match File::open(file_path) {
+    let file_handle = match File::open(file_path.clone()) {
         Ok(file_handle) => file_handle,
         Err(error) => panic!("Failed to open file: {}", error),
     };
 
-    let resource = TestResource { file_handle, file_path };
+    let resource = TestResource { file_handle, file_path: file_path.clone() };
 
     match resource_manager.register_resource(resource) {
         Ok(_) => println!("Registered resource: {}", file_path.display()),
@@ -185,7 +185,7 @@ impl Resource for TestResource {
         &self.file_path
     }
 
-    fn get_file_content(&self) -> Result<&[u8], String> {
+    fn get_file_content(&self) -> Result<Box<[u8]>, String> {
         let mut file_handle = match File::open(self.get_file_path()) {
             Ok(file_handle) => file_handle,
             Err(error) => return Err(format!("Failed to open file: {}", error)),
@@ -198,7 +198,7 @@ impl Resource for TestResource {
             Err(error) => return Err(format!("Failed to read file: {}", error)),
         };
 
-        Ok(&file_content)
+        Ok(file_content.into_boxed_slice())
     }
 
     fn set_file_content(&mut self, file_content: &[u8]) -> Result<(), String> {
