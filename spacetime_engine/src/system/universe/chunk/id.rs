@@ -650,7 +650,7 @@ impl ChunkID {
         }
 
         Ok(ChunkID {
-            parent_chunk_id: Some(Box::new(parent_chunk_id)),
+            parent_chunk_id: Some(Box::new(parent_chunk_id.clone())),
             local_chunk_id,
             scale_index: parent_chunk_id.scale_index + 1,
         })

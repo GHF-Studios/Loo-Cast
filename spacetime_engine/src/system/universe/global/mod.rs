@@ -454,7 +454,7 @@ impl GlobalUniverse {
                     success_callback,
                     failure_callback,
                 } => {
-                    let parent_chunk = match parent_chunk.lock() {
+                    let mut parent_chunk = match parent_chunk.lock() {
                         Ok(parent_chunk) => parent_chunk,
                         Err(_) => {
                             panic!("Failed to spawn chunk: Parent chunk mutex poisoned.");
@@ -468,7 +468,7 @@ impl GlobalUniverse {
                         }
                     };
 
-                    match Self::spawn_chunk(commands, &*parent_chunk, &mut *chunk) {
+                    match Self::spawn_chunk(commands, &mut *parent_chunk, &mut *chunk) {
                         Ok(success) => {
                             success_callback(success);
                         }
@@ -741,7 +741,7 @@ impl GlobalUniverse {
             chunk: chunk.clone(),
         });
 
-        self.registered_root_chunks.insert(local_chunk_id, chunk);
+        self.registered_root_chunks.insert(local_chunk_id, chunk.clone());
         self.chunk_entity_info_hierarchy.insert_chunk_info(None, local_chunk_id, chunk);
 
         return Ok(RegisterRootChunkSuccess);
@@ -786,7 +786,7 @@ impl GlobalUniverse {
             chunk: chunk.clone(),
         });
 
-        parent_chunk_child_chunks.insert(local_chunk_id, chunk);
+        parent_chunk_child_chunks.insert(local_chunk_id, chunk.clone());
         self.chunk_entity_info_hierarchy.insert_chunk_info(Some(parent_chunk_id), local_chunk_id, chunk);
         
 
@@ -977,7 +977,7 @@ impl GlobalUniverse {
 
     fn spawn_chunk(
         _commands: &mut Commands,
-        parent_chunk: &Chunk,
+        parent_chunk: &mut Chunk,
         chunk: &mut Chunk,
     ) -> Result<SpawnChunkSuccess, SpawnChunkError> {
         let parent_chunk_data = match *parent_chunk {
@@ -1041,7 +1041,7 @@ impl GlobalUniverse {
             return Err(DespawnChunkError::ChunkAlreadyDespawned);
         }
 
-        if let Some(child_chunks) = chunk_data.child_chunks {
+        if let Some(child_chunks) = &chunk_data.child_chunks {
             for child_chunk in child_chunks.values() {
                 let child_chunk = match child_chunk.lock() {
                     Ok(child_chunk) => child_chunk,
@@ -1416,13 +1416,20 @@ impl ChunkEntityInfoHierarchy {
         }
     }
 
-    pub(in crate::system::universe) fn insert_chunk_info(&self, parent_chunk_id: Option<&ChunkID>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<(), String> {
+    pub(in crate::system::universe) fn insert_chunk_info(&mut self, parent_chunk_id: Option<&ChunkID>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<(), String> {
         match parent_chunk_id {
             Some(parent_chunk_id) => {
                 let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
                     Some(parent_chunk_info) => parent_chunk_info,
                     None => {
                         return Err(format!("Failed to insert chunk info: Parent chunk info not found."));
+                    }
+                };
+        
+                let chunk_info = match ChunkInfo::new(parent_chunk_info_mutex.clone(), local_chunk_id, chunk_mutex) {
+                    Ok(chunk_info) => chunk_info,
+                    Err(error) => {
+                        return Err(format!("Failed to insert chunk info: {}", error));
                     }
                 };
         
@@ -1444,13 +1451,6 @@ impl ChunkEntityInfoHierarchy {
                     return Err(format!("Failed to insert chunk info: Chunk info already registered."));
                 }
         
-                let chunk_info = match ChunkInfo::new(parent_chunk_info_mutex, local_chunk_id, chunk_mutex) {
-                    Ok(chunk_info) => chunk_info,
-                    Err(error) => {
-                        return Err(format!("Failed to insert chunk info: {}", error));
-                    }
-                };
-        
                 child_chunks.insert(local_chunk_id, Arc::new(Mutex::new(chunk_info)));
         
                 Ok(())
@@ -1469,7 +1469,7 @@ impl ChunkEntityInfoHierarchy {
         }
     }
 
-    pub(in crate::system::universe) fn remove_chunk_info(&self, chunk_id: &ChunkID) -> Result<(), String> {
+    pub(in crate::system::universe) fn remove_chunk_info(&mut self, chunk_id: &ChunkID) -> Result<(), String> {
         match chunk_id.get_parent_chunk_id() {
             Some(parent_chunk_id) => {
                 let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
@@ -1563,6 +1563,8 @@ impl ChunkEntityInfoHierarchy {
             }
         };
 
+        let entity_info = EntityInfo::new(parent_chunk_info_mutex.clone(), local_entity_id, entity_mutex);
+
         let mut parent_chunk_info = match parent_chunk_info_mutex.lock() {
             Ok(parent_chunk_info) => parent_chunk_info,
             Err(_) => {
@@ -1573,8 +1575,6 @@ impl ChunkEntityInfoHierarchy {
         if parent_chunk_info.child_entities.contains_key(&local_entity_id) {
             return Err(format!("Failed to insert entity info: Entity info already registered."));
         }
-
-        let entity_info = EntityInfo::new(parent_chunk_info_mutex, local_entity_id, entity_mutex);
 
         parent_chunk_info.child_entities.insert(local_entity_id, Arc::new(Mutex::new(entity_info)));
 

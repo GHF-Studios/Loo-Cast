@@ -21,4 +21,5 @@ pub mod resource;
 // Implementations
 
 // Module Functions
-
+fn main() {
+}

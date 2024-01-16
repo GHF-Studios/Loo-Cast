@@ -189,6 +189,8 @@ impl PlayerManager {
             None => return,
         };
 
+        // TODO: Reimplement chunk operations using the new system
+        /*
         if mouse_button_input.just_pressed(MouseButton::Left) {
             let local_entity_pos = LocalEntityPos::from(world_position);
             let absolute_local_parent_chunk_pos = AbsoluteLocalChunkPos::from(local_entity_pos);
@@ -282,6 +284,7 @@ impl PlayerManager {
                 },
             ]));
         }
+        */
     }
 }
 

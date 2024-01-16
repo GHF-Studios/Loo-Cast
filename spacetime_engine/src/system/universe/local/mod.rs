@@ -206,6 +206,8 @@ impl LocalUniverse {
             for old_local_entity_id in old_local_entity_ids {
                 let old_entity_id = EntityID::new(old_chunk_id.clone(), old_local_entity_id);
                 
+                // TODO: Reimplement chunk operations using the new system
+                /*
                 match global_universe.send_entity_operation_request(EntityOperationRequest {
                     operations: vec![
                         EntityOperation::Despawn {
@@ -244,8 +246,11 @@ impl LocalUniverse {
                         continue;
                     }
                 }
+                */
             }
 
+            // TODO: Reimplement chunk operations using the new system
+            /*
             match global_universe.send_chunk_operation_request(ChunkOperationRequest {
                 operations: vec![
                     ChunkOperation::Despawn {
@@ -284,6 +289,7 @@ impl LocalUniverse {
                     continue;
                 }
             }
+            */
         }
 
         local_universe
@@ -321,6 +327,8 @@ impl LocalUniverse {
             let new_chunk_metadata = ChunkMetadata::new_root(new_absolute_local_chunk_pos);
             let new_chunk_data = ChunkData::new_node(new_apparent_local_chunk_pos.into());
 
+            // TODO: Reimplement chunk operations using the new system
+            /*
             match global_universe.send_chunk_operation_request(ChunkOperationRequest {
                 operations: vec![
                     ChunkOperation::RegisterRoot {
@@ -361,6 +369,7 @@ impl LocalUniverse {
                     continue;
                 }
             }
+            */
         }
 
         local_universe
