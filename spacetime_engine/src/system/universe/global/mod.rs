@@ -38,10 +38,10 @@ pub enum OperationRequest {
 pub struct GlobalUniversePlugin;
 
 pub struct GlobalUniverse {
-    pub registered_root_chunks:
+    pub(in crate::system::universe) registered_root_chunks:
         HashMap<LocalChunkID, Arc<Mutex<Chunk>>>,
-    pub operation_requests: Arc<Mutex<Vec<OperationRequest>>>,
-    pub chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy,
+    pub(in crate::system::universe) operation_requests: Arc<Mutex<Vec<OperationRequest>>>,
+    pub(in crate::system::universe) chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy,
 }
 
 pub(in crate::system::universe) struct ChunkEntityInfoHierarchy {

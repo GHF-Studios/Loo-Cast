@@ -81,22 +81,3 @@ impl PluginGroup for RapierPlugins {
 }
 
 // Module Functions
-pub(in crate) fn main() {
-    App::new()
-        // Bevy Plugins
-        .add_plugins(DefaultPlugins
-            .set(ImagePlugin::default_nearest())
-            .set(AssetPlugin {
-                asset_folder: "resources".to_string(),
-                ..default()
-            })
-        )
-        // Rapier Plugins
-        .add_plugins(RapierPlugins)
-        // States
-        .add_state::<AppState>()
-        // Loo Cast Base Plugins
-        .add_plugins(LooCastBasePlugins)
-        // Run
-        .run();
-}

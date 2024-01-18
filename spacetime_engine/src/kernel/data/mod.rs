@@ -24,8 +24,8 @@ lazy_static! {
 // Traits
 pub trait Data: Any + Send {
     fn get_runtime_id(&self) -> Option<u64>;
-    fn load_data<'a, TData: super::data::Data + Deserialize<'a>, TResource: super::resource::Resource>(resource: &TResource) -> Result<TData, String>;
-    fn save_data<TData: super::data::Data + Serialize, TResource: super::resource::Resource>(self, resource: &mut TResource) -> Result<(), String>;
+    fn load_data<TData: super::data::Data + for<'de> Deserialize<'de>, TResource: super::resource::Resource>(&self, resource: &TResource) -> Result<TData, String>;
+    fn save_data<'a, TData: 'a + super::data::Data + Serialize, TResource: 'a + super::resource::Resource>(&'a self, resource: &'a mut TResource) -> Result<(), String>;
 }
 
 // Enums
@@ -172,8 +172,8 @@ impl Data for TestData {
         self.runtime_id
     }
 
-    fn load_data<'a, TData: 'static + Any + super::data::Data + Deserialize<'a>, TResource: 'static + Any + super::resource::Resource>(resource: &TResource) -> Result<TData, String> {
-        let mut serialized_data = match resource.get_file_content() {
+    fn load_data<TData: super::data::Data + for<'de> Deserialize<'de>, TResource: super::resource::Resource>(&self, resource: &TResource) -> Result<TData, String> {
+        let serialized_data = match resource.get_file_content() {
             Ok(data) => data,
             Err(error) => return Err(format!("Failed to read resource file: {}", error)),
         };
@@ -181,20 +181,20 @@ impl Data for TestData {
             Ok(data) => data,
             Err(error) => return Err(format!("Failed to convert resource file to string: {}", error)),
         };
-
+    
         match serde_json::from_str(&serialized_data) {
             Ok(data) => Ok(data),
             Err(error) => Err(format!("Failed to deserialize data: {}", error)),
         }
     }
-
-    fn save_data<TData: 'static + Any + super::data::Data + Serialize, TResource: 'static + Any + super::resource::Resource>(self, resource: &mut TResource) -> Result<(), String> {
+    
+    fn save_data<'a, TData: 'a + super::data::Data + Serialize, TResource: 'a + super::resource::Resource>(&'a self, resource: &'a mut TResource) -> Result<(), String> {
         let serialized_data = match serde_json::to_string_pretty(&self) {
             Ok(data) => data,
             Err(error) => return Err(format!("Failed to serialize data: {}", error)),
         };
         let serialized_data: &[u8] = (&serialized_data).as_bytes();
-
+    
         match resource.set_file_content(serialized_data) {
             Ok(_) => Ok(()),
             Err(error) => Err(format!("Failed to write resource file: {}", error)),
