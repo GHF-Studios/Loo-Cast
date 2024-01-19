@@ -1,26 +1,42 @@
-# Navigate to spacetime_engine and build
-Push-Location .\spacetime_engine
-cargo build
+# Define paths
+$workspaceDir = ".\Loo Cast"
+$engineDir = "$workspaceDir\spacetime_engine"
+$baseModDir = "$workspaceDir\loo_cast_base_mod"
+$buildDir = "$workspaceDir\build"
+$assetsDir = "$workspaceDir\assets"
+$modsDir = "$engineDir\assets\mods"
+$baseModTargetDir = "$buildDir\assets\mods\loo_cast_base_mod"
 
-# Navigate to loo_cast_base_mod and build
-Push-Location .\loo_cast_base_mod
-cargo build
-
-# Prepare destination path
-$destinationPath = Join-Path -Path "..\spacetime_engine\assets\mods" -ChildPath "loo_cast_base_mod"
-
-# Clear existing build artifacts in the destination
-if (Test-Path $destinationPath) {
-    Remove-Item -Path $destinationPath -Recurse -Force
+# Clean build directory
+if (Test-Path $buildDir) {
+    Remove-Item -Path $buildDir -Recurse -Force
 }
 
-# Copy new build artifacts
-$sourcePath = Join-Path -Path .\target -ChildPath "*"
-Copy-Item -Path $sourcePath -Destination $destinationPath -Recurse -Force
+# Create necessary directories in build
+New-Item -Path $buildDir\assets -ItemType Directory -Force
+New-Item -Path $baseModTargetDir -ItemType Directory -Force
 
+# Build spacetime_engine
+Push-Location $engineDir
+cargo build --release
 Pop-Location
 
-# Run spacetime_engine
-Push-Location .\spacetime_engine
-cargo run
+# Copy engine executable and assets to build directory
+Copy-Item -Path "$engineDir\target\release\*" -Destination $buildDir -Recurse -Force
+Copy-Item -Path $assetsDir -Destination "$buildDir\assets" -Recurse -Force
+
+# Build and copy loo_cast_base_mod
+Push-Location $baseModDir
+cargo build --release
+Copy-Item -Path ".\target\release\*" -Destination $baseModTargetDir -Recurse -Force
+Pop-Location
+
+# Copy other mods (if any) to build directory (excluding base mod)
+Get-ChildItem -Path $modsDir -Directory -Exclude "loo_cast_base_mod" | ForEach-Object {
+    Copy-Item -Path $_.FullName -Destination "$buildDir\assets\mods\$($_.Name)" -Recurse -Force
+}
+
+# Run spacetime_engine from the build directory
+Push-Location $buildDir
+.\spacetime_engine.exe
 Pop-Location
