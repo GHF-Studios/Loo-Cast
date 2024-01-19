@@ -39,12 +39,11 @@ fn main() {
                 ..default()
             })
         )
-        // Rapier Plugins
+        // Plugins
+        .add_plugins(SpacetimeEnginePlugins)
         .add_plugins(RapierPlugins)
         // States
         .add_state::<AppState>()
-        // Loo Cast Base Plugins
-        .add_plugins(LooCastBasePlugins)
         // Run
         .run();
 }

@@ -45,12 +45,12 @@ pub enum AppState {
 }
 
 // Structs
-pub struct LooCastBasePlugins;
+pub struct SpacetimeEnginePlugins;
 
 pub struct RapierPlugins;
 
 // Implementations
-impl PluginGroup for LooCastBasePlugins {
+impl PluginGroup for SpacetimeEnginePlugins {
     fn build(self) -> PluginGroupBuilder {
         let mut group = PluginGroupBuilder::start::<Self>();
 
