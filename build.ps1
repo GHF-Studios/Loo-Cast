@@ -1,20 +1,21 @@
 # Define paths
 $engineBuildSourceDir = ".\spacetime_engine\target\release"
-$baseModBuildSourceDir = ".\loo_cast_base_mod\target\release"
 $engineBuildDataSourceDir = ".\spacetime_engine\data"
-$baseModBuildDataSourceDir = ".\loo_cast_base_mod\data"
 $engineBuildResourcesSourceDir = ".\spacetime_engine\resources"
-$baseModBuildResourcesSourceDir = ".\loo_cast_base_mod\resources"
-
 $engineBuildTargetDir = ".\build"
-$baseModBuildTargetDir = ".\build\resources\mods\loo_cast_base_mod"
 $engineBuildDataTargetDir = ".\build\data"
-$baseModBuildDataTargetDir = ".\build\resources\mods\loo_cast_base_mod\data"
 $engineBuildResourcesTargetDir = ".\build\resources"
+
+$baseModBuildSourceDir = ".\loo_cast_base_mod\target\release"
+$baseModBuildDataSourceDir = ".\loo_cast_base_mod\data"
+$baseModBuildResourcesSourceDir = ".\loo_cast_base_mod\resources"
+$baseModBuildTargetDir = ".\build\resources\mods\loo_cast_base_mod"
+$baseModBuildDataTargetDir = ".\build\resources\mods\loo_cast_base_mod\data"
 $baseModBuildResourcesTargetDir = ".\build\resources\mods\loo_cast_base_mod\resources"
 
 # TODO: Change bevy asset folder to "resources"
 # TODO: Set persistent data folder to "data"
+# TODO: Solve bevy not being able to specify multiple asset folders
 
 # Clean build directory
 if (Test-Path $buildDir) {
