@@ -38,7 +38,7 @@ fn main() {
         .add_plugins(DefaultPlugins
             .set(ImagePlugin::default_nearest())
             .set(AssetPlugin {
-                asset_folder: "resources".to_string(),
+                asset_folder: "mods".to_string(),
                 ..default()
             })
         )

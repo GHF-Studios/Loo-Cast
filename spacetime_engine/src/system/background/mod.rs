@@ -84,7 +84,7 @@ impl BackgroundManager {
                             ..default()
                         },
                         transform: Transform::from_xyz(x, y, -1.0),
-                        texture: asset_server.load("sprites/background.png"),
+                        texture: asset_server.load("loo_cast_base_mod/resources/sprites/background.png"),
                         ..default()
                     },
                     Background {

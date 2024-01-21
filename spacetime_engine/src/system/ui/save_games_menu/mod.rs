@@ -405,7 +405,7 @@ impl SaveGamesMenuManager {
                                             parent.spawn(ImageBundle {
                                                 style: BUTTON_IMAGE_STYLE,
                                                 image: asset_server
-                                                    .load("sprites/cross.png")
+                                                    .load("loo_cast_base_mod/resources/sprites/cross.png")
                                                     .into(),
                                                 ..default()
                                             });
@@ -448,7 +448,7 @@ impl SaveGamesMenuManager {
                                             parent.spawn(ImageBundle {
                                                 style: BUTTON_IMAGE_STYLE,
                                                 image: asset_server
-                                                    .load("sprites/enter.png")
+                                                    .load("loo_cast_base_mod/resources/sprites/enter.png")
                                                     .into(),
                                                 ..default()
                                             });
@@ -476,7 +476,7 @@ impl SaveGamesMenuManager {
                             .with_children(|parent| {
                                 parent.spawn(ImageBundle {
                                     style: BUTTON_IMAGE_STYLE,
-                                    image: asset_server.load("sprites/return.png").into(),
+                                    image: asset_server.load("loo_cast_base_mod/resources/sprites/return.png").into(),
                                     ..default()
                                 });
                             });
@@ -494,7 +494,7 @@ impl SaveGamesMenuManager {
                             .with_children(|parent| {
                                 parent.spawn(ImageBundle {
                                     style: BUTTON_IMAGE_STYLE,
-                                    image: asset_server.load("sprites/plus.png").into(),
+                                    image: asset_server.load("loo_cast_base_mod/resources/sprites/plus.png").into(),
                                     ..default()
                                 });
                             });
@@ -507,7 +507,7 @@ impl SaveGamesMenuManager {
 
     fn get_save_game_name_text_style(asset_server: &Res<AssetServer>) -> TextStyle {
         TextStyle {
-            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
             font_size: 64.0,
             color: Color::WHITE,
         }

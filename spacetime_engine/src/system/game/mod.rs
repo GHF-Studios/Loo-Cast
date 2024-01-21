@@ -110,7 +110,7 @@ impl GameManager {
             GameManager::initialize(&mut commands, save_game_info.clone());
 
             // Load Game Config
-            let dir_path = format!("resources/data/saves/{}/config", save_game_info.name);
+            let dir_path = format!("mods/loo_cast_base_mod/data/saves/{}/config", save_game_info.name);
             if !Path::new(&dir_path).exists() {
                 std::fs::create_dir_all(&dir_path).expect("Failed to create config directory");
 
@@ -120,7 +120,7 @@ impl GameManager {
             GameConfigManager::initialize(&mut commands);
 
             // Load Game State
-            let dir_path = format!("resources/data/saves/{}/state", save_game_info.name);
+            let dir_path = format!("mods/loo_cast_base_mod/data/saves/{}/state", save_game_info.name);
             if !Path::new(&dir_path).exists() {
                 std::fs::create_dir_all(&dir_path).expect("Failed to create state directory");
 

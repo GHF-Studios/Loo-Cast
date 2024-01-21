@@ -91,7 +91,7 @@ impl PlayerManager {
                         ..default()
                     },
                     transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                    texture: asset_server.load("sprites/circle.png"),
+                    texture: asset_server.load("loo_cast_base_mod/resources/sprites/circle.png"),
                     ..default()
                 },
                 RigidBody::Dynamic,

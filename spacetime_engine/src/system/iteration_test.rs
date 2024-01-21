@@ -94,13 +94,13 @@ impl IterationTestManager {
                         TextSection::new(
                             "Local Entity Position: ",
                             TextStyle {
-                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         ),
                         TextSection::from_style(TextStyle {
-                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                             font_size: 20.0,
                             color: Color::WHITE,
                         }),
@@ -112,13 +112,13 @@ impl IterationTestManager {
                         TextSection::new(
                             "Absolute Local Chunk Position: ",
                             TextStyle {
-                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         ),
                         TextSection::from_style(TextStyle {
-                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                             font_size: 20.0,
                             color: Color::WHITE,
                         }),
@@ -130,13 +130,13 @@ impl IterationTestManager {
                         TextSection::new(
                             "Apparent Local Chunk Position: ",
                             TextStyle {
-                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         ),
                         TextSection::from_style(TextStyle {
-                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                             font_size: 20.0,
                             color: Color::WHITE,
                         }),
@@ -147,7 +147,7 @@ impl IterationTestManager {
                     TextBundle::from_sections([TextSection::new(
                         "Current Scale Index: 0",
                         TextStyle {
-                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                             font_size: 20.0,
                             color: Color::WHITE,
                         },
@@ -159,13 +159,13 @@ impl IterationTestManager {
                         TextSection::new(
                             "Global Chunk Position: ",
                             TextStyle {
-                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                                font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         ),
                         TextSection::from_style(TextStyle {
-                            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                             font_size: 20.0,
                             color: Color::WHITE,
                         }),

@@ -77,7 +77,7 @@ impl SaveGameManager {
     fn initialize(mut commands: Commands) {
         let mut save_game_infos: Vec<SaveGameInfo> = Vec::new();
 
-        if let Ok(paths) = std::fs::read_dir("resources/data/saves") {
+        if let Ok(paths) = std::fs::read_dir("loo_cast_base_mod/data/saves") {
             for path in paths {
                 let path = path.unwrap().path();
                 if path.is_dir() {
@@ -117,7 +117,7 @@ impl SaveGameManager {
 
             let serialized_save_game_info: String = serde_json::to_string(&save_game_info).unwrap();
 
-            let dir_path = format!("resources/data/saves/{}", event.save_game_name);
+            let dir_path = format!("mods/loo_cast_base_mod/data/saves/{}", event.save_game_name);
             if !Path::new(&dir_path).exists() {
                 std::fs::create_dir_all(&dir_path).expect("Failed to create save game directory");
             }
@@ -147,7 +147,7 @@ impl SaveGameManager {
         mut save_game_manager: ResMut<SaveGameManager>,
     ) {
         for event in delete_save_game_event_reader.iter() {
-            let dir_path = format!("resources/data/saves/{}", event.save_game_name);
+            let dir_path = format!("mods/loo_cast_base_mod/data/saves/{}", event.save_game_name);
             let string_path = format!("{}/info.json", dir_path);
             let path = Path::new(&string_path);
             let display = path.display();

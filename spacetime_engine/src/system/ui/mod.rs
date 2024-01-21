@@ -97,7 +97,7 @@ impl UIManager {
 
     pub fn get_title_text_style(asset_server: &Res<AssetServer>) -> TextStyle {
         TextStyle {
-            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
             font_size: 80.0,
             color: Color::WHITE,
         }
@@ -105,7 +105,7 @@ impl UIManager {
 
     pub fn get_label_text_style(asset_server: &Res<AssetServer>) -> TextStyle {
         TextStyle {
-            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
             font_size: 48.0,
             color: Color::WHITE,
         }
@@ -113,7 +113,7 @@ impl UIManager {
 
     pub fn get_button_text_style(asset_server: &Res<AssetServer>) -> TextStyle {
         TextStyle {
-            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
             font_size: 32.0,
             color: Color::WHITE,
         }

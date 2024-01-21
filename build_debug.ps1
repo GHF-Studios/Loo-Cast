@@ -1,8 +1,3 @@
-# TODO: Set data/resources folder path in the spacetime engine to "$ENGINE_ROOT\$MOD_NAME\resources" and the assets folder path in the bevy engine to "$ENGINE_ROOT\mods"
-
-
-
-
 ########## DEFINE PATHS ##########
 
 # Loo cast paths
@@ -82,12 +77,10 @@ $baseModPdbFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "loo_cast_b
 Copy-Item -Path $baseModPdbFile.FullName -Destination $baseModBuildTargetDir -Force
 
 # Copy data directory from build source to build target
-$baseModDataDir = Get-ChildItem -Path $baseModBuildDataSourceDir -Recurse
-Copy-Item -Path $baseModDataDir.FullName -Destination $baseModBuildDataTargetDir -Recurse -Force
+Copy-Item -Path $baseModBuildDataSourceDir -Destination $baseModBuildDataTargetDir -Recurse -Force
 
 # Copy resources directory from build source to build target
-$baseModResourcesDir = Get-ChildItem -Path $baseModBuildResourcesSourceDir -Recurse
-Copy-Item -Path $baseModResourcesDir.FullName -Destination $baseModBuildResourcesTargetDir -Recurse -Force
+Copy-Item -Path $baseModBuildResourcesSourceDir -Destination $baseModBuildResourcesTargetDir -Recurse -Force
 
 
 
@@ -104,8 +97,13 @@ if (Test-Path $engineBuildModsSourceDir) {
         # Define the target directory path for each mod
         $targetModDir = Join-Path -Path $engineBuildModsTargetDir -ChildPath $modDir.Name
 
-        # Copy the entire mod directory to the target directory
-        Copy-Item -Path $modDir.FullName -Destination $targetModDir -Recurse -Force
+        # Check for duplicate mod directories
+        if (Test-Path $targetModDir) {
+            Write-Host "Attempted to load mod '$($modDir.Name)' multiple times."
+        } else {
+            # Copy the entire mod directory to the target directory
+            Copy-Item -Path $modDir.FullName -Destination $targetModDir -Recurse -Force
+        }
     }
 } else {
     Write-Host "Source mods directory does not exist: $engineBuildModsSourceDir"
