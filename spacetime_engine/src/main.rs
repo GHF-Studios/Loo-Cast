@@ -1,3 +1,6 @@
+// Crates
+extern crate spacetime_engine;
+
 // Modules
 
 // Local imports
