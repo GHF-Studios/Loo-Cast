@@ -3,14 +3,15 @@
 // Local imports
 
 // Internal imports
+use super::manager::*;
 
 // External imports
 use serde::{Serialize, Deserialize};
 use std::any::Any;
 use std::any::TypeId;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use lazy_static::*;
+use std::collections::HashMap;
 
 // Static variables
 lazy_static! {
@@ -32,14 +33,119 @@ pub trait Data: Any + Send {
 
 // Structs
 pub struct DataManager {
+    dependencies: HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>,
+    state: ManagerState,
     data_hashmap: HashMap<TypeId, HashMap<u64, Box<dyn Any + Send>>>,
     next_data_id: u64,
 }
 
 // Implementations
+impl Manager for DataManager {
+    fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
+        match self.state {
+            ManagerState::Created => {},
+            ManagerState::Initialized => {
+                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+            },
+            ManagerState::Finalized => {
+                return Err(ManagerInitializeError::ManagerAlreadyFinalized);
+            },
+        }
+
+        for (_, dependency) in self.dependencies.iter_mut() {
+            let dependency = dependency.lock().unwrap();
+
+            match dependency.get_state() {
+                ManagerState::Created => {
+                    return Err(ManagerInitializeError::DependencyNotInitialized);
+                },
+                ManagerState::Initialized => {
+                },
+                ManagerState::Finalized => {
+                    return Err(ManagerInitializeError::DependencyAlreadyFinalized);
+                },
+            }
+        }
+
+        self.state = ManagerState::Initialized;
+
+        Ok(())
+    }
+
+    fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
+        match self.state {
+            ManagerState::Created => {
+                return Err(ManagerFinalizeError::ManagerNotInitialized);
+            },
+            ManagerState::Initialized => {},
+            ManagerState::Finalized => {
+                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+            },
+        }
+
+        for (_, dependency) in self.dependencies.iter_mut() {
+            let dependency = dependency.lock().unwrap();
+
+            match dependency.get_state() {
+                ManagerState::Created => {
+                    return Err(ManagerFinalizeError::DependencyNotFinalized);
+                },
+                ManagerState::Initialized => {
+                    return Err(ManagerFinalizeError::DependencyNotFinalized);
+                },
+                ManagerState::Finalized => {},
+            }
+        }
+
+        self.dependencies.clear();
+
+        self.state = ManagerState::Finalized;
+
+        Ok(())
+    }
+
+    fn get_state(&self) -> &ManagerState {
+        &self.state
+    }
+
+    fn register_dependency(&mut self, dependency_id: TypeId, dependency: Box<Arc<Mutex<dyn Manager + Sync + Send>>>) -> Result<(), ManagerRegisterDependencyError> {
+        match self.state {
+            ManagerState::Created => {
+                if self.dependencies.contains_key(&dependency_id) {
+                    return Err(ManagerRegisterDependencyError::DependencyAlreadyRegistered);
+                }
+
+                self.dependencies.insert(dependency_id, dependency);
+
+                Ok(())
+            },
+            ManagerState::Initialized => {
+                Err(ManagerRegisterDependencyError::ManagerAlreadyInitialized)
+
+            },
+            ManagerState::Finalized => {
+                Err(ManagerRegisterDependencyError::ManagerAlreadyFinalized)
+            },
+        }
+    }
+
+    fn get_dependencies(&self) -> Result<&HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>, ManagerGetDependenciesError> {
+        Ok(&self.dependencies)
+    }
+
+    fn get_dependencies_mut(&mut self) -> Result<&mut HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>, ManagerGetDependenciesMutError> {
+        Ok(&mut self.dependencies)
+    }
+}
+
 impl DataManager {
-    pub fn new() -> Self {
-        DataManager { data_hashmap: HashMap::new(), next_data_id: 0 }
+    fn new() -> Self {
+        DataManager { 
+            dependencies: HashMap::new(),
+            state: ManagerState::Created,
+            data_hashmap: HashMap::new(), 
+            next_data_id: 0 
+        }
     }
 
     pub fn register_data_type<T: Data>(&mut self) -> Result<(), String> {

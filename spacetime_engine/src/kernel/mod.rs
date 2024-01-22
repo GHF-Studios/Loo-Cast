@@ -1,7 +1,11 @@
 // Modules
+pub mod config;
 pub mod data;
+pub mod debug;
 pub mod event;
+pub mod manager;
 pub mod math;
+pub mod plugin;
 pub mod resource;
 
 // Internal imports
@@ -21,5 +25,3 @@ pub mod resource;
 // Implementations
 
 // Module Functions
-fn main() {
-}
