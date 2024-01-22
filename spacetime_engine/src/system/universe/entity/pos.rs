@@ -18,8 +18,7 @@ use bevy::prelude::*;
 // Enums
 
 // Structs
-#[derive(Clone, PartialEq, Debug)]
-#[derive(Default)]
+#[derive(Clone, PartialEq, Debug, Default)]
 pub struct EntityPos {
     parent_chunk_pos: ChunkPos,
     local_pos: LocalEntityPos,
@@ -32,7 +31,6 @@ pub struct LocalEntityPos {
 }
 
 // Implementations
-
 
 impl EntityPos {
     pub fn new(parent_chunk_pos: ChunkPos, local_pos: LocalEntityPos) -> Self {

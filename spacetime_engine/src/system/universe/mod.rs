@@ -12,8 +12,8 @@ use local::id::*;
 use local::*;
 
 // Internal imports
-use crate::system::AppState;
 use crate::system::player::*;
+use crate::system::AppState;
 
 // External imports
 use bevy::prelude::*;
@@ -98,11 +98,12 @@ impl UniverseManager {
         mut universe_manager: ResMut<UniverseManager>,
     ) {
         if load_global_universe_event_reader.iter().last().is_some() {
-            universe_manager.registered_global_universe = Some(Arc::new(Mutex::new(GlobalUniverse {
-                registered_root_chunks: HashMap::new(),
-                operation_requests: Arc::new(Mutex::new(Vec::new())),
-                chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy::new(),
-            })));
+            universe_manager.registered_global_universe =
+                Some(Arc::new(Mutex::new(GlobalUniverse {
+                    registered_root_chunks: HashMap::new(),
+                    operation_requests: Arc::new(Mutex::new(Vec::new())),
+                    chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy::new(),
+                })));
         }
     }
 
@@ -113,19 +114,26 @@ impl UniverseManager {
     pub fn register_local_universe(&mut self, local_universe: LocalUniverse) -> Result<(), String> {
         let local_universe_id = local_universe.get_id();
 
-        if self.registered_local_universes.contains_key(local_universe_id) {
+        if self
+            .registered_local_universes
+            .contains_key(local_universe_id)
+        {
             return Err(format!(
                 "Local universe with ID {} is already registered.",
                 local_universe_id.get_id()
             ));
         }
 
-        self.registered_local_universes.insert(*local_universe_id, Arc::new(Mutex::new(local_universe)));
+        self.registered_local_universes
+            .insert(*local_universe_id, Arc::new(Mutex::new(local_universe)));
 
         Ok(())
     }
 
-    pub fn unregister_local_universe(&mut self, local_universe_id: LocalUniverseID) -> Result<(), String> {
+    pub fn unregister_local_universe(
+        &mut self,
+        local_universe_id: LocalUniverseID,
+    ) -> Result<(), String> {
         match self.registered_local_universes.remove(&local_universe_id) {
             Some(_) => Ok(()),
             None => Err(format!(
@@ -135,8 +143,13 @@ impl UniverseManager {
         }
     }
 
-    pub fn get_local_universe(&self, local_universe_id: LocalUniverseID) -> Option<Arc<Mutex<LocalUniverse>>> {
-        self.registered_local_universes.get(&local_universe_id).cloned()
+    pub fn get_local_universe(
+        &self,
+        local_universe_id: LocalUniverseID,
+    ) -> Option<Arc<Mutex<LocalUniverse>>> {
+        self.registered_local_universes
+            .get(&local_universe_id)
+            .cloned()
     }
 }
 

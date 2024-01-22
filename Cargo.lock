@@ -3410,6 +3410,7 @@ dependencies = [
  "futures",
  "image",
  "lazy_static",
+ "log",
  "noise",
  "num-bigint",
  "num-traits",

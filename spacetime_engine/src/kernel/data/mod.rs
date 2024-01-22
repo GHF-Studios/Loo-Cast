@@ -6,12 +6,13 @@
 use super::manager::*;
 
 // External imports
-use serde::{Serialize, Deserialize};
+use lazy_static::*;
+use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::any::TypeId;
-use std::sync::{Arc, Mutex};
-use lazy_static::*;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use bevy::log::*;
 
 // Static variables
 lazy_static! {
@@ -25,15 +26,27 @@ lazy_static! {
 // Traits
 pub trait Data: Any + Send + Sync {
     fn get_runtime_id(&self) -> Option<u64>;
-    fn load_data<TData: super::data::Data + for<'de> Deserialize<'de>, TResource: super::resource::Resource>(&self, resource: &TResource) -> Result<TData, String>;
-    fn save_data<'a, TData: 'a + super::data::Data + Serialize, TResource: 'a + super::resource::Resource>(&'a self, resource: &'a mut TResource) -> Result<(), String>;
+    fn load_data<
+        TData: super::data::Data + for<'de> Deserialize<'de>,
+        TResource: super::resource::Resource,
+    >(
+        &self,
+        resource: &TResource,
+    ) -> Result<TData, String>;
+    fn save_data<
+        'a,
+        TData: 'a + super::data::Data + Serialize,
+        TResource: 'a + super::resource::Resource,
+    >(
+        &'a self,
+        resource: &'a mut TResource,
+    ) -> Result<(), String>;
 }
 
 // Enums
 
 // Structs
 pub struct DataManager {
-    dependencies: HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>,
     state: ManagerState,
     data_hashmap: HashMap<TypeId, HashMap<u64, Box<dyn Any + Send + Sync>>>,
     next_data_id: u64,
@@ -43,27 +56,12 @@ pub struct DataManager {
 impl Manager for DataManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
         match self.state {
-            ManagerState::Created => {},
+            ManagerState::Created => {}
             ManagerState::Initialized => {
                 return Err(ManagerInitializeError::ManagerAlreadyInitialized);
-            },
+            }
             ManagerState::Finalized => {
                 return Err(ManagerInitializeError::ManagerAlreadyFinalized);
-            },
-        }
-
-        for (_, dependency) in self.dependencies.iter_mut() {
-            let dependency = dependency.lock().unwrap();
-
-            match dependency.get_state() {
-                ManagerState::Created => {
-                    return Err(ManagerInitializeError::DependencyNotInitialized);
-                },
-                ManagerState::Initialized => {
-                },
-                ManagerState::Finalized => {
-                    return Err(ManagerInitializeError::DependencyAlreadyFinalized);
-                },
             }
         }
 
@@ -76,28 +74,12 @@ impl Manager for DataManager {
         match self.state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
-            },
-            ManagerState::Initialized => {},
+            }
+            ManagerState::Initialized => {}
             ManagerState::Finalized => {
                 return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
-            },
-        }
-
-        for (_, dependency) in self.dependencies.iter_mut() {
-            let dependency = dependency.lock().unwrap();
-
-            match dependency.get_state() {
-                ManagerState::Created => {
-                    return Err(ManagerFinalizeError::DependencyNotFinalized);
-                },
-                ManagerState::Initialized => {
-                    return Err(ManagerFinalizeError::DependencyNotFinalized);
-                },
-                ManagerState::Finalized => {},
             }
         }
-
-        self.dependencies.clear();
 
         self.state = ManagerState::Finalized;
 
@@ -107,50 +89,23 @@ impl Manager for DataManager {
     fn get_state(&self) -> &ManagerState {
         &self.state
     }
-
-    fn register_dependency(&mut self, dependency_id: TypeId, dependency: Box<Arc<Mutex<dyn Manager + Sync + Send>>>) -> Result<(), ManagerRegisterDependencyError> {
-        match self.state {
-            ManagerState::Created => {
-                if self.dependencies.contains_key(&dependency_id) {
-                    return Err(ManagerRegisterDependencyError::DependencyAlreadyRegistered);
-                }
-
-                self.dependencies.insert(dependency_id, dependency);
-
-                Ok(())
-            },
-            ManagerState::Initialized => {
-                Err(ManagerRegisterDependencyError::ManagerAlreadyInitialized)
-
-            },
-            ManagerState::Finalized => {
-                Err(ManagerRegisterDependencyError::ManagerAlreadyFinalized)
-            },
-        }
-    }
-
-    fn get_dependencies(&self) -> Result<&HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>, ManagerGetDependenciesError> {
-        Ok(&self.dependencies)
-    }
-
-    fn get_dependencies_mut(&mut self) -> Result<&mut HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>, ManagerGetDependenciesMutError> {
-        Ok(&mut self.dependencies)
-    }
 }
 
 impl DataManager {
     fn new() -> Self {
-        DataManager { 
-            dependencies: HashMap::new(),
+        DataManager {
             state: ManagerState::Created,
-            data_hashmap: HashMap::new(), 
-            next_data_id: 0 
+            data_hashmap: HashMap::new(),
+            next_data_id: 0,
         }
     }
 
     pub fn register_data_type<T: Data>(&mut self) -> Result<(), String> {
         if self.data_hashmap.contains_key(&TypeId::of::<T>()) {
-            return Err(format!("Data type already registered: {}", std::any::type_name::<T>()));
+            return Err(format!(
+                "Data type already registered: {}",
+                std::any::type_name::<T>()
+            ));
         }
 
         self.data_hashmap.insert(TypeId::of::<T>(), HashMap::new());
@@ -160,7 +115,10 @@ impl DataManager {
 
     pub fn unregister_data_type<T: Data>(&mut self) -> Result<(), String> {
         if !self.data_hashmap.contains_key(&TypeId::of::<T>()) {
-            return Err(format!("Data type not registered: {}", std::any::type_name::<T>()));
+            return Err(format!(
+                "Data type not registered: {}",
+                std::any::type_name::<T>()
+            ));
         }
 
         self.data_hashmap.remove(&TypeId::of::<T>());
@@ -176,17 +134,25 @@ impl DataManager {
         if let Some(id) = data.get_runtime_id() {
             return Err(format!("Data already registered: {}", id));
         }
-        
+
         let data_hashmap = match self.data_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
-            None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
+            None => {
+                return Err(format!(
+                    "Data type not registered: {}",
+                    std::any::type_name::<T>()
+                ))
+            }
         };
 
         let id = self.next_data_id;
         self.next_data_id += 1;
 
         if data_hashmap.contains_key(&id) {
-            return Err(format!("Supposedly unused data ID '{}' already in use!", id));
+            return Err(format!(
+                "Supposedly unused data ID '{}' already in use!",
+                id
+            ));
         }
 
         data_hashmap.insert(id, Box::new(data));
@@ -197,7 +163,12 @@ impl DataManager {
     pub fn unregister_data<T: Data>(&mut self, id: u64) -> Result<T, String> {
         let data_hashmap = match self.data_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
-            None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
+            None => {
+                return Err(format!(
+                    "Data type not registered: {}",
+                    std::any::type_name::<T>()
+                ))
+            }
         };
 
         if !data_hashmap.contains_key(&id) {
@@ -212,7 +183,12 @@ impl DataManager {
     pub fn is_data_registered<T: Data>(&self, id: u64) -> Result<bool, String> {
         let data_hashmap = match self.data_hashmap.get(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
-            None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
+            None => {
+                return Err(format!(
+                    "Data type not registered: {}",
+                    std::any::type_name::<T>()
+                ))
+            }
         };
 
         Ok(data_hashmap.contains_key(&id))
@@ -221,7 +197,12 @@ impl DataManager {
     pub fn get_data<T: Data>(&self, id: u64) -> Result<Option<&T>, String> {
         let data_hashmap = match self.data_hashmap.get(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
-            None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
+            None => {
+                return Err(format!(
+                    "Data type not registered: {}",
+                    std::any::type_name::<T>()
+                ))
+            }
         };
 
         if !data_hashmap.contains_key(&id) {
@@ -236,7 +217,12 @@ impl DataManager {
     pub fn get_data_mut<T: Data>(&mut self, id: u64) -> Result<Option<&mut T>, String> {
         let data_hashmap = match self.data_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(data_hashmap) => data_hashmap,
-            None => return Err(format!("Data type not registered: {}", std::any::type_name::<T>())),
+            None => {
+                return Err(format!(
+                    "Data type not registered: {}",
+                    std::any::type_name::<T>()
+                ))
+            }
         };
 
         if !data_hashmap.contains_key(&id) {
@@ -254,15 +240,18 @@ pub fn test() {
     let mut manager = DataManager::new();
 
     match manager.register_data_type::<TestData>() {
-        Ok(_) => println!("Registered data type: {}", std::any::type_name::<TestData>()),
-        Err(error) => println!("Failed to register data type: {}", error),
+        Ok(_) => debug!(
+            "Registered data type: {}",
+            std::any::type_name::<TestData>()
+        ),
+        Err(error) => panic!("Failed to register data type: {}", error),
     };
 
     let data = TestData { runtime_id: None };
 
     match manager.register_data(data) {
-        Ok(_) => println!("Registered data: {}", std::any::type_name::<TestData>()),
-        Err(error) => println!("Failed to register data: {}", error),
+        Ok(_) => debug!("Registered data: {}", std::any::type_name::<TestData>()),
+        Err(error) => panic!("Failed to register data: {}", error),
     };
 }
 
@@ -270,7 +259,7 @@ pub fn test() {
 #[derive(Serialize, Deserialize)]
 pub struct TestData {
     #[serde(skip)]
-    runtime_id: Option<u64>
+    runtime_id: Option<u64>,
 }
 
 impl Data for TestData {
@@ -278,29 +267,47 @@ impl Data for TestData {
         self.runtime_id
     }
 
-    fn load_data<TData: super::data::Data + for<'de> Deserialize<'de>, TResource: super::resource::Resource>(&self, resource: &TResource) -> Result<TData, String> {
+    fn load_data<
+        TData: super::data::Data + for<'de> Deserialize<'de>,
+        TResource: super::resource::Resource,
+    >(
+        &self,
+        resource: &TResource,
+    ) -> Result<TData, String> {
         let serialized_data = match resource.get_file_content() {
             Ok(data) => data,
             Err(error) => return Err(format!("Failed to read resource file: {}", error)),
         };
         let serialized_data: String = match String::from_utf8(serialized_data.to_vec()) {
             Ok(data) => data,
-            Err(error) => return Err(format!("Failed to convert resource file to string: {}", error)),
+            Err(error) => {
+                return Err(format!(
+                    "Failed to convert resource file to string: {}",
+                    error
+                ))
+            }
         };
-    
+
         match serde_json::from_str(&serialized_data) {
             Ok(data) => Ok(data),
             Err(error) => Err(format!("Failed to deserialize data: {}", error)),
         }
     }
-    
-    fn save_data<'a, TData: 'a + super::data::Data + Serialize, TResource: 'a + super::resource::Resource>(&'a self, resource: &'a mut TResource) -> Result<(), String> {
+
+    fn save_data<
+        'a,
+        TData: 'a + super::data::Data + Serialize,
+        TResource: 'a + super::resource::Resource,
+    >(
+        &'a self,
+        resource: &'a mut TResource,
+    ) -> Result<(), String> {
         let serialized_data = match serde_json::to_string_pretty(&self) {
             Ok(data) => data,
             Err(error) => return Err(format!("Failed to serialize data: {}", error)),
         };
         let serialized_data: &[u8] = (&serialized_data).as_bytes();
-    
+
         match resource.set_file_content(serialized_data) {
             Ok(_) => Ok(()),
             Err(error) => Err(format!("Failed to write resource file: {}", error)),

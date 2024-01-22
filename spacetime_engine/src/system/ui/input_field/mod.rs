@@ -45,8 +45,7 @@ pub struct InputFieldBundle {
     pub image: UiImage,
 }
 
-#[derive(Component, Debug)]
-#[derive(Default)]
+#[derive(Component, Debug, Default)]
 pub struct InputField {
     pub value: String,
 }
@@ -98,8 +97,6 @@ impl Default for InputFieldBundle {
         }
     }
 }
-
-
 
 impl InputFieldManager {
     fn initialize(mut commands: Commands) {

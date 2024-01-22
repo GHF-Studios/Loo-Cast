@@ -33,7 +33,7 @@ pub const VIEW_RADIUS: u16 = 2;
 pub enum Chunk {
     Registered {
         id: ChunkID,
-        bevy_entity: Entity
+        bevy_entity: Entity,
     },
     MetadataLoaded {
         id: ChunkID,
@@ -220,7 +220,7 @@ pub struct DespawnChunkSuccess;
 
 #[derive(Component)]
 pub struct ChunkBevyComponent {
-    pub chunk: Arc<Mutex<Chunk>>
+    pub chunk: Arc<Mutex<Chunk>>,
 }
 
 // Implementations
@@ -247,13 +247,16 @@ impl Default for Chunk {
     fn default() -> Self {
         Chunk::Registered {
             id: ChunkID::default(),
-            bevy_entity: bevy::ecs::entity::Entity::PLACEHOLDER
+            bevy_entity: bevy::ecs::entity::Entity::PLACEHOLDER,
         }
     }
 }
 
 impl Chunk {
-    pub(in crate::system::universe) fn new(id: ChunkID, bevy_entity: bevy::ecs::entity::Entity) -> Self {
+    pub(in crate::system::universe) fn new(
+        id: ChunkID,
+        bevy_entity: bevy::ecs::entity::Entity,
+    ) -> Self {
         Chunk::Registered { id, bevy_entity }
     }
 
@@ -269,15 +272,24 @@ impl Chunk {
             let (chunk_metadata, chunk_data) = match *chunk {
                 Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                     continue;
-                },
-                Chunk::DataLoaded { ref metadata, ref data, .. } => (metadata, data),
+                }
+                Chunk::DataLoaded {
+                    ref metadata,
+                    ref data,
+                    ..
+                } => (metadata, data),
             };
 
             let absolute_local_chunk_pos = chunk_metadata.absolute_local_chunk_pos;
             let apparent_chunk_pos_shift = chunk_data.apparent_chunk_pos_shift;
-            let apparent_local_chunk_pos: ApparentLocalChunkPos = (absolute_local_chunk_pos, apparent_chunk_pos_shift).into();
-            
-            let color = if absolute_local_chunk_pos.x == 0 || absolute_local_chunk_pos.x == 9 || absolute_local_chunk_pos.y == 0 || absolute_local_chunk_pos.y == 9 {
+            let apparent_local_chunk_pos: ApparentLocalChunkPos =
+                (absolute_local_chunk_pos, apparent_chunk_pos_shift).into();
+
+            let color = if absolute_local_chunk_pos.x == 0
+                || absolute_local_chunk_pos.x == 9
+                || absolute_local_chunk_pos.y == 0
+                || absolute_local_chunk_pos.y == 9
+            {
                 Color::RED
             } else {
                 Color::GREEN

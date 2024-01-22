@@ -17,8 +17,8 @@ use crate::system::universe::*;
 use crate::system::AppState;
 
 // External imports
-use bevy::prelude::*;
 use bevy::ecs::system::EntityCommands;
+use bevy::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -81,7 +81,9 @@ impl Plugin for GlobalUniversePlugin {
 }
 
 impl GlobalUniverse {
-    pub(in crate::system::universe) fn generate_entity_id(parent_chunk: &mut Chunk) -> Result<EntityID, String> {
+    pub(in crate::system::universe) fn generate_entity_id(
+        parent_chunk: &mut Chunk,
+    ) -> Result<EntityID, String> {
         let (parent_chunk_id, parent_chunk_data) = match parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(
@@ -89,9 +91,7 @@ impl GlobalUniverse {
                         .to_string(),
                 );
             }
-            Chunk::DataLoaded { id, data, .. } => {
-                (id.clone(), data)
-            }
+            Chunk::DataLoaded { id, data, .. } => (id.clone(), data),
         };
 
         let local_entity_id = if !parent_chunk_data.recycled_local_entity_ids.is_empty() {
@@ -100,26 +100,26 @@ impl GlobalUniverse {
             let local_entity_id = parent_chunk_data.current_local_entity_id;
 
             parent_chunk_data.current_local_entity_id += 1;
-            
+
             local_entity_id
         };
 
         let local_entity_id = match LocalEntityID::new(local_entity_id) {
             Ok(local_entity_id) => local_entity_id,
             Err(error) => {
-                return Err(format!(
-                    "Generating a local entity id failed: {}",
-                    error
-                ));
+                return Err(format!("Generating a local entity id failed: {}", error));
             }
         };
-            
+
         let entity_id = EntityID::new(parent_chunk_id, local_entity_id);
 
         Ok(entity_id)
     }
 
-    pub(in crate::system::universe) fn recycle_entity_id(parent_chunk: &mut Chunk, entity_id: EntityID) -> Result<(), String> {
+    pub(in crate::system::universe) fn recycle_entity_id(
+        parent_chunk: &mut Chunk,
+        entity_id: EntityID,
+    ) -> Result<(), String> {
         let chunk_data = match parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(
@@ -144,7 +144,10 @@ impl GlobalUniverse {
         Ok(())
     }
 
-    pub(in crate::system::universe) fn get_registered_chunk(&self, chunk_id: &ChunkID,) -> Option<Arc<Mutex<Chunk>>> {
+    pub(in crate::system::universe) fn get_registered_chunk(
+        &self,
+        chunk_id: &ChunkID,
+    ) -> Option<Arc<Mutex<Chunk>>> {
         let chunk_info_mutex = match self.chunk_entity_info_hierarchy.get_chunk_info(chunk_id) {
             Some(chunk_info_mutex) => chunk_info_mutex,
             None => {
@@ -163,10 +166,14 @@ impl GlobalUniverse {
     }
 
     pub(in crate::system::universe) fn is_chunk_registered(&self, chunk_id: &ChunkID) -> bool {
-        self.chunk_entity_info_hierarchy.is_chunk_info_registered(chunk_id)
+        self.chunk_entity_info_hierarchy
+            .is_chunk_info_registered(chunk_id)
     }
 
-    pub(in crate::system::universe) fn get_registered_entity(&self, entity_id: &EntityID,) -> Option<Arc<Mutex<entity::Entity>>> {
+    pub(in crate::system::universe) fn get_registered_entity(
+        &self,
+        entity_id: &EntityID,
+    ) -> Option<Arc<Mutex<entity::Entity>>> {
         let entity_info_mutex = match self.chunk_entity_info_hierarchy.get_entity_info(entity_id) {
             Some(entity_info_mutex) => entity_info_mutex,
             None => {
@@ -185,21 +192,23 @@ impl GlobalUniverse {
     }
 
     pub(in crate::system::universe) fn is_entity_registered(&self, entity_id: &EntityID) -> bool {
-        self.chunk_entity_info_hierarchy.is_entity_info_registered(entity_id)
+        self.chunk_entity_info_hierarchy
+            .is_entity_info_registered(entity_id)
     }
 
     pub(in crate::system::universe) fn send_chunk_operation_request(
         &mut self,
         request: ChunkOperationRequest,
     ) -> Result<(), String> {
-        let mut operation_requests =
-            match self.operation_requests.lock() {
-                Ok(operation_requests) => operation_requests,
-                Err(_) => return Err(
+        let mut operation_requests = match self.operation_requests.lock() {
+            Ok(operation_requests) => operation_requests,
+            Err(_) => {
+                return Err(
                     "Failed to request chunk operation: Operation requests mutex poisoned."
                         .to_string(),
-                ),
-            };
+                )
+            }
+        };
         operation_requests.push(OperationRequest::Chunk(request));
         Ok(())
     }
@@ -208,15 +217,16 @@ impl GlobalUniverse {
         &mut self,
         request: EntityOperationRequest,
     ) -> Result<(), String> {
-        let mut operation_reuests =
-            match self.operation_requests.lock() {
-                Ok(operation_reuests) => operation_reuests,
-                Err(_) => return Err(
+        let mut operation_reuests = match self.operation_requests.lock() {
+            Ok(operation_reuests) => operation_reuests,
+            Err(_) => {
+                return Err(
                     "Failed to request entity operation: Operation requests mutex poisoned."
                         .to_string(),
-                ),
-            };
-            operation_reuests.push(OperationRequest::Entity(request));
+                )
+            }
+        };
+        operation_reuests.push(OperationRequest::Entity(request));
         Ok(())
     }
 
@@ -236,12 +246,12 @@ impl GlobalUniverse {
                 return;
             }
         };
-    
-        let mut global_universe_operation_requests =
-            global_universe.operation_requests.lock().unwrap_or_else(|_| {
-                panic!(
-                    "Failed to handle operation requests: Operation requests mutex poisoned."
-                )
+
+        let mut global_universe_operation_requests = global_universe
+            .operation_requests
+            .lock()
+            .unwrap_or_else(|_| {
+                panic!("Failed to handle operation requests: Operation requests mutex poisoned.")
             });
 
         let mut operation_requests = Vec::new();
@@ -261,10 +271,10 @@ impl GlobalUniverse {
             match operation_request {
                 OperationRequest::Chunk(chunk_operation_request) => {
                     self.process_chunk_operations(chunk_operation_request, commands);
-                },
+                }
                 OperationRequest::Entity(entity_operation_request) => {
                     Self::process_entity_operations(entity_operation_request, commands);
-                },
+                }
             }
         }
     }
@@ -276,18 +286,16 @@ impl GlobalUniverse {
     ) {
         for chunk_operation in chunk_operation_request.operations {
             match chunk_operation {
-                ChunkOperation::RegisterRoot { 
-                    local_chunk_id, 
-                    success_callback, 
-                    failure_callback 
-                } => {
-                    match self.register_root_chunk(commands, local_chunk_id) {
-                        Ok(success) => {
-                            success_callback(success);
-                        }
-                        Err(error) => {
-                            failure_callback(error);
-                        }
+                ChunkOperation::RegisterRoot {
+                    local_chunk_id,
+                    success_callback,
+                    failure_callback,
+                } => match self.register_root_chunk(commands, local_chunk_id) {
+                    Ok(success) => {
+                        success_callback(success);
+                    }
+                    Err(error) => {
+                        failure_callback(error);
                     }
                 },
                 ChunkOperation::Register {
@@ -311,11 +319,11 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
-                ChunkOperation::UnregisterRoot { 
-                    chunk, 
-                    success_callback, 
-                    failure_callback 
+                }
+                ChunkOperation::UnregisterRoot {
+                    chunk,
+                    success_callback,
+                    failure_callback,
                 } => {
                     let chunk = match chunk.lock() {
                         Ok(chunk) => chunk,
@@ -332,7 +340,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 ChunkOperation::Unregister {
                     parent_chunk,
                     chunk,
@@ -361,7 +369,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 ChunkOperation::LoadMetadata {
                     chunk,
                     metadata,
@@ -383,7 +391,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 ChunkOperation::UnloadMetadata {
                     chunk,
                     success_callback,
@@ -404,7 +412,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 ChunkOperation::LoadData {
                     chunk,
                     data,
@@ -426,7 +434,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 ChunkOperation::UnloadData {
                     chunk,
                     success_callback,
@@ -447,7 +455,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 ChunkOperation::Spawn {
                     parent_chunk,
                     chunk,
@@ -476,7 +484,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 ChunkOperation::Despawn {
                     chunk,
                     success_callback,
@@ -497,7 +505,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
             }
         }
     }
@@ -529,7 +537,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 EntityOperation::Unregister {
                     parent_chunk,
                     entity,
@@ -549,7 +557,7 @@ impl GlobalUniverse {
                             panic!("Failed to unregister entity: Entity mutex poisoned.");
                         }
                     };
-                    
+
                     match Self::unregister_entity(commands, &mut *parent_chunk, &*entity) {
                         Ok(success) => {
                             success_callback(success);
@@ -558,7 +566,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 EntityOperation::LoadMetadata {
                     entity,
                     metadata,
@@ -580,7 +588,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 EntityOperation::UnloadMetadata {
                     entity,
                     success_callback,
@@ -601,7 +609,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 EntityOperation::LoadData {
                     entity,
                     data,
@@ -623,7 +631,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 EntityOperation::UnloadData {
                     entity,
                     success_callback,
@@ -644,7 +652,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 EntityOperation::Spawn {
                     parent_chunk,
                     entity,
@@ -673,7 +681,7 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
+                }
                 EntityOperation::Despawn {
                     entity,
                     success_callback,
@@ -694,12 +702,12 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-                },
-                EntityOperation::Command { 
-                    entity_commands, 
-                    entity, 
-                    success_callback, 
-                    failure_callback 
+                }
+                EntityOperation::Command {
+                    entity_commands,
+                    entity,
+                    success_callback,
+                    failure_callback,
                 } => {
                     let entity = match entity.lock() {
                         Ok(entity) => entity,
@@ -716,7 +724,6 @@ impl GlobalUniverse {
                             failure_callback(error);
                         }
                     }
-
                 }
             }
         }
@@ -737,12 +744,16 @@ impl GlobalUniverse {
 
         let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id.clone(), chunk_bevy_entity)));
 
-        commands.entity(chunk_bevy_entity).insert(ChunkBevyComponent {
-            chunk: chunk.clone(),
-        });
+        commands
+            .entity(chunk_bevy_entity)
+            .insert(ChunkBevyComponent {
+                chunk: chunk.clone(),
+            });
 
-        self.registered_root_chunks.insert(local_chunk_id, chunk.clone());
-        self.chunk_entity_info_hierarchy.insert_chunk_info(None, local_chunk_id, chunk);
+        self.registered_root_chunks
+            .insert(local_chunk_id, chunk.clone());
+        self.chunk_entity_info_hierarchy
+            .insert_chunk_info(None, local_chunk_id, chunk);
 
         return Ok(RegisterRootChunkSuccess);
     }
@@ -756,8 +767,12 @@ impl GlobalUniverse {
         let (parent_chunk_id, parent_chunk_data) = match *parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(RegisterChunkError::ParentChunkDataNotLoaded);
-            },
-            Chunk::DataLoaded { ref id, ref mut data, .. } => (id, data),
+            }
+            Chunk::DataLoaded {
+                ref id,
+                ref mut data,
+                ..
+            } => (id, data),
         };
 
         let parent_chunk_child_chunks = match parent_chunk_data.child_chunks {
@@ -782,13 +797,18 @@ impl GlobalUniverse {
 
         let chunk = Arc::new(Mutex::new(Chunk::new(chunk_id.clone(), chunk_bevy_entity)));
 
-        commands.entity(chunk_bevy_entity).insert(ChunkBevyComponent {
-            chunk: chunk.clone(),
-        });
+        commands
+            .entity(chunk_bevy_entity)
+            .insert(ChunkBevyComponent {
+                chunk: chunk.clone(),
+            });
 
         parent_chunk_child_chunks.insert(local_chunk_id, chunk.clone());
-        self.chunk_entity_info_hierarchy.insert_chunk_info(Some(parent_chunk_id), local_chunk_id, chunk);
-        
+        self.chunk_entity_info_hierarchy.insert_chunk_info(
+            Some(parent_chunk_id),
+            local_chunk_id,
+            chunk,
+        );
 
         return Ok(RegisterChunkSuccess);
     }
@@ -796,13 +816,16 @@ impl GlobalUniverse {
     fn unregister_root_chunk(
         &mut self,
         commands: &mut Commands,
-        chunk: &Chunk
+        chunk: &Chunk,
     ) -> Result<UnregisterRootChunkSuccess, UnregisterRootChunkError> {
         let (chunk_id, chunk_bevy_entity) = match *chunk {
-            Chunk::Registered { ref id, ref bevy_entity } => (id.clone(), bevy_entity.clone()),
+            Chunk::Registered {
+                ref id,
+                ref bevy_entity,
+            } => (id.clone(), bevy_entity.clone()),
             Chunk::MetadataLoaded { .. } => {
                 return Err(UnregisterRootChunkError::ChunkMetadataStillLoaded);
-            },
+            }
             Chunk::DataLoaded { .. } => {
                 return Err(UnregisterRootChunkError::ChunkDataStillLoaded);
             }
@@ -815,7 +838,8 @@ impl GlobalUniverse {
         }
 
         self.registered_root_chunks.remove(&local_chunk_id);
-        self.chunk_entity_info_hierarchy.remove_chunk_info(&chunk_id);
+        self.chunk_entity_info_hierarchy
+            .remove_chunk_info(&chunk_id);
 
         commands.entity(chunk_bevy_entity).despawn();
 
@@ -826,13 +850,16 @@ impl GlobalUniverse {
         &mut self,
         commands: &mut Commands,
         parent_chunk: &mut Chunk,
-        chunk: &Chunk
+        chunk: &Chunk,
     ) -> Result<UnregisterChunkSuccess, UnregisterChunkError> {
         let (chunk_id, chunk_bevy_entity) = match *chunk {
-            Chunk::Registered { ref id, ref bevy_entity } => (id.clone(), bevy_entity.clone()),
+            Chunk::Registered {
+                ref id,
+                ref bevy_entity,
+            } => (id.clone(), bevy_entity.clone()),
             Chunk::MetadataLoaded { .. } => {
                 return Err(UnregisterChunkError::ChunkMetadataStillLoaded);
-            },
+            }
             Chunk::DataLoaded { .. } => {
                 return Err(UnregisterChunkError::ChunkDataStillLoaded);
             }
@@ -843,7 +870,7 @@ impl GlobalUniverse {
         let parent_chunk_data = match *parent_chunk {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(UnregisterChunkError::ParentChunkDataNotLoaded);
-            },
+            }
             Chunk::DataLoaded { ref mut data, .. } => data,
         };
 
@@ -859,7 +886,8 @@ impl GlobalUniverse {
         }
 
         parent_chunk_child_chunks.remove(&local_chunk_id);
-        self.chunk_entity_info_hierarchy.remove_chunk_info(&chunk_id);
+        self.chunk_entity_info_hierarchy
+            .remove_chunk_info(&chunk_id);
 
         commands.entity(chunk_bevy_entity).despawn();
 
@@ -871,16 +899,20 @@ impl GlobalUniverse {
         chunk_metadata: ChunkMetadata,
     ) -> Result<LoadChunkMetadataSuccess, LoadChunkMetadataError> {
         match *chunk {
-            Chunk::Registered { ref mut id, ref mut bevy_entity } => {
+            Chunk::Registered {
+                ref mut id,
+                ref mut bevy_entity,
+            } => {
                 let stolen_id = std::mem::take(id);
-                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
-                
+                let stolen_bevy_entity =
+                    std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+
                 *chunk = Chunk::MetadataLoaded {
                     id: stolen_id,
                     bevy_entity: stolen_bevy_entity,
                     metadata: chunk_metadata,
                 };
-                
+
                 Ok(LoadChunkMetadataSuccess)
             }
             Chunk::MetadataLoaded { .. } | Chunk::DataLoaded { .. } => {
@@ -893,20 +925,24 @@ impl GlobalUniverse {
         chunk: &mut Chunk,
     ) -> Result<UnloadChunkMetadataSuccess, UnloadChunkMetadataError> {
         match *chunk {
-            Chunk::Registered { .. } => {
-                Err(UnloadChunkMetadataError::ChunkMetadataAlreadyUnloaded)
-            }
-            Chunk::MetadataLoaded { ref mut id, ref mut bevy_entity, .. } => {
+            Chunk::Registered { .. } => Err(UnloadChunkMetadataError::ChunkMetadataAlreadyUnloaded),
+            Chunk::MetadataLoaded {
+                ref mut id,
+                ref mut bevy_entity,
+                ..
+            } => {
                 let stolen_id = std::mem::take(id);
-                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
-                
-                *chunk = Chunk::Registered { id: stolen_id, bevy_entity: stolen_bevy_entity };
-                
+                let stolen_bevy_entity =
+                    std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+
+                *chunk = Chunk::Registered {
+                    id: stolen_id,
+                    bevy_entity: stolen_bevy_entity,
+                };
+
                 Ok(UnloadChunkMetadataSuccess)
             }
-            Chunk::DataLoaded { .. } => {
-                Err(UnloadChunkMetadataError::ChunkDataStillLoaded)
-            }
+            Chunk::DataLoaded { .. } => Err(UnloadChunkMetadataError::ChunkDataStillLoaded),
         }
     }
 
@@ -918,9 +954,14 @@ impl GlobalUniverse {
             Chunk::Registered { .. } => {
                 return Err(LoadChunkDataError::ChunkMetadataNotLoaded);
             }
-            Chunk::MetadataLoaded { ref mut id, ref mut bevy_entity, ref mut metadata } => {
+            Chunk::MetadataLoaded {
+                ref mut id,
+                ref mut bevy_entity,
+                ref mut metadata,
+            } => {
                 let stolen_id = std::mem::take(id);
-                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+                let stolen_bevy_entity =
+                    std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 let stolen_metadata = std::mem::take(metadata);
 
                 *chunk = Chunk::DataLoaded {
@@ -945,7 +986,12 @@ impl GlobalUniverse {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(UnloadChunkDataError::ChunkDataAlreadyUnloaded);
             }
-            Chunk::DataLoaded { ref mut id, ref mut bevy_entity, ref mut metadata, ref mut data } => {
+            Chunk::DataLoaded {
+                ref mut id,
+                ref mut bevy_entity,
+                ref mut metadata,
+                ref mut data,
+            } => {
                 if data.run_state == ChunkRunState::Spawned {
                     return Err(UnloadChunkDataError::ChunkStillSpawned);
                 }
@@ -955,15 +1001,16 @@ impl GlobalUniverse {
                         return Err(UnloadChunkDataError::ChildChunksStillRegistered);
                     }
                 }
-        
+
                 if !data.registered_entities.is_empty() {
                     return Err(UnloadChunkDataError::EntitiesStillRegistered);
                 }
 
                 let stolen_id = std::mem::take(id);
-                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+                let stolen_bevy_entity =
+                    std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 let stolen_metadata = std::mem::take(metadata);
-        
+
                 *chunk = Chunk::MetadataLoaded {
                     id: stolen_id,
                     bevy_entity: stolen_bevy_entity,
@@ -971,7 +1018,7 @@ impl GlobalUniverse {
                 };
 
                 Ok(UnloadChunkDataSuccess)
-            },
+            }
         }
     }
 
@@ -1005,7 +1052,11 @@ impl GlobalUniverse {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(SpawnChunkError::ChunkDataNotLoaded);
             }
-            Chunk::DataLoaded { ref id, ref mut data, .. } => (id, data),
+            Chunk::DataLoaded {
+                ref id,
+                ref mut data,
+                ..
+            } => (id, data),
         };
 
         match chunk_data.run_state {
@@ -1102,7 +1153,11 @@ impl GlobalUniverse {
             Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                 return Err(RegisterEntityError::ParentChunkDataNotLoaded);
             }
-            Chunk::DataLoaded { ref id, ref mut data, .. } => (id, data),
+            Chunk::DataLoaded {
+                ref id,
+                ref mut data,
+                ..
+            } => (id, data),
         };
 
         if parent_chunk_data
@@ -1116,11 +1171,16 @@ impl GlobalUniverse {
 
         let entity_bevy_entity = commands.spawn(()).id();
 
-        let entity = Arc::new(Mutex::new(entity::Entity::new(entity_id, entity_bevy_entity)));
+        let entity = Arc::new(Mutex::new(entity::Entity::new(
+            entity_id,
+            entity_bevy_entity,
+        )));
 
-        commands.entity(entity_bevy_entity).insert(EntityBevyComponent {
-            entity: entity.clone(),
-        });
+        commands
+            .entity(entity_bevy_entity)
+            .insert(EntityBevyComponent {
+                entity: entity.clone(),
+            });
 
         parent_chunk_data
             .registered_entities
@@ -1142,9 +1202,9 @@ impl GlobalUniverse {
         };
 
         let (entity_id, entity_bevy_entity) = match *entity {
-            entity::Entity::Registered { 
-                ref id, 
-                ref bevy_entity 
+            entity::Entity::Registered {
+                ref id,
+                ref bevy_entity,
             } => (id.clone(), bevy_entity.clone()),
             entity::Entity::MetadataLoaded { .. } => {
                 return Err(UnregisterEntityError::EntityMetadataStillLoaded);
@@ -1156,16 +1216,16 @@ impl GlobalUniverse {
 
         let local_entity_id = entity_id.get_local_entity_id();
 
-        match parent_chunk_data.registered_entities.remove(&local_entity_id)
+        match parent_chunk_data
+            .registered_entities
+            .remove(&local_entity_id)
         {
             Some(_) => {
                 commands.entity(entity_bevy_entity).despawn();
 
                 Ok(UnregisterEntitySuccess)
             }
-            None => {
-                Err(UnregisterEntityError::EntityAlreadyUnregistered)
-            }
+            None => Err(UnregisterEntityError::EntityAlreadyUnregistered),
         }
     }
 
@@ -1174,10 +1234,14 @@ impl GlobalUniverse {
         entity_metadata: EntityMetadata,
     ) -> Result<LoadEntityMetadataSuccess, LoadEntityMetadataError> {
         match *entity {
-            entity::Entity::Registered { ref mut id, ref mut bevy_entity } => {
+            entity::Entity::Registered {
+                ref mut id,
+                ref mut bevy_entity,
+            } => {
                 let stolen_id = std::mem::take(id);
-                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
-                
+                let stolen_bevy_entity =
+                    std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+
                 *entity = entity::Entity::MetadataLoaded {
                     id: stolen_id,
                     bevy_entity: stolen_bevy_entity,
@@ -1199,12 +1263,20 @@ impl GlobalUniverse {
             entity::Entity::Registered { .. } => {
                 Err(UnloadEntityMetadataError::EntityMetadataAlreadyUnloaded)
             }
-            entity::Entity::MetadataLoaded { ref mut id, ref mut bevy_entity, .. } => {
+            entity::Entity::MetadataLoaded {
+                ref mut id,
+                ref mut bevy_entity,
+                ..
+            } => {
                 let stolen_id = std::mem::take(id);
-                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
-                
-                *entity = entity::Entity::Registered { id: stolen_id, bevy_entity: stolen_bevy_entity };
-                
+                let stolen_bevy_entity =
+                    std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+
+                *entity = entity::Entity::Registered {
+                    id: stolen_id,
+                    bevy_entity: stolen_bevy_entity,
+                };
+
                 Ok(UnloadEntityMetadataSuccess)
             }
             entity::Entity::DataLoaded { .. } => {
@@ -1218,12 +1290,15 @@ impl GlobalUniverse {
         entity_data: EntityData,
     ) -> Result<LoadEntityDataSuccess, LoadEntityDataError> {
         match *entity {
-            entity::Entity::Registered { .. } => {
-                Err(LoadEntityDataError::EntityMetadataNotLoaded)
-            },
-            entity::Entity::MetadataLoaded { ref mut id, ref mut bevy_entity, ref mut metadata } => {
+            entity::Entity::Registered { .. } => Err(LoadEntityDataError::EntityMetadataNotLoaded),
+            entity::Entity::MetadataLoaded {
+                ref mut id,
+                ref mut bevy_entity,
+                ref mut metadata,
+            } => {
                 let stolen_id = std::mem::take(id);
-                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+                let stolen_bevy_entity =
+                    std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 let stolen_metadata = std::mem::take(metadata);
 
                 *entity = entity::Entity::DataLoaded {
@@ -1232,12 +1307,10 @@ impl GlobalUniverse {
                     metadata: stolen_metadata,
                     data: entity_data,
                 };
-                
+
                 Ok(LoadEntityDataSuccess)
             }
-            entity::Entity::DataLoaded { .. } => {
-                Err(LoadEntityDataError::EntityDataAlreadyLoaded)
-            }
+            entity::Entity::DataLoaded { .. } => Err(LoadEntityDataError::EntityDataAlreadyLoaded),
         }
     }
 
@@ -1248,13 +1321,19 @@ impl GlobalUniverse {
             entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {
                 Err(UnloadEntityDataError::EntityDataAlreadyUnloaded)
             }
-            entity::Entity::DataLoaded { ref mut id, ref mut bevy_entity, ref mut metadata, ref data } => {
+            entity::Entity::DataLoaded {
+                ref mut id,
+                ref mut bevy_entity,
+                ref mut metadata,
+                ref data,
+            } => {
                 if data.run_state == EntityRunState::Spawned {
                     return Err(UnloadEntityDataError::EntityStillSpawned);
                 }
-                
+
                 let stolen_id = std::mem::take(id);
-                let stolen_bevy_entity = std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
+                let stolen_bevy_entity =
+                    std::mem::replace(bevy_entity, bevy::ecs::entity::Entity::PLACEHOLDER);
                 let stolen_metadata = std::mem::take(metadata);
 
                 *entity = entity::Entity::MetadataLoaded {
@@ -1291,14 +1370,21 @@ impl GlobalUniverse {
             entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {
                 return Err(SpawnEntityError::EntityDataNotLoaded);
             }
-            entity::Entity::DataLoaded { ref id, ref mut data, .. } => (id, data),
+            entity::Entity::DataLoaded {
+                ref id,
+                ref mut data,
+                ..
+            } => (id, data),
         };
 
         if entity_data.run_state == EntityRunState::Spawned {
             return Err(SpawnEntityError::EntityAlreadySpawned);
         }
 
-        if !parent_chunk_data.registered_entities.contains_key(&entity_id.get_local_entity_id()) {
+        if !parent_chunk_data
+            .registered_entities
+            .contains_key(&entity_id.get_local_entity_id())
+        {
             return Err(SpawnEntityError::WrongParentChunk);
         }
 
@@ -1319,9 +1405,7 @@ impl GlobalUniverse {
         };
 
         match entity_data.run_state {
-            EntityRunState::Despawned => {
-                Err(DespawnEntityError::EntityAlreadyDespawned)
-            }
+            EntityRunState::Despawned => Err(DespawnEntityError::EntityAlreadyDespawned),
             EntityRunState::Spawned => {
                 entity_data.run_state = EntityRunState::Despawned;
                 Ok(DespawnEntitySuccess)
@@ -1338,13 +1422,17 @@ impl GlobalUniverse {
             entity::Entity::Registered { .. } | entity::Entity::MetadataLoaded { .. } => {
                 Err(CommandEntityError::EntityDataNotLoaded)
             }
-            entity::Entity::DataLoaded { ref bevy_entity, ref data, .. } => {
+            entity::Entity::DataLoaded {
+                ref bevy_entity,
+                ref data,
+                ..
+            } => {
                 if data.run_state == EntityRunState::Despawned {
                     return Err(CommandEntityError::EntityNotSpawned);
                 }
 
                 entity_commands(commands.entity(bevy_entity.clone()));
-        
+
                 Ok(CommandEntitySuccess)
             }
         }
@@ -1358,7 +1446,10 @@ impl ChunkEntityInfoHierarchy {
         }
     }
 
-    pub(in crate::system::universe) fn get_chunk_info(&self, chunk_id: &ChunkID) -> Option<Arc<Mutex<ChunkInfo>>> {
+    pub(in crate::system::universe) fn get_chunk_info(
+        &self,
+        chunk_id: &ChunkID,
+    ) -> Option<Arc<Mutex<ChunkInfo>>> {
         if let Some(parent_chunk_id) = chunk_id.get_parent_chunk_id() {
             let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
                 Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
@@ -1381,9 +1472,13 @@ impl ChunkEntityInfoHierarchy {
                 }
             };
 
-            child_chunk_infos.get(&chunk_id.get_local_chunk_id()).cloned()
+            child_chunk_infos
+                .get(&chunk_id.get_local_chunk_id())
+                .cloned()
         } else {
-            self.root_chunks.get(&chunk_id.get_local_chunk_id()).cloned()
+            self.root_chunks
+                .get(&chunk_id.get_local_chunk_id())
+                .cloned()
         }
     }
 
@@ -1412,80 +1507,102 @@ impl ChunkEntityInfoHierarchy {
 
             child_chunk_infos.contains_key(&chunk_id.get_local_chunk_id())
         } else {
-            self.root_chunks.contains_key(&chunk_id.get_local_chunk_id())
+            self.root_chunks
+                .contains_key(&chunk_id.get_local_chunk_id())
         }
     }
 
-    pub(in crate::system::universe) fn insert_chunk_info(&mut self, parent_chunk_id: Option<&ChunkID>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<(), String> {
+    pub(in crate::system::universe) fn insert_chunk_info(
+        &mut self,
+        parent_chunk_id: Option<&ChunkID>,
+        local_chunk_id: LocalChunkID,
+        chunk_mutex: Arc<Mutex<Chunk>>,
+    ) -> Result<(), String> {
         match parent_chunk_id {
             Some(parent_chunk_id) => {
                 let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
                     Some(parent_chunk_info) => parent_chunk_info,
                     None => {
-                        return Err(format!("Failed to insert chunk info: Parent chunk info not found."));
+                        return Err(format!(
+                            "Failed to insert chunk info: Parent chunk info not found."
+                        ));
                     }
                 };
-        
-                let chunk_info = match ChunkInfo::new(parent_chunk_info_mutex.clone(), local_chunk_id, chunk_mutex) {
+
+                let chunk_info = match ChunkInfo::new(
+                    parent_chunk_info_mutex.clone(),
+                    local_chunk_id,
+                    chunk_mutex,
+                ) {
                     Ok(chunk_info) => chunk_info,
                     Err(error) => {
                         return Err(format!("Failed to insert chunk info: {}", error));
                     }
                 };
-        
+
                 let mut parent_chunk_info = match parent_chunk_info_mutex.lock() {
                     Ok(parent_chunk_info) => parent_chunk_info,
                     Err(_) => {
                         panic!("Failed to insert chunk info: Parent chunk info mutex poisoned.");
                     }
                 };
-        
+
                 let child_chunks = match parent_chunk_info.child_chunks {
                     Some(ref mut parent_chunk_child_chunks) => parent_chunk_child_chunks,
                     None => {
                         return Err(format!("Failed to insert chunk info: Parent chunk info not allowed to have child chunk infos."));
                     }
                 };
-        
+
                 if child_chunks.contains_key(&local_chunk_id) {
-                    return Err(format!("Failed to insert chunk info: Chunk info already registered."));
+                    return Err(format!(
+                        "Failed to insert chunk info: Chunk info already registered."
+                    ));
                 }
-        
+
                 child_chunks.insert(local_chunk_id, Arc::new(Mutex::new(chunk_info)));
-        
+
                 Ok(())
-            },
+            }
             None => {
                 if self.root_chunks.contains_key(&local_chunk_id) {
-                    return Err(format!("Failed to insert chunk info: Chunk info already registered."));
+                    return Err(format!(
+                        "Failed to insert chunk info: Chunk info already registered."
+                    ));
                 }
-        
+
                 let chunk_info = ChunkInfo::new_root(local_chunk_id, chunk_mutex);
-        
-                self.root_chunks.insert(local_chunk_id, Arc::new(Mutex::new(chunk_info)));
-        
+
+                self.root_chunks
+                    .insert(local_chunk_id, Arc::new(Mutex::new(chunk_info)));
+
                 Ok(())
             }
         }
     }
 
-    pub(in crate::system::universe) fn remove_chunk_info(&mut self, chunk_id: &ChunkID) -> Result<(), String> {
+    pub(in crate::system::universe) fn remove_chunk_info(
+        &mut self,
+        chunk_id: &ChunkID,
+    ) -> Result<(), String> {
         match chunk_id.get_parent_chunk_id() {
             Some(parent_chunk_id) => {
                 let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
                     Some(parent_chunk_info) => parent_chunk_info,
                     None => {
-                        return Err(format!("Failed to remove chunk info: Parent chunk info not found."));
+                        return Err(format!(
+                            "Failed to remove chunk info: Parent chunk info not found."
+                        ));
                     }
                 };
-        
+
                 let mut parent_chunk_info = match parent_chunk_info_mutex.lock() {
                     Ok(parent_chunk_info) => parent_chunk_info,
                     Err(_) => {
                         panic!("Failed to remove chunk info: Parent chunk info mutex poisoned.");
                     }
                 };
-        
+
                 let child_chunks = match parent_chunk_info.child_chunks {
                     Some(ref mut parent_chunk_child_chunks) => parent_chunk_child_chunks,
                     None => {
@@ -1494,32 +1611,36 @@ impl ChunkEntityInfoHierarchy {
                 };
 
                 match child_chunks.remove(&chunk_id.get_local_chunk_id()) {
-                    Some(_) => {
-                        Ok(())
-                    }
-                    None => {
-                        Err(format!("Failed to remove chunk info: Chunk info not registered."))
-                    }
+                    Some(_) => Ok(()),
+                    None => Err(format!(
+                        "Failed to remove chunk info: Chunk info not registered."
+                    )),
                 }
-            },
+            }
             None => {
-                if !self.root_chunks.contains_key(&chunk_id.get_local_chunk_id()) {
-                    return Err(format!("Failed to remove chunk info: Chunk info not registered."));
+                if !self
+                    .root_chunks
+                    .contains_key(&chunk_id.get_local_chunk_id())
+                {
+                    return Err(format!(
+                        "Failed to remove chunk info: Chunk info not registered."
+                    ));
                 }
 
                 match self.root_chunks.remove(&chunk_id.get_local_chunk_id()) {
-                    Some(_) => {
-                        Ok(())
-                    }
-                    None => {
-                        Err(format!("Failed to remove chunk info: Chunk info not registered."))
-                    }
+                    Some(_) => Ok(()),
+                    None => Err(format!(
+                        "Failed to remove chunk info: Chunk info not registered."
+                    )),
                 }
             }
         }
     }
 
-    pub(in crate::system::universe) fn get_entity_info(&self, entity_id: &EntityID) -> Option<Arc<Mutex<EntityInfo>>> {
+    pub(in crate::system::universe) fn get_entity_info(
+        &self,
+        entity_id: &EntityID,
+    ) -> Option<Arc<Mutex<EntityInfo>>> {
         let parent_chunk_info_mutex = match self.get_chunk_info(entity_id.get_parent_chunk_id()) {
             Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
             None => {
@@ -1534,10 +1655,16 @@ impl ChunkEntityInfoHierarchy {
             }
         };
 
-        parent_chunk_info.child_entities.get(&entity_id.get_local_entity_id()).cloned()
+        parent_chunk_info
+            .child_entities
+            .get(&entity_id.get_local_entity_id())
+            .cloned()
     }
 
-    pub(in crate::system::universe) fn is_entity_info_registered(&self, entity_id: &EntityID) -> bool {
+    pub(in crate::system::universe) fn is_entity_info_registered(
+        &self,
+        entity_id: &EntityID,
+    ) -> bool {
         let parent_chunk_info_mutex = match self.get_chunk_info(entity_id.get_parent_chunk_id()) {
             Some(parent_chunk_info_mutex) => parent_chunk_info_mutex,
             None => {
@@ -1552,18 +1679,31 @@ impl ChunkEntityInfoHierarchy {
             }
         };
 
-        parent_chunk_info.child_entities.contains_key(&entity_id.get_local_entity_id())
+        parent_chunk_info
+            .child_entities
+            .contains_key(&entity_id.get_local_entity_id())
     }
 
-    pub(in crate::system::universe) fn insert_entity_info(&self, parent_chunk_id: &ChunkID, local_entity_id: LocalEntityID, entity_mutex: Arc<Mutex<entity::Entity>>) -> Result<(), String> {
+    pub(in crate::system::universe) fn insert_entity_info(
+        &self,
+        parent_chunk_id: &ChunkID,
+        local_entity_id: LocalEntityID,
+        entity_mutex: Arc<Mutex<entity::Entity>>,
+    ) -> Result<(), String> {
         let parent_chunk_info_mutex = match self.get_chunk_info(parent_chunk_id) {
             Some(parent_chunk_info) => parent_chunk_info,
             None => {
-                return Err(format!("Failed to insert entity info: Parent chunk info not found."));
+                return Err(format!(
+                    "Failed to insert entity info: Parent chunk info not found."
+                ));
             }
         };
 
-        let entity_info = EntityInfo::new(parent_chunk_info_mutex.clone(), local_entity_id, entity_mutex);
+        let entity_info = EntityInfo::new(
+            parent_chunk_info_mutex.clone(),
+            local_entity_id,
+            entity_mutex,
+        );
 
         let mut parent_chunk_info = match parent_chunk_info_mutex.lock() {
             Ok(parent_chunk_info) => parent_chunk_info,
@@ -1572,20 +1712,32 @@ impl ChunkEntityInfoHierarchy {
             }
         };
 
-        if parent_chunk_info.child_entities.contains_key(&local_entity_id) {
-            return Err(format!("Failed to insert entity info: Entity info already registered."));
+        if parent_chunk_info
+            .child_entities
+            .contains_key(&local_entity_id)
+        {
+            return Err(format!(
+                "Failed to insert entity info: Entity info already registered."
+            ));
         }
 
-        parent_chunk_info.child_entities.insert(local_entity_id, Arc::new(Mutex::new(entity_info)));
+        parent_chunk_info
+            .child_entities
+            .insert(local_entity_id, Arc::new(Mutex::new(entity_info)));
 
         Ok(())
     }
 
-    pub(in crate::system::universe) fn remove_entity_info(&self, entity_id: &EntityID) -> Result<(), String> {
+    pub(in crate::system::universe) fn remove_entity_info(
+        &self,
+        entity_id: &EntityID,
+    ) -> Result<(), String> {
         let parent_chunk_info_mutex = match self.get_chunk_info(entity_id.get_parent_chunk_id()) {
             Some(parent_chunk_info) => parent_chunk_info,
             None => {
-                return Err(format!("Failed to remove entity info: Parent chunk info not found."));
+                return Err(format!(
+                    "Failed to remove entity info: Parent chunk info not found."
+                ));
             }
         };
 
@@ -1596,13 +1748,14 @@ impl ChunkEntityInfoHierarchy {
             }
         };
 
-        match parent_chunk_info.child_entities.remove(&entity_id.get_local_entity_id()) {
-            Some(_) => {
-                Ok(())
-            }
-            None => {
-                Err(format!("Failed to remove entity info: Entity info not registered."))
-            }
+        match parent_chunk_info
+            .child_entities
+            .remove(&entity_id.get_local_entity_id())
+        {
+            Some(_) => Ok(()),
+            None => Err(format!(
+                "Failed to remove entity info: Entity info not registered."
+            )),
         }
     }
 }
@@ -1619,7 +1772,11 @@ impl ChunkInfo {
         }
     }
 
-    fn new(parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<Self, String> {
+    fn new(
+        parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>,
+        local_chunk_id: LocalChunkID,
+        chunk_mutex: Arc<Mutex<Chunk>>,
+    ) -> Result<Self, String> {
         let parent_chunk_id = match parent_chunk_info_mutex.lock() {
             Ok(parent_chunk_info) => parent_chunk_info.chunk_id.clone(),
             Err(_) => {
@@ -1633,7 +1790,7 @@ impl ChunkInfo {
                 return Err(format!("Failed to create chunk info: {}", error));
             }
         };
-        
+
         Ok(Self {
             parent_chunk_info_mutex: Some(parent_chunk_info_mutex),
             local_chunk_id,
@@ -1644,7 +1801,11 @@ impl ChunkInfo {
         })
     }
 
-    fn new_leaf(parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>, local_chunk_id: LocalChunkID, chunk_mutex: Arc<Mutex<Chunk>>) -> Result<Self, String> {
+    fn new_leaf(
+        parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>,
+        local_chunk_id: LocalChunkID,
+        chunk_mutex: Arc<Mutex<Chunk>>,
+    ) -> Result<Self, String> {
         let parent_chunk_id = match parent_chunk_info_mutex.lock() {
             Ok(parent_chunk_info) => parent_chunk_info.chunk_id.clone(),
             Err(_) => {
@@ -1658,7 +1819,7 @@ impl ChunkInfo {
                 return Err(format!("Failed to create chunk info: {}", error));
             }
         };
-        
+
         Ok(Self {
             parent_chunk_info_mutex: Some(parent_chunk_info_mutex),
             local_chunk_id,
@@ -1671,7 +1832,11 @@ impl ChunkInfo {
 }
 
 impl EntityInfo {
-    fn new(parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>, local_entity_id: LocalEntityID, entity_mutex: Arc<Mutex<entity::Entity>>) -> Self {
+    fn new(
+        parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>,
+        local_entity_id: LocalEntityID,
+        entity_mutex: Arc<Mutex<entity::Entity>>,
+    ) -> Self {
         let parent_chunk_id = match parent_chunk_info_mutex.lock() {
             Ok(parent_chunk_info) => parent_chunk_info.chunk_id.clone(),
             Err(_) => {

@@ -94,13 +94,15 @@ impl IterationTestManager {
                         TextSection::new(
                             "Local Entity Position: ",
                             TextStyle {
-                                font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
+                                font: asset_server
+                                    .load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         ),
                         TextSection::from_style(TextStyle {
-                            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
+                            font: asset_server
+                                .load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                             font_size: 20.0,
                             color: Color::WHITE,
                         }),
@@ -112,13 +114,15 @@ impl IterationTestManager {
                         TextSection::new(
                             "Absolute Local Chunk Position: ",
                             TextStyle {
-                                font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
+                                font: asset_server
+                                    .load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         ),
                         TextSection::from_style(TextStyle {
-                            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
+                            font: asset_server
+                                .load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                             font_size: 20.0,
                             color: Color::WHITE,
                         }),
@@ -130,13 +134,15 @@ impl IterationTestManager {
                         TextSection::new(
                             "Apparent Local Chunk Position: ",
                             TextStyle {
-                                font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
+                                font: asset_server
+                                    .load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         ),
                         TextSection::from_style(TextStyle {
-                            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
+                            font: asset_server
+                                .load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                             font_size: 20.0,
                             color: Color::WHITE,
                         }),
@@ -147,7 +153,8 @@ impl IterationTestManager {
                     TextBundle::from_sections([TextSection::new(
                         "Current Scale Index: 0",
                         TextStyle {
-                            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
+                            font: asset_server
+                                .load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                             font_size: 20.0,
                             color: Color::WHITE,
                         },
@@ -159,13 +166,15 @@ impl IterationTestManager {
                         TextSection::new(
                             "Global Chunk Position: ",
                             TextStyle {
-                                font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
+                                font: asset_server
+                                    .load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                                 font_size: 20.0,
                                 color: Color::WHITE,
                             },
                         ),
                         TextSection::from_style(TextStyle {
-                            font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
+                            font: asset_server
+                                .load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
                             font_size: 20.0,
                             color: Color::WHITE,
                         }),
@@ -206,8 +215,10 @@ impl IterationTestManager {
             if let Ok(player_transform) = player_query.get_single() {
                 let local_entity_pos: LocalEntityPos = player_transform.translation.into();
                 let absolute_local_chunk_pos: AbsoluteLocalChunkPos = local_entity_pos.into();
-                text.sections[1].value =
-                    format!("x: {:.2}, y: {:.2}", absolute_local_chunk_pos.x, absolute_local_chunk_pos.y);
+                text.sections[1].value = format!(
+                    "x: {:.2}, y: {:.2}",
+                    absolute_local_chunk_pos.x, absolute_local_chunk_pos.y
+                );
             }
         }
     }
@@ -220,8 +231,10 @@ impl IterationTestManager {
             if let Ok(player_transform) = player_query.get_single() {
                 let local_entity_pos: LocalEntityPos = player_transform.translation.into();
                 let apparent_local_chunk_pos: ApparentLocalChunkPos = local_entity_pos.into();
-                text.sections[1].value =
-                    format!("x: {:.2}, y: {:.2}", apparent_local_chunk_pos.x, apparent_local_chunk_pos.y);
+                text.sections[1].value = format!(
+                    "x: {:.2}, y: {:.2}",
+                    apparent_local_chunk_pos.x, apparent_local_chunk_pos.y
+                );
             }
         }
     }

@@ -6,6 +6,7 @@
 use super::manager::*;
 
 // External imports
+use lazy_static::*;
 use std::any::Any;
 use std::any::TypeId;
 use std::collections::HashMap;
@@ -14,11 +15,12 @@ use std::io::Read;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use lazy_static::*;
+use bevy::log::*;
 
 // Static variables
 lazy_static! {
-    pub static ref RESOURCE_MANAGER: Arc<Mutex<ResourceManager>> = Arc::new(Mutex::new(ResourceManager::new()));
+    pub static ref RESOURCE_MANAGER: Arc<Mutex<ResourceManager>> =
+        Arc::new(Mutex::new(ResourceManager::new()));
 }
 
 // Constant variables
@@ -38,35 +40,19 @@ pub trait Resource: Any + Send + Sync {
 // Structs
 pub struct ResourceManager {
     state: ManagerState,
-    dependencies: HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>,
-    resource_hashmap: HashMap<TypeId, HashMap<PathBuf, Box<dyn Any + Send + Sync>>>
+    resource_hashmap: HashMap<TypeId, HashMap<PathBuf, Box<dyn Any + Send + Sync>>>,
 }
 
 // Implementations
 impl Manager for ResourceManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
         match self.state {
-            ManagerState::Created => {},
+            ManagerState::Created => {}
             ManagerState::Initialized => {
                 return Err(ManagerInitializeError::ManagerAlreadyInitialized);
-            },
+            }
             ManagerState::Finalized => {
                 return Err(ManagerInitializeError::ManagerAlreadyFinalized);
-            },
-        }
-
-        for (_, dependency) in self.dependencies.iter_mut() {
-            let dependency = dependency.lock().unwrap();
-
-            match dependency.get_state() {
-                ManagerState::Created => {
-                    return Err(ManagerInitializeError::DependencyNotInitialized);
-                },
-                ManagerState::Initialized => {
-                },
-                ManagerState::Finalized => {
-                    return Err(ManagerInitializeError::DependencyAlreadyFinalized);
-                },
             }
         }
 
@@ -79,28 +65,12 @@ impl Manager for ResourceManager {
         match self.state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
-            },
-            ManagerState::Initialized => {},
+            }
+            ManagerState::Initialized => {}
             ManagerState::Finalized => {
                 return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
-            },
-        }
-
-        for (_, dependency) in self.dependencies.iter_mut() {
-            let dependency = dependency.lock().unwrap();
-
-            match dependency.get_state() {
-                ManagerState::Created => {
-                    return Err(ManagerFinalizeError::DependencyNotFinalized);
-                },
-                ManagerState::Initialized => {
-                    return Err(ManagerFinalizeError::DependencyNotFinalized);
-                },
-                ManagerState::Finalized => {},
             }
         }
-
-        self.dependencies.clear();
 
         self.state = ManagerState::Finalized;
 
@@ -110,59 +80,36 @@ impl Manager for ResourceManager {
     fn get_state(&self) -> &ManagerState {
         &self.state
     }
-
-    fn register_dependency(&mut self, dependency_id: TypeId, dependency: Box<Arc<Mutex<dyn Manager + Sync + Send>>>) -> Result<(), ManagerRegisterDependencyError> {
-        match self.state {
-            ManagerState::Created => {
-                if self.dependencies.contains_key(&dependency_id) {
-                    return Err(ManagerRegisterDependencyError::DependencyAlreadyRegistered);
-                }
-
-                self.dependencies.insert(dependency_id, dependency);
-
-                Ok(())
-            },
-            ManagerState::Initialized => {
-                Err(ManagerRegisterDependencyError::ManagerAlreadyInitialized)
-
-            },
-            ManagerState::Finalized => {
-                Err(ManagerRegisterDependencyError::ManagerAlreadyFinalized)
-            },
-        }
-    }
-
-    fn get_dependencies(&self) -> Result<&HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>, ManagerGetDependenciesError> {
-        Ok(&self.dependencies)
-    }
-
-    fn get_dependencies_mut(&mut self) -> Result<&mut HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>, ManagerGetDependenciesMutError> {
-        Ok(&mut self.dependencies)
-    }
 }
 
 impl ResourceManager {
     pub fn new() -> Self {
-        ResourceManager { 
+        ResourceManager {
             state: ManagerState::Created,
-            dependencies: HashMap::new(),
-            resource_hashmap: HashMap::new() 
+            resource_hashmap: HashMap::new(),
         }
     }
 
     pub fn register_resource_type<T: Resource>(&mut self) -> Result<(), String> {
         if self.resource_hashmap.contains_key(&TypeId::of::<T>()) {
-            return Err(format!("Resource type already registered: {}", std::any::type_name::<T>()));
+            return Err(format!(
+                "Resource type already registered: {}",
+                std::any::type_name::<T>()
+            ));
         }
 
-        self.resource_hashmap.insert(TypeId::of::<T>(), HashMap::new());
+        self.resource_hashmap
+            .insert(TypeId::of::<T>(), HashMap::new());
 
         Ok(())
     }
 
     pub fn unregister_resource_type<T: Resource>(&mut self) -> Result<(), String> {
         if !self.resource_hashmap.contains_key(&TypeId::of::<T>()) {
-            return Err(format!("Resource type not registered: {}", std::any::type_name::<T>()));
+            return Err(format!(
+                "Resource type not registered: {}",
+                std::any::type_name::<T>()
+            ));
         }
 
         self.resource_hashmap.remove(&TypeId::of::<T>());
@@ -179,7 +126,12 @@ impl ResourceManager {
 
         let resource_hashmap = match self.resource_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(resource_hashmap) => resource_hashmap,
-            None => return Err(format!("Resource type not registered: {}", std::any::type_name::<T>())),
+            None => {
+                return Err(format!(
+                    "Resource type not registered: {}",
+                    std::any::type_name::<T>()
+                ))
+            }
         };
 
         if resource_hashmap.contains_key(id) {
@@ -194,11 +146,19 @@ impl ResourceManager {
     pub fn unregister_resource<T: Resource>(&mut self, resource: T) -> Result<T, String> {
         let resource_hashmap = match self.resource_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(resource_hashmap) => resource_hashmap,
-            None => return Err(format!("Resource type not registered: {}", std::any::type_name::<T>())),
+            None => {
+                return Err(format!(
+                    "Resource type not registered: {}",
+                    std::any::type_name::<T>()
+                ))
+            }
         };
 
         if !resource_hashmap.contains_key(resource.get_file_path()) {
-            return Err(format!("Resource not registered: {}", resource.get_file_path().display()));
+            return Err(format!(
+                "Resource not registered: {}",
+                resource.get_file_path().display()
+            ));
         }
 
         let resource = resource_hashmap.remove(resource.get_file_path()).unwrap();
@@ -209,7 +169,12 @@ impl ResourceManager {
     pub fn is_resource_registered<T: Resource>(&self, resource: T) -> Result<bool, String> {
         let resource_hashmap = match self.resource_hashmap.get(&TypeId::of::<T>()) {
             Some(resource_hashmap) => resource_hashmap,
-            None => return Err(format!("Resource type not registered: {}", std::any::type_name::<T>())),
+            None => {
+                return Err(format!(
+                    "Resource type not registered: {}",
+                    std::any::type_name::<T>()
+                ))
+            }
         };
 
         Ok(resource_hashmap.contains_key(resource.get_file_path()))
@@ -218,7 +183,12 @@ impl ResourceManager {
     pub fn get_resource<T: Resource>(&self, resource: T) -> Result<Option<&T>, String> {
         let resource_hashmap = match self.resource_hashmap.get(&TypeId::of::<T>()) {
             Some(resource_hashmap) => resource_hashmap,
-            None => return Err(format!("Resource type not registered: {}", std::any::type_name::<T>())),
+            None => {
+                return Err(format!(
+                    "Resource type not registered: {}",
+                    std::any::type_name::<T>()
+                ))
+            }
         };
 
         if !resource_hashmap.contains_key(resource.get_file_path()) {
@@ -233,7 +203,12 @@ impl ResourceManager {
     pub fn get_resource_mut<T: Resource>(&mut self, resource: T) -> Result<Option<&mut T>, String> {
         let resource_hashmap = match self.resource_hashmap.get_mut(&TypeId::of::<T>()) {
             Some(resource_hashmap) => resource_hashmap,
-            None => return Err(format!("Resource type not registered: {}", std::any::type_name::<T>())),
+            None => {
+                return Err(format!(
+                    "Resource type not registered: {}",
+                    std::any::type_name::<T>()
+                ))
+            }
         };
 
         if !resource_hashmap.contains_key(resource.get_file_path()) {
@@ -251,8 +226,11 @@ pub fn test() {
     let mut resource_manager = ResourceManager::new();
 
     match resource_manager.register_resource_type::<TestResource>() {
-        Ok(_) => println!("Registered resource type: {}", std::any::type_name::<TestResource>()),
-        Err(error) => println!("Failed to register resource type: {}", error),
+        Ok(_) => debug!(
+            "Registered resource type: {}",
+            std::any::type_name::<TestResource>()
+        ),
+        Err(error) => panic!("Failed to register resource type: {}", error),
     };
 
     let file_path = Path::new("test.txt").to_path_buf();
@@ -262,11 +240,14 @@ pub fn test() {
         Err(error) => panic!("Failed to open file: {}", error),
     };
 
-    let resource = TestResource { file_handle, file_path: file_path.clone() };
+    let resource = TestResource {
+        file_handle,
+        file_path: file_path.clone(),
+    };
 
     match resource_manager.register_resource(resource) {
-        Ok(_) => println!("Registered resource: {}", file_path.display()),
-        Err(error) => println!("Failed to register resource: {}", error),
+        Ok(_) => debug!("Registered resource: {}", file_path.display()),
+        Err(error) => panic!("Failed to register resource: {}", error),
     };
 }
 
@@ -283,7 +264,10 @@ impl Resource for TestResource {
             Err(error) => panic!("Failed to open file: {}", error),
         };
 
-        TestResource { file_handle, file_path: file_path.to_path_buf() }
+        TestResource {
+            file_handle,
+            file_path: file_path.to_path_buf(),
+        }
     }
 
     fn get_file_path(&self) -> &Path {

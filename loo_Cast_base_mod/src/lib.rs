@@ -1,5 +1,3 @@
-pub fn initialize() {
-}
+pub fn initialize() {}
 
-pub fn terminate() {
-}
+pub fn terminate() {}

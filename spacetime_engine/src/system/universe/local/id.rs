@@ -15,14 +15,12 @@
 // Enums
 
 // Structs
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-#[derive(Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub struct LocalUniverseID {
     id: u32,
 }
 
 // Implementations
-
 
 impl LocalUniverseID {
     pub fn new(id: u32) -> Self {

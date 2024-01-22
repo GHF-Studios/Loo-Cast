@@ -7,10 +7,10 @@ use crate::system::camera::MainCamera;
 use crate::system::game::SimulationState;
 use crate::system::universe::chunk::id::*;
 use crate::system::universe::chunk::pos::*;
-use crate::system::universe::entity::*;
 use crate::system::universe::entity::data::*;
 use crate::system::universe::entity::metadata::*;
 use crate::system::universe::entity::pos::*;
+use crate::system::universe::entity::*;
 use crate::system::universe::global::*;
 use crate::system::universe::local::*;
 use crate::system::universe::*;
@@ -56,11 +56,13 @@ impl Plugin for PlayerPlugin {
             .add_event::<InitializePlayer>()
             .add_event::<TerminatePlayer>()
             // Update Systems
-            .add_systems(Update, 
+            .add_systems(
+                Update,
                 (
-                PlayerManager::handle_initialize_player,
-                PlayerManager::handle_terminate_player
-                ).run_if(in_state(AppState::Game))
+                    PlayerManager::handle_initialize_player,
+                    PlayerManager::handle_terminate_player,
+                )
+                    .run_if(in_state(AppState::Game)),
             )
             .add_systems(
                 Update,
@@ -101,16 +103,19 @@ impl PlayerManager {
                     angvel: 0.0,
                 },
                 LockedAxes::ROTATION_LOCKED,
-                Damping { linear_damping: LINEAR_DAMPING, angular_damping: 0.0 }
+                Damping {
+                    linear_damping: LINEAR_DAMPING,
+                    angular_damping: 0.0,
+                },
             ));
             let _ = universe_manager.register_local_universe(LocalUniverse::default());
         }
     }
 
     fn handle_terminate_player(
-        mut commands: Commands, 
+        mut commands: Commands,
         mut terminate_player_event_reader: EventReader<TerminatePlayer>,
-        player_query: Query<Entity, With<Player>>
+        player_query: Query<Entity, With<Player>>,
     ) {
         if terminate_player_event_reader.iter().next().is_some() {
             commands.remove_resource::<PlayerManager>();
@@ -127,7 +132,7 @@ impl PlayerManager {
     ) {
         if let Ok(mut player_velocity) = player_velocity_query.get_single_mut() {
             let mut direction = Vec2::ZERO;
-    
+
             if keyboard_input.pressed(KeyCode::Left) || keyboard_input.pressed(KeyCode::A) {
                 direction += Vec2::new(-1.0, 0.0);
             }
@@ -140,16 +145,18 @@ impl PlayerManager {
             if keyboard_input.pressed(KeyCode::Down) || keyboard_input.pressed(KeyCode::S) {
                 direction += Vec2::new(0.0, -1.0);
             }
-    
+
             if direction.length() > 0.0 {
                 let sprinting = keyboard_input.pressed(KeyCode::ShiftLeft);
-    
+
                 direction = direction.normalize();
-    
+
                 if sprinting {
-                    player_velocity.linvel += direction * ACCELERATION * SPRINT_MULTIPLIER * time.delta_seconds();
+                    player_velocity.linvel +=
+                        direction * ACCELERATION * SPRINT_MULTIPLIER * time.delta_seconds();
                     if player_velocity.linvel.length() > MAX_SPEED * SPRINT_MULTIPLIER {
-                        player_velocity.linvel = player_velocity.linvel.normalize() * MAX_SPEED * SPRINT_MULTIPLIER;
+                        player_velocity.linvel =
+                            player_velocity.linvel.normalize() * MAX_SPEED * SPRINT_MULTIPLIER;
                     }
                 } else {
                     player_velocity.linvel += direction * ACCELERATION * time.delta_seconds();
@@ -225,35 +232,35 @@ impl PlayerManager {
             let entity_data = EntityData::new();
 
             let _ = global_universe.send_entity_operation_request(EntityOperationRequest::new(vec![
-                EntityOperation::Register { 
-                    id: entity_id.clone(), 
-                    success_callback: Box::new(|_| {}), 
+                EntityOperation::Register {
+                    id: entity_id.clone(),
+                    success_callback: Box::new(|_| {}),
                     failure_callback: Box::new(|err| {
                         println!("Failed to register entity: {:?}", err);
                     })
                 },
-                EntityOperation::LoadMetadata { 
-                    id: entity_id.clone(), 
-                    metadata: entity_metadata, 
-                    success_callback: Box::new(|_| {}), 
+                EntityOperation::LoadMetadata {
+                    id: entity_id.clone(),
+                    metadata: entity_metadata,
+                    success_callback: Box::new(|_| {}),
                     failure_callback: Box::new(|err| {
                         println!("Failed to load entity metadata: {:?}", err);
-                    }) 
+                    })
                 },
-                EntityOperation::LoadData { 
-                    id: entity_id.clone(), 
-                    data: entity_data, 
-                    success_callback: Box::new(|_| {}), 
+                EntityOperation::LoadData {
+                    id: entity_id.clone(),
+                    data: entity_data,
+                    success_callback: Box::new(|_| {}),
                     failure_callback: Box::new(|err| {
                         println!("Failed to load entity data: {:?}", err);
-                    }) 
+                    })
                 },
-                EntityOperation::Spawn { 
-                    id: entity_id.clone(), 
-                    success_callback: Box::new(|_| {}), 
+                EntityOperation::Spawn {
+                    id: entity_id.clone(),
+                    success_callback: Box::new(|_| {}),
                     failure_callback: Box::new(|err| {
                         println!("Failed to spawn entity: {:?}", err);
-                    }) 
+                    })
                 },
                 EntityOperation::Command {
                     id: entity_id,
@@ -277,10 +284,10 @@ impl PlayerManager {
                             Damping { linear_damping: LINEAR_DAMPING, angular_damping: 0.0 }
                         ));
                     }),
-                    success_callback: Box::new(|_| {}), 
+                    success_callback: Box::new(|_| {}),
                     failure_callback: Box::new(|err| {
                         println!("Failed to command entity: {:?}", err);
-                    }) 
+                    })
                 },
             ]));
         }

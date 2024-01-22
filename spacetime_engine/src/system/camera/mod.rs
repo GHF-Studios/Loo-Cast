@@ -4,9 +4,9 @@
 
 // Internal imports
 use crate::kernel::math::*;
-use crate::system::AppState;
 use crate::system::game::SimulationState;
 use crate::system::player::*;
+use crate::system::AppState;
 
 // External imports
 use bevy::prelude::*;

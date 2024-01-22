@@ -47,8 +47,7 @@ pub struct LoseFocus {
     pub entity: Entity,
 }
 
-#[derive(Resource)]
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub struct UIManager {
     pub focus: Option<Entity>,
 }
@@ -74,8 +73,6 @@ impl Plugin for UIPlugin {
             .add_systems(Update, UIManager::handle_gain_focus);
     }
 }
-
-
 
 impl UIManager {
     fn initialize(mut commands: Commands) {

@@ -10,7 +10,6 @@ pub mod universe;
 
 // Local imports
 
-
 // Internal imports
 use background::BackgroundPlugin;
 use camera::CameraPlugin;
@@ -27,12 +26,9 @@ use bevy_rapier2d::prelude::*;
 
 // Static variables
 
-
 // Constant variables
 
-
 // Types
-
 
 // Enums
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]

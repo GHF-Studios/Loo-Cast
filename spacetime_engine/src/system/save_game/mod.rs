@@ -44,8 +44,7 @@ pub struct DeleteSaveGame {
     pub save_game_name: String,
 }
 
-#[derive(Resource)]
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub struct SaveGameManager {
     pub registered_save_games: Vec<SaveGameInfo>,
 }
@@ -185,7 +184,5 @@ impl SaveGameManager {
             .find(|&save_game| save_game.name == *save_game_name)
     }
 }
-
-
 
 // Module Functions

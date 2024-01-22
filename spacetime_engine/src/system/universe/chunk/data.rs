@@ -31,7 +31,8 @@ pub struct ChunkData {
     pub(in crate::system::universe) child_chunks: Option<HashMap<LocalChunkID, Arc<Mutex<Chunk>>>>,
     pub(in crate::system::universe) current_local_entity_id: u64,
     pub(in crate::system::universe) recycled_local_entity_ids: Vec<u64>,
-    pub(in crate::system::universe) registered_entities: HashMap<LocalEntityID, Arc<Mutex<entity::Entity>>>,
+    pub(in crate::system::universe) registered_entities:
+        HashMap<LocalEntityID, Arc<Mutex<entity::Entity>>>,
     pub(in crate::system::universe) apparent_chunk_pos_shift: ApparentChunkPosShift,
 }
 
@@ -57,7 +58,7 @@ impl ChunkData {
             current_local_entity_id: 0,
             recycled_local_entity_ids: Vec::new(),
             registered_entities: HashMap::new(),
-            apparent_chunk_pos_shift
+            apparent_chunk_pos_shift,
         }
     }
 
@@ -68,7 +69,7 @@ impl ChunkData {
             current_local_entity_id: 0,
             recycled_local_entity_ids: Vec::new(),
             registered_entities: HashMap::new(),
-            apparent_chunk_pos_shift
+            apparent_chunk_pos_shift,
         }
     }
 }

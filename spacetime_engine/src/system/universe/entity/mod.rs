@@ -13,8 +13,8 @@ use metadata::*;
 use crate::system::universe::chunk::*;
 
 // External imports
-use bevy::prelude::*;
 use bevy::ecs::system::EntityCommands;
+use bevy::prelude::*;
 use std::sync::{Arc, Mutex};
 
 // Static variables
@@ -140,7 +140,7 @@ pub enum SpawnEntityError {
     ParentChunkNotSpawned,
     EntityDataNotLoaded,
     EntityAlreadySpawned,
-    WrongParentChunk
+    WrongParentChunk,
 }
 
 #[derive(Debug)]
@@ -209,13 +209,16 @@ impl Default for Entity {
     fn default() -> Self {
         Entity::Registered {
             id: EntityID::default(),
-            bevy_entity: bevy::ecs::entity::Entity::PLACEHOLDER
+            bevy_entity: bevy::ecs::entity::Entity::PLACEHOLDER,
         }
     }
 }
 
 impl Entity {
-    pub(in crate::system::universe) fn new(id: EntityID, bevy_entity: bevy::ecs::entity::Entity) -> Self {
+    pub(in crate::system::universe) fn new(
+        id: EntityID,
+        bevy_entity: bevy::ecs::entity::Entity,
+    ) -> Self {
         Entity::Registered { id, bevy_entity }
     }
 }

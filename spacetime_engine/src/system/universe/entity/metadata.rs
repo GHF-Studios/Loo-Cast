@@ -33,9 +33,7 @@ impl Default for EntityMetadata {
 
 impl EntityMetadata {
     pub fn new(parent_chunk: Arc<Mutex<Chunk>>) -> EntityMetadata {
-        EntityMetadata {
-            parent_chunk,
-        }
+        EntityMetadata { parent_chunk }
     }
 
     pub fn get_parent_chunk(&self) -> Arc<Mutex<Chunk>> {

@@ -17,14 +17,12 @@ use std::hash::*;
 // Enums
 
 // Structs
-#[derive(Eq, Debug, Clone, Copy)]
-#[derive(Default)]
+#[derive(Eq, Debug, Clone, Copy, Default)]
 pub struct LocalEntityID {
     id: u64,
 }
 
-#[derive(Eq, Debug, Clone)]
-#[derive(Default)]
+#[derive(Eq, Debug, Clone, Default)]
 pub struct EntityID {
     parent_chunk_id: ChunkID,
     local_entity_id: LocalEntityID,
@@ -43,8 +41,6 @@ impl Hash for LocalEntityID {
     }
 }
 
-
-
 impl LocalEntityID {
     pub(in crate::system::universe) fn new(id: u64) -> Result<Self, String> {
         if id == u64::MAX {
@@ -61,7 +57,8 @@ impl LocalEntityID {
 
 impl PartialEq for EntityID {
     fn eq(&self, other: &Self) -> bool {
-        self.parent_chunk_id == other.parent_chunk_id && self.local_entity_id == other.local_entity_id
+        self.parent_chunk_id == other.parent_chunk_id
+            && self.local_entity_id == other.local_entity_id
     }
 }
 

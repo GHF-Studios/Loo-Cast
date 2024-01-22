@@ -30,8 +30,7 @@ pub struct Background {
     pub background_chunk_position_y: i32,
 }
 
-#[derive(Resource)]
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub struct BackgroundManager {
     pub background_origin_x: i32,
     pub background_origin_y: i32,
@@ -54,8 +53,6 @@ impl Plugin for BackgroundPlugin {
             .add_systems(OnExit(AppState::Game), BackgroundManager::terminate);
     }
 }
-
-
 
 impl BackgroundManager {
     fn initialize(
@@ -84,7 +81,8 @@ impl BackgroundManager {
                             ..default()
                         },
                         transform: Transform::from_xyz(x, y, -1.0),
-                        texture: asset_server.load("loo_cast_base_mod/resources/sprites/background.png"),
+                        texture: asset_server
+                            .load("loo_cast_base_mod/resources/sprites/background.png"),
                         ..default()
                     },
                     Background {

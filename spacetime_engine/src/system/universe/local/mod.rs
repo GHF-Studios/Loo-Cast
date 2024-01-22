@@ -35,8 +35,10 @@ pub struct LocalUniversePlugin;
 #[derive(Debug)]
 pub struct LocalUniverse {
     pub(in crate::system::universe) id: LocalUniverseID,
-    pub(in crate::system::universe) previously_viewed_local_chunk_positions: Vec<ApparentLocalChunkPos>,
-    pub(in crate::system::universe) currently_viewed_local_chunk_positions: Vec<ApparentLocalChunkPos>,
+    pub(in crate::system::universe) previously_viewed_local_chunk_positions:
+        Vec<ApparentLocalChunkPos>,
+    pub(in crate::system::universe) currently_viewed_local_chunk_positions:
+        Vec<ApparentLocalChunkPos>,
     pub(in crate::system::universe) newly_viewed_local_chunk_positions: Vec<ApparentLocalChunkPos>,
 }
 
@@ -100,7 +102,7 @@ impl LocalUniverse {
             }
         };
 
-        let player_transform = player_transform_query.single(); 
+        let player_transform = player_transform_query.single();
 
         Self::gather_local_chunk_positions(&mut local_universe, player_transform);
         Self::process_local_chunk_positions(&mut global_universe, &mut local_universe);
@@ -110,7 +112,10 @@ impl LocalUniverse {
         local_universe: &mut LocalUniverse,
         local_universe_transform: &Transform,
     ) {
-        if !local_universe.previously_viewed_local_chunk_positions.is_empty() {
+        if !local_universe
+            .previously_viewed_local_chunk_positions
+            .is_empty()
+        {
             panic!("Chunk viewer's previously viewed chunk positions are not empty");
         }
         if !local_universe.newly_viewed_local_chunk_positions.is_empty() {
@@ -158,15 +163,19 @@ impl LocalUniverse {
 
         for old_local_chunk_pos in &old_local_chunk_positions {
             let old_apparent_local_chunk_pos = *old_local_chunk_pos;
-            let old_absolute_local_chunk_pos: AbsoluteLocalChunkPos = old_apparent_local_chunk_pos.into();
-            let old_absolute_local_chunk_pos_base10x10: (u8, u8) = old_absolute_local_chunk_pos.into();
-            let old_local_chunk_id_base10x10 = match LocalChunkIDBase10x10::new_from_tuple(old_absolute_local_chunk_pos_base10x10) {
-                Ok(old_local_chunk_id_base10x10) => old_local_chunk_id_base10x10,
-                Err(error) => {
-                    println!("Failed to create local chunk id: {:?}", error);
-                    continue;
-                }
-            };
+            let old_absolute_local_chunk_pos: AbsoluteLocalChunkPos =
+                old_apparent_local_chunk_pos.into();
+            let old_absolute_local_chunk_pos_base10x10: (u8, u8) =
+                old_absolute_local_chunk_pos.into();
+            let old_local_chunk_id_base10x10 =
+                match LocalChunkIDBase10x10::new_from_tuple(old_absolute_local_chunk_pos_base10x10)
+                {
+                    Ok(old_local_chunk_id_base10x10) => old_local_chunk_id_base10x10,
+                    Err(error) => {
+                        println!("Failed to create local chunk id: {:?}", error);
+                        continue;
+                    }
+                };
             let old_local_chunk_id = LocalChunkID::new_from_base10x10(old_local_chunk_id_base10x10);
             let old_chunk_id = match ChunkID::try_from(old_local_chunk_id) {
                 Ok(old_chunk_id) => old_chunk_id,
@@ -197,15 +206,19 @@ impl LocalUniverse {
                 Chunk::Registered { .. } | Chunk::MetadataLoaded { .. } => {
                     println!("Chunk data is not loaded: {:?}", old_chunk_id);
                     continue;
-                },
-                Chunk::DataLoaded { ref data, .. } => { data }
+                }
+                Chunk::DataLoaded { ref data, .. } => data,
             };
 
-            let old_local_entity_ids = old_chunk_data.registered_entities.keys().cloned().collect::<Vec<LocalEntityID>>();
+            let old_local_entity_ids = old_chunk_data
+                .registered_entities
+                .keys()
+                .cloned()
+                .collect::<Vec<LocalEntityID>>();
 
             for old_local_entity_id in old_local_entity_ids {
                 let old_entity_id = EntityID::new(old_chunk_id.clone(), old_local_entity_id);
-                
+
                 // TODO: Reimplement chunk operations using the new system
                 /*
                 match global_universe.send_entity_operation_request(EntityOperationRequest {
@@ -306,15 +319,19 @@ impl LocalUniverse {
 
         for new_local_chunk_pos in &new_local_chunk_positions {
             let new_apparent_local_chunk_pos = *new_local_chunk_pos;
-            let new_absolute_local_chunk_pos: AbsoluteLocalChunkPos = new_apparent_local_chunk_pos.into();
-            let new_absolute_local_chunk_pos_base10x10: (u8, u8) = new_absolute_local_chunk_pos.into();
-            let new_local_chunk_id_base10x10: LocalChunkIDBase10x10 = match LocalChunkIDBase10x10::new_from_tuple(new_absolute_local_chunk_pos_base10x10) {
-                Ok(new_local_chunk_id_base10x10) => new_local_chunk_id_base10x10,
-                Err(error) => {
-                    println!("Failed to create local chunk id: {:?}", error);
-                    continue;
-                }
-            };
+            let new_absolute_local_chunk_pos: AbsoluteLocalChunkPos =
+                new_apparent_local_chunk_pos.into();
+            let new_absolute_local_chunk_pos_base10x10: (u8, u8) =
+                new_absolute_local_chunk_pos.into();
+            let new_local_chunk_id_base10x10: LocalChunkIDBase10x10 =
+                match LocalChunkIDBase10x10::new_from_tuple(new_absolute_local_chunk_pos_base10x10)
+                {
+                    Ok(new_local_chunk_id_base10x10) => new_local_chunk_id_base10x10,
+                    Err(error) => {
+                        println!("Failed to create local chunk id: {:?}", error);
+                        continue;
+                    }
+                };
             let new_local_chunk_id = LocalChunkID::new_from_base10x10(new_local_chunk_id_base10x10);
             let new_chunk_id = match ChunkID::try_from(new_local_chunk_id) {
                 Ok(new_chunk_id) => new_chunk_id,

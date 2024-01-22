@@ -18,15 +18,13 @@ use std::sync::{Arc, Mutex};
 // Enums
 
 // Structs
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ChunkMetadata {
     pub(in crate::system::universe) parent_chunk: Option<Arc<Mutex<Chunk>>>,
     pub(in crate::system::universe) absolute_local_chunk_pos: AbsoluteLocalChunkPos,
 }
 
 // Implementations
-
 
 impl ChunkMetadata {
     pub fn new_node(

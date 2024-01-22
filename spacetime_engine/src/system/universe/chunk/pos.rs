@@ -17,30 +17,26 @@ use crate::system::universe::entity::pos::*;
 // Enums
 
 // Structs
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
-#[derive(Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Default)]
 pub struct ChunkPos {
     parent_pos: Option<Box<ChunkPos>>,
     absolute_local_pos: AbsoluteLocalChunkPos,
     apparent_local_pos: ApparentLocalChunkPos,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-#[derive(Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct AbsoluteLocalChunkPos {
     pub x: u8,
     pub y: u8,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-#[derive(Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct ApparentLocalChunkPos {
     pub x: i8,
     pub y: i8,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-#[derive(Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct ApparentChunkPosShift {
     pub x: i8,
     pub y: i8,
@@ -48,7 +44,10 @@ pub struct ApparentChunkPosShift {
 
 // Implementations
 impl ChunkPos {
-    pub fn from_absolute(parent_pos: Option<Box<ChunkPos>>, absolute_local_pos: AbsoluteLocalChunkPos) -> Self {
+    pub fn from_absolute(
+        parent_pos: Option<Box<ChunkPos>>,
+        absolute_local_pos: AbsoluteLocalChunkPos,
+    ) -> Self {
         ChunkPos {
             parent_pos,
             absolute_local_pos,
@@ -56,7 +55,10 @@ impl ChunkPos {
         }
     }
 
-    pub fn from_apparent(parent_pos: Option<Box<ChunkPos>>, apparent_local_pos: ApparentLocalChunkPos) -> Self {
+    pub fn from_apparent(
+        parent_pos: Option<Box<ChunkPos>>,
+        apparent_local_pos: ApparentLocalChunkPos,
+    ) -> Self {
         ChunkPos {
             parent_pos,
             absolute_local_pos: apparent_local_pos.into(),
@@ -133,7 +135,12 @@ impl From<AbsoluteLocalChunkPos> for ApparentLocalChunkPos {
 }
 
 impl From<(AbsoluteLocalChunkPos, ApparentChunkPosShift)> for ApparentLocalChunkPos {
-    fn from((absolute_local_chunk_pos, apparent_chunk_pos_shift): (AbsoluteLocalChunkPos, ApparentChunkPosShift)) -> ApparentLocalChunkPos {
+    fn from(
+        (absolute_local_chunk_pos, apparent_chunk_pos_shift): (
+            AbsoluteLocalChunkPos,
+            ApparentChunkPosShift,
+        ),
+    ) -> ApparentLocalChunkPos {
         ApparentLocalChunkPos {
             x: absolute_local_chunk_pos.x as i8 + (apparent_chunk_pos_shift.x * 10),
             y: absolute_local_chunk_pos.y as i8 + (apparent_chunk_pos_shift.y * 10),

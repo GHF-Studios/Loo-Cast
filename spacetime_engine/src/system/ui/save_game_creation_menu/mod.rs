@@ -289,7 +289,9 @@ impl SaveGameCreationMenuManager {
                             .with_children(|parent| {
                                 parent.spawn(ImageBundle {
                                     style: BUTTON_IMAGE_STYLE,
-                                    image: asset_server.load("loo_cast_base_mod/resources/sprites/cross.png").into(),
+                                    image: asset_server
+                                        .load("loo_cast_base_mod/resources/sprites/cross.png")
+                                        .into(),
                                     ..default()
                                 });
                             });
@@ -307,7 +309,9 @@ impl SaveGameCreationMenuManager {
                             .with_children(|parent| {
                                 parent.spawn(ImageBundle {
                                     style: BUTTON_IMAGE_STYLE,
-                                    image: asset_server.load("loo_cast_base_mod/resources/sprites/checkMark.png").into(),
+                                    image: asset_server
+                                        .load("loo_cast_base_mod/resources/sprites/checkMark.png")
+                                        .into(),
                                     ..default()
                                 });
                             });
