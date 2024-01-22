@@ -23,7 +23,7 @@ lazy_static! {
 // Types
 
 // Traits
-pub trait Data: Any + Send {
+pub trait Data: Any + Send + Sync {
     fn get_runtime_id(&self) -> Option<u64>;
     fn load_data<TData: super::data::Data + for<'de> Deserialize<'de>, TResource: super::resource::Resource>(&self, resource: &TResource) -> Result<TData, String>;
     fn save_data<'a, TData: 'a + super::data::Data + Serialize, TResource: 'a + super::resource::Resource>(&'a self, resource: &'a mut TResource) -> Result<(), String>;
@@ -35,7 +35,7 @@ pub trait Data: Any + Send {
 pub struct DataManager {
     dependencies: HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>,
     state: ManagerState,
-    data_hashmap: HashMap<TypeId, HashMap<u64, Box<dyn Any + Send>>>,
+    data_hashmap: HashMap<TypeId, HashMap<u64, Box<dyn Any + Send + Sync>>>,
     next_data_id: u64,
 }
 

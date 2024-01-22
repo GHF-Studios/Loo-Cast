@@ -12,6 +12,9 @@ use lazy_static::*;
 use std::collections::HashMap;
 
 // Static variables
+lazy_static! {
+    pub static ref CONFIG_MANAGER: Arc<Mutex<ConfigManager>> = Arc::new(Mutex::new(ConfigManager::new()));
+}
 
 // Constant variables
 
@@ -22,6 +25,10 @@ use std::collections::HashMap;
 // Enums
 
 // Structs
+pub struct ConfigManager {
+    state: ManagerState,
+    dependencies: HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>,
+}
 
 // Implementations
 impl Manager for ConfigManager {
@@ -119,6 +126,15 @@ impl Manager for ConfigManager {
 
     fn get_dependencies_mut(&mut self) -> Result<&mut HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>, ManagerGetDependenciesMutError> {
         Ok(&mut self.dependencies)
+    }
+}
+
+impl ConfigManager {
+    fn new() -> ConfigManager {
+        ConfigManager {
+            state: ManagerState::Created,
+            dependencies: HashMap::new(),
+        }
     }
 }
 

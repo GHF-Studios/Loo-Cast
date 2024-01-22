@@ -23,15 +23,17 @@ lazy_static! {
 
 
 // Traits
-pub trait Event: Any + Clone {
+pub trait Event: Any + Send + Sync + Clone {
 }
 
 // Enums
 
 // Structs
 pub struct EventManager {
+    state: ManagerState,
+    dependencies: HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>,
     event_types: Vec<TypeId>,
-    event_subscribers: HashMap<TypeId, HashMap<usize, Box<dyn Fn(Box<dyn Any>) + Send>>>,
+    event_subscribers: HashMap<TypeId, HashMap<usize, Box<dyn Fn(Box<dyn Any + Send + Sync>) + Send + Sync>>>,
     next_subscriber_id: usize,
 }
 
@@ -143,6 +145,8 @@ impl Manager for EventManager {
 impl EventManager {
     pub fn new() -> EventManager {
         EventManager {
+            state: ManagerState::Created,
+            dependencies: HashMap::new(),
             event_types: Vec::new(),
             event_subscribers: HashMap::new(),
             next_subscriber_id: 0,
@@ -175,7 +179,7 @@ impl EventManager {
         Ok(())
     }
 
-    pub fn subscribe<T: Event>(&mut self, event_handler: Box<dyn Fn(T) + Send>) -> Result<EventSubscriberHandle, String> {
+    pub fn subscribe<T: Event>(&mut self, event_handler: Box<dyn Fn(T) + Send + Sync>) -> Result<EventSubscriberHandle, String> {
         let event_type = TypeId::of::<T>();
         let event_name = type_name::<T>();
 

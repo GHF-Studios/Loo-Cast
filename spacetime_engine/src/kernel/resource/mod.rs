@@ -26,7 +26,7 @@ lazy_static! {
 // Types
 
 // Traits
-pub trait Resource: Any + Send {
+pub trait Resource: Any + Send + Sync {
     fn new(file_path: &Path) -> Self;
     fn get_file_path(&self) -> &Path;
     fn get_file_content(&self) -> Result<Box<[u8]>, String>;
@@ -37,7 +37,9 @@ pub trait Resource: Any + Send {
 
 // Structs
 pub struct ResourceManager {
-    resource_hashmap: HashMap<TypeId, HashMap<PathBuf, Box<dyn Any + Send>>>
+    state: ManagerState,
+    dependencies: HashMap<TypeId, Box<Arc<Mutex<dyn Manager + Sync + Send>>>>,
+    resource_hashmap: HashMap<TypeId, HashMap<PathBuf, Box<dyn Any + Send + Sync>>>
 }
 
 // Implementations
@@ -141,7 +143,11 @@ impl Manager for ResourceManager {
 
 impl ResourceManager {
     pub fn new() -> Self {
-        ResourceManager { resource_hashmap: HashMap::new() }
+        ResourceManager { 
+            state: ManagerState::Created,
+            dependencies: HashMap::new(),
+            resource_hashmap: HashMap::new() 
+        }
     }
 
     pub fn register_resource_type<T: Resource>(&mut self) -> Result<(), String> {
