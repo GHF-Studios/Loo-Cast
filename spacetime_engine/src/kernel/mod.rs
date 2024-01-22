@@ -18,7 +18,7 @@ use bevy::log::*;
 
 // Static variables
 lazy_static! {
-    pub static ref MAIN_MANAGER: Arc<Mutex<MainManager>> = Arc::new(Mutex::new(MainManager::new()));
+    pub static ref KERNEL_MANAGER: Arc<Mutex<KernelManager>> = Arc::new(Mutex::new(KernelManager::new()));
 }
 
 // Constant variables
@@ -28,13 +28,15 @@ lazy_static! {
 // Enums
 
 // Structs
-pub struct MainManager {
+pub struct KernelManager {
     state: ManagerState,
 }
 
 // Implementations
-impl Manager for MainManager {
+impl Manager for KernelManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
+        info!("Initializing kernel...");
+
         match self.state {
             ManagerState::Created => {}
             ManagerState::Initialized => {
@@ -45,7 +47,7 @@ impl Manager for MainManager {
             }
         }
 
-        debug!("Locking kernel manager mutexes...");
+        debug!("Locking kernel module manager mutexes...");
 
         let config_manager = config::CONFIG_MANAGER.clone();
         let mut config_manager = match config_manager.lock() {
@@ -108,65 +110,65 @@ impl Manager for MainManager {
             }
         };
 
-        debug!("Successfully locked kernel manager mutexes.");
+        debug!("Locked kernel module manager mutexes.");
 
-        info!("Initializing kernel managers...");
+        info!("Initializing kernel modules...");
 
         match config_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized config manager.");
+                debug!("Successfully initialized config module.");
             }
             Err(err) => {
-                panic!("Failed to initialize config manager! Error: {:?}", err);
+                panic!("Failed to initialize config module! Error: {:?}", err);
             }
         }
 
         match data_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized data manager.");
+                debug!("Successfully initialized data module.");
             }
             Err(err) => {
-                panic!("Failed to initialize data manager! Error: {:?}", err);
+                panic!("Failed to initialize data module! Error: {:?}", err);
             }
         }
 
         match debug_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized debug manager.");
+                debug!("Successfully initialized debug module.");
             }
             Err(err) => {
-                panic!("Failed to initialize debug manager! Error: {:?}", err);
+                panic!("Failed to initialize debug module! Error: {:?}", err);
             }
         }
 
         match event_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized event manager.");
+                debug!("Successfully initialized event module.");
             }
             Err(err) => {
-                panic!("Failed to initialize event manager! Error: {:?}", err);
+                panic!("Failed to initialize event module! Error: {:?}", err);
             }
         }
 
         match plugin_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized plugin manager.");
+                debug!("Successfully initialized plugin module.");
             }
             Err(err) => {
-                panic!("Failed to initialize plugin manager! Error: {:?}", err);
+                panic!("Failed to initialize plugin module! Error: {:?}", err);
             }
         }
 
         match resource_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized resource manager.");
+                debug!("Successfully initialized resource module.");
             }
             Err(err) => {
-                panic!("Failed to initialize resource manager! Error: {:?}", err);
+                panic!("Failed to initialize resource module! Error: {:?}", err);
             }
         }
 
-        info!("Successfully initialized kernel managers.");
+        info!("Initialized kernel modules.");
 
         // initialize the emergent systems(aka the engine system) such as mod management, USF(massive oversimplification, but baaaaaasically USF = ECS) management, player management, savegame management, camera management, UI Management, etc.
 
@@ -174,10 +176,14 @@ impl Manager for MainManager {
 
         self.state = ManagerState::Initialized;
 
+        info!("Initialized kernel.");
+
         Ok(())
     }
 
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
+        info!("Finalizing kernel...");
+
         match self.state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
@@ -188,7 +194,7 @@ impl Manager for MainManager {
             }
         }
 
-        debug!("Locking all kernel manager mutexes...");
+        debug!("Locking kernel module manager mutexes...");
 
         let config_manager = config::CONFIG_MANAGER.clone();
         let mut config_manager = match config_manager.lock() {
@@ -251,67 +257,69 @@ impl Manager for MainManager {
             }
         };
 
-        debug!("Successfully locked kernel manager mutexes.");
+        debug!("Locked kernel module manager mutexes.");
 
-        info!("Finalizing kernel managers...");
+        info!("Finalizing kernel modules...");
 
         match config_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized config manager.");
+                debug!("Successfully finalized config module.");
             }
             Err(err) => {
-                panic!("Failed to finalize config manager! Error: {:?}", err);
+                panic!("Failed to finalize config module! Error: {:?}", err);
             }
         }
 
         match data_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized data manager.");
+                debug!("Successfully finalized data module.");
             }
             Err(err) => {
-                panic!("Failed to finalize data manager! Error: {:?}", err);
+                panic!("Failed to finalize data module! Error: {:?}", err);
             }
         }
 
         match debug_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized debug manager.");
+                debug!("Successfully finalized debug module.");
             }
             Err(err) => {
-                panic!("Failed to finalize debug manager! Error: {:?}", err);
+                panic!("Failed to finalize debug module! Error: {:?}", err);
             }
         }
 
         match event_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized event manager.");
+                debug!("Successfully finalized event module.");
             }
             Err(err) => {
-                panic!("Failed to finalize event manager! Error: {:?}", err);
+                panic!("Failed to finalize event module! Error: {:?}", err);
             }
         }
 
         match plugin_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized plugin manager.");
+                debug!("Successfully finalized plugin module.");
             }
             Err(err) => {
-                panic!("Failed to finalize plugin manager! Error: {:?}", err);
+                panic!("Failed to finalize plugin module! Error: {:?}", err);
             }
         }
 
         match resource_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized resource manager.");
+                debug!("Successfully finalized resource module.");
             }
             Err(err) => {
-                panic!("Failed to finalize resource manager! Error: {:?}", err);
+                panic!("Failed to finalize resource module! Error: {:?}", err);
             }
         }
 
-        info!("Successfully finalized all kernel managers.");
+        info!("Finalized kernel modules.");
 
         self.state = ManagerState::Finalized;
+
+        info!("Finalized kernel.");
 
         Ok(())
     }
@@ -321,9 +329,9 @@ impl Manager for MainManager {
     }
 }
 
-impl MainManager {
-    fn new() -> MainManager {
-        MainManager {
+impl KernelManager {
+    fn new() -> KernelManager {
+        KernelManager {
             state: ManagerState::Created,
         }
     }

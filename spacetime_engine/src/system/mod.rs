@@ -11,6 +11,7 @@ pub mod universe;
 // Local imports
 
 // Internal imports
+use super::kernel::manager::*;
 use background::BackgroundPlugin;
 use camera::CameraPlugin;
 use game::GamePlugin;
@@ -21,10 +22,16 @@ use ui::UIPlugin;
 use universe::UniversePlugin;
 
 // External imports
+use lazy_static::*;
+use std::sync::{Arc, Mutex};
+use bevy::log::*;
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use bevy_rapier2d::prelude::*;
 
 // Static variables
+lazy_static! {
+    pub static ref SYSTEM_MANAGER: Arc<Mutex<SystemManager>> = Arc::new(Mutex::new(SystemManager::new()));
+}
 
 // Constant variables
 
@@ -41,11 +48,85 @@ pub enum AppState {
 }
 
 // Structs
+pub struct SystemManager {
+    state: ManagerState,
+}
+
 pub struct SpacetimeEngineSystemPlugins;
 
 pub struct RapierPlugins;
 
 // Implementations
+impl Manager for SystemManager {
+    fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
+        info!("Initializing system...");
+
+        match self.state {
+            ManagerState::Created => {},
+            ManagerState::Initialized => {
+                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+            },
+            ManagerState::Finalized => {
+                return Err(ManagerInitializeError::ManagerAlreadyFinalized);
+            },
+        }
+
+        debug!("Locking system module manager mutexes...");
+
+        debug!("Locked system module manager mutexes.");
+
+        info!("Initializing system modules...");
+
+        info!("Initialized system modules.");
+
+        self.state = ManagerState::Initialized;
+
+        info!("Initialized system.");
+
+        Ok(())
+    }
+
+    fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
+        info!("Finalizing system...");
+
+        match self.state {
+            ManagerState::Created => {
+                return Err(ManagerFinalizeError::ManagerNotInitialized);
+            },
+            ManagerState::Initialized => {},
+            ManagerState::Finalized => {
+                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+            },
+        }
+
+        debug!("Locking system module manager mutexes...");
+
+        debug!("Locked system module manager mutexes.");
+
+        info!("Finalizing system modules...");
+
+        info!("Finalized system modules.");
+
+        self.state = ManagerState::Finalized;
+
+        info!("Finalized system.");
+
+        Ok(())
+    }
+
+    fn get_state(&self) -> &ManagerState {
+        &self.state
+    }
+}
+
+impl SystemManager {
+    pub fn new() -> Self {
+        Self {
+            state: ManagerState::Created,
+        }
+    }
+}
+
 impl PluginGroup for SpacetimeEngineSystemPlugins {
     fn build(self) -> PluginGroupBuilder {
         let mut group = PluginGroupBuilder::start::<Self>();
