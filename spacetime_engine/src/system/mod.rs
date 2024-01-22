@@ -52,7 +52,7 @@ pub struct SystemManager {
     state: ManagerState,
 }
 
-pub struct SpacetimeEngineSystemPlugins;
+pub struct SystemPlugins;
 
 pub struct RapierPlugins;
 
@@ -127,11 +127,12 @@ impl SystemManager {
     }
 }
 
-impl PluginGroup for SpacetimeEngineSystemPlugins {
+impl PluginGroup for SystemPlugins {
     fn build(self) -> PluginGroupBuilder {
         let mut group = PluginGroupBuilder::start::<Self>();
 
         group = group
+            // Internal Modules
             .add(BackgroundPlugin)
             .add(CameraPlugin)
             .add(GamePlugin)
@@ -139,17 +140,8 @@ impl PluginGroup for SpacetimeEngineSystemPlugins {
             .add(PlayerPlugin)
             .add(SaveGamePlugin)
             .add(UIPlugin)
-            .add(UniversePlugin);
-
-        group
-    }
-}
-
-impl PluginGroup for RapierPlugins {
-    fn build(self) -> PluginGroupBuilder {
-        let mut group = PluginGroupBuilder::start::<Self>();
-
-        group = group
+            .add(UniversePlugin)
+            // External Modules
             .add(RapierDebugRenderPlugin::default())
             .add(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0));
 

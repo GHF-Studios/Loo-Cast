@@ -46,7 +46,7 @@ impl Manager for MainManager {
             },
         }
 
-        let mut kernel_manager = KERNEL_MANAGER.clone();
+        let kernel_manager = KERNEL_MANAGER.clone();
 
         let mut kernel_manager = match kernel_manager.lock() {
             Ok(kernel_manager) => {
@@ -84,7 +84,7 @@ impl Manager for MainManager {
             },
         }
 
-        let mut kernel_manager = KERNEL_MANAGER.clone();
+        let kernel_manager = KERNEL_MANAGER.clone();
 
         let mut kernel_manager = match kernel_manager.lock() {
             Ok(kernel_manager) => {
@@ -131,7 +131,7 @@ fn main() {
         .add_systems(PreStartup, spacetime_engine_startup)
         // Update Systems
         .add_systems(Update, spacetime_engine_shutdown)
-        // Bevy Plugins
+        // Default Bevy Plugins
         .add_plugins(
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
@@ -145,8 +145,7 @@ fn main() {
                 }),
         )
         // Plugins
-        .add_plugins(SpacetimeEngineSystemPlugins)
-        .add_plugins(RapierPlugins)
+        .add_plugins(SystemPlugins)
         // States
         .add_state::<AppState>()
         // Run
