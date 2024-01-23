@@ -91,7 +91,7 @@ impl GameInfoManager {
         let game_info_manager = GAME_INFO_MANAGER.clone();
         let mut game_info_manager = match game_info_manager.lock() {
             Ok(game_info_manager) => {
-                trace!("Successfully locked game info manager mutex.");
+                trace!("Locked game info manager mutex.");
                 game_info_manager
             },
             Err(_) => panic!("Failed to lock game info manager mutex!"),
@@ -122,7 +122,7 @@ impl GameInfoManager {
                     let mut serialized_game_info = String::new();
                     match file.read_to_string(&mut serialized_game_info) {
                         Err(why) => panic!("Couldn't read {}: {}", display, why),
-                        Ok(_) => println!("Successfully read {}", display),
+                        Ok(_) => println!("Read {}", display),
                     }
 
                     game_infos.push(serde_json::from_str(&serialized_game_info).unwrap());
@@ -141,7 +141,7 @@ impl GameInfoManager {
             let game_info_manager = GAME_INFO_MANAGER.clone();
             let mut game_info_manager = match game_info_manager.lock() {
                 Ok(game_info_manager) => {
-                    trace!("Successfully locked game info manager mutex.");
+                    trace!("Locked game info manager mutex.");
                     game_info_manager
                 },
                 Err(_) => panic!("Failed to lock game info manager mutex!"),
@@ -177,7 +177,7 @@ impl GameInfoManager {
 
             match file.write_all(serialized_game_info.as_bytes()) {
                 Err(why) => panic!("Couldn't write to {}: {}", display, why),
-                Ok(_) => println!("Successfully wrote to {}", display),
+                Ok(_) => println!("Wrote to {}", display),
             }
 
             registered_game_infos.push(game_info);
@@ -194,7 +194,7 @@ impl GameInfoManager {
             let game_info_manager = GAME_INFO_MANAGER.clone();
             let mut game_info_manager = match game_info_manager.lock() {
                 Ok(game_info_manager) => {
-                    trace!("Successfully locked game info manager mutex.");
+                    trace!("Locked game info manager mutex.");
                     game_info_manager
                 },
                 Err(_) => panic!("Failed to lock game info manager mutex!"),
@@ -215,7 +215,7 @@ impl GameInfoManager {
 
             match std::fs::remove_file(path) {
                 Err(why) => panic!("Couldn't delete {}: {}", display, why),
-                Ok(_) => println!("Successfully deleted {}", display),
+                Ok(_) => println!("Deleted {}", display),
             }
 
             std::fs::remove_dir_all(&dir_path).expect("Failed to remove save game directory");

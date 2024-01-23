@@ -123,7 +123,7 @@ impl BackgroundManager {
         let background_manager = BACKGROUND_MANAGER.clone();
         let mut background_manager = match background_manager.lock() {
             Ok(background_manager) => {
-                trace!("Successfully locked background manager mutex.");
+                trace!("Locked background manager mutex.");
                 background_manager
             },
             Err(_) => panic!("Failed to lock background manager mutex!"),
@@ -177,7 +177,7 @@ impl BackgroundManager {
         let background_manager = BACKGROUND_MANAGER.clone();
         let mut background_manager = match background_manager.lock() {
             Ok(background_manager) => {
-                trace!("Successfully locked background manager mutex.");
+                trace!("Locked background manager mutex.");
                 background_manager
             },
             Err(_) => panic!("Failed to lock background manager mutex!"),
@@ -210,7 +210,7 @@ impl BackgroundManager {
         let background_manager = BACKGROUND_MANAGER.clone();
         let mut background_manager = match background_manager.lock() {
             Ok(background_manager) => {
-                trace!("Successfully locked background manager mutex.");
+                trace!("Locked background manager mutex.");
                 background_manager
             },
             Err(_) => panic!("Failed to lock background manager mutex!"),

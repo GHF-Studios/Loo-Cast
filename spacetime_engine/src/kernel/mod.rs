@@ -52,7 +52,7 @@ impl Manager for KernelManager {
         let config_manager = config::CONFIG_MANAGER.clone();
         let mut config_manager = match config_manager.lock() {
             Ok(config_manager) => {
-                trace!("Successfully locked config manager mutex.");
+                trace!("Locked config manager mutex.");
                 config_manager
             }
             Err(err) => {
@@ -62,7 +62,7 @@ impl Manager for KernelManager {
         let data_manager = data::DATA_MANAGER.clone();
         let mut data_manager = match data_manager.lock() {
             Ok(data_manager) => {
-                trace!("Successfully locked data manager mutex.");
+                trace!("Locked data manager mutex.");
                 data_manager
             }
             Err(err) => {
@@ -72,7 +72,7 @@ impl Manager for KernelManager {
         let debug_manager = debug::DEBUG_MANAGER.clone();
         let mut debug_manager = match debug_manager.lock() {
             Ok(debug_manager) => {
-                trace!("Successfully locked debug manager mutex.");
+                trace!("Locked debug manager mutex.");
                 debug_manager
             }
             Err(err) => {
@@ -82,7 +82,7 @@ impl Manager for KernelManager {
         let event_manager = event::EVENT_MANAGER.clone();
         let mut event_manager = match event_manager.lock() {
             Ok(event_manager) => {
-                trace!("Successfully locked event manager mutex.");
+                trace!("Locked event manager mutex.");
                 event_manager
             }
             Err(err) => {
@@ -92,7 +92,7 @@ impl Manager for KernelManager {
         let plugin_manager = plugin::PLUGIN_MANAGER.clone();
         let mut plugin_manager = match plugin_manager.lock() {
             Ok(plugin_manager) => {
-                trace!("Successfully locked plugin manager mutex.");
+                trace!("Locked plugin manager mutex.");
                 plugin_manager
             }
             Err(err) => {
@@ -102,7 +102,7 @@ impl Manager for KernelManager {
         let resource_manager = resource::RESOURCE_MANAGER.clone();
         let mut resource_manager = match resource_manager.lock() {
             Ok(resource_manager) => {
-                trace!("Successfully locked resource manager mutex.");
+                trace!("Locked resource manager mutex.");
                 resource_manager
             }
             Err(err) => {
@@ -112,7 +112,7 @@ impl Manager for KernelManager {
 
         debug!("Locked kernel module manager mutexes.");
 
-        info!("Initializing kernel main module....");
+        info!("Initializing kernel modules...");
 
         match config_manager.initialize() {
             Ok(_) => {
@@ -163,11 +163,7 @@ impl Manager for KernelManager {
             }
         }
 
-        info!("Initialized kernel main module..");
-
-        // initialize the emergent systems(aka the engine system) such as mod management, USF(massive oversimplification, but baaaaaasically USF = ECS) management, player management, game management, camera management, UI Management, etc.
-
-        // initialize the bevy engine, acting as the user interface for the engine, essentially being the first visual indication that the game has started
+        info!("Initialized kernel modules.");
 
         self.manager_state = ManagerState::Initialized;
 
@@ -194,7 +190,7 @@ impl Manager for KernelManager {
         let config_manager = config::CONFIG_MANAGER.clone();
         let mut config_manager = match config_manager.lock() {
             Ok(config_manager) => {
-                trace!("Successfully locked config manager mutex.");
+                trace!("Locked config manager mutex.");
                 config_manager
             }
             Err(err) => {
@@ -204,7 +200,7 @@ impl Manager for KernelManager {
         let data_manager = data::DATA_MANAGER.clone();
         let mut data_manager = match data_manager.lock() {
             Ok(data_manager) => {
-                trace!("Successfully locked data manager mutex.");
+                trace!("Locked data manager mutex.");
                 data_manager
             }
             Err(err) => {
@@ -214,7 +210,7 @@ impl Manager for KernelManager {
         let debug_manager = debug::DEBUG_MANAGER.clone();
         let mut debug_manager = match debug_manager.lock() {
             Ok(debug_manager) => {
-                trace!("Successfully locked debug manager mutex.");
+                trace!("Locked debug manager mutex.");
                 debug_manager
             }
             Err(err) => {
@@ -224,7 +220,7 @@ impl Manager for KernelManager {
         let event_manager = event::EVENT_MANAGER.clone();
         let mut event_manager = match event_manager.lock() {
             Ok(event_manager) => {
-                trace!("Successfully locked event manager mutex.");
+                trace!("Locked event manager mutex.");
                 event_manager
             }
             Err(err) => {
@@ -234,7 +230,7 @@ impl Manager for KernelManager {
         let plugin_manager = plugin::PLUGIN_MANAGER.clone();
         let mut plugin_manager = match plugin_manager.lock() {
             Ok(plugin_manager) => {
-                trace!("Successfully locked plugin manager mutex.");
+                trace!("Locked plugin manager mutex.");
                 plugin_manager
             }
             Err(err) => {
@@ -244,7 +240,7 @@ impl Manager for KernelManager {
         let resource_manager = resource::RESOURCE_MANAGER.clone();
         let mut resource_manager = match resource_manager.lock() {
             Ok(resource_manager) => {
-                trace!("Successfully locked resource manager mutex.");
+                trace!("Locked resource manager mutex.");
                 resource_manager
             }
             Err(err) => {
@@ -254,7 +250,7 @@ impl Manager for KernelManager {
 
         debug!("Locked kernel module manager mutexes.");
 
-        info!("Finalizing kernel main module....");
+        info!("Finalizing kernel modules...");
 
         match config_manager.finalize() {
             Ok(_) => {
@@ -305,7 +301,7 @@ impl Manager for KernelManager {
             }
         }
 
-        info!("Finalized kernel main module..");
+        info!("Finalized kernel modules.");
 
         self.manager_state = ManagerState::Finalized;
 

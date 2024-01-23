@@ -36,6 +36,8 @@ pub struct MainManager {
 // Implementations
 impl Manager for MainManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
+        info!("Initializing spacetime engine main module...");
+
         match self.state {
             ManagerState::Created => {},
             ManagerState::Initialized => {
@@ -46,34 +48,64 @@ impl Manager for MainManager {
             },
         }
 
-        let kernel_manager = KERNEL_MANAGER.clone();
+        debug!("Locking spacetime engine module manager mutexes...");
 
+        let kernel_manager = KERNEL_MANAGER.clone();
         let mut kernel_manager = match kernel_manager.lock() {
             Ok(kernel_manager) => {
-                trace!("Successfully locked main manager mutex.");
+                trace!("Locked kernel manager mutex.");
                 kernel_manager
             }
             Err(err) => {
-                panic!("Failed to lock main manager mutex! Error: {:?}", err);
+                panic!("Failed to lock kernel manager mutex! Error: {:?}", err);
             }
         };
+        let system_manager = SYSTEM_MANAGER.clone();
+        let mut system_manager = match system_manager.lock() {
+            Ok(system_manager) => {
+                trace!("Locked system manager mutex.");
+                system_manager
+            }
+            Err(err) => {
+                panic!("Failed to lock system manager mutex! Error: {:?}", err);
+            }
+        };
+
+        debug!("Locked spacetime engine module manager mutexes.");
+
+        info!("Initializing spacetime engine modules...");
 
         match kernel_manager.initialize() {
             Ok(_) => {
-                info!("Initialized spacetime engine.");
+                debug!("Initialized kernel main module.");
                 drop(kernel_manager);
             }
             Err(err) => {
-                panic!("Failed to initialize spacetime engine! Error: {:?}", err);
+                panic!("Failed to initialize kernel main module! Error: {:?}", err);
+            }
+        };
+        match system_manager.initialize() {
+            Ok(_) => {
+                debug!("Initialized system main module.");
+                drop(system_manager);
+            }
+            Err(err) => {
+                panic!("Failed to initialize system main module! Error: {:?}", err);
             }
         };
 
+        info!("Initialized spacetime engine modules.");
+
         self.state = ManagerState::Initialized;
+
+        info!("Initialized spacetime engine main module.");
 
         Ok(())
     }
 
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
+        info!("Finalizing spacetime engine main module...");
+
         match self.state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
@@ -84,29 +116,57 @@ impl Manager for MainManager {
             },
         }
 
-        let kernel_manager = KERNEL_MANAGER.clone();
+        debug!("Locking spacetime engine module manager mutexes...");
 
+        let system_manager = SYSTEM_MANAGER.clone();
+        let mut system_manager = match system_manager.lock() {
+            Ok(system_manager) => {
+                trace!("Locked system manager mutex.");
+                system_manager
+            }
+            Err(err) => {
+                panic!("Failed to lock system manager mutex! Error: {:?}", err);
+            }
+        };
+        let kernel_manager = KERNEL_MANAGER.clone();
         let mut kernel_manager = match kernel_manager.lock() {
             Ok(kernel_manager) => {
-                trace!("Successfully locked main manager mutex.");
+                trace!("Locked kernel manager mutex.");
                 kernel_manager
             }
             Err(err) => {
-                panic!("Failed to lock main manager mutex! Error: {:?}", err);
+                panic!("Failed to lock kernel manager mutex! Error: {:?}", err);
             }
         };
 
+        debug!("Locked spacetime engine module manager mutexes.");
+
+        info!("Finalizing spacetime engine modules...");
+
+        match system_manager.finalize() {
+            Ok(_) => {
+                debug!("Finalized system main module.");
+                drop(system_manager);
+            }
+            Err(err) => {
+                panic!("Failed to finalize system! Error: {:?}", err);
+            }
+        };
         match kernel_manager.finalize() {
             Ok(_) => {
-                info!("Finalized spacetime engine.");
+                debug!("Finalized kernel main module.");
                 drop(kernel_manager);
             }
             Err(err) => {
-                panic!("Failed to finalize spacetime engine! Error: {:?}", err);
+                panic!("Failed to finalize kernel! Error: {:?}", err);
             }
         };
 
+        info!("Finalized spacetime engine modules.");
+
         self.state = ManagerState::Finalized;
+
+        info!("Finalized spacetime engine main module.");
 
         Ok(())
     }
@@ -154,95 +214,65 @@ fn main() {
 }
 
 fn spacetime_engine_startup() {
-    info!("Initializing engine main module...");
+    info!("Starting spacetime engine...");
 
-    let kernel_manager = KERNEL_MANAGER.clone();
-    let mut kernel_manager = match kernel_manager.lock() {
-        Ok(kernel_manager) => {
-            trace!("Successfully locked kernel manager mutex.");
-            kernel_manager
+    trace!("Locking spacetime engine main module manager mutex...");
+
+    let main_manager = MAIN_MANAGER.clone();
+    let mut main_manager = match main_manager.lock() {
+        Ok(main_manager) => {
+            trace!("Locked spacetime engine main module manager mutex.");
+            main_manager
         }
         Err(err) => {
-            panic!("Failed to lock kernel manager mutex! Error: {:?}", err);
-        }
-    };
-    let system_manager = SYSTEM_MANAGER.clone();
-    let mut system_manager = match system_manager.lock() {
-        Ok(system_manager) => {
-            trace!("Successfully locked system manager mutex.");
-            system_manager
-        }
-        Err(err) => {
-            panic!("Failed to lock system manager mutex! Error: {:?}", err);
+            panic!("Failed to lock spacetime engine main module manager mutex! Error: {:?}", err);
         }
     };
 
-    match kernel_manager.initialize() {
+    debug!("Initializing spacetime engine main module...");
+
+    match main_manager.initialize() {
         Ok(_) => {
-            drop(kernel_manager);
+            debug!("Initialized spacetime engine main module.");
+            drop(main_manager);
         }
         Err(err) => {
-            panic!("Failed to initialize kernel! Error: {:?}", err);
-        }
-    };
-    match system_manager.initialize() {
-        Ok(_) => {
-            drop(system_manager);
-        }
-        Err(err) => {
-            panic!("Failed to initialize system! Error: {:?}", err);
+            panic!("Failed to initialize spacetime engine main module! Error: {:?}", err);
         }
     };
 
-    info!("Initialized engine main module.");
+    info!("Started spacetime engine.");
 }
 
 fn spacetime_engine_shutdown(mut exit_events: EventReader<AppExit>) {
     for _ in exit_events.iter() {
-        info!("Finalizing engine main module...");
-        
-        let system_manager = SYSTEM_MANAGER.clone();
+        info!("Shutting down spacetime engine...");
 
-        let mut system_manager = match system_manager.lock() {
-            Ok(system_manager) => {
-                trace!("Successfully locked system manager mutex.");
-                system_manager
+        trace!("Locking spacetime engine main module manager mutex...");
+
+        let main_manager = MAIN_MANAGER.clone();
+        let mut main_manager = match main_manager.lock() {
+            Ok(main_manager) => {
+                trace!("Locked spacetime engine main module manager mutex.");
+                main_manager
             }
             Err(err) => {
-                panic!("Failed to lock system manager mutex! Error: {:?}", err);
+                panic!("Failed to lock spacetime engine main module manager mutex! Error: {:?}", err);
             }
         };
 
-        match system_manager.finalize() {
+        debug!("Finalizing spacetime engine main module...");
+
+        match main_manager.finalize() {
             Ok(_) => {
-                drop(system_manager);
+                debug!("Finalized spacetime engine main module.");
+                drop(main_manager);
             }
             Err(err) => {
-                panic!("Failed to finalize system! Error: {:?}", err);
+                panic!("Failed to finalize spacetime engine main module! Error: {:?}", err);
             }
         };
 
-        let kernel_manager = KERNEL_MANAGER.clone();
-
-        let mut kernel_manager = match kernel_manager.lock() {
-            Ok(kernel_manager) => {
-                trace!("Successfully locked kernel manager mutex.");
-                kernel_manager
-            }
-            Err(err) => {
-                panic!("Failed to lock kernel manager mutex! Error: {:?}", err);
-            }
-        };
-
-        match kernel_manager.finalize() {
-            Ok(_) => {
-                drop(kernel_manager);
-            }
-            Err(err) => {
-                panic!("Failed to finalize kernel! Error: {:?}", err);
-            }
-        };
-
-        info!("Finalized engine main module.");
+        info!("Shut down spacetime engine.");
     }
 }

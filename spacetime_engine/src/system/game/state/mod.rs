@@ -83,7 +83,7 @@ impl GameStateManager {
         let game_state_manager = GAME_STATE_MANAGER.clone();
         let mut game_state_manager = match game_state_manager.lock() {
             Ok(game_state_manager) => {
-                trace!("Successfully locked game state manager mutex.");
+                trace!("Locked game state manager mutex.");
                 game_state_manager
             },
             Err(_) => panic!("Failed to lock game state manager mutex!"),
@@ -104,7 +104,7 @@ impl GameStateManager {
         let game_state_manager = GAME_STATE_MANAGER.clone();
         let mut game_state_manager = match game_state_manager.lock() {
             Ok(game_state_manager) => {
-                trace!("Successfully locked game state manager mutex.");
+                trace!("Locked game state manager mutex.");
                 game_state_manager
             },
             Err(_) => panic!("Failed to lock game state manager mutex!"),

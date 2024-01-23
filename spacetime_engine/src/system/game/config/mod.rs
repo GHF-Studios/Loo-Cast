@@ -83,7 +83,7 @@ impl GameConfigManager {
         let game_config_manager = GAME_CONFIG_MANAGER.clone();
         let mut game_config_manager = match game_config_manager.lock() {
             Ok(game_config_manager) => {
-                trace!("Successfully locked game config manager mutex.");
+                trace!("Locked game config manager mutex.");
                 game_config_manager
             },
             Err(_) => panic!("Failed to lock game config manager mutex!"),
@@ -104,7 +104,7 @@ impl GameConfigManager {
         let game_config_manager = GAME_CONFIG_MANAGER.clone();
         let mut game_config_manager = match game_config_manager.lock() {
             Ok(game_config_manager) => {
-                trace!("Successfully locked game config manager mutex.");
+                trace!("Locked game config manager mutex.");
                 game_config_manager
             },
             Err(_) => panic!("Failed to lock game config manager mutex!"),

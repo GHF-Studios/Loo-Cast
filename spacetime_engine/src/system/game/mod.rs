@@ -144,7 +144,7 @@ impl Manager for GameManager {
         let game_info_manager = GAME_INFO_MANAGER.clone();
         let mut game_info_manager = match game_info_manager.lock() {
             Ok(game_info_manager) => {
-                trace!("Successfully locked game info manager mutex.");
+                trace!("Locked game info manager mutex.");
                 game_info_manager
             },
             Err(_) => panic!("Failed to lock game info manager mutex!"),
@@ -152,7 +152,7 @@ impl Manager for GameManager {
         let game_config_manager = GAME_CONFIG_MANAGER.clone();
         let mut game_config_manager = match game_config_manager.lock() {
             Ok(game_config_manager) => {
-                trace!("Successfully locked game config manager mutex.");
+                trace!("Locked game config manager mutex.");
                 game_config_manager
             },
             Err(_) => panic!("Failed to lock game config manager mutex!"),
@@ -160,7 +160,7 @@ impl Manager for GameManager {
         let game_state_manager = GAME_STATE_MANAGER.clone();
         let mut game_state_manager = match game_state_manager.lock() {
             Ok(game_state_manager) => {
-                trace!("Successfully locked game state manager mutex.");
+                trace!("Locked game state manager mutex.");
                 game_state_manager
             },
             Err(_) => panic!("Failed to lock game state manager mutex!"),
@@ -222,7 +222,7 @@ impl Manager for GameManager {
         let game_state_manager = GAME_STATE_MANAGER.clone();
         let mut game_state_manager = match game_state_manager.lock() {
             Ok(game_state_manager) => {
-                trace!("Successfully locked game state manager mutex.");
+                trace!("Locked game state manager mutex.");
                 game_state_manager
             },
             Err(_) => panic!("Failed to lock game state manager mutex!"),
@@ -230,7 +230,7 @@ impl Manager for GameManager {
         let game_config_manager = GAME_CONFIG_MANAGER.clone();
         let mut game_config_manager = match game_config_manager.lock() {
             Ok(game_config_manager) => {
-                trace!("Successfully locked game config manager mutex.");
+                trace!("Locked game config manager mutex.");
                 game_config_manager
             },
             Err(_) => panic!("Failed to lock game config manager mutex!"),
@@ -238,7 +238,7 @@ impl Manager for GameManager {
         let game_info_manager = GAME_INFO_MANAGER.clone();
         let mut game_info_manager = match game_info_manager.lock() {
             Ok(game_info_manager) => {
-                trace!("Successfully locked game info manager mutex.");
+                trace!("Locked game info manager mutex.");
                 game_info_manager
             },
             Err(_) => panic!("Failed to lock game info manager mutex!"),
@@ -301,7 +301,7 @@ impl GameManager {
         let game_manager: Arc<Mutex<GameManager>> = GAME_MANAGER.clone();
         let mut game_manager = match game_manager.lock() {
             Ok(game_manager) => {
-                trace!("Successfully locked game manager mutex.");
+                trace!("Locked game manager mutex.");
                 game_manager
             },
             Err(_) => panic!("Failed to lock game manager mutex!"),
@@ -400,7 +400,7 @@ impl GameManager {
         let game_manager: Arc<Mutex<GameManager>> = GAME_MANAGER.clone();
         let mut game_manager = match game_manager.lock() {
             Ok(camera_manager) => {
-                trace!("Successfully locked game manager mutex.");
+                trace!("Locked game manager mutex.");
                 camera_manager
             },
             Err(_) => panic!("Failed to lock game manager mutex!"),

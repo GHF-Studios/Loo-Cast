@@ -109,7 +109,7 @@ impl CameraManager {
         let camera_manager = CAMERA_MANAGER.clone();
         let mut camera_manager = match camera_manager.lock() {
             Ok(camera_manager) => {
-                trace!("Successfully locked camera manager mutex.");
+                trace!("Locked camera manager mutex.");
 
                 camera_manager
             },
@@ -140,7 +140,7 @@ impl CameraManager {
         let camera_manager = CAMERA_MANAGER.clone();
         let mut camera_manager = match camera_manager.lock() {
             Ok(camera_manager) => {
-                trace!("Successfully locked camera manager mutex.");
+                trace!("Locked camera manager mutex.");
 
                 camera_manager
             },

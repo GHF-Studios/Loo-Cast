@@ -74,7 +74,7 @@ impl Manager for SystemManager {
         let background_manager = background::BACKGROUND_MANAGER.clone();
         let mut background_manager = match background_manager.lock() {
             Ok(background_manager) => {
-                trace!("Successfully locked background manager mutex.");
+                trace!("Locked background manager mutex.");
                 background_manager
             },
             Err(err) => {
@@ -84,7 +84,7 @@ impl Manager for SystemManager {
         let camera_manager = camera::CAMERA_MANAGER.clone();
         let mut camera_manager = match camera_manager.lock() {
             Ok(camera_manager) => {
-                trace!("Successfully locked camera manager mutex.");
+                trace!("Locked camera manager mutex.");
                 camera_manager
             },
             Err(err) => {
@@ -94,7 +94,7 @@ impl Manager for SystemManager {
         let game_manager = game::GAME_MANAGER.clone();
         let mut game_manager = match game_manager.lock() {
             Ok(game_manager) => {
-                trace!("Successfully locked game manager mutex.");
+                trace!("Locked game manager mutex.");
                 game_manager
             },
             Err(err) => {
@@ -104,7 +104,7 @@ impl Manager for SystemManager {
         let iteration_test_manager = iteration_test::ITERATION_TEST_MANAGER.clone();
         let mut iteration_test_manager = match iteration_test_manager.lock() {
             Ok(iteration_test_manager) => {
-                trace!("Successfully locked iteration test manager mutex.");
+                trace!("Locked iteration test manager mutex.");
                 iteration_test_manager
             },
             Err(err) => {
@@ -114,7 +114,7 @@ impl Manager for SystemManager {
         let player_manager = player::PLAYER_MANAGER.clone();
         let mut player_manager = match player_manager.lock() {
             Ok(player_manager) => {
-                trace!("Successfully locked player manager mutex.");
+                trace!("Locked player manager mutex.");
                 player_manager
             },
             Err(err) => {
@@ -124,7 +124,7 @@ impl Manager for SystemManager {
         let ui_manager = ui::UI_MANAGER.clone();
         let mut ui_manager = match ui_manager.lock() {
             Ok(ui_manager) => {
-                trace!("Successfully locked UI manager mutex.");
+                trace!("Locked UI manager mutex.");
                 ui_manager
             },
             Err(err) => {
@@ -134,7 +134,7 @@ impl Manager for SystemManager {
         let universe_manager = universe::UNIVERSE_MANAGER.clone();
         let mut universe_manager = match universe_manager.lock() {
             Ok(universe_manager) => {
-                trace!("Successfully locked universe manager mutex.");
+                trace!("Locked universe manager mutex.");
                 universe_manager
             },
             Err(err) => {
@@ -144,7 +144,7 @@ impl Manager for SystemManager {
 
         debug!("Locked system module manager mutexes.");
 
-        info!("Initializing system main module....");
+        info!("Initializing system modules...");
 
         match background_manager.initialize() {
             Ok(_) => {
@@ -211,7 +211,7 @@ impl Manager for SystemManager {
             },
         }
 
-        info!("Initialized system main module..");
+        info!("Initialized system modules.");
 
         self.manager_state = ManagerState::Initialized;
 
@@ -238,7 +238,7 @@ impl Manager for SystemManager {
         let background_manager = background::BACKGROUND_MANAGER.clone();
         let mut background_manager = match background_manager.lock() {
             Ok(background_manager) => {
-                trace!("Successfully locked background manager mutex.");
+                trace!("Locked background manager mutex.");
                 background_manager
             },
             Err(err) => {
@@ -248,7 +248,7 @@ impl Manager for SystemManager {
         let camera_manager = camera::CAMERA_MANAGER.clone();
         let mut camera_manager = match camera_manager.lock() {
             Ok(camera_manager) => {
-                trace!("Successfully locked camera manager mutex.");
+                trace!("Locked camera manager mutex.");
                 camera_manager
             },
             Err(err) => {
@@ -258,7 +258,7 @@ impl Manager for SystemManager {
         let game_manager = game::GAME_MANAGER.clone();
         let mut game_manager = match game_manager.lock() {
             Ok(game_manager) => {
-                trace!("Successfully locked game manager mutex.");
+                trace!("Locked game manager mutex.");
                 game_manager
             },
             Err(err) => {
@@ -268,7 +268,7 @@ impl Manager for SystemManager {
         let iteration_test_manager = iteration_test::ITERATION_TEST_MANAGER.clone();
         let mut iteration_test_manager = match iteration_test_manager.lock() {
             Ok(iteration_test_manager) => {
-                trace!("Successfully locked iteration test manager mutex.");
+                trace!("Locked iteration test manager mutex.");
                 iteration_test_manager
             },
             Err(err) => {
@@ -278,7 +278,7 @@ impl Manager for SystemManager {
         let player_manager = player::PLAYER_MANAGER.clone();
         let mut player_manager = match player_manager.lock() {
             Ok(player_manager) => {
-                trace!("Successfully locked player manager mutex.");
+                trace!("Locked player manager mutex.");
                 player_manager
             },
             Err(err) => {
@@ -288,7 +288,7 @@ impl Manager for SystemManager {
         let ui_manager = ui::UI_MANAGER.clone();
         let mut ui_manager = match ui_manager.lock() {
             Ok(ui_manager) => {
-                trace!("Successfully locked UI manager mutex.");
+                trace!("Locked UI manager mutex.");
                 ui_manager
             },
             Err(err) => {
@@ -298,7 +298,7 @@ impl Manager for SystemManager {
         let universe_manager = universe::UNIVERSE_MANAGER.clone();
         let mut universe_manager = match universe_manager.lock() {
             Ok(universe_manager) => {
-                trace!("Successfully locked universe manager mutex.");
+                trace!("Locked universe manager mutex.");
                 universe_manager
             },
             Err(err) => {
@@ -308,7 +308,7 @@ impl Manager for SystemManager {
 
         debug!("Locked system module manager mutexes.");
 
-        info!("Finalizing system main module....");
+        info!("Finalizing system modules...");
 
         match background_manager.finalize() {
             Ok(_) => {
@@ -352,10 +352,10 @@ impl Manager for SystemManager {
         }
         match game_manager.finalize() {
             Ok(_) => {
-                debug!("Finalized save game module.");
+                debug!("Finalized game module.");
             },
             Err(err) => {
-                panic!("Failed to finalize save game module! Error: {:?}", err);
+                panic!("Failed to finalize game module! Error: {:?}", err);
             },
         }
         match ui_manager.finalize() {
@@ -375,7 +375,7 @@ impl Manager for SystemManager {
             },
         }
 
-        info!("Finalized system main module..");
+        info!("Finalized system modules..");
 
         self.manager_state = ManagerState::Finalized;
 
