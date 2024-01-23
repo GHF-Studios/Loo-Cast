@@ -60,7 +60,7 @@ impl Manager for MainManager {
 
         match kernel_manager.initialize() {
             Ok(_) => {
-                info!("Successfully initialized spacetime engine.");
+                info!("Initialized spacetime engine.");
                 drop(kernel_manager);
             }
             Err(err) => {
@@ -98,7 +98,7 @@ impl Manager for MainManager {
 
         match kernel_manager.finalize() {
             Ok(_) => {
-                info!("Successfully finalized spacetime engine.");
+                info!("Finalized spacetime engine.");
                 drop(kernel_manager);
             }
             Err(err) => {
@@ -154,7 +154,7 @@ fn main() {
 }
 
 fn spacetime_engine_startup() {
-    info!("Initializing engine...");
+    info!("Initializing engine main module...");
 
     let kernel_manager = KERNEL_MANAGER.clone();
     let mut kernel_manager = match kernel_manager.lock() {
@@ -194,12 +194,12 @@ fn spacetime_engine_startup() {
         }
     };
 
-    info!("Initialized engine.");
+    info!("Initialized engine main module.");
 }
 
 fn spacetime_engine_shutdown(mut exit_events: EventReader<AppExit>) {
     for _ in exit_events.iter() {
-        info!("Finalizing engine...");
+        info!("Finalizing engine main module...");
         
         let system_manager = SYSTEM_MANAGER.clone();
 
@@ -243,6 +243,6 @@ fn spacetime_engine_shutdown(mut exit_events: EventReader<AppExit>) {
             }
         };
 
-        info!("Finalized engine.");
+        info!("Finalized engine main module.");
     }
 }

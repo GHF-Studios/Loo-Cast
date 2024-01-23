@@ -9,7 +9,6 @@ use crate::kernel::manager::*;
 use bevy::prelude::*;
 use lazy_static::*;
 use std::sync::{Arc, Mutex};
-use lazy_static::*;
 
 // Static variables
 lazy_static! {

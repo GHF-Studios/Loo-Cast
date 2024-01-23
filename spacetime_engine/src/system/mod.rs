@@ -57,7 +57,7 @@ pub struct RapierPlugins;
 // Implementations
 impl Manager for SystemManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
-        info!("Initializing system...");
+        info!("Initializing system main module...");
 
         match self.manager_state {
             ManagerState::Created => {},
@@ -144,35 +144,35 @@ impl Manager for SystemManager {
 
         debug!("Locked system module manager mutexes.");
 
-        info!("Initializing system modules...");
+        info!("Initializing system main module....");
 
         match background_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized background module.");
+                debug!("Initialized background main module.");
             },
             Err(err) => {
-                panic!("Failed to initialize background module! Error: {:?}", err);
+                panic!("Failed to initialize background main module! Error: {:?}", err);
             },
         }
         match camera_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized camera module.");
+                debug!("Initialized camera main module.");
             },
             Err(err) => {
-                panic!("Failed to initialize camera module! Error: {:?}", err);
+                panic!("Failed to initialize camera main module! Error: {:?}", err);
             },
         }
         match game_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized game module.");
+                debug!("Initialized game main module.");
             },
             Err(err) => {
-                panic!("Failed to initialize game module! Error: {:?}", err);
+                panic!("Failed to initialize game main module! Error: {:?}", err);
             },
         }
         match iteration_test_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized iteration test module.");
+                debug!("Initialized iteration test module.");
             },
             Err(err) => {
                 panic!("Failed to initialize iteration test module! Error: {:?}", err);
@@ -180,15 +180,15 @@ impl Manager for SystemManager {
         }
         match player_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized player module.");
+                debug!("Initialized player main module.");
             },
             Err(err) => {
-                panic!("Failed to initialize player module! Error: {:?}", err);
+                panic!("Failed to initialize player main module! Error: {:?}", err);
             },
         }
         match game_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized save game module.");
+                debug!("Initialized save game module.");
             },
             Err(err) => {
                 panic!("Failed to initialize save game module! Error: {:?}", err);
@@ -196,32 +196,32 @@ impl Manager for SystemManager {
         }
         match ui_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized UI module.");
+                debug!("Initialized UI main module.");
             },
             Err(err) => {
-                panic!("Failed to initialize UI module! Error: {:?}", err);
+                panic!("Failed to initialize UI main module! Error: {:?}", err);
             },
         }
         match universe_manager.initialize() {
             Ok(_) => {
-                debug!("Successfully initialized universe module.");
+                debug!("Initialized universe main module.");
             },
             Err(err) => {
-                panic!("Failed to initialize universe module! Error: {:?}", err);
+                panic!("Failed to initialize universe main module! Error: {:?}", err);
             },
         }
 
-        info!("Initialized system modules.");
+        info!("Initialized system main module..");
 
         self.manager_state = ManagerState::Initialized;
 
-        info!("Initialized system.");
+        info!("Initialized system main module.");
 
         Ok(())
     }
 
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
-        info!("Finalizing system...");
+        info!("Finalizing system main module...");
 
         match self.manager_state {
             ManagerState::Created => {
@@ -308,35 +308,35 @@ impl Manager for SystemManager {
 
         debug!("Locked system module manager mutexes.");
 
-        info!("Finalizing system modules...");
+        info!("Finalizing system main module....");
 
         match background_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized background module.");
+                debug!("Finalized background main module.");
             },
             Err(err) => {
-                panic!("Failed to finalize background module! Error: {:?}", err);
+                panic!("Failed to finalize background main module. Error: {:?}", err);
             },
         }
         match camera_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized camera module.");
+                debug!("Finalized camera main module.");
             },
             Err(err) => {
-                panic!("Failed to finalize camera module! Error: {:?}", err);
+                panic!("Failed to finalize camera main module. Error: {:?}", err);
             },
         }
         match game_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized game module.");
+                debug!("Finalized game main module.");
             },
             Err(err) => {
-                panic!("Failed to finalize game module! Error: {:?}", err);
+                panic!("Failed to finalize game main module. Error: {:?}", err);
             },
         }
         match iteration_test_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized iteration test module.");
+                debug!("Finalized iteration test module.");
             },
             Err(err) => {
                 panic!("Failed to finalize iteration test module! Error: {:?}", err);
@@ -344,15 +344,15 @@ impl Manager for SystemManager {
         }
         match player_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized player module.");
+                debug!("Finalized player main module.");
             },
             Err(err) => {
-                panic!("Failed to finalize player module! Error: {:?}", err);
+                panic!("Failed to finalize player main module. Error: {:?}", err);
             },
         }
         match game_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized save game module.");
+                debug!("Finalized save game module.");
             },
             Err(err) => {
                 panic!("Failed to finalize save game module! Error: {:?}", err);
@@ -360,26 +360,26 @@ impl Manager for SystemManager {
         }
         match ui_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized UI module.");
+                debug!("Finalized UI main module.");
             },
             Err(err) => {
-                panic!("Failed to finalize UI module! Error: {:?}", err);
+                panic!("Failed to finalize UI main module. Error: {:?}", err);
             },
         }
         match universe_manager.finalize() {
             Ok(_) => {
-                debug!("Successfully finalized universe module.");
+                debug!("Finalized universe main module.");
             },
             Err(err) => {
-                panic!("Failed to finalize universe module! Error: {:?}", err);
+                panic!("Failed to finalize universe main module. Error: {:?}", err);
             },
         }
 
-        info!("Finalized system modules.");
+        info!("Finalized system main module..");
 
         self.manager_state = ManagerState::Finalized;
 
-        info!("Finalized system.");
+        info!("Finalized system main module.");
 
         Ok(())
     }

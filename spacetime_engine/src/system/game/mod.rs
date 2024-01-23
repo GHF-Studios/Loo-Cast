@@ -16,6 +16,7 @@ use crate::kernel::manager::*;
 // External imports
 use bevy::app::AppExit;
 use bevy::prelude::*;
+use core::panic;
 use std::fs::File;
 use std::path::Path;
 use lazy_static::*;
@@ -120,12 +121,14 @@ impl Plugin for GamePlugin {
                 Update,
                 (GameInfoManager::handle_create_game_info)
                     .run_if(in_state(AppState::CreateGameInfoMenu)),
-            );;
+            );
     }
 }
 
 impl Manager for GameManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
+        info!("Initializing game main module...");
+
         match self.manager_state {
             ManagerState::Created => {}
             ManagerState::Initialized => {
@@ -136,6 +139,8 @@ impl Manager for GameManager {
             }
         }
 
+        debug!("Locking game module manager mutexes...");
+
         let game_info_manager = GAME_INFO_MANAGER.clone();
         let mut game_info_manager = match game_info_manager.lock() {
             Ok(game_info_manager) => {
@@ -161,31 +166,47 @@ impl Manager for GameManager {
             Err(_) => panic!("Failed to lock game state manager mutex!"),
         };
 
+        debug!("Locked game module manager mutexes.");
+
+        info!("Initializing game main module....");
+
         match game_info_manager.initialize() {
-            Ok(_) => {}
+            Ok(_) => {
+                trace!("Initialized game info module.");
+            }
             Err(_) => {
-                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+                panic!("Failed to initialize game info module!");
             }
         };
         match game_config_manager.initialize() {
-            Ok(_) => {}
+            Ok(_) => {
+                trace!("Initialized game config module.");
+            }
             Err(_) => {
-                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+                panic!("Failed to initialize game config module!");
             }
         };
         match game_state_manager.initialize() {
-            Ok(_) => {}
+            Ok(_) => {
+                trace!("Initialized game state module.");
+            }
             Err(_) => {
-                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+                panic!("Failed to initialize game state module!");
             }
         };
 
+        info!("Initialized game main module..");
+
         self.manager_state = ManagerState::Initialized;
+
+        info!("Initialized game main module.");
 
         Ok(())
     }
 
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
+        info!("Finalizing game main module...");
+
         match self.manager_state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
@@ -196,6 +217,8 @@ impl Manager for GameManager {
             }
         }
 
+        debug!("Locking game module manager mutexes...");
+
         let game_state_manager = GAME_STATE_MANAGER.clone();
         let mut game_state_manager = match game_state_manager.lock() {
             Ok(game_state_manager) => {
@@ -221,26 +244,40 @@ impl Manager for GameManager {
             Err(_) => panic!("Failed to lock game info manager mutex!"),
         };
 
+        debug!("Locked game module manager mutexes.");
+
+        info!("Finalizing game main module....");
+
         match game_state_manager.finalize() {
-            Ok(_) => {}
+            Ok(_) => {
+                trace!("Finalized game state module.");
+            }
             Err(_) => {
-                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+                panic!("Failed to finalize game state module!");
             }
         };
         match game_config_manager.finalize() {
-            Ok(_) => {}
+            Ok(_) => {
+                trace!("Finalized game config module.");
+            }
             Err(_) => {
-                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+                panic!("Failed to finalize game config module!");
             }
         };
         match game_info_manager.finalize() {
-            Ok(_) => {}
+            Ok(_) => {
+                trace!("Finalized game info module.");
+            }
             Err(_) => {
-                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+                panic!("Failed to finalize game info module!");
             }
         };
 
+        info!("Finalized game main module..");
+
         self.manager_state = ManagerState::Finalized;
+
+        info!("Finalized game main module.");
 
         Ok(())
     }
@@ -259,6 +296,8 @@ impl GameManager {
     }
 
     fn load_game(game_info: GameInfo) {
+        info!("Loading game module...");
+
         let game_manager: Arc<Mutex<GameManager>> = GAME_MANAGER.clone();
         let mut game_manager = match game_manager.lock() {
             Ok(game_manager) => {
@@ -281,30 +320,83 @@ impl GameManager {
             game_info.name
         );
         if !Path::new(&dir_path).exists() {
-            std::fs::create_dir_all(&dir_path).expect("Failed to create config directory");
+            trace!("Creating game config...");
+
+            match std::fs::create_dir_all(&dir_path) {
+                Ok(_) => {
+                    trace!("Created config directory.")
+                }
+                Err(_) => {
+                    error!("Failed to create config directory!");
+                    return;
+                }
+            }
 
             let file_path = format!("{}/info.json", dir_path);
-            File::create(file_path).expect("Failed to create info.json for config");
+            match File::create(file_path) {
+                Ok(_) => {
+                    trace!("Created config/info.json.")
+                }
+                Err(_) => {
+                    error!("Failed to create config/info.json!");
+                    return;
+                }
+            };
+
+            trace!("Created game config.");
         }
+
+        debug!("Loading game config...");
+
         GameConfigManager::load_game_config();
 
-        // Load Game State
+        debug!("Loaded game config.");
+
         let dir_path = format!(
             "mods/loo_cast_base_mod/data/games/{}/state",
             game_info.name
         );
         if !Path::new(&dir_path).exists() {
-            std::fs::create_dir_all(&dir_path).expect("Failed to create state directory");
+            trace!("Creating game state...");
+
+            match std::fs::create_dir_all(&dir_path) {
+                Ok(_) => {
+                    trace!("Created state directory.")
+                }
+                Err(_) => {
+                    error!("Failed to create state directory!");
+                    return;
+                }
+            };
 
             let file_path = format!("{}/info.json", dir_path);
-            File::create(file_path).expect("Failed to create info.json for state");
+            match File::create(file_path){
+                Ok(_) => {
+                    trace!("Created config/info.json for state.")
+                }
+                Err(_) => {
+                    error!("Failed to create config/info.json for state!");
+                    return;
+                }
+            };
+
+            trace!("Created game state.");
         }
+
+        debug!("Loading game state...");
+
         GameStateManager::load_game_state();
 
+        debug!("Loaded game state.");
+
         game_manager.current_game = Some(game_info);
+
+        info!("Loaded game module.");
     }
 
     fn unload_game() {
+        info!("Unloading game module...");
+
         let game_manager: Arc<Mutex<GameManager>> = GAME_MANAGER.clone();
         let mut game_manager = match game_manager.lock() {
             Ok(camera_manager) => {
@@ -325,6 +417,8 @@ impl GameManager {
                 game_manager.current_game = None;
             }
         }
+
+        info!("Unloaded game module.");
     }
 
     fn handle_load_game(
@@ -376,11 +470,11 @@ impl GameManager {
         if keyboard_input.just_pressed(KeyCode::Escape) {
             if *simulation_state.get() == SimulationState::Running {
                 simulation_state_next_state.set(SimulationState::Paused);
-                println!("Simulation Paused.");
+                info!("Simulation Paused.");
             }
             if *simulation_state.get() == SimulationState::Paused {
                 simulation_state_next_state.set(SimulationState::Running);
-                println!("Simulation Running.");
+                info!("Simulation Running.");
             }
         }
     }
