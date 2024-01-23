@@ -25,7 +25,7 @@ lazy_static! {
 // Types
 
 // Enums
-pub enum BackgroundState {
+enum BackgroundState {
     BackgroundNotSpawned,
     BackgroundSpawned {
         background_origin_x: i32,
@@ -121,10 +121,12 @@ impl BackgroundManager {
         let window = window_query.get_single().unwrap();
 
         let background_manager = BACKGROUND_MANAGER.clone();
-
         let mut background_manager = match background_manager.lock() {
-            Ok(background_manager) => background_manager,
-            Err(_) => panic!("Failed to lock background manager!"),
+            Ok(background_manager) => {
+                trace!("Successfully locked background manager mutex.");
+                background_manager
+            },
+            Err(_) => panic!("Failed to lock background manager mutex!"),
         };
 
         match background_manager.background_state {
@@ -136,6 +138,7 @@ impl BackgroundManager {
             }
             BackgroundState::BackgroundSpawned { .. } => {
                 error!("Background already spawned!");
+                return;
             }
         };
 
@@ -172,15 +175,18 @@ impl BackgroundManager {
 
     fn despawn_background(mut commands: Commands, background_query: Query<Entity, With<Background>>) {
         let background_manager = BACKGROUND_MANAGER.clone();
-
         let mut background_manager = match background_manager.lock() {
-            Ok(background_manager) => background_manager,
-            Err(_) => panic!("Failed to lock background manager!"),
+            Ok(background_manager) => {
+                trace!("Successfully locked background manager mutex.");
+                background_manager
+            },
+            Err(_) => panic!("Failed to lock background manager mutex!"),
         };
 
         match background_manager.background_state {
             BackgroundState::BackgroundNotSpawned => {
                 error!("Background already spawned!");
+                return;
             }
             BackgroundState::BackgroundSpawned { .. } => {
                 background_manager.background_state = BackgroundState::BackgroundNotSpawned;
@@ -202,10 +208,12 @@ impl BackgroundManager {
         let window = window_query.get_single().unwrap();
 
         let background_manager = BACKGROUND_MANAGER.clone();
-
         let mut background_manager = match background_manager.lock() {
-            Ok(background_manager) => background_manager,
-            Err(_) => panic!("Failed to lock background manager!"),
+            Ok(background_manager) => {
+                trace!("Successfully locked background manager mutex.");
+                background_manager
+            },
+            Err(_) => panic!("Failed to lock background manager mutex!"),
         };
 
         let (mut background_origin_x, mut background_origin_y) = match background_manager.background_state {
@@ -230,7 +238,7 @@ impl BackgroundManager {
                 if difference_x > 0.0 {
                     background_origin_x += window_width as i32;
 
-                    println!("Shifting background towards +X");
+                    trace!("Shifting background towards +X");
 
                     for mut background_transform in background_transform_query.iter_mut() {
                         background_transform.translation.x += window_width;
@@ -238,7 +246,7 @@ impl BackgroundManager {
                 } else {
                     background_origin_x -= window_width as i32;
 
-                    println!("Shifting background towards -X");
+                    trace!("Shifting background towards -X");
 
                     for mut background_transform in background_transform_query.iter_mut() {
                         background_transform.translation.x -= window_width;
@@ -249,7 +257,7 @@ impl BackgroundManager {
                 if difference_y > 0.0 {
                     background_origin_y += window_height as i32;
 
-                    println!("Shifting background towards +Y");
+                    trace!("Shifting background towards +Y");
 
                     for mut background_transform in background_transform_query.iter_mut() {
                         background_transform.translation.y += window_height;
@@ -257,7 +265,7 @@ impl BackgroundManager {
                 } else {
                     background_origin_y -= window_height as i32;
 
-                    println!("Shifting background towards -Y");
+                    trace!("Shifting background towards -Y");
 
                     for mut background_transform in background_transform_query.iter_mut() {
                         background_transform.translation.y -= window_height;
