@@ -3,6 +3,7 @@
 // Local imports
 
 // Internal imports
+use crate::kernel::manager::*;
 use crate::system::game::SimulationState;
 use crate::system::player::Player;
 use crate::system::universe::chunk::pos::*;
@@ -11,8 +12,13 @@ use crate::system::AppState;
 
 // External imports
 use bevy::prelude::*;
+use lazy_static::*;
+use std::sync::{Arc, Mutex};
 
 // Static variables
+lazy_static! {
+    pub static ref TEST_MANAGER: Arc<Mutex<TestManager>> = Arc::new(Mutex::new(TestManager::new()));
+}
 
 // Constant variables
 
@@ -21,7 +27,12 @@ use bevy::prelude::*;
 // Enums
 
 // Structs
-pub struct IterationTestPlugin;
+pub enum TestState {
+    Stopped,
+    Running
+}
+
+pub struct TestPlugin;
 
 #[derive(Component)]
 pub struct DebugTextPanel;
@@ -41,36 +52,100 @@ pub struct CurrentScaleIndexText;
 #[derive(Component)]
 pub struct GlobalChunkPositionText;
 
-#[derive(Resource)]
-pub struct IterationTestManager {}
+pub struct TestManager {
+    test_state: TestState,
+    manager_state: ManagerState,
+}
 
 // Implementations
-impl Plugin for IterationTestPlugin {
+impl Plugin for TestPlugin {
     fn build(&self, app: &mut App) {
         app
-            // Resources
-            .insert_resource(IterationTestManager {})
             // Enter Systems
-            .add_systems(OnEnter(AppState::Game), IterationTestManager::initialize)
+            .add_systems(OnEnter(AppState::Game), TestManager::start_test)
             // Update Systems
             .add_systems(
                 Update,
                 (
-                    IterationTestManager::update_scene_position_system,
-                    IterationTestManager::update_absolute_local_chunk_position_system,
-                    IterationTestManager::update_apparent_local_chunk_position_system,
-                    IterationTestManager::update_global_chunk_position_system,
+                    TestManager::update_scene_position_system,
+                    TestManager::update_absolute_local_chunk_position_system,
+                    TestManager::update_apparent_local_chunk_position_system,
+                    TestManager::update_global_chunk_position_system,
                 )
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
             )
             // Exit Systems
-            .add_systems(OnExit(AppState::Game), IterationTestManager::terminate);
+            .add_systems(OnExit(AppState::Game), TestManager::stop_test);
     }
 }
 
-impl IterationTestManager {
-    fn initialize(mut commands: Commands, asset_server: Res<AssetServer>) {
+impl Manager for TestManager {
+    fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
+        match self.manager_state {
+            ManagerState::Created => {}
+            ManagerState::Initialized => {
+                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+            }
+            ManagerState::Finalized => {
+                return Err(ManagerInitializeError::ManagerAlreadyFinalized);
+            }
+        }
+
+        self.manager_state = ManagerState::Initialized;
+
+        Ok(())
+    }
+
+    fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
+        match self.manager_state {
+            ManagerState::Created => {
+                return Err(ManagerFinalizeError::ManagerNotInitialized);
+            }
+            ManagerState::Initialized => {}
+            ManagerState::Finalized => {
+                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+            }
+        }
+
+        self.manager_state = ManagerState::Finalized;
+
+        Ok(())
+    }
+
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
+    }
+}
+
+impl TestManager {
+    fn new() -> TestManager {
+        TestManager {
+            test_state: TestState::Stopped,
+            manager_state: ManagerState::Created,
+        }
+    }
+
+    fn start_test(mut commands: Commands, asset_server: Res<AssetServer>) {
+        let test_manager = TEST_MANAGER.clone();
+        let mut test_manager = match test_manager.lock() {
+            Ok(test_manager) => {
+                trace!("Locked test manager mutex.");
+                test_manager
+            },
+            Err(_) => panic!("Failed to lock test manager mutex!"),
+        };
+
+        match test_manager.test_state {
+            TestState::Stopped => {}
+            TestState::Running => {
+                error!("Test already running!");
+                return;
+            }
+        };
+
+        drop(test_manager);
+
         commands
             .spawn((
                 NodeBundle {
@@ -181,15 +256,38 @@ impl IterationTestManager {
                     ]),
                     GlobalChunkPositionText,
                 ));
-            });
+        });
+
+        test_manager.test_state = TestState::Running;
     }
 
-    fn terminate(
+    fn stop_test(
         mut commands: Commands,
         debug_text_panel_query: Query<bevy::prelude::Entity, With<DebugTextPanel>>,
     ) {
         if let Ok(entity) = debug_text_panel_query.get_single() {
+            let test_manager = TEST_MANAGER.clone();
+            let mut test_manager = match test_manager.lock() {
+                Ok(test_manager) => {
+                    trace!("Locked test manager mutex.");
+                    test_manager
+                },
+                Err(_) => panic!("Failed to lock test manager mutex!"),
+            };
+
+            match test_manager.test_state {
+                TestState::Stopped => {
+                    error!("Test already stopped!");
+                    return;
+                }
+                TestState::Running => {}
+            };
+
+            drop(test_manager);
+
             commands.entity(entity).despawn();
+
+            test_manager.test_state = TestState::Stopped;
         }
     }
 

@@ -2,7 +2,7 @@
 pub mod background;
 pub mod camera;
 pub mod game;
-pub mod iteration_test;
+pub mod test;
 pub mod player;
 pub mod ui;
 pub mod universe;
@@ -14,7 +14,7 @@ use super::kernel::manager::*;
 use background::BackgroundPlugin;
 use camera::CameraPlugin;
 use game::GamePlugin;
-use iteration_test::IterationTestPlugin;
+use test::TestPlugin;
 use player::PlayerPlugin;
 use ui::UIPlugin;
 use universe::UniversePlugin;
@@ -101,11 +101,11 @@ impl Manager for SystemManager {
                 panic!("Failed to lock game manager mutex! Error: {:?}", err);
             },
         };
-        let iteration_test_manager = iteration_test::ITERATION_TEST_MANAGER.clone();
-        let mut iteration_test_manager = match iteration_test_manager.lock() {
-            Ok(iteration_test_manager) => {
+        let test_manager = test::TEST_MANAGER.clone();
+        let mut test_manager = match test_manager.lock() {
+            Ok(test_manager) => {
                 trace!("Locked iteration test manager mutex.");
-                iteration_test_manager
+                test_manager
             },
             Err(err) => {
                 panic!("Failed to lock iteration test manager mutex! Error: {:?}", err);
@@ -170,7 +170,7 @@ impl Manager for SystemManager {
                 panic!("Failed to initialize game main module! Error: {:?}", err);
             },
         }
-        match iteration_test_manager.initialize() {
+        match test_manager.initialize() {
             Ok(_) => {
                 debug!("Initialized iteration test module.");
             },
@@ -265,11 +265,11 @@ impl Manager for SystemManager {
                 panic!("Failed to lock game manager mutex! Error: {:?}", err);
             },
         };
-        let iteration_test_manager = iteration_test::ITERATION_TEST_MANAGER.clone();
-        let mut iteration_test_manager = match iteration_test_manager.lock() {
-            Ok(iteration_test_manager) => {
+        let test_manager = test::TEST_MANAGER.clone();
+        let mut test_manager = match test_manager.lock() {
+            Ok(test_manager) => {
                 trace!("Locked iteration test manager mutex.");
-                iteration_test_manager
+                test_manager
             },
             Err(err) => {
                 panic!("Failed to lock iteration test manager mutex! Error: {:?}", err);
@@ -334,7 +334,7 @@ impl Manager for SystemManager {
                 panic!("Failed to finalize game main module. Error: {:?}", err);
             },
         }
-        match iteration_test_manager.finalize() {
+        match test_manager.finalize() {
             Ok(_) => {
                 debug!("Finalized iteration test module.");
             },
@@ -406,7 +406,7 @@ impl PluginGroup for SystemPlugins {
             .add(BackgroundPlugin)
             .add(CameraPlugin)
             .add(GamePlugin)
-            .add(IterationTestPlugin)
+            .add(TestPlugin)
             .add(PlayerPlugin)
             .add(GamePlugin)
             .add(UIPlugin)
