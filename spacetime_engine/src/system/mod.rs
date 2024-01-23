@@ -73,9 +73,155 @@ impl Manager for SystemManager {
 
         debug!("Locking system module manager mutexes...");
 
+        let background_manager = background::BACKGROUND_MANAGER.clone();
+        let mut background_manager = match background_manager.lock() {
+            Ok(background_manager) => {
+                trace!("Successfully locked background manager mutex.");
+                background_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock background manager mutex! Error: {:?}", err);
+            },
+        };
+        let camera_manager = camera::CAMERA_MANAGER.clone();
+        let mut camera_manager = match camera_manager.lock() {
+            Ok(camera_manager) => {
+                trace!("Successfully locked camera manager mutex.");
+                camera_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock camera manager mutex! Error: {:?}", err);
+            },
+        };
+        let game_manager = game::GAME_MANAGER.clone();
+        let mut game_manager = match game_manager.lock() {
+            Ok(game_manager) => {
+                trace!("Successfully locked game manager mutex.");
+                game_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock game manager mutex! Error: {:?}", err);
+            },
+        };
+        let iteration_test_manager = iteration_test::ITERATION_TEST_MANAGER.clone();
+        let mut iteration_test_manager = match iteration_test_manager.lock() {
+            Ok(iteration_test_manager) => {
+                trace!("Successfully locked iteration test manager mutex.");
+                iteration_test_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock iteration test manager mutex! Error: {:?}", err);
+            },
+        };
+        let player_manager = player::PLAYER_MANAGER.clone();
+        let mut player_manager = match player_manager.lock() {
+            Ok(player_manager) => {
+                trace!("Successfully locked player manager mutex.");
+                player_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock player manager mutex! Error: {:?}", err);
+            },
+        };
+        let save_game_manager = save_game::SAVE_GAME_MANAGER.clone();
+        let mut save_game_manager = match save_game_manager.lock() {
+            Ok(save_game_manager) => {
+                trace!("Successfully locked save game manager mutex.");
+                save_game_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock save game manager mutex! Error: {:?}", err);
+            },
+        };
+        let ui_manager = ui::UI_MANAGER.clone();
+        let mut ui_manager = match ui_manager.lock() {
+            Ok(ui_manager) => {
+                trace!("Successfully locked UI manager mutex.");
+                ui_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock UI manager mutex! Error: {:?}", err);
+            },
+        };
+        let universe_manager = universe::UNIVERSE_MANAGER.clone();
+        let mut universe_manager = match universe_manager.lock() {
+            Ok(universe_manager) => {
+                trace!("Successfully locked universe manager mutex.");
+                universe_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock universe manager mutex! Error: {:?}", err);
+            },
+        };
+
         debug!("Locked system module manager mutexes.");
 
         info!("Initializing system modules...");
+
+        match background_manager.initialize() {
+            Ok(_) => {
+                debug!("Successfully initialized background module.");
+            },
+            Err(err) => {
+                panic!("Failed to initialize background module! Error: {:?}", err);
+            },
+        }
+        match camera_manager.initialize() {
+            Ok(_) => {
+                debug!("Successfully initialized camera module.");
+            },
+            Err(err) => {
+                panic!("Failed to initialize camera module! Error: {:?}", err);
+            },
+        }
+        match game_manager.initialize() {
+            Ok(_) => {
+                debug!("Successfully initialized game module.");
+            },
+            Err(err) => {
+                panic!("Failed to initialize game module! Error: {:?}", err);
+            },
+        }
+        match iteration_test_manager.initialize() {
+            Ok(_) => {
+                debug!("Successfully initialized iteration test module.");
+            },
+            Err(err) => {
+                panic!("Failed to initialize iteration test module! Error: {:?}", err);
+            },
+        }
+        match player_manager.initialize() {
+            Ok(_) => {
+                debug!("Successfully initialized player module.");
+            },
+            Err(err) => {
+                panic!("Failed to initialize player module! Error: {:?}", err);
+            },
+        }
+        match save_game_manager.initialize() {
+            Ok(_) => {
+                debug!("Successfully initialized save game module.");
+            },
+            Err(err) => {
+                panic!("Failed to initialize save game module! Error: {:?}", err);
+            },
+        }
+        match ui_manager.initialize() {
+            Ok(_) => {
+                debug!("Successfully initialized UI module.");
+            },
+            Err(err) => {
+                panic!("Failed to initialize UI module! Error: {:?}", err);
+            },
+        }
+        match universe_manager.initialize() {
+            Ok(_) => {
+                debug!("Successfully initialized universe module.");
+            },
+            Err(err) => {
+                panic!("Failed to initialize universe module! Error: {:?}", err);
+            },
+        }
 
         info!("Initialized system modules.");
 
@@ -101,9 +247,155 @@ impl Manager for SystemManager {
 
         debug!("Locking system module manager mutexes...");
 
+        let background_manager = background::BACKGROUND_MANAGER.clone();
+        let mut background_manager = match background_manager.lock() {
+            Ok(background_manager) => {
+                trace!("Successfully locked background manager mutex.");
+                background_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock background manager mutex! Error: {:?}", err);
+            },
+        };
+        let camera_manager = camera::CAMERA_MANAGER.clone();
+        let mut camera_manager = match camera_manager.lock() {
+            Ok(camera_manager) => {
+                trace!("Successfully locked camera manager mutex.");
+                camera_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock camera manager mutex! Error: {:?}", err);
+            },
+        };
+        let game_manager = game::GAME_MANAGER.clone();
+        let mut game_manager = match game_manager.lock() {
+            Ok(game_manager) => {
+                trace!("Successfully locked game manager mutex.");
+                game_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock game manager mutex! Error: {:?}", err);
+            },
+        };
+        let iteration_test_manager = iteration_test::ITERATION_TEST_MANAGER.clone();
+        let mut iteration_test_manager = match iteration_test_manager.lock() {
+            Ok(iteration_test_manager) => {
+                trace!("Successfully locked iteration test manager mutex.");
+                iteration_test_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock iteration test manager mutex! Error: {:?}", err);
+            },
+        };
+        let player_manager = player::PLAYER_MANAGER.clone();
+        let mut player_manager = match player_manager.lock() {
+            Ok(player_manager) => {
+                trace!("Successfully locked player manager mutex.");
+                player_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock player manager mutex! Error: {:?}", err);
+            },
+        };
+        let save_game_manager = save_game::SAVE_GAME_MANAGER.clone();
+        let mut save_game_manager = match save_game_manager.lock() {
+            Ok(save_game_manager) => {
+                trace!("Successfully locked save game manager mutex.");
+                save_game_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock save game manager mutex! Error: {:?}", err);
+            },
+        };
+        let ui_manager = ui::UI_MANAGER.clone();
+        let mut ui_manager = match ui_manager.lock() {
+            Ok(ui_manager) => {
+                trace!("Successfully locked UI manager mutex.");
+                ui_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock UI manager mutex! Error: {:?}", err);
+            },
+        };
+        let universe_manager = universe::UNIVERSE_MANAGER.clone();
+        let mut universe_manager = match universe_manager.lock() {
+            Ok(universe_manager) => {
+                trace!("Successfully locked universe manager mutex.");
+                universe_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock universe manager mutex! Error: {:?}", err);
+            },
+        };
+
         debug!("Locked system module manager mutexes.");
 
         info!("Finalizing system modules...");
+
+        match background_manager.finalize() {
+            Ok(_) => {
+                debug!("Successfully finalized background module.");
+            },
+            Err(err) => {
+                panic!("Failed to finalize background module! Error: {:?}", err);
+            },
+        }
+        match camera_manager.finalize() {
+            Ok(_) => {
+                debug!("Successfully finalized camera module.");
+            },
+            Err(err) => {
+                panic!("Failed to finalize camera module! Error: {:?}", err);
+            },
+        }
+        match game_manager.finalize() {
+            Ok(_) => {
+                debug!("Successfully finalized game module.");
+            },
+            Err(err) => {
+                panic!("Failed to finalize game module! Error: {:?}", err);
+            },
+        }
+        match iteration_test_manager.finalize() {
+            Ok(_) => {
+                debug!("Successfully finalized iteration test module.");
+            },
+            Err(err) => {
+                panic!("Failed to finalize iteration test module! Error: {:?}", err);
+            },
+        }
+        match player_manager.finalize() {
+            Ok(_) => {
+                debug!("Successfully finalized player module.");
+            },
+            Err(err) => {
+                panic!("Failed to finalize player module! Error: {:?}", err);
+            },
+        }
+        match save_game_manager.finalize() {
+            Ok(_) => {
+                debug!("Successfully finalized save game module.");
+            },
+            Err(err) => {
+                panic!("Failed to finalize save game module! Error: {:?}", err);
+            },
+        }
+        match ui_manager.finalize() {
+            Ok(_) => {
+                debug!("Successfully finalized UI module.");
+            },
+            Err(err) => {
+                panic!("Failed to finalize UI module! Error: {:?}", err);
+            },
+        }
+        match universe_manager.finalize() {
+            Ok(_) => {
+                debug!("Successfully finalized universe module.");
+            },
+            Err(err) => {
+                panic!("Failed to finalize universe module! Error: {:?}", err);
+            },
+        }
 
         info!("Finalized system modules.");
 

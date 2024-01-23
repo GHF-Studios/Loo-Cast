@@ -122,7 +122,6 @@ impl Manager for KernelManager {
                 panic!("Failed to initialize config module! Error: {:?}", err);
             }
         }
-
         match data_manager.initialize() {
             Ok(_) => {
                 debug!("Successfully initialized data module.");
@@ -131,7 +130,6 @@ impl Manager for KernelManager {
                 panic!("Failed to initialize data module! Error: {:?}", err);
             }
         }
-
         match debug_manager.initialize() {
             Ok(_) => {
                 debug!("Successfully initialized debug module.");
@@ -140,7 +138,6 @@ impl Manager for KernelManager {
                 panic!("Failed to initialize debug module! Error: {:?}", err);
             }
         }
-
         match event_manager.initialize() {
             Ok(_) => {
                 debug!("Successfully initialized event module.");
@@ -149,7 +146,6 @@ impl Manager for KernelManager {
                 panic!("Failed to initialize event module! Error: {:?}", err);
             }
         }
-
         match plugin_manager.initialize() {
             Ok(_) => {
                 debug!("Successfully initialized plugin module.");
@@ -158,7 +154,6 @@ impl Manager for KernelManager {
                 panic!("Failed to initialize plugin module! Error: {:?}", err);
             }
         }
-
         match resource_manager.initialize() {
             Ok(_) => {
                 debug!("Successfully initialized resource module.");
@@ -269,7 +264,6 @@ impl Manager for KernelManager {
                 panic!("Failed to finalize config module! Error: {:?}", err);
             }
         }
-
         match data_manager.finalize() {
             Ok(_) => {
                 debug!("Successfully finalized data module.");
@@ -278,7 +272,6 @@ impl Manager for KernelManager {
                 panic!("Failed to finalize data module! Error: {:?}", err);
             }
         }
-
         match debug_manager.finalize() {
             Ok(_) => {
                 debug!("Successfully finalized debug module.");
@@ -287,7 +280,6 @@ impl Manager for KernelManager {
                 panic!("Failed to finalize debug module! Error: {:?}", err);
             }
         }
-
         match event_manager.finalize() {
             Ok(_) => {
                 debug!("Successfully finalized event module.");
@@ -296,7 +288,6 @@ impl Manager for KernelManager {
                 panic!("Failed to finalize event module! Error: {:?}", err);
             }
         }
-
         match plugin_manager.finalize() {
             Ok(_) => {
                 debug!("Successfully finalized plugin module.");
@@ -305,7 +296,6 @@ impl Manager for KernelManager {
                 panic!("Failed to finalize plugin module! Error: {:?}", err);
             }
         }
-
         match resource_manager.finalize() {
             Ok(_) => {
                 debug!("Successfully finalized resource module.");

@@ -157,7 +157,6 @@ fn spacetime_engine_startup() {
     info!("Initializing engine...");
 
     let kernel_manager = KERNEL_MANAGER.clone();
-
     let mut kernel_manager = match kernel_manager.lock() {
         Ok(kernel_manager) => {
             trace!("Successfully locked kernel manager mutex.");
@@ -165,6 +164,16 @@ fn spacetime_engine_startup() {
         }
         Err(err) => {
             panic!("Failed to lock kernel manager mutex! Error: {:?}", err);
+        }
+    };
+    let system_manager = SYSTEM_MANAGER.clone();
+    let mut system_manager = match system_manager.lock() {
+        Ok(system_manager) => {
+            trace!("Successfully locked system manager mutex.");
+            system_manager
+        }
+        Err(err) => {
+            panic!("Failed to lock system manager mutex! Error: {:?}", err);
         }
     };
 
@@ -176,19 +185,6 @@ fn spacetime_engine_startup() {
             panic!("Failed to initialize kernel! Error: {:?}", err);
         }
     };
-
-    let system_manager = SYSTEM_MANAGER.clone();
-
-    let mut system_manager = match system_manager.lock() {
-        Ok(system_manager) => {
-            trace!("Successfully locked system manager mutex.");
-            system_manager
-        }
-        Err(err) => {
-            panic!("Failed to lock system manager mutex! Error: {:?}", err);
-        }
-    };
-
     match system_manager.initialize() {
         Ok(_) => {
             drop(system_manager);
