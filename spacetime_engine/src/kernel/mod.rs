@@ -29,7 +29,7 @@ lazy_static! {
 
 // Structs
 pub struct KernelManager {
-    state: ManagerState,
+    manager_state: ManagerState,
 }
 
 // Implementations
@@ -37,7 +37,7 @@ impl Manager for KernelManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
         info!("Initializing kernel...");
 
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {}
             ManagerState::Initialized => {
                 return Err(ManagerInitializeError::ManagerAlreadyInitialized);
@@ -165,11 +165,11 @@ impl Manager for KernelManager {
 
         info!("Initialized kernel modules.");
 
-        // initialize the emergent systems(aka the engine system) such as mod management, USF(massive oversimplification, but baaaaaasically USF = ECS) management, player management, savegame management, camera management, UI Management, etc.
+        // initialize the emergent systems(aka the engine system) such as mod management, USF(massive oversimplification, but baaaaaasically USF = ECS) management, player management, game management, camera management, UI Management, etc.
 
         // initialize the bevy engine, acting as the user interface for the engine, essentially being the first visual indication that the game has started
 
-        self.state = ManagerState::Initialized;
+        self.manager_state = ManagerState::Initialized;
 
         info!("Initialized kernel.");
 
@@ -179,7 +179,7 @@ impl Manager for KernelManager {
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
         info!("Finalizing kernel...");
 
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
             }
@@ -307,22 +307,22 @@ impl Manager for KernelManager {
 
         info!("Finalized kernel modules.");
 
-        self.state = ManagerState::Finalized;
+        self.manager_state = ManagerState::Finalized;
 
         info!("Finalized kernel.");
 
         Ok(())
     }
 
-    fn get_state(&self) -> &ManagerState {
-        &self.state
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
     }
 }
 
 impl KernelManager {
     fn new() -> KernelManager {
         KernelManager {
-            state: ManagerState::Created,
+            manager_state: ManagerState::Created,
         }
     }
 }

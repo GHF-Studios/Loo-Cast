@@ -4,7 +4,7 @@
 
 // Internal imports
 use crate::system::game::*;
-use crate::system::savegame::*;
+use crate::system::game::*;
 use crate::system::ui::*;
 
 // External imports
@@ -127,7 +127,7 @@ impl PauseMenuManager {
     }
 
     fn handle_main_menu_button(
-        mut unload_savegame_event_writer: EventWriter<UnloadGame>,
+        mut unload_game_event_writer: EventWriter<UnloadGame>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
             (Changed<Interaction>, With<MainMenuButton>),
@@ -137,7 +137,7 @@ impl PauseMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *color = PRESSED_BUTTON_COLOR.into();
-                    unload_savegame_event_writer.send(UnloadGame {
+                    unload_game_event_writer.send(UnloadGame {
                         quit_mode: GameQuitMode::QuitToMainMenu,
                     });
                 }
@@ -152,7 +152,7 @@ impl PauseMenuManager {
     }
 
     fn handle_quit_button(
-        mut unload_savegame_event_writer: EventWriter<UnloadGame>,
+        mut unload_game_event_writer: EventWriter<UnloadGame>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
             (Changed<Interaction>, With<QuitButton>),
@@ -162,7 +162,7 @@ impl PauseMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *color = PRESSED_BUTTON_COLOR.into();
-                    unload_savegame_event_writer.send(UnloadGame {
+                    unload_game_event_writer.send(UnloadGame {
                         quit_mode: GameQuitMode::QuitToDesktop,
                     });
                 }

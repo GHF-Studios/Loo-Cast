@@ -92,7 +92,7 @@ impl Manager for CameraManager {
         Ok(())
     }
 
-    fn get_state(&self) -> &ManagerState {
+    fn get_manager_state(&self) -> &ManagerState {
         &self.manager_state
     }
 }
@@ -110,26 +110,53 @@ impl CameraManager {
         let mut camera_manager = match camera_manager.lock() {
             Ok(camera_manager) => {
                 trace!("Successfully locked camera manager mutex.");
+
                 camera_manager
             },
             Err(_) => panic!("Failed to lock camera manager mutex!"),
         };
 
         match camera_manager.camera_state {
-            CameraState::CameraNotSpawned => {}
+            CameraState::CameraNotSpawned => {
+                commands.spawn((
+                    Camera2dBundle {
+                        transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                        ..default()
+                    },
+                    MainCamera {},
+                ));
+
+                camera_manager.camera_state = CameraState::CameraSpawned;
+            }
             CameraState::CameraSpawned => {
                 error!("Camera already spawned!");
+
                 return;
             }
         }
+    }
 
-        commands.spawn((
-            Camera2dBundle {
-                transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                ..default()
+    fn despawn_camera(mut commands: Commands) {
+        let camera_manager = CAMERA_MANAGER.clone();
+        let mut camera_manager = match camera_manager.lock() {
+            Ok(camera_manager) => {
+                trace!("Successfully locked camera manager mutex.");
+
+                camera_manager
             },
-            MainCamera {},
-        ));
+            Err(_) => panic!("Failed to lock camera manager mutex!"),
+        };
+
+        match camera_manager.camera_state {
+            CameraState::CameraNotSpawned => {
+                error!("Camera already despawned!");
+
+                return;
+            }
+            CameraState::CameraSpawned => {
+                camera_manager.camera_state = CameraState::CameraSpawned;
+            }
+        }
     }
 
     fn camera_movement_system(

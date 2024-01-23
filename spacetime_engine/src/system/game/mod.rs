@@ -1,23 +1,31 @@
 // Modules
 pub mod config;
+pub mod info;
 pub mod state;
 
 // Local imports
 use config::*;
+use info::*;
 use state::*;
 
 // Internal imports
-use crate::system::savegame::*;
 use crate::system::universe::*;
 use crate::system::AppState;
+use crate::kernel::manager::*;
 
 // External imports
 use bevy::app::AppExit;
 use bevy::prelude::*;
 use std::fs::File;
 use std::path::Path;
+use lazy_static::*;
+use std::sync::{Arc, Mutex};
 
 // Static variables
+lazy_static! {
+    pub static ref GAME_MANAGER: Arc<Mutex<GameManager>> =
+        Arc::new(Mutex::new(GameManager::new()));
+}
 
 // Constant variables
 
@@ -34,11 +42,17 @@ pub enum SimulationState {
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
 pub enum LoadState {
     #[default]
-    LoadedSavegame,
+    LoadedGame,
     LoadedGameConfig,
     LoadedGameState,
     LoadedUniverse,
     FullyLoaded,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum GameQuitMode {
+    QuitToMainMenu,
+    QuitToDesktop,
 }
 
 // Structs
@@ -46,7 +60,7 @@ pub struct GamePlugin;
 
 #[derive(Event)]
 pub struct LoadGame {
-    pub savegame: SavegameInfo,
+    pub game: GameInfo,
 }
 
 #[derive(Event)]
@@ -54,9 +68,20 @@ pub struct UnloadGame {
     pub quit_mode: GameQuitMode,
 }
 
+#[derive(Event)]
+pub struct CreateGame {
+    pub game_name: String,
+}
+
+#[derive(Event)]
+pub struct DeleteGame {
+    pub game_name: String,
+}
+
 #[derive(Resource)]
 pub struct GameManager {
-    pub current_savegame: SavegameInfo,
+    manager_state: ManagerState,
+    current_game: Option<GameInfo>,
 }
 
 // Implementations
@@ -64,15 +89,19 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app
             // Events
+            .add_event::<CreateGame>()
+            .add_event::<DeleteGame>()
             .add_event::<LoadGame>()
             .add_event::<UnloadGame>()
             // States
             .add_state::<SimulationState>()
             .add_state::<LoadState>()
+            // Startup Systems
+            .add_systems(Startup, GameInfoManager::register_game_infos)
             // Update Systems
             .add_systems(
                 Update,
-                GameManager::handle_load_game.run_if(in_state(AppState::SavegamesMenu)),
+                GameManager::handle_load_game.run_if(in_state(AppState::GamesMenu)),
             )
             .add_systems(
                 Update,
@@ -81,19 +110,221 @@ impl Plugin for GamePlugin {
                     GameManager::handle_unload_game,
                 )
                     .run_if(in_state(AppState::Game)),
-            );
+            )
+            .add_systems(
+                Update,
+                (GameInfoManager::handle_delete_game_info)
+                    .run_if(in_state(AppState::GamesMenu)),
+            )
+            .add_systems(
+                Update,
+                (GameInfoManager::handle_create_game_info)
+                    .run_if(in_state(AppState::CreateGameInfoMenu)),
+            );;
+    }
+}
+
+impl Manager for GameManager {
+    fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
+        match self.manager_state {
+            ManagerState::Created => {}
+            ManagerState::Initialized => {
+                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+            }
+            ManagerState::Finalized => {
+                return Err(ManagerInitializeError::ManagerAlreadyFinalized);
+            }
+        }
+
+        let game_info_manager = GAME_INFO_MANAGER.clone();
+        let mut game_info_manager = match game_info_manager.lock() {
+            Ok(game_info_manager) => {
+                trace!("Successfully locked game info manager mutex.");
+                game_info_manager
+            },
+            Err(_) => panic!("Failed to lock game info manager mutex!"),
+        };
+        let game_config_manager = GAME_CONFIG_MANAGER.clone();
+        let mut game_config_manager = match game_config_manager.lock() {
+            Ok(game_config_manager) => {
+                trace!("Successfully locked game config manager mutex.");
+                game_config_manager
+            },
+            Err(_) => panic!("Failed to lock game config manager mutex!"),
+        };
+        let game_state_manager = GAME_STATE_MANAGER.clone();
+        let mut game_state_manager = match game_state_manager.lock() {
+            Ok(game_state_manager) => {
+                trace!("Successfully locked game state manager mutex.");
+                game_state_manager
+            },
+            Err(_) => panic!("Failed to lock game state manager mutex!"),
+        };
+
+        match game_info_manager.initialize() {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+            }
+        };
+        match game_config_manager.initialize() {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+            }
+        };
+        match game_state_manager.initialize() {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+            }
+        };
+
+        self.manager_state = ManagerState::Initialized;
+
+        Ok(())
+    }
+
+    fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
+        match self.manager_state {
+            ManagerState::Created => {
+                return Err(ManagerFinalizeError::ManagerNotInitialized);
+            }
+            ManagerState::Initialized => {}
+            ManagerState::Finalized => {
+                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+            }
+        }
+
+        let game_state_manager = GAME_STATE_MANAGER.clone();
+        let mut game_state_manager = match game_state_manager.lock() {
+            Ok(game_state_manager) => {
+                trace!("Successfully locked game state manager mutex.");
+                game_state_manager
+            },
+            Err(_) => panic!("Failed to lock game state manager mutex!"),
+        };
+        let game_config_manager = GAME_CONFIG_MANAGER.clone();
+        let mut game_config_manager = match game_config_manager.lock() {
+            Ok(game_config_manager) => {
+                trace!("Successfully locked game config manager mutex.");
+                game_config_manager
+            },
+            Err(_) => panic!("Failed to lock game config manager mutex!"),
+        };
+        let game_info_manager = GAME_INFO_MANAGER.clone();
+        let mut game_info_manager = match game_info_manager.lock() {
+            Ok(game_info_manager) => {
+                trace!("Successfully locked game info manager mutex.");
+                game_info_manager
+            },
+            Err(_) => panic!("Failed to lock game info manager mutex!"),
+        };
+
+        match game_state_manager.finalize() {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+            }
+        };
+        match game_config_manager.finalize() {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+            }
+        };
+        match game_info_manager.finalize() {
+            Ok(_) => {}
+            Err(_) => {
+                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+            }
+        };
+
+        self.manager_state = ManagerState::Finalized;
+
+        Ok(())
+    }
+
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
     }
 }
 
 impl GameManager {
-    fn initialize(commands: &mut Commands, savegame_info: SavegameInfo) {
-        commands.insert_resource(GameManager {
-            current_savegame: savegame_info,
-        })
+    fn new() -> GameManager {
+        GameManager {
+            manager_state: ManagerState::Created,
+            current_game: None,
+        }
     }
 
-    fn terminate(commands: &mut Commands) {
-        commands.remove_resource::<GameManager>();
+    fn load_game(game_info: GameInfo) {
+        let game_manager: Arc<Mutex<GameManager>> = GAME_MANAGER.clone();
+        let mut game_manager = match game_manager.lock() {
+            Ok(game_manager) => {
+                trace!("Successfully locked game manager mutex.");
+                game_manager
+            },
+            Err(_) => panic!("Failed to lock game manager mutex!"),
+        };
+
+        match game_manager.current_game {
+            None => {}
+            Some(_) => {
+                error!("Game already loaded!");
+                return;
+            }
+        }
+
+        let dir_path = format!(
+            "mods/loo_cast_base_mod/data/games/{}/config",
+            game_info.name
+        );
+        if !Path::new(&dir_path).exists() {
+            std::fs::create_dir_all(&dir_path).expect("Failed to create config directory");
+
+            let file_path = format!("{}/info.json", dir_path);
+            File::create(file_path).expect("Failed to create info.json for config");
+        }
+        GameConfigManager::load_game_config();
+
+        // Load Game State
+        let dir_path = format!(
+            "mods/loo_cast_base_mod/data/games/{}/state",
+            game_info.name
+        );
+        if !Path::new(&dir_path).exists() {
+            std::fs::create_dir_all(&dir_path).expect("Failed to create state directory");
+
+            let file_path = format!("{}/info.json", dir_path);
+            File::create(file_path).expect("Failed to create info.json for state");
+        }
+        GameStateManager::load_game_state();
+
+        game_manager.current_game = Some(game_info);
+    }
+
+    fn unload_game() {
+        let game_manager: Arc<Mutex<GameManager>> = GAME_MANAGER.clone();
+        let mut game_manager = match game_manager.lock() {
+            Ok(camera_manager) => {
+                trace!("Successfully locked game manager mutex.");
+                camera_manager
+            },
+            Err(_) => panic!("Failed to lock game manager mutex!"),
+        };
+
+        GameConfigManager::unload_game_config();
+
+        match game_manager.current_game {
+            None => {
+                error!("Game already unloaded!");
+                return;
+            }
+            Some(_) => {
+                game_manager.current_game = None;
+            }
+        }
     }
 
     fn handle_load_game(
@@ -103,41 +334,15 @@ impl GameManager {
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut simulation_state_next_state: ResMut<NextState<SimulationState>>,
     ) {
-        if let Some(confirm_loaded_savegame_event) = load_game_event_reader.iter().last() {
-            let savegame_info: SavegameInfo = confirm_loaded_savegame_event.savegame.clone();
+        if let Some(confirm_loaded_game_event) = load_game_event_reader.iter().last() {
+            let game_info: GameInfo = confirm_loaded_game_event.game.clone();
 
-            // Load Game Manager
-            GameManager::initialize(&mut commands, savegame_info.clone());
+            GameManager::load_game(game_info);
 
-            // Load Game Config
-            let dir_path = format!(
-                "mods/loo_cast_base_mod/data/saves/{}/config",
-                savegame_info.name
-            );
-            if !Path::new(&dir_path).exists() {
-                std::fs::create_dir_all(&dir_path).expect("Failed to create config directory");
-
-                let file_path = format!("{}/info.json", dir_path);
-                File::create(file_path).expect("Failed to create info.json for config");
-            }
-            GameConfigManager::initialize(&mut commands);
-
-            // Load Game State
-            let dir_path = format!(
-                "mods/loo_cast_base_mod/data/saves/{}/state",
-                savegame_info.name
-            );
-            if !Path::new(&dir_path).exists() {
-                std::fs::create_dir_all(&dir_path).expect("Failed to create state directory");
-
-                let file_path = format!("{}/info.json", dir_path);
-                File::create(file_path).expect("Failed to create info.json for state");
-            }
-            GameStateManager::initialize(&mut commands);
-
-            // Finalize Loading
             simulation_state_next_state.set(SimulationState::Paused);
+
             app_state_next_state.set(AppState::Game);
+
             load_universe_event_writer.send(LoadGlobalUniverse {});
         }
     }
@@ -149,28 +354,21 @@ impl GameManager {
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut simulation_state_next_state: ResMut<NextState<SimulationState>>,
     ) {
-        if let Some(unload_savegame_event) = unload_game_event_reader.iter().last() {
-            // Unload Game State
-            GameStateManager::terminate(&mut commands);
+        if let Some(unload_game_event) = unload_game_event_reader.iter().last() {
+            GameManager::unload_game();
 
-            // Unload Game Config
-            GameConfigManager::terminate(&mut commands);
-
-            // Unload Game Manager
-            GameManager::terminate(&mut commands);
-
-            // Finalize Unloading
             simulation_state_next_state.set(SimulationState::Running);
-            if unload_savegame_event.quit_mode == GameQuitMode::QuitToMainMenu {
+            if unload_game_event.quit_mode == GameQuitMode::QuitToMainMenu {
                 app_state_next_state.set(AppState::MainMenu);
             }
-            if unload_savegame_event.quit_mode == GameQuitMode::QuitToDesktop {
+
+            if unload_game_event.quit_mode == GameQuitMode::QuitToDesktop {
                 app_exit_event_writer.send(AppExit);
             }
         }
     }
 
-    pub fn handle_toggle_simulation(
+    fn handle_toggle_simulation(
         keyboard_input: Res<Input<KeyCode>>,
         simulation_state: Res<State<SimulationState>>,
         mut simulation_state_next_state: ResMut<NextState<SimulationState>>,

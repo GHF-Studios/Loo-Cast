@@ -47,7 +47,7 @@ pub trait Data: Any + Send + Sync {
 
 // Structs
 pub struct DataManager {
-    state: ManagerState,
+    manager_state: ManagerState,
     data_hashmap: HashMap<TypeId, HashMap<u64, Box<dyn Any + Send + Sync>>>,
     next_data_id: u64,
 }
@@ -55,7 +55,7 @@ pub struct DataManager {
 // Implementations
 impl Manager for DataManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {}
             ManagerState::Initialized => {
                 return Err(ManagerInitializeError::ManagerAlreadyInitialized);
@@ -65,13 +65,13 @@ impl Manager for DataManager {
             }
         }
 
-        self.state = ManagerState::Initialized;
+        self.manager_state = ManagerState::Initialized;
 
         Ok(())
     }
 
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
             }
@@ -81,20 +81,20 @@ impl Manager for DataManager {
             }
         }
 
-        self.state = ManagerState::Finalized;
+        self.manager_state = ManagerState::Finalized;
 
         Ok(())
     }
 
-    fn get_state(&self) -> &ManagerState {
-        &self.state
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
     }
 }
 
 impl DataManager {
     fn new() -> Self {
         DataManager {
-            state: ManagerState::Created,
+            manager_state: ManagerState::Created,
             data_hashmap: HashMap::new(),
             next_data_id: 0,
         }

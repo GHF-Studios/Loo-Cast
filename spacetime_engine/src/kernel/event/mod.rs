@@ -29,7 +29,7 @@ pub trait Event: Any + Send + Sync + Clone {}
 
 // Structs
 pub struct EventManager {
-    state: ManagerState,
+    manager_state: ManagerState,
     event_types: Vec<TypeId>,
     event_subscribers:
         HashMap<TypeId, HashMap<usize, Box<dyn Fn(Box<dyn Any + Send + Sync>) + Send + Sync>>>,
@@ -45,7 +45,7 @@ pub struct EventSubscriberHandle {
 // Implementations
 impl Manager for EventManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {}
             ManagerState::Initialized => {
                 return Err(ManagerInitializeError::ManagerAlreadyInitialized);
@@ -55,13 +55,13 @@ impl Manager for EventManager {
             }
         }
 
-        self.state = ManagerState::Initialized;
+        self.manager_state = ManagerState::Initialized;
 
         Ok(())
     }
 
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
             }
@@ -71,20 +71,20 @@ impl Manager for EventManager {
             }
         }
 
-        self.state = ManagerState::Finalized;
+        self.manager_state = ManagerState::Finalized;
 
         Ok(())
     }
 
-    fn get_state(&self) -> &ManagerState {
-        &self.state
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
     }
 }
 
 impl EventManager {
     pub fn new() -> EventManager {
         EventManager {
-            state: ManagerState::Created,
+            manager_state: ManagerState::Created,
             event_types: Vec::new(),
             event_subscribers: HashMap::new(),
             next_subscriber_id: 0,

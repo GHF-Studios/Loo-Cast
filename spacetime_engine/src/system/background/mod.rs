@@ -100,7 +100,7 @@ impl Manager for BackgroundManager {
         Ok(())
     }
 
-    fn get_state(&self) -> &ManagerState {
+    fn get_manager_state(&self) -> &ManagerState {
         &self.manager_state
     }
 }
@@ -190,14 +190,14 @@ impl BackgroundManager {
             }
             BackgroundState::BackgroundSpawned { .. } => {
                 background_manager.background_state = BackgroundState::BackgroundNotSpawned;
+
+                drop(background_manager);
+        
+                for entity in background_query.iter() {
+                    commands.entity(entity).despawn();
+                }
             }
         };
-
-        drop(background_manager);
-
-        for entity in background_query.iter() {
-            commands.entity(entity).despawn();
-        }
     }
 
     fn background_movement_system(

@@ -25,13 +25,13 @@ lazy_static! {
 
 // Structs
 pub struct ConfigManager {
-    state: ManagerState,
+    manager_state: ManagerState,
 }
 
 // Implementations
 impl Manager for ConfigManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {}
             ManagerState::Initialized => {
                 return Err(ManagerInitializeError::ManagerAlreadyInitialized);
@@ -41,13 +41,13 @@ impl Manager for ConfigManager {
             }
         }
 
-        self.state = ManagerState::Initialized;
+        self.manager_state = ManagerState::Initialized;
 
         Ok(())
     }
 
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
             }
@@ -57,20 +57,20 @@ impl Manager for ConfigManager {
             }
         }
 
-        self.state = ManagerState::Finalized;
+        self.manager_state = ManagerState::Finalized;
 
         Ok(())
     }
 
-    fn get_state(&self) -> &ManagerState {
-        &self.state
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
     }
 }
 
 impl ConfigManager {
     fn new() -> ConfigManager {
         ConfigManager {
-            state: ManagerState::Created,
+            manager_state: ManagerState::Created,
         }
     }
 }

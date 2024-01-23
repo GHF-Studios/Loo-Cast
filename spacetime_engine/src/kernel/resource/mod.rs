@@ -39,14 +39,14 @@ pub trait Resource: Any + Send + Sync {
 
 // Structs
 pub struct ResourceManager {
-    state: ManagerState,
+    manager_state: ManagerState,
     resource_hashmap: HashMap<TypeId, HashMap<PathBuf, Box<dyn Any + Send + Sync>>>,
 }
 
 // Implementations
 impl Manager for ResourceManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {}
             ManagerState::Initialized => {
                 return Err(ManagerInitializeError::ManagerAlreadyInitialized);
@@ -56,13 +56,13 @@ impl Manager for ResourceManager {
             }
         }
 
-        self.state = ManagerState::Initialized;
+        self.manager_state = ManagerState::Initialized;
 
         Ok(())
     }
 
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
             }
@@ -72,20 +72,20 @@ impl Manager for ResourceManager {
             }
         }
 
-        self.state = ManagerState::Finalized;
+        self.manager_state = ManagerState::Finalized;
 
         Ok(())
     }
 
-    fn get_state(&self) -> &ManagerState {
-        &self.state
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
     }
 }
 
 impl ResourceManager {
     pub fn new() -> Self {
         ResourceManager {
-            state: ManagerState::Created,
+            manager_state: ManagerState::Created,
             resource_hashmap: HashMap::new(),
         }
     }

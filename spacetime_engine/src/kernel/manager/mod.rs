@@ -16,7 +16,7 @@
 pub trait Manager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError>;
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError>;
-    fn get_state(&self) -> &ManagerState;
+    fn get_manager_state(&self) -> &ManagerState;
 }
 
 // Enums

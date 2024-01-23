@@ -107,7 +107,7 @@ impl MainMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
-                    app_state_next_state.set(AppState::SavegamesMenu);
+                    app_state_next_state.set(AppState::GamesMenu);
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();

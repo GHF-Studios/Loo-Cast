@@ -30,7 +30,7 @@ lazy_static! {
 
 // Structs
 pub struct MainManager {
-    state: ManagerState,
+    manager_state: ManagerState,
 }
 
 // Implementations
@@ -111,7 +111,7 @@ impl Manager for MainManager {
         Ok(())
     }
 
-    fn get_state(&self) -> &ManagerState {
+    fn get_manager_state(&self) -> &ManagerState {
         &self.state
     }
 }
@@ -119,7 +119,7 @@ impl Manager for MainManager {
 impl MainManager {
     pub fn new() -> Self {
         Self {
-            state: ManagerState::Created,
+            manager_state: ManagerState::Created,
         }
     }
 }

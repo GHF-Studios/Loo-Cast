@@ -25,13 +25,13 @@ lazy_static! {
 
 // Structs
 pub struct DebugManager {
-    state: ManagerState,
+    manager_state: ManagerState,
 }
 
 // Implementations
 impl Manager for DebugManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {}
             ManagerState::Initialized => {
                 return Err(ManagerInitializeError::ManagerAlreadyInitialized);
@@ -41,13 +41,13 @@ impl Manager for DebugManager {
             }
         }
 
-        self.state = ManagerState::Initialized;
+        self.manager_state = ManagerState::Initialized;
 
         Ok(())
     }
 
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
             }
@@ -57,20 +57,20 @@ impl Manager for DebugManager {
             }
         }
 
-        self.state = ManagerState::Finalized;
+        self.manager_state = ManagerState::Finalized;
 
         Ok(())
     }
 
-    fn get_state(&self) -> &ManagerState {
-        &self.state
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
     }
 }
 
 impl DebugManager {
     fn new() -> DebugManager {
         DebugManager {
-            state: ManagerState::Created,
+            manager_state: ManagerState::Created,
         }
     }
 }

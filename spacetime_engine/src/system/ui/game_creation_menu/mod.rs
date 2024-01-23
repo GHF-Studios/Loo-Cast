@@ -3,7 +3,7 @@
 // Local imports
 
 // Internal imports
-use crate::system::savegame::*;
+use crate::system::game::*;
 use crate::system::ui::input_field::*;
 use crate::system::ui::*;
 use crate::system::AppState;
@@ -100,79 +100,79 @@ pub const TITLE_STYLE: Style = {
 // Enums
 
 // Structs
-pub struct SavegameCreationMenuPlugin;
+pub struct GameCreationMenuPlugin;
 
 #[derive(Component)]
-pub struct SavegameCreationMenu {}
+pub struct GameCreationMenu {}
 
 #[derive(Component)]
-pub struct SavegameName {}
+pub struct GameName {}
 
 #[derive(Component)]
-pub struct CancelSavegameCreationButton {}
+pub struct CancelGameCreationButton {}
 
 #[derive(Component)]
-pub struct ConfirmSavegameCreationButton {}
+pub struct ConfirmGameCreationButton {}
 
 #[derive(Resource)]
-pub struct SavegameCreationMenuManager;
+pub struct GameCreationMenuManager;
 
 // Implementations
-impl Plugin for SavegameCreationMenuPlugin {
+impl Plugin for GameCreationMenuPlugin {
     fn build(&self, app: &mut App) {
         app
             // Enter State Systems
             .add_systems(
-                OnEnter(AppState::CreateSavegameMenu),
-                SavegameCreationMenuManager::initialize,
+                OnEnter(AppState::CreateGameInfoMenu),
+                GameCreationMenuManager::initialize,
             )
             // Update Systems
             .add_systems(
                 Update,
                 (
-                    SavegameCreationMenuManager::handle_cancel_savegame_creation_button,
-                    SavegameCreationMenuManager::handle_confirm_savegame_creation_button,
+                    GameCreationMenuManager::handle_cancel_game_creation_button,
+                    GameCreationMenuManager::handle_confirm_game_creation_button,
                 )
-                    .run_if(in_state(AppState::CreateSavegameMenu)),
+                    .run_if(in_state(AppState::CreateGameInfoMenu)),
             )
             // Exit State Systems
             .add_systems(
-                OnExit(AppState::CreateSavegameMenu),
-                SavegameCreationMenuManager::terminate,
+                OnExit(AppState::CreateGameInfoMenu),
+                GameCreationMenuManager::terminate,
             );
     }
 }
 
-impl SavegameCreationMenuManager {
+impl GameCreationMenuManager {
     fn initialize(mut commands: Commands, asset_server: Res<AssetServer>) {
-        commands.insert_resource(SavegameCreationMenuManager {});
-        Self::build_savegame_creation_menu(&mut commands, &asset_server);
+        commands.insert_resource(GameCreationMenuManager {});
+        Self::build_game_creation_menu(&mut commands, &asset_server);
     }
 
     fn terminate(
         mut commands: Commands,
-        create_savegame_menu_query: Query<Entity, With<SavegameCreationMenu>>,
+        create_game_info_menu_query: Query<Entity, With<GameCreationMenu>>,
     ) {
-        commands.remove_resource::<SavegameCreationMenuManager>();
-        if let Ok(create_savegame_menu_entity) = create_savegame_menu_query.get_single() {
+        commands.remove_resource::<GameCreationMenuManager>();
+        if let Ok(create_game_info_menu_entity) = create_game_info_menu_query.get_single() {
             commands
-                .entity(create_savegame_menu_entity)
+                .entity(create_game_info_menu_entity)
                 .despawn_recursive();
         }
     }
 
-    fn handle_cancel_savegame_creation_button(
+    fn handle_cancel_game_creation_button(
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
-            (Changed<Interaction>, With<CancelSavegameCreationButton>),
+            (Changed<Interaction>, With<CancelGameCreationButton>),
         >,
     ) {
         if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
-                    app_state_next_state.set(AppState::SavegamesMenu);
+                    app_state_next_state.set(AppState::GamesMenu);
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
@@ -184,13 +184,13 @@ impl SavegameCreationMenuManager {
         }
     }
 
-    fn handle_confirm_savegame_creation_button(
-        mut create_savegame_event_writer: EventWriter<CreateSavegame>,
+    fn handle_confirm_game_creation_button(
+        mut create_game_info_event_writer: EventWriter<CreateGameInfo>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
-            (Changed<Interaction>, With<ConfirmSavegameCreationButton>),
+            (Changed<Interaction>, With<ConfirmGameCreationButton>),
         >,
-        name_input_field_query: Query<&InputField, With<SavegameName>>,
+        name_input_field_query: Query<&InputField, With<GameName>>,
     ) {
         if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
             let name_input_field = name_input_field_query.iter().next().unwrap();
@@ -198,8 +198,8 @@ impl SavegameCreationMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
-                    create_savegame_event_writer.send(CreateSavegame {
-                        savegame_name: name_input_field.value.clone(),
+                    create_game_info_event_writer.send(CreateGameInfo {
+                        game_name: name_input_field.value.clone(),
                     });
                 }
                 Interaction::Hovered => {
@@ -212,17 +212,17 @@ impl SavegameCreationMenuManager {
         }
     }
 
-    fn build_savegame_creation_menu(
+    fn build_game_creation_menu(
         commands: &mut Commands,
         asset_server: &Res<AssetServer>,
     ) -> Entity {
-        let create_savegame_menu_entity = commands
+        let create_game_info_menu_entity = commands
             .spawn((
                 NodeBundle {
                     style: SAVE_GAME_CREATION_MENU_STYLE,
                     ..default()
                 },
-                SavegameCreationMenu {},
+                GameCreationMenu {},
             ))
             .with_children(|parent| {
                 // === Title ===
@@ -266,7 +266,7 @@ impl SavegameCreationMenuManager {
                                 background_color: UNFOCUSED_COLOR.into(),
                                 ..default()
                             },
-                            SavegameName {},
+                            GameName {},
                         ));
                     });
                 // Button Container
@@ -284,7 +284,7 @@ impl SavegameCreationMenuManager {
                                     background_color: NORMAL_BUTTON_COLOR.into(),
                                     ..default()
                                 },
-                                CancelSavegameCreationButton {},
+                                CancelGameCreationButton {},
                             ))
                             .with_children(|parent| {
                                 parent.spawn(ImageBundle {
@@ -304,7 +304,7 @@ impl SavegameCreationMenuManager {
                                     background_color: NORMAL_BUTTON_COLOR.into(),
                                     ..default()
                                 },
-                                ConfirmSavegameCreationButton {},
+                                ConfirmGameCreationButton {},
                             ))
                             .with_children(|parent| {
                                 parent.spawn(ImageBundle {
@@ -319,7 +319,7 @@ impl SavegameCreationMenuManager {
             })
             .id();
 
-        create_savegame_menu_entity
+        create_game_info_menu_entity
     }
 }
 

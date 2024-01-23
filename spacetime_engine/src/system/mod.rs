@@ -4,7 +4,6 @@ pub mod camera;
 pub mod game;
 pub mod iteration_test;
 pub mod player;
-pub mod savegame;
 pub mod ui;
 pub mod universe;
 
@@ -17,7 +16,6 @@ use camera::CameraPlugin;
 use game::GamePlugin;
 use iteration_test::IterationTestPlugin;
 use player::PlayerPlugin;
-use savegame::SavegamePlugin;
 use ui::UIPlugin;
 use universe::UniversePlugin;
 
@@ -42,14 +40,14 @@ lazy_static! {
 pub enum AppState {
     #[default]
     MainMenu,
-    SavegamesMenu,
-    CreateSavegameMenu,
+    GamesMenu,
+    CreateGameInfoMenu,
     Game,
 }
 
 // Structs
 pub struct SystemManager {
-    state: ManagerState,
+    manager_state: ManagerState,
 }
 
 pub struct SystemPlugins;
@@ -61,7 +59,7 @@ impl Manager for SystemManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
         info!("Initializing system...");
 
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {},
             ManagerState::Initialized => {
                 return Err(ManagerInitializeError::ManagerAlreadyInitialized);
@@ -121,16 +119,6 @@ impl Manager for SystemManager {
             },
             Err(err) => {
                 panic!("Failed to lock player manager mutex! Error: {:?}", err);
-            },
-        };
-        let savegame_manager = savegame::SAVE_GAME_MANAGER.clone();
-        let mut savegame_manager = match savegame_manager.lock() {
-            Ok(savegame_manager) => {
-                trace!("Successfully locked save game manager mutex.");
-                savegame_manager
-            },
-            Err(err) => {
-                panic!("Failed to lock save game manager mutex! Error: {:?}", err);
             },
         };
         let ui_manager = ui::UI_MANAGER.clone();
@@ -198,7 +186,7 @@ impl Manager for SystemManager {
                 panic!("Failed to initialize player module! Error: {:?}", err);
             },
         }
-        match savegame_manager.initialize() {
+        match game_manager.initialize() {
             Ok(_) => {
                 debug!("Successfully initialized save game module.");
             },
@@ -225,7 +213,7 @@ impl Manager for SystemManager {
 
         info!("Initialized system modules.");
 
-        self.state = ManagerState::Initialized;
+        self.manager_state = ManagerState::Initialized;
 
         info!("Initialized system.");
 
@@ -235,7 +223,7 @@ impl Manager for SystemManager {
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
         info!("Finalizing system...");
 
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
             },
@@ -295,16 +283,6 @@ impl Manager for SystemManager {
             },
             Err(err) => {
                 panic!("Failed to lock player manager mutex! Error: {:?}", err);
-            },
-        };
-        let savegame_manager = savegame::SAVE_GAME_MANAGER.clone();
-        let mut savegame_manager = match savegame_manager.lock() {
-            Ok(savegame_manager) => {
-                trace!("Successfully locked save game manager mutex.");
-                savegame_manager
-            },
-            Err(err) => {
-                panic!("Failed to lock save game manager mutex! Error: {:?}", err);
             },
         };
         let ui_manager = ui::UI_MANAGER.clone();
@@ -372,7 +350,7 @@ impl Manager for SystemManager {
                 panic!("Failed to finalize player module! Error: {:?}", err);
             },
         }
-        match savegame_manager.finalize() {
+        match game_manager.finalize() {
             Ok(_) => {
                 debug!("Successfully finalized save game module.");
             },
@@ -399,22 +377,22 @@ impl Manager for SystemManager {
 
         info!("Finalized system modules.");
 
-        self.state = ManagerState::Finalized;
+        self.manager_state = ManagerState::Finalized;
 
         info!("Finalized system.");
 
         Ok(())
     }
 
-    fn get_state(&self) -> &ManagerState {
-        &self.state
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
     }
 }
 
 impl SystemManager {
     pub fn new() -> Self {
         Self {
-            state: ManagerState::Created,
+            manager_state: ManagerState::Created,
         }
     }
 }
@@ -430,7 +408,7 @@ impl PluginGroup for SystemPlugins {
             .add(GamePlugin)
             .add(IterationTestPlugin)
             .add(PlayerPlugin)
-            .add(SavegamePlugin)
+            .add(GamePlugin)
             .add(UIPlugin)
             .add(UniversePlugin)
             // External Modules
