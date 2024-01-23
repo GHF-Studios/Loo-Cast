@@ -4,7 +4,7 @@ pub mod camera;
 pub mod game;
 pub mod iteration_test;
 pub mod player;
-pub mod save_game;
+pub mod savegame;
 pub mod ui;
 pub mod universe;
 
@@ -17,7 +17,7 @@ use camera::CameraPlugin;
 use game::GamePlugin;
 use iteration_test::IterationTestPlugin;
 use player::PlayerPlugin;
-use save_game::SaveGamePlugin;
+use savegame::SavegamePlugin;
 use ui::UIPlugin;
 use universe::UniversePlugin;
 
@@ -42,8 +42,8 @@ lazy_static! {
 pub enum AppState {
     #[default]
     MainMenu,
-    SaveGamesMenu,
-    CreateSaveGameMenu,
+    SavegamesMenu,
+    CreateSavegameMenu,
     Game,
 }
 
@@ -123,11 +123,11 @@ impl Manager for SystemManager {
                 panic!("Failed to lock player manager mutex! Error: {:?}", err);
             },
         };
-        let save_game_manager = save_game::SAVE_GAME_MANAGER.clone();
-        let mut save_game_manager = match save_game_manager.lock() {
-            Ok(save_game_manager) => {
+        let savegame_manager = savegame::SAVE_GAME_MANAGER.clone();
+        let mut savegame_manager = match savegame_manager.lock() {
+            Ok(savegame_manager) => {
                 trace!("Successfully locked save game manager mutex.");
-                save_game_manager
+                savegame_manager
             },
             Err(err) => {
                 panic!("Failed to lock save game manager mutex! Error: {:?}", err);
@@ -198,7 +198,7 @@ impl Manager for SystemManager {
                 panic!("Failed to initialize player module! Error: {:?}", err);
             },
         }
-        match save_game_manager.initialize() {
+        match savegame_manager.initialize() {
             Ok(_) => {
                 debug!("Successfully initialized save game module.");
             },
@@ -297,11 +297,11 @@ impl Manager for SystemManager {
                 panic!("Failed to lock player manager mutex! Error: {:?}", err);
             },
         };
-        let save_game_manager = save_game::SAVE_GAME_MANAGER.clone();
-        let mut save_game_manager = match save_game_manager.lock() {
-            Ok(save_game_manager) => {
+        let savegame_manager = savegame::SAVE_GAME_MANAGER.clone();
+        let mut savegame_manager = match savegame_manager.lock() {
+            Ok(savegame_manager) => {
                 trace!("Successfully locked save game manager mutex.");
-                save_game_manager
+                savegame_manager
             },
             Err(err) => {
                 panic!("Failed to lock save game manager mutex! Error: {:?}", err);
@@ -372,7 +372,7 @@ impl Manager for SystemManager {
                 panic!("Failed to finalize player module! Error: {:?}", err);
             },
         }
-        match save_game_manager.finalize() {
+        match savegame_manager.finalize() {
             Ok(_) => {
                 debug!("Successfully finalized save game module.");
             },
@@ -430,7 +430,7 @@ impl PluginGroup for SystemPlugins {
             .add(GamePlugin)
             .add(IterationTestPlugin)
             .add(PlayerPlugin)
-            .add(SaveGamePlugin)
+            .add(SavegamePlugin)
             .add(UIPlugin)
             .add(UniversePlugin)
             // External Modules

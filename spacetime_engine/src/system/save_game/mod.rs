@@ -3,7 +3,7 @@
 // Local imports
 
 // Internal imports
-use crate::system::ui::save_games_menu::*;
+use crate::system::ui::savegames_menu::*;
 use crate::system::AppState;
 
 // External imports
@@ -27,54 +27,54 @@ pub enum GameQuitMode {
 }
 
 // Structs
-pub struct SaveGamePlugin;
+pub struct SavegamePlugin;
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct SaveGameInfo {
+pub struct SavegameInfo {
     pub name: String,
 }
 
 #[derive(Event)]
-pub struct CreateSaveGame {
-    pub save_game_name: String,
+pub struct CreateSavegame {
+    pub savegame_name: String,
 }
 
 #[derive(Event)]
-pub struct DeleteSaveGame {
-    pub save_game_name: String,
+pub struct DeleteSavegame {
+    pub savegame_name: String,
 }
 
 #[derive(Resource, Default)]
-pub struct SaveGameManager {
-    pub registered_save_games: Vec<SaveGameInfo>,
+pub struct SavegameManager {
+    pub registered_savegames: Vec<SavegameInfo>,
 }
 
 // Implementations
-impl Plugin for SaveGamePlugin {
+impl Plugin for SavegamePlugin {
     fn build(&self, app: &mut App) {
         app
             // Events
-            .add_event::<CreateSaveGame>()
-            .add_event::<DeleteSaveGame>()
+            .add_event::<CreateSavegame>()
+            .add_event::<DeleteSavegame>()
             // Startup Systems
-            .add_systems(Startup, SaveGameManager::initialize)
+            .add_systems(Startup, SavegameManager::initialize)
             // Update Systems
             .add_systems(
                 Update,
-                (SaveGameManager::handle_delete_save_game)
-                    .run_if(in_state(AppState::SaveGamesMenu)),
+                (SavegameManager::handle_delete_savegame)
+                    .run_if(in_state(AppState::SavegamesMenu)),
             )
             .add_systems(
                 Update,
-                (SaveGameManager::handle_create_save_game)
-                    .run_if(in_state(AppState::CreateSaveGameMenu)),
+                (SavegameManager::handle_create_savegame)
+                    .run_if(in_state(AppState::CreateSavegameMenu)),
             );
     }
 }
 
-impl SaveGameManager {
+impl SavegameManager {
     fn initialize(mut commands: Commands) {
-        let mut save_game_infos: Vec<SaveGameInfo> = Vec::new();
+        let mut savegame_infos: Vec<SavegameInfo> = Vec::new();
 
         if let Ok(paths) = std::fs::read_dir("loo_cast_base_mod/data/saves") {
             for path in paths {
@@ -88,35 +88,35 @@ impl SaveGameManager {
                         Ok(file) => file,
                     };
 
-                    let mut serialized_save_game_info = String::new();
-                    match file.read_to_string(&mut serialized_save_game_info) {
+                    let mut serialized_savegame_info = String::new();
+                    match file.read_to_string(&mut serialized_savegame_info) {
                         Err(why) => panic!("Couldn't read {}: {}", display, why),
                         Ok(_) => println!("Successfully read {}", display),
                     }
 
-                    save_game_infos.push(serde_json::from_str(&serialized_save_game_info).unwrap());
+                    savegame_infos.push(serde_json::from_str(&serialized_savegame_info).unwrap());
                 }
             }
         }
 
-        commands.insert_resource(SaveGameManager {
-            registered_save_games: save_game_infos,
+        commands.insert_resource(SavegameManager {
+            registered_savegames: savegame_infos,
         });
     }
 
-    fn handle_create_save_game(
-        mut create_save_game_event_reader: EventReader<CreateSaveGame>,
-        mut save_game_manager: ResMut<SaveGameManager>,
+    fn handle_create_savegame(
+        mut create_savegame_event_reader: EventReader<CreateSavegame>,
+        mut savegame_manager: ResMut<SavegameManager>,
         mut app_state_next_state: ResMut<NextState<AppState>>,
     ) {
-        for event in create_save_game_event_reader.iter() {
-            let save_game_info: SaveGameInfo = SaveGameInfo {
-                name: event.save_game_name.to_string(),
+        for event in create_savegame_event_reader.iter() {
+            let savegame_info: SavegameInfo = SavegameInfo {
+                name: event.savegame_name.to_string(),
             };
 
-            let serialized_save_game_info: String = serde_json::to_string(&save_game_info).unwrap();
+            let serialized_savegame_info: String = serde_json::to_string(&savegame_info).unwrap();
 
-            let dir_path = format!("mods/loo_cast_base_mod/data/saves/{}", event.save_game_name);
+            let dir_path = format!("mods/loo_cast_base_mod/data/saves/{}", event.savegame_name);
             if !Path::new(&dir_path).exists() {
                 std::fs::create_dir_all(&dir_path).expect("Failed to create save game directory");
             }
@@ -130,23 +130,23 @@ impl SaveGameManager {
                 Ok(file) => file,
             };
 
-            match file.write_all(serialized_save_game_info.as_bytes()) {
+            match file.write_all(serialized_savegame_info.as_bytes()) {
                 Err(why) => panic!("Couldn't write to {}: {}", display, why),
                 Ok(_) => println!("Successfully wrote to {}", display),
             }
 
-            save_game_manager.registered_save_games.push(save_game_info);
-            app_state_next_state.set(AppState::SaveGamesMenu);
+            savegame_manager.registered_savegames.push(savegame_info);
+            app_state_next_state.set(AppState::SavegamesMenu);
         }
     }
 
-    fn handle_delete_save_game(
-        mut delete_save_game_event_reader: EventReader<DeleteSaveGame>,
-        mut delete_save_game_ui_event_writer: EventWriter<DeleteSaveGameUI>,
-        mut save_game_manager: ResMut<SaveGameManager>,
+    fn handle_delete_savegame(
+        mut delete_savegame_event_reader: EventReader<DeleteSavegame>,
+        mut delete_savegame_ui_event_writer: EventWriter<DeleteSavegameUI>,
+        mut savegame_manager: ResMut<SavegameManager>,
     ) {
-        for event in delete_save_game_event_reader.iter() {
-            let dir_path = format!("mods/loo_cast_base_mod/data/saves/{}", event.save_game_name);
+        for event in delete_savegame_event_reader.iter() {
+            let dir_path = format!("mods/loo_cast_base_mod/data/saves/{}", event.savegame_name);
             let string_path = format!("{}/info.json", dir_path);
             let path = Path::new(&string_path);
             let display = path.display();
@@ -159,29 +159,29 @@ impl SaveGameManager {
             std::fs::remove_dir_all(&dir_path).expect("Failed to remove save game directory");
 
             let mut index_to_remove: Option<usize> = None;
-            for (index, save_game_info) in
-                save_game_manager.registered_save_games.iter().enumerate()
+            for (index, savegame_info) in
+                savegame_manager.registered_savegames.iter().enumerate()
             {
-                if save_game_info.name == event.save_game_name {
+                if savegame_info.name == event.savegame_name {
                     index_to_remove = Some(index);
                     break;
                 }
             }
 
             if let Some(index) = index_to_remove {
-                save_game_manager.registered_save_games.remove(index);
+                savegame_manager.registered_savegames.remove(index);
             }
 
-            delete_save_game_ui_event_writer.send(DeleteSaveGameUI {
-                save_game_name: event.save_game_name.to_string(),
+            delete_savegame_ui_event_writer.send(DeleteSavegameUI {
+                savegame_name: event.savegame_name.to_string(),
             });
         }
     }
 
-    pub fn get_save_game_info(&self, save_game_name: String) -> Option<&SaveGameInfo> {
-        self.registered_save_games
+    pub fn get_savegame_info(&self, savegame_name: String) -> Option<&SavegameInfo> {
+        self.registered_savegames
             .iter()
-            .find(|&save_game| save_game.name == *save_game_name)
+            .find(|&savegame| savegame.name == *savegame_name)
     }
 }
 
