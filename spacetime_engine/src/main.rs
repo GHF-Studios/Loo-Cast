@@ -38,7 +38,7 @@ impl Manager for MainManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
         info!("Initializing spacetime engine main module...");
 
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {},
             ManagerState::Initialized => {
                 return Err(ManagerInitializeError::ManagerAlreadyInitialized);
@@ -96,7 +96,7 @@ impl Manager for MainManager {
 
         info!("Initialized spacetime engine modules.");
 
-        self.state = ManagerState::Initialized;
+        self.manager_state = ManagerState::Initialized;
 
         info!("Initialized spacetime engine main module.");
 
@@ -106,7 +106,7 @@ impl Manager for MainManager {
     fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
         info!("Finalizing spacetime engine main module...");
 
-        match self.state {
+        match self.manager_state {
             ManagerState::Created => {
                 return Err(ManagerFinalizeError::ManagerNotInitialized);
             },
@@ -164,7 +164,7 @@ impl Manager for MainManager {
 
         info!("Finalized spacetime engine modules.");
 
-        self.state = ManagerState::Finalized;
+        self.manager_state = ManagerState::Finalized;
 
         info!("Finalized spacetime engine main module.");
 
@@ -172,7 +172,7 @@ impl Manager for MainManager {
     }
 
     fn get_manager_state(&self) -> &ManagerState {
-        &self.state
+        &self.manager_state
     }
 }
 

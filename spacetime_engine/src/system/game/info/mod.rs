@@ -87,6 +87,18 @@ impl GameInfoManager {
         }
     }
 
+    pub(in crate::system::game) fn register_game_info(&mut self, game_info: GameInfo) {
+        match &mut self.registered_game_infos {
+            None => {
+                error!("Game infos not registered!");
+                return;
+            }
+            Some(registered_game_infos) => {
+                registered_game_infos.push(game_info);
+            }
+        }
+    }
+
     pub(in crate::system::game) fn register_game_infos() {
         let game_info_manager = GAME_INFO_MANAGER.clone();
         let mut game_info_manager = match game_info_manager.lock() {
@@ -133,110 +145,41 @@ impl GameInfoManager {
         game_info_manager.registered_game_infos = Some(game_infos);
     }
 
-    pub(in crate::system::game) fn handle_create_game_info(
-        mut create_game_info_event_reader: EventReader<CreateGame>,
-        mut app_state_next_state: ResMut<NextState<AppState>>,
-    ) {
-        for event in create_game_info_event_reader.iter() {
-            let game_info_manager = GAME_INFO_MANAGER.clone();
-            let mut game_info_manager = match game_info_manager.lock() {
-                Ok(game_info_manager) => {
-                    trace!("Locked game info manager mutex.");
-                    game_info_manager
-                },
-                Err(_) => panic!("Failed to lock game info manager mutex!"),
-            };
-
-            let mut registered_game_infos = match &mut game_info_manager.registered_game_infos {
-                None => {
-                    error!("Game infos not registered!");
-                    return;
+    pub fn get_game_info(&self, game_name: String) -> Option<&GameInfo> {
+        match &self.registered_game_infos {
+            None => {
+                error!("Game infos not registered!");
+                return None;
+            }
+            Some(registered_game_infos) => {
+                for game_info in registered_game_infos {
+                    if game_info.name == game_name {
+                        return Some(game_info);
+                    }
                 }
-                Some(mut registered_game_infos) => registered_game_infos
-            };
-
-            let game_info: GameInfo = GameInfo {
-                name: event.game_name.to_string(),
-            };
-
-            let serialized_game_info: String = serde_json::to_string(&game_info).unwrap();
-
-            let dir_path = format!("mods/loo_cast_base_mod/data/games/{}", event.game_name);
-            if !Path::new(&dir_path).exists() {
-                std::fs::create_dir_all(&dir_path).expect("Failed to create save game directory");
             }
+        }
 
-            let string_path = format!("{}/info.json", dir_path);
-            let path = Path::new(&string_path);
-            let display = path.display();
+        None
+    }
 
-            let mut file = match File::create(path) {
-                Err(why) => panic!("Couldn't create {}: {}", display, why),
-                Ok(file) => file,
-            };
-
-            match file.write_all(serialized_game_info.as_bytes()) {
-                Err(why) => panic!("Couldn't write to {}: {}", display, why),
-                Ok(_) => println!("Wrote to {}", display),
+    pub fn get_game_infos(&self) -> Option<&Vec<GameInfo>> {
+        match &self.registered_game_infos {
+            None => {
+                error!("Game infos not registered!");
+                return None;
             }
-
-            registered_game_infos.push(game_info);
-
-            app_state_next_state.set(AppState::GamesMenu);
+            Some(registered_game_infos) => Some(registered_game_infos),
         }
     }
 
-    pub(in crate::system::game) fn handle_delete_game_info(
-        mut delete_game_event_reader: EventReader<DeleteGame>,
-        mut delete_game_ui_event_writer: EventWriter<DeleteGameUI>,
-    ) {
-        for event in delete_game_event_reader.iter() {
-            let game_info_manager = GAME_INFO_MANAGER.clone();
-            let mut game_info_manager = match game_info_manager.lock() {
-                Ok(game_info_manager) => {
-                    trace!("Locked game info manager mutex.");
-                    game_info_manager
-                },
-                Err(_) => panic!("Failed to lock game info manager mutex!"),
-            };
-
-            let mut registered_game_infos = match &mut game_info_manager.registered_game_infos {
-                None => {
-                    error!("Game infos not registered!");
-                    return;
-                }
-                Some(mut registered_game_infos) => registered_game_infos
-            };
-            
-            let dir_path = format!("mods/loo_cast_base_mod/data/saves/{}", event.game_name);
-            let string_path = format!("{}/info.json", dir_path);
-            let path = Path::new(&string_path);
-            let display = path.display();
-
-            match std::fs::remove_file(path) {
-                Err(why) => panic!("Couldn't delete {}: {}", display, why),
-                Ok(_) => println!("Deleted {}", display),
+    pub(in crate::system::game) fn get_game_infos_mut(&mut self) -> Option<&mut Vec<GameInfo>> {
+        match &mut self.registered_game_infos {
+            None => {
+                error!("Game infos not registered!");
+                return None;
             }
-
-            std::fs::remove_dir_all(&dir_path).expect("Failed to remove save game directory");
-
-            let mut index_to_remove: Option<usize> = None;
-            for (index, game_info) in
-            registered_game_infos.iter().enumerate()
-            {
-                if game_info.name == event.game_name {
-                    index_to_remove = Some(index);
-                    break;
-                }
-            }
-
-            if let Some(index) = index_to_remove {
-                registered_game_infos.remove(index);
-            }
-
-            delete_game_ui_event_writer.send(DeleteGameUI {
-                game_name: event.game_name.to_string(),
-            });
+            Some(registered_game_infos) => Some(registered_game_infos),
         }
     }
 }

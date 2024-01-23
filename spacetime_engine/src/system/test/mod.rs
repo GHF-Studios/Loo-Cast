@@ -144,8 +144,6 @@ impl TestManager {
             }
         };
 
-        drop(test_manager);
-
         commands
             .spawn((
                 NodeBundle {
@@ -282,8 +280,6 @@ impl TestManager {
                 }
                 TestState::Running => {}
             };
-
-            drop(test_manager);
 
             commands.entity(entity).despawn();
 

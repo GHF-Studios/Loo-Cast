@@ -101,16 +101,6 @@ impl Manager for SystemManager {
                 panic!("Failed to lock game manager mutex! Error: {:?}", err);
             },
         };
-        let test_manager = test::TEST_MANAGER.clone();
-        let mut test_manager = match test_manager.lock() {
-            Ok(test_manager) => {
-                trace!("Locked iteration test manager mutex.");
-                test_manager
-            },
-            Err(err) => {
-                panic!("Failed to lock iteration test manager mutex! Error: {:?}", err);
-            },
-        };
         let player_manager = player::PLAYER_MANAGER.clone();
         let mut player_manager = match player_manager.lock() {
             Ok(player_manager) => {
@@ -119,6 +109,16 @@ impl Manager for SystemManager {
             },
             Err(err) => {
                 panic!("Failed to lock player manager mutex! Error: {:?}", err);
+            },
+        };
+        let test_manager = test::TEST_MANAGER.clone();
+        let mut test_manager = match test_manager.lock() {
+            Ok(test_manager) => {
+                trace!("Locked iteration test manager mutex.");
+                test_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock iteration test manager mutex! Error: {:?}", err);
             },
         };
         let ui_manager = ui::UI_MANAGER.clone();
@@ -170,14 +170,6 @@ impl Manager for SystemManager {
                 panic!("Failed to initialize game main module! Error: {:?}", err);
             },
         }
-        match test_manager.initialize() {
-            Ok(_) => {
-                debug!("Initialized iteration test module.");
-            },
-            Err(err) => {
-                panic!("Failed to initialize iteration test module! Error: {:?}", err);
-            },
-        }
         match player_manager.initialize() {
             Ok(_) => {
                 debug!("Initialized player main module.");
@@ -186,12 +178,12 @@ impl Manager for SystemManager {
                 panic!("Failed to initialize player main module! Error: {:?}", err);
             },
         }
-        match game_manager.initialize() {
+        match test_manager.initialize() {
             Ok(_) => {
-                debug!("Initialized save game module.");
+                debug!("Initialized iteration test module.");
             },
             Err(err) => {
-                panic!("Failed to initialize save game module! Error: {:?}", err);
+                panic!("Failed to initialize iteration test module! Error: {:?}", err);
             },
         }
         match ui_manager.initialize() {
@@ -265,16 +257,6 @@ impl Manager for SystemManager {
                 panic!("Failed to lock game manager mutex! Error: {:?}", err);
             },
         };
-        let test_manager = test::TEST_MANAGER.clone();
-        let mut test_manager = match test_manager.lock() {
-            Ok(test_manager) => {
-                trace!("Locked iteration test manager mutex.");
-                test_manager
-            },
-            Err(err) => {
-                panic!("Failed to lock iteration test manager mutex! Error: {:?}", err);
-            },
-        };
         let player_manager = player::PLAYER_MANAGER.clone();
         let mut player_manager = match player_manager.lock() {
             Ok(player_manager) => {
@@ -283,6 +265,16 @@ impl Manager for SystemManager {
             },
             Err(err) => {
                 panic!("Failed to lock player manager mutex! Error: {:?}", err);
+            },
+        };
+        let test_manager = test::TEST_MANAGER.clone();
+        let mut test_manager = match test_manager.lock() {
+            Ok(test_manager) => {
+                trace!("Locked iteration test manager mutex.");
+                test_manager
+            },
+            Err(err) => {
+                panic!("Failed to lock iteration test manager mutex! Error: {:?}", err);
             },
         };
         let ui_manager = ui::UI_MANAGER.clone();
@@ -334,14 +326,6 @@ impl Manager for SystemManager {
                 panic!("Failed to finalize game main module. Error: {:?}", err);
             },
         }
-        match test_manager.finalize() {
-            Ok(_) => {
-                debug!("Finalized iteration test module.");
-            },
-            Err(err) => {
-                panic!("Failed to finalize iteration test module! Error: {:?}", err);
-            },
-        }
         match player_manager.finalize() {
             Ok(_) => {
                 debug!("Finalized player main module.");
@@ -350,12 +334,12 @@ impl Manager for SystemManager {
                 panic!("Failed to finalize player main module. Error: {:?}", err);
             },
         }
-        match game_manager.finalize() {
+        match test_manager.finalize() {
             Ok(_) => {
-                debug!("Finalized game module.");
+                debug!("Finalized iteration test module.");
             },
             Err(err) => {
-                panic!("Failed to finalize game module! Error: {:?}", err);
+                panic!("Failed to finalize iteration test module! Error: {:?}", err);
             },
         }
         match ui_manager.finalize() {

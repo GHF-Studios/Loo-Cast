@@ -185,7 +185,7 @@ impl GameCreationMenuManager {
     }
 
     fn handle_confirm_game_creation_button(
-        mut create_game_info_event_writer: EventWriter<CreateGameInfo>,
+        mut create_game_event_writer: EventWriter<CreateGame>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
             (Changed<Interaction>, With<ConfirmGameCreationButton>),
@@ -198,7 +198,7 @@ impl GameCreationMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
-                    create_game_info_event_writer.send(CreateGameInfo {
+                    create_game_event_writer.send(CreateGame {
                         game_name: name_input_field.value.clone(),
                     });
                 }

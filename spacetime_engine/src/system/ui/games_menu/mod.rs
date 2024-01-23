@@ -186,9 +186,8 @@ impl GamesMenuManager {
     fn initialize(
         mut commands: Commands,
         asset_server: Res<AssetServer>,
-        game_manager: Res<GameManager>,
     ) {
-        Self::build_games_menu(&mut commands, &asset_server, &game_manager);
+        Self::build_games_menu(&mut commands, &asset_server);
     }
 
     fn terminate(
@@ -303,11 +302,22 @@ impl GamesMenuManager {
     fn handle_load_game_instance(
         mut load_game_instance_event_reader: EventReader<LoadGameInstance>,
         mut load_game_event_writer: EventWriter<LoadGame>,
-        game_manager: Res<GameManager>,
     ) {
         if let Some(event) = load_game_instance_event_reader.iter().last() {
+            let game_info_manager = super::super::game::info::GAME_INFO_MANAGER.clone();
+            let game_info_manager = match game_info_manager.lock() {
+                Ok(game_manager) => {
+                    trace!("Locked game info manager mutex.");
+                    game_manager
+                },
+                Err(_) => {
+                    error!("Failed to lock game info manager mutex.");
+                    return;
+                },
+            };
+
             if let Some(game) =
-                game_manager.get_game_info(event.game_name.clone())
+                game_info_manager.get_game_info(event.game_name.clone())
             {
                 load_game_event_writer.send(LoadGame {
                     game: game.clone(),
@@ -334,8 +344,25 @@ impl GamesMenuManager {
     fn build_games_menu(
         commands: &mut Commands,
         asset_server: &Res<AssetServer>,
-        game_manager: &Res<GameManager>,
     ) -> Entity {
+        let game_info_manager = super::super::game::info::GAME_INFO_MANAGER.clone();
+        let game_info_manager = match game_info_manager.lock() {
+            Ok(game_info_manager) => {
+                trace!("Locked game info manager mutex.");
+                game_info_manager
+            },
+            Err(_) => {
+                panic!("Failed to lock game info manager mutex.");
+            },
+        };
+
+        let game_infos = match game_info_manager.get_game_infos() {
+            None => {
+                panic!("Game infos not registered!");
+            }
+            Some(game_infos) => game_infos,
+        };
+
         let games_menu_entity = commands
             .spawn((
                 NodeBundle {
@@ -376,7 +403,7 @@ impl GamesMenuManager {
                     ))
                     .with_children(|parent| {
                         // Save Games
-                        for game_info in game_manager.registered_games.iter() {
+                        for game_info in game_infos.iter() {
                             parent
                                 .spawn((
                                     NodeBundle {

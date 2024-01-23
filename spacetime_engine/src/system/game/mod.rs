@@ -9,6 +9,7 @@ use info::*;
 use state::*;
 
 // Internal imports
+use crate::system::ui::games_menu::*;
 use crate::system::universe::*;
 use crate::system::AppState;
 use crate::kernel::manager::*;
@@ -19,6 +20,7 @@ use bevy::prelude::*;
 use core::panic;
 use std::fs::File;
 use std::path::Path;
+use std::io::Write;
 use lazy_static::*;
 use std::sync::{Arc, Mutex};
 
@@ -101,8 +103,15 @@ impl Plugin for GamePlugin {
             .add_systems(Startup, GameInfoManager::register_game_infos)
             // Update Systems
             .add_systems(
+                Update, (
+                    GameManager::handle_load_game, 
+                    GameManager::handle_delete_game
+                ).run_if(in_state(AppState::GamesMenu)),
+            )
+            .add_systems(
                 Update,
-                GameManager::handle_load_game.run_if(in_state(AppState::GamesMenu)),
+                (GameManager::handle_create_game)
+                    .run_if(in_state(AppState::CreateGameInfoMenu)),
             )
             .add_systems(
                 Update,
@@ -111,16 +120,6 @@ impl Plugin for GamePlugin {
                     GameManager::handle_unload_game,
                 )
                     .run_if(in_state(AppState::Game)),
-            )
-            .add_systems(
-                Update,
-                (GameInfoManager::handle_delete_game_info)
-                    .run_if(in_state(AppState::GamesMenu)),
-            )
-            .add_systems(
-                Update,
-                (GameInfoManager::handle_create_game_info)
-                    .run_if(in_state(AppState::CreateGameInfoMenu)),
             );
     }
 }
@@ -421,8 +420,106 @@ impl GameManager {
         info!("Unloaded game module.");
     }
 
+    pub(in crate::system::game) fn handle_create_game(
+        mut create_game_event_reader: EventReader<CreateGame>,
+        mut app_state_next_state: ResMut<NextState<AppState>>,
+    ) {
+        for event in create_game_event_reader.iter() {
+            let game_info_manager = GAME_INFO_MANAGER.clone();
+            let mut game_info_manager = match game_info_manager.lock() {
+                Ok(game_info_manager) => {
+                    trace!("Locked game info manager mutex.");
+                    game_info_manager
+                },
+                Err(_) => panic!("Failed to lock game info manager mutex!"),
+            };
+
+            let game_info: GameInfo = GameInfo {
+                name: event.game_name.to_string(),
+            };
+
+            let serialized_game_info: String = serde_json::to_string(&game_info).unwrap();
+
+            let dir_path = format!("mods/loo_cast_base_mod/data/games/{}", event.game_name);
+            if !Path::new(&dir_path).exists() {
+                std::fs::create_dir_all(&dir_path).expect("Failed to create save game directory");
+            }
+
+            let string_path = format!("{}/info.json", dir_path);
+            let path = Path::new(&string_path);
+            let display = path.display();
+
+            let mut file = match File::create(path) {
+                Err(why) => panic!("Couldn't create {}: {}", display, why),
+                Ok(file) => file,
+            };
+
+            match file.write_all(serialized_game_info.as_bytes()) {
+                Err(why) => panic!("Couldn't write to {}: {}", display, why),
+                Ok(_) => println!("Wrote to {}", display),
+            }
+
+            game_info_manager.register_game_info(game_info);
+
+            app_state_next_state.set(AppState::GamesMenu);
+        }
+    }
+
+    pub(in crate::system::game) fn handle_delete_game(
+        mut delete_game_event_reader: EventReader<DeleteGame>,
+        mut delete_game_ui_event_writer: EventWriter<DeleteGameUI>,
+    ) {
+        for event in delete_game_event_reader.iter() {
+            let game_info_manager = GAME_INFO_MANAGER.clone();
+            let mut game_info_manager = match game_info_manager.lock() {
+                Ok(game_info_manager) => {
+                    trace!("Locked game info manager mutex.");
+                    game_info_manager
+                },
+                Err(_) => panic!("Failed to lock game info manager mutex!"),
+            };
+
+            let game_infos = match game_info_manager.get_game_infos_mut() {
+                None => {
+                    error!("Game infos not registered!");
+                    continue;
+                }
+                Some(game_infos) => game_infos,
+            };
+            
+            let dir_path = format!("mods/loo_cast_base_mod/data/saves/{}", event.game_name);
+            let string_path = format!("{}/info.json", dir_path);
+            let path = Path::new(&string_path);
+            let display = path.display();
+
+            match std::fs::remove_file(path) {
+                Err(why) => panic!("Couldn't delete {}: {}", display, why),
+                Ok(_) => println!("Deleted {}", display),
+            }
+
+            std::fs::remove_dir_all(&dir_path).expect("Failed to remove save game directory");
+
+            let mut index_to_remove: Option<usize> = None;
+            for (index, game_info) in
+            game_infos.iter().enumerate()
+            {
+                if game_info.name == event.game_name {
+                    index_to_remove = Some(index);
+                    break;
+                }
+            }
+
+            if let Some(index) = index_to_remove {
+                game_infos.remove(index);
+            }
+
+            delete_game_ui_event_writer.send(DeleteGameUI {
+                game_name: event.game_name.to_string(),
+            });
+        }
+    }
+
     fn handle_load_game(
-        mut commands: Commands,
         mut load_game_event_reader: EventReader<LoadGame>,
         mut load_universe_event_writer: EventWriter<LoadGlobalUniverse>,
         mut app_state_next_state: ResMut<NextState<AppState>>,
@@ -442,7 +539,6 @@ impl GameManager {
     }
 
     fn handle_unload_game(
-        mut commands: Commands,
         mut unload_game_event_reader: EventReader<UnloadGame>,
         mut app_exit_event_writer: EventWriter<AppExit>,
         mut app_state_next_state: ResMut<NextState<AppState>>,
