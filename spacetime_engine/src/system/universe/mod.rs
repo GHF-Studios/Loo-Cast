@@ -12,31 +12,39 @@ use local::id::*;
 use local::*;
 
 // Internal imports
+use crate::kernel::manager::*;
 use crate::system::player::*;
 use crate::system::AppState;
+use crate::system::game::SimulationState;
 
 // External imports
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use std::collections::HashMap;
+use lazy_static::*;
 use std::sync::{Arc, Mutex};
 
 // Static variables
+lazy_static! {
+    pub static ref UNIVERSE_MANAGER: Arc<Mutex<UniverseManager>> = Arc::new(Mutex::new(UniverseManager::new()));
+}
 
 // Constant variables
 
 // Types
 
 // Enums
+pub enum UniverseState {
+    
+}
 
 // Structs
 pub struct UniversePlugin;
 
-#[derive(Event)]
-pub struct LoadGlobalUniverse {}
-
 #[derive(Resource)]
 pub struct UniverseManager {
+    universe_state: UniverseState,
+    manager_state: ManagerState,
     registered_global_universe: Option<Arc<Mutex<GlobalUniverse>>>,
     registered_local_universes: HashMap<LocalUniverseID, Arc<Mutex<LocalUniverse>>>,
 }
@@ -45,66 +53,112 @@ pub struct UniverseManager {
 impl Plugin for UniversePlugin {
     fn build(&self, app: &mut App) {
         app
-            // Events
-            .add_event::<LoadGlobalUniverse>()
-            // Plugins
-            .add_plugins((
-                ChunkPlugin,
-                EntityPlugin,
-                GlobalUniversePlugin,
-                LocalUniversePlugin,
-            ))
             // Enter Systems
-            .add_systems(OnEnter(AppState::Game), UniverseManager::initialize)
+            .add_systems(OnEnter(AppState::Game), UniverseManager::startup)
             // Update Systems
             .add_systems(
-                Update,
-                (UniverseManager::handle_load_global_universe,).run_if(in_state(AppState::Game)),
+                Update,(
+                    Chunk::debug_render_system, 
+                    GlobalUniverse::handle_operation_requests,
+                    LocalUniverse::detect_local_chunks_system)
+                    .run_if(in_state(AppState::Game))
+                    .run_if(in_state(SimulationState::Running)),
             )
             // Exit Systems
-            .add_systems(OnExit(AppState::Game), UniverseManager::terminate);
+            .add_systems(OnExit(AppState::Game), UniverseManager::shutdown);
+    }
+}
+
+impl Manager for UniverseManager {
+    fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
+        info!("Initializing universe main module...");
+
+        match self.manager_state {
+            ManagerState::Created => {}
+            ManagerState::Initialized => {
+                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+            }
+            ManagerState::Finalized => {
+                return Err(ManagerInitializeError::ManagerAlreadyFinalized);
+            }
+        }
+
+        self.manager_state = ManagerState::Initialized;
+
+        info!("Initialized universe main module.");
+
+        Ok(())
+    }
+
+    fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
+        info!("Finalizing universe main module...");
+
+        match self.manager_state {
+            ManagerState::Created => {
+                return Err(ManagerFinalizeError::ManagerNotInitialized);
+            }
+            ManagerState::Initialized => {}
+            ManagerState::Finalized => {
+                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+            }
+        }
+
+        self.manager_state = ManagerState::Finalized;
+
+        info!("Finalized universe main module.");
+
+        Ok(())
+    }
+
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
     }
 }
 
 impl UniverseManager {
-    fn initialize(
-        mut commands: Commands,
-        mut initialize_player_event_writer: EventWriter<InitializePlayer>,
+    fn new() -> Self {
+        UniverseManager {
+            manager_state: ManagerState::Created,
+            registered_global_universe: None,
+            registered_local_universes: HashMap::new(),
+        }
+    }
+
+    fn startup(
         mut rapier_configuration: ResMut<RapierConfiguration>,
     ) {
         rapier_configuration.gravity = Vec2::splat(0.0);
+    }
 
-        let universe_manager = Self {
-            registered_global_universe: None,
-            registered_local_universes: HashMap::new(),
+    fn shutdown() {
+    }
+
+    fn register_global_universe() {
+        let universe_manager = UNIVERSE_MANAGER.clone();
+        let mut universe_manager = match universe_manager.lock() {
+            Ok(mut universe_manager) => {
+                trace!("Universe manager locked.");
+                universe_manager
+            },
+            Err(_) => {
+                panic!("Failed to lock universe manager.");
+            }
         };
 
-        commands.insert_resource(universe_manager);
+        match universe_manager.registered_global_universe {
+            Some(_) => {
+                error!("Global universe is already registered.");
+                return;
+            }
+            None => {}
+        };
 
-        initialize_player_event_writer.send(InitializePlayer {});
-    }
-
-    fn terminate(
-        mut commands: Commands,
-        mut terminate_player_event_writer: EventWriter<TerminatePlayer>,
-    ) {
-        terminate_player_event_writer.send(TerminatePlayer {});
-
-        commands.remove_resource::<Self>();
-    }
-
-    pub fn handle_load_global_universe(
-        mut load_global_universe_event_reader: EventReader<LoadGlobalUniverse>,
-        mut universe_manager: ResMut<UniverseManager>,
-    ) {
-        if load_global_universe_event_reader.iter().last().is_some() {
-            universe_manager.registered_global_universe =
-                Some(Arc::new(Mutex::new(GlobalUniverse {
-                    registered_root_chunks: HashMap::new(),
-                    operation_requests: Arc::new(Mutex::new(Vec::new())),
-                    chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy::new(),
-                })));
-        }
+        universe_manager.registered_global_universe =
+            Some(Arc::new(Mutex::new(GlobalUniverse {
+                registered_root_chunks: HashMap::new(),
+                operation_requests: Arc::new(Mutex::new(Vec::new())),
+                chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy::new(),
+            })));
     }
 
     pub fn get_global_universe(&self) -> Option<Arc<Mutex<GlobalUniverse>>> {

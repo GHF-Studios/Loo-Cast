@@ -4,7 +4,6 @@ pub mod id;
 // Local imports
 
 // Internal imports
-use crate::system::game::SimulationState;
 use crate::system::universe::chunk::data::*;
 use crate::system::universe::chunk::id::*;
 use crate::system::universe::chunk::metadata::*;
@@ -14,7 +13,6 @@ use crate::system::universe::entity::id::*;
 use crate::system::universe::entity::metadata::*;
 use crate::system::universe::entity::*;
 use crate::system::universe::*;
-use crate::system::AppState;
 
 // External imports
 use bevy::ecs::system::EntityCommands;
@@ -35,8 +33,6 @@ pub enum OperationRequest {
 }
 
 // Structs
-pub struct GlobalUniversePlugin;
-
 pub struct GlobalUniverse {
     pub(in crate::system::universe) registered_root_chunks:
         HashMap<LocalChunkID, Arc<Mutex<Chunk>>>,
@@ -67,19 +63,6 @@ pub(in crate::system::universe) struct EntityInfo {
 }
 
 // Implementations
-impl Plugin for GlobalUniversePlugin {
-    fn build(&self, app: &mut App) {
-        app
-            // Update Systems
-            .add_systems(
-                Update,
-                (GlobalUniverse::handle_operation_requests,)
-                    .run_if(in_state(AppState::Game))
-                    .run_if(in_state(SimulationState::Running)),
-            );
-    }
-}
-
 impl GlobalUniverse {
     pub(in crate::system::universe) fn generate_entity_id(
         parent_chunk: &mut Chunk,
@@ -230,7 +213,7 @@ impl GlobalUniverse {
         Ok(())
     }
 
-    fn handle_operation_requests(
+    pub(in crate::system::universe) fn handle_operation_requests(
         mut commands: Commands,
         mut universe_manager: ResMut<UniverseManager>,
     ) {

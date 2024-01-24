@@ -156,8 +156,6 @@ pub enum CommandEntityError {
 }
 
 // Structs
-pub struct EntityPlugin;
-
 pub struct EntityOperationRequest {
     pub(in crate::system::universe) operations: Vec<EntityOperation>,
 }
@@ -195,10 +193,6 @@ pub struct EntityBevyComponent {
 }
 
 // Implementations
-impl Plugin for EntityPlugin {
-    fn build(&self, _app: &mut App) {}
-}
-
 impl EntityOperationRequest {
     pub fn new(operations: Vec<EntityOperation>) -> Self {
         EntityOperationRequest { operations }

@@ -4,7 +4,6 @@ pub mod id;
 // Local imports
 
 // Internal imports
-use crate::system::game::SimulationState;
 use crate::system::player::*;
 use crate::system::universe::chunk::data::*;
 use crate::system::universe::chunk::id::*;
@@ -16,7 +15,6 @@ use crate::system::universe::entity::pos::*;
 use crate::system::universe::entity::*;
 use crate::system::universe::global::*;
 use crate::system::universe::*;
-use crate::system::AppState;
 
 // External imports
 use bevy::prelude::*;
@@ -30,8 +28,6 @@ use bevy::prelude::*;
 // Enums
 
 // Structs
-pub struct LocalUniversePlugin;
-
 #[derive(Debug)]
 pub struct LocalUniverse {
     pub(in crate::system::universe) id: LocalUniverseID,
@@ -43,19 +39,6 @@ pub struct LocalUniverse {
 }
 
 // Implementations
-impl Plugin for LocalUniversePlugin {
-    fn build(&self, app: &mut App) {
-        app
-            // Update Systems
-            .add_systems(
-                Update,
-                (LocalUniverse::detect_local_chunks_system,)
-                    .run_if(in_state(AppState::Game))
-                    .run_if(in_state(SimulationState::Running)),
-            );
-    }
-}
-
 impl Default for LocalUniverse {
     fn default() -> Self {
         Self::new(LocalUniverseID::default())
@@ -72,7 +55,15 @@ impl LocalUniverse {
         }
     }
 
-    fn detect_local_chunks_system(
+    pub(in crate::system::universe) fn startup(mut initialize_player_event_writer: EventWriter<InitializePlayer>) {
+        initialize_player_event_writer.send(InitializePlayer {});
+    }
+
+    pub(in crate::system::universe) fn shutdown(mut terminate_player_event_writer: EventWriter<TerminatePlayer>) {
+        terminate_player_event_writer.send(TerminatePlayer {});
+    }
+
+    pub(in crate::system::universe) fn detect_local_chunks_system(
         player_transform_query: Query<&Transform, With<Player>>,
         universe_manager: Res<UniverseManager>,
     ) {
