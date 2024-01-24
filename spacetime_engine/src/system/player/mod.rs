@@ -3,6 +3,7 @@
 // Local imports
 
 // Internal imports
+use crate::kernel::manager::*;
 use crate::system::camera::MainCamera;
 use crate::system::game::SimulationState;
 use crate::system::universe::chunk::id::*;
@@ -20,8 +21,14 @@ use crate::system::AppState;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_rapier2d::prelude::*;
+use lazy_static::*;
+use std::sync::{Arc, Mutex};
 
 // Static variables
+lazy_static! {
+    pub static ref PLAYER_MANAGER: Arc<Mutex<PlayerManager>> =
+        Arc::new(Mutex::new(PlayerManager::new()));
+}
 
 // Constant variables
 pub const ACCELERATION: f32 = 1000.0;
@@ -46,7 +53,10 @@ pub struct TerminatePlayer;
 pub struct Player {}
 
 #[derive(Resource)]
-pub struct PlayerManager;
+pub struct PlayerManager {
+    manager_state: ManagerState,
+    current_player: Option<Entity>,
+}
 
 // Implementations
 impl Plugin for PlayerPlugin {
@@ -59,8 +69,8 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 Update,
                 (
-                    PlayerManager::handle_initialize_player,
-                    PlayerManager::handle_terminate_player,
+                    PlayerManager::handle_spawn_player,
+                    PlayerManager::handle_despawn_player,
                 )
                     .run_if(in_state(AppState::Game)),
             )
@@ -76,15 +86,66 @@ impl Plugin for PlayerPlugin {
     }
 }
 
+impl Manager for PlayerManager {
+    fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
+        info!("Initializing universe main module...");
+
+        match self.manager_state {
+            ManagerState::Created => {}
+            ManagerState::Initialized => {
+                return Err(ManagerInitializeError::ManagerAlreadyInitialized);
+            }
+            ManagerState::Finalized => {
+                return Err(ManagerInitializeError::ManagerAlreadyFinalized);
+            }
+        }
+
+        self.manager_state = ManagerState::Initialized;
+
+        info!("Initialized universe main module.");
+
+        Ok(())
+    }
+
+    fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
+        info!("Finalizing universe main module...");
+
+        match self.manager_state {
+            ManagerState::Created => {
+                return Err(ManagerFinalizeError::ManagerNotInitialized);
+            }
+            ManagerState::Initialized => {}
+            ManagerState::Finalized => {
+                return Err(ManagerFinalizeError::ManagerAlreadyFinalized);
+            }
+        }
+
+        self.manager_state = ManagerState::Finalized;
+
+        info!("Finalized universe main module.");
+
+        Ok(())
+    }
+
+    fn get_manager_state(&self) -> &ManagerState {
+        &self.manager_state
+    }
+}
+
 impl PlayerManager {
-    fn handle_initialize_player(
+    fn new() -> PlayerManager {
+        PlayerManager {
+            manager_state: ManagerState::Created,
+            current_player: None,
+        }
+    }
+
+    fn handle_spawn_player(
         mut commands: Commands,
         mut initialize_player_event_reader: EventReader<InitializePlayer>,
         asset_server: Res<AssetServer>,
-        mut universe_manager: ResMut<UniverseManager>,
     ) {
         if initialize_player_event_reader.iter().next().is_some() {
-            commands.insert_resource(PlayerManager {});
             commands.spawn((
                 Player {},
                 SpriteBundle {
@@ -108,17 +169,15 @@ impl PlayerManager {
                     angular_damping: 0.0,
                 },
             ));
-            let _ = universe_manager.register_local_universe(LocalUniverse::default());
         }
     }
 
-    fn handle_terminate_player(
+    fn handle_despawn_player(
         mut commands: Commands,
         mut terminate_player_event_reader: EventReader<TerminatePlayer>,
         player_query: Query<Entity, With<Player>>,
     ) {
         if terminate_player_event_reader.iter().next().is_some() {
-            commands.remove_resource::<PlayerManager>();
             if let Ok(player_entity) = player_query.get_single() {
                 commands.entity(player_entity).despawn();
             }
