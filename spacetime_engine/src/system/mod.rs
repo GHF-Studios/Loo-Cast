@@ -55,28 +55,6 @@ pub struct SystemPlugins;
 pub struct RapierPlugins;
 
 // Implementations
-impl PluginGroup for SystemPlugins {
-    fn build(self) -> PluginGroupBuilder {
-        let mut group = PluginGroupBuilder::start::<Self>();
-
-        group = group
-            // Internal Modules
-            .add(BackgroundPlugin)
-            .add(CameraPlugin)
-            .add(GamePlugin)
-            .add(TestPlugin)
-            .add(PlayerPlugin)
-            .add(GamePlugin)
-            .add(UIPlugin)
-            .add(UniversePlugin)
-            // External Modules
-            .add(RapierDebugRenderPlugin::default())
-            .add(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0));
-
-        group
-    }
-}
-
 impl Manager for SystemManager {
     fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
         info!("Initializing system main module...");
@@ -400,6 +378,28 @@ impl SystemManager {
         Self {
             manager_state: ManagerState::Created,
         }
+    }
+}
+
+impl PluginGroup for SystemPlugins {
+    fn build(self) -> PluginGroupBuilder {
+        let mut group = PluginGroupBuilder::start::<Self>();
+
+        group = group
+            // Internal Modules
+            .add(BackgroundPlugin)
+            .add(CameraPlugin)
+            .add(GamePlugin)
+            .add(TestPlugin)
+            .add(PlayerPlugin)
+            .add(GamePlugin)
+            .add(UIPlugin)
+            .add(UniversePlugin)
+            // External Modules
+            .add(RapierDebugRenderPlugin::default())
+            .add(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0));
+
+        group
     }
 }
 
