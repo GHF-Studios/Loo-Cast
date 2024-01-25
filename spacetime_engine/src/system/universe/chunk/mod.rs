@@ -11,8 +11,10 @@ use metadata::*;
 use pos::*;
 
 // Internal imports
+use crate::system::game::SimulationState;
 use crate::system::universe::entity::pos::*;
 use crate::system::universe::*;
+use crate::system::AppState;
 
 // External imports
 use bevy::prelude::*;
@@ -180,6 +182,8 @@ pub enum DespawnChunkError {
 }
 
 // Structs
+pub struct ChunkPlugin;
+
 pub struct ChunkOperationRequest {
     pub(in crate::system::universe) operations: Vec<ChunkOperation>,
 }
@@ -220,6 +224,19 @@ pub struct ChunkBevyComponent {
 }
 
 // Implementations
+impl Plugin for ChunkPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            // Update Systems
+            .add_systems(
+                Update,
+                (Chunk::debug_render_system,)
+                    .run_if(in_state(AppState::Game))
+                    .run_if(in_state(SimulationState::Running)),
+            );
+    }
+}
+
 impl ChunkOperationRequest {
     pub fn new(operations: Vec<ChunkOperation>) -> Self {
         ChunkOperationRequest { operations }
@@ -243,7 +260,7 @@ impl Chunk {
         Chunk::Registered { id, bevy_entity }
     }
 
-    pub(in crate::system::universe) fn debug_render_system(mut gizmos: Gizmos, chunk_ecs_entity_query: Query<&ChunkBevyComponent>) {
+    fn debug_render_system(mut gizmos: Gizmos, chunk_ecs_entity_query: Query<&ChunkBevyComponent>) {
         for chunk_ecs_entity in chunk_ecs_entity_query.iter() {
             let chunk = match chunk_ecs_entity.chunk.lock() {
                 Ok(chunk) => chunk,

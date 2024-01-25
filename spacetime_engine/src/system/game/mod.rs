@@ -9,10 +9,10 @@ use info::*;
 use state::*;
 
 // Internal imports
-use crate::kernel::manager::*;
 use crate::system::ui::games_menu::*;
 use crate::system::universe::*;
 use crate::system::AppState;
+use crate::kernel::manager::*;
 
 // External imports
 use bevy::app::AppExit;
