@@ -83,7 +83,7 @@ impl GameInfoManager {
     fn new() -> GameInfoManager {
         GameInfoManager {
             manager_state: ManagerState::Created,
-            registered_game_infos: Some(Vec::new()),
+            registered_game_infos: None,
         }
     }
 

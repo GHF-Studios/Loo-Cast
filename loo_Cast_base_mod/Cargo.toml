@@ -9,3 +9,5 @@ path = "src/lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
+bevy = "0.11.2"
+spacetime_engine = { path = "../spacetime_engine" }

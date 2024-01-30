@@ -5,7 +5,6 @@ pub mod debug;
 pub mod event;
 pub mod manager;
 pub mod math;
-pub mod plugin;
 pub mod resource;
 
 // Internal imports
@@ -89,16 +88,6 @@ impl Manager for KernelManager {
                 panic!("Failed to lock event manager mutex! Error: {:?}", err);
             }
         };
-        let plugin_manager = plugin::PLUGIN_MANAGER.clone();
-        let mut plugin_manager = match plugin_manager.lock() {
-            Ok(plugin_manager) => {
-                trace!("Locked plugin manager mutex.");
-                plugin_manager
-            }
-            Err(err) => {
-                panic!("Failed to lock plugin manager mutex! Error: {:?}", err);
-            }
-        };
         let resource_manager = resource::RESOURCE_MANAGER.clone();
         let mut resource_manager = match resource_manager.lock() {
             Ok(resource_manager) => {
@@ -144,14 +133,6 @@ impl Manager for KernelManager {
             }
             Err(err) => {
                 panic!("Failed to initialize event main module! Error: {:?}", err);
-            }
-        }
-        match plugin_manager.initialize() {
-            Ok(_) => {
-                debug!("Initialized plugin main module.");
-            }
-            Err(err) => {
-                panic!("Failed to initialize plugin main module! Error: {:?}", err);
             }
         }
         match resource_manager.initialize() {
@@ -227,16 +208,6 @@ impl Manager for KernelManager {
                 panic!("Failed to lock event manager mutex! Error: {:?}", err);
             }
         };
-        let plugin_manager = plugin::PLUGIN_MANAGER.clone();
-        let mut plugin_manager = match plugin_manager.lock() {
-            Ok(plugin_manager) => {
-                trace!("Locked plugin manager mutex.");
-                plugin_manager
-            }
-            Err(err) => {
-                panic!("Failed to lock plugin manager mutex! Error: {:?}", err);
-            }
-        };
         let resource_manager = resource::RESOURCE_MANAGER.clone();
         let mut resource_manager = match resource_manager.lock() {
             Ok(resource_manager) => {
@@ -282,14 +253,6 @@ impl Manager for KernelManager {
             }
             Err(err) => {
                 panic!("Failed to finalize event main module. Error: {:?}", err);
-            }
-        }
-        match plugin_manager.finalize() {
-            Ok(_) => {
-                debug!("Finalized plugin main module.");
-            }
-            Err(err) => {
-                panic!("Failed to finalize plugin main module. Error: {:?}", err);
             }
         }
         match resource_manager.finalize() {

@@ -6,6 +6,7 @@ extern crate spacetime_engine;
 // Local imports
 
 // Internal imports
+use spacetime_engine::*;
 use spacetime_engine::kernel::manager::*;
 use spacetime_engine::kernel::*;
 use spacetime_engine::system::*;
@@ -16,6 +17,10 @@ use bevy::prelude::*;
 use bevy::app::AppExit;
 use lazy_static::*;
 use std::sync::{Arc, Mutex};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::error::Error;
+use libloading::*;
 
 // Static variables
 lazy_static! {
@@ -177,20 +182,95 @@ impl Manager for MainManager {
 }
 
 impl MainManager {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             manager_state: ManagerState::Created,
+        }
+    }
+
+    fn spacetime_engine_startup() {
+        info!("Starting spacetime engine...");
+    
+        trace!("Locking spacetime engine main module manager mutex...");
+    
+        let main_manager = MAIN_MANAGER.clone();
+        let mut main_manager = match main_manager.lock() {
+            Ok(main_manager) => {
+                trace!("Locked spacetime engine main module manager mutex.");
+                main_manager
+            }
+            Err(err) => {
+                panic!("Failed to lock spacetime engine main module manager mutex! Error: {:?}", err);
+            }
+        };
+    
+        debug!("Initializing spacetime engine main module...");
+    
+        match main_manager.initialize() {
+            Ok(_) => {
+                debug!("Initialized spacetime engine main module.");
+                drop(main_manager);
+            }
+            Err(err) => {
+                panic!("Failed to initialize spacetime engine main module! Error: {:?}", err);
+            }
+        };
+    
+        info!("Started spacetime engine.");
+    }
+    
+    fn spacetime_engine_shutdown(mut exit_events: EventReader<AppExit>) {
+        for _ in exit_events.iter() {
+            info!("Shutting down spacetime engine...");
+    
+            trace!("Locking spacetime engine main module manager mutex...");
+    
+            let main_manager = MAIN_MANAGER.clone();
+            let mut main_manager = match main_manager.lock() {
+                Ok(main_manager) => {
+                    trace!("Locked spacetime engine main module manager mutex.");
+                    main_manager
+                }
+                Err(err) => {
+                    panic!("Failed to lock spacetime engine main module manager mutex! Error: {:?}", err);
+                }
+            };
+    
+            debug!("Finalizing spacetime engine main module...");
+    
+            match main_manager.finalize() {
+                Ok(_) => {
+                    debug!("Finalized spacetime engine main module.");
+                    drop(main_manager);
+                }
+                Err(err) => {
+                    panic!("Failed to finalize spacetime engine main module! Error: {:?}", err);
+                }
+            };
+    
+            info!("Shut down spacetime engine.");
         }
     }
 }
 
 // Module Functions
 fn main() {
-    App::new()
+    let mut app = App::new();
+
+    match find_and_load_mods(&mut app) {
+        Ok(_) => {
+            println!("Loaded mods.");
+        }
+        Err(err) => {
+            panic!("Failed to load mods! Error: {:?}", err);
+        }
+    };
+
+    app
         // Startup Systems
-        .add_systems(PreStartup, spacetime_engine_startup)
+        .add_systems(PreStartup, MainManager::spacetime_engine_startup)
         // Update Systems
-        .add_systems(Update, spacetime_engine_shutdown)
+        .add_systems(Update, MainManager::spacetime_engine_shutdown)
         // Default Bevy Plugins
         .add_plugins(
             DefaultPlugins
@@ -213,66 +293,88 @@ fn main() {
 
 }
 
-fn spacetime_engine_startup() {
-    info!("Starting spacetime engine...");
+fn find_and_load_mods(app: &mut App) -> Result<(), Box<dyn Error>> {
+    println!("Loading mods...");
 
-    trace!("Locking spacetime engine main module manager mutex...");
+    let exe_path = std::env::current_exe()?;
 
-    let main_manager = MAIN_MANAGER.clone();
-    let mut main_manager = match main_manager.lock() {
-        Ok(main_manager) => {
-            trace!("Locked spacetime engine main module manager mutex.");
-            main_manager
+    let mods_path = exe_path.parent().unwrap().join("mods");
+
+    for entry in fs::read_dir(mods_path)? {
+        let path = entry?.path();
+
+        if path.is_dir() {
+            println!("Found mod: '{:?}'", path);
+            
+            let mod_name = path.file_name().unwrap().to_str().unwrap().to_owned();
+            let mod_folders = find_mod_folders(&path)?;
+            let mod_files = find_mod_files(&path)?;
+            let mod_dll_file: PathBuf = path.join(mod_name + ".dll");
+
+            println!("Loading mod: '{:?}'", path);
+
+            match load_mod(&mod_dll_file, app) {
+                Ok(_) => {
+                    println!("Loaded mod '{:?}'.", path);
+                }
+                Err(err) => {
+                    panic!("Failed to load mod '{:?}': {:?}!", path, err);
+                }
+            
+            };
         }
-        Err(err) => {
-            panic!("Failed to lock spacetime engine main module manager mutex! Error: {:?}", err);
-        }
-    };
+    }
 
-    debug!("Initializing spacetime engine main module...");
+    println!("Loaded mods.");
 
-    match main_manager.initialize() {
-        Ok(_) => {
-            debug!("Initialized spacetime engine main module.");
-            drop(main_manager);
-        }
-        Err(err) => {
-            panic!("Failed to initialize spacetime engine main module! Error: {:?}", err);
-        }
-    };
-
-    info!("Started spacetime engine.");
+    Ok(())
 }
 
-fn spacetime_engine_shutdown(mut exit_events: EventReader<AppExit>) {
-    for _ in exit_events.iter() {
-        info!("Shutting down spacetime engine...");
+fn find_mod_files(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+    let mut mod_files = Vec::new();
 
-        trace!("Locking spacetime engine main module manager mutex...");
+    for entry in fs::read_dir(dir)? {
+        let path = entry?.path();
 
-        let main_manager = MAIN_MANAGER.clone();
-        let mut main_manager = match main_manager.lock() {
-            Ok(main_manager) => {
-                trace!("Locked spacetime engine main module manager mutex.");
-                main_manager
-            }
-            Err(err) => {
-                panic!("Failed to lock spacetime engine main module manager mutex! Error: {:?}", err);
-            }
-        };
+        if path.is_file() && path.file_name().unwrap() == "mod.dll" {
+            mod_files.push(path);
+        }
+    }
 
-        debug!("Finalizing spacetime engine main module...");
+    Ok(mod_files)
+}
 
-        match main_manager.finalize() {
-            Ok(_) => {
-                debug!("Finalized spacetime engine main module.");
-                drop(main_manager);
-            }
-            Err(err) => {
-                panic!("Failed to finalize spacetime engine main module! Error: {:?}", err);
-            }
-        };
+fn find_mod_folders(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+    let mut mod_folders = Vec::new();
 
-        info!("Shut down spacetime engine.");
+    for entry in fs::read_dir(dir)? {
+        let path = entry?.path();
+
+        if path.is_dir() {
+            mod_folders.push(path);
+        }
+    }
+
+    Ok(mod_folders)
+}
+
+fn load_mod(dll_path: &Path, app: &mut App) -> Result<(), Box<dyn Error>> {
+    println!("Loading mod '{:?}'...", dll_path);
+
+    unsafe {
+        println!("Creating library from '{:?}'...", dll_path);
+        let lib = Library::new(dll_path)?;
+
+        println!("Getting 'get_mod' symbol from '{:?}'...", dll_path);
+        let get_mod: Symbol<unsafe fn()-> Box<dyn Mod>> = lib.get(b"get_mod")?;
+
+        println!("Calling 'get_mod' symbol from '{:?}'...", dll_path);
+        let spacetime_engine_mod = get_mod();
+
+        println!("Registering mod '{:?}'...", dll_path);
+        spacetime_engine_mod.register_mod(app);
+
+        println!("Registered mod '{:?}'.", dll_path);
+        Ok(())
     }
 }

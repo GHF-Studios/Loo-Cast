@@ -116,6 +116,20 @@ impl CameraManager {
             Err(_) => panic!("Failed to lock camera manager mutex!"),
         };
 
+        match camera_manager.manager_state {
+            ManagerState::Created => {
+                error!("Camera manager not initialized!");
+
+                return;
+            }
+            ManagerState::Initialized => {},
+            ManagerState::Finalized => {
+                error!("Camera manager already finalized!");
+
+                return;
+            }
+        }
+
         match camera_manager.camera_state {
             CameraState::CameraNotSpawned => {
                 commands.spawn((

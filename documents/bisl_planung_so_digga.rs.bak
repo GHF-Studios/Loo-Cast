@@ -87,10 +87,21 @@ pub enum Entity {
 	},
 }
 
+pub struct GameManager {
+	
+}
+
 pub struct UniverseManager {
 	
 }
 
 pub struct PlayerManager {
 	
+}
+
+// Implementations
+impl GameInfo {
+	pub(in crate::spacetime_engine::system) fn new() {
+		
+	}
 }

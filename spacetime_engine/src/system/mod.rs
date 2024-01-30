@@ -101,16 +101,16 @@ impl Manager for SystemManager {
                 panic!("Failed to lock game manager mutex! Error: {:?}", err);
             },
         };
-        let player_manager = player::PLAYER_MANAGER.clone();
-        let mut player_manager = match player_manager.lock() {
-            Ok(player_manager) => {
-                trace!("Locked player manager mutex.");
-                player_manager
-            },
-            Err(err) => {
-                panic!("Failed to lock player manager mutex! Error: {:?}", err);
-            },
-        };
+        //let player_manager = player::PLAYER_MANAGER.clone();
+        //let mut player_manager = match player_manager.lock() {
+        //    Ok(player_manager) => {
+        //        trace!("Locked player manager mutex.");
+        //        player_manager
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to lock player manager mutex! Error: {:?}", err);
+        //    },
+        //};
         let test_manager = test::TEST_MANAGER.clone();
         let mut test_manager = match test_manager.lock() {
             Ok(test_manager) => {
@@ -121,26 +121,26 @@ impl Manager for SystemManager {
                 panic!("Failed to lock iteration test manager mutex! Error: {:?}", err);
             },
         };
-        let ui_manager = ui::UI_MANAGER.clone();
-        let mut ui_manager = match ui_manager.lock() {
-            Ok(ui_manager) => {
-                trace!("Locked UI manager mutex.");
-                ui_manager
-            },
-            Err(err) => {
-                panic!("Failed to lock UI manager mutex! Error: {:?}", err);
-            },
-        };
-        let universe_manager = universe::UNIVERSE_MANAGER.clone();
-        let mut universe_manager = match universe_manager.lock() {
-            Ok(universe_manager) => {
-                trace!("Locked universe manager mutex.");
-                universe_manager
-            },
-            Err(err) => {
-                panic!("Failed to lock universe manager mutex! Error: {:?}", err);
-            },
-        };
+        //let ui_manager = ui::UI_MANAGER.clone();
+        //let mut ui_manager = match ui_manager.lock() {
+        //    Ok(ui_manager) => {
+        //        trace!("Locked UI manager mutex.");
+        //        ui_manager
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to lock UI manager mutex! Error: {:?}", err);
+        //    },
+        //};
+        //let universe_manager = universe::UNIVERSE_MANAGER.clone();
+        //let mut universe_manager = match universe_manager.lock() {
+        //    Ok(universe_manager) => {
+        //        trace!("Locked universe manager mutex.");
+        //        universe_manager
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to lock universe manager mutex! Error: {:?}", err);
+        //    },
+        //};
 
         debug!("Locked system module manager mutexes.");
 
@@ -170,14 +170,14 @@ impl Manager for SystemManager {
                 panic!("Failed to initialize game main module! Error: {:?}", err);
             },
         }
-        match player_manager.initialize() {
-            Ok(_) => {
-                debug!("Initialized player main module.");
-            },
-            Err(err) => {
-                panic!("Failed to initialize player main module! Error: {:?}", err);
-            },
-        }
+        //match player_manager.initialize() {
+        //    Ok(_) => {
+        //        debug!("Initialized player main module.");
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to initialize player main module! Error: {:?}", err);
+        //    },
+        //}
         match test_manager.initialize() {
             Ok(_) => {
                 debug!("Initialized iteration test module.");
@@ -186,22 +186,22 @@ impl Manager for SystemManager {
                 panic!("Failed to initialize iteration test module! Error: {:?}", err);
             },
         }
-        match ui_manager.initialize() {
-            Ok(_) => {
-                debug!("Initialized UI main module.");
-            },
-            Err(err) => {
-                panic!("Failed to initialize UI main module! Error: {:?}", err);
-            },
-        }
-        match universe_manager.initialize() {
-            Ok(_) => {
-                debug!("Initialized universe main module.");
-            },
-            Err(err) => {
-                panic!("Failed to initialize universe main module! Error: {:?}", err);
-            },
-        }
+        //match ui_manager.initialize() {
+        //    Ok(_) => {
+        //        debug!("Initialized UI main module.");
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to initialize UI main module! Error: {:?}", err);
+        //    },
+        //}
+        //match universe_manager.initialize() {
+        //    Ok(_) => {
+        //        debug!("Initialized universe main module.");
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to initialize universe main module! Error: {:?}", err);
+        //    },
+        //}
 
         info!("Initialized system modules.");
 
@@ -257,16 +257,16 @@ impl Manager for SystemManager {
                 panic!("Failed to lock game manager mutex! Error: {:?}", err);
             },
         };
-        let player_manager = player::PLAYER_MANAGER.clone();
-        let mut player_manager = match player_manager.lock() {
-            Ok(player_manager) => {
-                trace!("Locked player manager mutex.");
-                player_manager
-            },
-            Err(err) => {
-                panic!("Failed to lock player manager mutex! Error: {:?}", err);
-            },
-        };
+        //let player_manager = player::PLAYER_MANAGER.clone();
+        //let mut player_manager = match player_manager.lock() {
+        //    Ok(player_manager) => {
+        //        trace!("Locked player manager mutex.");
+        //        player_manager
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to lock player manager mutex! Error: {:?}", err);
+        //    },
+        //};
         let test_manager = test::TEST_MANAGER.clone();
         let mut test_manager = match test_manager.lock() {
             Ok(test_manager) => {
@@ -277,26 +277,26 @@ impl Manager for SystemManager {
                 panic!("Failed to lock iteration test manager mutex! Error: {:?}", err);
             },
         };
-        let ui_manager = ui::UI_MANAGER.clone();
-        let mut ui_manager = match ui_manager.lock() {
-            Ok(ui_manager) => {
-                trace!("Locked UI manager mutex.");
-                ui_manager
-            },
-            Err(err) => {
-                panic!("Failed to lock UI manager mutex! Error: {:?}", err);
-            },
-        };
-        let universe_manager = universe::UNIVERSE_MANAGER.clone();
-        let mut universe_manager = match universe_manager.lock() {
-            Ok(universe_manager) => {
-                trace!("Locked universe manager mutex.");
-                universe_manager
-            },
-            Err(err) => {
-                panic!("Failed to lock universe manager mutex! Error: {:?}", err);
-            },
-        };
+        //let ui_manager = ui::UI_MANAGER.clone();
+        //let mut ui_manager = match ui_manager.lock() {
+        //    Ok(ui_manager) => {
+        //        trace!("Locked UI manager mutex.");
+        //        ui_manager
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to lock UI manager mutex! Error: {:?}", err);
+        //    },
+        //};
+        //let universe_manager = universe::UNIVERSE_MANAGER.clone();
+        //let mut universe_manager = match universe_manager.lock() {
+        //    Ok(universe_manager) => {
+        //        trace!("Locked universe manager mutex.");
+        //        universe_manager
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to lock universe manager mutex! Error: {:?}", err);
+        //    },
+        //};
 
         debug!("Locked system module manager mutexes.");
 
@@ -326,14 +326,14 @@ impl Manager for SystemManager {
                 panic!("Failed to finalize game main module. Error: {:?}", err);
             },
         }
-        match player_manager.finalize() {
-            Ok(_) => {
-                debug!("Finalized player main module.");
-            },
-            Err(err) => {
-                panic!("Failed to finalize player main module. Error: {:?}", err);
-            },
-        }
+        //match player_manager.finalize() {
+        //    Ok(_) => {
+        //        debug!("Finalized player main module.");
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to finalize player main module. Error: {:?}", err);
+        //    },
+        //}
         match test_manager.finalize() {
             Ok(_) => {
                 debug!("Finalized iteration test module.");
@@ -342,22 +342,22 @@ impl Manager for SystemManager {
                 panic!("Failed to finalize iteration test module! Error: {:?}", err);
             },
         }
-        match ui_manager.finalize() {
-            Ok(_) => {
-                debug!("Finalized UI main module.");
-            },
-            Err(err) => {
-                panic!("Failed to finalize UI main module. Error: {:?}", err);
-            },
-        }
-        match universe_manager.finalize() {
-            Ok(_) => {
-                debug!("Finalized universe main module.");
-            },
-            Err(err) => {
-                panic!("Failed to finalize universe main module. Error: {:?}", err);
-            },
-        }
+        //match ui_manager.finalize() {
+        //    Ok(_) => {
+        //        debug!("Finalized UI main module.");
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to finalize UI main module. Error: {:?}", err);
+        //    },
+        //}
+        //match universe_manager.finalize() {
+        //    Ok(_) => {
+        //        debug!("Finalized universe main module.");
+        //    },
+        //    Err(err) => {
+        //        panic!("Failed to finalize universe main module. Error: {:?}", err);
+        //    },
+        //}
 
         info!("Finalized system modules..");
 
@@ -392,7 +392,6 @@ impl PluginGroup for SystemPlugins {
             .add(GamePlugin)
             .add(TestPlugin)
             .add(PlayerPlugin)
-            .add(GamePlugin)
             .add(UIPlugin)
             .add(UniversePlugin)
             // External Modules
