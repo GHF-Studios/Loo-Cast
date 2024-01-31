@@ -263,7 +263,7 @@ impl MainManager {
         lua.load(r#"
             print("Hello World!")
         "#).exec().unwrap();
-        
+
         //main_manager.lua_environment_thread_handle = Some(std::thread::spawn(|| {
         //    
         //}));
@@ -320,7 +320,7 @@ fn main() {
             println!("Loaded mods.");
         }
         Err(err) => {
-            panic!("Failed to load mods! Error: {:?}", err);
+            panic!("Failed to load mods: {:?}", err);
         }
     };
 
@@ -356,19 +356,84 @@ fn main() {
 fn find_and_load_mods(app: &mut App) -> std::result::Result<(), Box<dyn Error>> {
     println!("Loading mods...");
 
-    let exe_path = std::env::current_exe()?;
+    let exe_file_path = match std::env::current_exe() {
+        Ok(exe_file_path) => {
+            exe_file_path
+        }
+        Err(err) => {
+            panic!("Failed to get current executable path: {:?}", err);
+        }
+    };
 
-    let mods_path = exe_path.parent().unwrap().join("mods");
+    let mods_folder_path = match exe_file_path.parent() {
+        Some(mods_folder_path) => {
+            mods_folder_path
+        }
+        None => {
+            panic!("Failed to get application path!");
+        }
+    };
+    let mods_folder_path = mods_folder_path.join("mods");
 
-    for entry in fs::read_dir(mods_path)? {
-        let path = entry?.path();
+    println!("Mods folder path: '{:?}'", mods_folder_path);
+
+    let mods_folder_entries = match fs::read_dir(&mods_folder_path) {
+        Ok(mods_folder_entries) => {
+            mods_folder_entries
+        }
+        Err(err) => {
+            panic!("Failed to read mods folder: {:?}", err);
+        }
+    };
+
+    for entry in mods_folder_entries {
+        let path = match entry {
+            Ok(entry) => {
+                entry.path()
+            }
+            Err(err) => {
+                panic!("Failed to read mods folder entry: {:?}", err);
+            }
+        };
 
         if path.is_dir() {
             println!("Found mod: '{:?}'", path);
             
-            let mod_name = path.file_name().unwrap().to_str().unwrap().to_owned();
-            let mod_folders = find_mod_folders(&path)?;
-            let mod_files = find_mod_files(&path)?;
+            let mod_name = match path.file_name() {
+                Some(mod_name) => {
+                    mod_name
+                }
+                None => {
+                    panic!("Failed to get mod name!");
+                }
+            };
+            let mod_name = match mod_name.to_str() {
+                Some(mod_name) => {
+                    mod_name.to_owned()
+                }
+                None => {
+                    panic!("Failed to convert mod name to string!");
+                }
+            };
+
+            let mod_folders = match find_mod_folders(&path) {
+                Ok(mod_folders) => {
+                    mod_folders
+                }
+                Err(err) => {
+                    panic!("Failed to find mod folders: {:?}", err);
+                }
+            };
+
+            let mod_files = match find_mod_files(&path) {
+                Ok(mod_files) => {
+                    mod_files
+                }
+                Err(err) => {
+                    panic!("Failed to find mod files: {:?}", err);
+                }
+            };
+
             let mod_dll_file: PathBuf = path.join(mod_name + ".dll");
 
             println!("Loading mod: '{:?}'", path);
@@ -378,7 +443,7 @@ fn find_and_load_mods(app: &mut App) -> std::result::Result<(), Box<dyn Error>> 
                     println!("Loaded mod '{:?}'.", path);
                 }
                 Err(err) => {
-                    panic!("Failed to load mod '{:?}': {:?}!", path, err);
+                    panic!("Failed to load mod '{:?}': {:?}", path, err);
                 }
             
             };
@@ -390,25 +455,27 @@ fn find_and_load_mods(app: &mut App) -> std::result::Result<(), Box<dyn Error>> 
     Ok(())
 }
 
-fn find_mod_files(dir: &Path) -> std::result::Result<Vec<PathBuf>, Box<dyn Error>> {
-    let mut mod_files = Vec::new();
-
-    for entry in fs::read_dir(dir)? {
-        let path = entry?.path();
-
-        if path.is_file() && path.file_name().unwrap() == "mod.dll" {
-            mod_files.push(path);
-        }
-    }
-
-    Ok(mod_files)
-}
-
 fn find_mod_folders(dir: &Path) -> std::result::Result<Vec<PathBuf>, Box<dyn Error>> {
     let mut mod_folders = Vec::new();
 
-    for entry in fs::read_dir(dir)? {
-        let path = entry?.path();
+    let entries = match fs::read_dir(&dir) {
+        Ok(entries) => {
+            entries
+        }
+        Err(err) => {
+            panic!("Failed to read mods folder: {:?}", err);
+        }
+    };
+
+    for entry in entries {
+        let path = match entry {
+            Ok(entry) => {
+                entry.path()
+            }
+            Err(err) => {
+                panic!("Failed to read mods folder entry: {:?}", err);
+            }
+        };
 
         if path.is_dir() {
             mod_folders.push(path);
@@ -416,6 +483,36 @@ fn find_mod_folders(dir: &Path) -> std::result::Result<Vec<PathBuf>, Box<dyn Err
     }
 
     Ok(mod_folders)
+}
+
+fn find_mod_files(dir: &Path) -> std::result::Result<Vec<PathBuf>, Box<dyn Error>> {
+    let mut mod_files = Vec::new();
+
+    let entries = match fs::read_dir(&dir) {
+        Ok(entries) => {
+            entries
+        }
+        Err(err) => {
+            panic!("Failed to read mods folder: {:?}", err);
+        }
+    };
+
+    for entry in entries {
+        let path = match entry {
+            Ok(entry) => {
+                entry.path()
+            }
+            Err(err) => {
+                panic!("Failed to read mods folder entry: {:?}", err);
+            }
+        };
+
+        if path.is_file() && path.file_name().unwrap() == "mod.dll" {
+            mod_files.push(path);
+        }
+    }
+
+    Ok(mod_files)
 }
 
 fn load_mod(dll_path: &Path, app: &mut App) -> std::result::Result<(), Box<dyn Error>> {

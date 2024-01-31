@@ -40,7 +40,7 @@ New-Item -Path $baseModBuildTargetDir -ItemType Directory -Force
 
 ########## BUILD LOO CAST ##########
 
-cargo run --release
+cargo build --release
 
 
 
@@ -108,3 +108,14 @@ if (Test-Path $engineBuildModsSourceDir) {
 } else {
     Write-Host "Source mods directory does not exist: $engineBuildModsSourceDir"
 }
+
+
+
+
+########## RUN LOO CAST ##########
+
+cd .\build\debug\
+
+.\spacetime_engine.exe
+
+cd ..\..
