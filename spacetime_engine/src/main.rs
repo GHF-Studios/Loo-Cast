@@ -43,7 +43,7 @@ pub struct MainManager {
 
 // Implementations
 impl Manager for MainManager {
-    fn initialize(&mut self) -> Result<(), ManagerInitializeError> {
+    fn initialize(&mut self) -> std::result::Result<(), ManagerInitializeError> {
         info!("Initializing spacetime engine main module...");
 
         match self.manager_state {
@@ -111,7 +111,7 @@ impl Manager for MainManager {
         Ok(())
     }
 
-    fn finalize(&mut self) -> Result<(), ManagerFinalizeError> {
+    fn finalize(&mut self) -> std::result::Result<(), ManagerFinalizeError> {
         info!("Finalizing spacetime engine main module...");
 
         match self.manager_state {
@@ -351,7 +351,7 @@ fn main() {
 
 }
 
-fn find_and_load_mods(app: &mut App) -> Result<(), Box<dyn Error>> {
+fn find_and_load_mods(app: &mut App) -> std::result::Result<(), Box<dyn Error>> {
     println!("Loading mods...");
 
     let exe_path = std::env::current_exe()?;
@@ -388,7 +388,7 @@ fn find_and_load_mods(app: &mut App) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn find_mod_files(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+fn find_mod_files(dir: &Path) -> std::result::Result<Vec<PathBuf>, Box<dyn Error>> {
     let mut mod_files = Vec::new();
 
     for entry in fs::read_dir(dir)? {
@@ -402,7 +402,7 @@ fn find_mod_files(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
     Ok(mod_files)
 }
 
-fn find_mod_folders(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+fn find_mod_folders(dir: &Path) -> std::result::Result<Vec<PathBuf>, Box<dyn Error>> {
     let mut mod_folders = Vec::new();
 
     for entry in fs::read_dir(dir)? {
@@ -416,7 +416,7 @@ fn find_mod_folders(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
     Ok(mod_folders)
 }
 
-fn load_mod(dll_path: &Path, app: &mut App) -> Result<(), Box<dyn Error>> {
+fn load_mod(dll_path: &Path, app: &mut App) -> std::result::Result<(), Box<dyn Error>> {
     println!("Loading mod '{:?}'...", dll_path);
 
     unsafe {
