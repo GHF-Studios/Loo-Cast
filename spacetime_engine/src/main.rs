@@ -241,30 +241,32 @@ impl MainManager {
     
         debug!("Spawning lua environment thread...");
 
-        main_manager.lua_environment_thread_handle = Some(std::thread::spawn(|| {
-            let lua = Lua::new();
+        let lua = Lua::new();
 
-            let globals = lua.globals();
+        let globals = lua.globals();
 
-            let hello_world_function = lua.create_function(|_, ()| {
-                info!("Hello World from Lua!");
-                Ok(())
-            }).unwrap();
+        let hello_world_function = lua.create_function(|_, ()| {
+            info!("Hello World from Lua!");
+            Ok(())
+        }).unwrap();
 
-            match globals.set("print", hello_world_function) {
-                Ok(_) => {
-                    debug!("Set 'print' function in lua environment.");
-                }
-                Err(err) => {
-                    panic!("Failed to set 'print' function in lua environment: {:?}!", err);
-                }
-            };
+        match globals.set("print", hello_world_function) {
+            Ok(_) => {
+                debug!("Set 'print' function in lua environment.");
+            }
+            Err(err) => {
+                panic!("Failed to set 'print' function in lua environment: {:?}!", err);
+            }
+        };
 
 
-            lua.load(r#"
-                print("Hello World!")
-            "#).exec().unwrap();
-        }));
+        lua.load(r#"
+            print("Hello World!")
+        "#).exec().unwrap();
+        
+        //main_manager.lua_environment_thread_handle = Some(std::thread::spawn(|| {
+        //    
+        //}));
 
         info!("Started spacetime engine.");
     }
