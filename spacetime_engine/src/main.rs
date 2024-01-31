@@ -15,6 +15,7 @@ use spacetime_engine::system::*;
 use bevy::log::*;
 use bevy::prelude::*;
 use bevy::app::AppExit;
+use bevy::asset::AssetPlugin;
 use lazy_static::*;
 use std::sync::{Arc, Mutex};
 use std::fs;
