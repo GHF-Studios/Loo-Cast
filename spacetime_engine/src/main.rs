@@ -22,6 +22,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use libloading::*;
+use mlua::*;
 
 // Static variables
 lazy_static! {
@@ -37,6 +38,7 @@ lazy_static! {
 // Structs
 pub struct MainManager {
     manager_state: ManagerState,
+    lua_environment_thread_handle: Option<std::thread::JoinHandle<()>>,
 }
 
 // Implementations
@@ -186,11 +188,12 @@ impl MainManager {
     fn new() -> Self {
         Self {
             manager_state: ManagerState::Created,
+            lua_environment_thread_handle: None,
         }
     }
 
-    fn spacetime_engine_startup() {
-        info!("Starting spacetime engine...");
+    fn spacetime_engine_pre_startup() {
+        info!("Pre-Starting spacetime engine...");
     
         trace!("Locking spacetime engine main module manager mutex...");
     
@@ -217,7 +220,59 @@ impl MainManager {
             }
         };
     
+        info!("Pre-Started spacetime engine.");
+    }
+
+    fn spacetime_engine_startup() {
+        info!("Starting spacetime engine...");
+
+        trace!("Locking spacetime engine main module manager mutex...");
+    
+        let main_manager = MAIN_MANAGER.clone();
+        let mut main_manager = match main_manager.lock() {
+            Ok(main_manager) => {
+                trace!("Locked spacetime engine main module manager mutex.");
+                main_manager
+            }
+            Err(err) => {
+                panic!("Failed to lock spacetime engine main module manager mutex! Error: {:?}", err);
+            }
+        };
+    
+        debug!("Spawning lua environment thread...");
+
+        main_manager.lua_environment_thread_handle = Some(std::thread::spawn(|| {
+            let lua = Lua::new();
+
+            let globals = lua.globals();
+
+            let hello_world_function = lua.create_function(|_, ()| {
+                info!("Hello World from Lua!");
+                Ok(())
+            }).unwrap();
+
+            match globals.set("print", hello_world_function) {
+                Ok(_) => {
+                    debug!("Set 'print' function in lua environment.");
+                }
+                Err(err) => {
+                    panic!("Failed to set 'print' function in lua environment: {:?}!", err);
+                }
+            };
+
+
+            lua.load(r#"
+                print("Hello World!")
+            "#).exec().unwrap();
+        }));
+
         info!("Started spacetime engine.");
+    }
+
+    fn spacetime_engine_post_startup() {
+        info!("Post-Starting spacetime engine...");
+
+        info!("Post-Started spacetime engine.");
     }
     
     fn spacetime_engine_shutdown(mut exit_events: EventReader<AppExit>) {
@@ -269,7 +324,9 @@ fn main() {
 
     app
         // Startup Systems
-        .add_systems(PreStartup, MainManager::spacetime_engine_startup)
+        .add_systems(PreStartup, MainManager::spacetime_engine_pre_startup)
+        .add_systems(Startup, MainManager::spacetime_engine_startup)
+        .add_systems(PostStartup, MainManager::spacetime_engine_post_startup)
         // Update Systems
         .add_systems(Update, MainManager::spacetime_engine_shutdown)
         // Default Bevy Plugins
@@ -379,3 +436,4 @@ fn load_mod(dll_path: &Path, app: &mut App) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 }
+

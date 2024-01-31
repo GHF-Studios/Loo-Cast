@@ -6,7 +6,7 @@ edition = "2021"
 [lib]
 name = "spacetime_engine"
 path = "src/lib.rs"
-crate-type = ["rlib", "dylib"]
+crate-type = ["rlib"]
 
 [[bin]]
 name = "spacetime_engine"
@@ -27,3 +27,4 @@ lazy_static = "1.4"
 queues = "1.0.2"
 log = "0.4"
 libloading = "0.8.1"
+mlua = { version = "0.9.5", features = [ "lua51" ]}
