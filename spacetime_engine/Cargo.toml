@@ -6,7 +6,7 @@ edition = "2021"
 [lib]
 name = "spacetime_engine"
 path = "src/lib.rs"
-crate-type = ["rlib", "cdylib"]
+crate-type = ["rlib", "dylib"]
 
 [[bin]]
 name = "spacetime_engine"
@@ -16,11 +16,8 @@ path = "src/main.rs"
 opt-level = 3
 
 [dependencies]
-bevy = "0.11.2"
+bevy = { version = "0.11.2" }
 bevy_rapier2d = { version = "0.22.0", features = [ "debug-render-2d" ] }
-rand = "0.8.5"
-noise = "0.8"
-image = "0.24.7"
 serde = "1.0.185"
 serde_json = "1.0"
 futures = "0.3"
