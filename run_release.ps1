@@ -1,11 +1,11 @@
 ########## DEFINE PATHS ##########
 
 # Loo cast paths
-$looCastBuildSourceDir = ".\target\debug"
+$looCastBuildSourceDir = ".\target\release"
 
 # Engine paths
 $engineProjectDir = ".\spacetime_engine"
-$engineBuildTargetDir = ".\build\debug"
+$engineBuildTargetDir = ".\build\release"
 
 $engineBuildModsSourceDir = "$engineProjectDir\mods"
 $engineBuildModsTargetDir = "$engineBuildTargetDir\mods"
@@ -40,7 +40,7 @@ New-Item -Path $baseModBuildTargetDir -ItemType Directory -Force
 
 ########## BUILD LOO CAST ##########
 
-cargo run
+cargo run --release
 
 
 

@@ -40,7 +40,7 @@ New-Item -Path $baseModBuildTargetDir -ItemType Directory -Force
 
 ########## BUILD LOO CAST ##########
 
-cargo run
+cargo build --release
 
 
 
