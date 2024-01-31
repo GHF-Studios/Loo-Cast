@@ -366,13 +366,13 @@ fn load_mod(dll_path: &Path, app: &mut App) -> Result<(), Box<dyn Error>> {
         let lib = Library::new(dll_path)?;
 
         println!("Getting 'get_mod' symbol from '{:?}'...", dll_path);
-        let get_mod: Symbol<unsafe fn()-> Box<dyn Mod>> = lib.get(b"get_mod")?;
+        let get_mod: Symbol<unsafe fn()-> *mut dyn Mod> = lib.get(b"get_mod")?;
 
         println!("Calling 'get_mod' symbol from '{:?}'...", dll_path);
         let spacetime_engine_mod = get_mod();
 
         println!("Registering mod '{:?}'...", dll_path);
-        spacetime_engine_mod.register_mod(app);
+        (*spacetime_engine_mod).register_mod(app);
 
         println!("Registered mod '{:?}'.", dll_path);
         Ok(())

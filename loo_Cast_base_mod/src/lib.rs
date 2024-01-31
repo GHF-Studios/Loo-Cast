@@ -21,8 +21,17 @@ impl Mod for LooCastBaseModPlugins {
     }
 }
 
-#[allow(improper_ctypes_definitions)]
 #[no_mangle]
-pub extern "C" fn get_mod() -> Box<dyn Mod> {
-    Box::new(LooCastBaseModPlugins {}) as Box<dyn Mod>
+pub extern "C" fn get_mod() -> *mut dyn Mod {
+    println!("1");
+    let loo_cast_base_mod_plugins = LooCastBaseModPlugins {};
+
+    println!("2");
+    let loo_cast_base_mod_plugins = Box::new(loo_cast_base_mod_plugins);
+
+    println!("3");
+    let loo_cast_base_mod_plugins = Box::into_raw(loo_cast_base_mod_plugins) as *mut dyn Mod;
+
+    println!("4");
+    loo_cast_base_mod_plugins
 }
