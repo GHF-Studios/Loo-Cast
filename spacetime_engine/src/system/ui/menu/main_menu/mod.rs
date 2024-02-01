@@ -60,7 +60,7 @@ pub struct PlayButton {}
 #[derive(Component)]
 pub struct QuitButton {}
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct MainMenuManager;
 
 // Implementations

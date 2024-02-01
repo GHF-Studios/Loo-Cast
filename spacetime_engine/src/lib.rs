@@ -1,5 +1,4 @@
 // Modules
-pub mod kernel;
 pub mod system;
 
 // Local imports

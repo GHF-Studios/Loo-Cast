@@ -3,8 +3,6 @@
 // Local imports
 
 // Internal imports
-use crate::system::game::*;
-use crate::system::game::*;
 use crate::system::ui::*;
 use crate::system::AppState;
 
@@ -121,7 +119,7 @@ pub struct Game {
 }
 
 #[derive(Component)]
-pub struct CreateGameInfoButton {}
+pub struct CreateGameButton {}
 
 #[derive(Component)]
 pub struct BackToMainMenuButton {}
@@ -166,10 +164,9 @@ impl Plugin for GamesMenuPlugin {
                 Update,
                 (
                     GamesMenuManager::handle_back_to_main_menu_button,
-                    GamesMenuManager::handle_create_game_info_button,
+                    GamesMenuManager::handle_create_game_button,
                     GamesMenuManager::handle_delete_game_button,
                     GamesMenuManager::handle_load_game_button,
-                    GamesMenuManager::handle_load_game_instance,
                     GamesMenuManager::handle_delete_game_ui,
                 )
                     .run_if(in_state(AppState::GamesMenu)),
@@ -210,6 +207,9 @@ impl GamesMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
+                    
+                    info!("Transitioning to main menu...");
+
                     app_state_next_state.set(AppState::MainMenu);
                 }
                 Interaction::Hovered => {
@@ -222,18 +222,21 @@ impl GamesMenuManager {
         }
     }
 
-    fn handle_create_game_info_button(
+    fn handle_create_game_button(
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
-            (Changed<Interaction>, With<CreateGameInfoButton>),
+            (Changed<Interaction>, With<CreateGameButton>),
         >,
     ) {
         if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
-                    app_state_next_state.set(AppState::CreateGameInfoMenu);
+
+                    info!("Transitioning to game creation menu...");
+
+                    app_state_next_state.set(AppState::CreateGameMenu);
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
@@ -246,7 +249,6 @@ impl GamesMenuManager {
     }
 
     fn handle_delete_game_button(
-        mut delete_game_event_writer: EventWriter<DeleteGame>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor, &DeleteGameButton),
             Changed<Interaction>,
@@ -257,10 +259,13 @@ impl GamesMenuManager {
         {
             match *interaction {
                 Interaction::Pressed => {
-                    delete_game_event_writer.send(DeleteGame {
-                        game_name: delete_game_button.game_name.clone(),
-                    });
                     *background_color = PRESSED_BUTTON_COLOR.into();
+
+                    error!("Games and Game Management don't actually exist; the games are just placeholders and cannot be deleted.");
+
+                    // TODO: Delete the game associated with the button
+
+                    todo!();
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
@@ -273,7 +278,6 @@ impl GamesMenuManager {
     }
 
     fn handle_load_game_button(
-        mut load_game_instance_event_writer: EventWriter<LoadGameInstance>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor, &LoadGameButton),
             Changed<Interaction>,
@@ -284,10 +288,13 @@ impl GamesMenuManager {
         {
             match *interaction {
                 Interaction::Pressed => {
-                    load_game_instance_event_writer.send(LoadGameInstance {
-                        game_name: load_game_button.game_name.clone(),
-                    });
                     *background_color = PRESSED_BUTTON_COLOR.into();
+
+                    error!("Games and Game Management don't actually exist; the games are just placeholders and cannot be loaded.");
+
+                    // TODO: Load the game associated with the button
+                    
+                    todo!();
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
@@ -295,33 +302,6 @@ impl GamesMenuManager {
                 Interaction::None => {
                     *background_color = NORMAL_BUTTON_COLOR.into();
                 }
-            }
-        }
-    }
-
-    fn handle_load_game_instance(
-        mut load_game_instance_event_reader: EventReader<LoadGameInstance>,
-        mut load_game_event_writer: EventWriter<LoadGame>,
-    ) {
-        if let Some(event) = load_game_instance_event_reader.iter().last() {
-            let game_info_manager = super::super::game::info::GAME_INFO_MANAGER.clone();
-            let game_info_manager = match game_info_manager.lock() {
-                Ok(game_manager) => {
-                    trace!("Locked game info manager mutex.");
-                    game_manager
-                },
-                Err(_) => {
-                    error!("Failed to lock game info manager mutex.");
-                    return;
-                },
-            };
-
-            if let Some(game) =
-                game_info_manager.get_game_info(event.game_name.clone())
-            {
-                load_game_event_writer.send(LoadGame {
-                    game: game.clone(),
-                });
             }
         }
     }
@@ -335,6 +315,9 @@ impl GamesMenuManager {
             for (entity, game) in game_query.iter_mut() {
                 if game.name == event.game_name {
                     commands.entity(entity).despawn_recursive();
+
+                    info!("Deleted game '{}'.", event.game_name);
+
                     return;
                 }
             }
@@ -345,23 +328,9 @@ impl GamesMenuManager {
         commands: &mut Commands,
         asset_server: &Res<AssetServer>,
     ) -> Entity {
-        let game_info_manager = super::super::game::info::GAME_INFO_MANAGER.clone();
-        let game_info_manager = match game_info_manager.lock() {
-            Ok(game_info_manager) => {
-                trace!("Locked game info manager mutex.");
-                game_info_manager
-            },
-            Err(_) => {
-                panic!("Failed to lock game info manager mutex.");
-            },
-        };
+        warn!("Games and Game Management don't actually exist; the save games are just placeholders.");
 
-        let game_infos = match game_info_manager.get_game_infos() {
-            None => {
-                panic!("Game infos not registered!");
-            }
-            Some(game_infos) => game_infos,
-        };
+        let game_names = vec!["save_game_1", "save_game_2", "save_game_3"];
 
         let games_menu_entity = commands
             .spawn((
@@ -403,7 +372,7 @@ impl GamesMenuManager {
                     ))
                     .with_children(|parent| {
                         // Save Games
-                        for game_info in game_infos.iter() {
+                        for game_name in game_names.iter() {
                             parent
                                 .spawn((
                                     NodeBundle {
@@ -412,7 +381,7 @@ impl GamesMenuManager {
                                         ..default()
                                     },
                                     Game {
-                                        name: game_info.name.clone(),
+                                        name: game_name.to_string(),
                                     },
                                 ))
                                 .with_children(|parent| {
@@ -425,7 +394,7 @@ impl GamesMenuManager {
                                                 ..default()
                                             },
                                             DeleteGameButton {
-                                                game_name: game_info.name.clone(),
+                                                game_name: game_name.to_string(),
                                             },
                                         ))
                                         .with_children(|parent| {
@@ -448,7 +417,7 @@ impl GamesMenuManager {
                                             parent.spawn(TextBundle {
                                                 text: Text {
                                                     sections: vec![TextSection::new(
-                                                        game_info.name.clone(),
+                                                        game_name.clone(),
                                                         Self::get_game_name_text_style(
                                                             asset_server,
                                                         ),
@@ -468,7 +437,7 @@ impl GamesMenuManager {
                                                 ..default()
                                             },
                                             LoadGameButton {
-                                                game_name: game_info.name.clone(),
+                                                game_name: game_name.to_string(),
                                             },
                                         ))
                                         .with_children(|parent| {
@@ -516,7 +485,7 @@ impl GamesMenuManager {
                                     background_color: NORMAL_BUTTON_COLOR.into(),
                                     ..default()
                                 },
-                                CreateGameInfoButton {},
+                                CreateGameButton {},
                             ))
                             .with_children(|parent| {
                                 parent.spawn(ImageBundle {

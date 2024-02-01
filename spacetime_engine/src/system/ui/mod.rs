@@ -1,16 +1,10 @@
 // Modules
 pub mod input_field;
-pub mod main_menu;
-pub mod pause_menu;
-pub mod game_creation_menu;
-pub mod games_menu;
+pub mod menu;
 
 // Local imports
 use input_field::InputFieldPlugin;
-use main_menu::MainMenuPlugin;
-use pause_menu::PauseMenuPlugin;
-use game_creation_menu::GameCreationMenuPlugin;
-use games_menu::GamesMenuPlugin;
+use menu::MenuPlugin;
 
 // Internal imports
 
@@ -49,7 +43,7 @@ pub struct LoseFocus {
 
 #[derive(Resource, Default)]
 pub struct UIManager {
-    pub focus: Option<Entity>,
+    focus: Option<Entity>,
 }
 
 // Implementations
@@ -61,11 +55,8 @@ impl Plugin for UIPlugin {
             .add_event::<LoseFocus>()
             // Plugins
             .add_plugins((
-                GameCreationMenuPlugin,
-                MainMenuPlugin,
-                PauseMenuPlugin,
-                GamesMenuPlugin,
                 InputFieldPlugin,
+                MenuPlugin,
             ))
             // Startup Systems
             .add_systems(Startup, UIManager::initialize)
@@ -76,7 +67,9 @@ impl Plugin for UIPlugin {
 
 impl UIManager {
     fn initialize(mut commands: Commands) {
-        commands.insert_resource(UIManager { focus: None });
+        commands.insert_resource(UIManager { 
+            focus: None
+        });
     }
 
     fn handle_gain_focus(

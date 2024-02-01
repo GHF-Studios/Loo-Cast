@@ -50,7 +50,7 @@ pub struct InputField {
     pub value: String,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct InputFieldManager;
 
 // Implementations

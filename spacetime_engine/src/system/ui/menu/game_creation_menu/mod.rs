@@ -3,7 +3,6 @@
 // Local imports
 
 // Internal imports
-use crate::system::game::*;
 use crate::system::ui::input_field::*;
 use crate::system::ui::*;
 use crate::system::AppState;
@@ -123,7 +122,7 @@ impl Plugin for GameCreationMenuPlugin {
         app
             // Enter State Systems
             .add_systems(
-                OnEnter(AppState::CreateGameInfoMenu),
+                OnEnter(AppState::CreateGameMenu),
                 GameCreationMenuManager::initialize,
             )
             // Update Systems
@@ -133,11 +132,11 @@ impl Plugin for GameCreationMenuPlugin {
                     GameCreationMenuManager::handle_cancel_game_creation_button,
                     GameCreationMenuManager::handle_confirm_game_creation_button,
                 )
-                    .run_if(in_state(AppState::CreateGameInfoMenu)),
+                    .run_if(in_state(AppState::CreateGameMenu)),
             )
             // Exit State Systems
             .add_systems(
-                OnExit(AppState::CreateGameInfoMenu),
+                OnExit(AppState::CreateGameMenu),
                 GameCreationMenuManager::terminate,
             );
     }
@@ -185,7 +184,6 @@ impl GameCreationMenuManager {
     }
 
     fn handle_confirm_game_creation_button(
-        mut create_game_event_writer: EventWriter<CreateGame>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
             (Changed<Interaction>, With<ConfirmGameCreationButton>),
@@ -198,9 +196,12 @@ impl GameCreationMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
-                    create_game_event_writer.send(CreateGame {
-                        game_name: name_input_field.value.clone(),
-                    });
+
+                    // TODO: Create game with selected parameters, or use default parameters
+
+                    error!("Games and Game Management don't actually exist; the save games are just placeholders and cannot be loaded.");
+
+                    todo!();
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
