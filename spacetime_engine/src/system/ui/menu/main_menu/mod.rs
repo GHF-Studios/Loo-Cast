@@ -68,8 +68,8 @@ impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app
             // Enter State Systems
-            .add_systems(OnEnter(AppState::MainMenu), MainMenuManager::initialize)
-            // Update Systems
+            .add_systems(OnEnter(AppState::MainMenu), MainMenuManager::startup)
+            // Update State Systems
             .add_systems(
                 Update,
                 (
@@ -79,17 +79,17 @@ impl Plugin for MainMenuPlugin {
                     .run_if(in_state(AppState::MainMenu)),
             )
             // Exit State Systems
-            .add_systems(OnExit(AppState::MainMenu), MainMenuManager::terminate);
+            .add_systems(OnExit(AppState::MainMenu), MainMenuManager::shutdown);
     }
 }
 
 impl MainMenuManager {
-    fn initialize(mut commands: Commands, asset_server: Res<AssetServer>) {
+    fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
         commands.insert_resource(MainMenuManager {});
         Self::build_main_menu(&mut commands, &asset_server);
     }
 
-    fn terminate(mut commands: Commands, main_menu_query: Query<Entity, With<MainMenu>>) {
+    fn shutdown(mut commands: Commands, main_menu_query: Query<Entity, With<MainMenu>>) {
         commands.remove_resource::<MainMenuManager>();
         if let Ok(main_menu_entity) = main_menu_query.get_single() {
             commands.entity(main_menu_entity).despawn_recursive();
@@ -107,6 +107,9 @@ impl MainMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
+
+                    info!("Switching to games menu...");
+
                     app_state_next_state.set(AppState::GamesMenu);
                 }
                 Interaction::Hovered => {
@@ -130,6 +133,9 @@ impl MainMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
+
+                    info!("Quitting the application...");
+
                     app_exit_event_writer.send(AppExit);
                 }
                 Interaction::Hovered => {

@@ -23,7 +23,7 @@ use bevy::{
 // Structs
 pub struct InputFieldPlugin;
 
-#[derive(Bundle, Debug)]
+#[derive(Bundle, Debug, Default)]
 pub struct InputFieldBundle {
     pub node: Node,
     pub input_field: InputField,
@@ -58,7 +58,7 @@ impl Plugin for InputFieldPlugin {
     fn build(&self, app: &mut App) {
         app
             // Startup Systems
-            .add_systems(Startup, InputFieldManager::initialize)
+            .add_systems(Startup, InputFieldManager::startup)
             // Update Systems
             .add_systems(
                 Update,
@@ -73,34 +73,13 @@ impl Plugin for InputFieldPlugin {
     }
 }
 
-impl Default for InputFieldBundle {
-    fn default() -> Self {
-        Self {
-            node: Node::default(),
-            input_field: InputField::default(),
-            button: Button,
-            style: Style::default(),
-            interaction: Interaction::default(),
-            text: Text::default(),
-            text_layout_info: TextLayoutInfo::default(),
-            text_flags: TextFlags::default(),
-            calculated_size: ContentSize::default(),
-            focus_policy: FocusPolicy::default(),
-            transform: Transform::default(),
-            global_transform: GlobalTransform::default(),
-            visibility: Visibility::default(),
-            computed_visibility: ComputedVisibility::default(),
-            z_index: ZIndex::default(),
-            background_color: Color::rgba(0.0, 0.0, 0.0, 0.0).into(),
-            border_color: BorderColor::default(),
-            image: UiImage::default(),
-        }
-    }
-}
-
 impl InputFieldManager {
-    fn initialize(mut commands: Commands) {
-        commands.insert_resource(InputFieldManager {});
+    fn startup(mut commands: Commands) {
+        commands.insert_resource(InputFieldManager::default());
+    }
+
+    fn shutdown(mut commands: Commands) {
+        commands.remove_resource::<InputFieldManager>();
     }
 
     fn handle_control_input(

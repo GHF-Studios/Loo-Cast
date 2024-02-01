@@ -157,9 +157,9 @@ impl Plugin for GamesMenuPlugin {
             // Enter State Systems
             .add_systems(
                 OnEnter(AppState::GamesMenu),
-                GamesMenuManager::initialize,
+                GamesMenuManager::startup,
             )
-            // Update Systems
+            // Update State Systems
             .add_systems(
                 Update,
                 (
@@ -174,20 +174,20 @@ impl Plugin for GamesMenuPlugin {
             // Exit State Systems
             .add_systems(
                 OnExit(AppState::GamesMenu),
-                GamesMenuManager::terminate,
+                GamesMenuManager::shutdown,
             );
     }
 }
 
 impl GamesMenuManager {
-    fn initialize(
+    fn startup(
         mut commands: Commands,
         asset_server: Res<AssetServer>,
     ) {
         Self::build_games_menu(&mut commands, &asset_server);
     }
 
-    fn terminate(
+    fn shutdown(
         mut commands: Commands,
         games_menu_query: Query<Entity, With<GamesMenu>>,
     ) {
@@ -261,7 +261,7 @@ impl GamesMenuManager {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
 
-                    error!("Games and Game Management don't actually exist; the games are just placeholders and cannot be deleted.");
+                    error!("Games and game management don't actually exist; the shown games are just placeholders and cannot be deleted.");
 
                     // TODO: Delete the game associated with the button
 
@@ -290,7 +290,7 @@ impl GamesMenuManager {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
 
-                    error!("Games and Game Management don't actually exist; the games are just placeholders and cannot be loaded.");
+                    error!("Games and game management don't actually exist; the shown games are just placeholders and cannot be loaded.");
 
                     // TODO: Load the game associated with the button
                     
@@ -316,7 +316,7 @@ impl GamesMenuManager {
                 if game.name == event.game_name {
                     commands.entity(entity).despawn_recursive();
 
-                    info!("Deleted game '{}'.", event.game_name);
+                    info!("Deleted ui for game '{}'.", event.game_name);
 
                     return;
                 }
@@ -328,7 +328,7 @@ impl GamesMenuManager {
         commands: &mut Commands,
         asset_server: &Res<AssetServer>,
     ) -> Entity {
-        warn!("Games and Game Management don't actually exist; the save games are just placeholders.");
+        warn!("Games and game management don't actually exist; the save games are just placeholders.");
 
         let game_names = vec!["save_game_1", "save_game_2", "save_game_3"];
 

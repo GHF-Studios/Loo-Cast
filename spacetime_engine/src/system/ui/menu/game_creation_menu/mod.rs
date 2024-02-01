@@ -125,7 +125,7 @@ impl Plugin for GameCreationMenuPlugin {
                 OnEnter(AppState::CreateGameMenu),
                 GameCreationMenuManager::initialize,
             )
-            // Update Systems
+            // Update State Systems
             .add_systems(
                 Update,
                 (
@@ -171,6 +171,9 @@ impl GameCreationMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
+
+                    info!("Transitioning to games menu...");
+
                     app_state_next_state.set(AppState::GamesMenu);
                 }
                 Interaction::Hovered => {
@@ -199,7 +202,7 @@ impl GameCreationMenuManager {
 
                     // TODO: Create game with selected parameters, or use default parameters
 
-                    error!("Games and Game Management don't actually exist; the save games are just placeholders and cannot be loaded.");
+                    error!("Games and game management don't actually exist; the shown games are just placeholders and cannot be created.");
 
                     todo!();
                 }
