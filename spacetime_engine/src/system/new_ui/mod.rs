@@ -188,4 +188,8 @@ impl UIManager {
     pub fn get_current_scene(&self) -> Option<&Box<dyn UIScene>> {
         self.current_scene.as_ref()
     }
+
+    pub fn get_current_scene_mut(&mut self) -> Option<&mut Box<dyn UIScene>> {
+        self.current_scene.as_mut()
+    }
 }
