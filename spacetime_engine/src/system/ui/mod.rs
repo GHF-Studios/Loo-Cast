@@ -1,10 +1,10 @@
 // Modules
 pub mod input_field;
-pub mod menu;
+pub mod menus;
 
 // Local imports
 use input_field::InputFieldPlugin;
-use menu::MenuPlugin;
+use menus::MenuPlugin;
 
 // Internal imports
 
@@ -23,6 +23,8 @@ pub const PRESSED_BUTTON_COLOR: Color = Color::rgb(0.35, 0.75, 0.35);
 
 pub const UNFOCUSED_COLOR: Color = Color::rgb(0.25, 0.25, 0.25);
 pub const FOCUSED_COLOR: Color = Color::rgb(0.15, 0.15, 0.15);
+
+// Traits
 
 // Types
 
@@ -59,14 +61,14 @@ impl Plugin for UIPlugin {
                 MenuPlugin,
             ))
             // Startup Systems
-            .add_systems(Startup, UIManager::initialize)
+            .add_systems(Startup, UIManager::startup)
             // Update Systems
             .add_systems(Update, UIManager::handle_gain_focus);
     }
 }
 
 impl UIManager {
-    fn initialize(mut commands: Commands) {
+    fn startup(mut commands: Commands) {
         commands.insert_resource(UIManager { 
             focus: None
         });
