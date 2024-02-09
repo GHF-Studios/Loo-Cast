@@ -33,6 +33,9 @@ pub enum UIContainerChildType {
 pub trait UIEvent {
 }
 
+pub trait UIEventHandler {
+}
+
 pub trait UIObject {
     fn enable(&mut self);
     fn disable(&mut self);
@@ -40,9 +43,6 @@ pub trait UIObject {
 
     fn on_focus(&self);
     fn on_unfocus(&self);
-}
-
-pub trait UIEventHandler {
 }
 
 pub trait UIComponent: UIObject + UIEventHandler {
@@ -167,7 +167,7 @@ pub struct UIManager {
 }
 
 /*
-TODO: Implement Advanced UI System (AI ENHANCED)
+TODO: Implement Advanced UI System
 
 1. 4-Layer Focus Management System:
     - Implement a hierarchical focus management system where focus can propagate down from Scene (non-focusable, inherently always focused) to Canvas, Window, Container, and Element layers. Components do not receive direct focus.
@@ -189,26 +189,6 @@ TODO: Implement Advanced UI System (AI ENHANCED)
 
 This comprehensive plan aims to create a flexible, efficient, and intuitive UI system that enhances user interaction and event handling within the game's UI architecture.
 */
-
-/*
-TODO: Implement Advanced UI System (RAW USER CREATED)
-
-1. 4-Layer Focus Management
-    - Focus Hierarchy: You've designed a focus management system that respects the hierarchical structure of the UI. Each layer in the hierarchy (Canvas, Window, Container, Element) can have its focus, with the focus state propagating down the hierarchy but not up to the root (Scene) or down to the atomic components.
-    - Automatic Parent Focus: When an object receives focus, its parent in the hierarchy (if applicable) automatically gains focus as well, ensuring that the entire path from the focused object up to the root is in a focused state. This excludes Scenes, which are inherently focused as the root, and Components, which cannot be focused directly.
-    - Focus Constraints: Components are considered part of their parent Element and do not receive direct focus. This reflects a design choice that treats Elements as the smallest user-interactable unit. Scenes are always in focus by design, simplifying focus management at the top level.
-2. 6-Layer Event Management with Prioritization
-    - Event Propagation: Events are passed down from the top of the UI hierarchy (Scene) to the targeted UI Object, with the ability for any EventHandler to consume the event, thus preventing it from propagating further. This allows for precise control over how events are handled and ensures that only the most relevant object processes the event.
-    - Event Handling Layers: The system distinguishes between key press events, which are sent to all focused objects across the four focusable layers, and other types of events, which target specific UI Objects based on their position in the hierarchy and the event's specified target path.
-    - Event Targeting: Non-key press events require specifying the intended target UI Object's "String" (a path through the UI hierarchy), enabling the UIManager to route the event through the hierarchy (Scene > Canvas > Window > Container > Element > Component) to the specified target. This mechanism ensures that events are directed accurately to their intended recipients.
-    - Event Consumption: Elements have the ability to consume events, preventing further propagation to their components. However, components cannot consume events, as they are not directly focusable. This maintains a clear separation between Elements (which can interact with and potentially halt events) and Components (which can react to events but not stop their propagation).
-
-+
-3. Implementation Details
-    "Event Handling Layers: The system distinguishes between key press events, which are sent to all focused objects across the four focusable layers, and other types of events, which target specific UI Objects based on their position in the hierarchy and the event's specified target path."
-    To be precise: The key press events are an entirely different system from the ui events, because they are sent in a completely different, unconsumable way.
-
-    */
 
 impl UIManager {
     pub fn new() -> Self {
