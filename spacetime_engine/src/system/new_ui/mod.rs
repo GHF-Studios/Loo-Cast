@@ -30,12 +30,15 @@ pub enum UIContainerChildType {
     Container,
 }
 
+/// IMPLEMENT PROPERLY
 pub trait UIEvent {
 }
 
+/// IMPLEMENT PROPERLY
 pub trait UIEventHandler {
 }
 
+/// IMPLEMENT PROPERLY
 pub trait UIObject {
     fn enable(&mut self);
     fn disable(&mut self);
