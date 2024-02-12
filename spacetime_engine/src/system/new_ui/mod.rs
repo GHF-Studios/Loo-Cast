@@ -1,4 +1,4 @@
-use std::{any::TypeId, collections::HashMap};
+use std::{any::TypeId, collections::HashMap, collections::HashSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIObjectState {
@@ -42,6 +42,7 @@ type UIElementID = usize;
 pub trait UIElement: UIObject {
     fn get_type_id(&self) -> TypeId;
     fn get_id(&self) -> Option<UIElementID>;
+    fn set_id(&mut self, element_id: Option<UIElementID>);
     
     fn get_parent(&self) -> Option<UIContainerID>;
     fn set_parent(&mut self, container_id: Option<UIContainerID>);
@@ -64,6 +65,7 @@ type UIContainerID = usize;
 pub trait UIContainer: UIObject {
     fn get_type_id(&self) -> TypeId;
     fn get_id(&self) -> Option<UIContainerID>;
+    fn set_id(&mut self, container_id: Option<UIContainerID>);
 
     fn get_parent(&self) -> Option<(UIContainerParentType, usize)>;
     fn set_parent_container(&mut self, container_id: Option<UIContainerID>);
@@ -75,11 +77,11 @@ pub trait UIContainer: UIObject {
     fn remove_element(&mut self, element_id: UIElementID) -> Option<Box<dyn UIElement>>;
     fn remove_container(&mut self, container_id: UIContainerID) -> Option<Box<dyn UIContainer>>;
 
-    fn get_element(&self, element_id: UIElementID) -> Option<&Box<dyn UIElement>>;
-    fn get_container(&self, container_id: UIContainerID) -> Option<&Box<dyn UIContainer>>;
+    fn get_element(&self, element_id: UIElementID) -> Option<&dyn UIElement>;
+    fn get_container(&self, container_id: UIContainerID) -> Option<&dyn UIContainer>;
 
-    fn get_elements(&self) -> Vec<&Box<dyn UIElement>>;
-    fn get_containers(&self) -> Vec<&Box<dyn UIContainer>>;
+    fn get_elements(&self) -> Vec<&dyn UIElement>;
+    fn get_containers(&self) -> Vec<&dyn UIContainer>;
 
     fn focus_element(&mut self, element_id: UIElementID);
     fn focus_container(&mut self, container_id: UIContainerID);
@@ -94,6 +96,7 @@ type UIWindowID = usize;
 pub trait UIWindow: UIObject {
     fn get_type_id(&self) -> TypeId;
     fn get_id(&self) -> Option<UIWindowID>;
+    fn set_id(&mut self, window_id: Option<UIWindowID>);
 
     fn get_parent(&self) -> Option<UICanvasID>;
     fn set_parent(&mut self, canvas_id: Option<UICanvasID>);
@@ -107,13 +110,13 @@ pub trait UIWindow: UIObject {
     fn add_container(&mut self, container: Box<dyn UIContainer>) -> UIContainerID;
     fn remove_container(&mut self, container_id: UIContainerID) -> Option<Box<dyn UIContainer>>;
 
-    fn get_container(&self, container_id: UIContainerID) -> Option<&Box<dyn UIContainer>>;
-    fn get_containers(&self) -> Vec<&Box<dyn UIContainer>>;
+    fn get_container(&self, container_id: UIContainerID) -> Option<&dyn UIContainer>;
+    fn get_containers(&self) -> Vec<&dyn UIContainer>;
 
     fn focus_container(&mut self, container_id: UIContainerID);
     fn unfocus_container(&mut self) -> UIContainerID;
 
-    fn get_focused_container(&self) -> Option<&Box<dyn UIContainer>>;
+    fn get_focused_container(&self) -> Option<&dyn UIContainer>;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -127,6 +130,7 @@ type UICanvasID = usize;
 pub trait UICanvas: UIObject {
     fn get_type_id(&self) -> TypeId;
     fn get_id(&self) -> Option<UICanvasID>;
+    fn set_id(&mut self, canvas_id: Option<UICanvasID>);
 
     fn get_parent(&self) -> Option<UISceneID>;
     fn set_parent(&mut self, scene_id: Option<UISceneID>);
@@ -134,13 +138,13 @@ pub trait UICanvas: UIObject {
     fn add_window(&mut self, window: Box<dyn UIWindow>) -> UIWindowID;
     fn remove_window(&mut self, window_id: UIWindowID) -> Option<Box<dyn UIWindow>>;
 
-    fn get_window(&self, window_id: UIWindowID) -> Option<&Box<dyn UIWindow>>;
-    fn get_windows(&self) -> Vec<&Box<dyn UIWindow>>;
+    fn get_window(&self, window_id: UIWindowID) -> Option<&dyn UIWindow>;
+    fn get_windows(&self) -> Vec<&dyn UIWindow>;
 
     fn focus_window(&mut self, window_id: UIWindowID);
     fn unfocus_window(&mut self) -> UIWindowID;
 
-    fn get_focused_window(&self) -> Option<&Box<dyn UIWindow>>;
+    fn get_focused_window(&self) -> Option<&dyn UIWindow>;
 }
 
 pub type UISceneID = usize;
@@ -148,17 +152,18 @@ pub type UISceneID = usize;
 pub trait UIScene: UIObject {
     fn get_type_id(&self) -> TypeId;
     fn get_id(&self) -> Option<UISceneID>;
+    fn set_id(&mut self, scene_id: Option<UISceneID>);
 
     fn add_canvas(&mut self, canvas: &mut Box<dyn UICanvas>) -> UICanvasID;
     fn remove_canvas(&mut self, canvas_id: UICanvasID) -> Option<Box<dyn UICanvas>>;
 
-    fn get_canvas(&self, canvas_id: UICanvasID) -> Option<&Box<dyn UICanvas>>;
-    fn get_canvases(&self) -> Vec<&Box<dyn UICanvas>>;
+    fn get_canvas(&self, canvas_id: UICanvasID) -> Option<&dyn UICanvas>;
+    fn get_canvases(&self) -> Vec<&dyn UICanvas>;
 
     fn focus_canvas(&mut self, canvas_id: UICanvasID);
     fn unfocus_canvas(&mut self) -> UICanvasID;
 
-    fn get_focused_canvas(&self) -> Option<&Box<dyn UICanvas>>;
+    fn get_focused_canvas(&self) -> Option<&dyn UICanvas>;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -316,12 +321,80 @@ pub enum UIManagerUnfocusElementError {
     AlreadyUnfocused,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerGetUnusedSceneIDError {
+    AllIDsInUse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerRecycleSceneIDError {
+    AlreadyRecycled,
+    StillInUse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerGetUnusedCanvasIDError {
+    AllIDsInUse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerRecycleCanvasIDError {
+    AlreadyRecycled,
+    StillInUse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerGetUnusedWindowIDError {
+    AllIDsInUse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerRecycleWindowIDError {
+    AlreadyRecycled,
+    StillInUse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerGetUnusedContainerIDError {
+    AllIDsInUse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerRecycleContainerIDError {
+    AlreadyRecycled,
+    StillInUse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerGetUnusedElementIDError {
+    AllIDsInUse,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerRecycleElementIDError {
+    AlreadyRecycled,
+    StillInUse,
+}
+
+#[derive(Default)]
 pub struct UIManager {
-    registered_scene_types: Vec<TypeId>,
-    registered_canvas_types: Vec<TypeId>,
-    registered_window_types: Vec<TypeId>,
-    registered_container_types: Vec<TypeId>,
-    registered_element_types: Vec<TypeId>,
+    registered_scene_types: HashSet<TypeId>,
+    registered_canvas_types: HashSet<TypeId>,
+    registered_window_types: HashSet<TypeId>,
+    registered_container_types: HashSet<TypeId>,
+    registered_element_types: HashSet<TypeId>,
+
+    new_scene_id: UISceneID,
+    new_canvas_id: UICanvasID,
+    new_window_id: UIWindowID,
+    new_container_id: UIContainerID,
+    new_element_id: UIElementID,
+
+    recycled_scene_ids: Vec<UISceneID>,
+    recycled_canvas_ids: Vec<UICanvasID>,
+    recycled_window_ids: Vec<UIWindowID>,
+    recycled_container_ids: Vec<UIContainerID>,
+    recycled_element_ids: Vec<UIElementID>,
     
     registered_scenes: HashMap<UISceneID, Box<dyn UIScene>>,
     registered_canvases: HashMap<UICanvasID, Box<dyn UICanvas>>,
@@ -339,85 +412,87 @@ pub struct UIManager {
 // TODO: Finish implementing the UIManager (review all methods and error types, and ensure that the system is fully functional and error-proof)
 impl UIManager {
     pub fn new() -> Self {
-        Self {
-            registered_scene_types: Vec::new(),
-            registered_canvas_types: Vec::new(),
-            registered_window_types: Vec::new(),
-            registered_container_types: Vec::new(),
-            registered_element_types: Vec::new(),
-
-            registered_scenes: HashMap::new(),
-            registered_canvases: HashMap::new(),
-            registered_windows: HashMap::new(),
-            registered_containers: HashMap::new(),
-            registered_elements: HashMap::new(),
-
-            focused_scene: None,
-            focused_canvas: None,
-            focused_window: None,
-            focused_container: None,
-            focused_element: None,
-        }
+        Self::default()
     }
 
     pub fn register_scene_type<T: 'static + UIScene>(&mut self) -> Result<(), UIManagerRegisterSceneTypeError> {
+        if self.registered_scene_types.insert(TypeId::of::<T>()) {
+            Ok(())
+        } else {
+            Err(UIManagerRegisterSceneTypeError::AlreadyRegistered)
+        }
     }
 
     pub fn register_canvas_type<T: 'static + UICanvas>(&mut self) -> Result<(), UIManagerRegisterCanvasTypeError> {
+        if self.registered_canvas_types.insert(TypeId::of::<T>()) {
+            Ok(())
+        } else {
+            Err(UIManagerRegisterCanvasTypeError::AlreadyRegistered)
+        }
     }
 
     pub fn register_window_type<T: 'static + UIWindow>(&mut self) -> Result<(), UIManagerRegisterWindowTypeError> {
+        if self.registered_window_types.insert(TypeId::of::<T>()) {
+            Ok(())
+        } else {
+            Err(UIManagerRegisterWindowTypeError::AlreadyRegistered)
+        }
     }
 
     pub fn register_container_type<T: 'static + UIContainer>(&mut self) -> Result<(), UIManagerRegisterContainerTypeError> {
+        if self.registered_container_types.insert(TypeId::of::<T>()) {
+            Ok(())
+        } else {
+            Err(UIManagerRegisterContainerTypeError::AlreadyRegistered)
+        }
     }
 
     pub fn register_element_type<T: 'static + UIElement>(&mut self) -> Result<(), UIManagerRegisterElementTypeError> {
+        if self.registered_element_types.insert(TypeId::of::<T>()) {
+            Ok(())
+        } else {
+            Err(UIManagerRegisterElementTypeError::AlreadyRegistered)
+        }
     }
 
     pub fn unregister_scene_type<T: 'static + UIScene>(&mut self) -> Result<(), UIManagerUnregisterSceneTypeError> {
-        if !self.registered_scene_types.contains(&TypeId::of::<T>()) {
-            return Err(UIManagerUnregisterSceneTypeError::AlreadyUnregistered);
+        if self.registered_scene_types.remove(&TypeId::of::<T>()) {
+            Ok(())
+        } else {
+            Err(UIManagerUnregisterSceneTypeError::AlreadyUnregistered)
         }
-
-        self.registered_scene_types.retain(|&type_id| type_id != TypeId::of::<T>());
-        Ok(())
     }
 
     pub fn unregister_canvas_type<T: 'static + UICanvas>(&mut self) -> Result<(), UIManagerUnregisterCanvasTypeError> {
-        if !self.registered_canvas_types.contains(&TypeId::of::<T>()) {
-            return Err(UIManagerUnregisterCanvasTypeError::AlreadyUnregistered);
+        if self.registered_canvas_types.remove(&TypeId::of::<T>()) {
+            Ok(())
+        } else {
+            Err(UIManagerUnregisterCanvasTypeError::AlreadyUnregistered)
         }
-
-        self.registered_canvas_types.retain(|&type_id| type_id != TypeId::of::<T>());
-        Ok(())
     }
 
     pub fn unregister_window_type<T: 'static + UIWindow>(&mut self) -> Result<(), UIManagerUnregisterWindowTypeError> {
-        if !self.registered_window_types.contains(&TypeId::of::<T>()) {
-            return Err(UIManagerUnregisterWindowTypeError::AlreadyUnregistered);
+        if self.registered_window_types.remove(&TypeId::of::<T>()) {
+            Ok(())
+        } else {
+            Err(UIManagerUnregisterWindowTypeError::AlreadyUnregistered)
         }
-
-        self.registered_window_types.retain(|&type_id| type_id != TypeId::of::<T>());
-        Ok(())
     }
 
     pub fn unregister_container_type<T: 'static + UIContainer>(&mut self) -> Result<(), UIManagerUnregisterContainerTypeError> {
-        if !self.registered_container_types.contains(&TypeId::of::<T>()) {
-            return Err(UIManagerUnregisterContainerTypeError::AlreadyUnregistered);
+        if self.registered_container_types.remove(&TypeId::of::<T>()) {
+            Ok(())
+        } else {
+            Err(UIManagerUnregisterContainerTypeError::AlreadyUnregistered)
         }
-
-        self.registered_container_types.retain(|&type_id| type_id != TypeId::of::<T>());
-        Ok(())
     }
 
     pub fn unregister_element_type<T: 'static + UIElement>(&mut self) -> Result<(), UIManagerUnregisterElementTypeError> {
-        if !self.registered_element_types.contains(&TypeId::of::<T>()) {
-            return Err(UIManagerUnregisterElementTypeError::AlreadyUnregistered);
+        if self.registered_element_types.remove(&TypeId::of::<T>()) {
+            Ok(())
+        } else {
+            Err(UIManagerUnregisterElementTypeError::AlreadyUnregistered)
         }
-
-        self.registered_element_types.retain(|&type_id| type_id != TypeId::of::<T>());
-        Ok(())
     }
 
     pub fn is_scene_type_registered<T: 'static + UIScene>(&self) -> bool {
@@ -440,64 +515,329 @@ impl UIManager {
         self.registered_element_types.contains(&TypeId::of::<T>())
     }
 
-    pub fn register_scene<T: 'static + UIScene>(&mut self, scene: Box<T>) -> Result<UISceneID, UIManagerRegisterSceneError> {
+    pub fn get_unused_scene_id(&mut self) -> Result<UISceneID, UIManagerGetUnusedSceneIDError> {
+        let unused_scene_id = match self.recycled_scene_ids.pop() {
+            Some(recycled_scene_id) => recycled_scene_id,
+            None => {
+                let new_scene_id = self.new_scene_id;
+
+                self.new_scene_id += 1;
+
+                new_scene_id
+            },
+        };
+
+        Ok(unused_scene_id)
     }
 
-    pub fn register_canvas<T: 'static + UICanvas>(&mut self, canvas: Box<T>) -> Result<UICanvasID, UIManagerRegisterCanvasError> {
+    pub fn recycle_scene_id(&mut self, scene_id: UISceneID) -> Result<(), UIManagerRecycleSceneIDError> {
+        if self.recycled_scene_ids.contains(&scene_id) {
+            return Err(UIManagerRecycleSceneIDError::AlreadyRecycled);
+        }
+
+        if self.registered_scenes.contains_key(&scene_id) {
+            return Err(UIManagerRecycleSceneIDError::StillInUse);
+        }
+
+        self.recycled_scene_ids.push(scene_id);
+
+        Ok(())
     }
 
-    pub fn register_window<T: 'static + UIWindow>(&mut self, window: Box<T>) -> Result<UIWindowID, UIManagerRegisterWindowError> {
+    pub fn get_unused_canvas_id(&mut self) -> Result<UICanvasID, UIManagerGetUnusedCanvasIDError> {
+        let unused_canvas_id = match self.recycled_canvas_ids.pop() {
+            Some(recycled_canvas_id) => recycled_canvas_id,
+            None => {
+                let new_canvas_id = self.new_canvas_id;
+
+                self.new_canvas_id += 1;
+
+                new_canvas_id
+            },
+        };
+
+        Ok(unused_canvas_id)
     }
 
-    pub fn register_container<T: 'static + UIContainer>(&mut self, container: Box<T>) -> Result<UIContainerID, UIManagerRegisterContainerError> {
+    pub fn recycle_canvas_id(&mut self, canvas_id: UICanvasID) -> Result<(), UIManagerRecycleCanvasIDError> {
+        if self.recycled_canvas_ids.contains(&canvas_id) {
+            return Err(UIManagerRecycleCanvasIDError::AlreadyRecycled);
+        }
+
+        if self.registered_canvases.contains_key(&canvas_id) {
+            return Err(UIManagerRecycleCanvasIDError::StillInUse);
+        }
+
+        self.recycled_canvas_ids.push(canvas_id);
+
+        Ok(())
     }
 
-    pub fn register_element<T: 'static + UIElement>(&mut self, element: Box<T>) -> Result<UIElementID, UIManagerRegisterElementError> {
+    pub fn get_unused_window_id(&mut self) -> Result<UIWindowID, UIManagerGetUnusedWindowIDError> {
+        let unused_window_id = match self.recycled_window_ids.pop() {
+            Some(recycled_window_id) => recycled_window_id,
+            None => {
+                let new_window_id = self.new_window_id;
+
+                self.new_window_id += 1;
+
+                new_window_id
+            },
+        };
+
+        Ok(unused_window_id)
+    }
+
+    pub fn recycle_window_id(&mut self, window_id: UIWindowID) -> Result<(), UIManagerRecycleWindowIDError> {
+        if self.recycled_window_ids.contains(&window_id) {
+            return Err(UIManagerRecycleWindowIDError::AlreadyRecycled);
+        }
+
+        if self.registered_windows.contains_key(&window_id) {
+            return Err(UIManagerRecycleWindowIDError::StillInUse);
+        }
+
+        self.recycled_window_ids.push(window_id);
+
+        Ok(())
+    }
+
+    pub fn get_unused_container_id(&mut self) -> Result<UIContainerID, UIManagerGetUnusedContainerIDError> {
+        let unused_container_id = match self.recycled_container_ids.pop() {
+            Some(recycled_container_id) => recycled_container_id,
+            None => {
+                let new_container_id = self.new_container_id;
+
+                self.new_container_id += 1;
+
+                new_container_id
+            },
+        };
+
+        Ok(unused_container_id)
+    }
+
+    pub fn recycle_container_id(&mut self, container_id: UIContainerID) -> Result<(), UIManagerRecycleContainerIDError> {
+        if self.recycled_container_ids.contains(&container_id) {
+            return Err(UIManagerRecycleContainerIDError::AlreadyRecycled);
+        }
+
+        if self.registered_containers.contains_key(&container_id) {
+            return Err(UIManagerRecycleContainerIDError::StillInUse);
+        }
+
+        self.recycled_container_ids.push(container_id);
+
+        Ok(())
+    }
+
+    pub fn get_unused_element_id(&mut self) -> Result<UIElementID, UIManagerGetUnusedElementIDError> {
+        let unused_element_id = match self.recycled_element_ids.pop() {
+            Some(recycled_element_id) => recycled_element_id,
+            None => {
+                let new_element_id = self.new_element_id;
+
+                self.new_element_id += 1;
+
+                new_element_id
+            },
+        };
+
+        Ok(unused_element_id)
+    }
+
+    pub fn recycle_element_id(&mut self, element_id: UIElementID) -> Result<(), UIManagerRecycleElementIDError> {
+        if self.recycled_element_ids.contains(&element_id) {
+            return Err(UIManagerRecycleElementIDError::AlreadyRecycled);
+        }
+
+        if self.registered_elements.contains_key(&element_id) {
+            return Err(UIManagerRecycleElementIDError::StillInUse);
+        }
+
+        self.recycled_element_ids.push(element_id);
+
+        Ok(())
+    }
+
+    pub fn register_scene<T: 'static + UIScene>(&mut self, mut scene: Box<T>) -> Result<UISceneID, UIManagerRegisterSceneError> {
+        if scene.get_id().is_some() {
+            return Err(UIManagerRegisterSceneError::AlreadyRegistered);
+        }
+
+        let scene_id = match self.get_unused_scene_id() {
+            Ok(unused_scene_id) => {
+                scene.set_id(Some(unused_scene_id));
+
+                unused_scene_id
+            },
+            Err(UIManagerGetUnusedSceneIDError::AllIDsInUse) => return Err(UIManagerRegisterSceneError::AlreadyRegistered),
+        };
+
+        if self.registered_scenes.insert(scene_id, scene).is_none() {
+            Ok(scene_id)
+        } else {
+            Err(UIManagerRegisterSceneError::AlreadyRegistered)
+        }
+    }
+
+    pub fn register_canvas<T: 'static + UICanvas>(&mut self, mut canvas: Box<T>) -> Result<UICanvasID, UIManagerRegisterCanvasError> {
+        if canvas.get_id().is_some() {
+            return Err(UIManagerRegisterCanvasError::AlreadyRegistered);
+        }
+
+        let canvas_id = match self.get_unused_canvas_id() {
+            Ok(unused_canvas_id) => {
+                canvas.set_id(Some(unused_canvas_id));
+
+                unused_canvas_id
+            },
+            Err(UIManagerGetUnusedCanvasIDError::AllIDsInUse) => return Err(UIManagerRegisterCanvasError::AlreadyRegistered),
+        };
+
+        if self.registered_canvases.insert(canvas_id, canvas).is_none() {
+            Ok(canvas_id)
+        } else {
+            Err(UIManagerRegisterCanvasError::AlreadyRegistered)
+        }
+    }
+
+    pub fn register_window<T: 'static + UIWindow>(&mut self, mut window: Box<T>) -> Result<UIWindowID, UIManagerRegisterWindowError> {
+        if window.get_id().is_some() {
+            return Err(UIManagerRegisterWindowError::AlreadyRegistered);
+        }
+
+        let window_id = match self.get_unused_window_id() {
+            Ok(unused_window_id) => {
+                window.set_id(Some(unused_window_id));
+
+                unused_window_id
+            },
+            Err(UIManagerGetUnusedWindowIDError::AllIDsInUse) => return Err(UIManagerRegisterWindowError::AlreadyRegistered),
+        };
+
+        if self.registered_windows.insert(window_id, window).is_none() {
+            Ok(window_id)
+        } else {
+            Err(UIManagerRegisterWindowError::AlreadyRegistered)
+        }
+    }
+
+    pub fn register_container<T: 'static + UIContainer>(&mut self, mut container: Box<T>) -> Result<UIContainerID, UIManagerRegisterContainerError> {
+        if container.get_id().is_some() {
+            return Err(UIManagerRegisterContainerError::AlreadyRegistered);
+        }
+
+        let container_id = match self.get_unused_container_id() {
+            Ok(unused_container_id) => {
+                container.set_id(Some(unused_container_id));
+
+                unused_container_id
+            },
+            Err(UIManagerGetUnusedContainerIDError::AllIDsInUse) => return Err(UIManagerRegisterContainerError::AlreadyRegistered),
+        };
+
+        if self.registered_containers.insert(container_id, container).is_none() {
+            Ok(container_id)
+        } else {
+            Err(UIManagerRegisterContainerError::AlreadyRegistered)
+        }
+    }
+
+    pub fn register_element<T: 'static + UIElement>(&mut self, mut element: Box<T>) -> Result<UIElementID, UIManagerRegisterElementError> {
+        if element.get_id().is_some() {
+            return Err(UIManagerRegisterElementError::AlreadyRegistered);
+        }
+
+        let element_id = match self.get_unused_element_id() {
+            Ok(unused_element_id) => {
+                element.set_id(Some(unused_element_id));
+
+                unused_element_id
+            },
+            Err(UIManagerGetUnusedElementIDError::AllIDsInUse) => return Err(UIManagerRegisterElementError::AlreadyRegistered),
+        };
+
+        if self.registered_elements.insert(element_id, element).is_none() {
+            Ok(element_id)
+        } else {
+            Err(UIManagerRegisterElementError::AlreadyRegistered)
+        }
     }
 
     pub fn unregister_scene(&mut self, scene_id: UISceneID) -> Result<(), UIManagerUnregisterSceneError> {
-        if !self.registered_scenes.contains_key(&scene_id) {
-            return Err(UIManagerUnregisterSceneError::AlreadyUnregistered);
+        match self.registered_scenes.remove(&scene_id) {
+            Some(mut scene) => scene.set_id(None),
+            None => {
+                return Err(UIManagerUnregisterSceneError::AlreadyUnregistered);
+            }
         }
 
-        self.registered_scenes.remove(&scene_id);
-        Ok(())
+        match self.recycle_scene_id(scene_id) {
+            Ok(_) => Ok(()),
+            Err(UIManagerRecycleSceneIDError::AlreadyRecycled) => panic!("Scene ID is already recycled!"),
+            Err(UIManagerRecycleSceneIDError::StillInUse) => panic!("Scene ID is still in use!"),
+        }
     }
 
     pub fn unregister_canvas(&mut self, canvas_id: UICanvasID) -> Result<(), UIManagerUnregisterCanvasError> {
-        if !self.registered_canvases.contains_key(&canvas_id) {
-            return Err(UIManagerUnregisterCanvasError::AlreadyUnregistered);
+        match self.registered_canvases.remove(&canvas_id) {
+            Some(mut canvas) => canvas.set_id(None),
+            None => {
+                return Err(UIManagerUnregisterCanvasError::AlreadyUnregistered);
+            }
         }
 
-        self.registered_canvases.remove(&canvas_id);
-        Ok(())
+        match self.recycle_canvas_id(canvas_id) {
+            Ok(_) => Ok(()),
+            Err(UIManagerRecycleCanvasIDError::AlreadyRecycled) => panic!("Canvas ID is already recycled!"),
+            Err(UIManagerRecycleCanvasIDError::StillInUse) => panic!("Canvas ID is still in use!"),
+        }
     }
 
     pub fn unregister_window(&mut self, window_id: UIWindowID) -> Result<(), UIManagerUnregisterWindowError> {
-        if !self.registered_windows.contains_key(&window_id) {
-            return Err(UIManagerUnregisterWindowError::AlreadyUnregistered);
+        match self.registered_windows.remove(&window_id) {
+            Some(mut window) => window.set_id(None),
+            None => {
+                return Err(UIManagerUnregisterWindowError::AlreadyUnregistered);
+            }
         }
 
-        self.registered_windows.remove(&window_id);
-        Ok(())
+        match self.recycle_window_id(window_id) {
+            Ok(_) => Ok(()),
+            Err(UIManagerRecycleWindowIDError::AlreadyRecycled) => panic!("Window ID is already recycled!"),
+            Err(UIManagerRecycleWindowIDError::StillInUse) => panic!("Window ID is still in use!"),
+        }
     }
 
     pub fn unregister_container(&mut self, container_id: UIContainerID) -> Result<(), UIManagerUnregisterContainerError> {
-        if !self.registered_containers.contains_key(&container_id) {
-            return Err(UIManagerUnregisterContainerError::AlreadyUnregistered);
+        match self.registered_containers.remove(&container_id) {
+            Some(mut container) => container.set_id(None),
+            None => {
+                return Err(UIManagerUnregisterContainerError::AlreadyUnregistered);
+            }
         }
 
-        self.registered_containers.remove(&container_id);
-        Ok(())
+        match self.recycle_container_id(container_id) {
+            Ok(_) => Ok(()),
+            Err(UIManagerRecycleContainerIDError::AlreadyRecycled) => panic!("Container ID is already recycled!"),
+            Err(UIManagerRecycleContainerIDError::StillInUse) => panic!("Container ID is still in use!"),
+        }
     }
 
     pub fn unregister_element(&mut self, element_id: UIElementID) -> Result<(), UIManagerUnregisterElementError> {
-        if !self.registered_elements.contains_key(&element_id) {
-            return Err(UIManagerUnregisterElementError::AlreadyUnregistered);
+        match self.registered_elements.remove(&element_id) {
+            Some(mut element) => element.set_id(None),
+            None => {
+                return Err(UIManagerUnregisterElementError::AlreadyUnregistered);
+            }
         }
 
-        self.registered_elements.remove(&element_id);
-        Ok(())
+        match self.recycle_element_id(element_id) {
+            Ok(_) => Ok(()),
+            Err(UIManagerRecycleElementIDError::AlreadyRecycled) => panic!("Element ID is already recycled!"),
+            Err(UIManagerRecycleElementIDError::StillInUse) => panic!("Element ID is still in use!"),
+        }
     }
 
     pub fn is_scene_registered(&self, scene_id: UISceneID) -> bool {
