@@ -48,23 +48,9 @@ pub trait UIObject {
     fn on_unfocus(&self);
 }
 
-pub trait UIComponent: UIObject + UIEventHandler {
-    fn get_parent_element(&self) -> Option<usize>;
-    fn set_parent_element(&mut self, element_id: Option<usize>);
-}
-
 pub trait UIElement: UIObject + UIEventHandler {
     fn get_parent_container(&self) -> Option<usize>;
     fn set_parent_container(&mut self, container_id: Option<usize>);
-
-    fn attach_component(&mut self, component: Box<dyn UIComponent>) -> usize;
-    fn detach_component(&mut self, component_id: usize) -> Option<Box<dyn UIComponent>>;
-
-    fn get_attached_component(&self, component_id: usize) -> Option<&Box<dyn UIComponent>>;
-    fn get_attached_component_mut(&mut self, component_id: usize) -> Option<&mut Box<dyn UIComponent>>;
-
-    fn get_attached_components(&self) -> Vec<&Box<dyn UIComponent>>;
-    fn get_attached_components_mut(&mut self) -> Vec<&mut Box<dyn UIComponent>>;
 }
 
 pub trait UIContainer: UIObject + UIEventHandler {
