@@ -169,11 +169,23 @@ pub struct UIManager {
     focused_element: Option<usize>,
 }
 
+impl UIManager {
+    pub fn new() -> Self {
+        Self {
+            current_scene: None,
+            focused_canvas: None,
+            focused_window: None,
+            focused_container: None,
+            focused_element: None,
+        }
+    }
+}
+
 /*
 TODO: Implement Advanced UI System (RAW USER CREATED)
 
 1. 4-Layer Focus Management
-    - Focus Hierarchy: You've designed a focus management system that respects the hierarchical structure of the UI. Each layer in the hierarchy (Canvas, Window, Container, Element) can have its focus, with the focus state propagating down the hierarchy but not up to the root (Scene) or down to the atomic components.
+    - Focus Hierarchy: I've designed a focus management system that respects the hierarchical structure of the UI. Each layer in the hierarchy (Canvas, Window, Container, Element) can have its focus, with the focus state propagating down the hierarchy but not up to the root (Scene) or down to the atomic components.
     - Automatic Parent Focus: When an object receives focus, its parent in the hierarchy (if applicable) automatically gains focus as well, ensuring that the entire path from the focused object up to the root is in a focused state. This excludes Scenes, which are inherently focused as the root, and Components, which cannot be focused directly.
     - Focus Constraints: Components are considered part of their parent Element and do not receive direct focus. This reflects a design choice that treats Elements as the smallest user-interactable unit. Scenes are always in focus by design, simplifying focus management at the top level.
 2. 6-Layer Event Management with Prioritization
@@ -211,16 +223,3 @@ TODO: Implement Advanced UI System (AI "enhanced")
 
 This comprehensive plan aims to create a flexible, efficient, and intuitive UI system that enhances user interaction and event handling within the game's UI architecture.
 */
-
-
-impl UIManager {
-    pub fn new() -> Self {
-        Self {
-            current_scene: None,
-            focused_canvas: None,
-            focused_window: None,
-            focused_container: None,
-            focused_element: None,
-        }
-    }
-}

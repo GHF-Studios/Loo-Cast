@@ -3,7 +3,7 @@
 // Local imports
 
 // Internal imports
-use crate::system::ui::input_field::*;
+use crate::system::ui::components::input_field::*;
 use crate::system::ui::*;
 use crate::system::AppState;
 

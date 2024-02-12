@@ -1,9 +1,9 @@
 // Modules
-pub mod input_field;
+pub mod components;
 pub mod menus;
 
 // Local imports
-use input_field::InputFieldPlugin;
+use components::input_field::InputFieldPlugin;
 use menus::MenuPlugin;
 
 // Internal imports
