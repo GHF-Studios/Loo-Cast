@@ -861,7 +861,7 @@ impl UIManager {
     }
 
     pub fn focus_scene(&mut self, scene_id: UISceneID) -> Result<(), UIManagerFocusSceneError> {
-        if self.focused_scene == Some(scene_id) {
+        if self.focused_scene.is_some() {
             return Err(UIManagerFocusSceneError::AlreadyFocused);
         }
 
@@ -870,11 +870,12 @@ impl UIManager {
         }
 
         self.focused_scene = Some(scene_id);
+
         Ok(())
     }
 
     pub fn focus_canvas(&mut self, canvas_id: UICanvasID) -> Result<(), UIManagerFocusCanvasError> {
-        if self.focused_canvas == Some(canvas_id) {
+        if self.focused_canvas.is_some() {
             return Err(UIManagerFocusCanvasError::AlreadyFocused);
         }
 
@@ -883,11 +884,12 @@ impl UIManager {
         }
 
         self.focused_canvas = Some(canvas_id);
+
         Ok(())
     }
 
     pub fn focus_window(&mut self, window_id: UIWindowID) -> Result<(), UIManagerFocusWindowError> {
-        if self.focused_window == Some(window_id) {
+        if self.focused_window.is_some() {
             return Err(UIManagerFocusWindowError::AlreadyFocused);
         }
 
@@ -896,11 +898,12 @@ impl UIManager {
         }
 
         self.focused_window = Some(window_id);
+
         Ok(())
     }
 
     pub fn focus_container(&mut self, container_id: UIContainerID) -> Result<(), UIManagerFocusContainerError> {
-        if self.focused_container == Some(container_id) {
+        if self.focused_container.is_some() {
             return Err(UIManagerFocusContainerError::AlreadyFocused);
         }
 
@@ -909,11 +912,12 @@ impl UIManager {
         }
 
         self.focused_container = Some(container_id);
+
         Ok(())
     }
 
     pub fn focus_element(&mut self, element_id: UIElementID) -> Result<(), UIManagerFocusElementError> {
-        if self.focused_element == Some(element_id) {
+        if self.focused_element.is_some() {
             return Err(UIManagerFocusElementError::AlreadyFocused);
         }
 
@@ -922,6 +926,7 @@ impl UIManager {
         }
 
         self.focused_element = Some(element_id);
+
         Ok(())
     }
 
@@ -931,6 +936,7 @@ impl UIManager {
         }
 
         self.focused_scene = None;
+
         Ok(())
     }
 
@@ -940,6 +946,7 @@ impl UIManager {
         }
 
         self.focused_canvas = None;
+
         Ok(())
     }
 
@@ -949,6 +956,7 @@ impl UIManager {
         }
 
         self.focused_window = None;
+
         Ok(())
     }
 
@@ -958,6 +966,7 @@ impl UIManager {
         }
 
         self.focused_container = None;
+
         Ok(())
     }
 
@@ -967,6 +976,7 @@ impl UIManager {
         }
 
         self.focused_element = None;
+
         Ok(())
     }
 
@@ -990,22 +1000,27 @@ impl UIManager {
         self.focused_element == Some(element_id)
     }
 
+    #[allow(clippy::borrowed_box)]
     pub fn get_focused_scene(&self) -> Option<&Box<dyn UIScene>> {
         self.focused_scene.and_then(|scene_id| self.registered_scenes.get(&scene_id))
     }
 
+    #[allow(clippy::borrowed_box)]
     pub fn get_focused_canvas(&self) -> Option<&Box<dyn UICanvas>> {
         self.focused_canvas.and_then(|canvas_id| self.registered_canvases.get(&canvas_id))
     }
 
+    #[allow(clippy::borrowed_box)]
     pub fn get_focused_window(&self) -> Option<&Box<dyn UIWindow>> {
         self.focused_window.and_then(|window_id| self.registered_windows.get(&window_id))
     }
 
+    #[allow(clippy::borrowed_box)]
     pub fn get_focused_container(&self) -> Option<&Box<dyn UIContainer>> {
         self.focused_container.and_then(|container_id| self.registered_containers.get(&container_id))
     }
 
+    #[allow(clippy::borrowed_box)]
     pub fn get_focused_element(&self) -> Option<&Box<dyn UIElement>> {
         self.focused_element.and_then(|element_id| self.registered_elements.get(&element_id))
     }
