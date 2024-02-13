@@ -626,12 +626,14 @@ impl Error for UIManagerUnregisterElementError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusSceneError {
     NotRegistered,
+    UnfocusFocusedSceneError(UIManagerUnfocusSceneError),
 }
 
 impl fmt::Display for UIManagerFocusSceneError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerFocusSceneError::NotRegistered => write!(f, "The scene is not registered."),
+            UIManagerFocusSceneError::UnfocusFocusedSceneError(e) => write!(f, "An error occurred while unfocusing the currently focused scene: {}", e),
         }
     }
 }
@@ -641,12 +643,14 @@ impl Error for UIManagerFocusSceneError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusCanvasError {
     NotRegistered,
+    UnfocusFocusedCanvasError(UIManagerUnfocusCanvasError),
 }
 
 impl fmt::Display for UIManagerFocusCanvasError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerFocusCanvasError::NotRegistered => write!(f, "The canvas is not registered."),
+            UIManagerFocusCanvasError::UnfocusFocusedCanvasError(e) => write!(f, "An error occurred while unfocusing the currently focused canvas: {}", e),
         }
     }
 }
@@ -656,12 +660,14 @@ impl Error for UIManagerFocusCanvasError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusWindowError {
     NotRegistered,
+    UnfocusFocusedWindowError(UIManagerUnfocusWindowError),
 }
 
 impl fmt::Display for UIManagerFocusWindowError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerFocusWindowError::NotRegistered => write!(f, "The window is not registered."),
+            UIManagerFocusWindowError::UnfocusFocusedWindowError(e) => write!(f, "An error occurred while unfocusing the currently focused window: {}", e),
         }
     }
 }
@@ -671,12 +677,14 @@ impl Error for UIManagerFocusWindowError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusContainerError {
     NotRegistered,
+    UnfocusFocusedContainerError(UIManagerUnfocusContainerError),
 }
 
 impl fmt::Display for UIManagerFocusContainerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerFocusContainerError::NotRegistered => write!(f, "The container is not registered."),
+            UIManagerFocusContainerError::UnfocusFocusedContainerError(e) => write!(f, "An error occurred while unfocusing the currently focused container: {}", e),
         }
     }
 }
@@ -686,12 +694,14 @@ impl Error for UIManagerFocusContainerError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusElementError {
     NotRegistered,
+    UnfocusFocusedElementError(UIManagerUnfocusElementError),
 }
 
 impl fmt::Display for UIManagerFocusElementError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerFocusElementError::NotRegistered => write!(f, "The element is not registered."),
+            UIManagerFocusElementError::UnfocusFocusedElementError(e) => write!(f, "An error occurred while unfocusing the currently focused element: {}", e),
         }
     }
 }
@@ -701,12 +711,14 @@ impl Error for UIManagerFocusElementError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusSceneError {
     NotRegistered,
+    UnfocusFocusedCanvasError(UIManagerUnfocusCanvasError),
 }
 
 impl fmt::Display for UIManagerUnfocusSceneError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnfocusSceneError::NotRegistered => write!(f, "The scene is not registered."),
+            UIManagerUnfocusSceneError::UnfocusFocusedCanvasError(e) => write!(f, "An error occurred while unfocusing the currently focused canvas: {}", e),
         }
     }
 }
@@ -716,12 +728,14 @@ impl Error for UIManagerUnfocusSceneError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusCanvasError {
     NotRegistered,
+    UnfocusFocusedWindowError(UIManagerUnfocusWindowError),
 }
 
 impl fmt::Display for UIManagerUnfocusCanvasError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnfocusCanvasError::NotRegistered => write!(f, "The canvas is not registered."),
+            UIManagerUnfocusCanvasError::UnfocusFocusedWindowError(e) => write!(f, "An error occurred while unfocusing the currently focused window: {}", e),
         }
     }
 }
@@ -731,12 +745,14 @@ impl Error for UIManagerUnfocusCanvasError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusWindowError {
     NotRegistered,
+    UnfocusFocusedContainerError(UIManagerUnfocusContainerError),
 }
 
 impl fmt::Display for UIManagerUnfocusWindowError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnfocusWindowError::NotRegistered => write!(f, "The window is not registered."),
+            UIManagerUnfocusWindowError::UnfocusFocusedContainerError(e) => write!(f, "An error occurred while unfocusing the currently focused container: {}", e),
         }
     }
 }
@@ -746,12 +762,14 @@ impl Error for UIManagerUnfocusWindowError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusContainerError {
     NotRegistered,
+    UnfocusFocusedElementError(UIManagerUnfocusElementError),
 }
 
 impl fmt::Display for UIManagerUnfocusContainerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnfocusContainerError::NotRegistered => write!(f, "The container is not registered."),
+            UIManagerUnfocusContainerError::UnfocusFocusedElementError(e) => write!(f, "An error occurred while unfocusing the currently focused element: {}", e),
         }
     }
 }
@@ -1259,7 +1277,7 @@ impl UIManager {
 
     pub fn unregister_scene(&mut self, scene_id: UISceneID) -> Result<(), UIManagerUnregisterSceneError> {
         let removed_scene = match self.registered_scenes.remove(&scene_id) {
-            Some(mut removed_scene) => removed_scene,
+            Some(removed_scene) => removed_scene,
             None => {
                 return Err(UIManagerUnregisterSceneError::AlreadyUnregistered);
             }
@@ -1283,7 +1301,7 @@ impl UIManager {
 
     pub fn unregister_canvas(&mut self, canvas_id: UICanvasID) -> Result<(), UIManagerUnregisterCanvasError> {
         let removed_canvas = match self.registered_canvases.remove(&canvas_id) {
-            Some(mut removed_canvas) => removed_canvas,
+            Some(removed_canvas) => removed_canvas,
             None => {
                 return Err(UIManagerUnregisterCanvasError::AlreadyUnregistered);
             }
@@ -1307,7 +1325,7 @@ impl UIManager {
 
     pub fn unregister_window(&mut self, window_id: UIWindowID) -> Result<(), UIManagerUnregisterWindowError> {
         let removed_window = match self.registered_windows.remove(&window_id) {
-            Some(mut removed_window) => removed_window,
+            Some(removed_window) => removed_window,
             None => {
                 return Err(UIManagerUnregisterWindowError::AlreadyUnregistered);
             }
@@ -1331,7 +1349,7 @@ impl UIManager {
 
     pub fn unregister_container(&mut self, container_id: UIContainerID) -> Result<(), UIManagerUnregisterContainerError> {
         let removed_container = match self.registered_containers.remove(&container_id) {
-            Some(mut container) => container,
+            Some(container) => container,
             None => {
                 return Err(UIManagerUnregisterContainerError::AlreadyUnregistered);
             }
@@ -1355,7 +1373,7 @@ impl UIManager {
 
     pub fn unregister_element(&mut self, element_id: UIElementID) -> Result<(), UIManagerUnregisterElementError> {
         let removed_element = match self.registered_elements.remove(&element_id) {
-            Some(mut element) => element,
+            Some(element) => element,
             None => {
                 return Err(UIManagerUnregisterElementError::AlreadyUnregistered);
             }
@@ -1436,7 +1454,7 @@ impl UIManager {
 
         match self.unfocus_scene() {
             Ok(_) => {},
-            Err(UIManagerUnfocusSceneError::NotRegistered) => {}, // TODO: Return an error here
+            Err(e) => return Err(UIManagerFocusSceneError::UnfocusFocusedSceneError(e)),
         };
 
         self.focused_scene_id = Some(*scene_id);
@@ -1465,7 +1483,7 @@ impl UIManager {
 
         match self.unfocus_canvas() {
             Ok(_) => {},
-            Err(UIManagerUnfocusCanvasError::NotRegistered) => {}, // TODO: Return an error here
+            Err(e) => return Err(UIManagerFocusCanvasError::UnfocusFocusedCanvasError(e)),
         };
         
         self.focused_canvas_id = Some(*canvas_id);
@@ -1494,7 +1512,7 @@ impl UIManager {
 
         match self.unfocus_window() {
             Ok(_) => {},
-            Err(UIManagerUnfocusWindowError::NotRegistered) => {}, // TODO: Return an error here
+            Err(e) => return Err(UIManagerFocusWindowError::UnfocusFocusedWindowError(e)),
         };
 
         self.focused_window_id = Some(*window_id);
@@ -1523,7 +1541,7 @@ impl UIManager {
 
         match self.unfocus_container() {
             Ok(_) => {},
-            Err(UIManagerUnfocusContainerError::NotRegistered) => {}, // TODO: Return an error here
+            Err(e) => return Err(UIManagerFocusContainerError::UnfocusFocusedContainerError(e)),
         };
 
         self.focused_container_id = Some(*container_id);
@@ -1552,7 +1570,7 @@ impl UIManager {
 
         match self.unfocus_element() {
             Ok(_) => {},
-            Err(UIManagerUnfocusElementError::NotRegistered) => {}, // TODO: Return an error here
+            Err(e) => return Err(UIManagerFocusElementError::UnfocusFocusedElementError(e)),
         };
 
         self.focused_element_id = Some(*element_id);
@@ -1580,7 +1598,7 @@ impl UIManager {
 
         match self.unfocus_canvas() {
             Ok(_) => {},
-            Err(UIManagerUnfocusCanvasError::NotRegistered) => {}, // TODO: Return an error here
+            Err(e) => return Err(UIManagerUnfocusSceneError::UnfocusFocusedCanvasError(e)),
         };
 
         self.focused_scene_id = None;
@@ -1608,7 +1626,7 @@ impl UIManager {
 
         match self.unfocus_window() {
             Ok(_) => {},
-            Err(UIManagerUnfocusWindowError::NotRegistered) => {}, // TODO: Return an error here
+            Err(e) => return Err(UIManagerUnfocusCanvasError::UnfocusFocusedWindowError(e)),
         };
 
         self.focused_canvas_id = None;
@@ -1636,7 +1654,7 @@ impl UIManager {
 
         match self.unfocus_container() {
             Ok(_) => {},
-            Err(UIManagerUnfocusContainerError::NotRegistered) => {}, // TODO: Return an error here
+            Err(e) => return Err(UIManagerUnfocusWindowError::UnfocusFocusedContainerError(e)),
         };
 
         self.focused_window_id = None;
@@ -1664,7 +1682,7 @@ impl UIManager {
 
         match self.unfocus_element() {
             Ok(_) => {},
-            Err(UIManagerUnfocusElementError::NotRegistered) => {}, // TODO: Return an error here
+            Err(e) => return Err(UIManagerUnfocusContainerError::UnfocusFocusedElementError(e)),
         };
 
         self.focused_container_id = None;
@@ -1741,18 +1759,13 @@ impl UIManager {
 /*
 TODO: Implement Advanced UI System (RAW USER CREATED)
 
-1. 4-Layer Focus Management
-    - Focus Hierarchy: I've designed a focus management system that respects the hierarchical structure of the UI. Each layer in the hierarchy (Canvas, Window, Container, Element) can have its focus, with the focus state propagating down the hierarchy but not up to the root (Scene) or down to the atomic components.
-    - Automatic Parent Focus: When an object receives focus, its parent in the hierarchy (if applicable) automatically gains focus as well, ensuring that the entire path from the focused object up to the root is in a focused state. This excludes Scenes, which are inherently focused as the root, and Components, which cannot be focused directly.
-    - Focus Constraints: Components are considered part of their parent Element and do not receive direct focus. This reflects a design choice that treats Elements as the smallest user-interactable unit. Scenes are always in focus by design, simplifying focus management at the top level.
-2. 6-Layer Event Management with Prioritization
+1. 6-Layer Event Management with Prioritization
     - Event Propagation: Events are passed down from the top of the UI hierarchy (Scene) to the targeted UI Object, with the ability for any EventHandler to consume the event, thus preventing it from propagating further. This allows for precise control over how events are handled and ensures that only the most relevant object processes the event.
     - Event Handling Layers: The system distinguishes between key press events, which are sent to all focused objects across the four focusable layers, and other types of events, which target specific UI Objects based on their position in the hierarchy and the event's specified target path.
     - Event Targeting: Non-key press events require specifying the intended target UI Object's "String" (a path through the UI hierarchy), enabling the UIManager to route the event through the hierarchy (Scene > Canvas > Window > Container > Element > Component) to the specified target. This mechanism ensures that events are directed accurately to their intended recipients.
     - Event Consumption: Elements have the ability to consume events, preventing further propagation to their components. However, components cannot consume events, as they are not directly focusable. This maintains a clear separation between Elements (which can interact with and potentially halt events) and Components (which can react to events but not stop their propagation).
 
-+
-3. Implementation Details
+2. Implementation Details
     "Event Handling Layers: The system distinguishes between key press events, which are sent to all focused objects across the four focusable layers, and other types of events, which target specific UI Objects based on their position in the hierarchy and the event's specified target path."
     To be precise: The key press events are an entirely different system from the ui events, because they are sent in a completely different, unconsumable way.
 */
@@ -1760,12 +1773,7 @@ TODO: Implement Advanced UI System (RAW USER CREATED)
 /*
 TODO: Implement Advanced UI System (AI "enhanced")
 
-1. 4-Layer Focus Management System:
-    - Implement a hierarchical focus management system where focus can propagate down from Scene (non-focusable, inherently always focused) to Canvas, Window, Container, and Element layers. Components do not receive direct focus.
-    - Ensure that when an object is focused, its parent (if applicable) and all ancestors up to the root are automatically focused, establishing a focused path within the hierarchy. This excludes Scenes, which are inherently focused, and Components, which are not focusable.
-    - Design the system so that Elements represent the atomic unit of user interaction within the UI, with Components considered as non-focusable parts of Elements.
-
-2. 6-Layer Event Management System with Prioritization:
+1. 6-Layer Event Management System with Prioritization:
     - Develop an event management system that allows events to be routed from the top of the UI hierarchy downwards towards the intended target object, specified by a unique path through the UI hierarchy.
     - Distinguish between key press events and other UI events:
         - Key Press Events System: Implement a distinct system for key press events where such events are sent to all focused objects across the four focusable layers (Canvas, Window, Container, Element) in a non-consumable manner. This ensures that key press events are universally accessible and not subject to consumption by any single UI object.
@@ -1773,7 +1781,7 @@ TODO: Implement Advanced UI System (AI "enhanced")
     - Include functionality for EventHandler objects to consume an event, halting further propagation to children, with the mechanism for specifying the target UI Object's path within the event itself to facilitate precise routing.
     - Ensure that events can be routed accurately through the hierarchy from Scene to Canvas, Window, Container, Element, and finally to Components, unless consumed by the Element. Note that Components cannot consume events, reflecting their role as part of a larger interactive Element.
 
-3. Implementation Details:
+2. Implementation Details:
     - Create robust interfaces and base classes for UI objects that include methods for startup, shutdown, focusing, and event handling, adhering to the principles of the focus and event management systems described above.
     - Design the UIManager to effectively manage the current scene, focus states across different layers, and the routing and handling of events within the UI hierarchy.
     - Pay special attention to the separation of key press events from other UI events in the system's design to ensure both types of events are handled appropriately and according to their distinct characteristics.
