@@ -401,12 +401,14 @@ impl Error for UIManagerRegisterElementTypeError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterSceneTypeError {
     AlreadyUnregistered,
+    InstancesStillRegistered,
 }
 
 impl fmt::Display for UIManagerUnregisterSceneTypeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnregisterSceneTypeError::AlreadyUnregistered => write!(f, "The scene type is already unregistered."),
+            UIManagerUnregisterSceneTypeError::InstancesStillRegistered => write!(f, "There are still instances of the scene type registered."),
         }
     }
 }
@@ -416,12 +418,14 @@ impl Error for UIManagerUnregisterSceneTypeError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterCanvasTypeError {
     AlreadyUnregistered,
+    InstancesStillRegistered,
 }
 
 impl fmt::Display for UIManagerUnregisterCanvasTypeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnregisterCanvasTypeError::AlreadyUnregistered => write!(f, "The canvas type is already unregistered."),
+            UIManagerUnregisterCanvasTypeError::InstancesStillRegistered => write!(f, "There are still instances of the canvas type registered."),
         }
     }
 }
@@ -431,12 +435,14 @@ impl Error for UIManagerUnregisterCanvasTypeError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterWindowTypeError {
     AlreadyUnregistered,
+    InstancesStillRegistered,
 }
 
 impl fmt::Display for UIManagerUnregisterWindowTypeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnregisterWindowTypeError::AlreadyUnregistered => write!(f, "The window type is already unregistered."),
+            UIManagerUnregisterWindowTypeError::InstancesStillRegistered => write!(f, "There are still instances of the window type registered."),
         }
     }
 }
@@ -446,12 +452,14 @@ impl Error for UIManagerUnregisterWindowTypeError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterContainerTypeError {
     AlreadyUnregistered,
+    InstancesStillRegistered,
 }
 
 impl fmt::Display for UIManagerUnregisterContainerTypeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnregisterContainerTypeError::AlreadyUnregistered => write!(f, "The container type is already unregistered."),
+            UIManagerUnregisterContainerTypeError::InstancesStillRegistered => write!(f, "There are still instances of the container type registered."),
         }
     }
 }
@@ -461,12 +469,14 @@ impl Error for UIManagerUnregisterContainerTypeError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterElementTypeError {
     AlreadyUnregistered,
+    InstancesStillRegistered,
 }
 
 impl fmt::Display for UIManagerUnregisterElementTypeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnregisterElementTypeError::AlreadyUnregistered => write!(f, "The element type is already unregistered."),
+            UIManagerUnregisterElementTypeError::InstancesStillRegistered => write!(f, "There are still instances of the element type registered."),
         }
     }
 }
@@ -475,13 +485,17 @@ impl Error for UIManagerUnregisterElementTypeError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterSceneError {
+    TypeNotRegistered,
     AlreadyRegistered,
+    GetUnusedSceneIDError(UIManagerGetUnusedSceneIDError),
 }
 
 impl fmt::Display for UIManagerRegisterSceneError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            UIManagerRegisterSceneError::TypeNotRegistered => write!(f, "The scene type is not registered."),
             UIManagerRegisterSceneError::AlreadyRegistered => write!(f, "The scene is already registered."),
+            UIManagerRegisterSceneError::GetUnusedSceneIDError(e) => write!(f, "An error occurred while getting an unused scene ID: {}", e),
         }
     }
 }
@@ -490,13 +504,21 @@ impl Error for UIManagerRegisterSceneError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterCanvasError {
+    TypeNotRegistered,
     AlreadyRegistered,
+    NoParentScene,
+    ParentSceneNotRegistered,
+    GetUnusedCanvasIDError(UIManagerGetUnusedCanvasIDError),
 }
 
 impl fmt::Display for UIManagerRegisterCanvasError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            UIManagerRegisterCanvasError::TypeNotRegistered => write!(f, "The canvas type is not registered."),
             UIManagerRegisterCanvasError::AlreadyRegistered => write!(f, "The canvas is already registered."),
+            UIManagerRegisterCanvasError::NoParentScene => write!(f, "The canvas has no parent scene."),
+            UIManagerRegisterCanvasError::ParentSceneNotRegistered => write!(f, "The parent scene is not registered."),	
+            UIManagerRegisterCanvasError::GetUnusedCanvasIDError(e) => write!(f, "An error occurred while getting an unused canvas ID: {}", e),
         }
     }
 }
@@ -505,13 +527,21 @@ impl Error for UIManagerRegisterCanvasError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterWindowError {
+    TypeNotRegistered,
     AlreadyRegistered,
+    NoParentCanvas,
+    ParentCanvasNotRegistered,
+    GetUnusedWindowIDError(UIManagerGetUnusedWindowIDError),
 }
 
 impl fmt::Display for UIManagerRegisterWindowError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            UIManagerRegisterWindowError::TypeNotRegistered => write!(f, "The window type is not registered."),
             UIManagerRegisterWindowError::AlreadyRegistered => write!(f, "The window is already registered."),
+            UIManagerRegisterWindowError::NoParentCanvas => write!(f, "The window has no parent canvas."),
+            UIManagerRegisterWindowError::ParentCanvasNotRegistered => write!(f, "The parent canvas is not registered."),
+            UIManagerRegisterWindowError::GetUnusedWindowIDError(e) => write!(f, "An error occurred while getting an unused window ID: {}", e),
         }
     }
 }
@@ -520,13 +550,23 @@ impl Error for UIManagerRegisterWindowError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterContainerError {
+    TypeNotRegistered,
     AlreadyRegistered,
+    NoParent,
+    ParentWindowNotRegistered,
+    ParentContainerNotRegistered,
+    GetUnusedContainerIDError(UIManagerGetUnusedContainerIDError),
 }
 
 impl fmt::Display for UIManagerRegisterContainerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            UIManagerRegisterContainerError::TypeNotRegistered => write!(f, "The container type is not registered."),
             UIManagerRegisterContainerError::AlreadyRegistered => write!(f, "The container is already registered."),
+            UIManagerRegisterContainerError::NoParent => write!(f, "The container has no parent window or container."),
+            UIManagerRegisterContainerError::ParentWindowNotRegistered => write!(f, "The parent window is not registered."),
+            UIManagerRegisterContainerError::ParentContainerNotRegistered => write!(f, "The parent container is not registered."),
+            UIManagerRegisterContainerError::GetUnusedContainerIDError(e) => write!(f, "An error occurred while getting an unused container ID: {}", e),
         }
     }
 }
@@ -535,73 +575,145 @@ impl Error for UIManagerRegisterContainerError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterElementError {
+    TypeNotRegistered,
     AlreadyRegistered,
+    NoParentContainer,
+    ParentContainerNotRegistered,
+    GetUnusedElementIDError(UIManagerGetUnusedElementIDError),
 }
 
 impl fmt::Display for UIManagerRegisterElementError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            UIManagerRegisterElementError::TypeNotRegistered => write!(f, "The element type is not registered."),
             UIManagerRegisterElementError::AlreadyRegistered => write!(f, "The element is already registered."),
+            UIManagerRegisterElementError::NoParentContainer => write!(f, "The element has no parent container."),
+            UIManagerRegisterElementError::ParentContainerNotRegistered => write!(f, "The parent container is not registered."),
+            UIManagerRegisterElementError::GetUnusedElementIDError(e) => write!(f, "An error occurred while getting an unused element ID: {}", e),
         }
     }
 }
 
 impl Error for UIManagerRegisterElementError {}
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterSceneError {
     AlreadyUnregistered,
+    UnregisterChildCanvasErrors(Box<[(UICanvasID, UIManagerUnregisterCanvasError)]>),
+    RecycleSceneIDError(UIManagerRecycleSceneIDError),
 }
 
 impl fmt::Display for UIManagerUnregisterSceneError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnregisterSceneError::AlreadyUnregistered => write!(f, "The scene is already unregistered."),
+            UIManagerUnregisterSceneError::UnregisterChildCanvasErrors(errors) => {
+                if errors.is_empty() {
+                    write!(f, "An unknown error occurred while unregistering the child canvases.")
+                } else {
+                    write!(f, "The following errors occurred while unregistering the child canvases:")?;
+
+                    for (canvas_id, error) in errors.iter() {
+                        write!(f, "\nCanvas ID: {}\nError: {}", canvas_id, error)?;
+                    }
+
+                    Ok(())
+                }
+            },
+            UIManagerUnregisterSceneError::RecycleSceneIDError(e) => write!(f, "An error occurred while recycling the scene ID: {}", e),
         }
     }
 }
 
 impl Error for UIManagerUnregisterSceneError {}
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterCanvasError {
     AlreadyUnregistered,
+    UnregisterChildWindowErrors(Box<[(UIWindowID, UIManagerUnregisterWindowError)]>),
+    RecycleCanvasIDError(UIManagerRecycleCanvasIDError),
 }
 
 impl fmt::Display for UIManagerUnregisterCanvasError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnregisterCanvasError::AlreadyUnregistered => write!(f, "The canvas is already unregistered."),
+            UIManagerUnregisterCanvasError::UnregisterChildWindowErrors(errors) => {
+                if errors.is_empty() {
+                    write!(f, "An unknown error occurred while unregistering the child windows.")
+                } else {
+                    write!(f, "The following errors occurred while unregistering the child windows:")?;
+
+                    for (window_id, error) in errors.iter() {
+                        write!(f, "\nWindow ID: {}\nError: {}", window_id, error)?;
+                    }
+
+                    Ok(())
+                }
+            },
+            UIManagerUnregisterCanvasError::RecycleCanvasIDError(e) => write!(f, "An error occurred while recycling the canvas ID: {}", e),
         }
     }
 }
 
 impl Error for UIManagerUnregisterCanvasError {}
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterWindowError {
     AlreadyUnregistered,
+    UnregisterChildContainerErrors(Box<[(UIContainerID, UIManagerUnregisterContainerError)]>),
+    RecycleWindowIDError(UIManagerRecycleWindowIDError),
 }
 
 impl fmt::Display for UIManagerUnregisterWindowError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnregisterWindowError::AlreadyUnregistered => write!(f, "The window is already unregistered."),
+            UIManagerUnregisterWindowError::UnregisterChildContainerErrors(errors) => {
+                if errors.is_empty() {
+                    write!(f, "An unknown error occurred while unregistering the child containers.")
+                } else {
+                    write!(f, "The following errors occurred while unregistering the child containers:")?;
+
+                    for (container_id, error) in errors.iter() {
+                        write!(f, "\nContainer ID: {}\nError: {}", container_id, error)?;
+                    }
+
+                    Ok(())
+                }
+            },
+            UIManagerUnregisterWindowError::RecycleWindowIDError(e) => write!(f, "An error occurred while recycling the window ID: {}", e),
         }
     }
 }
 
 impl Error for UIManagerUnregisterWindowError {}
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterContainerError {
     AlreadyUnregistered,
+    UnregisterChildElementErrors(Box<[(UIElementID, UIManagerUnregisterElementError)]>),
+    RecycleContainerIDError(UIManagerRecycleContainerIDError),
 }
 
 impl fmt::Display for UIManagerUnregisterContainerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnregisterContainerError::AlreadyUnregistered => write!(f, "The container is already unregistered."),
+            UIManagerUnregisterContainerError::UnregisterChildElementErrors(errors) => {
+                if errors.is_empty() {
+                    write!(f, "An unknown error occurred while unregistering the child elements.")
+                } else {
+                    write!(f, "The following errors occurred while unregistering the child elements:")?;
+
+                    for (element_id, error) in errors.iter() {
+                        write!(f, "\nElement ID: {}\nError: {}", element_id, error)?;
+                    }
+
+                    Ok(())
+                }
+            },
+            UIManagerUnregisterContainerError::RecycleContainerIDError(e) => write!(f, "An error occurred while recycling the container ID: {}", e),
         }
     }
 }
@@ -611,12 +723,14 @@ impl Error for UIManagerUnregisterContainerError {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterElementError {
     AlreadyUnregistered,
+    RecycleElementIDError(UIManagerRecycleElementIDError),
 }
 
 impl fmt::Display for UIManagerUnregisterElementError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UIManagerUnregisterElementError::AlreadyUnregistered => write!(f, "The element is already unregistered."),
+            UIManagerUnregisterElementError::RecycleElementIDError(e) => write!(f, "An error occurred while recycling the element ID: {}", e),
         }
     }
 }
@@ -792,59 +906,162 @@ impl fmt::Display for UIManagerUnfocusElementError {
 impl Error for UIManagerUnfocusElementError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UIManagerGetUnusedSceneIDError {
+pub enum UIManagerGetUnusedSceneIDError {
     AllIDsInUse,
 }
 
+impl fmt::Display for UIManagerGetUnusedSceneIDError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerGetUnusedSceneIDError::AllIDsInUse => write!(f, "All scene IDs are in use."),
+        }
+    }
+}
+
+impl Error for UIManagerGetUnusedSceneIDError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UIManagerRecycleSceneIDError {
+pub enum UIManagerRecycleSceneIDError {
     AlreadyRecycled,
     StillInUse,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UIManagerGetUnusedCanvasIDError {
-    AllIDsInUse,
+impl fmt::Display for UIManagerRecycleSceneIDError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRecycleSceneIDError::AlreadyRecycled => write!(f, "The scene ID is already recycled."),
+            UIManagerRecycleSceneIDError::StillInUse => write!(f, "The scene ID is still in use."),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UIManagerRecycleCanvasIDError {
+pub enum UIManagerGetUnusedCanvasIDError {
+    AllIDsInUse,
+}
+
+impl fmt::Display for UIManagerGetUnusedCanvasIDError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerGetUnusedCanvasIDError::AllIDsInUse => write!(f, "All canvas IDs are in use."),
+        }
+    }
+}
+
+impl Error for UIManagerGetUnusedCanvasIDError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIManagerRecycleCanvasIDError {
     AlreadyRecycled,
     StillInUse,
 }
 
+impl fmt::Display for UIManagerRecycleCanvasIDError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRecycleCanvasIDError::AlreadyRecycled => write!(f, "The canvas ID is already recycled."),
+            UIManagerRecycleCanvasIDError::StillInUse => write!(f, "The canvas ID is still in use."),
+        }
+    }
+}
+
+impl Error for UIManagerRecycleCanvasIDError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UIManagerGetUnusedWindowIDError {
+pub enum UIManagerGetUnusedWindowIDError {
     AllIDsInUse,
 }
 
+impl fmt::Display for UIManagerGetUnusedWindowIDError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerGetUnusedWindowIDError::AllIDsInUse => write!(f, "All window IDs are in use."),
+        }
+    }
+}
+
+impl Error for UIManagerGetUnusedWindowIDError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UIManagerRecycleWindowIDError {
+pub enum UIManagerRecycleWindowIDError {
     AlreadyRecycled,
     StillInUse,
 }
 
+impl fmt::Display for UIManagerRecycleWindowIDError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRecycleWindowIDError::AlreadyRecycled => write!(f, "The window ID is already recycled."),
+            UIManagerRecycleWindowIDError::StillInUse => write!(f, "The window ID is still in use."),
+        }
+    }
+}
+
+impl Error for UIManagerRecycleWindowIDError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UIManagerGetUnusedContainerIDError {
+pub enum UIManagerGetUnusedContainerIDError {
     AllIDsInUse,
 }
 
+impl fmt::Display for UIManagerGetUnusedContainerIDError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerGetUnusedContainerIDError::AllIDsInUse => write!(f, "All container IDs are in use."),
+        }
+    }
+}
+
+impl Error for UIManagerGetUnusedContainerIDError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UIManagerRecycleContainerIDError {
+pub enum UIManagerRecycleContainerIDError {
     AlreadyRecycled,
     StillInUse,
 }
 
+impl fmt::Display for UIManagerRecycleContainerIDError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRecycleContainerIDError::AlreadyRecycled => write!(f, "The container ID is already recycled."),
+            UIManagerRecycleContainerIDError::StillInUse => write!(f, "The container ID is still in use."),
+        }
+    }
+}
+
+impl Error for UIManagerRecycleContainerIDError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UIManagerGetUnusedElementIDError {
+pub enum UIManagerGetUnusedElementIDError {
     AllIDsInUse,
 }
 
+impl fmt::Display for UIManagerGetUnusedElementIDError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerGetUnusedElementIDError::AllIDsInUse => write!(f, "All element IDs are in use."),
+        }
+    }
+}
+
+impl Error for UIManagerGetUnusedElementIDError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum UIManagerRecycleElementIDError {
+pub enum UIManagerRecycleElementIDError {
     AlreadyRecycled,
     StillInUse,
 }
+
+impl fmt::Display for UIManagerRecycleElementIDError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRecycleElementIDError::AlreadyRecycled => write!(f, "The element ID is already recycled."),
+            UIManagerRecycleElementIDError::StillInUse => write!(f, "The element ID is still in use."),
+        }
+    }
+}
+
+impl Error for UIManagerRecycleElementIDError {}
 
 #[derive(Default)]
 pub struct UIManager {
@@ -1151,6 +1368,10 @@ impl UIManager {
     }
 
     pub fn register_scene<T: 'static + UIScene>(&mut self, mut scene: T) -> Result<UISceneID, UIManagerRegisterSceneError> {
+        if !self.is_scene_type_registered::<T>() {
+            return Err(UIManagerRegisterSceneError::TypeNotRegistered);
+        }
+        
         if scene.get_id().is_some() {
             return Err(UIManagerRegisterSceneError::AlreadyRegistered);
         }
@@ -1161,11 +1382,11 @@ impl UIManager {
 
                 unused_scene_id
             },
-            Err(UIManagerGetUnusedSceneIDError::AllIDsInUse) => panic!("All scene IDs are in use!"),
+            Err(e) => return Err(UIManagerRegisterSceneError::GetUnusedSceneIDError(e)),
         };
 
         if self.registered_scenes.contains_key(&scene_id) {
-            return Err(UIManagerRegisterSceneError::AlreadyRegistered);
+            panic!("Unused scene ID is actually already registered!");
         }
 
         scene.set_id(Some(scene_id));
@@ -1176,8 +1397,21 @@ impl UIManager {
     }
 
     pub fn register_canvas<T: 'static + UICanvas>(&mut self, mut canvas: T) -> Result<UICanvasID, UIManagerRegisterCanvasError> {
+        if !self.is_canvas_type_registered::<T>() {
+            return Err(UIManagerRegisterCanvasError::TypeNotRegistered);
+        }
+
         if canvas.get_id().is_some() {
             return Err(UIManagerRegisterCanvasError::AlreadyRegistered);
+        }
+
+        let parent_scene_id = match canvas.get_parent() {
+            Some(parent_scene_id) => parent_scene_id,
+            None => return Err(UIManagerRegisterCanvasError::NoParentScene),
+        };
+
+        if !self.registered_scenes.contains_key(&parent_scene_id) {
+            return Err(UIManagerRegisterCanvasError::ParentSceneNotRegistered);
         }
 
         let canvas_id = match self.get_unused_canvas_id() {
@@ -1186,11 +1420,11 @@ impl UIManager {
 
                 unused_canvas_id
             },
-            Err(UIManagerGetUnusedCanvasIDError::AllIDsInUse) => panic!("All canvas IDs are in use!"),
+            Err(e) => return Err(UIManagerRegisterCanvasError::GetUnusedCanvasIDError(e)),
         };
 
         if self.registered_canvases.contains_key(&canvas_id) {
-            return Err(UIManagerRegisterCanvasError::AlreadyRegistered);
+            panic!("Unused canvas ID is actually already registered!");
         }
 
         canvas.set_id(Some(canvas_id));
@@ -1201,8 +1435,21 @@ impl UIManager {
     }
 
     pub fn register_window<T: 'static + UIWindow>(&mut self, mut window: T) -> Result<UIWindowID, UIManagerRegisterWindowError> {
+        if !self.is_window_type_registered::<T>() {
+            return Err(UIManagerRegisterWindowError::TypeNotRegistered);
+        }
+
         if window.get_id().is_some() {
             return Err(UIManagerRegisterWindowError::AlreadyRegistered);
+        }
+
+        let parent_canvas_id = match window.get_parent() {
+            Some(parent_canvas_id) => parent_canvas_id,
+            None => return Err(UIManagerRegisterWindowError::NoParentCanvas),
+        };
+
+        if !self.registered_canvases.contains_key(&parent_canvas_id) {
+            return Err(UIManagerRegisterWindowError::ParentCanvasNotRegistered);
         }
 
         let window_id = match self.get_unused_window_id() {
@@ -1211,11 +1458,11 @@ impl UIManager {
 
                 unused_window_id
             },
-            Err(UIManagerGetUnusedWindowIDError::AllIDsInUse) => panic!("All window IDs are in use!"),
+            Err(e) => return Err(UIManagerRegisterWindowError::GetUnusedWindowIDError(e)),
         };
 
         if self.registered_windows.contains_key(&window_id) {
-            return Err(UIManagerRegisterWindowError::AlreadyRegistered);
+            panic!("Unused window ID is actually already registered!");
         }
 
         window.set_id(Some(window_id));
@@ -1226,9 +1473,31 @@ impl UIManager {
     }
 
     pub fn register_container<T: 'static + UIContainer>(&mut self, mut container: T) -> Result<UIContainerID, UIManagerRegisterContainerError> {
+        if !self.is_container_type_registered::<T>() {
+            return Err(UIManagerRegisterContainerError::TypeNotRegistered);
+        }
+
         if container.get_id().is_some() {
             return Err(UIManagerRegisterContainerError::AlreadyRegistered);
         }
+
+        let (parent_type, parent_id) = match container.get_parent() {
+            Some((parent_type, parent_id)) => (parent_type, parent_id),
+            None => return Err(UIManagerRegisterContainerError::NoParent),
+        };
+
+        match parent_type {
+            UIContainerParentType::Window => {
+                if !self.registered_windows.contains_key(&parent_id) {
+                    return Err(UIManagerRegisterContainerError::ParentWindowNotRegistered);
+                }
+            },
+            UIContainerParentType::Container => {
+                if !self.registered_containers.contains_key(&parent_id) {
+                    return Err(UIManagerRegisterContainerError::ParentContainerNotRegistered);
+                }
+            },
+        };
 
         let container_id = match self.get_unused_container_id() {
             Ok(unused_container_id) => {
@@ -1236,11 +1505,11 @@ impl UIManager {
 
                 unused_container_id
             },
-            Err(UIManagerGetUnusedContainerIDError::AllIDsInUse) => panic!("All container IDs are in use!"),
+            Err(e) => return Err(UIManagerRegisterContainerError::GetUnusedContainerIDError(e)),
         };
 
         if self.registered_containers.contains_key(&container_id) {
-            return Err(UIManagerRegisterContainerError::AlreadyRegistered);
+            panic!("Unused container ID is actually already registered!");
         }
 
         container.set_id(Some(container_id));
@@ -1251,8 +1520,21 @@ impl UIManager {
     }
 
     pub fn register_element<T: 'static + UIElement>(&mut self, mut element: T) -> Result<UIElementID, UIManagerRegisterElementError> {
+        if !self.is_element_type_registered::<T>() {
+            return Err(UIManagerRegisterElementError::TypeNotRegistered);
+        }
+
         if element.get_id().is_some() {
             return Err(UIManagerRegisterElementError::AlreadyRegistered);
+        }
+
+        let parent_container_id = match element.get_parent() {
+            Some(parent_container_id) => parent_container_id,
+            None => return Err(UIManagerRegisterElementError::NoParentContainer),
+        };
+
+        if !self.registered_containers.contains_key(&parent_container_id) {
+            return Err(UIManagerRegisterElementError::ParentContainerNotRegistered);
         }
 
         let element_id = match self.get_unused_element_id() {
@@ -1261,11 +1543,11 @@ impl UIManager {
 
                 unused_element_id
             },
-            Err(UIManagerGetUnusedElementIDError::AllIDsInUse) => panic!("All element IDs are in use!"),
+            Err(e) => return Err(UIManagerRegisterElementError::GetUnusedElementIDError(e)),
         };
 
         if self.registered_elements.contains_key(&element_id) {
-            return Err(UIManagerRegisterElementError::AlreadyRegistered);
+            panic!("Unused element ID is actually already registered!");
         }
 
         element.set_id(Some(element_id));
@@ -1288,14 +1570,15 @@ impl UIManager {
             Err(_) => panic!("Scene mutex is poisoned!"),
         };
 
+        // TODO: Unregister child canvases
+
         removed_scene.set_id(None);
 
         drop(removed_scene);
 
         match self.recycle_scene_id(scene_id) {
             Ok(_) => Ok(()),
-            Err(UIManagerRecycleSceneIDError::AlreadyRecycled) => panic!("Scene ID is already recycled!"),
-            Err(UIManagerRecycleSceneIDError::StillInUse) => panic!("Scene ID is still in use!"),
+            Err(e) => Err(UIManagerUnregisterSceneError::RecycleSceneIDError(e)),
         }
     }
 
@@ -1312,14 +1595,15 @@ impl UIManager {
             Err(_) => panic!("Canvas mutex is poisoned!"),
         };
 
+        // TODO: Unregister child windows
+
         removed_canvas.set_id(None);
 
         drop(removed_canvas);
 
         match self.recycle_canvas_id(canvas_id) {
             Ok(_) => Ok(()),
-            Err(UIManagerRecycleCanvasIDError::AlreadyRecycled) => panic!("Canvas ID is already recycled!"),
-            Err(UIManagerRecycleCanvasIDError::StillInUse) => panic!("Canvas ID is still in use!"),
+            Err(e) => Err(UIManagerUnregisterCanvasError::RecycleCanvasIDError(e)),
         }
     }
 
@@ -1336,14 +1620,15 @@ impl UIManager {
             Err(_) => panic!("Window mutex is poisoned!"),
         };
 
+        // TODO: Unregister child containers
+
         removed_window.set_id(None);
 
         drop(removed_window);
 
         match self.recycle_window_id(window_id) {
             Ok(_) => Ok(()),
-            Err(UIManagerRecycleWindowIDError::AlreadyRecycled) => panic!("Window ID is already recycled!"),
-            Err(UIManagerRecycleWindowIDError::StillInUse) => panic!("Window ID is still in use!"),
+            Err(e) => Err(UIManagerUnregisterWindowError::RecycleWindowIDError(e)),
         }
     }
 
@@ -1360,14 +1645,15 @@ impl UIManager {
             Err(_) => panic!("Container mutex is poisoned!"),
         };
 
+        // TODO: Unregister child elements
+
         removed_container.set_id(None);
 
         drop(removed_container);
 
         match self.recycle_container_id(container_id) {
             Ok(_) => Ok(()),
-            Err(UIManagerRecycleContainerIDError::AlreadyRecycled) => panic!("Container ID is already recycled!"),
-            Err(UIManagerRecycleContainerIDError::StillInUse) => panic!("Container ID is still in use!"),
+            Err(e) => Err(UIManagerUnregisterContainerError::RecycleContainerIDError(e)),
         }
     }
 
@@ -1390,8 +1676,7 @@ impl UIManager {
 
         match self.recycle_element_id(element_id) {
             Ok(_) => Ok(()),
-            Err(UIManagerRecycleElementIDError::AlreadyRecycled) => panic!("Element ID is already recycled!"),
-            Err(UIManagerRecycleElementIDError::StillInUse) => panic!("Element ID is still in use!"),
+            Err(e) => Err(UIManagerUnregisterElementError::RecycleElementIDError(e)),
         }
     }
 
