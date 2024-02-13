@@ -1132,7 +1132,7 @@ impl UIManager {
         Ok(())
     }
 
-    pub fn register_scene<T: 'static + UIScene>(&mut self, mut scene: Box<T>) -> Result<UISceneID, UIManagerRegisterSceneError> {
+    pub fn register_scene<T: 'static + UIScene>(&mut self, mut scene: T) -> Result<UISceneID, UIManagerRegisterSceneError> {
         if scene.get_id().is_some() {
             return Err(UIManagerRegisterSceneError::AlreadyRegistered);
         }
@@ -1152,12 +1152,12 @@ impl UIManager {
 
         scene.set_id(Some(scene_id));
 
-        self.registered_scenes.insert(scene_id, Arc::new(Mutex::new(*scene)));
+        self.registered_scenes.insert(scene_id, Arc::new(Mutex::new(scene)));
 
         Ok(scene_id)
     }
 
-    pub fn register_canvas<T: 'static + UICanvas>(&mut self, mut canvas: Box<T>) -> Result<UICanvasID, UIManagerRegisterCanvasError> {
+    pub fn register_canvas<T: 'static + UICanvas>(&mut self, mut canvas: T) -> Result<UICanvasID, UIManagerRegisterCanvasError> {
         if canvas.get_id().is_some() {
             return Err(UIManagerRegisterCanvasError::AlreadyRegistered);
         }
@@ -1177,12 +1177,12 @@ impl UIManager {
 
         canvas.set_id(Some(canvas_id));
 
-        self.registered_canvases.insert(canvas_id, Arc::new(Mutex::new(*canvas)));
+        self.registered_canvases.insert(canvas_id, Arc::new(Mutex::new(canvas)));
 
         Ok(canvas_id)
     }
 
-    pub fn register_window<T: 'static + UIWindow>(&mut self, mut window: Box<T>) -> Result<UIWindowID, UIManagerRegisterWindowError> {
+    pub fn register_window<T: 'static + UIWindow>(&mut self, mut window: T) -> Result<UIWindowID, UIManagerRegisterWindowError> {
         if window.get_id().is_some() {
             return Err(UIManagerRegisterWindowError::AlreadyRegistered);
         }
@@ -1202,12 +1202,12 @@ impl UIManager {
 
         window.set_id(Some(window_id));
 
-        self.registered_windows.insert(window_id, Arc::new(Mutex::new(*window)));
+        self.registered_windows.insert(window_id, Arc::new(Mutex::new(window)));
 
         Ok(window_id)
     }
 
-    pub fn register_container<T: 'static + UIContainer>(&mut self, mut container: Box<T>) -> Result<UIContainerID, UIManagerRegisterContainerError> {
+    pub fn register_container<T: 'static + UIContainer>(&mut self, mut container: T) -> Result<UIContainerID, UIManagerRegisterContainerError> {
         if container.get_id().is_some() {
             return Err(UIManagerRegisterContainerError::AlreadyRegistered);
         }
@@ -1227,12 +1227,12 @@ impl UIManager {
 
         container.set_id(Some(container_id));
 
-        self.registered_containers.insert(container_id, Arc::new(Mutex::new(*container)));
+        self.registered_containers.insert(container_id, Arc::new(Mutex::new(container)));
 
         Ok(container_id)
     }
 
-    pub fn register_element<T: 'static + UIElement>(&mut self, mut element: Box<T>) -> Result<UIElementID, UIManagerRegisterElementError> {
+    pub fn register_element<T: 'static + UIElement>(&mut self, mut element: T) -> Result<UIElementID, UIManagerRegisterElementError> {
         if element.get_id().is_some() {
             return Err(UIManagerRegisterElementError::AlreadyRegistered);
         }
@@ -1252,7 +1252,7 @@ impl UIManager {
 
         element.set_id(Some(element_id));
 
-        self.registered_elements.insert(element_id, Arc::new(Mutex::new(*element)));
+        self.registered_elements.insert(element_id, Arc::new(Mutex::new(element)));
 
         Ok(element_id)
     }
