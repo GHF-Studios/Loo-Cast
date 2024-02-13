@@ -625,14 +625,12 @@ impl Error for UIManagerUnregisterElementError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusSceneError {
-    AlreadyFocused,
     NotRegistered,
 }
 
 impl fmt::Display for UIManagerFocusSceneError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UIManagerFocusSceneError::AlreadyFocused => write!(f, "The scene is already focused."),
             UIManagerFocusSceneError::NotRegistered => write!(f, "The scene is not registered."),
         }
     }
@@ -642,7 +640,6 @@ impl Error for UIManagerFocusSceneError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusCanvasError {
-    AlreadyFocused,
     NotRegistered,
     ParentSceneNotRegistered,
 }
@@ -650,7 +647,6 @@ pub enum UIManagerFocusCanvasError {
 impl fmt::Display for UIManagerFocusCanvasError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UIManagerFocusCanvasError::AlreadyFocused => write!(f, "The canvas is already focused."),
             UIManagerFocusCanvasError::NotRegistered => write!(f, "The canvas is not registered."),
             UIManagerFocusCanvasError::ParentSceneNotRegistered => write!(f, "The parent scene is not registered."),
         }
@@ -661,7 +657,6 @@ impl Error for UIManagerFocusCanvasError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusWindowError {
-    AlreadyFocused,
     NotRegistered,
     ParentSceneNotRegistered,
     ParentCanvasNotRegistered,
@@ -670,7 +665,6 @@ pub enum UIManagerFocusWindowError {
 impl fmt::Display for UIManagerFocusWindowError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UIManagerFocusWindowError::AlreadyFocused => write!(f, "The window is already focused."),
             UIManagerFocusWindowError::NotRegistered => write!(f, "The window is not registered."),
             UIManagerFocusWindowError::ParentSceneNotRegistered => write!(f, "The parent scene is not registered."),
             UIManagerFocusWindowError::ParentCanvasNotRegistered => write!(f, "The parent canvas is not registered."),
@@ -682,7 +676,6 @@ impl Error for UIManagerFocusWindowError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusContainerError {
-    AlreadyFocused,
     NotRegistered,
     ParentSceneNotRegistered,
     ParentCanvasNotRegistered,
@@ -693,7 +686,6 @@ pub enum UIManagerFocusContainerError {
 impl fmt::Display for UIManagerFocusContainerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UIManagerFocusContainerError::AlreadyFocused => write!(f, "The container is already focused."),
             UIManagerFocusContainerError::NotRegistered => write!(f, "The container is not registered."),
             UIManagerFocusContainerError::ParentSceneNotRegistered => write!(f, "The parent scene is not registered."),
             UIManagerFocusContainerError::ParentCanvasNotRegistered => write!(f, "The parent canvas is not registered."),
@@ -707,7 +699,6 @@ impl Error for UIManagerFocusContainerError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusElementError {
-    AlreadyFocused,
     NotRegistered,
     ParentSceneNotRegistered,
     ParentCanvasNotRegistered,
@@ -718,7 +709,6 @@ pub enum UIManagerFocusElementError {
 impl fmt::Display for UIManagerFocusElementError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UIManagerFocusElementError::AlreadyFocused => write!(f, "The element is already focused."),
             UIManagerFocusElementError::NotRegistered => write!(f, "The element is not registered."),
             UIManagerFocusElementError::ParentSceneNotRegistered => write!(f, "The parent scene is not registered."),
             UIManagerFocusElementError::ParentCanvasNotRegistered => write!(f, "The parent canvas is not registered."),
@@ -732,13 +722,21 @@ impl Error for UIManagerFocusElementError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusSceneError {
-    AlreadyUnfocused,
+    NotRegistered,
+    ChildCanvasNotRegistered,
+    ChildWindowNotRegistered,
+    ChildContainerNotRegistered,
+    ChildElementNotRegistered,
 }
 
 impl fmt::Display for UIManagerUnfocusSceneError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UIManagerUnfocusSceneError::AlreadyUnfocused => write!(f, "The scene is already unfocused."),
+            UIManagerUnfocusSceneError::NotRegistered => write!(f, "The scene is not registered."),
+            UIManagerUnfocusSceneError::ChildCanvasNotRegistered => write!(f, "A child canvas is not registered."),
+            UIManagerUnfocusSceneError::ChildWindowNotRegistered => write!(f, "A child window is not registered."),
+            UIManagerUnfocusSceneError::ChildContainerNotRegistered => write!(f, "A child container is not registered."),
+            UIManagerUnfocusSceneError::ChildElementNotRegistered => write!(f, "A child element is not registered."),
         }
     }
 }
@@ -747,13 +745,19 @@ impl Error for UIManagerUnfocusSceneError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusCanvasError {
-    AlreadyUnfocused,
+    NotRegistered,
+    ChildWindowNotRegistered,
+    ChildContainerNotRegistered,
+    ChildElementNotRegistered,
 }
 
 impl fmt::Display for UIManagerUnfocusCanvasError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UIManagerUnfocusCanvasError::AlreadyUnfocused => write!(f, "The canvas is already unfocused."),
+            UIManagerUnfocusCanvasError::NotRegistered => write!(f, "The canvas is not registered."),
+            UIManagerUnfocusCanvasError::ChildWindowNotRegistered => write!(f, "A child window is not registered."),
+            UIManagerUnfocusCanvasError::ChildContainerNotRegistered => write!(f, "A child container is not registered."),
+            UIManagerUnfocusCanvasError::ChildElementNotRegistered => write!(f, "A child element is not registered."),
         }
     }
 }
@@ -762,13 +766,17 @@ impl Error for UIManagerUnfocusCanvasError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusWindowError {
-    AlreadyUnfocused,
+    NotRegistered,
+    ChildContainerNotRegistered,
+    ChildElementNotRegistered,
 }
 
 impl fmt::Display for UIManagerUnfocusWindowError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UIManagerUnfocusWindowError::AlreadyUnfocused => write!(f, "The window is already unfocused."),
+            UIManagerUnfocusWindowError::NotRegistered => write!(f, "The window is not registered."),
+            UIManagerUnfocusWindowError::ChildContainerNotRegistered => write!(f, "A child container is not registered."),
+            UIManagerUnfocusWindowError::ChildElementNotRegistered => write!(f, "A child element is not registered."),
         }
     }
 }
@@ -777,13 +785,17 @@ impl Error for UIManagerUnfocusWindowError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusContainerError {
-    AlreadyUnfocused,
+    NotRegistered,
+    ChildContainerNotRegistered,
+    ChildElementNotRegistered,
 }
 
 impl fmt::Display for UIManagerUnfocusContainerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UIManagerUnfocusContainerError::AlreadyUnfocused => write!(f, "The container is already unfocused."),
+            UIManagerUnfocusContainerError::NotRegistered => write!(f, "The container is not registered."),
+            UIManagerUnfocusContainerError::ChildContainerNotRegistered => write!(f, "A child container is not registered."),
+            UIManagerUnfocusContainerError::ChildElementNotRegistered => write!(f, "A child element is not registered."),
         }
     }
 }
@@ -792,13 +804,13 @@ impl Error for UIManagerUnfocusContainerError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusElementError {
-    AlreadyUnfocused,
+    NotRegistered,
 }
 
 impl fmt::Display for UIManagerUnfocusElementError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            UIManagerUnfocusElementError::AlreadyUnfocused => write!(f, "The element is already unfocused."),
+            UIManagerUnfocusElementError::NotRegistered => write!(f, "The element is not registered."),
         }
     }
 }
@@ -1182,6 +1194,8 @@ impl UIManager {
             return Err(UIManagerRegisterSceneError::AlreadyRegistered);
         }
 
+        scene.set_id(Some(scene_id));
+
         self.registered_scenes.insert(scene_id, Arc::new(Mutex::new(*scene)));
 
         Ok(scene_id)
@@ -1204,6 +1218,8 @@ impl UIManager {
         if self.registered_canvases.contains_key(&canvas_id) {
             return Err(UIManagerRegisterCanvasError::AlreadyRegistered);
         }
+
+        canvas.set_id(Some(canvas_id));
 
         self.registered_canvases.insert(canvas_id, Arc::new(Mutex::new(*canvas)));
 
@@ -1228,6 +1244,8 @@ impl UIManager {
             return Err(UIManagerRegisterWindowError::AlreadyRegistered);
         }
 
+        window.set_id(Some(window_id));
+
         self.registered_windows.insert(window_id, Arc::new(Mutex::new(*window)));
 
         Ok(window_id)
@@ -1251,6 +1269,8 @@ impl UIManager {
             return Err(UIManagerRegisterContainerError::AlreadyRegistered);
         }
 
+        container.set_id(Some(container_id));
+
         self.registered_containers.insert(container_id, Arc::new(Mutex::new(*container)));
 
         Ok(container_id)
@@ -1273,6 +1293,8 @@ impl UIManager {
         if self.registered_elements.contains_key(&element_id) {
             return Err(UIManagerRegisterElementError::AlreadyRegistered);
         }
+
+        element.set_id(Some(element_id));
 
         self.registered_elements.insert(element_id, Arc::new(Mutex::new(*element)));
 
@@ -1399,56 +1421,54 @@ impl UIManager {
         }
     }
 
-    pub fn is_scene_registered(&self, scene_id: UISceneID) -> bool {
-        self.registered_scenes.contains_key(&scene_id)
+    pub fn is_scene_registered(&self, scene_id: &UISceneID) -> bool {
+        self.registered_scenes.contains_key(scene_id)
     }
 
-    pub fn is_canvas_registered(&self, canvas_id: UICanvasID) -> bool {
-        self.registered_canvases.contains_key(&canvas_id)
+    pub fn is_canvas_registered(&self, canvas_id: &UICanvasID) -> bool {
+        self.registered_canvases.contains_key(canvas_id)
     }
 
-    pub fn is_window_registered(&self, window_id: UIWindowID) -> bool {
-        self.registered_windows.contains_key(&window_id)
+    pub fn is_window_registered(&self, window_id: &UIWindowID) -> bool {
+        self.registered_windows.contains_key(window_id)
     }
 
-    pub fn is_container_registered(&self, container_id: UIContainerID) -> bool {
-        self.registered_containers.contains_key(&container_id)
+    pub fn is_container_registered(&self, container_id: &UIContainerID) -> bool {
+        self.registered_containers.contains_key(container_id)
     }
 
-    pub fn is_element_registered(&self, element_id: UIElementID) -> bool {
-        self.registered_elements.contains_key(&element_id)
+    pub fn is_element_registered(&self, element_id: &UIElementID) -> bool {
+        self.registered_elements.contains_key(element_id)
     }
 
-    pub fn get_scene(&self, scene_id: UISceneID) -> Option<Arc<Mutex<dyn 'static + UIScene>>> {
-        self.registered_scenes.get(&scene_id).cloned()
+    pub fn get_scene(&self, scene_id: &UISceneID) -> Option<Arc<Mutex<dyn 'static + UIScene>>> {
+        self.registered_scenes.get(scene_id).cloned()
     }
 
-    pub fn get_canvas(&self, canvas_id: UICanvasID) -> Option<Arc<Mutex<dyn 'static + UICanvas>>> {
-        self.registered_canvases.get(&canvas_id).cloned()
+    pub fn get_canvas(&self, canvas_id: &UICanvasID) -> Option<Arc<Mutex<dyn 'static + UICanvas>>> {
+        self.registered_canvases.get(canvas_id).cloned()
     }
 
-    pub fn get_window(&self, window_id: UIWindowID) -> Option<Arc<Mutex<dyn 'static + UIWindow>>> {
-        self.registered_windows.get(&window_id).cloned()
+    pub fn get_window(&self, window_id: &UIWindowID) -> Option<Arc<Mutex<dyn 'static + UIWindow>>> {
+        self.registered_windows.get(window_id).cloned()
     }
 
-    pub fn get_container(&self, container_id: UIContainerID) -> Option<Arc<Mutex<dyn 'static + UIContainer>>> {
-        self.registered_containers.get(&container_id).cloned()
+    pub fn get_container(&self, container_id: &UIContainerID) -> Option<Arc<Mutex<dyn 'static + UIContainer>>> {
+        self.registered_containers.get(container_id).cloned()
     }
 
-    pub fn get_element(&self, element_id: UIElementID) -> Option<Arc<Mutex<dyn 'static + UIElement>>> {
-        self.registered_elements.get(&element_id).cloned()
+    pub fn get_element(&self, element_id: &UIElementID) -> Option<Arc<Mutex<dyn 'static + UIElement>>> {
+        self.registered_elements.get(element_id).cloned()
     }
 
-    pub fn focus_scene(&mut self, scene_id: UISceneID) -> Result<(), UIManagerFocusSceneError> {
-        if self.focused_scene_id.is_some() {
-            return Err(UIManagerFocusSceneError::AlreadyFocused);
-        }
+    pub fn focus_scene(&mut self, scene_id: &UISceneID) -> Result<(), UIManagerFocusSceneError> {
+        if let Some(focused_scene_id) = self.focused_scene_id {
+            if focused_scene_id == *scene_id {
+                return Ok(());
+            }
+        };
 
-        if !self.registered_scenes.contains_key(&scene_id) {
-            return Err(UIManagerFocusSceneError::NotRegistered);
-        }
-
-        let scene = match self.get_focused_scene_id() {
+        let scene = match self.get_scene(scene_id) {
             Some(scene) => scene,
             None => return Err(UIManagerFocusSceneError::NotRegistered),
         };
@@ -1458,19 +1478,30 @@ impl UIManager {
             Err(_) => panic!("Scene mutex is poisoned!"),
         };
 
-        self.focused_scene_id = Some(scene_id);
+        match self.unfocus_scene() {
+            Ok(_) => {},
+            Err(UIManagerUnfocusSceneError::NotRegistered) => {}, // TODO: Return an error here
+            Err(UIManagerUnfocusSceneError::ChildCanvasNotRegistered) => {}, // TODO: Return an error here
+            Err(UIManagerUnfocusSceneError::ChildWindowNotRegistered) => {}, // TODO: Return an error here
+            Err(UIManagerUnfocusSceneError::ChildContainerNotRegistered) => {}, // TODO: Return an error here
+            Err(UIManagerUnfocusSceneError::ChildElementNotRegistered) => {}, // TODO: Return an error here
+        };
+
+        self.focused_scene_id = Some(*scene_id);
 
         scene.on_focus();
 
         Ok(())
     }
 
-    pub fn focus_canvas(&mut self, canvas_id: UICanvasID) -> Result<(), UIManagerFocusCanvasError> {
-        if self.focused_canvas_id.is_some() {
-            return Err(UIManagerFocusCanvasError::AlreadyFocused);
-        }
+    pub fn focus_canvas(&mut self, canvas_id: &UICanvasID) -> Result<(), UIManagerFocusCanvasError> {
+        if let Some(focused_canvas_id) = self.focused_canvas_id {
+            if focused_canvas_id == *canvas_id {
+                return Ok(());
+            }
+        };
 
-        let canvas = match self.registered_canvases.get(&canvas_id) {
+        let canvas = match self.get_canvas(canvas_id) {
             Some(canvas) => canvas.clone(),
             None => return Err(UIManagerFocusCanvasError::NotRegistered),
         };
@@ -1482,37 +1513,42 @@ impl UIManager {
 
         let parent_scene_id = match canvas.get_parent() {
             Some(parent_scene_id) => parent_scene_id,
-            None => return Err(UIManagerFocusCanvasError::NotRegistered),
+            None => return Err(UIManagerFocusCanvasError::ParentSceneNotRegistered),
         };
 
-        if !self.is_scene_focused(parent_scene_id) {
+        if !self.is_scene_focused(&parent_scene_id) {
             if self.get_focused_scene_id().is_some() {
                 match self.unfocus_scene() {
                     Ok(_) => {},
-                    Err(UIManagerUnfocusSceneError::AlreadyUnfocused) => {},
+                    Err(UIManagerUnfocusSceneError::NotRegistered) => {}, // TODO: Return an error here
+                    Err(UIManagerUnfocusSceneError::ChildCanvasNotRegistered) => {}, // TODO: Return an error here
+                    Err(UIManagerUnfocusSceneError::ChildWindowNotRegistered) => {}, // TODO: Return an error here
+                    Err(UIManagerUnfocusSceneError::ChildContainerNotRegistered) => {}, // TODO: Return an error here
+                    Err(UIManagerUnfocusSceneError::ChildElementNotRegistered) => {}, // TODO: Return an error here
                 };
             }
 
-            match self.focus_scene(parent_scene_id) {
+            match self.focus_scene(&parent_scene_id) {
                 Ok(_) => {},
-                Err(UIManagerFocusSceneError::AlreadyFocused) => {},
                 Err(UIManagerFocusSceneError::NotRegistered) => return Err(UIManagerFocusCanvasError::ParentSceneNotRegistered),
             };
         }
         
-        self.focused_canvas_id = Some(canvas_id);
+        self.focused_canvas_id = Some(*canvas_id);
 
         canvas.on_focus();
 
         Ok(())
     }
 
-    pub fn focus_window(&mut self, window_id: UIWindowID) -> Result<(), UIManagerFocusWindowError> {
-        if self.focused_window_id.is_some() {
-            return Err(UIManagerFocusWindowError::AlreadyFocused);
-        }
+    pub fn focus_window(&mut self, window_id: &UIWindowID) -> Result<(), UIManagerFocusWindowError> {
+        if let Some(focused_window_id) = self.focused_window_id {
+            if focused_window_id == *window_id {
+                return Ok(());
+            }
+        };
 
-        let window = match self.registered_windows.get(&window_id) {
+        let window = match self.get_window(window_id) {
             Some(window) => window.clone(),
             None => return Err(UIManagerFocusWindowError::NotRegistered),
         };
@@ -1527,35 +1563,40 @@ impl UIManager {
             None => return Err(UIManagerFocusWindowError::NotRegistered),
         };
 
-        if !self.is_canvas_focused(parent_canvas_id) {
+        if !self.is_canvas_focused(&parent_canvas_id) {
             if self.get_focused_canvas_id().is_some() {
                 match self.unfocus_canvas() {
                     Ok(_) => {},
-                    Err(UIManagerUnfocusCanvasError::AlreadyUnfocused) => {},
+                    Err(UIManagerUnfocusCanvasError::NotRegistered) => {}, // TODO: Return an error here
+                    Err(UIManagerUnfocusCanvasError::ChildWindowNotRegistered) => {}, // TODO: Return an error here
+                    Err(UIManagerUnfocusCanvasError::ChildContainerNotRegistered) => {}, // TODO: Return an error here
+                    Err(UIManagerUnfocusCanvasError::ChildElementNotRegistered) => {}, // TODO: Return an error here
+
                 };
             }
 
-            match self.focus_canvas(parent_canvas_id) {
+            match self.focus_canvas(&parent_canvas_id) {
                 Ok(_) => {},
-                Err(UIManagerFocusCanvasError::AlreadyFocused) => {},
                 Err(UIManagerFocusCanvasError::NotRegistered) => return Err(UIManagerFocusWindowError::ParentCanvasNotRegistered),
                 Err(UIManagerFocusCanvasError::ParentSceneNotRegistered) => return Err(UIManagerFocusWindowError::ParentSceneNotRegistered),
             };
         }
 
-        self.focused_window_id = Some(window_id);
+        self.focused_window_id = Some(*window_id);
 
         window.on_focus();
 
         Ok(())
     }
 
-    pub fn focus_container(&mut self, container_id: UIContainerID) -> Result<(), UIManagerFocusContainerError> {
-        if self.focused_container_id.is_some() {
-            return Err(UIManagerFocusContainerError::AlreadyFocused);
-        }
+    pub fn focus_container(&mut self, container_id: &UIContainerID) -> Result<(), UIManagerFocusContainerError> {
+        if let Some(focused_container_id) = self.focused_container_id {
+            if focused_container_id == *container_id {
+                return Ok(());
+            }
+        };
 
-        let container = match self.registered_containers.get(&container_id) {
+        let container = match self.get_container(container_id) {
             Some(container) => container.clone(),
             None => return Err(UIManagerFocusContainerError::NotRegistered),
         };
@@ -1572,17 +1613,18 @@ impl UIManager {
 
         match parent_type {
             UIContainerParentType::Window => {
-                if !self.is_window_focused(parent_id) {
+                if !self.is_window_focused(&parent_id) {
                     if self.get_focused_window_id().is_some() {
                         match self.unfocus_window() {
                             Ok(_) => {},
-                            Err(UIManagerUnfocusWindowError::AlreadyUnfocused) => {},
+                            Err(UIManagerUnfocusWindowError::NotRegistered) => {}, // TODO: Return an error here
+                            Err(UIManagerUnfocusWindowError::ChildContainerNotRegistered) => {}, // TODO: Return an error here
+                            Err(UIManagerUnfocusWindowError::ChildElementNotRegistered) => {}, // TODO: Return an error here
                         };
                     }
 
-                    match self.focus_window(parent_id) {
+                    match self.focus_window(&parent_id) {
                         Ok(_) => {},
-                        Err(UIManagerFocusWindowError::AlreadyFocused) => {},
                         Err(UIManagerFocusWindowError::NotRegistered) => return Err(UIManagerFocusContainerError::ParentWindowNotRegistered),
                         Err(UIManagerFocusWindowError::ParentCanvasNotRegistered) => return Err(UIManagerFocusContainerError::ParentCanvasNotRegistered),
                         Err(UIManagerFocusWindowError::ParentSceneNotRegistered) => return Err(UIManagerFocusContainerError::ParentSceneNotRegistered),
@@ -1590,17 +1632,18 @@ impl UIManager {
                 }
             },
             UIContainerParentType::Container => {
-                if !self.is_container_focused(parent_id) {
+                if !self.is_container_focused(&parent_id) {
                     if self.get_focused_container_id().is_some() {
                         match self.unfocus_container() {
                             Ok(_) => {},
-                            Err(UIManagerUnfocusContainerError::AlreadyUnfocused) => {},
+                            Err(UIManagerUnfocusContainerError::NotRegistered) => {}, // TODO: Return an error here
+                            Err(UIManagerUnfocusContainerError::ChildContainerNotRegistered) => {}, // TODO: Return an error here
+                            Err(UIManagerUnfocusContainerError::ChildElementNotRegistered) => {}, // TODO: Return an error here
                         };
                     }
 
-                    match self.focus_container(parent_id) {
+                    match self.focus_container(&parent_id) {
                         Ok(_) => {},
-                        Err(UIManagerFocusContainerError::AlreadyFocused) => {},
                         Err(UIManagerFocusContainerError::NotRegistered) => return Err(UIManagerFocusContainerError::ParentContainerNotRegistered),
                         Err(UIManagerFocusContainerError::ParentContainerNotRegistered) => return Err(UIManagerFocusContainerError::ParentContainerNotRegistered),
                         Err(UIManagerFocusContainerError::ParentWindowNotRegistered) => return Err(UIManagerFocusContainerError::ParentWindowNotRegistered),
@@ -1611,36 +1654,21 @@ impl UIManager {
             },
         }
 
-        if !self.is_window_focused(parent_id) {
-            if self.get_focused_window_id().is_some() {
-                match self.unfocus_window() {
-                    Ok(_) => {},
-                    Err(UIManagerUnfocusWindowError::AlreadyUnfocused) => {},
-                };
-            }
-
-            match self.focus_window(parent_id) {
-                Ok(_) => {},
-                Err(UIManagerFocusWindowError::AlreadyFocused) => {},
-                Err(UIManagerFocusWindowError::NotRegistered) => return Err(UIManagerFocusContainerError::ParentWindowNotRegistered),
-                Err(UIManagerFocusWindowError::ParentCanvasNotRegistered) => return Err(UIManagerFocusContainerError::ParentCanvasNotRegistered),
-                Err(UIManagerFocusWindowError::ParentSceneNotRegistered) => return Err(UIManagerFocusContainerError::ParentSceneNotRegistered),
-            };
-        }
-
-        self.focused_container_id = Some(container_id);
+        self.focused_container_id = Some(*container_id);
 
         container.on_focus();
 
         Ok(())
     }
 
-    pub fn focus_element(&mut self, element_id: UIElementID) -> Result<(), UIManagerFocusElementError> {
-        if self.focused_element_id.is_some() {
-            return Err(UIManagerFocusElementError::AlreadyFocused);
-        }
+    pub fn focus_element(&mut self, element_id: &UIElementID) -> Result<(), UIManagerFocusElementError> {
+        if let Some(focused_element_id) = self.focused_element_id {
+            if focused_element_id == *element_id {
+                return Ok(());
+            }
+        };
 
-        let element = match self.registered_elements.get(&element_id) {
+        let element = match self.get_element(element_id) {
             Some(element) => element.clone(),
             None => return Err(UIManagerFocusElementError::NotRegistered),
         };
@@ -1655,17 +1683,18 @@ impl UIManager {
             None => return Err(UIManagerFocusElementError::NotRegistered),
         };
 
-        if !self.is_container_focused(parent_container_id) {
+        if !self.is_container_focused(&parent_container_id) {
             if self.get_focused_container_id().is_some() {
                 match self.unfocus_container() {
                     Ok(_) => {},
-                    Err(UIManagerUnfocusContainerError::AlreadyUnfocused) => {},
+                    Err(UIManagerUnfocusContainerError::NotRegistered) => {}, // TODO: Return an error here
+                    Err(UIManagerUnfocusContainerError::ChildContainerNotRegistered) => {}, // TODO: Return an error here
+                    Err(UIManagerUnfocusContainerError::ChildElementNotRegistered) => {}, // TODO: Return an error here
                 };
             }
 
-            match self.focus_container(parent_container_id) {
+            match self.focus_container(&parent_container_id) {
                 Ok(_) => {},
-                Err(UIManagerFocusContainerError::AlreadyFocused) => {},
                 Err(UIManagerFocusContainerError::NotRegistered) => return Err(UIManagerFocusElementError::ParentContainerNotRegistered),
                 Err(UIManagerFocusContainerError::ParentContainerNotRegistered) => return Err(UIManagerFocusElementError::ParentContainerNotRegistered),
                 Err(UIManagerFocusContainerError::ParentWindowNotRegistered) => return Err(UIManagerFocusElementError::ParentWindowNotRegistered),
@@ -1674,7 +1703,7 @@ impl UIManager {
             };
         }
 
-        self.focused_element_id = Some(element_id);
+        self.focused_element_id = Some(*element_id);
 
         element.on_focus();
 
@@ -1682,9 +1711,20 @@ impl UIManager {
     }
 
     pub fn unfocus_scene(&mut self) -> Result<(), UIManagerUnfocusSceneError> {
-        if self.focused_scene_id.is_none() {
-            return Err(UIManagerUnfocusSceneError::AlreadyUnfocused);
-        }
+        let scene_id = match self.focused_scene_id {
+            Some(scene_id) => scene_id,
+            None => return Ok(()),
+        };
+
+        let scene = match self.get_scene(&scene_id) {
+            Some(scene) => scene.clone(),
+            None => return Err(UIManagerUnfocusSceneError::NotRegistered),
+        };
+
+        let scene = match scene.lock() {
+            Ok(scene) => scene,
+            Err(_) => panic!("Scene mutex is poisoned!"),
+        };
 
         // TODO: unfocus the potentially focused child canvas
 
@@ -1696,9 +1736,20 @@ impl UIManager {
     }
 
     pub fn unfocus_canvas(&mut self) -> Result<(), UIManagerUnfocusCanvasError> {
-        if self.focused_canvas_id.is_none() {
-            return Err(UIManagerUnfocusCanvasError::AlreadyUnfocused);
-        }
+        let canvas_id = match self.focused_canvas_id {
+            Some(canvas_id) => canvas_id,
+            None => return Ok(()),
+        };
+
+        let canvas = match self.get_canvas(&canvas_id) {
+            Some(canvas) => canvas.clone(),
+            None => return Err(UIManagerUnfocusCanvasError::NotRegistered),
+        };
+
+        let canvas = match canvas.lock() {
+            Ok(canvas) => canvas,
+            Err(_) => panic!("Canvas mutex is poisoned!"),
+        };
 
         // TODO: unfocus the potentially focused child window
 
@@ -1711,9 +1762,20 @@ impl UIManager {
     }
 
     pub fn unfocus_window(&mut self) -> Result<(), UIManagerUnfocusWindowError> {
-        if self.focused_window_id.is_none() {
-            return Err(UIManagerUnfocusWindowError::AlreadyUnfocused);
-        }
+        let window_id = match self.focused_window_id {
+            Some(window_id) => window_id,
+            None => return Ok(()),
+        };
+
+        let window = match self.get_window(&window_id) {
+            Some(window) => window.clone(),
+            None => return Err(UIManagerUnfocusWindowError::NotRegistered),
+        };
+
+        let window = match window.lock() {
+            Ok(window) => window,
+            Err(_) => panic!("Window mutex is poisoned!"),
+        };
 
         // TODO: unfocus the potentially focused child container
 
@@ -1725,9 +1787,20 @@ impl UIManager {
     }
 
     pub fn unfocus_container(&mut self) -> Result<(), UIManagerUnfocusContainerError> {
-        if self.focused_container_id.is_none() {
-            return Err(UIManagerUnfocusContainerError::AlreadyUnfocused);
-        }
+        let container_id = match self.focused_container_id {
+            Some(container_id) => container_id,
+            None => return Ok(()),
+        };
+
+        let container = match self.get_container(&container_id) {
+            Some(container) => container.clone(),
+            None => return Err(UIManagerUnfocusContainerError::NotRegistered),
+        };
+
+        let container = match container.lock() {
+            Ok(container) => container,
+            Err(_) => panic!("Container mutex is poisoned!"),
+        };
 
         // TODO: unfocus the potentially focused child container/element
 
@@ -1739,9 +1812,20 @@ impl UIManager {
     }
 
     pub fn unfocus_element(&mut self) -> Result<(), UIManagerUnfocusElementError> {
-        if self.focused_element_id.is_none() {
-            return Err(UIManagerUnfocusElementError::AlreadyUnfocused);
-        }
+        let element_id = match self.focused_element_id {
+            Some(element_id) => element_id,
+            None => return Ok(()),
+        };
+
+        let element = match self.get_element(&element_id) {
+            Some(element) => element.clone(),
+            None => return Err(UIManagerUnfocusElementError::NotRegistered),
+        };
+
+        let element = match element.lock() {
+            Ok(element) => element,
+            Err(_) => panic!("Element mutex is poisoned!"),
+        };
 
         self.focused_element_id = None;
 
@@ -1750,24 +1834,24 @@ impl UIManager {
         Ok(())
     }
 
-    pub fn is_scene_focused(&self, scene_id: UISceneID) -> bool {
-        self.focused_scene_id == Some(scene_id)
+    pub fn is_scene_focused(&self, scene_id: &UISceneID) -> bool {
+        self.focused_scene_id == Some(*scene_id)
     }
 
-    pub fn is_canvas_focused(&self, canvas_id: UICanvasID) -> bool {
-        self.focused_canvas_id == Some(canvas_id)
+    pub fn is_canvas_focused(&self, canvas_id: &UICanvasID) -> bool {
+        self.focused_canvas_id == Some(*canvas_id)
     }
 
-    pub fn is_window_focused(&self, window_id: UIWindowID) -> bool {
-        self.focused_window_id == Some(window_id)
+    pub fn is_window_focused(&self, window_id: &UIWindowID) -> bool {
+        self.focused_window_id == Some(*window_id)
     }
 
-    pub fn is_container_focused(&self, container_id: UIContainerID) -> bool {
-        self.focused_container_id == Some(container_id)
+    pub fn is_container_focused(&self, container_id: &UIContainerID) -> bool {
+        self.focused_container_id == Some(*container_id)
     }
 
-    pub fn is_element_focused(&self, element_id: UIElementID) -> bool {
-        self.focused_element_id == Some(element_id)
+    pub fn is_element_focused(&self, element_id: &UIElementID) -> bool {
+        self.focused_element_id == Some(*element_id)
     }
 
     pub fn get_focused_scene_id(&self) -> Option<Arc<Mutex<(dyn 'static + UIScene)>>> {
