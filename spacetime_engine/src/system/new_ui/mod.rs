@@ -2,6 +2,7 @@ use core::panic;
 use std::{any::TypeId, collections::HashMap, collections::HashSet};
 use std::fmt;
 use std::error::Error;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIObjectState {
@@ -859,11 +860,11 @@ pub struct UIManager {
     recycled_container_ids: Vec<UIContainerID>,
     recycled_element_ids: Vec<UIElementID>,
     
-    registered_scenes: HashMap<UISceneID, Box<dyn UIScene>>,
-    registered_canvases: HashMap<UICanvasID, Box<dyn UICanvas>>,
-    registered_windows: HashMap<UIWindowID, Box<dyn UIWindow>>,
-    registered_containers: HashMap<UIContainerID, Box<dyn UIContainer>>,
-    registered_elements: HashMap<UIElementID, Box<dyn UIElement>>,
+    registered_scenes: HashMap<UISceneID, Arc<Mutex<dyn 'static + UIScene>>>,
+    registered_canvases: HashMap<UICanvasID, Arc<Mutex<dyn 'static + UICanvas>>>,
+    registered_windows: HashMap<UIWindowID, Arc<Mutex<dyn 'static + UIWindow>>>,
+    registered_containers: HashMap<UIContainerID, Arc<Mutex<dyn 'static + UIContainer>>>,
+    registered_elements: HashMap<UIElementID, Arc<Mutex<dyn 'static + UIElement>>>,
 
     focused_scene_id: Option<UISceneID>,
     focused_canvas_id: Option<UICanvasID>,
@@ -1161,7 +1162,7 @@ impl UIManager {
             return Err(UIManagerRegisterSceneError::AlreadyRegistered);
         }
 
-        self.registered_scenes.insert(scene_id, scene);
+        self.registered_scenes.insert(scene_id, Arc::new(Mutex::new(*scene)));
 
         Ok(scene_id)
     }
@@ -1184,7 +1185,7 @@ impl UIManager {
             return Err(UIManagerRegisterCanvasError::AlreadyRegistered);
         }
 
-        self.registered_canvases.insert(canvas_id, canvas);
+        self.registered_canvases.insert(canvas_id, Arc::new(Mutex::new(*canvas)));
 
         Ok(canvas_id)
     }
@@ -1207,7 +1208,7 @@ impl UIManager {
             return Err(UIManagerRegisterWindowError::AlreadyRegistered);
         }
 
-        self.registered_windows.insert(window_id, window);
+        self.registered_windows.insert(window_id, Arc::new(Mutex::new(*window)));
 
         Ok(window_id)
     }
@@ -1230,7 +1231,7 @@ impl UIManager {
             return Err(UIManagerRegisterContainerError::AlreadyRegistered);
         }
 
-        self.registered_containers.insert(container_id, container);
+        self.registered_containers.insert(container_id, Arc::new(Mutex::new(*container)));
 
         Ok(container_id)
     }
@@ -1253,18 +1254,27 @@ impl UIManager {
             return Err(UIManagerRegisterElementError::AlreadyRegistered);
         }
 
-        self.registered_elements.insert(element_id, element);
+        self.registered_elements.insert(element_id, Arc::new(Mutex::new(*element)));
 
         Ok(element_id)
     }
 
     pub fn unregister_scene(&mut self, scene_id: UISceneID) -> Result<(), UIManagerUnregisterSceneError> {
-        match self.registered_scenes.remove(&scene_id) {
-            Some(mut scene) => scene.set_id(None),
+        let removed_scene = match self.registered_scenes.remove(&scene_id) {
+            Some(mut removed_scene) => removed_scene,
             None => {
                 return Err(UIManagerUnregisterSceneError::AlreadyUnregistered);
             }
-        }
+        };
+
+        let mut removed_scene = match removed_scene.lock() {
+            Ok(removed_scene) => removed_scene,
+            Err(_) => panic!("Scene mutex is poisoned!"),
+        };
+
+        removed_scene.set_id(None);
+
+        drop(removed_scene);
 
         match self.recycle_scene_id(scene_id) {
             Ok(_) => Ok(()),
@@ -1274,12 +1284,21 @@ impl UIManager {
     }
 
     pub fn unregister_canvas(&mut self, canvas_id: UICanvasID) -> Result<(), UIManagerUnregisterCanvasError> {
-        match self.registered_canvases.remove(&canvas_id) {
-            Some(mut canvas) => canvas.set_id(None),
+        let removed_canvas = match self.registered_canvases.remove(&canvas_id) {
+            Some(mut removed_canvas) => removed_canvas,
             None => {
                 return Err(UIManagerUnregisterCanvasError::AlreadyUnregistered);
             }
-        }
+        };
+
+        let mut removed_canvas = match removed_canvas.lock() {
+            Ok(removed_canvas) => removed_canvas,
+            Err(_) => panic!("Canvas mutex is poisoned!"),
+        };
+
+        removed_canvas.set_id(None);
+
+        drop(removed_canvas);
 
         match self.recycle_canvas_id(canvas_id) {
             Ok(_) => Ok(()),
@@ -1289,12 +1308,21 @@ impl UIManager {
     }
 
     pub fn unregister_window(&mut self, window_id: UIWindowID) -> Result<(), UIManagerUnregisterWindowError> {
-        match self.registered_windows.remove(&window_id) {
-            Some(mut window) => window.set_id(None),
+        let removed_window = match self.registered_windows.remove(&window_id) {
+            Some(mut removed_window) => removed_window,
             None => {
                 return Err(UIManagerUnregisterWindowError::AlreadyUnregistered);
             }
-        }
+        };
+
+        let mut removed_window = match removed_window.lock() {
+            Ok(removed_window) => removed_window,
+            Err(_) => panic!("Window mutex is poisoned!"),
+        };
+
+        removed_window.set_id(None);
+
+        drop(removed_window);
 
         match self.recycle_window_id(window_id) {
             Ok(_) => Ok(()),
@@ -1304,12 +1332,21 @@ impl UIManager {
     }
 
     pub fn unregister_container(&mut self, container_id: UIContainerID) -> Result<(), UIManagerUnregisterContainerError> {
-        match self.registered_containers.remove(&container_id) {
-            Some(mut container) => container.set_id(None),
+        let removed_container = match self.registered_containers.remove(&container_id) {
+            Some(mut container) => container,
             None => {
                 return Err(UIManagerUnregisterContainerError::AlreadyUnregistered);
             }
-        }
+        };
+
+        let mut removed_container = match removed_container.lock() {
+            Ok(removed_container) => removed_container,
+            Err(_) => panic!("Container mutex is poisoned!"),
+        };
+
+        removed_container.set_id(None);
+
+        drop(removed_container);
 
         match self.recycle_container_id(container_id) {
             Ok(_) => Ok(()),
@@ -1319,12 +1356,21 @@ impl UIManager {
     }
 
     pub fn unregister_element(&mut self, element_id: UIElementID) -> Result<(), UIManagerUnregisterElementError> {
-        match self.registered_elements.remove(&element_id) {
-            Some(mut element) => element.set_id(None),
+        let removed_element = match self.registered_elements.remove(&element_id) {
+            Some(mut element) => element,
             None => {
                 return Err(UIManagerUnregisterElementError::AlreadyUnregistered);
             }
-        }
+        };
+
+        let mut removed_element = match removed_element.lock() {
+            Ok(removed_element) => removed_element,
+            Err(_) => panic!("Element mutex is poisoned!"),
+        };
+
+        removed_element.set_id(None);
+
+        drop(removed_element);
 
         match self.recycle_element_id(element_id) {
             Ok(_) => Ok(()),
@@ -1364,12 +1410,17 @@ impl UIManager {
 
         self.focused_scene_id = Some(scene_id);
 
-        let focused_scene = match self.get_focused_scene_mut() {
-            Some(focused_scene) => focused_scene,
+        let scene = match self.get_focused_scene() {
+            Some(scene) => scene,
             None => return Err(UIManagerFocusSceneError::NotRegistered),
         };
 
-        focused_scene.on_focus();
+        let scene = match scene.lock() {
+            Ok(scene) => scene,
+            Err(_) => panic!("Scene mutex is poisoned!"),
+        };
+
+        scene.on_focus();
 
         Ok(())
     }
@@ -1379,13 +1430,18 @@ impl UIManager {
             return Err(UIManagerFocusCanvasError::AlreadyFocused);
         }
 
-        let unfocused_canvas = match self.registered_canvases.get_mut(&canvas_id) {
-            Some(unfocused_canvas) => unfocused_canvas,
+        let canvas = match self.registered_canvases.get_mut(&canvas_id) {
+            Some(canvas) => canvas,
             None => return Err(UIManagerFocusCanvasError::NotRegistered),
         };
 
-        let parent_scene_id = match unfocused_canvas.get_parent() {
-            Some(parent_scene) => parent_scene,
+        let canvas = match canvas.lock() {
+            Ok(canvas) => canvas,
+            Err(_) => panic!("Canvas mutex is poisoned!"),
+        };
+
+        let parent_scene_id = match canvas.get_parent() {
+            Some(parent_scene_id) => parent_scene_id,
             None => return Err(UIManagerFocusCanvasError::NotRegistered),
         };
 
@@ -1400,18 +1456,13 @@ impl UIManager {
             match self.focus_scene(parent_scene_id) {
                 Ok(_) => {},
                 Err(UIManagerFocusSceneError::AlreadyFocused) => {},
-                Err(UIManagerFocusSceneError::NotRegistered) => {},
+                Err(UIManagerFocusSceneError::NotRegistered) => return Err(UIManagerFocusCanvasError::ParentNotRegistered),
             };
         }
-
-
-        
-
-        // TODO: focus the potentially unfocused parent scene
         
         self.focused_canvas_id = Some(canvas_id);
 
-        // TODO: call the on_focus callback of the focused canvas
+        canvas.on_focus();
 
         Ok(())
     }
@@ -1559,44 +1610,24 @@ impl UIManager {
         self.focused_element_id == Some(element_id)
     }
 
-    pub fn get_focused_scene(&self) -> Option<&(dyn 'static + UIScene)> {
-        self.focused_scene_id.and_then(|scene_id| self.registered_scenes.get(&scene_id).map(|scene| &**scene))
+    pub fn get_focused_scene(&self) -> Option<Arc<Mutex<(dyn 'static + UIScene)>>> {
+        self.focused_scene_id.and_then(|scene_id| self.registered_scenes.get(&scene_id)).cloned()
     }
 
-    pub fn get_focused_canvas(&self) -> Option<&(dyn 'static + UICanvas)> {
-        self.focused_canvas_id.and_then(|canvas_id| self.registered_canvases.get(&canvas_id).map(|canvas| &**canvas))
+    pub fn get_focused_canvas(&self) -> Option<Arc<Mutex<(dyn 'static + UICanvas)>>> {
+        self.focused_canvas_id.and_then(|canvas_id| self.registered_canvases.get(&canvas_id)).cloned()
     }
 
-    pub fn get_focused_window(&self) -> Option<&(dyn 'static + UIWindow)> {
-        self.focused_window_id.and_then(|window_id| self.registered_windows.get(&window_id).map(|window| &**window))
+    pub fn get_focused_window(&self) -> Option<Arc<Mutex<(dyn 'static + UIWindow)>>> {
+        self.focused_window_id.and_then(|window_id| self.registered_windows.get(&window_id)).cloned()
     }
 
-    pub fn get_focused_container(&self) -> Option<&(dyn 'static + UIContainer)> {
-        self.focused_container_id.and_then(|container_id| self.registered_containers.get(&container_id).map(|container| &**container))
+    pub fn get_focused_container(&self) -> Option<Arc<Mutex<(dyn 'static + UIContainer)>>> {
+        self.focused_container_id.and_then(|container_id| self.registered_containers.get(&container_id)).cloned()
     }
 
-    pub fn get_focused_element(&self) -> Option<&(dyn 'static + UIElement)> {
-        self.focused_element_id.and_then(|element_id| self.registered_elements.get(&element_id).map(|element| &**element))
-    }
-
-    pub fn get_focused_scene_mut(&mut self) -> Option<&mut (dyn 'static + UIScene)> {
-        self.focused_scene_id.and_then(|scene_id| self.registered_scenes.get_mut(&scene_id).map(|scene| &mut **scene))
-    }
-
-    pub fn get_focused_canvas_mut(&mut self) -> Option<&mut (dyn 'static + UICanvas)> {
-        self.focused_canvas_id.and_then(|canvas_id| self.registered_canvases.get_mut(&canvas_id).map(|canvas| &mut **canvas))
-    }
-
-    pub fn get_focused_window_mut(&mut self) -> Option<&mut (dyn 'static + UIWindow)> {
-        self.focused_window_id.and_then(|window_id| self.registered_windows.get_mut(&window_id).map(|window| &mut **window))
-    }
-
-    pub fn get_focused_container_mut(&mut self) -> Option<&mut (dyn 'static + UIContainer)> {
-        self.focused_container_id.and_then(|container_id| self.registered_containers.get_mut(&container_id).map(|container| &mut **container))
-    }
-
-    pub fn get_focused_element_mut(&mut self) -> Option<&mut (dyn 'static + UIElement)> {
-        self.focused_element_id.and_then(|element_id| self.registered_elements.get_mut(&element_id).map(|element| &mut **element))
+    pub fn get_focused_element(&self) -> Option<Arc<Mutex<(dyn 'static + UIElement)>>> {
+        self.focused_element_id.and_then(|element_id| self.registered_elements.get(&element_id)).cloned()
     }
 }
 
