@@ -1,9 +1,9 @@
 pub mod test;
 
-use test::*;
 use bevy::app::*;
-use std::any::*;
 use spacetime_engine::*;
+use std::any::*;
+use test::*;
 
 pub struct LooCastBaseModPlugins;
 

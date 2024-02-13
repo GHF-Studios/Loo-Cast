@@ -1,12 +1,12 @@
 // Modules
-pub mod main_menu;
 pub mod game_creation_menu;
 pub mod games_menu;
+pub mod main_menu;
 
 // Local imports
-use main_menu::MainMenuPlugin;
 use game_creation_menu::GameCreationMenuPlugin;
 use games_menu::GamesMenuPlugin;
+use main_menu::MainMenuPlugin;
 
 // Internal imports
 
@@ -27,23 +27,17 @@ use bevy::prelude::*;
 pub struct MenuPlugin;
 
 #[derive(Resource, Default)]
-pub struct MenuManager {
-}
+pub struct MenuManager {}
 
 // Implementations
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app
             // Plugins
-            .add_plugins((
-                MainMenuPlugin,
-                GameCreationMenuPlugin,
-                GamesMenuPlugin,
-            ));
+            .add_plugins((MainMenuPlugin, GameCreationMenuPlugin, GamesMenuPlugin));
     }
 }
 
-impl MenuManager {
-}
+impl MenuManager {}
 
 // Module Functions

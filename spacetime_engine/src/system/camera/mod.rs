@@ -45,7 +45,7 @@ impl Plugin for CameraPlugin {
             .add_systems(PreStartup, CameraManager::pre_startup)
             .add_systems(Startup, CameraManager::startup)
             // Update Systems
-            .add_systems(Update,CameraManager::handle_main_camera_movement);
+            .add_systems(Update, CameraManager::handle_main_camera_movement);
     }
 }
 
@@ -113,15 +113,21 @@ impl CameraManager {
     }
 
     fn handle_main_camera_movement(
-        mut main_camera_query: Query<&mut Transform, (With<Camera>, With<MainCamera>, Without<MainCameraTarget>)>,
-        main_camera_target_query: Query<&Transform, (With<MainCameraTarget>, Without<Camera>, Without<MainCamera>)>,
+        mut main_camera_query: Query<
+            &mut Transform,
+            (With<Camera>, With<MainCamera>, Without<MainCameraTarget>),
+        >,
+        main_camera_target_query: Query<
+            &Transform,
+            (With<MainCameraTarget>, Without<Camera>, Without<MainCamera>),
+        >,
         time: Res<Time>,
     ) {
         let player_transform = match main_camera_target_query.get_single() {
             Ok(single) => single,
             Err(_) => return,
         };
-        
+
         let mut main_camera_transform = match main_camera_query.get_single_mut() {
             Ok(single_mut) => single_mut,
             Err(_) => return,

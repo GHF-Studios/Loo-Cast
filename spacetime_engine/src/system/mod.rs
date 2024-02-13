@@ -1,8 +1,8 @@
 // Modules
 pub mod camera;
 pub mod math;
-pub mod ui;
 pub mod new_ui;
+pub mod ui;
 
 // Local imports
 
@@ -15,7 +15,6 @@ use bevy::{app::PluginGroupBuilder, prelude::*};
 use bevy_rapier2d::prelude::*;
 
 // Static variables
-
 
 // Constant variables
 
@@ -33,16 +32,14 @@ pub enum AppState {
 
 // Structs
 #[derive(Resource, Default)]
-pub struct SystemManager {
-}
+pub struct SystemManager {}
 
 pub struct SystemPlugins;
 
 pub struct RapierPlugins;
 
 // Implementations
-impl SystemManager {
-}
+impl SystemManager {}
 
 impl PluginGroup for SystemPlugins {
     fn build(self) -> PluginGroupBuilder {

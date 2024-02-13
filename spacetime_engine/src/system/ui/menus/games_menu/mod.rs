@@ -155,10 +155,7 @@ impl Plugin for GamesMenuPlugin {
             .add_event::<LoadGameInstance>()
             .add_event::<DeleteGameUI>()
             // Enter State Systems
-            .add_systems(
-                OnEnter(AppState::GamesMenu),
-                GamesMenuManager::startup,
-            )
+            .add_systems(OnEnter(AppState::GamesMenu), GamesMenuManager::startup)
             // Update State Systems
             .add_systems(
                 Update,
@@ -172,25 +169,16 @@ impl Plugin for GamesMenuPlugin {
                     .run_if(in_state(AppState::GamesMenu)),
             )
             // Exit State Systems
-            .add_systems(
-                OnExit(AppState::GamesMenu),
-                GamesMenuManager::shutdown,
-            );
+            .add_systems(OnExit(AppState::GamesMenu), GamesMenuManager::shutdown);
     }
 }
 
 impl GamesMenuManager {
-    fn startup(
-        mut commands: Commands,
-        asset_server: Res<AssetServer>,
-    ) {
+    fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
         Self::build_games_menu(&mut commands, &asset_server);
     }
 
-    fn shutdown(
-        mut commands: Commands,
-        games_menu_query: Query<Entity, With<GamesMenu>>,
-    ) {
+    fn shutdown(mut commands: Commands, games_menu_query: Query<Entity, With<GamesMenu>>) {
         if let Ok(games_menu_entity) = games_menu_query.get_single() {
             commands.entity(games_menu_entity).despawn_recursive();
         }
@@ -207,7 +195,7 @@ impl GamesMenuManager {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
-                    
+
                     info!("Transitioning to main menu...");
 
                     app_state_next_state.set(AppState::MainMenu);
@@ -293,7 +281,7 @@ impl GamesMenuManager {
                     error!("Games and game management don't actually exist; the shown games are just placeholders and cannot be loaded.");
 
                     // TODO: Load the game associated with the button
-                    
+
                     todo!();
                 }
                 Interaction::Hovered => {
@@ -324,11 +312,10 @@ impl GamesMenuManager {
         }
     }
 
-    fn build_games_menu(
-        commands: &mut Commands,
-        asset_server: &Res<AssetServer>,
-    ) -> Entity {
-        warn!("Games and game management don't actually exist; the save games are just placeholders.");
+    fn build_games_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
+        warn!(
+            "Games and game management don't actually exist; the save games are just placeholders."
+        );
 
         let game_names = vec!["save_game_1", "save_game_2", "save_game_3"];
 

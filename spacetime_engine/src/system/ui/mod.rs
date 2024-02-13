@@ -56,10 +56,7 @@ impl Plugin for UIPlugin {
             .add_event::<GainFocus>()
             .add_event::<LoseFocus>()
             // Plugins
-            .add_plugins((
-                InputFieldPlugin,
-                MenuPlugin,
-            ))
+            .add_plugins((InputFieldPlugin, MenuPlugin))
             // Startup Systems
             .add_systems(Startup, UIManager::startup)
             // Update Systems
@@ -69,9 +66,7 @@ impl Plugin for UIPlugin {
 
 impl UIManager {
     fn startup(mut commands: Commands) {
-        commands.insert_resource(UIManager { 
-            focus: None
-        });
+        commands.insert_resource(UIManager { focus: None });
     }
 
     fn handle_gain_focus(
