@@ -1,4 +1,7 @@
+use core::panic;
 use std::{any::TypeId, collections::HashMap, collections::HashSet};
+use std::fmt;
+use std::error::Error;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIObjectState {
@@ -12,11 +15,33 @@ pub enum UIObjectEnableError {
     ParentDisabled,
 }
 
+impl fmt::Display for UIObjectEnableError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIObjectEnableError::AlreadyEnabled => write!(f, "The UI object is already enabled."),
+            UIObjectEnableError::ParentDisabled => write!(f, "The parent UI object is disabled."),
+        }
+    }
+}
+
+impl Error for UIObjectEnableError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIObjectDisableError {
     AlreadyDisabled,
     ParentEnabled,
 }
+
+impl fmt::Display for UIObjectDisableError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIObjectDisableError::AlreadyDisabled => write!(f, "The UI object is already disabled."),
+            UIObjectDisableError::ParentEnabled => write!(f, "The parent UI object is enabled."),
+        }
+    }
+}
+
+impl Error for UIObjectDisableError {}
 
 /// IMPLEMENT PROPERLY
 pub trait UIObject {
@@ -62,6 +87,66 @@ pub enum UIContainerChildType {
 
 type UIContainerID = usize;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIContainerInsertElementError {
+    AlreadyInserted,
+}
+
+impl fmt::Display for UIContainerInsertElementError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIContainerInsertElementError::AlreadyInserted => write!(f, "The element is already inserted."),
+        }
+    }
+}
+
+impl Error for UIContainerInsertElementError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIContainerInsertContainerError {
+    AlreadyInserted,
+}
+
+impl fmt::Display for UIContainerInsertContainerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIContainerInsertContainerError::AlreadyInserted => write!(f, "The container is already inserted."),
+        }
+    }
+}
+
+impl Error for UIContainerInsertContainerError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIContainerRemoveElementError {
+    AlreadyRemoved,
+}
+
+impl fmt::Display for UIContainerRemoveElementError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIContainerRemoveElementError::AlreadyRemoved => write!(f, "The element is already removed."),
+        }
+    }
+}
+
+impl Error for UIContainerRemoveElementError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIContainerRemoveContainerError {
+    AlreadyRemoved,
+}
+
+impl fmt::Display for UIContainerRemoveContainerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIContainerRemoveContainerError::AlreadyRemoved => write!(f, "The container is already removed."),
+        }
+    }
+}
+
+impl Error for UIContainerRemoveContainerError {}
+
 pub trait UIContainer: UIObject {
     fn get_type_id(&self) -> TypeId;
     fn get_id(&self) -> Option<UIContainerID>;
@@ -71,27 +156,50 @@ pub trait UIContainer: UIObject {
     fn set_parent_container(&mut self, container_id: Option<UIContainerID>);
     fn set_parent_window(&mut self, window_id: Option<UIWindowID>);
 
-    fn add_element(&mut self, element: Box<dyn UIElement>) -> UIElementID;
-    fn add_container(&mut self, container: Box<dyn UIContainer>);
+    fn insert_element(&mut self, element_id: UIElementID) -> Result<(), UIContainerInsertElementError>;
+    fn insert_container(&mut self, container_id: UIContainerID) -> Result<(), UIContainerInsertContainerError>;
 
-    fn remove_element(&mut self, element_id: UIElementID) -> Option<Box<dyn UIElement>>;
-    fn remove_container(&mut self, container_id: UIContainerID) -> Option<Box<dyn UIContainer>>;
+    fn remove_element(&mut self, element_id: UIElementID) -> Result<(), UIContainerRemoveElementError>;
+    fn remove_container(&mut self, container_id: UIContainerID) -> Result<(), UIContainerRemoveContainerError>;
 
-    fn get_element(&self, element_id: UIElementID) -> Option<&dyn UIElement>;
-    fn get_container(&self, container_id: UIContainerID) -> Option<&dyn UIContainer>;
+    fn get_elements(&self) -> &HashSet<UIElementID>;
+    fn get_containers(&self) -> &HashSet<UIContainerID>;
 
-    fn get_elements(&self) -> Vec<&dyn UIElement>;
-    fn get_containers(&self) -> Vec<&dyn UIContainer>;
-
-    fn focus_element(&mut self, element_id: UIElementID);
-    fn focus_container(&mut self, container_id: UIContainerID);
-
-    fn unfocus_child(&mut self) -> (UIContainerChildType, usize);
-
-    fn get_focused_child(&self) -> Option<(UIContainerChildType, usize)>;
+    fn contains_element(&self, element_id: UIElementID) -> bool;
+    fn contains_container(&self, container_id: UIContainerID) -> bool;
 }
 
 type UIWindowID = usize;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIWindowInsertContainerError {
+    AlreadyInserted,
+}
+
+impl fmt::Display for UIWindowInsertContainerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIWindowInsertContainerError::AlreadyInserted => write!(f, "The container is already inserted."),
+        }
+    }
+}
+
+impl Error for UIWindowInsertContainerError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UIWindowRemoveContainerError {
+    AlreadyRemoved,
+}
+
+impl fmt::Display for UIWindowRemoveContainerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIWindowRemoveContainerError::AlreadyRemoved => write!(f, "The container is already removed."),
+        }
+    }
+}
+
+impl Error for UIWindowRemoveContainerError {}
 
 pub trait UIWindow: UIObject {
     fn get_type_id(&self) -> TypeId;
@@ -107,17 +215,15 @@ pub trait UIWindow: UIObject {
     fn set_size(&mut self, width: f32, height: f32);
     fn set_position(&mut self, x: f32, y: f32);
 
-    fn add_container(&mut self, container: Box<dyn UIContainer>) -> UIContainerID;
-    fn remove_container(&mut self, container_id: UIContainerID) -> Option<Box<dyn UIContainer>>;
+    fn insert_container(&mut self, container_id: UIContainerID) -> Result<(), UIWindowInsertContainerError>;
+    fn remove_container(&mut self, container_id: UIContainerID) -> Result<(), UIWindowRemoveContainerError>;
 
-    fn get_container(&self, container_id: UIContainerID) -> Option<&dyn UIContainer>;
-    fn get_containers(&self) -> Vec<&dyn UIContainer>;
+    fn get_containers(&self) -> &HashSet<UIContainerID>;
 
-    fn focus_container(&mut self, container_id: UIContainerID);
-    fn unfocus_container(&mut self) -> UIContainerID;
-
-    fn get_focused_container(&self) -> Option<&dyn UIContainer>;
+    fn contains_container(&self, container_id: UIContainerID) -> bool;
 }
+
+type UICanvasID = usize;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UICanvasRenderingContext {
@@ -125,7 +231,35 @@ pub enum UICanvasRenderingContext {
     WorldSpace,
 }
 
-type UICanvasID = usize;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UICanvasInsertWindowError {
+    AlreadyInserted,
+}
+
+impl fmt::Display for UICanvasInsertWindowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UICanvasInsertWindowError::AlreadyInserted => write!(f, "The window is already inserted."),
+        }
+    }
+}
+
+impl Error for UICanvasInsertWindowError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UICanvasRemoveWindowError {
+    AlreadyRemoved,
+}
+
+impl fmt::Display for UICanvasRemoveWindowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UICanvasRemoveWindowError::AlreadyRemoved => write!(f, "The window is already removed."),
+        }
+    }
+}
+
+impl Error for UICanvasRemoveWindowError {}
 
 pub trait UICanvas: UIObject {
     fn get_type_id(&self) -> TypeId;
@@ -135,35 +269,57 @@ pub trait UICanvas: UIObject {
     fn get_parent(&self) -> Option<UISceneID>;
     fn set_parent(&mut self, scene_id: Option<UISceneID>);
 
-    fn add_window(&mut self, window: Box<dyn UIWindow>) -> UIWindowID;
-    fn remove_window(&mut self, window_id: UIWindowID) -> Option<Box<dyn UIWindow>>;
+    fn insert_window(&mut self, window_id: UIWindowID) -> Result<(), UICanvasInsertWindowError>;
+    fn remove_window(&mut self, window_id: UIWindowID) -> Result<(), UICanvasRemoveWindowError>;
 
-    fn get_window(&self, window_id: UIWindowID) -> Option<&dyn UIWindow>;
-    fn get_windows(&self) -> Vec<&dyn UIWindow>;
+    fn get_windows(&self) -> &HashSet<UIWindowID>;
 
-    fn focus_window(&mut self, window_id: UIWindowID);
-    fn unfocus_window(&mut self) -> UIWindowID;
-
-    fn get_focused_window(&self) -> Option<&dyn UIWindow>;
+    fn contains_window(&self, window_id: UIWindowID) -> bool;
 }
 
 pub type UISceneID = usize;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UISceneInsertCanvasError {
+    AlreadyInserted,
+}
+
+impl fmt::Display for UISceneInsertCanvasError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UISceneInsertCanvasError::AlreadyInserted => write!(f, "The canvas is already inserted."),
+        }
+    }
+}
+
+impl Error for UISceneInsertCanvasError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UISceneRemoveCanvasError {
+    AlreadyRemoved,
+}
+
+impl fmt::Display for UISceneRemoveCanvasError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UISceneRemoveCanvasError::AlreadyRemoved => write!(f, "The canvas is already removed."),
+        }
+    }
+}
+
+impl Error for UISceneRemoveCanvasError {}
 
 pub trait UIScene: UIObject {
     fn get_type_id(&self) -> TypeId;
     fn get_id(&self) -> Option<UISceneID>;
     fn set_id(&mut self, scene_id: Option<UISceneID>);
 
-    fn add_canvas(&mut self, canvas: &mut Box<dyn UICanvas>) -> UICanvasID;
-    fn remove_canvas(&mut self, canvas_id: UICanvasID) -> Option<Box<dyn UICanvas>>;
+    fn insert_canvas(&mut self, canvas_id: UICanvasID) -> Result<(), UISceneInsertCanvasError>;
+    fn remove_canvas(&mut self, canvas_id: UICanvasID) -> Result<(), UISceneRemoveCanvasError>;
 
-    fn get_canvas(&self, canvas_id: UICanvasID) -> Option<&dyn UICanvas>;
-    fn get_canvases(&self) -> Vec<&dyn UICanvas>;
+    fn get_canvases(&self) -> &HashSet<UICanvasID>;
 
-    fn focus_canvas(&mut self, canvas_id: UICanvasID);
-    fn unfocus_canvas(&mut self) -> UICanvasID;
-
-    fn get_focused_canvas(&self) -> Option<&dyn UICanvas>;
+    fn contains_canvas(&self, canvas_id: UICanvasID) -> bool;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -171,100 +327,300 @@ pub enum UIManagerRegisterSceneTypeError {
     AlreadyRegistered,
 }
 
+impl fmt::Display for UIManagerRegisterSceneTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRegisterSceneTypeError::AlreadyRegistered => write!(f, "The scene type is already registered."),
+        }
+    }
+}
+
+impl Error for UIManagerRegisterSceneTypeError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterCanvasTypeError {
     AlreadyRegistered,
 }
+
+impl fmt::Display for UIManagerRegisterCanvasTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRegisterCanvasTypeError::AlreadyRegistered => write!(f, "The canvas type is already registered."),
+        }
+    }
+}
+
+impl Error for UIManagerRegisterCanvasTypeError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterWindowTypeError {
     AlreadyRegistered,
 }
 
+impl fmt::Display for UIManagerRegisterWindowTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRegisterWindowTypeError::AlreadyRegistered => write!(f, "The window type is already registered."),
+        }
+    }
+}
+
+impl Error for UIManagerRegisterWindowTypeError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterContainerTypeError {
     AlreadyRegistered,
 }
+
+impl fmt::Display for UIManagerRegisterContainerTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRegisterContainerTypeError::AlreadyRegistered => write!(f, "The container type is already registered."),
+        }
+    }
+}
+
+impl Error for UIManagerRegisterContainerTypeError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterElementTypeError {
     AlreadyRegistered,
 }
 
+impl fmt::Display for UIManagerRegisterElementTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRegisterElementTypeError::AlreadyRegistered => write!(f, "The element type is already registered."),
+        }
+    }
+}
+
+impl Error for UIManagerRegisterElementTypeError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterSceneTypeError {
     AlreadyUnregistered,
 }
+
+impl fmt::Display for UIManagerUnregisterSceneTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnregisterSceneTypeError::AlreadyUnregistered => write!(f, "The scene type is already unregistered."),
+        }
+    }
+}
+
+impl Error for UIManagerUnregisterSceneTypeError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterCanvasTypeError {
     AlreadyUnregistered,
 }
 
+impl fmt::Display for UIManagerUnregisterCanvasTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnregisterCanvasTypeError::AlreadyUnregistered => write!(f, "The canvas type is already unregistered."),
+        }
+    }
+}
+
+impl Error for UIManagerUnregisterCanvasTypeError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterWindowTypeError {
     AlreadyUnregistered,
 }
+
+impl fmt::Display for UIManagerUnregisterWindowTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnregisterWindowTypeError::AlreadyUnregistered => write!(f, "The window type is already unregistered."),
+        }
+    }
+}
+
+impl Error for UIManagerUnregisterWindowTypeError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterContainerTypeError {
     AlreadyUnregistered,
 }
 
+impl fmt::Display for UIManagerUnregisterContainerTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnregisterContainerTypeError::AlreadyUnregistered => write!(f, "The container type is already unregistered."),
+        }
+    }
+}
+
+impl Error for UIManagerUnregisterContainerTypeError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterElementTypeError {
     AlreadyUnregistered,
 }
+
+impl fmt::Display for UIManagerUnregisterElementTypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnregisterElementTypeError::AlreadyUnregistered => write!(f, "The element type is already unregistered."),
+        }
+    }
+}
+
+impl Error for UIManagerUnregisterElementTypeError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterSceneError {
     AlreadyRegistered,
 }
 
+impl fmt::Display for UIManagerRegisterSceneError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRegisterSceneError::AlreadyRegistered => write!(f, "The scene is already registered."),
+        }
+    }
+}
+
+impl Error for UIManagerRegisterSceneError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterCanvasError {
     AlreadyRegistered,
 }
+
+impl fmt::Display for UIManagerRegisterCanvasError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRegisterCanvasError::AlreadyRegistered => write!(f, "The canvas is already registered."),
+        }
+    }
+}
+
+impl Error for UIManagerRegisterCanvasError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterWindowError {
     AlreadyRegistered,
 }
 
+impl fmt::Display for UIManagerRegisterWindowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRegisterWindowError::AlreadyRegistered => write!(f, "The window is already registered."),
+        }
+    }
+}
+
+impl Error for UIManagerRegisterWindowError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterContainerError {
     AlreadyRegistered,
 }
+
+impl fmt::Display for UIManagerRegisterContainerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRegisterContainerError::AlreadyRegistered => write!(f, "The container is already registered."),
+        }
+    }
+}
+
+impl Error for UIManagerRegisterContainerError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerRegisterElementError {
     AlreadyRegistered,
 }
 
+impl fmt::Display for UIManagerRegisterElementError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerRegisterElementError::AlreadyRegistered => write!(f, "The element is already registered."),
+        }
+    }
+}
+
+impl Error for UIManagerRegisterElementError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterSceneError {
     AlreadyUnregistered,
 }
+
+impl fmt::Display for UIManagerUnregisterSceneError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnregisterSceneError::AlreadyUnregistered => write!(f, "The scene is already unregistered."),
+        }
+    }
+}
+
+impl Error for UIManagerUnregisterSceneError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterCanvasError {
     AlreadyUnregistered,
 }
 
+impl fmt::Display for UIManagerUnregisterCanvasError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnregisterCanvasError::AlreadyUnregistered => write!(f, "The canvas is already unregistered."),
+        }
+    }
+}
+
+impl Error for UIManagerUnregisterCanvasError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterWindowError {
     AlreadyUnregistered,
 }
+
+impl fmt::Display for UIManagerUnregisterWindowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnregisterWindowError::AlreadyUnregistered => write!(f, "The window is already unregistered."),
+        }
+    }
+}
+
+impl Error for UIManagerUnregisterWindowError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterContainerError {
     AlreadyUnregistered,
 }
 
+impl fmt::Display for UIManagerUnregisterContainerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnregisterContainerError::AlreadyUnregistered => write!(f, "The container is already unregistered."),
+        }
+    }
+}
+
+impl Error for UIManagerUnregisterContainerError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnregisterElementError {
     AlreadyUnregistered,
 }
+
+impl fmt::Display for UIManagerUnregisterElementError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnregisterElementError::AlreadyUnregistered => write!(f, "The element is already unregistered."),
+        }
+    }
+}
+
+impl Error for UIManagerUnregisterElementError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusSceneError {
@@ -272,11 +628,35 @@ pub enum UIManagerFocusSceneError {
     NotRegistered,
 }
 
+impl fmt::Display for UIManagerFocusSceneError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerFocusSceneError::AlreadyFocused => write!(f, "The scene is already focused."),
+            UIManagerFocusSceneError::NotRegistered => write!(f, "The scene is not registered."),
+        }
+    }
+}
+
+impl Error for UIManagerFocusSceneError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusCanvasError {
     AlreadyFocused,
     NotRegistered,
+    ParentNotRegistered,
 }
+
+impl fmt::Display for UIManagerFocusCanvasError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerFocusCanvasError::AlreadyFocused => write!(f, "The canvas is already focused."),
+            UIManagerFocusCanvasError::NotRegistered => write!(f, "The canvas is not registered."),
+            UIManagerFocusCanvasError::ParentNotRegistered => write!(f, "The parent scene is not registered."),
+        }
+    }
+}
+
+impl Error for UIManagerFocusCanvasError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusWindowError {
@@ -284,11 +664,33 @@ pub enum UIManagerFocusWindowError {
     NotRegistered,
 }
 
+impl fmt::Display for UIManagerFocusWindowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerFocusWindowError::AlreadyFocused => write!(f, "The window is already focused."),
+            UIManagerFocusWindowError::NotRegistered => write!(f, "The window is not registered."),
+        }
+    }
+}
+
+impl Error for UIManagerFocusWindowError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusContainerError {
     AlreadyFocused,
     NotRegistered,
 }
+
+impl fmt::Display for UIManagerFocusContainerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerFocusContainerError::AlreadyFocused => write!(f, "The container is already focused."),
+            UIManagerFocusContainerError::NotRegistered => write!(f, "The container is not registered."),
+        }
+    }
+}
+
+impl Error for UIManagerFocusContainerError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerFocusElementError {
@@ -296,82 +698,143 @@ pub enum UIManagerFocusElementError {
     NotRegistered,
 }
 
+impl fmt::Display for UIManagerFocusElementError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerFocusElementError::AlreadyFocused => write!(f, "The element is already focused."),
+            UIManagerFocusElementError::NotRegistered => write!(f, "The element is not registered."),
+        }
+    }
+}
+
+impl Error for UIManagerFocusElementError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusSceneError {
     AlreadyUnfocused,
 }
+
+impl fmt::Display for UIManagerUnfocusSceneError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnfocusSceneError::AlreadyUnfocused => write!(f, "The scene is already unfocused."),
+        }
+    }
+}
+
+impl Error for UIManagerUnfocusSceneError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusCanvasError {
     AlreadyUnfocused,
 }
 
+impl fmt::Display for UIManagerUnfocusCanvasError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnfocusCanvasError::AlreadyUnfocused => write!(f, "The canvas is already unfocused."),
+        }
+    }
+}
+
+impl Error for UIManagerUnfocusCanvasError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusWindowError {
     AlreadyUnfocused,
 }
+
+impl fmt::Display for UIManagerUnfocusWindowError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnfocusWindowError::AlreadyUnfocused => write!(f, "The window is already unfocused."),
+        }
+    }
+}
+
+impl Error for UIManagerUnfocusWindowError {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusContainerError {
     AlreadyUnfocused,
 }
 
+impl fmt::Display for UIManagerUnfocusContainerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnfocusContainerError::AlreadyUnfocused => write!(f, "The container is already unfocused."),
+        }
+    }
+}
+
+impl Error for UIManagerUnfocusContainerError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UIManagerUnfocusElementError {
     AlreadyUnfocused,
 }
 
+impl fmt::Display for UIManagerUnfocusElementError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UIManagerUnfocusElementError::AlreadyUnfocused => write!(f, "The element is already unfocused."),
+        }
+    }
+}
+
+impl Error for UIManagerUnfocusElementError {}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UIManagerGetUnusedSceneIDError {
+enum UIManagerGetUnusedSceneIDError {
     AllIDsInUse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UIManagerRecycleSceneIDError {
+enum UIManagerRecycleSceneIDError {
     AlreadyRecycled,
     StillInUse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UIManagerGetUnusedCanvasIDError {
+enum UIManagerGetUnusedCanvasIDError {
     AllIDsInUse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UIManagerRecycleCanvasIDError {
+enum UIManagerRecycleCanvasIDError {
     AlreadyRecycled,
     StillInUse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UIManagerGetUnusedWindowIDError {
+enum UIManagerGetUnusedWindowIDError {
     AllIDsInUse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UIManagerRecycleWindowIDError {
+enum UIManagerRecycleWindowIDError {
     AlreadyRecycled,
     StillInUse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UIManagerGetUnusedContainerIDError {
+enum UIManagerGetUnusedContainerIDError {
     AllIDsInUse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UIManagerRecycleContainerIDError {
+enum UIManagerRecycleContainerIDError {
     AlreadyRecycled,
     StillInUse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UIManagerGetUnusedElementIDError {
+enum UIManagerGetUnusedElementIDError {
     AllIDsInUse,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UIManagerRecycleElementIDError {
+enum UIManagerRecycleElementIDError {
     AlreadyRecycled,
     StillInUse,
 }
@@ -402,11 +865,11 @@ pub struct UIManager {
     registered_containers: HashMap<UIContainerID, Box<dyn UIContainer>>,
     registered_elements: HashMap<UIElementID, Box<dyn UIElement>>,
 
-    focused_scene: Option<UISceneID>,
-    focused_canvas: Option<UICanvasID>,
-    focused_window: Option<UIWindowID>,
-    focused_container: Option<UIContainerID>,
-    focused_element: Option<UIElementID>,
+    focused_scene_id: Option<UISceneID>,
+    focused_canvas_id: Option<UICanvasID>,
+    focused_window_id: Option<UIWindowID>,
+    focused_container_id: Option<UIContainerID>,
+    focused_element_id: Option<UIElementID>,
 }
 
 // TODO: Finish implementing the UIManager (review all methods and error types, and ensure that the system is fully functional and error-proof)
@@ -515,10 +978,14 @@ impl UIManager {
         self.registered_element_types.contains(&TypeId::of::<T>())
     }
 
-    pub fn get_unused_scene_id(&mut self) -> Result<UISceneID, UIManagerGetUnusedSceneIDError> {
+    fn get_unused_scene_id(&mut self) -> Result<UISceneID, UIManagerGetUnusedSceneIDError> {
         let unused_scene_id = match self.recycled_scene_ids.pop() {
             Some(recycled_scene_id) => recycled_scene_id,
             None => {
+                if self.new_scene_id == usize::MAX {
+                    return Err(UIManagerGetUnusedSceneIDError::AllIDsInUse);
+                }
+
                 let new_scene_id = self.new_scene_id;
 
                 self.new_scene_id += 1;
@@ -530,7 +997,7 @@ impl UIManager {
         Ok(unused_scene_id)
     }
 
-    pub fn recycle_scene_id(&mut self, scene_id: UISceneID) -> Result<(), UIManagerRecycleSceneIDError> {
+    fn recycle_scene_id(&mut self, scene_id: UISceneID) -> Result<(), UIManagerRecycleSceneIDError> {
         if self.recycled_scene_ids.contains(&scene_id) {
             return Err(UIManagerRecycleSceneIDError::AlreadyRecycled);
         }
@@ -544,10 +1011,14 @@ impl UIManager {
         Ok(())
     }
 
-    pub fn get_unused_canvas_id(&mut self) -> Result<UICanvasID, UIManagerGetUnusedCanvasIDError> {
+    fn get_unused_canvas_id(&mut self) -> Result<UICanvasID, UIManagerGetUnusedCanvasIDError> {
         let unused_canvas_id = match self.recycled_canvas_ids.pop() {
             Some(recycled_canvas_id) => recycled_canvas_id,
             None => {
+                if self.new_canvas_id == usize::MAX {
+                    return Err(UIManagerGetUnusedCanvasIDError::AllIDsInUse);
+                }
+
                 let new_canvas_id = self.new_canvas_id;
 
                 self.new_canvas_id += 1;
@@ -559,7 +1030,7 @@ impl UIManager {
         Ok(unused_canvas_id)
     }
 
-    pub fn recycle_canvas_id(&mut self, canvas_id: UICanvasID) -> Result<(), UIManagerRecycleCanvasIDError> {
+    fn recycle_canvas_id(&mut self, canvas_id: UICanvasID) -> Result<(), UIManagerRecycleCanvasIDError> {
         if self.recycled_canvas_ids.contains(&canvas_id) {
             return Err(UIManagerRecycleCanvasIDError::AlreadyRecycled);
         }
@@ -573,10 +1044,14 @@ impl UIManager {
         Ok(())
     }
 
-    pub fn get_unused_window_id(&mut self) -> Result<UIWindowID, UIManagerGetUnusedWindowIDError> {
+    fn get_unused_window_id(&mut self) -> Result<UIWindowID, UIManagerGetUnusedWindowIDError> {
         let unused_window_id = match self.recycled_window_ids.pop() {
             Some(recycled_window_id) => recycled_window_id,
             None => {
+                if self.new_window_id == usize::MAX {
+                    return Err(UIManagerGetUnusedWindowIDError::AllIDsInUse);
+                }
+
                 let new_window_id = self.new_window_id;
 
                 self.new_window_id += 1;
@@ -588,7 +1063,7 @@ impl UIManager {
         Ok(unused_window_id)
     }
 
-    pub fn recycle_window_id(&mut self, window_id: UIWindowID) -> Result<(), UIManagerRecycleWindowIDError> {
+    fn recycle_window_id(&mut self, window_id: UIWindowID) -> Result<(), UIManagerRecycleWindowIDError> {
         if self.recycled_window_ids.contains(&window_id) {
             return Err(UIManagerRecycleWindowIDError::AlreadyRecycled);
         }
@@ -602,10 +1077,14 @@ impl UIManager {
         Ok(())
     }
 
-    pub fn get_unused_container_id(&mut self) -> Result<UIContainerID, UIManagerGetUnusedContainerIDError> {
+    fn get_unused_container_id(&mut self) -> Result<UIContainerID, UIManagerGetUnusedContainerIDError> {
         let unused_container_id = match self.recycled_container_ids.pop() {
             Some(recycled_container_id) => recycled_container_id,
             None => {
+                if self.new_container_id == usize::MAX {
+                    return Err(UIManagerGetUnusedContainerIDError::AllIDsInUse);
+                }
+
                 let new_container_id = self.new_container_id;
 
                 self.new_container_id += 1;
@@ -617,7 +1096,7 @@ impl UIManager {
         Ok(unused_container_id)
     }
 
-    pub fn recycle_container_id(&mut self, container_id: UIContainerID) -> Result<(), UIManagerRecycleContainerIDError> {
+    fn recycle_container_id(&mut self, container_id: UIContainerID) -> Result<(), UIManagerRecycleContainerIDError> {
         if self.recycled_container_ids.contains(&container_id) {
             return Err(UIManagerRecycleContainerIDError::AlreadyRecycled);
         }
@@ -631,10 +1110,14 @@ impl UIManager {
         Ok(())
     }
 
-    pub fn get_unused_element_id(&mut self) -> Result<UIElementID, UIManagerGetUnusedElementIDError> {
+    fn get_unused_element_id(&mut self) -> Result<UIElementID, UIManagerGetUnusedElementIDError> {
         let unused_element_id = match self.recycled_element_ids.pop() {
             Some(recycled_element_id) => recycled_element_id,
             None => {
+                if self.new_element_id == usize::MAX {
+                    return Err(UIManagerGetUnusedElementIDError::AllIDsInUse);
+                }
+
                 let new_element_id = self.new_element_id;
 
                 self.new_element_id += 1;
@@ -646,7 +1129,7 @@ impl UIManager {
         Ok(unused_element_id)
     }
 
-    pub fn recycle_element_id(&mut self, element_id: UIElementID) -> Result<(), UIManagerRecycleElementIDError> {
+    fn recycle_element_id(&mut self, element_id: UIElementID) -> Result<(), UIManagerRecycleElementIDError> {
         if self.recycled_element_ids.contains(&element_id) {
             return Err(UIManagerRecycleElementIDError::AlreadyRecycled);
         }
@@ -671,14 +1154,16 @@ impl UIManager {
 
                 unused_scene_id
             },
-            Err(UIManagerGetUnusedSceneIDError::AllIDsInUse) => return Err(UIManagerRegisterSceneError::AlreadyRegistered),
+            Err(UIManagerGetUnusedSceneIDError::AllIDsInUse) => panic!("All scene IDs are in use!"),
         };
 
-        if self.registered_scenes.insert(scene_id, scene).is_none() {
-            Ok(scene_id)
-        } else {
-            Err(UIManagerRegisterSceneError::AlreadyRegistered)
+        if self.registered_scenes.contains_key(&scene_id) {
+            return Err(UIManagerRegisterSceneError::AlreadyRegistered);
         }
+
+        self.registered_scenes.insert(scene_id, scene);
+
+        Ok(scene_id)
     }
 
     pub fn register_canvas<T: 'static + UICanvas>(&mut self, mut canvas: Box<T>) -> Result<UICanvasID, UIManagerRegisterCanvasError> {
@@ -692,14 +1177,16 @@ impl UIManager {
 
                 unused_canvas_id
             },
-            Err(UIManagerGetUnusedCanvasIDError::AllIDsInUse) => return Err(UIManagerRegisterCanvasError::AlreadyRegistered),
+            Err(UIManagerGetUnusedCanvasIDError::AllIDsInUse) => panic!("All canvas IDs are in use!"),
         };
 
-        if self.registered_canvases.insert(canvas_id, canvas).is_none() {
-            Ok(canvas_id)
-        } else {
-            Err(UIManagerRegisterCanvasError::AlreadyRegistered)
+        if self.registered_canvases.contains_key(&canvas_id) {
+            return Err(UIManagerRegisterCanvasError::AlreadyRegistered);
         }
+
+        self.registered_canvases.insert(canvas_id, canvas);
+
+        Ok(canvas_id)
     }
 
     pub fn register_window<T: 'static + UIWindow>(&mut self, mut window: Box<T>) -> Result<UIWindowID, UIManagerRegisterWindowError> {
@@ -713,14 +1200,16 @@ impl UIManager {
 
                 unused_window_id
             },
-            Err(UIManagerGetUnusedWindowIDError::AllIDsInUse) => return Err(UIManagerRegisterWindowError::AlreadyRegistered),
+            Err(UIManagerGetUnusedWindowIDError::AllIDsInUse) => panic!("All window IDs are in use!"),
         };
 
-        if self.registered_windows.insert(window_id, window).is_none() {
-            Ok(window_id)
-        } else {
-            Err(UIManagerRegisterWindowError::AlreadyRegistered)
+        if self.registered_windows.contains_key(&window_id) {
+            return Err(UIManagerRegisterWindowError::AlreadyRegistered);
         }
+
+        self.registered_windows.insert(window_id, window);
+
+        Ok(window_id)
     }
 
     pub fn register_container<T: 'static + UIContainer>(&mut self, mut container: Box<T>) -> Result<UIContainerID, UIManagerRegisterContainerError> {
@@ -734,14 +1223,16 @@ impl UIManager {
 
                 unused_container_id
             },
-            Err(UIManagerGetUnusedContainerIDError::AllIDsInUse) => return Err(UIManagerRegisterContainerError::AlreadyRegistered),
+            Err(UIManagerGetUnusedContainerIDError::AllIDsInUse) => panic!("All container IDs are in use!"),
         };
 
-        if self.registered_containers.insert(container_id, container).is_none() {
-            Ok(container_id)
-        } else {
-            Err(UIManagerRegisterContainerError::AlreadyRegistered)
+        if self.registered_containers.contains_key(&container_id) {
+            return Err(UIManagerRegisterContainerError::AlreadyRegistered);
         }
+
+        self.registered_containers.insert(container_id, container);
+
+        Ok(container_id)
     }
 
     pub fn register_element<T: 'static + UIElement>(&mut self, mut element: Box<T>) -> Result<UIElementID, UIManagerRegisterElementError> {
@@ -755,14 +1246,16 @@ impl UIManager {
 
                 unused_element_id
             },
-            Err(UIManagerGetUnusedElementIDError::AllIDsInUse) => return Err(UIManagerRegisterElementError::AlreadyRegistered),
+            Err(UIManagerGetUnusedElementIDError::AllIDsInUse) => panic!("All element IDs are in use!"),
         };
 
-        if self.registered_elements.insert(element_id, element).is_none() {
-            Ok(element_id)
-        } else {
-            Err(UIManagerRegisterElementError::AlreadyRegistered)
+        if self.registered_elements.contains_key(&element_id) {
+            return Err(UIManagerRegisterElementError::AlreadyRegistered);
         }
+
+        self.registered_elements.insert(element_id, element);
+
+        Ok(element_id)
     }
 
     pub fn unregister_scene(&mut self, scene_id: UISceneID) -> Result<(), UIManagerUnregisterSceneError> {
@@ -861,7 +1354,7 @@ impl UIManager {
     }
 
     pub fn focus_scene(&mut self, scene_id: UISceneID) -> Result<(), UIManagerFocusSceneError> {
-        if self.focused_scene.is_some() {
+        if self.focused_scene_id.is_some() {
             return Err(UIManagerFocusSceneError::AlreadyFocused);
         }
 
@@ -869,27 +1362,62 @@ impl UIManager {
             return Err(UIManagerFocusSceneError::NotRegistered);
         }
 
-        self.focused_scene = Some(scene_id);
+        self.focused_scene_id = Some(scene_id);
+
+        let focused_scene = match self.get_focused_scene_mut() {
+            Some(focused_scene) => focused_scene,
+            None => return Err(UIManagerFocusSceneError::NotRegistered),
+        };
+
+        focused_scene.on_focus();
 
         Ok(())
     }
 
     pub fn focus_canvas(&mut self, canvas_id: UICanvasID) -> Result<(), UIManagerFocusCanvasError> {
-        if self.focused_canvas.is_some() {
+        if self.focused_canvas_id.is_some() {
             return Err(UIManagerFocusCanvasError::AlreadyFocused);
         }
 
-        if !self.registered_canvases.contains_key(&canvas_id) {
-            return Err(UIManagerFocusCanvasError::NotRegistered);
+        let unfocused_canvas = match self.registered_canvases.get_mut(&canvas_id) {
+            Some(unfocused_canvas) => unfocused_canvas,
+            None => return Err(UIManagerFocusCanvasError::NotRegistered),
+        };
+
+        let parent_scene_id = match unfocused_canvas.get_parent() {
+            Some(parent_scene) => parent_scene,
+            None => return Err(UIManagerFocusCanvasError::NotRegistered),
+        };
+
+        if !self.is_scene_focused(parent_scene_id) {
+            if self.get_focused_scene().is_some() {
+                match self.unfocus_scene() {
+                    Ok(_) => {},
+                    Err(UIManagerUnfocusSceneError::AlreadyUnfocused) => {},
+                };
+            }
+
+            match self.focus_scene(parent_scene_id) {
+                Ok(_) => {},
+                Err(UIManagerFocusSceneError::AlreadyFocused) => {},
+                Err(UIManagerFocusSceneError::NotRegistered) => {},
+            };
         }
 
-        self.focused_canvas = Some(canvas_id);
+
+        
+
+        // TODO: focus the potentially unfocused parent scene
+        
+        self.focused_canvas_id = Some(canvas_id);
+
+        // TODO: call the on_focus callback of the focused canvas
 
         Ok(())
     }
 
     pub fn focus_window(&mut self, window_id: UIWindowID) -> Result<(), UIManagerFocusWindowError> {
-        if self.focused_window.is_some() {
+        if self.focused_window_id.is_some() {
             return Err(UIManagerFocusWindowError::AlreadyFocused);
         }
 
@@ -897,13 +1425,17 @@ impl UIManager {
             return Err(UIManagerFocusWindowError::NotRegistered);
         }
 
-        self.focused_window = Some(window_id);
+        // TODO: focus the potentially unfocused parent canvas
+
+        self.focused_window_id = Some(window_id);
+
+        // TODO: call the on_focus callback of the focused window
 
         Ok(())
     }
 
     pub fn focus_container(&mut self, container_id: UIContainerID) -> Result<(), UIManagerFocusContainerError> {
-        if self.focused_container.is_some() {
+        if self.focused_container_id.is_some() {
             return Err(UIManagerFocusContainerError::AlreadyFocused);
         }
 
@@ -911,13 +1443,17 @@ impl UIManager {
             return Err(UIManagerFocusContainerError::NotRegistered);
         }
 
-        self.focused_container = Some(container_id);
+        // TODO: focus the potentially unfocused parent container/window
+
+        self.focused_container_id = Some(container_id);
+
+        // TODO: call the on_focus callback of the focused container
 
         Ok(())
     }
 
     pub fn focus_element(&mut self, element_id: UIElementID) -> Result<(), UIManagerFocusElementError> {
-        if self.focused_element.is_some() {
+        if self.focused_element_id.is_some() {
             return Err(UIManagerFocusElementError::AlreadyFocused);
         }
 
@@ -925,124 +1461,142 @@ impl UIManager {
             return Err(UIManagerFocusElementError::NotRegistered);
         }
 
-        self.focused_element = Some(element_id);
+        // TODO: focus the potentially unfocused parent container
+
+        self.focused_element_id = Some(element_id);
+
+        // TODO: call the on_focus callback of the focused element
 
         Ok(())
     }
 
     pub fn unfocus_scene(&mut self) -> Result<(), UIManagerUnfocusSceneError> {
-        if self.focused_scene.is_none() {
+        if self.focused_scene_id.is_none() {
             return Err(UIManagerUnfocusSceneError::AlreadyUnfocused);
         }
 
-        self.focused_scene = None;
+        // TODO: unfocus the potentially focused child canvas
+
+        self.focused_scene_id = None;
+
+        // TODO: call the on_unfocus callback of the unfocused scene
 
         Ok(())
     }
 
     pub fn unfocus_canvas(&mut self) -> Result<(), UIManagerUnfocusCanvasError> {
-        if self.focused_canvas.is_none() {
+        if self.focused_canvas_id.is_none() {
             return Err(UIManagerUnfocusCanvasError::AlreadyUnfocused);
         }
 
-        self.focused_canvas = None;
+        // TODO: unfocus the potentially focused child window
+
+
+        self.focused_canvas_id = None;
+
+        // TODO: call the on_unfocus callback of the unfocused canvas
 
         Ok(())
     }
 
     pub fn unfocus_window(&mut self) -> Result<(), UIManagerUnfocusWindowError> {
-        if self.focused_window.is_none() {
+        if self.focused_window_id.is_none() {
             return Err(UIManagerUnfocusWindowError::AlreadyUnfocused);
         }
 
-        self.focused_window = None;
+        // TODO: unfocus the potentially focused child container
+
+        self.focused_window_id = None;
+
+        // TODO: call the on_unfocus callback of the unfocused window
 
         Ok(())
     }
 
     pub fn unfocus_container(&mut self) -> Result<(), UIManagerUnfocusContainerError> {
-        if self.focused_container.is_none() {
+        if self.focused_container_id.is_none() {
             return Err(UIManagerUnfocusContainerError::AlreadyUnfocused);
         }
 
-        self.focused_container = None;
+        // TODO: unfocus the potentially focused child container/element
+
+        self.focused_container_id = None;
+        
+        // TODO: call the on_unfocus callback of the unfocused container
 
         Ok(())
     }
 
     pub fn unfocus_element(&mut self) -> Result<(), UIManagerUnfocusElementError> {
-        if self.focused_element.is_none() {
+        if self.focused_element_id.is_none() {
             return Err(UIManagerUnfocusElementError::AlreadyUnfocused);
         }
 
-        self.focused_element = None;
+        self.focused_element_id = None;
+
+        // TODO: call the on_unfocus callback of the unfocused element
 
         Ok(())
     }
 
     pub fn is_scene_focused(&self, scene_id: UISceneID) -> bool {
-        self.focused_scene == Some(scene_id)
+        self.focused_scene_id == Some(scene_id)
     }
 
     pub fn is_canvas_focused(&self, canvas_id: UICanvasID) -> bool {
-        self.focused_canvas == Some(canvas_id)
+        self.focused_canvas_id == Some(canvas_id)
     }
 
     pub fn is_window_focused(&self, window_id: UIWindowID) -> bool {
-        self.focused_window == Some(window_id)
+        self.focused_window_id == Some(window_id)
     }
 
     pub fn is_container_focused(&self, container_id: UIContainerID) -> bool {
-        self.focused_container == Some(container_id)
+        self.focused_container_id == Some(container_id)
     }
 
     pub fn is_element_focused(&self, element_id: UIElementID) -> bool {
-        self.focused_element == Some(element_id)
+        self.focused_element_id == Some(element_id)
     }
 
-    #[allow(clippy::borrowed_box)]
-    pub fn get_focused_scene(&self) -> Option<&Box<dyn UIScene>> {
-        self.focused_scene.and_then(|scene_id| self.registered_scenes.get(&scene_id))
+    pub fn get_focused_scene(&self) -> Option<&(dyn 'static + UIScene)> {
+        self.focused_scene_id.and_then(|scene_id| self.registered_scenes.get(&scene_id).map(|scene| &**scene))
     }
 
-    #[allow(clippy::borrowed_box)]
-    pub fn get_focused_canvas(&self) -> Option<&Box<dyn UICanvas>> {
-        self.focused_canvas.and_then(|canvas_id| self.registered_canvases.get(&canvas_id))
+    pub fn get_focused_canvas(&self) -> Option<&(dyn 'static + UICanvas)> {
+        self.focused_canvas_id.and_then(|canvas_id| self.registered_canvases.get(&canvas_id).map(|canvas| &**canvas))
     }
 
-    #[allow(clippy::borrowed_box)]
-    pub fn get_focused_window(&self) -> Option<&Box<dyn UIWindow>> {
-        self.focused_window.and_then(|window_id| self.registered_windows.get(&window_id))
+    pub fn get_focused_window(&self) -> Option<&(dyn 'static + UIWindow)> {
+        self.focused_window_id.and_then(|window_id| self.registered_windows.get(&window_id).map(|window| &**window))
     }
 
-    #[allow(clippy::borrowed_box)]
-    pub fn get_focused_container(&self) -> Option<&Box<dyn UIContainer>> {
-        self.focused_container.and_then(|container_id| self.registered_containers.get(&container_id))
+    pub fn get_focused_container(&self) -> Option<&(dyn 'static + UIContainer)> {
+        self.focused_container_id.and_then(|container_id| self.registered_containers.get(&container_id).map(|container| &**container))
     }
 
-    #[allow(clippy::borrowed_box)]
-    pub fn get_focused_element(&self) -> Option<&Box<dyn UIElement>> {
-        self.focused_element.and_then(|element_id| self.registered_elements.get(&element_id))
+    pub fn get_focused_element(&self) -> Option<&(dyn 'static + UIElement)> {
+        self.focused_element_id.and_then(|element_id| self.registered_elements.get(&element_id).map(|element| &**element))
     }
 
-    pub fn get_focused_scene_mut(&mut self) -> Option<&mut Box<dyn UIScene>> {
-        self.focused_scene.and_then(move |scene_id| self.registered_scenes.get_mut(&scene_id))
+    pub fn get_focused_scene_mut(&mut self) -> Option<&mut (dyn 'static + UIScene)> {
+        self.focused_scene_id.and_then(|scene_id| self.registered_scenes.get_mut(&scene_id).map(|scene| &mut **scene))
     }
 
-    pub fn get_focused_canvas_mut(&mut self) -> Option<&mut Box<dyn UICanvas>> {
-        self.focused_canvas.and_then(move |canvas_id| self.registered_canvases.get_mut(&canvas_id))
+    pub fn get_focused_canvas_mut(&mut self) -> Option<&mut (dyn 'static + UICanvas)> {
+        self.focused_canvas_id.and_then(|canvas_id| self.registered_canvases.get_mut(&canvas_id).map(|canvas| &mut **canvas))
     }
 
-    pub fn get_focused_window_mut(&mut self) -> Option<&mut Box<dyn UIWindow>> {
-        self.focused_window.and_then(move |window_id| self.registered_windows.get_mut(&window_id))
+    pub fn get_focused_window_mut(&mut self) -> Option<&mut (dyn 'static + UIWindow)> {
+        self.focused_window_id.and_then(|window_id| self.registered_windows.get_mut(&window_id).map(|window| &mut **window))
     }
 
-    pub fn get_focused_container_mut(&mut self) -> Option<&mut Box<dyn UIContainer>> {
-        self.focused_container.and_then(move |container_id| self.registered_containers.get_mut(&container_id))
+    pub fn get_focused_container_mut(&mut self) -> Option<&mut (dyn 'static + UIContainer)> {
+        self.focused_container_id.and_then(|container_id| self.registered_containers.get_mut(&container_id).map(|container| &mut **container))
     }
 
-    pub fn get_focused_element_mut(&mut self) -> Option<&mut Box<dyn UIElement>> {
-        self.focused_element.and_then(move |element_id| self.registered_elements.get_mut(&element_id))
+    pub fn get_focused_element_mut(&mut self) -> Option<&mut (dyn 'static + UIElement)> {
+        self.focused_element_id.and_then(|element_id| self.registered_elements.get_mut(&element_id).map(|element| &mut **element))
     }
 }
 
