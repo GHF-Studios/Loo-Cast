@@ -2834,6 +2834,8 @@ impl UIManager {
 //          Enabling/disabling a ui object should also enable/disable all of its children.
 //          Disabled objects should not receive input events and should not be focusable.
 //              In fact: From the perspective of the bevy engine, a disabled ui object does not exist.
+//          Enable/Disable ui objects by building or destructing the relevant bevy entities.
+//          Make the bevy entity id of any ui object an accessible property of the ui object.
 /*
 
 TODO: Implement Advanced UI System (RAW USER CREATED)
