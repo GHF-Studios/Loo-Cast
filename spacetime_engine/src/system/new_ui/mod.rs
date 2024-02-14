@@ -6,8 +6,8 @@ use std::{any::TypeId, collections::HashMap, collections::HashSet};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UIObjectState {
-    Enabled,
     Disabled,
+    Enabled(bevy::ecs::entity::Entity),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -46,9 +46,10 @@ impl fmt::Display for UIObjectDisableError {
 
 impl Error for UIObjectDisableError {}
 
-/// IMPLEMENT PROPERLY
+// TODO: IMPLEMENT PROPERLY
 pub trait UIObject {
     fn get_ui_object_state(&self) -> UIObjectState;
+    fn set_ui_object_state(&mut self, state: UIObjectState);
 
     fn on_enable(&mut self) -> Result<(), UIObjectEnableError>;
     fn on_disable(&mut self) -> Result<(), UIObjectDisableError>;
@@ -57,10 +58,10 @@ pub trait UIObject {
     fn on_unfocus(&self);
 }
 
-/// IMPLEMENT PROPERLY
+// TODO: IMPLEMENT PROPERLY
 pub trait UIEvent {}
 
-/// IMPLEMENT PROPERLY
+// TODO: IMPLEMENT PROPERLY
 pub trait UIEventHandler {}
 
 type UIElementID = usize;
@@ -2830,10 +2831,14 @@ impl UIManager {
     }
 }
 
-// TODO:    Implement enabling/disabling system for UI Objects.
+//          1. Implement the different types of UI Scenes, Canvases, Windows, Containers, and Elements; public to the engine:ui module
+//          2. Implement a public wrapper api for the ui module
+//          3. Use that api to script a simple ui in the game, inside the basemod
+
+// TODO:    Implement an enabling/disabling system for UI Objects.
 //          Enabling/disabling a ui object should also enable/disable all of its children.
-//          Disabled objects should not receive input events and should not be focusable.
-//              In fact: From the perspective of the bevy engine, a disabled ui object does not exist.
+//          Disabled objects should not receive input events and should not be focusable;
+//              in fact, from the perspective of the bevy engine, a disabled ui object does not exist at all.
 //          Enable/Disable ui objects by building or destructing the relevant bevy entities.
 //          Make the bevy entity id of any ui object an accessible property of the ui object.
 /*
@@ -2869,3 +2874,4 @@ TODO: Implement Advanced UI System (AI "enhanced")
 
 This comprehensive plan aims to create a flexible, efficient, and intuitive UI system that enhances user interaction and event handling within the game's UI architecture.
 */
+
