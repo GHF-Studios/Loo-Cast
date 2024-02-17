@@ -1,14 +1,18 @@
 // Modules
 pub mod camera;
+pub mod game;
 pub mod math;
 pub mod new_ui;
 pub mod ui;
+pub mod universe;
 
 // Local imports
 
 // Internal imports
 use camera::CameraPlugin;
+use game::GamePlugin;
 use ui::UIPlugin;
+use universe::UniversePlugin;
 
 // External imports
 use bevy::{app::PluginGroupBuilder, prelude::*};
@@ -48,7 +52,9 @@ impl PluginGroup for SystemPlugins {
         group = group
             // Internal Modules
             .add(CameraPlugin)
+            .add(GamePlugin)
             .add(UIPlugin)
+            .add(UniversePlugin)
             // External Modules
             .add(RapierDebugRenderPlugin::default())
             .add(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0));

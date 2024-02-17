@@ -1,21 +1,8 @@
-// Modules
-
-// Local imports
-
-// Internal imports
 use crate::system::math::*;
-
-// External imports
 use bevy::prelude::*;
 
-// Static variables
+const MAIN_CAMERA_SPEED: f32 = 10.0;
 
-// Constant variables
-const CAMERA_SPEED: f32 = 10.0;
-
-// Types
-
-// Enums
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
 enum MainCameraState {
     #[default]
@@ -23,30 +10,29 @@ enum MainCameraState {
     Spawned,
 }
 
-// Structs
-pub struct CameraPlugin;
-
 #[derive(Component)]
 pub struct MainCamera;
 
 #[derive(Component)]
 pub struct MainCameraTarget;
 
-#[derive(Resource, Default)]
-pub struct CameraManager {
-    main_camera_state: MainCameraState,
-}
+pub struct CameraPlugin;
 
-// Implementations
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app
+            // States
+            .add_state::<MainCameraState>()
             // Startup Systems
             .add_systems(PreStartup, CameraManager::pre_startup)
             .add_systems(Startup, CameraManager::startup)
             // Update Systems
-            .add_systems(Update, CameraManager::handle_main_camera_movement);
+            .add_systems(Update, CameraManager::main_camera_movement.run_if(in_state(MainCameraState::Spawned)));
     }
+}
+
+#[derive(Resource, Default)]
+pub struct CameraManager {
 }
 
 impl CameraManager {
@@ -58,28 +44,24 @@ impl CameraManager {
         info!("Pre-Started camera Manager.");
     }
 
-    fn startup(commands: Commands, mut camera_manager: ResMut<CameraManager>) {
+    fn startup(
+        commands: Commands, 
+        current_main_camera_state: Res<State<MainCameraState>>, 
+        next_main_camera_state: ResMut<NextState<MainCameraState>>,
+    ) {
         info!("Starting camera Manager...");
 
-        camera_manager.spawn_main_camera(commands);
+        CameraManager::spawn_main_camera(commands, current_main_camera_state, next_main_camera_state);
 
         info!("Started camera Manager.");
     }
 
-    fn post_startup(mut commands: Commands) {
-        info!("Post-Starting camera Manager...");
-
-        info!("Post-Started camera Manager.");
-    }
-
-    fn shutdown() {
-        info!("Shutting down camera Manager...");
-
-        info!("Shut down camera Manager.");
-    }
-
-    fn spawn_main_camera(&mut self, mut commands: Commands) {
-        match self.main_camera_state {
+    fn spawn_main_camera(
+        mut commands: Commands,
+        current_main_camera_state: Res<State<MainCameraState>>, 
+        mut next_main_camera_state: ResMut<NextState<MainCameraState>>,
+    ) {
+        match current_main_camera_state.get() {
             MainCameraState::NotSpawned => {
                 commands.spawn((
                     Camera2dBundle {
@@ -89,30 +71,16 @@ impl CameraManager {
                     MainCamera {},
                 ));
 
-                self.main_camera_state = MainCameraState::Spawned;
+                next_main_camera_state.set(MainCameraState::Spawned);
             }
             MainCameraState::Spawned => {
                 error!("Main camera already spawned!");
-
-                return;
             }
         }
     }
 
-    fn despawn_main_camera(&mut self, mut commands: Commands) {
-        match self.main_camera_state {
-            MainCameraState::NotSpawned => {
-                error!("Main camera already despawned!");
-
-                return;
-            }
-            MainCameraState::Spawned => {
-                self.main_camera_state = MainCameraState::Spawned;
-            }
-        }
-    }
-
-    fn handle_main_camera_movement(
+    #[allow(clippy::type_complexity)]
+    fn main_camera_movement(
         mut main_camera_query: Query<
             &mut Transform,
             (With<Camera>, With<MainCamera>, Without<MainCameraTarget>),
@@ -133,7 +101,7 @@ impl CameraManager {
             Err(_) => return,
         };
 
-        let interpolation = CAMERA_SPEED * time.delta_seconds();
+        let interpolation = MAIN_CAMERA_SPEED * time.delta_seconds();
 
         let new_x = Math::lerp(
             main_camera_transform.translation.x,

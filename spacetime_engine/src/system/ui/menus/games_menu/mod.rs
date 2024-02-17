@@ -5,6 +5,7 @@
 // Internal imports
 use crate::system::ui::*;
 use crate::system::AppState;
+use crate::system::game::GameState;
 
 // External imports
 use bevy::prelude::*;
@@ -266,6 +267,8 @@ impl GamesMenuManager {
     }
 
     fn handle_load_game_button(
+        mut next_app_state: ResMut<NextState<AppState>>,
+        mut next_game_state: ResMut<NextState<GameState>>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor, &LoadGameButton),
             Changed<Interaction>,
@@ -278,11 +281,11 @@ impl GamesMenuManager {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
 
-                    error!("Games and game management don't actually exist; the shown games are just placeholders and cannot be loaded.");
+                    warn!("Games and game management don't actually exist; the shown games are just placeholders and cannot be loaded.");
 
                     // TODO: Load the game associated with the button
 
-                    todo!();
+                    next_app_state.set(AppState::Game);
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
