@@ -1,5 +1,6 @@
 // Modules
 pub mod camera;
+pub mod commands;
 pub mod math;
 pub mod ui;
 
@@ -7,6 +8,7 @@ pub mod ui;
 
 // Internal imports
 use camera::CameraPlugin;
+use commands::CommandsPlugin;
 use ui::UIPlugin;
 
 // External imports
@@ -47,6 +49,7 @@ impl PluginGroup for SystemPlugins {
         group = group
             // Internal Modules
             .add(CameraPlugin)
+            .add(CommandsPlugin)
             .add(UIPlugin)
             // External Modules
             .add(RapierDebugRenderPlugin::default())
