@@ -3,9 +3,9 @@
 // Local imports
 
 // Internal imports
+use crate::system::*;
+use crate::system::game::*;
 use crate::system::ui::*;
-use crate::system::AppState;
-use crate::system::game::GameState;
 
 // External imports
 use bevy::prelude::*;
@@ -13,7 +13,7 @@ use bevy::prelude::*;
 // Static variables
 
 // Constant variables
-pub const SAVE_GAMES_MENU_STYLE: Style = {
+pub const SAVE_GAMES_SCREEN_STYLE: Style = {
     let mut style = Style::DEFAULT;
     style.flex_direction = FlexDirection::Column;
     style.justify_content = JustifyContent::Center;
@@ -106,10 +106,10 @@ pub const TITLE_STYLE: Style = {
 // Enums
 
 // Structs
-pub struct GamesMenuPlugin;
+pub struct GamesScreenPlugin;
 
 #[derive(Component)]
-pub struct GamesMenu {}
+pub struct GamesScreen {}
 
 #[derive(Component)]
 pub struct GamesContainer {}
@@ -123,7 +123,7 @@ pub struct Game {
 pub struct CreateGameButton {}
 
 #[derive(Component)]
-pub struct BackToMainMenuButton {}
+pub struct BackToMainScreenButton {}
 
 #[derive(Component)]
 pub struct LoadGameButton {
@@ -146,50 +146,50 @@ pub struct DeleteGameUI {
 }
 
 #[derive(Resource)]
-pub struct GamesMenuManager;
+pub struct GamesScreenManager;
 
 // Implementations
-impl Plugin for GamesMenuPlugin {
+impl Plugin for GamesScreenPlugin {
     fn build(&self, app: &mut App) {
         app
             // Events
             .add_event::<LoadGameInstance>()
             .add_event::<DeleteGameUI>()
             // Enter State Systems
-            .add_systems(OnEnter(AppState::GamesMenu), GamesMenuManager::startup)
+            .add_systems(OnEnter(AppState::Games), GamesScreenManager::startup)
             // Update State Systems
             .add_systems(
                 Update,
                 (
-                    GamesMenuManager::handle_back_to_main_menu_button,
-                    GamesMenuManager::handle_create_game_button,
-                    GamesMenuManager::handle_delete_game_button,
-                    GamesMenuManager::handle_load_game_button,
-                    GamesMenuManager::handle_delete_game_ui,
+                    GamesScreenManager::handle_back_to_main_screen_button,
+                    GamesScreenManager::handle_create_game_button,
+                    GamesScreenManager::handle_delete_game_button,
+                    GamesScreenManager::handle_load_game_button,
+                    GamesScreenManager::handle_delete_game_ui,
                 )
-                    .run_if(in_state(AppState::GamesMenu)),
+                    .run_if(in_state(AppState::Games)),
             )
             // Exit State Systems
-            .add_systems(OnExit(AppState::GamesMenu), GamesMenuManager::shutdown);
+            .add_systems(OnExit(AppState::Games), GamesScreenManager::shutdown);
     }
 }
 
-impl GamesMenuManager {
+impl GamesScreenManager {
     fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
-        Self::build_games_menu(&mut commands, &asset_server);
+        Self::build_games_screen(&mut commands, &asset_server);
     }
 
-    fn shutdown(mut commands: Commands, games_menu_query: Query<Entity, With<GamesMenu>>) {
-        if let Ok(games_menu_entity) = games_menu_query.get_single() {
-            commands.entity(games_menu_entity).despawn_recursive();
+    fn shutdown(mut commands: Commands, games_screen_query: Query<Entity, With<GamesScreen>>) {
+        if let Ok(games_screen_entity) = games_screen_query.get_single() {
+            commands.entity(games_screen_entity).despawn_recursive();
         }
     }
 
-    fn handle_back_to_main_menu_button(
+    fn handle_back_to_main_screen_button(
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
-            (Changed<Interaction>, With<BackToMainMenuButton>),
+            (Changed<Interaction>, With<BackToMainScreenButton>),
         >,
     ) {
         if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
@@ -197,9 +197,9 @@ impl GamesMenuManager {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
 
-                    info!("Transitioning to main menu...");
+                    info!("Transitioning to main screen...");
 
-                    app_state_next_state.set(AppState::MainMenu);
+                    app_state_next_state.set(AppState::Main);
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
@@ -223,9 +223,9 @@ impl GamesMenuManager {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
 
-                    info!("Transitioning to game creation menu...");
+                    info!("Transitioning to game creation screen...");
 
-                    app_state_next_state.set(AppState::CreateGameMenu);
+                    app_state_next_state.set(AppState::CreateGame);
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
@@ -267,6 +267,7 @@ impl GamesMenuManager {
     }
 
     fn handle_load_game_button(
+        mut enter_game_event_writer: EventWriter<EnterGame>,
         mut next_app_state: ResMut<NextState<AppState>>,
         mut next_game_state: ResMut<NextState<GameState>>,
         mut button_query: Query<
@@ -285,7 +286,7 @@ impl GamesMenuManager {
 
                     // TODO: Load the game associated with the button
 
-                    next_app_state.set(AppState::Game);
+                    enter_game_event_writer.send(EnterGame {});
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
@@ -315,20 +316,20 @@ impl GamesMenuManager {
         }
     }
 
-    fn build_games_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
+    fn build_games_screen(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
         warn!(
             "Games and game management don't actually exist; the save games are just placeholders."
         );
 
         let game_names = vec!["save_game_1", "save_game_2", "save_game_3"];
 
-        let games_menu_entity = commands
+        let games_screen_entity = commands
             .spawn((
                 NodeBundle {
-                    style: SAVE_GAMES_MENU_STYLE,
+                    style: SAVE_GAMES_SCREEN_STYLE,
                     ..default()
                 },
-                GamesMenu {},
+                GamesScreen {},
             ))
             .with_children(|parent| {
                 // === Title ===
@@ -449,7 +450,7 @@ impl GamesMenuManager {
                         ..default()
                     })
                     .with_children(|parent| {
-                        // Back To Main Menu Button
+                        // Back To Main Screen Button
                         parent
                             .spawn((
                                 ButtonBundle {
@@ -457,7 +458,7 @@ impl GamesMenuManager {
                                     background_color: NORMAL_BUTTON_COLOR.into(),
                                     ..default()
                                 },
-                                BackToMainMenuButton {},
+                                BackToMainScreenButton {},
                             ))
                             .with_children(|parent| {
                                 parent.spawn(ImageBundle {
@@ -488,7 +489,7 @@ impl GamesMenuManager {
             })
             .id();
 
-        games_menu_entity
+        games_screen_entity
     }
 
     fn get_game_name_text_style(asset_server: &Res<AssetServer>) -> TextStyle {

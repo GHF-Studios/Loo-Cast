@@ -28,9 +28,9 @@ use bevy_rapier2d::prelude::*;
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
 pub enum AppState {
     #[default]
-    MainMenu,
-    GamesMenu,
-    CreateGameMenu,
+    Main,
+    Games,
+    CreateGame,
     Game,
 }
 

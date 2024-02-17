@@ -13,7 +13,7 @@ use bevy::prelude::*;
 // Static variables
 
 // Constant variables
-pub const SAVE_GAME_CREATION_MENU_STYLE: Style = {
+pub const SAVE_GAME_CREATION_SCREEN_STYLE: Style = {
     let mut style = Style::DEFAULT;
     style.flex_direction = FlexDirection::Column;
     style.justify_content = JustifyContent::Center;
@@ -99,10 +99,10 @@ pub const TITLE_STYLE: Style = {
 // Enums
 
 // Structs
-pub struct GameCreationMenuPlugin;
+pub struct GameCreationScreenPlugin;
 
 #[derive(Component)]
-pub struct GameCreationMenu {}
+pub struct GameCreationScreen {}
 
 #[derive(Component)]
 pub struct GameName {}
@@ -114,48 +114,48 @@ pub struct CancelGameCreationButton {}
 pub struct ConfirmGameCreationButton {}
 
 #[derive(Resource)]
-pub struct GameCreationMenuManager;
+pub struct GameCreationScreenManager;
 
 // Implementations
-impl Plugin for GameCreationMenuPlugin {
+impl Plugin for GameCreationScreenPlugin {
     fn build(&self, app: &mut App) {
         app
             // Enter State Systems
             .add_systems(
-                OnEnter(AppState::CreateGameMenu),
-                GameCreationMenuManager::initialize,
+                OnEnter(AppState::CreateGame),
+                GameCreationScreenManager::initialize,
             )
             // Update State Systems
             .add_systems(
                 Update,
                 (
-                    GameCreationMenuManager::handle_cancel_game_creation_button,
-                    GameCreationMenuManager::handle_confirm_game_creation_button,
+                    GameCreationScreenManager::handle_cancel_game_creation_button,
+                    GameCreationScreenManager::handle_confirm_game_creation_button,
                 )
-                    .run_if(in_state(AppState::CreateGameMenu)),
+                    .run_if(in_state(AppState::CreateGame)),
             )
             // Exit State Systems
             .add_systems(
-                OnExit(AppState::CreateGameMenu),
-                GameCreationMenuManager::terminate,
+                OnExit(AppState::CreateGame),
+                GameCreationScreenManager::terminate,
             );
     }
 }
 
-impl GameCreationMenuManager {
+impl GameCreationScreenManager {
     fn initialize(mut commands: Commands, asset_server: Res<AssetServer>) {
-        commands.insert_resource(GameCreationMenuManager {});
-        Self::build_game_creation_menu(&mut commands, &asset_server);
+        commands.insert_resource(GameCreationScreenManager {});
+        Self::build_game_creation_screen(&mut commands, &asset_server);
     }
 
     fn terminate(
         mut commands: Commands,
-        create_game_info_menu_query: Query<Entity, With<GameCreationMenu>>,
+        create_game_info_screen_query: Query<Entity, With<GameCreationScreen>>,
     ) {
-        commands.remove_resource::<GameCreationMenuManager>();
-        if let Ok(create_game_info_menu_entity) = create_game_info_menu_query.get_single() {
+        commands.remove_resource::<GameCreationScreenManager>();
+        if let Ok(create_game_info_screen_entity) = create_game_info_screen_query.get_single() {
             commands
-                .entity(create_game_info_menu_entity)
+                .entity(create_game_info_screen_entity)
                 .despawn_recursive();
         }
     }
@@ -172,9 +172,9 @@ impl GameCreationMenuManager {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
 
-                    info!("Transitioning to games menu...");
+                    info!("Transitioning to games screen...");
 
-                    app_state_next_state.set(AppState::GamesMenu);
+                    app_state_next_state.set(AppState::Games);
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
@@ -216,17 +216,17 @@ impl GameCreationMenuManager {
         }
     }
 
-    fn build_game_creation_menu(
+    fn build_game_creation_screen(
         commands: &mut Commands,
         asset_server: &Res<AssetServer>,
     ) -> Entity {
-        let create_game_info_menu_entity = commands
+        let create_game_info_screen_entity = commands
             .spawn((
                 NodeBundle {
-                    style: SAVE_GAME_CREATION_MENU_STYLE,
+                    style: SAVE_GAME_CREATION_SCREEN_STYLE,
                     ..default()
                 },
-                GameCreationMenu {},
+                GameCreationScreen {},
             ))
             .with_children(|parent| {
                 // === Title ===
@@ -323,7 +323,7 @@ impl GameCreationMenuManager {
             })
             .id();
 
-        create_game_info_menu_entity
+        create_game_info_screen_entity
     }
 }
 

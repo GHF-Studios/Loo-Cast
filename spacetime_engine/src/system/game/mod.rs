@@ -8,11 +8,16 @@ pub enum GameState {
     Running,
 }
 
+#[derive(Event)]
+pub struct EnterGame;
+
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app
+            // Events
+            .add_event::<EnterGame>()
             // States
             .add_state::<GameState>()
             // Startup Systems
@@ -21,7 +26,8 @@ impl Plugin for GamePlugin {
             // Update Systems
             .add_systems(Update, GameManager::resume_game.run_if(in_state(AppState::Game)).run_if(in_state(GameState::Paused)))
             .add_systems(Update, GameManager::pause_game.run_if(in_state(AppState::Game)).run_if(in_state(GameState::Running)))
-            .add_systems(Update, GameManager::exit_game.run_if(in_state(AppState::Game)).run_if(in_state(GameState::Paused)));
+            .add_systems(Update, GameManager::handle_enter_game.run_if(in_state(AppState::Games)))
+            .add_systems(Update, GameManager::handle_exit_game.run_if(in_state(AppState::Game)));
     }
 }
 
@@ -48,38 +54,47 @@ impl GameManager {
         keyboard_input: Res<Input<KeyCode>>, 
         mut next_game_state: ResMut<NextState<GameState>>
     ) {
-        info!("Resuming game...");
 
-        if keyboard_input.pressed(KeyCode::Escape) {
+        if keyboard_input.just_pressed(KeyCode::Escape) {
             next_game_state.set(GameState::Running);
-        }
 
-        info!("Resumed game.");
+            info!("Resumed game.");
+        }
     }
 
     fn pause_game(
         keyboard_input: Res<Input<KeyCode>>, 
         mut next_game_state: ResMut<NextState<GameState>>
     ) {
-        info!("Pausing game...");
-
-        if keyboard_input.pressed(KeyCode::Escape) {
+        if keyboard_input.just_pressed(KeyCode::Escape) {
             next_game_state.set(GameState::Paused);
+            
+            info!("Paused game.");
         }
-
-        info!("Paused game.");
     }
 
-    fn exit_game(
+    fn handle_enter_game(
+        mut enter_game_event_reader: EventReader<EnterGame>,
+        mut next_game_state: ResMut<NextState<GameState>>,
+        mut next_app_state: ResMut<NextState<AppState>>,
+    ) {
+        for _ in enter_game_event_reader.iter() {
+            next_game_state.set(GameState::Paused);
+            next_app_state.set(AppState::Game);
+            
+            info!("Entered game.");
+        }
+    }
+
+    fn handle_exit_game(
         keyboard_input: Res<Input<KeyCode>>, 
         mut next_app_state: ResMut<NextState<AppState>>,
     ) {
-        info!("Exiting game...");
 
-        if keyboard_input.pressed(KeyCode::Return) {
-            next_app_state.set(AppState::MainMenu);
+        if keyboard_input.just_pressed(KeyCode::ControlLeft) && keyboard_input.just_pressed(KeyCode::Delete) {
+            next_app_state.set(AppState::Games);
+            
+            info!("Exited game.");
         }
-
-        info!("Exited game.");
     }
 }

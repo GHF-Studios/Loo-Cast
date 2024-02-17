@@ -1,10 +1,10 @@
 // Modules
 pub mod components;
-pub mod menus;
+pub mod screens;
 
 // Local imports
 use components::input_field::InputFieldPlugin;
-use menus::MenuPlugin;
+use screens::ScreenPlugin;
 
 // Internal imports
 
@@ -56,7 +56,7 @@ impl Plugin for UIPlugin {
             .add_event::<GainFocus>()
             .add_event::<LoseFocus>()
             // Plugins
-            .add_plugins((InputFieldPlugin, MenuPlugin))
+            .add_plugins((InputFieldPlugin, ScreenPlugin))
             // Startup Systems
             .add_systems(Startup, UIManager::startup)
             // Update Systems

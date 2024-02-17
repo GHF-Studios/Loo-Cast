@@ -13,7 +13,7 @@ use bevy::prelude::*;
 // Static variables
 
 // Constant variables
-pub const MAIN_MENU_STYLE: Style = {
+pub const MAIN_SCREEN_STYLE: Style = {
     let mut style = Style::DEFAULT;
     style.flex_direction = FlexDirection::Column;
     style.justify_content = JustifyContent::Center;
@@ -49,10 +49,10 @@ pub const TITLE_STYLE: Style = {
 // Enums
 
 // Structs
-pub struct MainMenuPlugin;
+pub struct MainScreenPlugin;
 
 #[derive(Component)]
-pub struct MainMenu {}
+pub struct MainScreen {}
 
 #[derive(Component)]
 pub struct PlayButton {}
@@ -61,38 +61,38 @@ pub struct PlayButton {}
 pub struct QuitButton {}
 
 #[derive(Resource, Default)]
-pub struct MainMenuManager;
+pub struct MainScreenManager;
 
 // Implementations
-impl Plugin for MainMenuPlugin {
+impl Plugin for MainScreenPlugin {
     fn build(&self, app: &mut App) {
         app
             // Enter State Systems
-            .add_systems(OnEnter(AppState::MainMenu), MainMenuManager::startup)
+            .add_systems(OnEnter(AppState::Main), MainScreenManager::startup)
             // Update State Systems
             .add_systems(
                 Update,
                 (
-                    MainMenuManager::handle_play_button,
-                    MainMenuManager::handle_quit_button,
+                    MainScreenManager::handle_play_button,
+                    MainScreenManager::handle_quit_button,
                 )
-                    .run_if(in_state(AppState::MainMenu)),
+                    .run_if(in_state(AppState::Main)),
             )
             // Exit State Systems
-            .add_systems(OnExit(AppState::MainMenu), MainMenuManager::shutdown);
+            .add_systems(OnExit(AppState::Main), MainScreenManager::shutdown);
     }
 }
 
-impl MainMenuManager {
+impl MainScreenManager {
     fn startup(mut commands: Commands, asset_server: Res<AssetServer>) {
-        commands.insert_resource(MainMenuManager {});
-        Self::build_main_menu(&mut commands, &asset_server);
+        commands.insert_resource(MainScreenManager {});
+        Self::build_main_screen(&mut commands, &asset_server);
     }
 
-    fn shutdown(mut commands: Commands, main_menu_query: Query<Entity, With<MainMenu>>) {
-        commands.remove_resource::<MainMenuManager>();
-        if let Ok(main_menu_entity) = main_menu_query.get_single() {
-            commands.entity(main_menu_entity).despawn_recursive();
+    fn shutdown(mut commands: Commands, main_screen_query: Query<Entity, With<MainScreen>>) {
+        commands.remove_resource::<MainScreenManager>();
+        if let Ok(main_screen_entity) = main_screen_query.get_single() {
+            commands.entity(main_screen_entity).despawn_recursive();
         }
     }
 
@@ -108,9 +108,9 @@ impl MainMenuManager {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
 
-                    info!("Switching to games menu...");
+                    info!("Switching to games screen...");
 
-                    app_state_next_state.set(AppState::GamesMenu);
+                    app_state_next_state.set(AppState::Games);
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
@@ -148,14 +148,14 @@ impl MainMenuManager {
         }
     }
 
-    fn build_main_menu(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
-        let main_menu_entity = commands
+    fn build_main_screen(commands: &mut Commands, asset_server: &Res<AssetServer>) -> Entity {
+        let main_screen_entity = commands
             .spawn((
                 NodeBundle {
-                    style: MAIN_MENU_STYLE,
+                    style: MAIN_SCREEN_STYLE,
                     ..default()
                 },
-                MainMenu {},
+                MainScreen {},
             ))
             .with_children(|parent| {
                 // === Title ===
@@ -227,7 +227,7 @@ impl MainMenuManager {
             })
             .id();
 
-        main_menu_entity
+        main_screen_entity
     }
 }
 
