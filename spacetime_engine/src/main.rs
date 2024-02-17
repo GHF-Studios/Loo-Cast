@@ -134,7 +134,7 @@ fn main() {
                     ..default()
                 })
                 .set(LogPlugin {
-                    level: bevy::log::Level::TRACE,
+                    level: bevy::log::Level::INFO,
                     ..default()
                 }),
         )
