@@ -1,7 +1,6 @@
 // Modules
 pub mod camera;
 pub mod math;
-pub mod new_ui;
 pub mod ui;
 
 // Local imports
