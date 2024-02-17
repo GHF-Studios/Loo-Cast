@@ -345,7 +345,7 @@ impl LocalUniverse {
             let new_chunk_data = ChunkData::new_node(new_apparent_local_chunk_pos.into());
 
             // TODO: Reimplement chunk operations using the new system
-            /*
+            
             match global_universe.send_chunk_operation_request(ChunkOperationRequest {
                 operations: vec![
                     ChunkOperation::RegisterRoot {
@@ -386,7 +386,6 @@ impl LocalUniverse {
                     continue;
                 }
             }
-            */
         }
 
         local_universe
