@@ -42,7 +42,7 @@ impl Hash for LocalEntityID {
 }
 
 impl LocalEntityID {
-    pub(in crate::system::universe) fn new(id: u64) -> Result<Self, String> {
+    pub fn new(id: u64) -> Result<Self, String> {
         if id == u64::MAX {
             return Err("Cannot create local entity id: ID cannot be u64::MAX.".to_string());
         }
@@ -70,7 +70,7 @@ impl Hash for EntityID {
 }
 
 impl EntityID {
-    pub(in crate::system::universe) fn new(
+    pub fn new(
         parent_chunk_id: ChunkID,
         local_entity_id: LocalEntityID,
     ) -> Self {

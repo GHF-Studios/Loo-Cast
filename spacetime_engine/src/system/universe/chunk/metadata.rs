@@ -20,7 +20,7 @@ use std::sync::{Arc, Mutex};
 // Structs
 #[derive(Debug, Clone, Default)]
 pub struct ChunkMetadata {
-    pub(in crate::system::universe) parent_chunk: Option<Arc<Mutex<Chunk>>>,
+    pub parent_chunk: Option<Arc<Mutex<Chunk>>>,
     pub(in crate::system::universe) absolute_local_chunk_pos: AbsoluteLocalChunkPos,
 }
 

@@ -5,15 +5,8 @@
 // Internal imports
 use crate::system::camera::MainCamera;
 use crate::system::game::SimulationState;
-use crate::system::universe::chunk::id::*;
-use crate::system::universe::chunk::pos::*;
-use crate::system::universe::entity::data::*;
-use crate::system::universe::entity::metadata::*;
-use crate::system::universe::entity::pos::*;
-use crate::system::universe::entity::*;
-use crate::system::universe::global::*;
-use crate::system::universe::local::*;
 use crate::system::universe::*;
+use crate::system::universe::commands::*;
 use crate::system::AppState;
 
 // External imports
@@ -172,20 +165,13 @@ impl PlayerManager {
         main_camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
         primary_window_query: Query<&Window, With<PrimaryWindow>>,
         mouse_button_input: Res<Input<MouseButton>>,
-        universe_manager: ResMut<UniverseManager>,
+        mut universe_manager: ResMut<UniverseManager>,
+        mut chunk_commands: ResMut<ChunkCommands>,
+        mut entity_commands: ResMut<EntityCommands>, 
     ) {
         let (camera, camera_transform) = main_camera_query.single();
 
         let primary_window = primary_window_query.single();
-
-        let global_universe = match universe_manager.get_global_universe() {
-            Some(global_universe) => global_universe,
-            None => return,
-        };
-        let mut global_universe = match global_universe.lock() {
-            Ok(global_universe) => global_universe,
-            Err(_) => return,
-        };
 
         let world_position = match primary_window
             .cursor_position()
@@ -196,9 +182,8 @@ impl PlayerManager {
             None => return,
         };
 
-        // TODO: Reimplement chunk operations using the commands system
-        
         if mouse_button_input.just_pressed(MouseButton::Left) {
+            /*
             let local_entity_pos = LocalEntityPos::from(world_position);
             let absolute_local_parent_chunk_pos = AbsoluteLocalChunkPos::from(local_entity_pos);
             let absolute_local_parent_chunk_pos_base10x10: (u8, u8) = absolute_local_parent_chunk_pos.into();
@@ -229,66 +214,38 @@ impl PlayerManager {
             let local_entity_id = entity_id.get_local_entity_id();
 
             drop(parent_chunk);
+            */
 
-            let entity_metadata = EntityMetadata::new(parent_chunk_mutex.clone());
-            let entity_data = EntityData::new();
+            let parent_chunk_id = chunk_commands.query_chunk_id_at_pos(world_position);
 
-            let _ = global_universe.send_entity_operation_request(EntityOperationRequest::new(vec![
-                EntityOperation::Register {
-                    parent_chunk_mutex,
-                    local_entity_id,
-                    success_callback: Box::new(|_| {}),
-                    failure_callback: Box::new(|err| {
-                        println!("Failed to register entity: {:?}", err);
-                    })
-                },
-                EntityOperation::LoadMetadata {
-                    entity_metadata,
-                    success_callback: Box::new(|_| {}),
-                    failure_callback: Box::new(|err| {
-                        println!("Failed to load entity metadata: {:?}", err);
-                    })
-                },
-                EntityOperation::LoadData {
-                    entity_data,
-                    success_callback: Box::new(|_| {}),
-                    failure_callback: Box::new(|err| {
-                        println!("Failed to load entity data: {:?}", err);
-                    })
-                },
-                EntityOperation::Spawn {
-                    success_callback: Box::new(|_| {}),
-                    failure_callback: Box::new(|err| {
-                        println!("Failed to spawn entity: {:?}", err);
-                    })
-                },
-                EntityOperation::Command {
-                    entity_commands: Box::new(move |mut entity_commands| {
-                        entity_commands.insert((
-                            SpriteBundle {
-                                sprite: Sprite {
-                                    custom_size: Some(Vec2::new(64.0, 64.0)),
-                                    ..default()
-                                },
-                                transform: Transform::from_xyz(world_position.x, world_position.y, 0.0),
-                                ..default()
-                            },
-                            RigidBody::Dynamic,
-                            Collider::cuboid(32.0, 32.0),
-                            Velocity {
-                                linvel: Vec2::splat(0.0),
-                                angvel: 0.0,
-                            },
-                            LockedAxes::ROTATION_LOCKED,
-                            Damping { linear_damping: LINEAR_DAMPING, angular_damping: 0.0 }
-                        ));
-                    }),
-                    success_callback: Box::new(|_| {}),
-                    failure_callback: Box::new(|err| {
-                        println!("Failed to command entity: {:?}", err);
-                    })
-                },
-            ]));
+            let local_entity_id = entity_commands.generate_local_entity_id(parent_chunk_id);
+
+            let entity_id = CommandsEntityID {
+                parent_chunk_id,
+                local_entity_id,
+            };
+
+            let entity_metadata = entity_commands.generate_entity_metadata(entity_id);
+
+            let entity_data = entity_commands.create_entity_data(entity_id);
+
+            entity_commands.register_entity(entity_id);
+            entity_commands.load_entity_metadata(entity_id, entity_metadata);
+            entity_commands.load_entity_data(entity_id, entity_data);
+            entity_commands.spawn_entity(entity_id);
+            entity_commands.command_bevy_entity(entity_id, Box::new(|mut bevy_entity_commands: bevy::ecs::system::EntityCommands| {
+                bevy_entity_commands.insert((SpriteBundle {
+                    sprite: Sprite {
+                        custom_size: Some(Vec2::new(64.0, 64.0)),
+                        ..default()
+                    },
+                    transform: Transform::from_xyz(world_position.x, world_position.y, 0.0),
+                    ..default()
+                }, RigidBody::Dynamic, Collider::cuboid(32.0, 32.0), Velocity {
+                    linvel: Vec2::splat(0.0),
+                    angvel: 0.0,
+                }, LockedAxes::ROTATION_LOCKED, Damping { linear_damping: LINEAR_DAMPING, angular_damping: 0.0 }));
+            }));
         }
     }
 }

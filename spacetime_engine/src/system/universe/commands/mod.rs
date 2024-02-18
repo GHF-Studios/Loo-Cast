@@ -1,21 +1,66 @@
 use bevy::prelude::*;
 use crate::system::*;
-use crate::system::game::*;
+use std::fmt;
+use std::fmt::{Display, Formatter};
 
-pub struct LocalEntityID {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct CommandsLocalChunkID(u8, u8);
 
+impl Display for CommandsLocalChunkID {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "LocalChunkID({}, {})", self.0, self.1)
+    }
 }
 
-pub struct EntityID {
-
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct CommandsChunkID {
+    pub parent_chunk_id: Option<Box<CommandsChunkID>>,
+    pub local_chunk_id: CommandsLocalChunkID,
 }
 
-pub struct ChunkID {
-    
+impl Display for CommandsChunkID {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match &self.parent_chunk_id {
+            Some(parent_chunk_id) => write!(f, "ChunkID({}, {})", parent_chunk_id, self.local_chunk_id),
+            None => write!(f, "ChunkID({})", self.local_chunk_id),
+        }
+    }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct CommandsLocalEntityID(u64);
 
-// TODO:    Implement an identification system for chunks and entities, specifically designed for simplicity
+impl Display for CommandsLocalEntityID {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "LocalEntityID({})", self.0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct CommandsEntityID {
+    pub parent_chunk_id: CommandsChunkID,
+    pub local_entity_id: CommandsLocalEntityID,
+}
+
+impl Display for CommandsEntityID {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "EntityID({}, {})", self.parent_chunk_id, self.local_entity_id)
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CommandsChunkMetadata(crate::system::universe::chunk::metadata::ChunkMetadata);
+
+#[derive(Debug, Clone, Default)]
+pub struct CommandsChunkData(crate::system::universe::chunk::data::ChunkData);
+
+#[derive(Debug, Clone, Default)]
+pub struct CommandsEntityMetadata(crate::system::universe::entity::metadata::EntityMetadata);
+
+#[derive(Debug, Clone, Default)]
+pub struct CommandsEntityData(crate::system::universe::entity::data::EntityData);
+
+
 // TODO:    Implement a ChunkEntityInfoHierarchy to facilitate an orderly execution of commands and centralized access to chunk/entity infos
 // TODO:    Implement the ChunkCommands structure
 // TODO:    Implement the EntityCommands structure
@@ -59,36 +104,70 @@ pub struct ChunkCommands {
 }
 
 impl ChunkCommands {
-    pub fn register_chunk(parent_chunk_id: Option<ChunkID>, local_chunk_id: LocalChunkID) {
-        warn!("David Jackson!");
+    pub fn query_chunk_id_at_pos(&mut self, bevy_world_position: Vec2) -> CommandsChunkID {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn unregister_chunk(chunk_id: ChunkID) {
-        warn!("David Jackson!");
+    pub fn register_chunk(&mut self, chunk_id: CommandsChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn load_chunk_metadata(chunk_id: ChunkID, chunk_metadata: ChunkMetadata) {
-        warn!("David Jackson!");
+    pub fn unregister_chunk(&mut self, chunk_id: CommandsChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn unload_chunk_metadata(chunk_id: ChunkID) {
-        warn!("David Jackson!");
+    pub fn generate_chunk_metadata(&mut self, chunk_id: CommandsChunkID) -> CommandsChunkMetadata {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn load_chunk_data(chunk_id: ChunkID, chunk_data: ChunkData) {
-        warn!("David Jackson!");
+    pub fn load_chunk_metadata(&mut self, chunk_id: CommandsChunkID, chunk_metadata: CommandsChunkMetadata) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn unload_chunk_data(chunk_id: ChunkID) {
-        warn!("David Jackson!");
+    pub fn unload_chunk_metadata(&mut self, chunk_id: CommandsChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn spawn_chunk(chunk_id: ChunkID) {
-        warn!("David Jackson!");
+    pub fn create_chunk_data(&mut self, chunk_id: CommandsChunkID) -> CommandsChunkData {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn despawn_chunk(chunk_id: ChunkID) {
-        warn!("David Jackson!");
+    pub fn load_chunk_data(&mut self, chunk_id: CommandsChunkID, chunk_data: CommandsChunkData) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unload_chunk_data(&mut self, chunk_id: CommandsChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn spawn_chunk(&mut self, chunk_id: CommandsChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn despawn_chunk(&mut self, chunk_id: CommandsChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 }
 
@@ -98,39 +177,81 @@ pub struct EntityCommands {
 }
 
 impl EntityCommands {
-    pub fn register_entity(parent_chunk_id: ChunkID, local_entity_id: LocalEntityID) {
-        warn!("David Jackson!");
+    pub fn query_entity_id_at_pos(&mut self, bevy_world_position: Vec2) -> CommandsEntityID {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn unregister_entity(entity_id: EntityID) {
-        warn!("David Jackson!");
+    pub fn generate_local_entity_id(&mut self, parent_chunk_id: CommandsChunkID) -> CommandsLocalEntityID {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn load_entity_metadata(entity_id: EntityID, entity_metadata: EntityMetadata) {
-        warn!("David Jackson!");
+    pub fn register_entity(&mut self, entity_id: CommandsEntityID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn unload_entity_metadata(entity_id: EntityID) {
-        warn!("David Jackson!");
+    pub fn unregister_entity(&mut self, entity_id: CommandsEntityID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn load_entity_data(entity_id: EntityID, entity_data: EntityData) {
-        warn!("David Jackson!");
+    pub fn generate_entity_metadata(&mut self, entity_id: CommandsEntityID) -> CommandsEntityMetadata {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn unload_entity_data(entity_id: EntityID) {
-        warn!("David Jackson!");
+    pub fn load_entity_metadata(&mut self, entity_id: CommandsEntityID, entity_metadata: CommandsEntityMetadata) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn spawn_entity(entity_id: EntityID) {
-        warn!("David Jackson!");
+    pub fn unload_entity_metadata(&mut self, entity_id: CommandsEntityID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn despawn_entity(entity_id: EntityID) {
-        warn!("David Jackson!");
+    pub fn create_entity_data(&mut self, entity_id: CommandsEntityID) -> CommandsEntityData {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn command_bevy_entity(entity_id: EntityID, bevy_entity_commands: Box<dyn FnOnce(EntityCommands) + Send>) {
-        warn!("David Jackson!");
+    pub fn load_entity_data(&mut self, entity_id: CommandsEntityID, entity_data: CommandsEntityData) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unload_entity_data(&mut self, entity_id: CommandsEntityID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn spawn_entity(&mut self, entity_id: CommandsEntityID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn despawn_entity(&mut self, entity_id: CommandsEntityID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn command_bevy_entity(&mut self, entity_id: CommandsEntityID, bevy_entity_commands: Box<dyn FnOnce(bevy::ecs::system::EntityCommands) + Send>) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 }
