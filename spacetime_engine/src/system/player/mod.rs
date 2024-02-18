@@ -196,7 +196,7 @@ impl PlayerManager {
             None => return,
         };
 
-        // TODO: Reimplement chunk operations using the new system
+        // TODO: Reimplement chunk operations using the commands system
         
         if mouse_button_input.just_pressed(MouseButton::Left) {
             let local_entity_pos = LocalEntityPos::from(world_position);
@@ -216,7 +216,7 @@ impl PlayerManager {
                 Some(parent_chunk_mutex) => parent_chunk_mutex,
                 None => return,
             };
-            let mut parent_chunk = match parent_chunk_mutex.lock() {
+            let mut parent_chunk = match parent_chunk_mutex.clone().lock() {
                 Ok(parent_chunk) => parent_chunk,
                 Err(_) => return,
             };
@@ -226,6 +226,8 @@ impl PlayerManager {
                 Err(_) => return,
             };
 
+            let local_entity_id = entity_id.get_local_entity_id();
+
             drop(parent_chunk);
 
             let entity_metadata = EntityMetadata::new(parent_chunk_mutex.clone());
@@ -233,37 +235,34 @@ impl PlayerManager {
 
             let _ = global_universe.send_entity_operation_request(EntityOperationRequest::new(vec![
                 EntityOperation::Register {
-                    id: entity_id.clone(),
+                    parent_chunk_mutex,
+                    local_entity_id,
                     success_callback: Box::new(|_| {}),
                     failure_callback: Box::new(|err| {
                         println!("Failed to register entity: {:?}", err);
                     })
                 },
                 EntityOperation::LoadMetadata {
-                    id: entity_id.clone(),
-                    metadata: entity_metadata,
+                    entity_metadata,
                     success_callback: Box::new(|_| {}),
                     failure_callback: Box::new(|err| {
                         println!("Failed to load entity metadata: {:?}", err);
                     })
                 },
                 EntityOperation::LoadData {
-                    id: entity_id.clone(),
-                    data: entity_data,
+                    entity_data,
                     success_callback: Box::new(|_| {}),
                     failure_callback: Box::new(|err| {
                         println!("Failed to load entity data: {:?}", err);
                     })
                 },
                 EntityOperation::Spawn {
-                    id: entity_id.clone(),
                     success_callback: Box::new(|_| {}),
                     failure_callback: Box::new(|err| {
                         println!("Failed to spawn entity: {:?}", err);
                     })
                 },
                 EntityOperation::Command {
-                    id: entity_id,
                     entity_commands: Box::new(move |mut entity_commands| {
                         entity_commands.insert((
                             SpriteBundle {

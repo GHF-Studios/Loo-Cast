@@ -1,8 +1,9 @@
 // Modules
-pub mod chunk;
-pub mod entity;
-pub mod global;
-pub mod local;
+mod chunk;
+pub mod commands;
+mod entity;
+mod global;
+mod local;
 
 // Local imports
 use chunk::*;

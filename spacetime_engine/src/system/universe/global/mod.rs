@@ -299,7 +299,7 @@ impl GlobalUniverse {
                     }
                 },
                 ChunkOperation::Register {
-                    parent_chunk,
+                    parent_chunk_mutex: parent_chunk,
                     local_chunk_id,
                     success_callback,
                     failure_callback,
@@ -321,7 +321,7 @@ impl GlobalUniverse {
                     }
                 }
                 ChunkOperation::UnregisterRoot {
-                    chunk,
+                    chunk_mutex: chunk,
                     success_callback,
                     failure_callback,
                 } => {
@@ -342,8 +342,8 @@ impl GlobalUniverse {
                     }
                 }
                 ChunkOperation::Unregister {
-                    parent_chunk,
-                    chunk,
+                    parent_chunk_mutex: parent_chunk,
+                    chunk_mutex: chunk,
                     success_callback,
                     failure_callback,
                 } => {
@@ -371,8 +371,8 @@ impl GlobalUniverse {
                     }
                 }
                 ChunkOperation::LoadMetadata {
-                    chunk,
-                    metadata,
+                    chunk_mutex: chunk,
+                    chunk_metadata: metadata,
                     success_callback,
                     failure_callback,
                 } => {
@@ -393,7 +393,7 @@ impl GlobalUniverse {
                     }
                 }
                 ChunkOperation::UnloadMetadata {
-                    chunk,
+                    chunk_mutex: chunk,
                     success_callback,
                     failure_callback,
                 } => {
@@ -414,8 +414,8 @@ impl GlobalUniverse {
                     }
                 }
                 ChunkOperation::LoadData {
-                    chunk,
-                    data,
+                    chunk_mutex: chunk,
+                    chunk_data: data,
                     success_callback,
                     failure_callback,
                 } => {
@@ -436,7 +436,7 @@ impl GlobalUniverse {
                     }
                 }
                 ChunkOperation::UnloadData {
-                    chunk,
+                    chunk_mutex: chunk,
                     success_callback,
                     failure_callback,
                 } => {
@@ -457,8 +457,8 @@ impl GlobalUniverse {
                     }
                 }
                 ChunkOperation::Spawn {
-                    parent_chunk,
-                    chunk,
+                    parent_chunk_mutex: parent_chunk,
+                    chunk_mutex: chunk,
                     success_callback,
                     failure_callback,
                 } => {
@@ -486,7 +486,7 @@ impl GlobalUniverse {
                     }
                 }
                 ChunkOperation::Despawn {
-                    chunk,
+                    chunk_mutex: chunk,
                     success_callback,
                     failure_callback,
                 } => {
@@ -517,7 +517,7 @@ impl GlobalUniverse {
         for entity_operation in entity_operation_request.operations {
             match entity_operation {
                 EntityOperation::Register {
-                    parent_chunk,
+                    parent_chunk_mutex: parent_chunk,
                     local_entity_id,
                     success_callback,
                     failure_callback,
@@ -539,8 +539,8 @@ impl GlobalUniverse {
                     }
                 }
                 EntityOperation::Unregister {
-                    parent_chunk,
-                    entity,
+                    parent_chunk_mutex: parent_chunk,
+                    entity_mutex: entity,
                     success_callback,
                     failure_callback,
                 } => {
@@ -568,8 +568,8 @@ impl GlobalUniverse {
                     }
                 }
                 EntityOperation::LoadMetadata {
-                    entity,
-                    metadata,
+                    entity_mutex: entity,
+                    entity_metadata: metadata,
                     success_callback,
                     failure_callback,
                 } => {
@@ -590,7 +590,7 @@ impl GlobalUniverse {
                     }
                 }
                 EntityOperation::UnloadMetadata {
-                    entity,
+                    entity_mutex: entity,
                     success_callback,
                     failure_callback,
                 } => {
@@ -611,8 +611,8 @@ impl GlobalUniverse {
                     }
                 }
                 EntityOperation::LoadData {
-                    entity,
-                    data,
+                    entity_mutex: entity,
+                    entity_data: data,
                     success_callback,
                     failure_callback,
                 } => {
@@ -633,7 +633,7 @@ impl GlobalUniverse {
                     }
                 }
                 EntityOperation::UnloadData {
-                    entity,
+                    entity_mutex: entity,
                     success_callback,
                     failure_callback,
                 } => {
@@ -654,8 +654,8 @@ impl GlobalUniverse {
                     }
                 }
                 EntityOperation::Spawn {
-                    parent_chunk,
-                    entity,
+                    parent_chunk_mutex: parent_chunk,
+                    entity_mutex: entity,
                     success_callback,
                     failure_callback,
                 } => {
@@ -683,7 +683,7 @@ impl GlobalUniverse {
                     }
                 }
                 EntityOperation::Despawn {
-                    entity,
+                    entity_mutex: entity,
                     success_callback,
                     failure_callback,
                 } => {
@@ -704,8 +704,8 @@ impl GlobalUniverse {
                     }
                 }
                 EntityOperation::Command {
-                    entity_commands,
-                    entity,
+                    bevy_entity_commands: entity_commands,
+                    entity_mutex: entity,
                     success_callback,
                     failure_callback,
                 } => {

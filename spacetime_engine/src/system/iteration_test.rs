@@ -5,8 +5,6 @@
 // Internal imports
 use crate::system::game::SimulationState;
 use crate::system::player::Player;
-use crate::system::universe::chunk::pos::*;
-use crate::system::universe::entity::pos::*;
 use crate::system::AppState;
 
 // External imports
