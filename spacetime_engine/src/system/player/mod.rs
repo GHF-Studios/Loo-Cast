@@ -101,6 +101,7 @@ impl PlayerManager {
                     angular_damping: 0.0,
                 },
             ));
+            // TODO: Develop UniverseCommands for registering, loading, etc. both local and global universes
             let _ = universe_manager.register_local_universe(LocalUniverse::default());
         }
     }
