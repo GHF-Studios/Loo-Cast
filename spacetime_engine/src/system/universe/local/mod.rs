@@ -31,6 +31,7 @@ use bevy::prelude::*;
 // Structs
 pub struct LocalUniversePlugin;
 
+// TODO: Redefine this struct using the commands system
 #[derive(Debug)]
 pub struct LocalUniverse {
     pub(in crate::system::universe) id: LocalUniverseID,

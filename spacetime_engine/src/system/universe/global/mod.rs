@@ -38,6 +38,7 @@ pub enum OperationRequest {
 // Structs
 pub struct GlobalUniversePlugin;
 
+// TODO: Redefine this struct using the commands system
 #[derive(Debug, Default, Clone)]
 pub struct GlobalUniverse {
     pub(in crate::system::universe) registered_root_chunks:
