@@ -38,7 +38,7 @@ pub enum OperationRequest {
 // Structs
 pub struct GlobalUniversePlugin;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GlobalUniverse {
     pub(in crate::system::universe) registered_root_chunks:
         HashMap<LocalChunkID, Arc<Mutex<Chunk>>>,

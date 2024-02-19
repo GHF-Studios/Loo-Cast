@@ -32,9 +32,6 @@ use std::sync::{Arc, Mutex};
 // Structs
 pub struct UniversePlugin;
 
-#[derive(Event)]
-pub struct LoadGlobalUniverse {}
-
 #[derive(Resource, Default)]
 pub(in crate::system::universe) struct UniverseManager {
     registered_global_universe: Option<Arc<Mutex<GlobalUniverse>>>,
@@ -45,8 +42,6 @@ pub(in crate::system::universe) struct UniverseManager {
 impl Plugin for UniversePlugin {
     fn build(&self, app: &mut App) {
         app
-            // Events
-            .add_event::<LoadGlobalUniverse>()
             // Plugins
             .add_plugins((
                 ChunkPlugin,
@@ -75,11 +70,7 @@ impl UniverseManager {
 
     fn on_enter_game(mut universe_manager: ResMut<UniverseManager>) {
         universe_manager.registered_global_universe =
-            Some(Arc::new(Mutex::new(GlobalUniverse {
-                registered_root_chunks: HashMap::new(),
-                operation_requests: Arc::new(Mutex::new(Vec::new())),
-                chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy::new(),
-            })));
+            Some(Arc::new(Mutex::new(GlobalUniverse::default())));
     }
 
     fn on_exit_game(mut universe_manager: ResMut<UniverseManager>) {

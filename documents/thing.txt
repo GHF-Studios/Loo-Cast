@@ -1,6 +1,6 @@
 TODO:
 
-Call LoadUniverse and UnloadUniverse events (via bevy system for player module, OnExit(AppState::Game))
-Rename LoadUniverse and UnloadUniverse events to StartupUniverse and ShutdownUniverse
 Wrap Player module into PlayerCommands
+Wrap Camera module into CameraCommands
+Wrap other modules blablabla
 Develop UniverseCommands for registering, loading, etc. both local and global universes
