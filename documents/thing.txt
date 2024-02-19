@@ -1,6 +1,10 @@
 TODO:
 
+Reimplement these two methods using the commands system
+Implement LocalUniverse Metadata and Data
+Implement GlobalUniverse Metadata and Data
 Wrap Player module into PlayerCommands
 Wrap Camera module into CameraCommands
-Wrap other modules blablabla
-Develop UniverseCommands for registering, loading, etc. both local and global universes
+Wrap other modules blablabla 
+
+Implement all command structures properly and comprehensively and check everything for validity

@@ -122,7 +122,7 @@ impl UniverseCommandsPlugin {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone)]
 pub struct UniverseCommands {
 
 }
@@ -140,7 +140,7 @@ impl UniverseCommands {
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn get_global_universe_commands(&mut self, global_universe_id: GlobalUniverseID) -> Option<GlobalUniverseCommands> {
+    pub fn get_global_universe_commands(&mut self, global_universe_id: GlobalUniverseID) -> Option<&mut GlobalUniverseCommands> {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
@@ -183,7 +183,7 @@ impl UniverseCommands {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct GlobalUniverseCommands {
 
 }
@@ -201,7 +201,7 @@ impl GlobalUniverseCommands {
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn get_local_universe_commands(&mut self, local_universe_id: LocalUniverseID) -> Option<LocalUniverseCommands> {
+    pub fn get_local_universe_commands(&mut self, local_universe_id: LocalUniverseID) -> Option<&mut LocalUniverseCommands> {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
@@ -262,7 +262,7 @@ impl GlobalUniverseCommands {
     // same for entities
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct LocalUniverseCommands {
 
 }
@@ -286,7 +286,7 @@ impl LocalUniverseCommands {
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn get_chunk_commands(&mut self, chunk_id: ChunkID) -> Option<ChunkCommands> {
+    pub fn get_chunk_commands(&mut self, chunk_id: ChunkID) -> Option<&mut ChunkCommands> {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
@@ -341,13 +341,13 @@ impl LocalUniverseCommands {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ChunkCommands {
 
 }
 
 impl ChunkCommands {
-    pub fn query_entity_id_at_pos(&mut self, bevy_world_position: Vec2) -> EntityID {
+    pub fn query_entity_at_pos(&mut self, bevy_world_position: Vec2) -> EntityID {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations

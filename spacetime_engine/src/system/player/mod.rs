@@ -198,25 +198,40 @@ impl PlayerManager {
             drop(parent_chunk);
             */
 
-            let parent_chunk_id = chunk_commands.query_chunk_id_at_pos(world_position);
+            let global_universe_commands = match universe_commands.get_global_universe_commands(commands::GlobalUniverseID::default()) {
+                Some(global_universe_commands) => global_universe_commands,
+                None => return,
+            };
 
-            let local_entity_id = entity_commands.generate_local_entity_id(parent_chunk_id);
+            let local_universe_commands = match global_universe_commands.get_local_universe_commands(commands::LocalUniverseID::default()) {
+                Some(local_universe_commands) => local_universe_commands,
+                None => return,
+            };
+
+            let parent_chunk_id = local_universe_commands.query_chunk_at_pos(world_position);
+
+            let parent_chunk_commands = match local_universe_commands.get_chunk_commands(parent_chunk_id) {
+                Some(chunk_commands) => chunk_commands,
+                None => return,
+            };
+
+            let local_entity_id = parent_chunk_commands.generate_local_entity_id(parent_chunk_id);
 
             let entity_id = commands::EntityID {
                 parent_chunk_id,
                 local_entity_id,
             };
 
-            let entity_metadata = entity_commands.generate_entity_metadata(entity_id);
+            let entity_metadata = parent_chunk_commands.generate_entity_metadata(entity_id);
 
-            let entity_data = entity_commands.create_entity_data(entity_id);
+            let entity_data = parent_chunk_commands.create_entity_data(entity_id);
 
-            entity_commands.register_entity(entity_id);
-            entity_commands.load_entity_metadata(entity_id, entity_metadata);
-            entity_commands.load_entity_data(entity_id, entity_data);
-            entity_commands.spawn_entity(entity_id);
-            entity_commands.command_bevy_entity(entity_id, Box::new(|mut bevy_entity_commands: bevy::ecs::system::EntityCommands| {
-                bevy_entity_commands.insert((SpriteBundle {
+            parent_chunk_commands.register_entity(entity_id);
+            parent_chunk_commands.load_entity_metadata(entity_id, entity_metadata);
+            parent_chunk_commands.load_entity_data(entity_id, entity_data);
+            parent_chunk_commands.spawn_entity(entity_id);
+            parent_chunk_commands.command_bevy_entity(entity_id, Box::new(|mut bevy_chunk_commands: bevy::ecs::system::EntityCommands| {
+                bevy_chunk_commands.insert((SpriteBundle {
                     sprite: Sprite {
                         custom_size: Some(Vec2::new(64.0, 64.0)),
                         ..default()

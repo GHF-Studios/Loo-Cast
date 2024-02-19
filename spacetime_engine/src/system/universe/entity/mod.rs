@@ -43,6 +43,7 @@ pub enum Entity {
     },
 }
 
+#[derive(Debug)]
 pub enum EntityOperation {
     Register {
         parent_chunk_mutex: Arc<Mutex<Chunk>>,

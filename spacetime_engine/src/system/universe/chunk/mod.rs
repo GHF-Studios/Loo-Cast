@@ -48,6 +48,7 @@ pub enum Chunk {
     },
 }
 
+#[derive(Debug)]
 pub enum ChunkOperation {
     RegisterRoot {
         local_chunk_id: LocalChunkID,

@@ -14,7 +14,6 @@ use crate::system::universe::chunk::*;
 use crate::system::universe::entity::id::*;
 use crate::system::universe::entity::pos::*;
 use crate::system::universe::entity::*;
-use crate::system::universe::global::*;
 use crate::system::universe::*;
 use crate::system::AppState;
 
@@ -74,44 +73,26 @@ impl LocalUniverse {
 
     fn detect_local_chunks(
         player_transform_query: Query<&Transform, With<Player>>,
-        universe_manager: Res<UniverseManager>,
+        mut universe_commands: ResMut<commands::UniverseCommands>,
     ) {
-        let global_universe = match universe_manager.get_global_universe() {
-            Some(global_universe) => global_universe,
-            None => {
-                return;
-            }
-        };
-        let mut global_universe = match global_universe.lock() {
-            Ok(global_universe) => global_universe,
-            Err(_) => {
-                return;
-            }
+        let mut global_universe_commands = match universe_commands.get_global_universe_commands(commands::GlobalUniverseID::default()) {
+            Some(global_universe_commands) => global_universe_commands,
+            None => return,
         };
 
-        let local_universe = match universe_manager.get_local_universe(LocalUniverseID::default()) {
-            Some(local_universe) => local_universe,
-            None => {
-                return;
-            }
-        };
-        let mut local_universe = match local_universe.lock() {
-            Ok(local_universe) => local_universe,
-            Err(_) => {
-                return;
-            }
+        let mut local_universe_commands = match global_universe_commands.get_local_universe_commands(commands::LocalUniverseID::default()) {
+            Some(local_universe_commands) => local_universe_commands,
+            None => return,
         };
 
         let player_transform = player_transform_query.single();
 
-        Self::gather_local_chunk_positions(&mut local_universe, player_transform);
-        Self::process_local_chunk_positions(&mut global_universe, &mut local_universe);
+        Self::gather_local_chunk_positions(local_universe_commands);
+        Self::process_local_chunk_positions(local_universe_commands);
     }
 
-    fn gather_local_chunk_positions(
-        local_universe: &mut LocalUniverse,
-        local_universe_transform: &Transform,
-    ) {
+    // TODO: Reimplement this method using the commands system
+    fn gather_local_chunk_positions(local_universe_commands: &mut commands::LocalUniverseCommands) {
         if !local_universe
             .previously_viewed_local_chunk_positions
             .is_empty()
@@ -152,7 +133,8 @@ impl LocalUniverse {
         }
     }
 
-    fn process_local_chunk_positions(mut universe_commands: UniverseCommands) {
+    // TODO: Reimplement this method using the commands system
+    fn process_local_chunk_positions(local_universe_commands: &mut commands::LocalUniverseCommands) {
         // Unload chunks that have exited the view
         let old_local_chunk_positions = local_universe
             .previously_viewed_local_chunk_positions
