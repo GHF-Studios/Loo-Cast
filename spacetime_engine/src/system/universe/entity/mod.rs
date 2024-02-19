@@ -24,7 +24,6 @@ use std::sync::{Arc, Mutex};
 // Types
 
 // Enums
-#[derive(Debug)]
 pub enum Entity {
     Registered {
         id: EntityID,
@@ -43,7 +42,6 @@ pub enum Entity {
     },
 }
 
-#[derive(Debug)]
 pub enum EntityOperation {
     Register {
         parent_chunk_mutex: Arc<Mutex<Chunk>>,
@@ -159,7 +157,6 @@ pub enum CommandEntityError {
 // Structs
 pub struct EntityPlugin;
 
-#[derive(Debug)]
 pub struct EntityOperationRequest {
     pub(in crate::system::universe) operations: Vec<EntityOperation>,
 }

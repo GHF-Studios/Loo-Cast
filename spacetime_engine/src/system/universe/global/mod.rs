@@ -29,7 +29,6 @@ use std::sync::{Arc, Mutex};
 // Types
 
 // Enums
-#[derive(Debug)]
 pub enum OperationRequest {
     Chunk(ChunkOperationRequest),
     Entity(EntityOperationRequest),
@@ -39,7 +38,7 @@ pub enum OperationRequest {
 pub struct GlobalUniversePlugin;
 
 // TODO: Redefine this struct using the commands system
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub struct GlobalUniverse {
     pub(in crate::system::universe) registered_root_chunks:
         HashMap<LocalChunkID, Arc<Mutex<Chunk>>>,
@@ -47,12 +46,12 @@ pub struct GlobalUniverse {
     pub(in crate::system::universe) chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub(in crate::system::universe) struct ChunkEntityInfoHierarchy {
     root_chunks: HashMap<LocalChunkID, Arc<Mutex<ChunkInfo>>>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub(in crate::system::universe) struct ChunkInfo {
     parent_chunk_info_mutex: Option<Arc<Mutex<ChunkInfo>>>,
     local_chunk_id: LocalChunkID,
@@ -62,7 +61,7 @@ pub(in crate::system::universe) struct ChunkInfo {
     child_entities: HashMap<LocalEntityID, Arc<Mutex<EntityInfo>>>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub(in crate::system::universe) struct EntityInfo {
     parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>,
     local_entity_id: LocalEntityID,

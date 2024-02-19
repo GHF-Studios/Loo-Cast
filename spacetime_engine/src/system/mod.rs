@@ -4,7 +4,7 @@ pub mod camera;
 pub mod game;
 pub mod iteration_test;
 pub mod player;
-pub mod save_game;
+pub mod savegame;
 pub mod ui;
 pub mod universe;
 
@@ -17,7 +17,7 @@ use camera::CameraPlugin;
 use game::GamePlugin;
 use iteration_test::IterationTestPlugin;
 use player::PlayerPlugin;
-use save_game::SaveGamePlugin;
+use savegame::SavegamePlugin;
 use ui::UIPlugin;
 use universe::UniversePlugin;
 
@@ -42,8 +42,8 @@ lazy_static! {
 pub enum AppState {
     #[default]
     MainMenu,
-    SaveGamesMenu,
-    CreateSaveGameMenu,
+    SavegamesMenu,
+    CreateSavegameMenu,
     Game,
 }
 
@@ -138,7 +138,7 @@ impl PluginGroup for SystemPlugins {
             .add(GamePlugin)
             .add(IterationTestPlugin)
             .add(PlayerPlugin)
-            .add(SaveGamePlugin)
+            .add(SavegamePlugin)
             .add(UIPlugin)
             .add(UniversePlugin)
             // External Modules

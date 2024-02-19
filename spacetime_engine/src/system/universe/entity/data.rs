@@ -20,7 +20,7 @@ pub enum EntityRunState {
 }
 
 // Structs
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct EntityData {
     pub(in crate::system::universe) run_state: EntityRunState,
 }

@@ -7,7 +7,7 @@ use config::*;
 use state::*;
 
 // Internal imports
-use crate::system::save_game::*;
+use crate::system::savegame::*;
 use crate::system::universe::*;
 use crate::system::AppState;
 
@@ -34,7 +34,7 @@ pub enum SimulationState {
 #[derive(States, Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
 pub enum LoadState {
     #[default]
-    LoadedSaveGame,
+    LoadedSavegame,
     LoadedGameConfig,
     LoadedGameState,
     LoadedUniverse,
@@ -46,7 +46,7 @@ pub struct GamePlugin;
 
 #[derive(Event)]
 pub struct LoadGame {
-    pub save_game: SaveGameInfo,
+    pub savegame: SavegameInfo,
 }
 
 #[derive(Event)]
@@ -56,7 +56,7 @@ pub struct UnloadGame {
 
 #[derive(Resource)]
 pub struct GameManager {
-    pub current_save_game: SaveGameInfo,
+    pub current_savegame: SavegameInfo,
 }
 
 // Implementations
@@ -72,7 +72,7 @@ impl Plugin for GamePlugin {
             // Update Systems
             .add_systems(
                 Update,
-                GameManager::handle_load_game.run_if(in_state(AppState::SaveGamesMenu)),
+                GameManager::handle_load_game.run_if(in_state(AppState::SavegamesMenu)),
             )
             .add_systems(
                 Update,
@@ -86,9 +86,9 @@ impl Plugin for GamePlugin {
 }
 
 impl GameManager {
-    fn startup(commands: &mut Commands, save_game_info: SaveGameInfo) {
+    fn startup(commands: &mut Commands, savegame_info: SavegameInfo) {
         commands.insert_resource(GameManager {
-            current_save_game: save_game_info,
+            current_savegame: savegame_info,
         })
     }
 
@@ -102,16 +102,16 @@ impl GameManager {
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut simulation_state_next_state: ResMut<NextState<SimulationState>>,
     ) {
-        if let Some(confirm_loaded_save_game_event) = load_game_event_reader.iter().last() {
-            let save_game_info: SaveGameInfo = confirm_loaded_save_game_event.save_game.clone();
+        if let Some(confirm_loaded_savegame_event) = load_game_event_reader.iter().last() {
+            let savegame_info: SavegameInfo = confirm_loaded_savegame_event.savegame.clone();
 
             // Load Game Manager
-            GameManager::startup(&mut commands, save_game_info.clone());
+            GameManager::startup(&mut commands, savegame_info.clone());
 
             // Load Game Config
             let dir_path = format!(
                 "mods/loo_cast_base_mod/data/saves/{}/config",
-                save_game_info.name
+                savegame_info.name
             );
             if !Path::new(&dir_path).exists() {
                 std::fs::create_dir_all(&dir_path).expect("Failed to create config directory");
@@ -124,7 +124,7 @@ impl GameManager {
             // Load Game State
             let dir_path = format!(
                 "mods/loo_cast_base_mod/data/saves/{}/state",
-                save_game_info.name
+                savegame_info.name
             );
             if !Path::new(&dir_path).exists() {
                 std::fs::create_dir_all(&dir_path).expect("Failed to create state directory");
@@ -147,7 +147,7 @@ impl GameManager {
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut simulation_state_next_state: ResMut<NextState<SimulationState>>,
     ) {
-        if let Some(unload_save_game_event) = unload_game_event_reader.iter().last() {
+        if let Some(unload_savegame_event) = unload_game_event_reader.iter().last() {
             // Unload Game State
             GameStateManager::terminate(&mut commands);
 
@@ -159,10 +159,10 @@ impl GameManager {
 
             // Finalize Unloading
             simulation_state_next_state.set(SimulationState::Running);
-            if unload_save_game_event.quit_mode == GameQuitMode::QuitToMainMenu {
+            if unload_savegame_event.quit_mode == GameQuitMode::QuitToMainMenu {
                 app_state_next_state.set(AppState::MainMenu);
             }
-            if unload_save_game_event.quit_mode == GameQuitMode::QuitToDesktop {
+            if unload_savegame_event.quit_mode == GameQuitMode::QuitToDesktop {
                 app_exit_event_writer.send(AppExit);
             }
         }

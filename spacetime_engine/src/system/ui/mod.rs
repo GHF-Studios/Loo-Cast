@@ -2,15 +2,15 @@
 pub mod input_field;
 pub mod main_menu;
 pub mod pause_menu;
-pub mod save_game_creation_menu;
-pub mod save_games_menu;
+pub mod savegame_creation_menu;
+pub mod savegames_menu;
 
 // Local imports
 use input_field::InputFieldPlugin;
 use main_menu::MainMenuPlugin;
 use pause_menu::PauseMenuPlugin;
-use save_game_creation_menu::SaveGameCreationMenuPlugin;
-use save_games_menu::SaveGamesMenuPlugin;
+use savegame_creation_menu::SavegameCreationMenuPlugin;
+use savegames_menu::SavegamesMenuPlugin;
 
 // Internal imports
 
@@ -61,10 +61,10 @@ impl Plugin for UIPlugin {
             .add_event::<LoseFocus>()
             // Plugins
             .add_plugins((
-                SaveGameCreationMenuPlugin,
+                SavegameCreationMenuPlugin,
                 MainMenuPlugin,
                 PauseMenuPlugin,
-                SaveGamesMenuPlugin,
+                SavegamesMenuPlugin,
                 InputFieldPlugin,
             ))
             // Startup Systems

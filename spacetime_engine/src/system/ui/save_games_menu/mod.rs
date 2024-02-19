@@ -4,7 +4,7 @@
 
 // Internal imports
 use crate::system::game::*;
-use crate::system::save_game::*;
+use crate::system::savegame::*;
 use crate::system::ui::*;
 use crate::system::AppState;
 
@@ -107,96 +107,96 @@ pub const TITLE_STYLE: Style = {
 // Enums
 
 // Structs
-pub struct SaveGamesMenuPlugin;
+pub struct SavegamesMenuPlugin;
 
 #[derive(Component)]
-pub struct SaveGamesMenu {}
+pub struct SavegamesMenu {}
 
 #[derive(Component)]
-pub struct SaveGamesContainer {}
+pub struct SavegamesContainer {}
 
 #[derive(Component)]
-pub struct SaveGame {
+pub struct Savegame {
     pub name: String,
 }
 
 #[derive(Component)]
-pub struct CreateSaveGameButton {}
+pub struct CreateSavegameButton {}
 
 #[derive(Component)]
 pub struct BackToMainMenuButton {}
 
 #[derive(Component)]
-pub struct LoadSaveGameButton {
-    pub save_game_name: String,
+pub struct LoadSavegameButton {
+    pub savegame_name: String,
 }
 
 #[derive(Component)]
-pub struct DeleteSaveGameButton {
-    pub save_game_name: String,
+pub struct DeleteSavegameButton {
+    pub savegame_name: String,
 }
 
 #[derive(Event)]
-pub struct LoadSaveGameInstance {
-    pub save_game_name: String,
+pub struct LoadSavegameInstance {
+    pub savegame_name: String,
 }
 
 #[derive(Event)]
-pub struct DeleteSaveGameUI {
-    pub save_game_name: String,
+pub struct DeleteSavegameUI {
+    pub savegame_name: String,
 }
 
 #[derive(Resource)]
-pub struct SaveGamesMenuManager;
+pub struct SavegamesMenuManager;
 
 // Implementations
-impl Plugin for SaveGamesMenuPlugin {
+impl Plugin for SavegamesMenuPlugin {
     fn build(&self, app: &mut App) {
         app
             // Events
-            .add_event::<LoadSaveGameInstance>()
-            .add_event::<DeleteSaveGameUI>()
+            .add_event::<LoadSavegameInstance>()
+            .add_event::<DeleteSavegameUI>()
             // Enter State Systems
             .add_systems(
-                OnEnter(AppState::SaveGamesMenu),
-                SaveGamesMenuManager::initialize,
+                OnEnter(AppState::SavegamesMenu),
+                SavegamesMenuManager::initialize,
             )
             // Update Systems
             .add_systems(
                 Update,
                 (
-                    SaveGamesMenuManager::handle_back_to_main_menu_button,
-                    SaveGamesMenuManager::handle_create_save_game_button,
-                    SaveGamesMenuManager::handle_delete_save_game_button,
-                    SaveGamesMenuManager::handle_load_save_game_button,
-                    SaveGamesMenuManager::handle_load_save_game_instance,
-                    SaveGamesMenuManager::handle_delete_save_game_ui,
+                    SavegamesMenuManager::handle_back_to_main_menu_button,
+                    SavegamesMenuManager::handle_create_savegame_button,
+                    SavegamesMenuManager::handle_delete_savegame_button,
+                    SavegamesMenuManager::handle_load_savegame_button,
+                    SavegamesMenuManager::handle_load_savegame_instance,
+                    SavegamesMenuManager::handle_delete_savegame_ui,
                 )
-                    .run_if(in_state(AppState::SaveGamesMenu)),
+                    .run_if(in_state(AppState::SavegamesMenu)),
             )
             // Exit State Systems
             .add_systems(
-                OnExit(AppState::SaveGamesMenu),
-                SaveGamesMenuManager::terminate,
+                OnExit(AppState::SavegamesMenu),
+                SavegamesMenuManager::terminate,
             );
     }
 }
 
-impl SaveGamesMenuManager {
+impl SavegamesMenuManager {
     fn initialize(
         mut commands: Commands,
         asset_server: Res<AssetServer>,
-        save_game_manager: Res<SaveGameManager>,
+        savegame_manager: Res<SavegameManager>,
     ) {
-        Self::build_save_games_menu(&mut commands, &asset_server, &save_game_manager);
+        Self::build_savegames_menu(&mut commands, &asset_server, &savegame_manager);
     }
 
     fn terminate(
         mut commands: Commands,
-        save_games_menu_query: Query<Entity, With<SaveGamesMenu>>,
+        savegames_menu_query: Query<Entity, With<SavegamesMenu>>,
     ) {
-        if let Ok(save_games_menu_entity) = save_games_menu_query.get_single() {
-            commands.entity(save_games_menu_entity).despawn_recursive();
+        if let Ok(savegames_menu_entity) = savegames_menu_query.get_single() {
+            commands.entity(savegames_menu_entity).despawn_recursive();
         }
     }
 
@@ -223,18 +223,18 @@ impl SaveGamesMenuManager {
         }
     }
 
-    fn handle_create_save_game_button(
+    fn handle_create_savegame_button(
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut button_query: Query<
             (&Interaction, &mut BackgroundColor),
-            (Changed<Interaction>, With<CreateSaveGameButton>),
+            (Changed<Interaction>, With<CreateSavegameButton>),
         >,
     ) {
         if let Ok((interaction, mut background_color)) = button_query.get_single_mut() {
             match *interaction {
                 Interaction::Pressed => {
                     *background_color = PRESSED_BUTTON_COLOR.into();
-                    app_state_next_state.set(AppState::CreateSaveGameMenu);
+                    app_state_next_state.set(AppState::CreateSavegameMenu);
                 }
                 Interaction::Hovered => {
                     *background_color = HOVERED_BUTTON_COLOR.into();
@@ -246,20 +246,20 @@ impl SaveGamesMenuManager {
         }
     }
 
-    fn handle_delete_save_game_button(
-        mut delete_save_game_event_writer: EventWriter<DeleteSaveGame>,
+    fn handle_delete_savegame_button(
+        mut delete_savegame_event_writer: EventWriter<DeleteSavegame>,
         mut button_query: Query<
-            (&Interaction, &mut BackgroundColor, &DeleteSaveGameButton),
+            (&Interaction, &mut BackgroundColor, &DeleteSavegameButton),
             Changed<Interaction>,
         >,
     ) {
-        if let Ok((interaction, mut background_color, delete_save_game_button)) =
+        if let Ok((interaction, mut background_color, delete_savegame_button)) =
             button_query.get_single_mut()
         {
             match *interaction {
                 Interaction::Pressed => {
-                    delete_save_game_event_writer.send(DeleteSaveGame {
-                        save_game_name: delete_save_game_button.save_game_name.clone(),
+                    delete_savegame_event_writer.send(DeleteSavegame {
+                        savegame_name: delete_savegame_button.savegame_name.clone(),
                     });
                     *background_color = PRESSED_BUTTON_COLOR.into();
                 }
@@ -273,20 +273,20 @@ impl SaveGamesMenuManager {
         }
     }
 
-    fn handle_load_save_game_button(
-        mut load_save_game_instance_event_writer: EventWriter<LoadSaveGameInstance>,
+    fn handle_load_savegame_button(
+        mut load_savegame_instance_event_writer: EventWriter<LoadSavegameInstance>,
         mut button_query: Query<
-            (&Interaction, &mut BackgroundColor, &LoadSaveGameButton),
+            (&Interaction, &mut BackgroundColor, &LoadSavegameButton),
             Changed<Interaction>,
         >,
     ) {
-        if let Ok((interaction, mut background_color, load_save_game_button)) =
+        if let Ok((interaction, mut background_color, load_savegame_button)) =
             button_query.get_single_mut()
         {
             match *interaction {
                 Interaction::Pressed => {
-                    load_save_game_instance_event_writer.send(LoadSaveGameInstance {
-                        save_game_name: load_save_game_button.save_game_name.clone(),
+                    load_savegame_instance_event_writer.send(LoadSavegameInstance {
+                        savegame_name: load_savegame_button.savegame_name.clone(),
                     });
                     *background_color = PRESSED_BUTTON_COLOR.into();
                 }
@@ -300,30 +300,30 @@ impl SaveGamesMenuManager {
         }
     }
 
-    fn handle_load_save_game_instance(
-        mut load_save_game_instance_event_reader: EventReader<LoadSaveGameInstance>,
+    fn handle_load_savegame_instance(
+        mut load_savegame_instance_event_reader: EventReader<LoadSavegameInstance>,
         mut load_game_event_writer: EventWriter<LoadGame>,
-        save_game_manager: Res<SaveGameManager>,
+        savegame_manager: Res<SavegameManager>,
     ) {
-        if let Some(event) = load_save_game_instance_event_reader.iter().last() {
-            if let Some(save_game) =
-                save_game_manager.get_save_game_info(event.save_game_name.clone())
+        if let Some(event) = load_savegame_instance_event_reader.iter().last() {
+            if let Some(savegame) =
+                savegame_manager.get_savegame_info(event.savegame_name.clone())
             {
                 load_game_event_writer.send(LoadGame {
-                    save_game: save_game.clone(),
+                    savegame: savegame.clone(),
                 });
             }
         }
     }
 
-    fn handle_delete_save_game_ui(
+    fn handle_delete_savegame_ui(
         mut commands: Commands,
-        mut delete_save_game_ui_event_reader: EventReader<DeleteSaveGameUI>,
-        mut save_game_query: Query<(Entity, &SaveGame)>,
+        mut delete_savegame_ui_event_reader: EventReader<DeleteSavegameUI>,
+        mut savegame_query: Query<(Entity, &Savegame)>,
     ) {
-        if let Some(event) = delete_save_game_ui_event_reader.iter().next() {
-            for (entity, save_game) in save_game_query.iter_mut() {
-                if save_game.name == event.save_game_name {
+        if let Some(event) = delete_savegame_ui_event_reader.iter().next() {
+            for (entity, savegame) in savegame_query.iter_mut() {
+                if savegame.name == event.savegame_name {
                     commands.entity(entity).despawn_recursive();
                     return;
                 }
@@ -331,18 +331,18 @@ impl SaveGamesMenuManager {
         }
     }
 
-    fn build_save_games_menu(
+    fn build_savegames_menu(
         commands: &mut Commands,
         asset_server: &Res<AssetServer>,
-        save_game_manager: &Res<SaveGameManager>,
+        savegame_manager: &Res<SavegameManager>,
     ) -> Entity {
-        let save_games_menu_entity = commands
+        let savegames_menu_entity = commands
             .spawn((
                 NodeBundle {
                     style: SAVE_GAMES_MENU_STYLE,
                     ..default()
                 },
-                SaveGamesMenu {},
+                SavegamesMenu {},
             ))
             .with_children(|parent| {
                 // === Title ===
@@ -372,11 +372,11 @@ impl SaveGamesMenuManager {
                             style: SAVE_GAMES_CONTAINER_STYLE,
                             ..default()
                         },
-                        SaveGamesContainer {},
+                        SavegamesContainer {},
                     ))
                     .with_children(|parent| {
                         // Save Games
-                        for save_game_info in save_game_manager.registered_save_games.iter() {
+                        for savegame_info in savegame_manager.registered_savegames.iter() {
                             parent
                                 .spawn((
                                     NodeBundle {
@@ -384,8 +384,8 @@ impl SaveGamesMenuManager {
                                         background_color: BACKGROUND_COLOR.into(),
                                         ..default()
                                     },
-                                    SaveGame {
-                                        name: save_game_info.name.clone(),
+                                    Savegame {
+                                        name: savegame_info.name.clone(),
                                     },
                                 ))
                                 .with_children(|parent| {
@@ -397,8 +397,8 @@ impl SaveGamesMenuManager {
                                                 background_color: NORMAL_BUTTON_COLOR.into(),
                                                 ..default()
                                             },
-                                            DeleteSaveGameButton {
-                                                save_game_name: save_game_info.name.clone(),
+                                            DeleteSavegameButton {
+                                                savegame_name: savegame_info.name.clone(),
                                             },
                                         ))
                                         .with_children(|parent| {
@@ -421,8 +421,8 @@ impl SaveGamesMenuManager {
                                             parent.spawn(TextBundle {
                                                 text: Text {
                                                     sections: vec![TextSection::new(
-                                                        save_game_info.name.clone(),
-                                                        Self::get_save_game_name_text_style(
+                                                        savegame_info.name.clone(),
+                                                        Self::get_savegame_name_text_style(
                                                             asset_server,
                                                         ),
                                                     )],
@@ -440,8 +440,8 @@ impl SaveGamesMenuManager {
                                                 background_color: NORMAL_BUTTON_COLOR.into(),
                                                 ..default()
                                             },
-                                            LoadSaveGameButton {
-                                                save_game_name: save_game_info.name.clone(),
+                                            LoadSavegameButton {
+                                                savegame_name: savegame_info.name.clone(),
                                             },
                                         ))
                                         .with_children(|parent| {
@@ -489,7 +489,7 @@ impl SaveGamesMenuManager {
                                     background_color: NORMAL_BUTTON_COLOR.into(),
                                     ..default()
                                 },
-                                CreateSaveGameButton {},
+                                CreateSavegameButton {},
                             ))
                             .with_children(|parent| {
                                 parent.spawn(ImageBundle {
@@ -502,10 +502,10 @@ impl SaveGamesMenuManager {
             })
             .id();
 
-        save_games_menu_entity
+        savegames_menu_entity
     }
 
-    fn get_save_game_name_text_style(asset_server: &Res<AssetServer>) -> TextStyle {
+    fn get_savegame_name_text_style(asset_server: &Res<AssetServer>) -> TextStyle {
         TextStyle {
             font: asset_server.load("loo_cast_base_mod/resources/fonts/FiraSans-Bold.ttf"),
             font_size: 64.0,

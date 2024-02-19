@@ -25,7 +25,7 @@ pub enum ChunkRunState {
 }
 
 // Structs
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ChunkData {
     pub(in crate::system::universe) run_state: ChunkRunState,
     pub(in crate::system::universe) child_chunks: Option<HashMap<LocalChunkID, Arc<Mutex<Chunk>>>>,

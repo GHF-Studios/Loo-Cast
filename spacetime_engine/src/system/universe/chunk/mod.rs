@@ -29,11 +29,10 @@ pub const VIEW_RADIUS: u16 = 2;
 // Types
 
 // Enums
-#[derive(Debug)]
 pub enum Chunk {
     Registered {
         id: ChunkID,
-        bevy_entity: Entity,
+        bevy_entity: bevy::ecs::entity::Entity,
     },
     MetadataLoaded {
         id: ChunkID,
@@ -48,7 +47,6 @@ pub enum Chunk {
     },
 }
 
-#[derive(Debug)]
 pub enum ChunkOperation {
     RegisterRoot {
         local_chunk_id: LocalChunkID,
@@ -185,7 +183,6 @@ pub enum DespawnChunkError {
 // Structs
 pub struct ChunkPlugin;
 
-#[derive(Debug)]
 pub struct ChunkOperationRequest {
     pub(in crate::system::universe) operations: Vec<ChunkOperation>,
 }

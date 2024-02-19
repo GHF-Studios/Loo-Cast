@@ -66,34 +66,39 @@ impl Display for EntityID {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct GlobalUniverseMetadata(crate::system::universe::global::metadata::UniverseMetadata);
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct GlobalUniverseData(crate::system::universe::global::data::UniverseData);
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct LocalUniverseMetadata(crate::system::universe::local::metadata::UniverseMetadata);
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct LocalUniverseData(crate::system::universe::local::data::UniverseData);
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct ChunkMetadata(crate::system::universe::chunk::metadata::ChunkMetadata);
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct ChunkData(crate::system::universe::chunk::data::ChunkData);
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct EntityMetadata(crate::system::universe::entity::metadata::EntityMetadata);
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct EntityData(crate::system::universe::entity::data::EntityData);
 
 
 // TODO:    Implement a ChunkEntityInfoHierarchy to facilitate an orderly execution of commands and centralized access to chunk/entity infos
 //          -   This will be used to ensure that commands are executed in the correct order and that chunk/entity infos are easily accessible
 //          -   It is vital that the redundant storages of the different smart pointers (to chunks & entities) are eliminated, and the chunk/entity infos are stored exclusively in the ChunkEntityInfoHierarchy
+// TODO:    Define and Implement a BackgroundCommands structure
+// TODO:    Define and Implement a CameraCommands structure
+// TODO:    Define and Implement a PlayerCommands structure
+// TODO:    Define and Implement a SavegameCommands structure (!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!RENAME SAVEGAME TO SAVEGAME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
+// TODO:    Define and Implement a UICommands structure
 // TODO:    Implement the UniverseCommands structure
 // TODO:    Implement the GlobalUniverseCommands structure
 // TODO:    Implement the LocalUniverseCommands structure
