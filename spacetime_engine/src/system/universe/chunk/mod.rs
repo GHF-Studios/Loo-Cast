@@ -184,6 +184,7 @@ pub enum DespawnChunkError {
 // Structs
 pub struct ChunkPlugin;
 
+#[derive(Debug)]
 pub struct ChunkOperationRequest {
     pub(in crate::system::universe) operations: Vec<ChunkOperation>,
 }

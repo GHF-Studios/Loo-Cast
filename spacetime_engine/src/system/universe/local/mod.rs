@@ -49,7 +49,7 @@ impl Plugin for LocalUniversePlugin {
             // Update Systems
             .add_systems(
                 Update,
-                (LocalUniverse::detect_local_chunks_system,)
+                (LocalUniverse::detect_local_chunks,)
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
             );
@@ -72,7 +72,7 @@ impl LocalUniverse {
         }
     }
 
-    fn detect_local_chunks_system(
+    fn detect_local_chunks(
         player_transform_query: Query<&Transform, With<Player>>,
         universe_manager: Res<UniverseManager>,
     ) {
@@ -152,10 +152,7 @@ impl LocalUniverse {
         }
     }
 
-    fn process_local_chunk_positions(
-        global_universe: &mut GlobalUniverse,
-        local_universe: &mut LocalUniverse,
-    ) {
+    fn process_local_chunk_positions(mut universe_commands: UniverseCommands) {
         // Unload chunks that have exited the view
         let old_local_chunk_positions = local_universe
             .previously_viewed_local_chunk_positions

@@ -30,7 +30,7 @@ pub const SPRINT_MULTIPLIER: f32 = 5.0;
 pub struct PlayerPlugin;
 
 #[derive(Event)]
-pub struct InitializePlayer;
+pub struct StartupPlayer;
 
 #[derive(Event)]
 pub struct TerminatePlayer;
@@ -46,14 +46,14 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
             // Events
-            .add_event::<InitializePlayer>()
+            .add_event::<StartupPlayer>()
             .add_event::<TerminatePlayer>()
             // Update Systems
             .add_systems(
                 Update,
                 (
-                    PlayerManager::handle_initialize_player,
-                    PlayerManager::handle_terminate_player,
+                    PlayerManager::handle_startup_player,
+                    PlayerManager::handle_shutdown_player,
                 )
                     .run_if(in_state(AppState::Game)),
             )
@@ -70,13 +70,13 @@ impl Plugin for PlayerPlugin {
 }
 
 impl PlayerManager {
-    fn handle_initialize_player(
+    fn handle_startup_player(
         mut commands: Commands,
-        mut initialize_player_event_reader: EventReader<InitializePlayer>,
+        mut startup_player_event_reader: EventReader<StartupPlayer>,
         asset_server: Res<AssetServer>,
         mut universe_manager: ResMut<UniverseManager>,
     ) {
-        if initialize_player_event_reader.iter().next().is_some() {
+        if startup_player_event_reader.iter().next().is_some() {
             commands.insert_resource(PlayerManager {});
             commands.spawn((
                 Player {},
@@ -101,12 +101,10 @@ impl PlayerManager {
                     angular_damping: 0.0,
                 },
             ));
-            // TODO: Develop UniverseCommands for registering, loading, etc. both local and global universes
-            let _ = universe_manager.register_local_universe(LocalUniverse::default());
         }
     }
 
-    fn handle_terminate_player(
+    fn handle_shutdown_player(
         mut commands: Commands,
         mut terminate_player_event_reader: EventReader<TerminatePlayer>,
         player_query: Query<Entity, With<Player>>,

@@ -29,6 +29,7 @@ use std::sync::{Arc, Mutex};
 // Types
 
 // Enums
+#[derive(Debug)]
 pub enum OperationRequest {
     Chunk(ChunkOperationRequest),
     Entity(EntityOperationRequest),
@@ -37,6 +38,7 @@ pub enum OperationRequest {
 // Structs
 pub struct GlobalUniversePlugin;
 
+#[derive(Debug)]
 pub struct GlobalUniverse {
     pub(in crate::system::universe) registered_root_chunks:
         HashMap<LocalChunkID, Arc<Mutex<Chunk>>>,
@@ -44,11 +46,12 @@ pub struct GlobalUniverse {
     pub(in crate::system::universe) chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy,
 }
 
+#[derive(Debug)]
 pub(in crate::system::universe) struct ChunkEntityInfoHierarchy {
     root_chunks: HashMap<LocalChunkID, Arc<Mutex<ChunkInfo>>>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(in crate::system::universe) struct ChunkInfo {
     parent_chunk_info_mutex: Option<Arc<Mutex<ChunkInfo>>>,
     local_chunk_id: LocalChunkID,
@@ -58,7 +61,7 @@ pub(in crate::system::universe) struct ChunkInfo {
     child_entities: HashMap<LocalEntityID, Arc<Mutex<EntityInfo>>>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(in crate::system::universe) struct EntityInfo {
     parent_chunk_info_mutex: Arc<Mutex<ChunkInfo>>,
     local_entity_id: LocalEntityID,

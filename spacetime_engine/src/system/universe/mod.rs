@@ -55,22 +55,23 @@ impl Plugin for UniversePlugin {
                 GlobalUniversePlugin,
                 LocalUniversePlugin,
             ))
+            // Startup Systems
             // Enter Systems
-            .add_systems(OnEnter(AppState::Game), UniverseManager::initialize)
+            .add_systems(OnEnter(AppState::Game), UniverseManager::startup)
             // Update Systems
             .add_systems(
                 Update,
-                (UniverseManager::handle_load_global_universe,).run_if(in_state(AppState::Game)),
+                (UniverseManager::handle_load_global_universe).run_if(in_state(AppState::Game)),
             )
             // Exit Systems
-            .add_systems(OnExit(AppState::Game), UniverseManager::terminate);
+            .add_systems(OnExit(AppState::Game), UniverseManager::shutdown);
     }
 }
 
 impl UniverseManager {
-    fn initialize(
+    fn startup(
         mut commands: Commands,
-        mut initialize_player_event_writer: EventWriter<InitializePlayer>,
+        mut initialize_player_event_writer: EventWriter<StartupPlayer>,
         mut rapier_configuration: ResMut<RapierConfiguration>,
     ) {
         rapier_configuration.gravity = Vec2::splat(0.0);
@@ -82,16 +83,14 @@ impl UniverseManager {
 
         commands.insert_resource(universe_manager);
 
-        initialize_player_event_writer.send(InitializePlayer {});
+        initialize_player_event_writer.send(StartupPlayer {});
     }
 
-    fn terminate(
+    fn shutdown(
         mut commands: Commands,
         mut terminate_player_event_writer: EventWriter<TerminatePlayer>,
     ) {
         terminate_player_event_writer.send(TerminatePlayer {});
-
-        commands.remove_resource::<Self>();
     }
 
     pub fn handle_load_global_universe(

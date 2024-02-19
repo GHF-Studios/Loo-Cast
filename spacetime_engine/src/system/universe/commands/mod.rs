@@ -4,6 +4,24 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct CommandsGlobalUniverseID(u64);
+
+impl Display for CommandsGlobalUniverseID {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "GlobalUniverseID({})", self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct CommandsLocalUniverseID(u64);
+
+impl Display for CommandsLocalUniverseID {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "LocalUniverseID({})", self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct CommandsLocalChunkID(u8, u8);
 
 impl Display for CommandsLocalChunkID {
@@ -48,6 +66,12 @@ impl Display for CommandsEntityID {
     }
 }
 
+#[derive(Debug)]
+pub struct CommandsGlobalUniverse(CommandsGlobalUniverseID, crate::system::universe::global::GlobalUniverse);
+
+#[derive(Debug)]
+pub struct CommandsLocalUniverse(CommandsLocalUniverseID, crate::system::universe::local::LocalUniverse);
+
 #[derive(Debug, Clone, Default)]
 pub struct CommandsChunkMetadata(crate::system::universe::chunk::metadata::ChunkMetadata);
 
@@ -62,8 +86,11 @@ pub struct CommandsEntityData(crate::system::universe::entity::data::EntityData)
 
 
 // TODO:    Implement a ChunkEntityInfoHierarchy to facilitate an orderly execution of commands and centralized access to chunk/entity infos
+//          -   This will be used to ensure that commands are executed in the correct order and that chunk/entity infos are easily accessible
+//          -   It is vital that the redundant storages of the different smart pointers (to chunks & entities) are eliminated, and the chunk/entity infos are stored exclusively in the ChunkEntityInfoHierarchy
 // TODO:    Implement the ChunkCommands structure
 // TODO:    Implement the EntityCommands structure
+// TODO:    Implement the UniverseCommands structure
 
 
 pub struct UniverseCommandsPlugin;
@@ -96,6 +123,29 @@ impl UniverseCommandsPlugin {
     fn handle_entity_command_requests(mut entity_commands: ResMut<EntityCommands>) {
 
     }
+}
+
+#[derive(Resource, Default)]
+pub struct UniverseCommands {
+
+}
+
+impl UniverseCommands {
+}
+
+pub struct GlobalUniverseCommands {
+
+}
+
+impl GlobalUniverseCommands {
+}
+
+pub struct LocalUniverseCommands {
+
+}
+
+impl LocalUniverseCommands {
+
 }
 
 #[derive(Resource, Default)]

@@ -158,6 +158,7 @@ pub enum CommandEntityError {
 // Structs
 pub struct EntityPlugin;
 
+#[derive(Debug)]
 pub struct EntityOperationRequest {
     pub(in crate::system::universe) operations: Vec<EntityOperation>,
 }
