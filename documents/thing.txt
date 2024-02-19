@@ -1,7 +1,6 @@
-TODO
+TODO:
 
-Develop a 
-Call StartupPlayer event (via bevy system for player module)
-Call ShutdownPlayer event (via bevy system for player module)
+Call LoadUniverse and UnloadUniverse events (via bevy system for player module, OnExit(AppState::Game))
+Rename LoadUniverse and UnloadUniverse events to StartupUniverse and ShutdownUniverse
 Wrap Player module into PlayerCommands
 Develop UniverseCommands for registering, loading, etc. both local and global universes

@@ -13,7 +13,6 @@ use local::id::*;
 use local::*;
 
 // Internal imports
-use crate::system::player::*;
 use crate::system::AppState;
 
 // External imports
@@ -36,8 +35,8 @@ pub struct UniversePlugin;
 #[derive(Event)]
 pub struct LoadGlobalUniverse {}
 
-#[derive(Resource)]
-pub struct UniverseManager {
+#[derive(Resource, Default)]
+pub(in crate::system::universe) struct UniverseManager {
     registered_global_universe: Option<Arc<Mutex<GlobalUniverse>>>,
     registered_local_universes: HashMap<LocalUniverseID, Arc<Mutex<LocalUniverse>>>,
 }
@@ -58,43 +57,23 @@ impl Plugin for UniversePlugin {
             // Startup Systems
             .add_systems(Startup, UniverseManager::startup)
             // Enter Systems
-            .add_systems(OnEnter(AppState::Game), UniverseManager::load_global_universe)
-            // Update Systems
-            .add_systems(
-                Update,
-                (UniverseManager::load_global_universe).run_if(in_state(AppState::Game)),
-            )
+            .add_systems(OnEnter(AppState::Game), UniverseManager::on_enter_game)
             // Exit Systems
-            .add_systems(OnExit(AppState::Game), UniverseManager::unload_global_universe);
+            .add_systems(OnExit(AppState::Game), UniverseManager::on_exit_game);
     }
 }
 
 impl UniverseManager {
     fn startup(
         mut commands: Commands,
-        mut initialize_player_event_writer: EventWriter<StartupPlayer>,
         mut rapier_configuration: ResMut<RapierConfiguration>,
     ) {
         rapier_configuration.gravity = Vec2::splat(0.0);
 
-        let universe_manager = Self {
-            registered_global_universe: None,
-            registered_local_universes: HashMap::new(),
-        };
-
-        commands.insert_resource(universe_manager);
-
-        initialize_player_event_writer.send(StartupPlayer {});
+        commands.insert_resource(UniverseManager::default());
     }
 
-    fn shutdown(
-        mut commands: Commands,
-        mut terminate_player_event_writer: EventWriter<TerminatePlayer>,
-    ) {
-        terminate_player_event_writer.send(TerminatePlayer {});
-    }
-
-    fn load_global_universe(mut universe_manager: ResMut<UniverseManager>) {
+    fn on_enter_game(mut universe_manager: ResMut<UniverseManager>) {
         universe_manager.registered_global_universe =
             Some(Arc::new(Mutex::new(GlobalUniverse {
                 registered_root_chunks: HashMap::new(),
@@ -103,7 +82,7 @@ impl UniverseManager {
             })));
     }
 
-    fn unload_global_universe(mut universe_manager: ResMut<UniverseManager>) {
+    fn on_exit_game(mut universe_manager: ResMut<UniverseManager>) {
         universe_manager.registered_global_universe = None;
     }
 

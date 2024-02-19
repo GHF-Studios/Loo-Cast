@@ -86,20 +86,19 @@ impl Plugin for GamePlugin {
 }
 
 impl GameManager {
-    fn initialize(commands: &mut Commands, save_game_info: SaveGameInfo) {
+    fn startup(commands: &mut Commands, save_game_info: SaveGameInfo) {
         commands.insert_resource(GameManager {
             current_save_game: save_game_info,
         })
     }
 
-    fn terminate(commands: &mut Commands) {
+    fn shutdown(commands: &mut Commands) {
         commands.remove_resource::<GameManager>();
     }
 
     fn handle_load_game(
         mut commands: Commands,
         mut load_game_event_reader: EventReader<LoadGame>,
-        mut load_universe_event_writer: EventWriter<LoadGlobalUniverse>,
         mut app_state_next_state: ResMut<NextState<AppState>>,
         mut simulation_state_next_state: ResMut<NextState<SimulationState>>,
     ) {
@@ -107,7 +106,7 @@ impl GameManager {
             let save_game_info: SaveGameInfo = confirm_loaded_save_game_event.save_game.clone();
 
             // Load Game Manager
-            GameManager::initialize(&mut commands, save_game_info.clone());
+            GameManager::startup(&mut commands, save_game_info.clone());
 
             // Load Game Config
             let dir_path = format!(
@@ -138,7 +137,6 @@ impl GameManager {
             // Finalize Loading
             simulation_state_next_state.set(SimulationState::Paused);
             app_state_next_state.set(AppState::Game);
-            load_universe_event_writer.send(LoadGlobalUniverse {});
         }
     }
 
@@ -157,7 +155,7 @@ impl GameManager {
             GameConfigManager::terminate(&mut commands);
 
             // Unload Game Manager
-            GameManager::terminate(&mut commands);
+            GameManager::shutdown(&mut commands);
 
             // Finalize Unloading
             simulation_state_next_state.set(SimulationState::Running);

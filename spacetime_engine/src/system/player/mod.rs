@@ -29,12 +29,6 @@ pub const SPRINT_MULTIPLIER: f32 = 5.0;
 // Structs
 pub struct PlayerPlugin;
 
-#[derive(Event)]
-pub struct StartupPlayer;
-
-#[derive(Event)]
-pub struct TerminatePlayer;
-
 #[derive(Component)]
 pub struct Player {}
 
@@ -45,18 +39,11 @@ pub struct PlayerManager;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            // Events
-            .add_event::<StartupPlayer>()
-            .add_event::<TerminatePlayer>()
+            // Startup Systems
+            .add_systems(Startup, PlayerManager::startup)
+            // Enter Systems
+            .add_systems(OnEnter(AppState::Game), PlayerManager::on_enter_game)
             // Update Systems
-            .add_systems(
-                Update,
-                (
-                    PlayerManager::handle_startup_player,
-                    PlayerManager::handle_shutdown_player,
-                )
-                    .run_if(in_state(AppState::Game)),
-            )
             .add_systems(
                 Update,
                 (
@@ -65,55 +52,52 @@ impl Plugin for PlayerPlugin {
                 )
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
-            );
+            )
+            // Exit Systems
+            .add_systems(OnExit(AppState::Game), PlayerManager::on_exit_game);
     }
 }
 
 impl PlayerManager {
-    fn handle_startup_player(
-        mut commands: Commands,
-        mut startup_player_event_reader: EventReader<StartupPlayer>,
-        asset_server: Res<AssetServer>,
-        mut universe_manager: ResMut<UniverseManager>,
-    ) {
-        if startup_player_event_reader.iter().next().is_some() {
-            commands.insert_resource(PlayerManager {});
-            commands.spawn((
-                Player {},
-                SpriteBundle {
-                    sprite: Sprite {
-                        custom_size: Some(Vec2::new(64.0, 64.0)),
-                        ..default()
-                    },
-                    transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                    texture: asset_server.load("loo_cast_base_mod/resources/sprites/circle.png"),
-                    ..default()
-                },
-                RigidBody::Dynamic,
-                Collider::ball(32.0),
-                Velocity {
-                    linvel: Vec2::splat(0.0),
-                    angvel: 0.0,
-                },
-                LockedAxes::ROTATION_LOCKED,
-                Damping {
-                    linear_damping: LINEAR_DAMPING,
-                    angular_damping: 0.0,
-                },
-            ));
-        }
+    fn startup(mut commands: Commands,) {
+        commands.insert_resource(PlayerManager {});
     }
 
-    fn handle_shutdown_player(
+    fn on_enter_game(
         mut commands: Commands,
-        mut terminate_player_event_reader: EventReader<TerminatePlayer>,
+        asset_server: Res<AssetServer>,
+    ) {
+        commands.spawn((
+            Player {},
+            SpriteBundle {
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(64.0, 64.0)),
+                    ..default()
+                },
+                transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                texture: asset_server.load("loo_cast_base_mod/resources/sprites/circle.png"),
+                ..default()
+            },
+            RigidBody::Dynamic,
+            Collider::ball(32.0),
+            Velocity {
+                linvel: Vec2::splat(0.0),
+                angvel: 0.0,
+            },
+            LockedAxes::ROTATION_LOCKED,
+            Damping {
+                linear_damping: LINEAR_DAMPING,
+                angular_damping: 0.0,
+            },
+        ));
+    }
+
+    fn on_exit_game(
+        mut commands: Commands,
         player_query: Query<Entity, With<Player>>,
     ) {
-        if terminate_player_event_reader.iter().next().is_some() {
-            commands.remove_resource::<PlayerManager>();
-            if let Ok(player_entity) = player_query.get_single() {
-                commands.entity(player_entity).despawn();
-            }
+        if let Ok(player_entity) = player_query.get_single() {
+            commands.entity(player_entity).despawn();
         }
     }
 
@@ -164,9 +148,7 @@ impl PlayerManager {
         main_camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
         primary_window_query: Query<&Window, With<PrimaryWindow>>,
         mouse_button_input: Res<Input<MouseButton>>,
-        mut universe_manager: ResMut<UniverseManager>,
-        mut chunk_commands: ResMut<ChunkCommands>,
-        mut entity_commands: ResMut<EntityCommands>, 
+        mut universe_commands: ResMut<UniverseCommands>,
     ) {
         let (camera, camera_transform) = main_camera_query.single();
 
