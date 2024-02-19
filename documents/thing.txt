@@ -1,0 +1,7 @@
+TODO
+
+Develop a 
+Call StartupPlayer event (via bevy system for player module)
+Call ShutdownPlayer event (via bevy system for player module)
+Wrap Player module into PlayerCommands
+Develop UniverseCommands for registering, loading, etc. both local and global universes

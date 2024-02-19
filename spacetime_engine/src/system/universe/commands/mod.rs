@@ -4,39 +4,39 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct CommandsGlobalUniverseID(u64);
+pub struct GlobalUniverseID(u64);
 
-impl Display for CommandsGlobalUniverseID {
+impl Display for GlobalUniverseID {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "GlobalUniverseID({})", self.0)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct CommandsLocalUniverseID(u64);
+pub struct LocalUniverseID(u64);
 
-impl Display for CommandsLocalUniverseID {
+impl Display for LocalUniverseID {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "LocalUniverseID({})", self.0)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct CommandsLocalChunkID(u8, u8);
+pub struct LocalChunkID(u8, u8);
 
-impl Display for CommandsLocalChunkID {
+impl Display for LocalChunkID {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "LocalChunkID({}, {})", self.0, self.1)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub struct CommandsChunkID {
-    pub parent_chunk_id: Option<Box<CommandsChunkID>>,
-    pub local_chunk_id: CommandsLocalChunkID,
+pub struct ChunkID {
+    pub parent_chunk_id: Option<Box<ChunkID>>,
+    pub local_chunk_id: LocalChunkID,
 }
 
-impl Display for CommandsChunkID {
+impl Display for ChunkID {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self.parent_chunk_id {
             Some(parent_chunk_id) => write!(f, "ChunkID({}, {})", parent_chunk_id, self.local_chunk_id),
@@ -46,52 +46,59 @@ impl Display for CommandsChunkID {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct CommandsLocalEntityID(u64);
+pub struct LocalEntityID(u64);
 
-impl Display for CommandsLocalEntityID {
+impl Display for LocalEntityID {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "LocalEntityID({})", self.0)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub struct CommandsEntityID {
-    pub parent_chunk_id: CommandsChunkID,
-    pub local_entity_id: CommandsLocalEntityID,
+pub struct EntityID {
+    pub parent_chunk_id: ChunkID,
+    pub local_entity_id: LocalEntityID,
 }
 
-impl Display for CommandsEntityID {
+impl Display for EntityID {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "EntityID({}, {})", self.parent_chunk_id, self.local_entity_id)
     }
 }
 
-#[derive(Debug)]
-pub struct CommandsGlobalUniverse(CommandsGlobalUniverseID, crate::system::universe::global::GlobalUniverse);
-
-#[derive(Debug)]
-pub struct CommandsLocalUniverse(CommandsLocalUniverseID, crate::system::universe::local::LocalUniverse);
+#[derive(Debug, Clone, Default)]
+pub struct GlobalUniverseMetadata(crate::system::universe::global::metadata::UniverseMetadata);
 
 #[derive(Debug, Clone, Default)]
-pub struct CommandsChunkMetadata(crate::system::universe::chunk::metadata::ChunkMetadata);
+pub struct GlobalUniverseData(crate::system::universe::global::data::UniverseData);
 
 #[derive(Debug, Clone, Default)]
-pub struct CommandsChunkData(crate::system::universe::chunk::data::ChunkData);
+pub struct LocalUniverseMetadata(crate::system::universe::local::metadata::UniverseMetadata);
 
 #[derive(Debug, Clone, Default)]
-pub struct CommandsEntityMetadata(crate::system::universe::entity::metadata::EntityMetadata);
+pub struct LocalUniverseData(crate::system::universe::local::data::UniverseData);
 
 #[derive(Debug, Clone, Default)]
-pub struct CommandsEntityData(crate::system::universe::entity::data::EntityData);
+pub struct ChunkMetadata(crate::system::universe::chunk::metadata::ChunkMetadata);
+
+#[derive(Debug, Clone, Default)]
+pub struct ChunkData(crate::system::universe::chunk::data::ChunkData);
+
+#[derive(Debug, Clone, Default)]
+pub struct EntityMetadata(crate::system::universe::entity::metadata::EntityMetadata);
+
+#[derive(Debug, Clone, Default)]
+pub struct EntityData(crate::system::universe::entity::data::EntityData);
 
 
 // TODO:    Implement a ChunkEntityInfoHierarchy to facilitate an orderly execution of commands and centralized access to chunk/entity infos
 //          -   This will be used to ensure that commands are executed in the correct order and that chunk/entity infos are easily accessible
 //          -   It is vital that the redundant storages of the different smart pointers (to chunks & entities) are eliminated, and the chunk/entity infos are stored exclusively in the ChunkEntityInfoHierarchy
+// TODO:    Implement the UniverseCommands structure
+// TODO:    Implement the GlobalUniverseCommands structure
+// TODO:    Implement the LocalUniverseCommands structure
 // TODO:    Implement the ChunkCommands structure
 // TODO:    Implement the EntityCommands structure
-// TODO:    Implement the UniverseCommands structure
-
 
 pub struct UniverseCommandsPlugin;
 
@@ -107,21 +114,11 @@ impl Plugin for UniverseCommandsPlugin {
 
 impl UniverseCommandsPlugin {
     fn initialize(mut commands: Commands) {
-        commands.insert_resource(ChunkCommands::default());
-        commands.insert_resource(EntityCommands::default());
+        commands.insert_resource(UniverseCommands::default());
     }
 
     fn terminate(mut commands: Commands) {
-        commands.remove_resource::<ChunkCommands>();
-        commands.remove_resource::<EntityCommands>();
-    }
-
-    fn handle_chunk_command_requests(mut chunk_commands: ResMut<ChunkCommands>) {
-
-    }
-
-    fn handle_entity_command_requests(mut entity_commands: ResMut<EntityCommands>) {
-
+        commands.remove_resource::<UniverseCommands>();
     }
 }
 
@@ -131,175 +128,298 @@ pub struct UniverseCommands {
 }
 
 impl UniverseCommands {
+    pub fn register_global_universe(&mut self, global_universe_id: GlobalUniverseID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unregister_global_universe(&mut self, global_universe_id: GlobalUniverseID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn get_global_universe_commands(&mut self, global_universe_id: GlobalUniverseID) -> Option<GlobalUniverseCommands> {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+    
+    pub fn generate_global_universe_metadata(&mut self, global_universe_id: GlobalUniverseID) -> GlobalUniverseMetadata {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn load_global_universe_metadata(&mut self, global_universe_id: GlobalUniverseID, global_universe_metadata: GlobalUniverseMetadata) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unload_global_universe_metadata(&mut self, global_universe_id: GlobalUniverseID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn create_global_universe_data(&mut self, global_universe_id: GlobalUniverseID) -> GlobalUniverseData {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn load_global_universe_data(&mut self, global_universe_id: GlobalUniverseID, global_universe_data: GlobalUniverseData) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unload_global_universe_data(&mut self, global_universe_id: GlobalUniverseID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
 }
 
+#[derive(Default)]
 pub struct GlobalUniverseCommands {
 
 }
 
 impl GlobalUniverseCommands {
+    pub fn register_local_universe(&mut self, local_universe_id: LocalUniverseID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unregister_local_universe(&mut self, local_universe_id: LocalUniverseID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn get_local_universe_commands(&mut self, local_universe_id: LocalUniverseID) -> Option<LocalUniverseCommands> {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn generate_local_universe_metadata(&mut self, local_universe_id: LocalUniverseID) -> LocalUniverseMetadata {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn load_local_universe_metadata(&mut self, local_universe_id: LocalUniverseID, local_universe_metadata: LocalUniverseMetadata) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unload_local_universe_metadata(&mut self, local_universe_id: LocalUniverseID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn create_local_universe_data(&mut self, local_universe_id: LocalUniverseID) -> LocalUniverseData {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn load_local_universe_data(&mut self, local_universe_id: LocalUniverseID, local_universe_data: LocalUniverseData) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unload_local_universe_data(&mut self, local_universe_id: LocalUniverseID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn spawn_local_universe(&mut self, local_universe_id: LocalUniverseID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+
+    }
+
+    pub fn despawn_local_universe(&mut self, local_universe_id: LocalUniverseID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+
+    }
+
+    // same for chunks
+
+    // same for entities
 }
 
+#[derive(Default)]
 pub struct LocalUniverseCommands {
 
 }
 
 impl LocalUniverseCommands {
+    pub fn query_chunk_at_pos(&mut self, bevy_world_position: Vec2) -> ChunkID {
+        todo!("David Jackson!");
 
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn register_chunk(&mut self, chunk_id: ChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unregister_chunk(&mut self, chunk_id: ChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn get_chunk_commands(&mut self, chunk_id: ChunkID) -> Option<ChunkCommands> {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn generate_chunk_metadata(&mut self, chunk_id: ChunkID) -> ChunkMetadata {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn load_chunk_metadata(&mut self, chunk_id: ChunkID, chunk_metadata: ChunkMetadata) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unload_chunk_metadata(&mut self, chunk_id: ChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn create_chunk_data(&mut self, chunk_id: ChunkID) -> ChunkData {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn load_chunk_data(&mut self, chunk_id: ChunkID, chunk_data: ChunkData) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn unload_chunk_data(&mut self, chunk_id: ChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn spawn_chunk(&mut self, chunk_id: ChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn despawn_chunk(&mut self, chunk_id: ChunkID) {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
 }
 
-#[derive(Resource, Default)]
+#[derive(Default)]
 pub struct ChunkCommands {
 
 }
 
 impl ChunkCommands {
-    pub fn query_chunk_id_at_pos(&mut self, bevy_world_position: Vec2) -> CommandsChunkID {
+    pub fn query_entity_id_at_pos(&mut self, bevy_world_position: Vec2) -> EntityID {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn register_chunk(&mut self, chunk_id: CommandsChunkID) {
+    pub fn generate_local_entity_id(&mut self, parent_chunk_id: ChunkID) -> LocalEntityID {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn unregister_chunk(&mut self, chunk_id: CommandsChunkID) {
+    pub fn register_entity(&mut self, entity_id: EntityID) {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn generate_chunk_metadata(&mut self, chunk_id: CommandsChunkID) -> CommandsChunkMetadata {
+    pub fn unregister_entity(&mut self, entity_id: EntityID) {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn load_chunk_metadata(&mut self, chunk_id: CommandsChunkID, chunk_metadata: CommandsChunkMetadata) {
+    pub fn generate_entity_metadata(&mut self, entity_id: EntityID) -> EntityMetadata {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn unload_chunk_metadata(&mut self, chunk_id: CommandsChunkID) {
+    pub fn load_entity_metadata(&mut self, entity_id: EntityID, entity_metadata: EntityMetadata) {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn create_chunk_data(&mut self, chunk_id: CommandsChunkID) -> CommandsChunkData {
+    pub fn unload_entity_metadata(&mut self, entity_id: EntityID) {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn load_chunk_data(&mut self, chunk_id: CommandsChunkID, chunk_data: CommandsChunkData) {
+    pub fn create_entity_data(&mut self, entity_id: EntityID) -> EntityData {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn unload_chunk_data(&mut self, chunk_id: CommandsChunkID) {
+    pub fn load_entity_data(&mut self, entity_id: EntityID, entity_data: EntityData) {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn spawn_chunk(&mut self, chunk_id: CommandsChunkID) {
+    pub fn unload_entity_data(&mut self, entity_id: EntityID) {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn despawn_chunk(&mut self, chunk_id: CommandsChunkID) {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-}
-
-#[derive(Resource, Default)]
-pub struct EntityCommands {
-
-}
-
-impl EntityCommands {
-    pub fn query_entity_id_at_pos(&mut self, bevy_world_position: Vec2) -> CommandsEntityID {
+    pub fn spawn_entity(&mut self, entity_id: EntityID) {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn generate_local_entity_id(&mut self, parent_chunk_id: CommandsChunkID) -> CommandsLocalEntityID {
+    pub fn despawn_entity(&mut self, entity_id: EntityID) {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
     }
 
-    pub fn register_entity(&mut self, entity_id: CommandsEntityID) {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-
-    pub fn unregister_entity(&mut self, entity_id: CommandsEntityID) {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-
-    pub fn generate_entity_metadata(&mut self, entity_id: CommandsEntityID) -> CommandsEntityMetadata {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-
-    pub fn load_entity_metadata(&mut self, entity_id: CommandsEntityID, entity_metadata: CommandsEntityMetadata) {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-
-    pub fn unload_entity_metadata(&mut self, entity_id: CommandsEntityID) {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-
-    pub fn create_entity_data(&mut self, entity_id: CommandsEntityID) -> CommandsEntityData {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-
-    pub fn load_entity_data(&mut self, entity_id: CommandsEntityID, entity_data: CommandsEntityData) {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-
-    pub fn unload_entity_data(&mut self, entity_id: CommandsEntityID) {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-
-    pub fn spawn_entity(&mut self, entity_id: CommandsEntityID) {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-
-    pub fn despawn_entity(&mut self, entity_id: CommandsEntityID) {
-        todo!("David Jackson!");
-
-        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
-    }
-
-    pub fn command_bevy_entity(&mut self, entity_id: CommandsEntityID, bevy_entity_commands: Box<dyn FnOnce(bevy::ecs::system::EntityCommands) + Send>) {
+    pub fn command_bevy_entity(&mut self, entity_id: EntityID, bevy_entity_commands: Box<dyn FnOnce(bevy::ecs::system::EntityCommands) + Send>) {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations

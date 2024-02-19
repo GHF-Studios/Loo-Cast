@@ -182,6 +182,7 @@ impl PlayerManager {
         };
 
         if mouse_button_input.just_pressed(MouseButton::Left) {
+            // TODO: RECYCLE CODE SNIPPET BELOW
             /*
             let local_entity_pos = LocalEntityPos::from(world_position);
             let absolute_local_parent_chunk_pos = AbsoluteLocalChunkPos::from(local_entity_pos);
@@ -219,7 +220,7 @@ impl PlayerManager {
 
             let local_entity_id = entity_commands.generate_local_entity_id(parent_chunk_id);
 
-            let entity_id = CommandsEntityID {
+            let entity_id = commands::EntityID {
                 parent_chunk_id,
                 local_entity_id,
             };

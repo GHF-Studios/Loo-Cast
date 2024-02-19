@@ -56,15 +56,16 @@ impl Plugin for UniversePlugin {
                 LocalUniversePlugin,
             ))
             // Startup Systems
+            .add_systems(Startup, UniverseManager::startup)
             // Enter Systems
-            .add_systems(OnEnter(AppState::Game), UniverseManager::startup)
+            .add_systems(OnEnter(AppState::Game), UniverseManager::load_global_universe)
             // Update Systems
             .add_systems(
                 Update,
-                (UniverseManager::handle_load_global_universe).run_if(in_state(AppState::Game)),
+                (UniverseManager::load_global_universe).run_if(in_state(AppState::Game)),
             )
             // Exit Systems
-            .add_systems(OnExit(AppState::Game), UniverseManager::shutdown);
+            .add_systems(OnExit(AppState::Game), UniverseManager::unload_global_universe);
     }
 }
 
@@ -93,25 +94,24 @@ impl UniverseManager {
         terminate_player_event_writer.send(TerminatePlayer {});
     }
 
-    pub fn handle_load_global_universe(
-        mut load_global_universe_event_reader: EventReader<LoadGlobalUniverse>,
-        mut universe_manager: ResMut<UniverseManager>,
-    ) {
-        if load_global_universe_event_reader.iter().last().is_some() {
-            universe_manager.registered_global_universe =
-                Some(Arc::new(Mutex::new(GlobalUniverse {
-                    registered_root_chunks: HashMap::new(),
-                    operation_requests: Arc::new(Mutex::new(Vec::new())),
-                    chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy::new(),
-                })));
-        }
+    fn load_global_universe(mut universe_manager: ResMut<UniverseManager>) {
+        universe_manager.registered_global_universe =
+            Some(Arc::new(Mutex::new(GlobalUniverse {
+                registered_root_chunks: HashMap::new(),
+                operation_requests: Arc::new(Mutex::new(Vec::new())),
+                chunk_entity_info_hierarchy: ChunkEntityInfoHierarchy::new(),
+            })));
     }
 
-    pub fn get_global_universe(&self) -> Option<Arc<Mutex<GlobalUniverse>>> {
+    fn unload_global_universe(mut universe_manager: ResMut<UniverseManager>) {
+        universe_manager.registered_global_universe = None;
+    }
+
+    pub(in self) fn get_global_universe(&self) -> Option<Arc<Mutex<GlobalUniverse>>> {
         self.registered_global_universe.clone()
     }
 
-    pub fn register_local_universe(&mut self, local_universe: LocalUniverse) -> Result<(), String> {
+    pub(in self) fn register_local_universe(&mut self, local_universe: LocalUniverse) -> Result<(), String> {
         let local_universe_id = local_universe.get_id();
 
         if self
@@ -130,7 +130,7 @@ impl UniverseManager {
         Ok(())
     }
 
-    pub fn unregister_local_universe(
+    pub(in self) fn unregister_local_universe(
         &mut self,
         local_universe_id: LocalUniverseID,
     ) -> Result<(), String> {
@@ -143,7 +143,7 @@ impl UniverseManager {
         }
     }
 
-    pub fn get_local_universe(
+    pub(in self) fn get_local_universe(
         &self,
         local_universe_id: LocalUniverseID,
     ) -> Option<Arc<Mutex<LocalUniverse>>> {
