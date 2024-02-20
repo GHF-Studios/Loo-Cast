@@ -91,9 +91,9 @@ pub struct EntityMetadata(crate::system::universe::entity::metadata::EntityMetad
 pub struct EntityData(crate::system::universe::entity::data::EntityData);
 
 
-// TODO:    Implement a ChunkEntityInfoHierarchy to facilitate an orderly execution of commands and centralized access to chunk/entity infos
+// TODO:    Implement a InfoHierarchy to facilitate an orderly execution of commands and centralized access to chunk/entity infos
 //          -   This will be used to ensure that commands are executed in the correct order and that chunk/entity infos are easily accessible
-//          -   It is vital that the redundant storages of the different smart pointers (to chunks & entities) are eliminated, and the chunk/entity infos are stored exclusively in the ChunkEntityInfoHierarchy
+//          -   It is vital that the redundant storages of the different smart pointers (to chunks & entities) are eliminated, and the chunk/entity infos are stored exclusively in the InfoHierarchy
 // TODO:    Define and Implement a BackgroundCommands structure
 // TODO:    Define and Implement a CameraCommands structure
 // TODO:    Define and Implement a PlayerCommands structure
@@ -261,10 +261,6 @@ impl GlobalUniverseCommands {
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
 
     }
-
-    // same for chunks
-
-    // same for entities
 }
 
 #[derive(Default, Clone)]
@@ -274,6 +270,12 @@ pub struct LocalUniverseCommands {
 
 impl LocalUniverseCommands {
     pub fn query_chunk_at_pos(&mut self, bevy_world_position: Vec2) -> ChunkID {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn query_chunks_in_radius(&mut self, bevy_world_position: Vec2, radius: f32) -> Vec<ChunkID> {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations
@@ -352,7 +354,13 @@ pub struct ChunkCommands {
 }
 
 impl ChunkCommands {
-    pub fn query_entity_at_pos(&mut self, bevy_world_position: Vec2) -> EntityID {
+    pub fn query_entities_at_pos(&mut self, bevy_world_position: Vec2) -> Vec<EntityID> {
+        todo!("David Jackson!");
+
+        // TODO: parse internal operation parameters from command parameters and perform the necessary operations
+    }
+
+    pub fn query_entities_in_radius(&mut self, bevy_world_position: Vec2, radius: f32) -> Vec<EntityID> {
         todo!("David Jackson!");
 
         // TODO: parse internal operation parameters from command parameters and perform the necessary operations

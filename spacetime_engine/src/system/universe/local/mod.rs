@@ -32,14 +32,15 @@ use bevy::prelude::*;
 pub struct LocalUniversePlugin;
 
 // TODO: Redefine this struct using the commands system
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LocalUniverse {
     pub(in crate::system::universe) id: LocalUniverseID,
-    pub(in crate::system::universe) previously_viewed_local_chunk_positions:
+    pub(in crate::system::universe) previously_viewed_chunks:
         Vec<ApparentLocalChunkPos>,
-    pub(in crate::system::universe) currently_viewed_local_chunk_positions:
+    pub(in crate::system::universe) currently_viewed_chunks:
         Vec<ApparentLocalChunkPos>,
-    pub(in crate::system::universe) newly_viewed_local_chunk_positions: Vec<ApparentLocalChunkPos>,
+    pub(in crate::system::universe) newly_viewed_chunks: 
+        Vec<ApparentLocalChunkPos>,
 }
 
 // Implementations
@@ -66,9 +67,9 @@ impl LocalUniverse {
     pub fn new(id: LocalUniverseID) -> LocalUniverse {
         Self {
             id,
-            previously_viewed_local_chunk_positions: Vec::new(),
-            currently_viewed_local_chunk_positions: Vec::new(),
-            newly_viewed_local_chunk_positions: Vec::new(),
+            previously_viewed_chunks: Vec::new(),
+            currently_viewed_chunks: Vec::new(),
+            newly_viewed_chunks: Vec::new(),
         }
     }
 

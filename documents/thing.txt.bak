@@ -1,10 +1,5 @@
 TODO:
 
-
-FIGURE OUT WHERE THE CHUNKENTITYINFOHIERARCHY FITS IN
-
-
-
 (GlobalUniverseCommands) Implement the chunk/entity info hierarchy as a set of commands, which are public to the universe module only
 (LocalUniverseCommands) Implement the chunk loading as a set of commands, which are public to the universe module only
 Add UniverseState and PlayerState (and other states?)
