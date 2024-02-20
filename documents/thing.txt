@@ -1,14 +1,16 @@
-TODO:
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Define, Implement, and Deploy two separate universe command systems (packaged as one for convenience): Universe API Commands, and Internal Universe Commands
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-FIGURE OUT WHERE THE CHUNKENTITYINFOHIERARCHY FITS IN
 
-
-
+Reimplement these two methods using the commands system
+Two part process:
+	- Somehow rearange the internal and external universe api layers so that the chunk/entity info hierarchy finds a suitable spot
+	- Add UniverseState and PlayerState (and other states?)
 (GlobalUniverseCommands) Implement the chunk/entity info hierarchy as a set of commands, which are public to the universe module only
 (LocalUniverseCommands) Implement the chunk loading as a set of commands, which are public to the universe module only
-Add UniverseState and PlayerState (and other states?)
-Reimplement these two methods using the commands system
+
 Implement LocalUniverse Metadata and Data
 Implement GlobalUniverse Metadata and Data
 Wrap Player module into PlayerCommands
@@ -16,5 +18,3 @@ Wrap Camera module into CameraCommands
 Wrap other modules blablabla 
 
 Implement all command structures properly and comprehensively and check everything for validity
-
-
