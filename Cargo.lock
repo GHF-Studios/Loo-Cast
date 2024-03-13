@@ -2345,6 +2345,14 @@ name = "loo_cast_base_mod"
 version = "0.5.0"
 
 [[package]]
+name = "loo_cast_base_mod_derive"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.48",
+]
+
+[[package]]
 name = "mach2"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3418,6 +3426,15 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "serde_json",
+ "spacetime_engine_derive",
+]
+
+[[package]]
+name = "spacetime_engine_derive"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.48",
 ]
 
 [[package]]

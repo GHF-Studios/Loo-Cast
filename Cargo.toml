@@ -1,5 +1,7 @@
 [workspace]
 members = [
   "loo_cast_base_mod",
-  "spacetime_engine"
+  "loo_cast_base_mod_derive",
+  "spacetime_engine",
+  "spacetime_engine_derive",
 ]

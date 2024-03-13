@@ -5,8 +5,9 @@
 // Internal imports
 use crate::system::camera::MainCamera;
 use crate::system::game::SimulationState;
-use crate::system::universe::*;
-use crate::system::universe::commands::*;
+//use crate::system::universe::*;
+//use crate::system::universe::commands::*;
+// TODO: Reimport universe commands
 use crate::system::AppState;
 
 // External imports
@@ -48,7 +49,8 @@ impl Plugin for PlayerPlugin {
                 Update,
                 (
                     PlayerManager::player_movement_system,
-                    PlayerManager::player_god_system,
+                    //PlayerManager::player_god_system,
+                    // TODO: Reimplement player_god_system with the new commands framework
                 )
                     .run_if(in_state(AppState::Game))
                     .run_if(in_state(SimulationState::Running)),
@@ -144,6 +146,7 @@ impl PlayerManager {
         }
     }
 
+    /*
     fn player_god_system(
         main_camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
         primary_window_query: Query<&Window, With<PrimaryWindow>>,
@@ -245,6 +248,7 @@ impl PlayerManager {
             }));
         }
     }
+    */
 }
 
 // Module Functions

@@ -1,0 +1,13 @@
+[package]
+name = "loo_cast_base_mod_derive"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "loo_cast_base_mod_derive"
+path = "src/lib.rs"
+proc-macro = true
+
+[dependencies]
+syn = "2.0"
+quote = "1.0"

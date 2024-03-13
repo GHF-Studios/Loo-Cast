@@ -280,12 +280,19 @@ impl Resource for TestResource {
             Err(error) => return Err(format!("Failed to open file: {}", error)),
         };
 
+        let file_handle_metadata = match file_handle.metadata() {
+            Ok(file_handle_metadata) => file_handle_metadata,
+            Err(error) => return Err(format!("Failed to get file metadata: {}", error)),
+        };
+
         let mut file_content = Vec::new();
 
-        match file_handle.read(&mut file_content) {
-            Ok(_) => (),
-            Err(error) => return Err(format!("Failed to read file: {}", error)),
-        };
+        if file_handle_metadata.len() > 0 {
+            match file_handle.read_to_end(&mut file_content) {
+                Ok(_) => (),
+                Err(error) => return Err(format!("Failed to read file: {}", error)),
+            };
+        }
 
         Ok(file_content.into_boxed_slice())
     }
