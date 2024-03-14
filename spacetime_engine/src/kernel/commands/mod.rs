@@ -14,13 +14,13 @@ pub trait Command {
 
 // Type: Enum
 // Naming Convention: [COMMAND_NAME]CommandError
-trait CommandError: std::error::Error {
+pub trait CommandError: std::error::Error {
     type Command: Command;
 }
 
 // Type: Enum
 // Naming Convention: [COMMAND_NAME]CommandSuccess
-trait CommandSuccess: std::fmt::Debug {
+pub trait CommandSuccess: std::fmt::Debug {
     type Command: Command;
 }
 
