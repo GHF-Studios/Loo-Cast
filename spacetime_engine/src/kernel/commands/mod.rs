@@ -1,67 +1,58 @@
 use std::fmt::{Error, Display};
-
-#[macro_export]
-macro_rules! define_commands_module {
-    ($(&tokens:tt)*) => {
-    };
-}
+use spacetime_engine_derive::define_commands_module;
 
 define_commands_module! {
-    Test: { 
-        commands: [
-            HelloWorld: {
-                Input: {
-                    value: i32,
-                },
-                Output: {
-                    value: i32,
-                },
-                Error: {
-                    InvalidInput,
-                },
-                Code: {
-                    closure: (input) => {
-                        match input.value {
-                            0 => {
-                                Ok(HelloWorldCommandOutput {
-                                    value: input.value,
-                                })
-                            },
-                            _ => {
-                                Err(HelloWorldCommandError::InvalidInput)
-                            },
-                        }
-                    },
-                }
+    Test { 
+        HelloWorld {
+            Input {
+                value: i32,
             },
-            DrawGizmoLine: {
-                Input: {
-                    some_value: i32,
-                    some_value: i8,
-                },
-                Output: {
-                    this_value: i32,
-                    that_value: i16,
-                },
-                Error: {
-                    NameIsEmpty,
-                },
-                Code: {
-                    closure: (input) => {
-                        match input.value {
-                            0 => {
-                                Ok(DrawGizmoLineCommandOutput {
-                                    value: input.value,
-                                })
-                            },
-                            _ => {
-                                Err(DrawGizmoLineCommandError::NameIsEmpty)
-                            },
-                        }
-                    },
+            Output {
+                value: i32,
+            },
+            Error {
+                InvalidInput,
+            },
+            Code (input) => {
+                if input.value == 0 {
+                    println!("Hello World!");
+
+                    return Ok(HelloWorldCommandOutput {
+                        value: input.value,
+                    })
+                } else {
+                    return Err(HelloWorldCommandError::InvalidInput)
                 }
             }
-        ],
+        },
+        DrawGizmoLine {
+            Input {
+                start_point: (i32, i32),
+                end_point: (i32, i32),
+            },
+            Output {
+                line_id: u32,
+            },
+            Error {
+                InvalidStartPoint,
+                InvalidEndPoint;
+            },
+            Code (input) => {
+                if start_point.0 == 0 && start_point.1 == 0 {
+                    if end_point.0 == 0 && end_point.1 == 0 {
+                        println!("Drawing Gizmo Line!");
+
+                        return Ok(DrawGizmoLineCommandOutput {
+                            value: input.value,
+                        })
+                    } else {
+                        return Err(DrawGizmoLineCommandError::InvalidEndPoint)
+                    }
+                } else {
+                    return Err(DrawGizmoLineCommandError::InvalidPoints)
+                }
+            }
+        }
     }
 }
 
@@ -86,18 +77,14 @@ pub(in crate::kernel::commands) trait TestCommand {
 pub(in crate::kernel::commands) trait TestCommandInput: Display {
     type Command: TestCommand;
 }
-
 pub(in crate::kernel::commands) trait TestCommandOutput: Display {
     type Command: TestCommand;
 }
-
 pub(in crate::kernel::commands) trait TestCommandError: Display {
     type Command: TestCommand;
 }
-
 pub(in crate::kernel::commands) trait TestCommandCode: Display {
 }
-
 pub struct TestCommands {
 }
 
@@ -212,8 +199,4 @@ impl Display for HelloWorldCommandError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
         write!(f, "HelloWorldCommandError")
     }
-}
-
-pub struct HelloWorldCommandCode {
-    code: Fn<(Result<HelloWorldCommandOutput, HelloWorldCommandError>, HelloWorldCommandInput)>,
 }
