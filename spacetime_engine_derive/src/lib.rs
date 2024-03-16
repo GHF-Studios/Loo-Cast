@@ -351,6 +351,47 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         
     };
 
+    let generated_command_module_struct = quote! {
+        pub struct TestCommands {
+        }
+        
+        impl TestCommands {
+            pub fn hello_world(value: i32) -> Result<HelloWorldCommandOutput, HelloWorldCommandError> {
+                let mut hello_world_command = HelloWorldCommand::initialize(
+                    HelloWorldCommandInput {
+                        value,
+                    },
+                    HelloWorldCommandCode {
+                        closure: |input| -> Result<HelloWorldCommandOutput, HelloWorldCommandError> {
+                            match input.value {
+                                0 => {
+                                    *self = HelloWorldCommand::Executed {
+                                        result: Ok(HelloWorldCommandOutput {
+                                            value: 0,
+                                        }),
+                                    };
+                                },
+                                _ => {
+                                    *self = HelloWorldCommand::Executed {
+                                        result: Err(HelloWorldCommandError::InvalidInput),
+                                    };
+                                },
+                            }
+                        },
+                    }
+                );
+        
+                hello_world_command.execute();
+        
+                if let Some(hello_world_command_result) = hello_world_command.finalize() {
+                    hello_world_command_result
+                } else {
+                    panic!("Command did not execute properly!");
+                }
+            }
+        }
+    };
+
     let generated_command_request_functions: Vec<TokenStream> = Vec::new();
     
     for command_type in parsed_module.command_types.iter() {
