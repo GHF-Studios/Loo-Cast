@@ -2,7 +2,6 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
     Block,
-    ExprClosure,
     Ident,
     LitStr, 
     parse::{Parse, ParseStream}, 
@@ -30,9 +29,9 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
     gen.into()
 }
 
-struct CommandModuleType {
-    module_name: LitStr,
-    command_types: Vec<CommandType>,
+pub(crate) struct CommandModuleType {
+    pub module_name: LitStr,
+    pub command_types: Vec<CommandType>,
 }
 
 impl Parse for CommandModuleType {
@@ -54,12 +53,13 @@ impl Parse for CommandModuleType {
 
 }
 
-struct CommandType {
-    command_name: LitStr,
-    input_type: CommandInputType,
-    output_type: CommandOutputType,
-    error_type: CommandErrorType,
-    code_type: CommandCodeType
+#[derive(Clone)]
+pub(crate) struct CommandType {
+    pub command_name: LitStr,
+    pub input_type: CommandInputType,
+    pub output_type: CommandOutputType,
+    pub error_type: CommandErrorType,
+    pub code_type: CommandCodeType
 }
 
 impl Parse for CommandType {
@@ -96,8 +96,9 @@ impl Parse for CommandType {
 
 }
 
-struct CommandInputType {
-    parameter_types: Vec<CommandInputParameterType>
+#[derive(Clone)]
+pub(crate) struct CommandInputType {
+    pub parameter_types: Vec<CommandInputParameterType>
 }
 
 impl Parse for CommandInputType {
@@ -121,9 +122,10 @@ impl Parse for CommandInputType {
     }
 }
 
-struct CommandInputParameterType {
-    parameter_name: LitStr,
-    parameter_type: syn::Type
+#[derive(Clone)]
+pub(crate) struct CommandInputParameterType {
+    pub parameter_name: LitStr,
+    pub parameter_type: syn::Type
 }
 
 impl Parse for CommandInputParameterType {
@@ -141,10 +143,11 @@ impl Parse for CommandInputParameterType {
             parameter_type
         })
     }
-
 }
-struct CommandOutputType {
-    parameter_types: Vec<CommandOutputParameterType>
+
+#[derive(Clone)]
+pub(crate) struct CommandOutputType {
+    pub parameter_types: Vec<CommandOutputParameterType>
 }
 
 impl Parse for CommandOutputType {
@@ -168,9 +171,10 @@ impl Parse for CommandOutputType {
     }
 }
 
-struct CommandOutputParameterType {
-    parameter_name: LitStr,
-    parameter_type: syn::Type
+#[derive(Clone)]
+pub(crate) struct CommandOutputParameterType {
+    pub parameter_name: LitStr,
+    pub parameter_type: syn::Type
 }
 
 impl Parse for CommandOutputParameterType {
@@ -191,8 +195,9 @@ impl Parse for CommandOutputParameterType {
 
 }
 
-struct CommandErrorType {
-    error_variants: Vec<CommandErrorVariantType>
+#[derive(Clone)]
+pub(crate) struct CommandErrorType {
+    pub error_variants: Vec<CommandErrorVariantType>
 }
 
 impl Parse for CommandErrorType {
@@ -216,8 +221,9 @@ impl Parse for CommandErrorType {
     }
 }
 
-struct CommandErrorVariantType {
-    variant_name: LitStr
+#[derive(Clone)]
+pub(crate) struct CommandErrorVariantType {
+    pub variant_name: LitStr
 }
 
 impl Parse for CommandErrorVariantType {
@@ -232,8 +238,9 @@ impl Parse for CommandErrorVariantType {
     }
 }
 
-struct CommandCodeType {
-    code_block: Block
+#[derive(Clone)]
+pub(crate) struct CommandCodeType {
+    pub code_block: Block
 }
 
 impl Parse for CommandCodeType {
@@ -305,72 +312,53 @@ impl Parse for CommandCodeType {
 pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
     let parsed_module = syn::parse_macro_input!(tokens as CommandModuleType);
 
-    let generated_code = quote! {
-        pub(in crate::kernel::commands) trait TestCommand {
-            type Module: CommandsModule;
-            type Input: TestCommandInput<Command = Self>;
-            type Output: TestCommandOutput<Command = Self>;
-            type Error: TestCommandError<Command = Self>;
-            type Code: TestCommandCode<Command = Self>;
+    let module_id = parsed_module.module_name.value().to_string();
+    let module_name = Ident::new(&(module_id.clone() + "Commands"), parsed_module.module_name.span());
+    let module_command_trait_name = Ident::new(&(module_id.clone() + "Command"), module_id.span());
+    let module_command_input_trait_name = Ident::new(&(module_id.clone() + "CommandInput"), module_id.span());
+    let module_command_output_trait_name = Ident::new(&(module_id.clone() + "CommandOutput"), module_id.span());
+    let module_command_error_trait_name = Ident::new(&(module_id.clone() + "CommandError"), module_id.span());
+    let module_command_code_trait_name = Ident::new(&(module_id.clone() + "CommandCode"), module_id.span());
+
+    let generated_traits = quote! {
+        pub(in crate::kernel::commands) trait #module_command_trait_name {
+            type Input: #module_command_input_trait_name<Command = Self>;
+            type Output: #module_command_output_trait_name<Command = Self>;
+            type Error: #module_command_error_trait_name<Command = Self>;
+            type Code: #module_command_code_trait_name<Command = Self>;
         
             fn initialize(input: Self::Input, code: Self::Code) -> Self;
             fn execute(&mut self);
             fn finalize(self) -> Option<Result<Self::Output, Self::Error>>;
         }
         
-        pub(in crate::kernel::commands) trait TestCommandInput: Display {
-            type Command: TestCommand;
+        pub(in crate::kernel::commands) trait #module_command_input_trait_name: Display {
+            type Command: #module_command_trait_name;
         }
         
-        pub(in crate::kernel::commands) trait TestCommandOutput: Display {
-            type Command: TestCommand;
+        pub(in crate::kernel::commands) trait #module_command_output_trait_name: Display {
+            type Command: #module_command_trait_name;
         }
         
-        pub(in crate::kernel::commands) trait TestCommandError: Display {
-            type Command: TestCommand;
+        pub(in crate::kernel::commands) trait #module_command_error_trait_name: Display {
+            type Command: #module_command_trait_name;
         }
         
-        pub(in crate::kernel::commands) trait TestCommandCode: Display {
-            type Command: TestCommand;
+        pub(in crate::kernel::commands) trait #module_command_code_trait_name: Display {
+            type Command: #module_command_trait_name;
         }
         
-        pub struct TestCommands {
-        }
         
-        impl CommandsModule for TestCommands {
-            fn module_name() -> &'static str {
-                "TestCommands"
-            }
-        }
-        
-        impl TestCommands {
-            pub fn hello_world(value: i32) -> Result<HelloWorldCommandOutput, HelloWorldCommandError> {
-                let mut hello_world_command = HelloWorldCommand::initialize(
-                    HelloWorldCommandInput {
-                        value,
-                    },
-                    HelloWorldCommandCode {
-                        closure: |input| -> Result<HelloWorldCommandOutput, HelloWorldCommandError> {
-                            if input.value == 0 {
-                                Ok(HelloWorldCommandOutput {
-                                    value: input.value,
-                                })
-                            } else {
-                                Err(HelloWorldCommandError::InvalidInput)
-                            }
-                        },
-                    }
-                );
-        
-                hello_world_command.execute();
-        
-                if let Some(hello_world_command_result) = hello_world_command.finalize() {
-                    hello_world_command_result
-                } else {
-                    panic!("Command did not execute properly!");
-                }
-            }
-        }
+    };
+
+    let generated_command_request_functions: Vec<TokenStream> = Vec::new();
+    
+    for command_type in parsed_module.command_types.iter() {
+        let generated_command_request_function: TokenStream = quote! {
+        };
+    }
+
+    let generated_code = quote! {
         
         pub(in crate::kernel::commands) enum HelloWorldCommand {
             Initialized {
@@ -383,7 +371,6 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
         
         impl TestCommand for HelloWorldCommand {
-            type Module = TestCommands;
             type Input = HelloWorldCommandInput;
             type Output = HelloWorldCommandOutput;
             type Error = HelloWorldCommandError;

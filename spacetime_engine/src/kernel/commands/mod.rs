@@ -61,7 +61,6 @@ define_commands_module! {
     }
 }
 
-// This does not belong to the Test Command Module, but is a general Commands-related concept. The TestCommand Module's presence is to demonstrate the concept of a Command Module.
-pub trait CommandsModule {
-    fn module_name() -> &'static str;
+pub fn test() {
+    TestCommands::hello_world(0);
 }
