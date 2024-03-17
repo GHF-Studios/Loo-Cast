@@ -356,7 +356,13 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
     let command_module_id = command_module_type.module_id.value().to_string();
     let command_module_name = Ident::new(&(command_module_id.clone() + "Commands"), command_module_id.span());
 
-    let mut generated_command_request_functions = Vec::<proc_macro2::TokenStream>::new();
+    let mut generated_command_request_function_streams = Vec::<proc_macro2::TokenStream>::new();
+    let mut generated_command_streams = Vec::<proc_macro2::TokenStream>::new();
+    let mut generated_command_input_streams = Vec::<proc_macro2::TokenStream>::new();
+    let mut generated_command_output_streams = Vec::<proc_macro2::TokenStream>::new();
+    let mut generated_command_error_streams = Vec::<proc_macro2::TokenStream>::new();
+    let mut generated_command_code_streams = Vec::<proc_macro2::TokenStream>::new();
+
     for command_type in command_module_type.command_types.0 {
         let command_id = command_type.command_id.value().to_string();
         let mut command_id_snake_case = String::new();
@@ -389,7 +395,6 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 prev_was_uppercase = false;
             }
         }
-        
 
         let command_module_name = command_id.clone() + "Commands";
 
@@ -431,21 +436,223 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let input_parameter_infos: Vec<(LitStr, syn::Type)> = command_type.input_type.parameter_types.iter().map(|parameter_type| {
             (parameter_type.parameter_name.clone(), parameter_type.parameter_type.clone())
         }).collect();
+        
         let mut generated_input_parameters = quote! {};
+        let mut first = true;
         for (parameter_name, parameter_type) in input_parameter_infos.clone() {
             let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_input_parameters = quote! {
+                    #generated_input_parameters, 
+                };
+            } else {
+                first = false;
+            }
+
             generated_input_parameters = quote! {
                 #generated_input_parameters
-                #parameter_name: #parameter_type,
+                #parameter_name: #parameter_type
+            };
+        }
+
+        let mut generated_public_input_parameters = quote! {};
+        let mut first = true;
+        for (parameter_name, parameter_type) in input_parameter_infos.clone() {
+            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_public_input_parameters = quote! {
+                    #generated_public_input_parameters, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_public_input_parameters = quote! {
+                #generated_public_input_parameters
+                pub #parameter_name: #parameter_type
+            };
+        }
+
+        let mut generated_self_input_parameters = quote! {};
+        let mut first = true;
+        for (parameter_name, _) in input_parameter_infos.clone() {
+            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_self_input_parameters = quote! {
+                    #generated_self_input_parameters, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_self_input_parameters = quote! {
+                #generated_self_input_parameters
+                self.#parameter_name
+            };
+        }
+
+        let mut generated_interpolated_input_parameters = quote! {};
+        let mut first = true;
+        for (parameter_name, _) in input_parameter_infos.clone() {
+            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_interpolated_input_parameters = quote! {
+                    #generated_interpolated_input_parameters, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_interpolated_input_parameters = quote! {
+                #generated_interpolated_input_parameters
+                #parameter_name {}
             };
         }
 
         let mut generated_input_parameter_names = quote! {};
+        let mut first = true;
         for (parameter_name, _) in input_parameter_infos {
             let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_input_parameter_names = quote! {
+                    #generated_input_parameter_names, 
+                };
+            } else {
+                first = false;
+            }
+
             generated_input_parameter_names = quote! {
                 #generated_input_parameter_names
                 #parameter_name,
+            };
+        }
+
+        let output_parameter_infos: Vec<(LitStr, syn::Type)> = command_type.output_type.parameter_types.iter().map(|parameter_type| {
+            (parameter_type.parameter_name.clone(), parameter_type.parameter_type.clone())
+        }).collect();
+
+        let mut generated_output_parameters = quote! {};
+        let mut first = true;
+        for (parameter_name, parameter_type) in output_parameter_infos.clone() {
+            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_output_parameters = quote! {
+                    #generated_output_parameters, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_output_parameters = quote! {
+                #generated_output_parameters
+                #parameter_name: #parameter_type
+            };
+        }
+
+        let mut generated_public_output_parameters = quote! {};
+        let mut first = true;
+        for (parameter_name, parameter_type) in output_parameter_infos.clone() {
+            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_public_output_parameters = quote! {
+                    #generated_public_output_parameters, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_public_output_parameters = quote! {
+                #generated_public_output_parameters
+                pub #parameter_name: #parameter_type
+            };
+        }
+
+        let mut generated_self_output_parameters = quote! {};
+        let mut first = true;
+        for (parameter_name, _) in output_parameter_infos.clone() {
+            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_self_output_parameters = quote! {
+                    #generated_self_output_parameters, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_self_output_parameters = quote! {
+                #generated_self_output_parameters
+                self.#parameter_name
+            };
+        }
+
+        let mut generated_interpolated_output_parameters = quote! {};
+        let mut first = true;
+        for (parameter_name, _) in output_parameter_infos.clone() {
+            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_interpolated_output_parameters = quote! {
+                    #generated_interpolated_output_parameters, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_interpolated_output_parameters = quote! {
+                #generated_interpolated_output_parameters
+                #parameter_name {}
+            };
+        }
+
+        let error_variant_infos: Vec<LitStr> = command_type.error_type.error_variants.iter().map(|variant_type| {
+            variant_type.variant_name.clone()
+        }).collect();
+
+        let mut generated_error_variants = quote! {};
+        let mut first = true;
+        for variant_name in error_variant_infos.clone() {
+            let variant_name = Ident::new(&variant_name.value(), variant_name.span());
+
+            if !first {
+                generated_error_variants = quote! {
+                    #generated_error_variants, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_error_variants = quote! {
+                #generated_error_variants
+                #variant_name
+            };
+        }
+
+        let mut generated_display_error_variants = quote! {};
+        let mut first = true;
+        for variant_name in error_variant_infos.clone() {
+            let variant_name = Ident::new(&variant_name.value(), variant_name.span());
+
+            if !first {
+                generated_display_error_variants = quote! {
+                    #generated_display_error_variants, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_display_error_variants = quote! {
+                #generated_display_error_variants
+                #command_error_name::#variant_name => {
+                    return write!(f, "#command_error_name::#variant_name");
+                }
             };
         }
 
@@ -470,161 +677,175 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             }
         };
 
-        generated_command_request_functions.push(generated_command_request_function);
+        let generated_command = quote! {
+            pub enum #command_name {
+                Initialized {
+                    input: #command_input_name,
+                    code: #command_code_name,
+                },
+                Executed {
+                    result: Option<#command_result_name_snake_case>,
+                },
+            }
+            
+            impl #command_name {
+                fn initialize(input: #command_input_name, code: #command_code_name) -> Self {
+                    #command_name::Initialized {
+                        input,
+                        code,
+                    }
+                }
+            
+                fn execute(&mut self) {
+                    if let #command_name::Initialized { input, code } = self {
+                        *self = #command_name::Executed {
+                            result: Some((code.closure)(&input)),
+                        };
+                    }
+                }
+            
+                fn finalize(self) -> Option<#command_result_name_snake_case> {
+                    if let #command_name::Executed { result } = self {
+                        result
+                    } else {
+                        None
+                    }
+                }
+            }
+        };
+
+        let generated_command_input = quote! {
+            pub struct #command_input_name {
+                #generated_public_input_parameters
+            }
+            
+            impl Display for #command_input_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
+                    write!(f, "#command_input_name {{ #generated_interpolated_input_parameters }}", #generated_self_input_parameters)
+                }
+            }
+        };
+
+        let generated_command_output = quote! {
+            pub struct #command_output_name {
+                #generated_public_output_parameters
+            }
+            
+            impl Display for #command_output_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
+                    write!(f, "#command_output_name {{ #generated_interpolated_output_parameters }}", #generated_self_output_parameters)
+                }
+            }
+        };
+
+        let generated_command_error = quote! {
+            pub enum #command_error_name {
+                #generated_error_variants
+            }
+            
+            impl Display for #command_error_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
+                    match *self {
+                        #generated_display_error_variants
+                    }
+                }
+            }
+        };
+
+        let generated_command_code = quote! {
+            pub struct #command_code_name {
+                closure: Box<dyn Fn(&#command_input_name) -> Result<#command_output_name, #command_error_name>>,
+            }
+            
+            impl Display for #command_code_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
+                    write!(f, "#command_code_name {{ closure: No Display }}")
+                }
+            }
+        };
+
+        generated_command_request_function_streams.push(generated_command_request_function);
+        generated_command_streams.push(generated_command);
+        generated_command_input_streams.push(generated_command_input);
+        generated_command_output_streams.push(generated_command_output);
+        generated_command_error_streams.push(generated_command_error);
+        generated_command_code_streams.push(generated_command_code);
     }
 
-    let mut generated_command_module_impl_content = quote! {
+    let mut generated_command_request_function_stream = quote! {
     };
-    for generated_command_request_function in generated_command_request_functions {
-        println!("Generated Function: {}", generated_command_request_function);
-        generated_command_module_impl_content = quote! {
-            #generated_command_module_impl_content
+    for generated_command_request_function in generated_command_request_function_streams {
+        generated_command_request_function_stream = quote! {
+            #generated_command_request_function_stream
             #generated_command_request_function
         };
     }
 
-    let generated_command_module_struct = quote! {
+    let mut generated_command_stream = quote! {
+    };
+    for generated_command in generated_command_streams {
+        generated_command_stream = quote! {
+            #generated_command_stream
+            #generated_command
+        };
+    }
+
+    let mut generated_command_input_stream = quote! {
+    };
+    for generated_command_input in generated_command_input_streams {
+        generated_command_input_stream = quote! {
+            #generated_command_input_stream
+            #generated_command_input
+        };
+    }
+
+    let mut generated_command_output_stream = quote! {
+    };
+    for generated_command_output in generated_command_output_streams {
+        generated_command_output_stream = quote! {
+            #generated_command_output_stream
+            #generated_command_output
+        };
+    }
+
+    let mut generated_command_error_stream = quote! {
+    };
+    for generated_command_error in generated_command_error_streams {
+        generated_command_error_stream = quote! {
+            #generated_command_error_stream
+            #generated_command_error
+        };
+    }
+
+    let mut generated_command_code_stream = quote! {
+    };
+    for generated_command_code in generated_command_code_streams {
+        generated_command_code_stream = quote! {
+            #generated_command_code_stream
+            #generated_command_code
+        };
+    }
+
+    let generated_code = quote! {
         pub struct #command_module_name {
         }
         
         impl #command_module_name {
-            #generated_command_module_impl_content
+            #generated_command_request_function_stream
         }
+
+        #generated_command_stream
+        
+        #generated_command_input_stream
+
+        #generated_command_output_stream
+
+        #generated_command_error_stream
+
+        #generated_command_code_stream
     };
 
-    let generated_code = quote! {
-        #generated_command_module_struct
-
-        pub(in crate::kernel::commands) enum HelloWorldCommand {
-            Initialized {
-                input: HelloWorldCommandInput,
-                code: HelloWorldCommandCode,
-            },
-            Executed {
-                result: Result<HelloWorldCommandOutput, HelloWorldCommandError>,
-            },
-        }
-        
-        impl HelloWorldCommand {
-            fn initialize(input: HelloWorldCommandInput, code: HelloWorldCommandCode) -> Self {
-                HelloWorldCommand::Initialized {
-                    input,
-                    code,
-                }
-            }
-        
-            fn execute(&mut self) {
-                if let HelloWorldCommand::Initialized { input, code } = self {
-                    *self = HelloWorldCommand::Executed {
-                        result: (code.closure)(input),
-                    };
-                }
-            }
-        
-            fn finalize(self) -> Option<Result<HelloWorldCommandOutput, HelloWorldCommandError>> {
-                if let HelloWorldCommand::Executed { result } = self {
-                    Some(result)
-                } else {
-                    None
-                }
-            }
-        }
-        
-        pub(in crate::kernel::commands) struct HelloWorldCommandInput {
-            pub value: i32,
-        }
-        
-        impl Display for HelloWorldCommandInput {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
-                write!(f, "HelloWorldCommandInput {{ value: {} }}", self.value)
-            }
-        }
-        
-        pub struct HelloWorldCommandOutput {
-            pub value: i32,
-        }
-        
-        impl Display for HelloWorldCommandOutput {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
-                write!(f, "HelloWorldCommandOutput {{ value: {} }}", self.value)
-            }
-        }
-        
-        pub enum HelloWorldCommandError {
-            InvalidInput,
-        }
-        
-        impl Display for HelloWorldCommandError {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
-                match *self {
-                    HelloWorldCommandError::InvalidInput => {
-                        return write!(f, "HelloWorldCommandError::InvalidInput");
-                    },
-                }
-            }
-        }
-        
-        pub(in crate::kernel::commands) struct HelloWorldCommandCode {
-            closure: Box<dyn Fn(&HelloWorldCommandInput) -> Result<HelloWorldCommandOutput, HelloWorldCommandError>>,
-        }
-        
-        impl Display for HelloWorldCommandCode {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
-                write!(f, "HelloWorldCommandCode {{ closure: No Display }}")
-            }
-        }
-    };
+    println!("{}", generated_code);
 
     TokenStream::from(generated_code)
-}
-
-fn generate_command_module(command_module_type: CommandModuleType) -> TokenStream {
-    todo!();
-}
-
-fn generate_command(command_type: CommandType) -> TokenStream {
-    todo!();
-}
-
-fn generate_command_input(
-    command_module_type: CommandModuleType, 
-    command_type: CommandType, 
-    command_input_type: CommandInputType
-) -> TokenStream {
-    let module_id = command_module_type.module_id.value().to_string();
-    let module_command_input_trait_name = Ident::new(&(module_id.clone() + "CommandInput"), module_id.span());
-    
-    let command_id = command_type.command_id.value().to_string();
-    let command_input_name = Ident::new(&(command_id.clone() + "CommandInput"), command_id.span());
-
-    let command_input_parameter_types: Vec<CommandInputParameterType> = command_input_type.parameter_types;
-
-    let generated_code = quote! {
-        pub(in crate::kernel::commands) struct #command_input_name {
-            pub value: i32,
-        }
-        
-        impl #module_command_input_trait_name for #command_input_name {
-        }
-        
-        impl Display for #command_input_name {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
-                write!(f, "#command_input_name {{ value: {} }}", self.value)
-            }
-        }
-    };
-
-    generated_code.into()
-}
-
-fn generate_command_output(command_output_type: CommandOutputType) -> TokenStream {
-    todo!();
-}
-
-fn generate_command_error(command_error_type: CommandErrorType) -> TokenStream {
-    todo!();
-}
-
-fn generate_command_code(command_code_type: CommandCodeType) -> TokenStream {
-    todo!();
 }
