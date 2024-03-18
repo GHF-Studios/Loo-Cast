@@ -12,25 +12,6 @@ use syn::{
     Token,
 };
 
-#[proc_macro_derive(HelloMacro)]
-pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).unwrap();
-
-    impl_hello_macro(&ast)
-}
-
-fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
-    let name = &ast.ident;
-    let gen = quote! {
-        impl HelloMacro for #name {
-            fn hello_macro() {
-                info!("Hello, Macro! My name is {}!", stringify!(#name));
-            }
-        }
-    };
-    gen.into()
-}
-
 pub(crate) struct CommandModuleType {
     pub module_id: LitStr,
     pub module_path: Path,
@@ -858,8 +839,6 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
         #generated_command_code_stream
     };
-
-    println!("{}", generated_code);
 
     TokenStream::from(generated_code)
 }

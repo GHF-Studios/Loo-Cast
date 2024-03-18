@@ -30,11 +30,11 @@ impl Plugin for CommandsTestPlugin {
 
 impl CommandsTestManager {
     fn initialize() {
-        Test::hello_macro();
         let test_commands = crate::kernel::commands::TestCommands {};
 
         for i in 0..5 {
             println!("Test {}: ", i);
+
             match test_commands.hello_world(i) {
                 Ok(output) => {
                     println!("Output: {}", output.value);
@@ -43,8 +43,8 @@ impl CommandsTestManager {
                     panic!("Error: {}", error);
                 },
             };
+
             println!("Test {} done.", i);
-            
         }
     }
 
@@ -56,11 +56,3 @@ impl CommandsTestManager {
 
     }
 }
-
-pub trait HelloMacro {
-    fn hello_macro();
-}
-
-
-#[derive(HelloMacro)]
-struct Test;
