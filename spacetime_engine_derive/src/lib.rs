@@ -840,5 +840,117 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         #generated_command_code_stream
     };
 
+    // Generated Code
+        // Command Module
+            // Struct Definition
+            // Impl Struct
+                // Command Request Functions
+        // Command
+            // Enum Definition
+            // Impl Enum
+                // Command Initialization Functions
+                // Command Execution Functions
+                // Command Finalization Functions
+        // Command Input
+            // Struct Definition
+            // Impl Display for Struct
+        // Command Output
+            // Struct Definition
+            // Impl Display for Struct
+        // Command Error
+            // Enum Definition
+            // Impl Display for Enum
+        // Command Code
+            // Struct Definition
+            // Impl Display for Struct
+
+    fn generate_command_module() -> proc_macro2::TokenStream {
+        fn generate_struct_definition() -> proc_macro2::TokenStream {
+            todo!();
+        }
+
+        fn generate_impl_struct() -> proc_macro2::TokenStream {
+            fn generate_command_request_functions() -> proc_macro2::TokenStream {
+                todo!();
+            }
+
+            todo!();
+        }
+
+        todo!();
+    }
+
+    fn generate_command() -> proc_macro2::TokenStream {
+        fn generate_enum_definition() -> proc_macro2::TokenStream {
+            todo!();
+        }
+
+        fn generate_impl_enum() -> proc_macro2::TokenStream {
+            fn generate_command_initialize_function() -> proc_macro2::TokenStream {
+                todo!();
+            }
+
+            fn generate_command_execute_function() -> proc_macro2::TokenStream {
+                todo!();
+            }
+
+            fn generate_command_finalize_function() -> proc_macro2::TokenStream {
+                todo!();
+            }
+
+            todo!();
+        }
+        
+        todo!();
+    }
+
+    fn generate_command_input() -> proc_macro2::TokenStream {
+        fn generate_struct_definition() -> proc_macro2::TokenStream {
+            todo!();
+        }
+
+        fn generate_impl_display_for_struct() -> proc_macro2::TokenStream {
+            todo!();
+        }
+
+        todo!();
+    }
+
+    fn generate_command_output() -> proc_macro2::TokenStream {
+        fn generate_struct_definition() -> proc_macro2::TokenStream {
+            todo!();
+        }
+
+        fn generate_impl_display_for_struct() -> proc_macro2::TokenStream {
+            todo!();
+        }
+
+        todo!();
+    }
+
+    fn generate_command_error() -> proc_macro2::TokenStream {
+        fn generate_enum_definition() -> proc_macro2::TokenStream {
+            todo!();
+        }
+
+        fn generate_impl_display_for_enum() -> proc_macro2::TokenStream {
+            todo!();
+        }
+
+        todo!();
+    }
+
+    fn generate_command_code() -> proc_macro2::TokenStream {
+        fn generate_struct_definition() -> proc_macro2::TokenStream {
+            todo!();
+        }
+
+        fn generate_impl_display_for_struct() -> proc_macro2::TokenStream {
+            todo!();
+        }
+
+        todo!();
+    }
+
     TokenStream::from(generated_code)
 }
