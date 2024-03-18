@@ -431,6 +431,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let command_output_name = Ident::new(&command_output_name, command_id.span());
         let command_error_name = Ident::new(&command_error_name, command_id.span());
         let command_code_name = Ident::new(&command_code_name, command_id.span());
+        let command_result_name = Ident::new(&command_result_name, command_id.span());
         let command_result_name_snake_case = Ident::new(&command_result_name_snake_case, command_id.span());
 
         let input_parameter_infos: Vec<(LitStr, syn::Type)> = command_type.input_type.parameter_types.iter().map(|parameter_type| {
@@ -509,9 +510,12 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
             generated_interpolated_input_parameters = quote! {
                 #generated_interpolated_input_parameters
-                #parameter_name {}
+                #parameter_name: {}
             };
         }
+        let generated_interpolated_input_parameters = quote! {
+            #command_input_name {{ #generated_interpolated_input_parameters }}
+        }.to_string().replace("{ { {", "{{ {").replace("} } }", "} }}").replace("{ {", "{{").replace("} }", "}}");
 
         let mut generated_input_parameter_names = quote! {};
         let mut first = true;
@@ -528,7 +532,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
             generated_input_parameter_names = quote! {
                 #generated_input_parameter_names
-                #parameter_name,
+                #parameter_name
             };
         }
 
@@ -608,9 +612,12 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
             generated_interpolated_output_parameters = quote! {
                 #generated_interpolated_output_parameters
-                #parameter_name {}
+                #parameter_name: {}
             };
         }
+        let generated_interpolated_output_parameters = quote! {
+            #command_output_name {{ #generated_interpolated_output_parameters }}
+        }.to_string().replace("{ { {", "{{ {").replace("} } }", "} }}").replace("{ {", "{{").replace("} }", "}}");
 
         let error_variant_infos: Vec<LitStr> = command_type.error_type.error_variants.iter().map(|variant_type| {
             variant_type.variant_name.clone()
@@ -635,26 +642,34 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             };
         }
 
-        let mut generated_display_error_variants = quote! {};
+        let mut generated_interpolated_error_variants = quote! {};
         let mut first = true;
         for variant_name in error_variant_infos.clone() {
             let variant_name = Ident::new(&variant_name.value(), variant_name.span());
 
             if !first {
-                generated_display_error_variants = quote! {
-                    #generated_display_error_variants, 
+                generated_interpolated_error_variants = quote! {
+                    #generated_interpolated_error_variants, 
                 };
             } else {
                 first = false;
             }
 
-            generated_display_error_variants = quote! {
-                #generated_display_error_variants
+            generated_interpolated_error_variants = quote! {
+                #generated_interpolated_error_variants
                 #command_error_name::#variant_name => {
                     return write!(f, "#command_error_name::#variant_name");
                 }
             };
         }
+
+        let generated_interpolated_code_parameters = quote! {
+            #command_code_name: {{ closure: No Display }}
+        }.to_string().replace("{ { {", "{{ {").replace("} } }", "} }}").replace("{ {", "{{").replace("} }", "}}");
+
+        let generated_interpolated_panic_message = quote! {
+            #command_name did not execute properly!
+        }.to_string();
 
         let generated_command_request_function = quote! {
             pub fn #command_id_snake_case(&self, #generated_input_parameters) -> Result<#command_output_name, #command_error_name> {
@@ -669,11 +684,10 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
                 #command_name_snake_case.execute();
 
-                if let Some(#command_result_name_snake_case) = #command_name_snake_case.finalize() {
-                    #command_result_name_snake_case
-                } else {
-                    panic!("#command_name did not execute properly!");
-                }
+                match #command_name_snake_case.finalize() {
+                    Some(#command_result_name_snake_case) => return #command_result_name_snake_case,
+                    None => panic!(#generated_interpolated_panic_message),
+                };
             }
         };
 
@@ -684,7 +698,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                     code: #command_code_name,
                 },
                 Executed {
-                    result: Option<#command_result_name_snake_case>,
+                    result: Result<#command_output_name, #command_error_name>,
                 },
             }
             
@@ -699,14 +713,14 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 fn execute(&mut self) {
                     if let #command_name::Initialized { input, code } = self {
                         *self = #command_name::Executed {
-                            result: Some((code.closure)(&input)),
+                            result: (code.closure)(&input),
                         };
                     }
                 }
             
-                fn finalize(self) -> Option<#command_result_name_snake_case> {
+                fn finalize(self) -> Option<Result<#command_output_name, #command_error_name>> {
                     if let #command_name::Executed { result } = self {
-                        result
+                        Some(result)
                     } else {
                         None
                     }
@@ -719,9 +733,9 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 #generated_public_input_parameters
             }
             
-            impl Display for #command_input_name {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
-                    write!(f, "#command_input_name {{ #generated_interpolated_input_parameters }}", #generated_self_input_parameters)
+            impl std::fmt::Display for #command_input_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                    write!(f, #generated_interpolated_input_parameters, #generated_self_input_parameters)
                 }
             }
         };
@@ -731,9 +745,9 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 #generated_public_output_parameters
             }
             
-            impl Display for #command_output_name {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
-                    write!(f, "#command_output_name {{ #generated_interpolated_output_parameters }}", #generated_self_output_parameters)
+            impl std::fmt::Display for #command_output_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                    write!(f, #generated_interpolated_output_parameters, #generated_self_output_parameters)
                 }
             }
         };
@@ -743,10 +757,10 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 #generated_error_variants
             }
             
-            impl Display for #command_error_name {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
+            impl std::fmt::Display for #command_error_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
                     match *self {
-                        #generated_display_error_variants
+                        #generated_interpolated_error_variants
                     }
                 }
             }
@@ -757,9 +771,9 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 closure: Box<dyn Fn(&#command_input_name) -> Result<#command_output_name, #command_error_name>>,
             }
             
-            impl Display for #command_code_name {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), Error> {
-                    write!(f, "#command_code_name {{ closure: No Display }}")
+            impl std::fmt::Display for #command_code_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                    write!(f, #generated_interpolated_code_parameters)
                 }
             }
         };

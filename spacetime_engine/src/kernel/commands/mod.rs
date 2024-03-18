@@ -1,5 +1,15 @@
-use std::fmt::{Error, Display};
 use spacetime_engine_derive::define_commands_module;
+
+pub struct Point {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl std::fmt::Display for Point {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
 
 define_commands_module! {
     Test {
@@ -17,21 +27,21 @@ define_commands_module! {
                 },
                 Code |input| -> Result<Output, Error> {
                     match input.value {
-                        0 => {
-                            return Ok(HelloWorldCommandOutput {
+                        0..=9 => {
+                            Ok(HelloWorldCommandOutput {
                                 value: 0,
-                            });
+                            })
                         },
                         _ => {
-                            return Err(HelloWorldCommandError::InvalidInput);
+                            Err(HelloWorldCommandError::InvalidInput)
                         },
                     }
                 }
             },
             DrawGizmoLine {
                 Input {
-                    start_point: (i32, i32),
-                    end_point: (i32, i32),
+                    start_point: Point,
+                    end_point: Point,
                 },
                 Output {
                     line_id: u32,
@@ -41,26 +51,19 @@ define_commands_module! {
                     InvalidEndPoint,
                 },
                 Code |input| -> Result<Output, Error> {
-                    if input.start_point.0 == 0 && input.start_point.1 == 0 {
-                        if input.end_point.0 == 0 && input.end_point.1 == 0 {
-                            println!("Pretending to draw Gizmo Line!");
-                            
-                            return Ok(DrawGizmoLineCommandOutput {
+                    if input.start_point.x == 0 && input.start_point.y == 0 {
+                        if input.end_point.x == 0 && input.end_point.y == 0 {
+                            Ok(DrawGizmoLineCommandOutput {
                                 line_id: 0,
                             })
                         } else {
-                            return Err(DrawGizmoLineCommandError::InvalidEndPoint)
+                            Err(DrawGizmoLineCommandError::InvalidEndPoint)
                         }
                     } else {
-                        return Err(DrawGizmoLineCommandError::InvalidStartPoint)
+                        Err(DrawGizmoLineCommandError::InvalidStartPoint)
                     }
                 }
             }
         ]
     }
-}
-
-pub fn test() {
-    let test_commands = TestCommands {};
-    test_commands.hello_world(0);
 }

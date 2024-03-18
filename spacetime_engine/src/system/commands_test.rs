@@ -31,6 +31,21 @@ impl Plugin for CommandsTestPlugin {
 impl CommandsTestManager {
     fn initialize() {
         Test::hello_macro();
+        let test_commands = crate::kernel::commands::TestCommands {};
+
+        for i in 0..5 {
+            println!("Test {}: ", i);
+            match test_commands.hello_world(i) {
+                Ok(output) => {
+                    println!("Output: {}", output.value);
+                },
+                Err(error) => {
+                    panic!("Error: {}", error);
+                },
+            };
+            println!("Test {} done.", i);
+            
+        }
     }
 
     fn update() {
