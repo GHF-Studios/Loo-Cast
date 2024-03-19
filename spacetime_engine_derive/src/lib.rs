@@ -864,44 +864,347 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             // Struct Definition
             // Impl Display for Struct
 
-    fn generate_command_module() -> proc_macro2::TokenStream {
-        fn generate_struct_definition() -> proc_macro2::TokenStream {
-            todo!();
+    fn generate_command_module(
+        command_module_name: Ident,
+        command_module_type: CommandModuleType
+    ) -> proc_macro2::TokenStream {
+        fn generate_struct_definition(command_module_name: Ident) -> proc_macro2::TokenStream {
+            let generated = quote! {
+                pub struct #command_module_name {}
+            };
+
+            generated
         }
 
-        fn generate_impl_struct() -> proc_macro2::TokenStream {
-            fn generate_command_request_functions() -> proc_macro2::TokenStream {
-                todo!();
+        fn generate_impl_struct(command_module_name: Ident, command_types: CommandTypes) -> proc_macro2::TokenStream {
+            fn generate_command_request_function(
+                command_id_snake_case: Ident, 
+                command_name: Ident,
+                command_name_snake_case: Ident,
+                command_input_name: Ident,
+                command_output_name: Ident,
+                command_error_name: Ident,
+                command_code_name: Ident,
+                command_result_name_snake_case: Ident,
+                generated_input_parameter_names: proc_macro2::TokenStream,
+                generated_input_parameters: proc_macro2::TokenStream,
+                generated_interpolated_panic_message: LitStr,
+            ) -> proc_macro2::TokenStream {
+                quote! {
+                    pub fn #command_id_snake_case(&self, #generated_input_parameters) -> Result<#command_output_name, #command_error_name> {
+                        let mut #command_name_snake_case = #command_name::initialize(
+                            #command_input_name {
+                                #generated_input_parameter_names
+                            },
+                            #command_code_name {
+                                closure: Box::new(|input: &#command_input_name| -> Result<#command_output_name, #command_error_name> #command_code_block),
+                            }
+                        );
+        
+                        #command_name_snake_case.execute();
+        
+                        match #command_name_snake_case.finalize() {
+                            Some(#command_result_name_snake_case) => return #command_result_name_snake_case,
+                            None => panic!(#generated_interpolated_panic_message),
+                        };
+                    }
+                }
             }
 
-            todo!();
+            let mut generated_command_request_functions;
+            let mut first = true;
+            for command_type in command_types.0 {
+                // Command ID Snake Case
+                let command_id = command_type.command_id.value().to_string();
+                let mut command_id_snake_case = String::new();
+                let mut prev_was_uppercase = false;
+                for (i, c) in command_id.chars().enumerate() {
+                    if c.is_uppercase() {
+                        if i > 0 && !prev_was_uppercase {
+                            command_id_snake_case.push('_');
+                        }
+                        command_id_snake_case.push(c.to_lowercase().next().unwrap());
+                        prev_was_uppercase = true;
+                    } else {
+                        command_id_snake_case.push(c);
+                        prev_was_uppercase = false;
+                    }
+                }
+                let command_id_snake_case = Ident::new(&command_id_snake_case, command_id.span());
+
+                // Command Name
+                let command_name = command_id.clone() + "Command";
+                let command_name = Ident::new(&command_name, command_id.span());
+
+                // Command Name Snake Case
+                let mut command_name_snake_case = String::new();
+                let mut prev_was_uppercase = false;
+                for (i, c) in command_name.to_string().chars().enumerate() {
+                    if c.is_uppercase() {
+                        if i > 0 && !prev_was_uppercase {
+                            command_name_snake_case.push('_');
+                        }
+                        command_name_snake_case.push(c.to_lowercase().next().unwrap());
+                        prev_was_uppercase = true;
+                    } else {
+                        command_name_snake_case.push(c);
+                        prev_was_uppercase = false;
+                    }
+                }
+                let command_name_snake_case = Ident::new(&command_name_snake_case, command_id.span());
+
+                // Command Input Name
+                let command_input_name = command_id.clone() + "CommandInput";
+                let command_input_name = Ident::new(&command_input_name, command_id.span());
+
+                // Command Output Name
+                let command_output_name = command_id.clone() + "CommandOutput";
+                let command_output_name = Ident::new(&command_output_name, command_id.span());
+
+                // Command Error Name
+                let command_error_name = command_id.clone() + "CommandError";
+                let command_error_name = Ident::new(&command_error_name, command_id.span());
+
+                // Command Code Name
+                let command_code_name = command_id.clone() + "CommandCode";
+                let command_code_name = Ident::new(&command_code_name, command_id.span());
+
+                // Command Result Name Snake Case
+                let command_result_name = command_id.clone() + "CommandResult";
+                let mut command_result_name_snake_case = String::new();
+                let mut prev_was_uppercase = false;
+                for (i, c) in command_result_name.chars().enumerate() {
+                    if c.is_uppercase() {
+                        if i > 0 && !prev_was_uppercase {
+                            command_result_name_snake_case.push('_');
+                        }
+                        command_result_name_snake_case.push(c.to_lowercase().next().unwrap());
+                        prev_was_uppercase = true;
+                    } else {
+                        command_result_name_snake_case.push(c);
+                        prev_was_uppercase = false;
+                    }
+                }
+                let command_result_name_snake_case = Ident::new(&command_result_name_snake_case, command_id.span());
+
+                // Input Parameter Infos
+                let input_parameter_infos: Vec<(LitStr, syn::Type)> = command_type.input_type.parameter_types.iter().map(|parameter_type| {
+                    (parameter_type.parameter_name.clone(), parameter_type.parameter_type.clone())
+                }).collect();
+
+                let mut generated_input_parameters = quote! {};
+                let mut generated_input_parameter_names = quote! {};
+                let mut first = true;
+                for (parameter_name, parameter_type) in input_parameter_infos.clone() {
+                    let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+                    if !first {
+                        generated_input_parameters = quote! {
+                            #generated_input_parameters, 
+                        };
+                        generated_input_parameter_names = quote! {
+                            #generated_input_parameter_names, 
+                        };
+                    } else {
+                        first = false;
+                    }
+
+                    generated_input_parameters = quote! {
+                        #generated_input_parameters
+                        #parameter_name: #parameter_type
+                    };
+                    generated_input_parameter_names = quote! {
+                        #generated_input_parameter_names
+                        #parameter_name
+                    };
+                }
+
+                // Interpolated Panic Message
+                let generated_interpolated_panic_message = quote! {
+                    #command_name did not execute properly!
+                }.to_string();
+                let generated_interpolated_panic_message = LitStr::new(
+                    &generated_interpolated_panic_message, 
+                    generated_interpolated_panic_message.span()
+                );
+
+                let generated_command_request_function = generate_command_request_function(
+                    command_id_snake_case, 
+                    command_name, 
+                    command_name_snake_case, 
+                    command_input_name, 
+                    command_output_name, 
+                    command_error_name, 
+                    command_code_name, 
+                    command_result_name_snake_case, 
+                    generated_input_parameter_names, 
+                    generated_input_parameters, 
+                    generated_interpolated_panic_message
+                );
+
+                if !first {
+                    generated_command_request_functions = quote! {
+                        #generated_command_request_functions
+    
+                        #generated_command_request_function
+                    }
+                } else {
+                    first = false;
+
+                    generated_command_request_functions = quote! {
+                        #generated_command_request_function
+                    }
+                }
+            }
+
+            quote! {
+                impl #command_module_name {
+                    #generated_command_request_functions
+                }
+            }
         }
 
-        todo!();
+        let generated_struct_definition = generate_struct_definition(command_module_name);
+
+        let generated_impl_struct = generate_impl_struct(
+            command_module_name,
+            command_module_type.command_types
+        );
+
+        quote! {
+            #generated_struct_definition
+            
+            #generated_impl_struct
+        }
     }
 
-    fn generate_command() -> proc_macro2::TokenStream {
-        fn generate_enum_definition() -> proc_macro2::TokenStream {
-            todo!();
+    fn generate_command(
+        command_name: Ident,
+        command_input_name: Ident,
+        command_output_name: Ident,
+        command_error_name: Ident,
+        command_code_name: Ident,
+    ) -> proc_macro2::TokenStream {
+        fn generate_enum_definition(
+            command_name: Ident,
+            command_input_name: Ident,
+            command_output_name: Ident,
+            command_error_name: Ident,
+            command_code_name: Ident,
+        ) -> proc_macro2::TokenStream {
+            quote! {
+                pub enum #command_name {
+                    Initialized {
+                        input: #command_input_name,
+                        code: #command_code_name,
+                    },
+                    Executed {
+                        result: Result<#command_output_name, #command_error_name>,
+                    },
+                }
+            }
         }
 
-        fn generate_impl_enum() -> proc_macro2::TokenStream {
-            fn generate_command_initialize_function() -> proc_macro2::TokenStream {
-                todo!();
+        fn generate_impl_enum(
+            command_name: Ident,
+            command_input_name: Ident,
+            command_output_name: Ident,
+            command_error_name: Ident,
+            command_code_name: Ident,
+        ) -> proc_macro2::TokenStream {
+            fn generate_command_initialize_function(
+                command_name: Ident,
+                command_input_name: Ident,
+                command_code_name: Ident,
+            ) -> proc_macro2::TokenStream {
+                quote! {
+                    fn initialize(input: #command_input_name, code: #command_code_name) -> Self {
+                        #command_name::Initialized {
+                            input,
+                            code,
+                        }
+                    }
+                }
             }
 
-            fn generate_command_execute_function() -> proc_macro2::TokenStream {
-                todo!();
+            fn generate_command_execute_function(
+                command_name: Ident,
+            ) -> proc_macro2::TokenStream {
+                quote! {
+                    fn execute(&mut self) {
+                        if let #command_name::Initialized { input, code } = self {
+                            *self = #command_name::Executed {
+                                result: (code.closure)(&input),
+                            };
+                        }
+                    }
+                }
             }
 
-            fn generate_command_finalize_function() -> proc_macro2::TokenStream {
-                todo!();
+            fn generate_command_finalize_function(
+                command_name: Ident,
+                command_output_name: Ident,
+                command_error_name: Ident,
+            ) -> proc_macro2::TokenStream {
+                quote! {
+                    fn finalize(self) -> Option<Result<#command_output_name, #command_error_name>> {
+                        if let #command_name::Executed { result } = self {
+                            Some(result)
+                        } else {
+                            None
+                        }
+                    }
+                }
             }
 
-            todo!();
+            let generated_command_initialize_function = generate_command_initialize_function(
+                command_name,
+                command_input_name,
+                command_code_name
+            );
+
+            let generated_command_execute_function = generate_command_execute_function(
+                command_name
+            );
+
+            let generated_command_finalize_function = generate_command_finalize_function(
+                command_name,
+                command_output_name,
+                command_error_name
+            );
+
+            quote! {
+                impl #command_name {
+                    #generated_command_initialize_function
+
+                    #generated_command_execute_function
+
+                    #generated_command_finalize_function
+                }
+            }
         }
         
-        todo!();
+        let generated_enum_definition = generate_enum_definition(
+            command_name,
+            command_input_name,
+            command_output_name,
+            command_error_name,
+            command_code_name
+        );
+
+        let generated_impl_enum = generate_impl_enum(
+            command_name,
+            command_input_name,
+            command_output_name,
+            command_error_name,
+            command_code_name
+        );
+
+        quote! {
+            #generated_enum_definition
+
+            #generated_impl_enum
+        }
     }
 
     fn generate_command_input() -> proc_macro2::TokenStream {
