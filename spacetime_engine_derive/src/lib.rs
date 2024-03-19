@@ -334,515 +334,8 @@ impl Parse for CommandCodeType {
 #[proc_macro]
 pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
     let command_module_type = parse_macro_input!(tokens as CommandModuleType);
-    let command_module_id = command_module_type.module_id.value().to_string();
-    let command_module_name = Ident::new(&(command_module_id.clone() + "Commands"), command_module_id.span());
 
-    let mut generated_command_request_function_streams = Vec::<proc_macro2::TokenStream>::new();
-    let mut generated_command_streams = Vec::<proc_macro2::TokenStream>::new();
-    let mut generated_command_input_streams = Vec::<proc_macro2::TokenStream>::new();
-    let mut generated_command_output_streams = Vec::<proc_macro2::TokenStream>::new();
-    let mut generated_command_error_streams = Vec::<proc_macro2::TokenStream>::new();
-    let mut generated_command_code_streams = Vec::<proc_macro2::TokenStream>::new();
-
-    for command_type in command_module_type.command_types.0 {
-        let command_id = command_type.command_id.value().to_string();
-        let mut command_id_snake_case = String::new();
-        let mut prev_was_uppercase = false;
-        for (i, c) in command_id.chars().enumerate() {
-            if c.is_uppercase() {
-                if i > 0 && !prev_was_uppercase {
-                    command_id_snake_case.push('_');
-                }
-                command_id_snake_case.push(c.to_lowercase().next().unwrap());
-                prev_was_uppercase = true;
-            } else {
-                command_id_snake_case.push(c);
-                prev_was_uppercase = false;
-            }
-        }
-
-        let command_name = command_id.clone() + "Command";
-        let mut command_name_snake_case = String::new();
-        let mut prev_was_uppercase = false;
-        for (i, c) in command_name.chars().enumerate() {
-            if c.is_uppercase() {
-                if i > 0 && !prev_was_uppercase {
-                    command_name_snake_case.push('_');
-                }
-                command_name_snake_case.push(c.to_lowercase().next().unwrap());
-                prev_was_uppercase = true;
-            } else {
-                command_name_snake_case.push(c);
-                prev_was_uppercase = false;
-            }
-        }
-
-        let command_module_name = command_id.clone() + "Commands";
-
-        let command_input_name = command_id.clone() + "CommandInput";
-
-        let command_output_name = command_id.clone() + "CommandOutput";
-
-        let command_error_name = command_id.clone() + "CommandError";
-
-        let command_code_name = command_id.clone() + "CommandCode";
-        let command_code_block = command_type.code_type.code_block;
-
-        let command_result_name = command_id.clone() + "CommandResult";
-        let mut command_result_name_snake_case = String::new();
-        let mut prev_was_uppercase = false;
-        for (i, c) in command_result_name.chars().enumerate() {
-            if c.is_uppercase() {
-                if i > 0 && !prev_was_uppercase {
-                    command_result_name_snake_case.push('_');
-                }
-                command_result_name_snake_case.push(c.to_lowercase().next().unwrap());
-                prev_was_uppercase = true;
-            } else {
-                command_result_name_snake_case.push(c);
-                prev_was_uppercase = false;
-            }
-        }
-
-        let command_id = Ident::new(&command_id, command_id.span());
-        let command_id_snake_case = Ident::new(&command_id_snake_case, command_id.span());
-        let command_name = Ident::new(&command_name, command_id.span());
-        let command_name_snake_case = Ident::new(&command_name_snake_case, command_id.span());
-        let command_input_name = Ident::new(&command_input_name, command_id.span());
-        let command_output_name = Ident::new(&command_output_name, command_id.span());
-        let command_error_name = Ident::new(&command_error_name, command_id.span());
-        let command_code_name = Ident::new(&command_code_name, command_id.span());
-        let command_result_name = Ident::new(&command_result_name, command_id.span());
-        let command_result_name_snake_case = Ident::new(&command_result_name_snake_case, command_id.span());
-
-        let input_parameter_infos: Vec<(LitStr, syn::Type)> = command_type.input_type.parameter_types.iter().map(|parameter_type| {
-            (parameter_type.parameter_name.clone(), parameter_type.parameter_type.clone())
-        }).collect();
-        
-        let mut generated_input_parameters = quote! {};
-        let mut first = true;
-        for (parameter_name, parameter_type) in input_parameter_infos.clone() {
-            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
-
-            if !first {
-                generated_input_parameters = quote! {
-                    #generated_input_parameters, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_input_parameters = quote! {
-                #generated_input_parameters
-                #parameter_name: #parameter_type
-            };
-        }
-
-        let mut generated_public_input_parameters = quote! {};
-        let mut first = true;
-        for (parameter_name, parameter_type) in input_parameter_infos.clone() {
-            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
-
-            if !first {
-                generated_public_input_parameters = quote! {
-                    #generated_public_input_parameters, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_public_input_parameters = quote! {
-                #generated_public_input_parameters
-                pub #parameter_name: #parameter_type
-            };
-        }
-
-        let mut generated_self_input_parameters = quote! {};
-        let mut first = true;
-        for (parameter_name, _) in input_parameter_infos.clone() {
-            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
-
-            if !first {
-                generated_self_input_parameters = quote! {
-                    #generated_self_input_parameters, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_self_input_parameters = quote! {
-                #generated_self_input_parameters
-                self.#parameter_name
-            };
-        }
-
-        let mut generated_interpolated_input_parameters = quote! {};
-        let mut first = true;
-        for (parameter_name, _) in input_parameter_infos.clone() {
-            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
-
-            if !first {
-                generated_interpolated_input_parameters = quote! {
-                    #generated_interpolated_input_parameters, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_interpolated_input_parameters = quote! {
-                #generated_interpolated_input_parameters
-                #parameter_name: {}
-            };
-        }
-        let generated_interpolated_input_parameters = quote! {
-            #command_input_name {{ #generated_interpolated_input_parameters }}
-        }.to_string().replace("{ { {", "{{ {").replace("} } }", "} }}").replace("{ {", "{{").replace("} }", "}}");
-
-        let mut generated_input_parameter_names = quote! {};
-        let mut first = true;
-        for (parameter_name, _) in input_parameter_infos {
-            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
-
-            if !first {
-                generated_input_parameter_names = quote! {
-                    #generated_input_parameter_names, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_input_parameter_names = quote! {
-                #generated_input_parameter_names
-                #parameter_name
-            };
-        }
-
-        let output_parameter_infos: Vec<(LitStr, syn::Type)> = command_type.output_type.parameter_types.iter().map(|parameter_type| {
-            (parameter_type.parameter_name.clone(), parameter_type.parameter_type.clone())
-        }).collect();
-
-        let mut generated_output_parameters = quote! {};
-        let mut first = true;
-        for (parameter_name, parameter_type) in output_parameter_infos.clone() {
-            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
-
-            if !first {
-                generated_output_parameters = quote! {
-                    #generated_output_parameters, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_output_parameters = quote! {
-                #generated_output_parameters
-                #parameter_name: #parameter_type
-            };
-        }
-
-        let mut generated_public_output_parameters = quote! {};
-        let mut first = true;
-        for (parameter_name, parameter_type) in output_parameter_infos.clone() {
-            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
-
-            if !first {
-                generated_public_output_parameters = quote! {
-                    #generated_public_output_parameters, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_public_output_parameters = quote! {
-                #generated_public_output_parameters
-                pub #parameter_name: #parameter_type
-            };
-        }
-
-        let mut generated_self_output_parameters = quote! {};
-        let mut first = true;
-        for (parameter_name, _) in output_parameter_infos.clone() {
-            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
-
-            if !first {
-                generated_self_output_parameters = quote! {
-                    #generated_self_output_parameters, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_self_output_parameters = quote! {
-                #generated_self_output_parameters
-                self.#parameter_name
-            };
-        }
-
-        let mut generated_interpolated_output_parameters = quote! {};
-        let mut first = true;
-        for (parameter_name, _) in output_parameter_infos.clone() {
-            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
-
-            if !first {
-                generated_interpolated_output_parameters = quote! {
-                    #generated_interpolated_output_parameters, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_interpolated_output_parameters = quote! {
-                #generated_interpolated_output_parameters
-                #parameter_name: {}
-            };
-        }
-        let generated_interpolated_output_parameters = quote! {
-            #command_output_name {{ #generated_interpolated_output_parameters }}
-        }.to_string().replace("{ { {", "{{ {").replace("} } }", "} }}").replace("{ {", "{{").replace("} }", "}}");
-
-        let error_variant_infos: Vec<LitStr> = command_type.error_type.error_variants.iter().map(|variant_type| {
-            variant_type.variant_name.clone()
-        }).collect();
-
-        let mut generated_error_variants = quote! {};
-        let mut first = true;
-        for variant_name in error_variant_infos.clone() {
-            let variant_name = Ident::new(&variant_name.value(), variant_name.span());
-
-            if !first {
-                generated_error_variants = quote! {
-                    #generated_error_variants, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_error_variants = quote! {
-                #generated_error_variants
-                #variant_name
-            };
-        }
-
-        let mut generated_interpolated_error_variants = quote! {};
-        let mut first = true;
-        for variant_name in error_variant_infos.clone() {
-            let variant_name = Ident::new(&variant_name.value(), variant_name.span());
-
-            if !first {
-                generated_interpolated_error_variants = quote! {
-                    #generated_interpolated_error_variants, 
-                };
-            } else {
-                first = false;
-            }
-
-            generated_interpolated_error_variants = quote! {
-                #generated_interpolated_error_variants
-                #command_error_name::#variant_name => {
-                    return write!(f, "#command_error_name::#variant_name");
-                }
-            };
-        }
-
-        let generated_interpolated_code_parameters = quote! {
-            #command_code_name: {{ closure: No Display }}
-        }.to_string().replace("{ { {", "{{ {").replace("} } }", "} }}").replace("{ {", "{{").replace("} }", "}}");
-
-        let generated_interpolated_panic_message = quote! {
-            #command_name did not execute properly!
-        }.to_string();
-
-        let generated_command_request_function = quote! {
-            pub fn #command_id_snake_case(&self, #generated_input_parameters) -> Result<#command_output_name, #command_error_name> {
-                let mut #command_name_snake_case = #command_name::initialize(
-                    #command_input_name {
-                        #generated_input_parameter_names
-                    },
-                    #command_code_name {
-                        closure: Box::new(|input: &#command_input_name| -> Result<#command_output_name, #command_error_name> #command_code_block),
-                    }
-                );
-
-                #command_name_snake_case.execute();
-
-                match #command_name_snake_case.finalize() {
-                    Some(#command_result_name_snake_case) => return #command_result_name_snake_case,
-                    None => panic!(#generated_interpolated_panic_message),
-                };
-            }
-        };
-
-        let generated_command = quote! {
-            pub enum #command_name {
-                Initialized {
-                    input: #command_input_name,
-                    code: #command_code_name,
-                },
-                Executed {
-                    result: Result<#command_output_name, #command_error_name>,
-                },
-            }
-            
-            impl #command_name {
-                fn initialize(input: #command_input_name, code: #command_code_name) -> Self {
-                    #command_name::Initialized {
-                        input,
-                        code,
-                    }
-                }
-            
-                fn execute(&mut self) {
-                    if let #command_name::Initialized { input, code } = self {
-                        *self = #command_name::Executed {
-                            result: (code.closure)(&input),
-                        };
-                    }
-                }
-            
-                fn finalize(self) -> Option<Result<#command_output_name, #command_error_name>> {
-                    if let #command_name::Executed { result } = self {
-                        Some(result)
-                    } else {
-                        None
-                    }
-                }
-            }
-        };
-
-        let generated_command_input = quote! {
-            pub struct #command_input_name {
-                #generated_public_input_parameters
-            }
-            
-            impl std::fmt::Display for #command_input_name {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-                    write!(f, #generated_interpolated_input_parameters, #generated_self_input_parameters)
-                }
-            }
-        };
-
-        let generated_command_output = quote! {
-            pub struct #command_output_name {
-                #generated_public_output_parameters
-            }
-            
-            impl std::fmt::Display for #command_output_name {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-                    write!(f, #generated_interpolated_output_parameters, #generated_self_output_parameters)
-                }
-            }
-        };
-
-        let generated_command_error = quote! {
-            pub enum #command_error_name {
-                #generated_error_variants
-            }
-            
-            impl std::fmt::Display for #command_error_name {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-                    match *self {
-                        #generated_interpolated_error_variants
-                    }
-                }
-            }
-        };
-
-        let generated_command_code = quote! {
-            pub struct #command_code_name {
-                closure: Box<dyn Fn(&#command_input_name) -> Result<#command_output_name, #command_error_name>>,
-            }
-            
-            impl std::fmt::Display for #command_code_name {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-                    write!(f, #generated_interpolated_code_parameters)
-                }
-            }
-        };
-
-        generated_command_request_function_streams.push(generated_command_request_function);
-        generated_command_streams.push(generated_command);
-        generated_command_input_streams.push(generated_command_input);
-        generated_command_output_streams.push(generated_command_output);
-        generated_command_error_streams.push(generated_command_error);
-        generated_command_code_streams.push(generated_command_code);
-    }
-
-    let mut generated_command_request_function_stream = quote! {
-    };
-    for generated_command_request_function in generated_command_request_function_streams {
-        generated_command_request_function_stream = quote! {
-            #generated_command_request_function_stream
-            #generated_command_request_function
-        };
-    }
-
-    let mut generated_command_stream = quote! {
-    };
-    for generated_command in generated_command_streams {
-        generated_command_stream = quote! {
-            #generated_command_stream
-            #generated_command
-        };
-    }
-
-    let mut generated_command_input_stream = quote! {
-    };
-    for generated_command_input in generated_command_input_streams {
-        generated_command_input_stream = quote! {
-            #generated_command_input_stream
-            #generated_command_input
-        };
-    }
-
-    let mut generated_command_output_stream = quote! {
-    };
-    for generated_command_output in generated_command_output_streams {
-        generated_command_output_stream = quote! {
-            #generated_command_output_stream
-            #generated_command_output
-        };
-    }
-
-    let mut generated_command_error_stream = quote! {
-    };
-    for generated_command_error in generated_command_error_streams {
-        generated_command_error_stream = quote! {
-            #generated_command_error_stream
-            #generated_command_error
-        };
-    }
-
-    let mut generated_command_code_stream = quote! {
-    };
-    for generated_command_code in generated_command_code_streams {
-        generated_command_code_stream = quote! {
-            #generated_command_code_stream
-            #generated_command_code
-        };
-    }
-
-    let generated_code = quote! {
-        pub struct #command_module_name {
-        }
-        
-        impl #command_module_name {
-            #generated_command_request_function_stream
-        }
-
-        #generated_command_stream
-        
-        #generated_command_input_stream
-
-        #generated_command_output_stream
-
-        #generated_command_error_stream
-
-        #generated_command_code_stream
-    };
-
-    // THE NEW SHIT STARTS HERE
-
-    fn generate_command_module(command_module_type: CommandModuleType) -> proc_macro2::TokenStream {
+    fn generate_command_module(command_module_type: &CommandModuleType) -> proc_macro2::TokenStream {
         fn generate_struct_definition(command_module_name: Ident) -> proc_macro2::TokenStream {
             let generated = quote! {
                 pub struct #command_module_name {}
@@ -851,7 +344,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             generated
         }
 
-        fn generate_impl_struct(command_module_name: Ident, command_types: CommandTypes) -> proc_macro2::TokenStream {
+        fn generate_impl_struct(command_module_name: Ident, command_types: &CommandTypes) -> proc_macro2::TokenStream {
             fn generate_command_request_function(
                 command_id_snake_case: Ident, 
                 command_name: Ident,
@@ -889,7 +382,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
             let mut generated_command_request_functions = quote! {};
             let mut first = true;
-            for command_type in command_types.0 {
+            for command_type in &command_types.0 {
                 // Command ID Snake Case
                 let command_id = command_type.command_id.value().to_string();
                 let mut command_id_snake_case = String::new();
@@ -946,7 +439,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 let command_code_name = Ident::new(&command_code_name, command_id.span());
 
                 // Command Code Block
-                let command_code_block = command_type.code_type.code_block;
+                let command_code_block = command_type.code_type.code_block.clone();
 
                 // Command Result Name Snake Case
                 let command_result_name = command_id.clone() + "CommandResult";
@@ -1052,7 +545,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
         let generated_impl_struct = generate_impl_struct(
             command_module_name,
-            command_module_type.command_types
+            &command_module_type.command_types
         );
 
         quote! {
@@ -1062,7 +555,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
     }
 
-    fn generate_command(command_type: CommandType) -> proc_macro2::TokenStream {
+    fn generate_command(command_type: &CommandType) -> proc_macro2::TokenStream {
         fn generate_enum_definition(
             command_name: Ident,
             command_input_name: Ident,
@@ -1206,7 +699,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
     }
 
-    fn generate_command_input(command_type: CommandType, command_input_type: CommandInputType) -> proc_macro2::TokenStream {
+    fn generate_command_input(command_type: &CommandType) -> proc_macro2::TokenStream {
         fn generate_struct_definition(
             command_input_name: Ident,
             generated_public_input_parameters: proc_macro2::TokenStream
@@ -1238,6 +731,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let command_input_name = Ident::new(&command_input_name, command_id.span());
 
         // Input Parameter Infos
+        let command_input_type = &command_type.input_type;
         let input_parameter_infos: Vec<(LitStr, syn::Type)> = command_input_type.parameter_types.iter().map(|parameter_type| {
             (parameter_type.parameter_name.clone(), parameter_type.parameter_type.clone())
         }).collect();
@@ -1295,7 +789,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
     }
 
-    fn generate_command_output(command_type: CommandType, command_output_type: CommandOutputType) -> proc_macro2::TokenStream {
+    fn generate_command_output(command_type: &CommandType) -> proc_macro2::TokenStream {
         fn generate_struct_definition(
             command_output_name: Ident,
             generated_public_output_parameters: proc_macro2::TokenStream
@@ -1327,6 +821,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let command_output_name = Ident::new(&command_output_name, command_id.span());
 
         // Output Parameter Infos
+        let command_output_type = &command_type.output_type;
         let output_parameter_infos: Vec<(LitStr, syn::Type)> = command_output_type.parameter_types.iter().map(|parameter_type| {
             (parameter_type.parameter_name.clone(), parameter_type.parameter_type.clone())
         }).collect();
@@ -1384,7 +879,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
     }
 
-    fn generate_command_error(command_type: CommandType) -> proc_macro2::TokenStream {
+    fn generate_command_error(command_type: &CommandType) -> proc_macro2::TokenStream {
         fn generate_enum_definition(
             command_error_name: Ident,
             generated_error_variants: proc_macro2::TokenStream
@@ -1417,7 +912,8 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let command_error_name = Ident::new(&command_error_name, command_id.span());
 
         // Error Variant Infos
-        let error_variant_infos: Vec<LitStr> = command_type.error_type.error_variants.iter().map(|variant_type| {
+        let command_error_type = &command_type.error_type;
+        let error_variant_infos: Vec<LitStr> = command_error_type.error_variants.iter().map(|variant_type| {
             variant_type.variant_name.clone()
         }).collect();
         let mut generated_error_variants = quote! {};
@@ -1473,7 +969,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
     }
 
-    fn generate_command_code(command_type: CommandType) -> proc_macro2::TokenStream {
+    fn generate_command_code(command_type: &CommandType) -> proc_macro2::TokenStream {
         fn generate_struct_definition(
             command_input_name: Ident,
             command_output_name: Ident,
@@ -1540,6 +1036,90 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             #generated_impl_display_for_struct
         }
     }
+
+    let generated_command_module = generate_command_module(&command_module_type);
+
+    let mut generated_commands = quote! {};
+    let mut generated_command_inputs = quote! {};
+    let mut generated_command_outputs = quote! {};
+    let mut generated_command_errors = quote! {};
+    let mut generated_command_codes = quote! {};
+    let mut first = true;
+    for command_type in command_module_type.command_types.0 {
+        let generated_command = generate_command(&command_type);
+        let generated_command_input = generate_command_input(&command_type);
+        let generated_command_output = generate_command_output(&command_type);
+        let generated_command_error = generate_command_error(&command_type);
+        let generated_command_code = generate_command_code(&command_type);
+
+        if !first {
+            generated_commands = quote! {
+                #generated_commands
+
+                #generated_command
+            };
+
+            generated_command_inputs = quote! {
+                #generated_command_inputs
+
+                #generated_command_input
+            };
+
+            generated_command_outputs = quote! {
+                #generated_command_outputs
+
+                #generated_command_output
+            };
+
+            generated_command_errors = quote! {
+                #generated_command_errors
+
+                #generated_command_error
+            };
+
+            generated_command_codes = quote! {
+                #generated_command_codes
+
+                #generated_command_code
+            };
+        } else {
+            first = false;
+
+            generated_commands = quote! {
+                #generated_command
+            };
+
+            generated_command_inputs = quote! {
+                #generated_command_input
+            };
+
+            generated_command_outputs = quote! {
+                #generated_command_output
+            };
+
+            generated_command_errors = quote! {
+                #generated_command_error
+            };
+
+            generated_command_codes = quote! {
+                #generated_command_code
+            };
+        }
+    }
+
+    let generated_code = quote! {
+        #generated_command_module
+
+        #generated_commands
+
+        #generated_command_inputs
+
+        #generated_command_outputs
+
+        #generated_command_errors
+
+        #generated_command_codes
+    };
 
     TokenStream::from(generated_code)
 }
