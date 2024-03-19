@@ -951,7 +951,6 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             };
         }
 
-
         let generated_enum_definition = generate_enum_definition(
             command_error_name.clone(),
             generated_error_variants
