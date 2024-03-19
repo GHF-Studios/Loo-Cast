@@ -840,29 +840,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         #generated_command_code_stream
     };
 
-    // Generated Code
-        // Command Module
-            // Struct Definition
-            // Impl Struct
-                // Command Request Functions
-        // Command
-            // Enum Definition
-            // Impl Enum
-                // Command Initialization Functions
-                // Command Execution Functions
-                // Command Finalization Functions
-        // Command Input
-            // Struct Definition
-            // Impl Display for Struct
-        // Command Output
-            // Struct Definition
-            // Impl Display for Struct
-        // Command Error
-            // Enum Definition
-            // Impl Display for Enum
-        // Command Code
-            // Struct Definition
-            // Impl Display for Struct
+    // THE NEW SHIT STARTS HERE
 
     fn generate_command_module(
         command_module_name: Ident,
