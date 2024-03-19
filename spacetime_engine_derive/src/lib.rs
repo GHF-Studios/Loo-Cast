@@ -842,10 +842,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
     // THE NEW SHIT STARTS HERE
 
-    fn generate_command_module(
-        command_module_name: Ident,
-        command_module_type: CommandModuleType
-    ) -> proc_macro2::TokenStream {
+    fn generate_command_module(command_module_type: CommandModuleType) -> proc_macro2::TokenStream {
         fn generate_struct_definition(command_module_name: Ident) -> proc_macro2::TokenStream {
             let generated = quote! {
                 pub struct #command_module_name {}
@@ -1042,6 +1039,10 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             }
         }
 
+        // Command Module Name
+        let command_module_id = command_module_type.module_id.value().to_string();
+        let command_module_name = Ident::new(&(command_module_id.clone() + "Commands"), command_module_id.span());
+
         let generated_struct_definition = generate_struct_definition(command_module_name);
 
         let generated_impl_struct = generate_impl_struct(
@@ -1056,13 +1057,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
     }
 
-    fn generate_command(
-        command_name: Ident,
-        command_input_name: Ident,
-        command_output_name: Ident,
-        command_error_name: Ident,
-        command_code_name: Ident,
-    ) -> proc_macro2::TokenStream {
+    fn generate_command(command_type: CommandType) -> proc_macro2::TokenStream {
         fn generate_enum_definition(
             command_name: Ident,
             command_input_name: Ident,
@@ -1162,6 +1157,27 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             }
         }
         
+        // Command Name
+        let command_id = command_type.command_id.value().to_string();
+        let command_name = command_id.clone() + "Command";
+        let command_name = Ident::new(&command_name, command_id.span());
+
+        // Command Input Name
+        let command_input_name = command_id.clone() + "CommandInput";
+        let command_input_name = Ident::new(&command_input_name, command_id.span());
+
+        // Command Output Name
+        let command_output_name = command_id.clone() + "CommandOutput";
+        let command_output_name = Ident::new(&command_output_name, command_id.span());
+
+        // Command Error Name
+        let command_error_name = command_id.clone() + "CommandError";
+        let command_error_name = Ident::new(&command_error_name, command_id.span());
+
+        // Command Code Name
+        let command_code_name = command_id.clone() + "CommandCode";
+        let command_code_name = Ident::new(&command_code_name, command_id.span());
+
         let generated_enum_definition = generate_enum_definition(
             command_name,
             command_input_name,
@@ -1185,52 +1201,339 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
     }
 
-    fn generate_command_input() -> proc_macro2::TokenStream {
-        fn generate_struct_definition() -> proc_macro2::TokenStream {
-            todo!();
+    fn generate_command_input(command_type: CommandType, command_input_type: CommandInputType) -> proc_macro2::TokenStream {
+        fn generate_struct_definition(
+            command_input_name: Ident,
+            generated_public_input_parameters: proc_macro2::TokenStream
+        ) -> proc_macro2::TokenStream {
+            quote! {
+                pub struct #command_input_name {
+                    #generated_public_input_parameters
+                }
+            }
         }
 
-        fn generate_impl_display_for_struct() -> proc_macro2::TokenStream {
-            todo!();
+        fn generate_impl_display_for_struct(
+            command_input_name: Ident,
+            generated_interpolated_input_parameters: String,
+            generated_self_input_parameters: proc_macro2::TokenStream
+        ) -> proc_macro2::TokenStream {
+            quote! {
+                impl std::fmt::Display for #command_input_name {
+                    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                        write!(f, #generated_interpolated_input_parameters, #generated_self_input_parameters)
+                    }
+                }
+            }
         }
 
-        todo!();
+        // Command Input Name
+        let command_id = command_type.command_id.value().to_string();
+        let command_input_name = command_id.clone() + "CommandInput";
+        let command_input_name = Ident::new(&command_input_name, command_id.span());
+
+        // Input Parameter Infos
+        let input_parameter_infos: Vec<(LitStr, syn::Type)> = command_input_type.parameter_types.iter().map(|parameter_type| {
+            (parameter_type.parameter_name.clone(), parameter_type.parameter_type.clone())
+        }).collect();
+        let mut generated_public_input_parameters = quote! {};
+        let mut generated_self_input_parameters = quote! {};
+        let mut generated_interpolated_input_parameters = quote! {};
+        let mut first = true;
+        for (parameter_name, parameter_type) in input_parameter_infos.clone() {
+            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_public_input_parameters = quote! {
+                    #generated_public_input_parameters, 
+                };
+                generated_self_input_parameters = quote! {
+                    #generated_self_input_parameters, 
+                };
+                generated_interpolated_input_parameters = quote! {
+                    #generated_interpolated_input_parameters, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_public_input_parameters = quote! {
+                #generated_public_input_parameters
+                pub #parameter_name: #parameter_type
+            };
+            generated_self_input_parameters = quote! {
+                #generated_self_input_parameters
+                self.#parameter_name
+            };
+            generated_interpolated_input_parameters = quote! {
+                #generated_interpolated_input_parameters
+                #parameter_name: {}
+            };
+        }
+        let generated_interpolated_input_parameters = generated_interpolated_input_parameters.to_string();
+
+        let generated_struct_definition = generate_struct_definition(
+            command_input_name,
+            generated_public_input_parameters
+        );
+
+        let generated_impl_display_for_struct = generate_impl_display_for_struct(
+            command_input_name,
+            generated_interpolated_input_parameters,
+            generated_self_input_parameters
+        );
+
+        quote! {
+            #generated_struct_definition
+
+            #generated_impl_display_for_struct
+        }
     }
 
-    fn generate_command_output() -> proc_macro2::TokenStream {
-        fn generate_struct_definition() -> proc_macro2::TokenStream {
-            todo!();
+    fn generate_command_output(command_type: CommandType, command_output_type: CommandOutputType) -> proc_macro2::TokenStream {
+        fn generate_struct_definition(
+            command_output_name: Ident,
+            generated_public_output_parameters: proc_macro2::TokenStream
+        ) -> proc_macro2::TokenStream {
+            quote! {
+                pub struct #command_output_name {
+                    #generated_public_output_parameters
+                }
+            }
         }
 
-        fn generate_impl_display_for_struct() -> proc_macro2::TokenStream {
-            todo!();
+        fn generate_impl_display_for_struct(
+            command_output_name: Ident,
+            generated_interpolated_output_parameters: String,
+            generated_self_output_parameters: proc_macro2::TokenStream
+        ) -> proc_macro2::TokenStream {
+            quote! {
+                impl std::fmt::Display for #command_output_name {
+                    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                        write!(f, #generated_interpolated_output_parameters, #generated_self_output_parameters)
+                    }
+                }
+            }
         }
 
-        todo!();
+        // Command Output Name
+        let command_id = command_type.command_id.value().to_string();
+        let command_output_name = command_id.clone() + "CommandOutput";
+        let command_output_name = Ident::new(&command_output_name, command_id.span());
+
+        // Output Parameter Infos
+        let output_parameter_infos: Vec<(LitStr, syn::Type)> = command_output_type.parameter_types.iter().map(|parameter_type| {
+            (parameter_type.parameter_name.clone(), parameter_type.parameter_type.clone())
+        }).collect();
+        let mut generated_public_output_parameters = quote! {};
+        let mut generated_self_output_parameters = quote! {};
+        let mut generated_interpolated_output_parameters = quote! {};
+        let mut first = true;
+        for (parameter_name, parameter_type) in output_parameter_infos.clone() {
+            let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
+
+            if !first {
+                generated_public_output_parameters = quote! {
+                    #generated_public_output_parameters, 
+                };
+                generated_self_output_parameters = quote! {
+                    #generated_self_output_parameters, 
+                };
+                generated_interpolated_output_parameters = quote! {
+                    #generated_interpolated_output_parameters, 
+                };
+            } else {
+                first = false;
+            }
+
+            generated_public_output_parameters = quote! {
+                #generated_public_output_parameters
+                pub #parameter_name: #parameter_type
+            };
+            generated_self_output_parameters = quote! {
+                #generated_self_output_parameters
+                self.#parameter_name
+            };
+            generated_interpolated_output_parameters = quote! {
+                #generated_interpolated_output_parameters
+                #parameter_name: {}
+            };
+        }
+        let generated_interpolated_output_parameters = generated_interpolated_output_parameters.to_string();
+
+        let generated_struct_definition = generate_struct_definition(
+            command_output_name,
+            generated_public_output_parameters
+        );
+
+        let generated_impl_display_for_struct = generate_impl_display_for_struct(
+            command_output_name,
+            generated_interpolated_output_parameters,
+            generated_self_output_parameters
+        );
+
+        quote! {
+            #generated_struct_definition
+
+            #generated_impl_display_for_struct
+        }
     }
 
-    fn generate_command_error() -> proc_macro2::TokenStream {
-        fn generate_enum_definition() -> proc_macro2::TokenStream {
-            todo!();
+    fn generate_command_error(command_type: CommandType) -> proc_macro2::TokenStream {
+        fn generate_enum_definition(
+            command_error_name: Ident,
+            generated_error_variants: proc_macro2::TokenStream
+        ) -> proc_macro2::TokenStream {
+            quote! {
+                pub enum #command_error_name {
+                    #generated_error_variants
+                }
+            }
         }
 
-        fn generate_impl_display_for_enum() -> proc_macro2::TokenStream {
-            todo!();
+        fn generate_impl_display_for_enum(
+            command_error_name: Ident,
+            generated_interpolated_error_variants: proc_macro2::TokenStream
+        ) -> proc_macro2::TokenStream {
+            quote! {
+                impl std::fmt::Display for #command_error_name {
+                    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                        match *self {
+                            #generated_interpolated_error_variants
+                        }
+                    }
+                }
+            }
         }
 
-        todo!();
+        // Command Error Name
+        let command_id = command_type.command_id.value().to_string();
+        let command_error_name = command_id.clone() + "CommandError";
+        let command_error_name = Ident::new(&command_error_name, command_id.span());
+
+        // Error Variant Infos
+        let error_variant_infos: Vec<LitStr> = command_type.error_type.error_variants.iter().map(|variant_type| {
+            variant_type.variant_name.clone()
+        }).collect();
+        let mut generated_error_variants = quote! {};
+        let mut generated_interpolated_error_variants = quote! {};
+        let mut first = true;
+        for variant_name in error_variant_infos.clone() {
+            let variant_name = Ident::new(&variant_name.value(), variant_name.span());
+
+            if !first {
+                generated_error_variants = quote! {
+                    #generated_error_variants, 
+                };
+                generated_interpolated_error_variants = quote! {
+                    #generated_interpolated_error_variants, 
+                };
+            } else {
+                first = false;
+            }
+
+            let error_variant_display_string = command_error_name.to_string() + "::" + &variant_name.to_string();
+            let error_variant_display_string = LitStr::new(
+                &error_variant_display_string, 
+                error_variant_display_string.span()
+            );
+
+            generated_error_variants = quote! {
+                #generated_error_variants
+                #variant_name
+            };
+            generated_interpolated_error_variants = quote! {
+                #generated_interpolated_error_variants
+                #command_error_name::#variant_name => {
+                    return write!(f, #error_variant_display_string);
+                }
+            };
+        }
+
+
+        let generated_enum_definition = generate_enum_definition(
+            command_error_name,
+            generated_error_variants
+        );
+
+        let generated_impl_display_for_enum = generate_impl_display_for_enum(
+            command_error_name,
+            generated_interpolated_error_variants
+        );
+
+        quote! {
+            #generated_enum_definition
+
+            #generated_impl_display_for_enum
+        }
     }
 
-    fn generate_command_code() -> proc_macro2::TokenStream {
-        fn generate_struct_definition() -> proc_macro2::TokenStream {
-            todo!();
+    fn generate_command_code(command_type: CommandType) -> proc_macro2::TokenStream {
+        fn generate_struct_definition(
+            command_input_name: Ident,
+            command_output_name: Ident,
+            command_error_name: Ident,
+            command_code_name: Ident,
+        ) -> proc_macro2::TokenStream {
+            quote! {
+                pub struct #command_code_name {
+                    closure: Box<dyn Fn(&#command_input_name) -> Result<#command_output_name, #command_error_name>>,
+                }
+            }
         }
 
-        fn generate_impl_display_for_struct() -> proc_macro2::TokenStream {
-            todo!();
+        fn generate_impl_display_for_struct(
+            command_code_name: Ident,
+            generated_interpolated_code_parameters: String
+        ) -> proc_macro2::TokenStream {
+            quote! {
+                impl std::fmt::Display for #command_code_name {
+                    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                        write!(f, #generated_interpolated_code_parameters)
+                    }
+                }
+            }
         }
 
-        todo!();
+        // Command Input Name
+        let command_id = command_type.command_id.value().to_string();
+        let command_input_name = command_id.clone() + "CommandInput";
+        let command_input_name = Ident::new(&command_input_name, command_id.span());
+
+        // Command Output Name
+        let command_output_name = command_id.clone() + "CommandOutput";
+        let command_output_name = Ident::new(&command_output_name, command_id.span());
+
+        // Command Error Name
+        let command_error_name = command_id.clone() + "CommandError";
+        let command_error_name = Ident::new(&command_error_name, command_id.span());
+
+        // Command Code Name
+        let command_code_name = command_id.clone() + "CommandCode";
+        let command_code_name = Ident::new(&command_code_name, command_id.span());
+
+        // Code Parameter Infos
+        let mut generated_interpolated_code_parameters = quote! {
+            #command_code_name: {{ closure: No Display }}
+        }.to_string().replace("{ { {", "{{ {").replace("} } }", "} }}").replace("{ {", "{{").replace("} }", "}}");
+
+        let generated_struct_definition = generate_struct_definition(
+            command_input_name,
+            command_output_name,
+            command_error_name,
+            command_code_name
+        );
+
+        let generated_impl_display_for_struct = generate_impl_display_for_struct(
+            command_code_name,
+            generated_interpolated_code_parameters
+        );
+
+        quote! {
+            #generated_struct_definition
+
+            #generated_impl_display_for_struct
+        }
     }
 
     TokenStream::from(generated_code)
