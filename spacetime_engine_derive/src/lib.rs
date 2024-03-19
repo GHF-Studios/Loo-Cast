@@ -860,6 +860,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 command_output_name: Ident,
                 command_error_name: Ident,
                 command_code_name: Ident,
+                command_code_block: Block,
                 command_result_name_snake_case: Ident,
                 generated_input_parameter_names: proc_macro2::TokenStream,
                 generated_input_parameters: proc_macro2::TokenStream,
@@ -886,7 +887,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 }
             }
 
-            let mut generated_command_request_functions;
+            let mut generated_command_request_functions = quote! {};
             let mut first = true;
             for command_type in command_types.0 {
                 // Command ID Snake Case
@@ -944,6 +945,9 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 let command_code_name = command_id.clone() + "CommandCode";
                 let command_code_name = Ident::new(&command_code_name, command_id.span());
 
+                // Command Code Block
+                let command_code_block = command_type.code_type.code_block;
+
                 // Command Result Name Snake Case
                 let command_result_name = command_id.clone() + "CommandResult";
                 let mut command_result_name_snake_case = String::new();
@@ -969,11 +973,11 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
                 let mut generated_input_parameters = quote! {};
                 let mut generated_input_parameter_names = quote! {};
-                let mut first = true;
+                let mut first_inner = true;
                 for (parameter_name, parameter_type) in input_parameter_infos.clone() {
                     let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
 
-                    if !first {
+                    if !first_inner {
                         generated_input_parameters = quote! {
                             #generated_input_parameters, 
                         };
@@ -981,7 +985,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                             #generated_input_parameter_names, 
                         };
                     } else {
-                        first = false;
+                        first_inner = false;
                     }
 
                     generated_input_parameters = quote! {
@@ -1011,6 +1015,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                     command_output_name, 
                     command_error_name, 
                     command_code_name, 
+                    command_code_block,
                     command_result_name_snake_case, 
                     generated_input_parameter_names, 
                     generated_input_parameters, 
@@ -1043,7 +1048,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let command_module_id = command_module_type.module_id.value().to_string();
         let command_module_name = Ident::new(&(command_module_id.clone() + "Commands"), command_module_id.span());
 
-        let generated_struct_definition = generate_struct_definition(command_module_name);
+        let generated_struct_definition = generate_struct_definition(command_module_name.clone());
 
         let generated_impl_struct = generate_impl_struct(
             command_module_name,
@@ -1131,17 +1136,17 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             }
 
             let generated_command_initialize_function = generate_command_initialize_function(
-                command_name,
+                command_name.clone(),
                 command_input_name,
                 command_code_name
             );
 
             let generated_command_execute_function = generate_command_execute_function(
-                command_name
+                command_name.clone()
             );
 
             let generated_command_finalize_function = generate_command_finalize_function(
-                command_name,
+                command_name.clone(),
                 command_output_name,
                 command_error_name
             );
@@ -1179,11 +1184,11 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let command_code_name = Ident::new(&command_code_name, command_id.span());
 
         let generated_enum_definition = generate_enum_definition(
-            command_name,
-            command_input_name,
-            command_output_name,
-            command_error_name,
-            command_code_name
+            command_name.clone(),
+            command_input_name.clone(),
+            command_output_name.clone(),
+            command_error_name.clone(),
+            command_code_name.clone()
         );
 
         let generated_impl_enum = generate_impl_enum(
@@ -1273,7 +1278,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let generated_interpolated_input_parameters = generated_interpolated_input_parameters.to_string();
 
         let generated_struct_definition = generate_struct_definition(
-            command_input_name,
+            command_input_name.clone(),
             generated_public_input_parameters
         );
 
@@ -1362,7 +1367,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let generated_interpolated_output_parameters = generated_interpolated_output_parameters.to_string();
 
         let generated_struct_definition = generate_struct_definition(
-            command_output_name,
+            command_output_name.clone(),
             generated_public_output_parameters
         );
 
@@ -1452,7 +1457,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
 
         let generated_enum_definition = generate_enum_definition(
-            command_error_name,
+            command_error_name.clone(),
             generated_error_variants
         );
 
@@ -1513,7 +1518,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let command_code_name = Ident::new(&command_code_name, command_id.span());
 
         // Code Parameter Infos
-        let mut generated_interpolated_code_parameters = quote! {
+        let generated_interpolated_code_parameters = quote! {
             #command_code_name: {{ closure: No Display }}
         }.to_string().replace("{ { {", "{{ {").replace("} } }", "} }}").replace("{ {", "{{").replace("} }", "}}");
 
@@ -1521,7 +1526,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             command_input_name,
             command_output_name,
             command_error_name,
-            command_code_name
+            command_code_name.clone()
         );
 
         let generated_impl_display_for_struct = generate_impl_display_for_struct(
