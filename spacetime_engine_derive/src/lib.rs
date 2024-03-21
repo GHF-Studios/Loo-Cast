@@ -12,13 +12,25 @@ use syn::{
     Token,
 };
 
-pub(crate) struct CommandModuleType {
+/*
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+*/
+// Commands Module Definition
+
+pub(crate) struct CommandsModuleType {
     pub module_id: LitStr,
     pub module_path: Path,
     pub command_types: CommandTypes,
 }
 
-impl Parse for CommandModuleType {
+impl Parse for CommandsModuleType {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let module_id = input.parse::<Ident>()?;
         let module_id = module_id.to_string();
@@ -53,7 +65,7 @@ impl Parse for CommandModuleType {
 
         let command_types = CommandTypes::parse(&content)?;
 
-        Ok(CommandModuleType {
+        Ok(CommandsModuleType {
             module_id,
             module_path,
             command_types
@@ -137,6 +149,12 @@ impl Parse for CommandInputType {
         let content;
         syn::braced!(content in input);
 
+        if content.is_empty() {
+            return Ok(CommandInputType {
+                parameter_types: Vec::new()
+            });
+        }
+
         let parsed_parameters: Punctuated<CommandInputParameterType, Token![,]> = Punctuated::parse_terminated(&content)?;
 
         Ok(CommandInputType {
@@ -185,6 +203,12 @@ impl Parse for CommandOutputType {
 
         let content;
         syn::braced!(content in input);
+
+        if content.is_empty() {
+            return Ok(CommandOutputType {
+                parameter_types: Vec::new()
+            });
+        }
 
         let parsed_parameters: Punctuated<CommandOutputParameterType, Token![,]> = Punctuated::parse_terminated(&content)?;
 
@@ -333,18 +357,18 @@ impl Parse for CommandCodeType {
 
 #[proc_macro]
 pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
-    let command_module_type = parse_macro_input!(tokens as CommandModuleType);
+    let commands_module_type = parse_macro_input!(tokens as CommandsModuleType);
 
-    fn generate_command_module(command_module_type: &CommandModuleType) -> proc_macro2::TokenStream {
-        fn generate_struct_definition(command_module_name: Ident) -> proc_macro2::TokenStream {
+    fn generate_commands_module(commands_module_type: &CommandsModuleType) -> proc_macro2::TokenStream {
+        fn generate_struct_definition(commands_module_name: Ident) -> proc_macro2::TokenStream {
             let generated = quote! {
-                pub struct #command_module_name {}
+                pub struct #commands_module_name {}
             };
 
             generated
         }
 
-        fn generate_impl_struct(command_module_name: Ident, command_types: &CommandTypes) -> proc_macro2::TokenStream {
+        fn generate_impl_struct(commands_module_name: Ident, command_types: &CommandTypes) -> proc_macro2::TokenStream {
             fn generate_command_request_function(
                 command_id_snake_case: Ident, 
                 command_name: Ident,
@@ -531,21 +555,21 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             }
 
             quote! {
-                impl #command_module_name {
+                impl #commands_module_name {
                     #generated_command_request_functions
                 }
             }
         }
 
         // Command Module Name
-        let command_module_id = command_module_type.module_id.value().to_string();
-        let command_module_name = Ident::new(&(command_module_id.clone() + "Commands"), command_module_id.span());
+        let commands_module_id = commands_module_type.module_id.value().to_string();
+        let commands_module_name = Ident::new(&(commands_module_id.clone() + "Commands"), commands_module_id.span());
 
-        let generated_struct_definition = generate_struct_definition(command_module_name.clone());
+        let generated_struct_definition = generate_struct_definition(commands_module_name.clone());
 
         let generated_impl_struct = generate_impl_struct(
-            command_module_name,
-            &command_module_type.command_types
+            commands_module_name,
+            &commands_module_type.command_types
         );
 
         quote! {
@@ -1036,7 +1060,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
     }
 
-    let generated_command_module = generate_command_module(&command_module_type);
+    let generated_commands_module = generate_commands_module(&commands_module_type);
 
     let mut generated_commands = quote! {};
     let mut generated_command_inputs = quote! {};
@@ -1044,7 +1068,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
     let mut generated_command_errors = quote! {};
     let mut generated_command_codes = quote! {};
     let mut first = true;
-    for command_type in command_module_type.command_types.0 {
+    for command_type in commands_module_type.command_types.0 {
         let generated_command = generate_command(&command_type);
         let generated_command_input = generate_command_input(&command_type);
         let generated_command_output = generate_command_output(&command_type);
@@ -1107,7 +1131,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
     }
 
     let generated_code = quote! {
-        #generated_command_module
+        #generated_commands_module
 
         #generated_commands
 
@@ -1121,4 +1145,29 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(generated_code)
+}
+
+/*
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+*/
+// Assets Module Definition
+
+pub(crate) struct AssetsModuleType {
+    pub module_id: LitStr,
+    pub module_path: Path,
+    pub asset_types: AssetTypes,
+}
+
+pub(crate) struct AssetTypes(Vec<AssetType>);
+
+pub(crate) struct AssetType {
+    pub asset_id: LitStr,
+    pub asset_type: syn::Type
 }

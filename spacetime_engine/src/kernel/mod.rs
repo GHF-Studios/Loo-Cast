@@ -1,12 +1,15 @@
 // Modules
+pub mod assets;
 pub mod commands;
 pub mod config;
 pub mod data;
 pub mod debug;
 pub mod event;
+pub mod files;
 pub mod manager;
 pub mod math;
 pub mod plugin;
+pub mod registry;
 pub mod resource;
 
 // Internal imports
