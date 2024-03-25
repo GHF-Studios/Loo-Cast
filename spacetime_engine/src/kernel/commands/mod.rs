@@ -21,7 +21,7 @@ define_commands_module! {
                 Error {},
                 Code || -> () {
                     println!("Hello World!");
-                    Ok(HelloWorldCommandOutput {})
+                    HelloWorldCommandOutput {}
                 }
             },
             DrawGizmoLine {

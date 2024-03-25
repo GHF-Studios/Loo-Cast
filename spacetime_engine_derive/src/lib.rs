@@ -786,15 +786,26 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             command_code_name: Ident,
         ) -> proc_macro2::TokenStream {
             fn generate_command_initialize_function(
+                command_type: &CommandType,
                 command_name: Ident,
                 command_input_name: Ident,
                 command_code_name: Ident,
             ) -> proc_macro2::TokenStream {
-                quote! {
-                    fn initialize(input: #command_input_name, code: #command_code_name) -> Self {
-                        #command_name::Initialized {
-                            input,
-                            code,
+                if command_type.input_type.parameter_types.is_empty() {
+                    quote! {
+                        fn initialize(code: #command_code_name) -> Self {
+                            #command_name::Initialized {
+                                code,
+                            }
+                        }
+                    }
+                } else {
+                    quote! {
+                        fn initialize(input: #command_input_name, code: #command_code_name) -> Self {
+                            #command_name::Initialized {
+                                input,
+                                code,
+                            }
                         }
                     }
                 }
@@ -892,22 +903,59 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             }
 
             fn generate_command_finalize_function(
+                command_type: &CommandType,
                 command_name: Ident,
                 command_output_name: Ident,
                 command_error_name: Ident,
             ) -> proc_macro2::TokenStream {
-                quote! {
-                    fn finalize(self) -> Option<Result<#command_output_name, #command_error_name>> {
-                        if let #command_name::Executed { result } = self {
-                            Some(result)
-                        } else {
-                            None
+                if command_type.output_type.parameter_types.is_empty() {
+                    if command_type.error_type.variant_types.is_empty() {
+                        quote! {
+                            fn finalize(self) -> #command_output_name {
+                                if let #command_name::Executed {} = self {
+                                    Some(())
+                                } else {
+                                    None
+                                }
+                            }
+                        }
+                    } else {
+                        quote! {
+                            fn finalize(self) -> Option<Result<(), #command_error_name>> {
+                                if let #command_name::Executed { result } = self {
+                                    Some(result)
+                                } else {
+                                    None
+                                }
+                            }	
+                        }
+                    }
+                } else if command_type.error_type.variant_types.is_empty() {
+                        quote! {
+                            fn finalize(self) -> #command_output_name {
+                                if let #command_name::Executed { output } = self {
+                                    Some(output)
+                                } else {
+                                    None
+                                }
+                            }
+                        }
+                    } else {
+                        quote! {
+                            fn finalize(self) -> Option<Result<#command_output_name, #command_error_name>> {
+                                if let #command_name::Executed { result } = self {
+                                    Some(result)
+                                } else {
+                                    None
+                                }
+                            }
                         }
                     }
                 }
             }
 
             let generated_command_initialize_function = generate_command_initialize_function(
+                command_type,
                 command_name.clone(),
                 command_input_name,
                 command_code_name
@@ -919,6 +967,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             );
 
             let generated_command_finalize_function = generate_command_finalize_function(
+                command_type,
                 command_name.clone(),
                 command_output_name,
                 command_error_name
