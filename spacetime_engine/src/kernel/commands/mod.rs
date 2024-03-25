@@ -21,7 +21,6 @@ define_commands_module! {
                 Error {},
                 Code || -> () {
                     println!("Hello World!");
-                    HelloWorldCommandOutput {}
                 }
             },
             DrawGizmoLine {
@@ -76,13 +75,11 @@ define_commands_module! {
                 Output {
                     entity_id: u32,
                 },
-                Error {
-                    InvalidPosition,
-                },
-                Code || -> Result<Output, Error> {
-                    Ok(SpawnEntityCommandOutput {
+                Error {},
+                Code || -> Output {
+                    SpawnEntityCommandOutput {
                         entity_id: 0,
-                    })
+                    }
                 }
             },
             DespawnEntity {
@@ -95,7 +92,7 @@ define_commands_module! {
                 },
                 Code |input| -> Result<(), Error> {
                     if input.entity_id == 0 {
-                        Ok(DespawnEntityCommandOutput {})
+                        Ok(())
                     } else {
                         Err(DespawnEntityCommandError::InvalidEntityId)
                     }

@@ -670,60 +670,156 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 if command_type.input_type.parameter_types.is_empty() {
                     if command_type.output_type.parameter_types.is_empty() {
                         if command_type.error_type.variant_types.is_empty() {
-                            // No Input
-                            // No Output
-                            // No Error
+                            quote! {
+                                pub fn #command_id_snake_case(&self) {
+                                    let mut #command_name_snake_case = #command_name::initialize(
+                                        #command_code_name {
+                                            closure: Box::new(|| #command_code_block),
+                                        }
+                                    );
+                    
+                                    #command_name_snake_case.execute();
+                    
+                                    match #command_name_snake_case.finalize() {
+                                        Some(_) => {},
+                                        None => panic!(#generated_interpolated_panic_message),
+                                    };
+                                }
+                            }
                         } else {
-                            // No Input
-                            // No Output
-                            // Yes Error
+                            quote! {
+                                pub fn #command_id_snake_case(&self) -> Result<(), #command_error_name> {
+                                    let mut #command_name_snake_case = #command_name::initialize(
+                                        #command_code_name {
+                                            closure: Box::new(|| -> Result<(), #command_error_name> #command_code_block),
+                                        }
+                                    );
+                    
+                                    #command_name_snake_case.execute();
+                    
+                                    match #command_name_snake_case.finalize() {
+                                        Some(#command_result_name_snake_case) => return #command_result_name_snake_case,
+                                        None => panic!(#generated_interpolated_panic_message),
+                                    };
+                                }
+                            }
                         }
                     } else if command_type.error_type.variant_types.is_empty() {
-                        // No Input
-                        // Yes Output
-                        // No Error
+                        quote! {
+                            pub fn #command_id_snake_case(&self) -> #command_output_name {
+                                let mut #command_name_snake_case = #command_name::initialize(
+                                    #command_code_name {
+                                        closure: Box::new(|| -> #command_output_name #command_code_block),
+                                    }
+                                );
+                
+                                #command_name_snake_case.execute();
+                
+                                match #command_name_snake_case.finalize() {
+                                    Some(#command_output_name_snake_case) => return #command_output_name_snake_case,
+                                    None => panic!(#generated_interpolated_panic_message),
+                                };
+                            }
+                        }
                     } else {
-                        // No Input
-                        // Yes Output
-                        // Yes Error
+                        quote! {
+                            pub fn #command_id_snake_case(&self) -> Result<#command_output_name, #command_error_name> {
+                                let mut #command_name_snake_case = #command_name::initialize(
+                                    #command_code_name {
+                                        closure: Box::new(|| -> Result<#command_output_name, #command_error_name> #command_code_block),
+                                    }
+                                );
+                
+                                #command_name_snake_case.execute();
+                
+                                match #command_name_snake_case.finalize() {
+                                    Some(#command_result_name_snake_case) => return #command_result_name_snake_case,
+                                    None => panic!(#generated_interpolated_panic_message),
+                                };
+                            }
+                        }
                     }
                 } else if command_type.output_type.parameter_types.is_empty()  {
                     if command_type.error_type.variant_types.is_empty() {
-                        // Yes Input
-                        // No Output
-                        // No Error
+                        quote! {
+                            pub fn #command_id_snake_case(&self, #generated_input_parameters) {
+                                let mut #command_name_snake_case = #command_name::initialize(
+                                    #command_input_name {
+                                        #generated_input_parameter_names
+                                    },
+                                    #command_code_name {
+                                        closure: Box::new(|input: &#command_input_name| #command_code_block),
+                                    }
+                                );
+                
+                                #command_name_snake_case.execute();
+                
+                                match #command_name_snake_case.finalize() {
+                                    Some(_) => {},
+                                    None => panic!(#generated_interpolated_panic_message),
+                                };
+                            }
+                        }
                     } else {
-                        // Yes Input
-                        // No Output
-                        // Yes Error
+                        quote! {
+                            pub fn #command_id_snake_case(&self, #generated_input_parameters) -> Result<(), #command_error_name> {
+                                let mut #command_name_snake_case = #command_name::initialize(
+                                    #command_input_name {
+                                        #generated_input_parameter_names
+                                    },
+                                    #command_code_name {
+                                        closure: Box::new(|input: &#command_input_name| -> Result<(), #command_error_name> #command_code_block),
+                                    }
+                                );
+                
+                                #command_name_snake_case.execute();
+                
+                                match #command_name_snake_case.finalize() {
+                                    Some(#command_result_name_snake_case) => return #command_result_name_snake_case,
+                                    None => panic!(#generated_interpolated_panic_message),
+                                };
+                            }
+                        }
                     }
                 } else if command_type.error_type.variant_types.is_empty() {
-                    // Yes Input
-                    // Yes Output
-                    // No Error
+                    quote! {
+                        pub fn #command_id_snake_case(&self, #generated_input_parameters) -> #command_output_name {
+                            let mut #command_name_snake_case = #command_name::initialize(
+                                #command_input_name {
+                                    #generated_input_parameter_names
+                                },
+                                #command_code_name {
+                                    closure: Box::new(|input: &#command_input_name| -> #command_output_name #command_code_block),
+                                }
+                            );
+            
+                            #command_name_snake_case.execute();
+            
+                            match #command_name_snake_case.finalize() {
+                                Some(#command_output_name_snake_case) => return #command_output_name_snake_case,
+                                None => panic!(#generated_interpolated_panic_message),
+                            };
+                        }
+                    }
                 } else {
-                    // Yes Input
-                    // Yes Output
-                    // Yes Error
-                }
-
-                quote! {
-                    pub fn #command_id_snake_case(&self, #generated_input_parameters) -> Result<#command_output_name, #command_error_name> {
-                        let mut #command_name_snake_case = #command_name::initialize(
-                            #command_input_name {
-                                #generated_input_parameter_names
-                            },
-                            #command_code_name {
-                                closure: Box::new(|input: &#command_input_name| -> Result<#command_output_name, #command_error_name> #command_code_block),
-                            }
-                        );
-        
-                        #command_name_snake_case.execute();
-        
-                        match #command_name_snake_case.finalize() {
-                            Some(#command_result_name_snake_case) => return #command_result_name_snake_case,
-                            None => panic!(#generated_interpolated_panic_message),
-                        };
+                    quote! {
+                        pub fn #command_id_snake_case(&self, #generated_input_parameters) -> Result<#command_output_name, #command_error_name> {
+                            let mut #command_name_snake_case = #command_name::initialize(
+                                #command_input_name {
+                                    #generated_input_parameter_names
+                                },
+                                #command_code_name {
+                                    closure: Box::new(|input: &#command_input_name| -> Result<#command_output_name, #command_error_name> #command_code_block),
+                                }
+                            );
+            
+                            #command_name_snake_case.execute();
+            
+                            match #command_name_snake_case.finalize() {
+                                Some(#command_result_name_snake_case) => return #command_result_name_snake_case,
+                                None => panic!(#generated_interpolated_panic_message),
+                            };
+                        }
                     }
                 }
             }
@@ -923,7 +1019,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                             quote! {
                                 fn execute(&mut self) {
                                     if let #command_name::Initialized { code } = self {
-                                        (code.closure)()
+                                        (code.closure)();
                                         *self = #command_name::Executed {};
                                     }
                                 }
@@ -965,7 +1061,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                         quote! {
                             fn execute(&mut self) {
                                 if let #command_name::Initialized { input, code } = self {
-                                    (code.closure)(&input)
+                                    (code.closure)(&input);
                                     *self = #command_name::Executed {};
                                 }
                             }
@@ -1013,7 +1109,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 if command_type.output_type.parameter_types.is_empty() {
                     if command_type.error_type.variant_types.is_empty() {
                         quote! {
-                            fn finalize(self) -> #command_output_name {
+                            fn finalize(self) -> Option<#command_output_name> {
                                 if let #command_name::Executed {} = self {
                                     Some(())
                                 } else {
@@ -1034,7 +1130,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                     }
                 } else if command_type.error_type.variant_types.is_empty() {
                         quote! {
-                            fn finalize(self) -> #command_output_name {
+                            fn finalize(self) -> Option<#command_output_name> {
                                 if let #command_name::Executed { output } = self {
                                     Some(output)
                                 } else {
@@ -1541,21 +1637,21 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let generated_command_code = generate_command_code(&command_type);
 
         if command_type.input_type.parameter_types.is_empty() {
-            generated_command_input = Some(generate_command_input(&command_type));
-        } else {
             generated_command_input = None;
+        } else {
+            generated_command_input = Some(generate_command_input(&command_type));
         }
 
         if command_type.output_type.parameter_types.is_empty() {
-            generated_command_output = Some(generate_command_output(&command_type));
-        } else {
             generated_command_output = None;
+        } else {
+            generated_command_output = Some(generate_command_output(&command_type));
         }
 
         if command_type.error_type.variant_types.is_empty() {
-            generated_command_error = Some(generate_command_error(&command_type));
-        } else {
             generated_command_error = None;
+        } else {
+            generated_command_error = Some(generate_command_error(&command_type));
         }
 
         if first_command {
