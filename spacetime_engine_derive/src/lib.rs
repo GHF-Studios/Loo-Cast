@@ -1,15 +1,7 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
-    Block,
-    Ident,
-    LitStr, 
-    parse_macro_input,
-    parse::{Parse, ParseStream}, 
-    Path,
-    punctuated::Punctuated,
-    spanned::Spanned,
-    Token,
+    braced, bracketed, parenthesized, parse::{Parse, ParseStream}, parse_macro_input, punctuated::Punctuated, spanned::Spanned, token::{Brace, Bracket, Paren}, Block, Ident, LitStr, Path, Token
 };
 
 /*
@@ -119,6 +111,50 @@ impl Parse for CommandType {
         content.parse::<Token![,]>()?;
 
         let code_type = content.parse::<CommandCodeType>()?;
+
+        if input_type.parameter_types.is_empty() {
+            if code_type.code_signature.input_type.is_some() {
+                return Err(syn::Error::new(input.span(), "Expected Input Type Definition"));
+            }
+        } else if code_type.code_signature.input_type.is_none() {
+            return Err(syn::Error::new(input.span(), "Expected Input Type Usage"));
+        }
+
+        if output_type.parameter_types.is_empty() {
+            match code_type.code_signature.return_type {
+                CommandCodeSignatureReturnType::OutputType(ref output_type) => {
+                    if let CommandCodeSignatureOutputType::OutputType = output_type {
+                        return Err(syn::Error::new(input.span(), "Expected Output Type Definition"));
+                    }
+                }
+                CommandCodeSignatureReturnType::ResultType(ref result_type) => {
+                    if let CommandCodeSignatureOutputType::OutputType = result_type.output_type {
+                        return Err(syn::Error::new(input.span(), "Expected Output Type Definition"));
+                    }
+                }
+            }
+        } else {
+            match code_type.code_signature.return_type {
+                CommandCodeSignatureReturnType::OutputType(ref output_type) => {
+                    if let CommandCodeSignatureOutputType::UnitType = output_type {
+                        return Err(syn::Error::new(input.span(), "Expected Output Type Usage"));
+                    }
+                }
+                CommandCodeSignatureReturnType::ResultType(ref result_type) => {
+                    if let CommandCodeSignatureOutputType::UnitType = result_type.output_type {
+                        return Err(syn::Error::new(input.span(), "Expected Output Type Usage"));
+                    }
+                }
+            }
+        }
+
+        if error_type.variant_types.is_empty() {
+            if let CommandCodeSignatureReturnType::ResultType(_) = code_type.code_signature.return_type {
+                return Err(syn::Error::new(input.span(), "Expected Error Type Definition"));
+            }
+        } else if let CommandCodeSignatureReturnType::OutputType(_) = code_type.code_signature.return_type {
+            return Err(syn::Error::new(input.span(), "Expected Error Type Usage"));
+        }
 
         Ok(CommandType {
             command_id,
@@ -244,7 +280,7 @@ impl Parse for CommandOutputParameterType {
 
 #[derive(Clone)]
 struct CommandErrorType {
-    pub error_variants: Vec<CommandErrorVariantType>
+    pub variant_types: Vec<CommandErrorVariantType>
 }
 
 impl Parse for CommandErrorType {
@@ -260,10 +296,16 @@ impl Parse for CommandErrorType {
         let content;
         syn::braced!(content in input);
 
+        if content.is_empty() {
+            return Ok(CommandErrorType {
+                variant_types: Vec::new()
+            });
+        }
+
         let parsed_variants: Punctuated<CommandErrorVariantType, Token![,]> = Punctuated::parse_terminated(&content)?;
 
         Ok(CommandErrorType {
-            error_variants: parsed_variants.into_iter().collect()
+            variant_types: parsed_variants.into_iter().collect()
         })
     }
 }
@@ -287,10 +329,30 @@ impl Parse for CommandErrorVariantType {
 
 #[derive(Clone)]
 struct CommandCodeType {
-    pub code_block: Block
+    pub code_signature: CommandCodeSignature,
+    pub code_block: CommandCodeBlock
 }
 
 impl Parse for CommandCodeType {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let code_signature = input.parse::<CommandCodeSignature>()?;
+        let code_block = input.parse::<CommandCodeBlock>()?;
+
+        Ok(CommandCodeType {
+            code_signature,
+            code_block,
+        })
+    }
+
+}
+
+#[derive(Clone)]
+struct CommandCodeSignature {
+    pub input_type: Option<CommandCodeSignatureInputType>,
+    pub return_type: CommandCodeSignatureReturnType,
+}
+
+impl Parse for CommandCodeSignature {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let code_label = input.parse::<Ident>()?;
         let span = code_label.span();
@@ -302,35 +364,96 @@ impl Parse for CommandCodeType {
 
         input.parse::<Token![|]>()?;
 
-        let input_parameter_label = input.parse::<Ident>()?;
-        let span = input_parameter_label.span();
-        let input_parameter_label = input_parameter_label.to_string();
-
-        if input_parameter_label != "input" {
-            return Err(syn::Error::new(span, "Expected 'input' Label"));
+        let mut input_type = None;
+        if input.fork().parse::<Ident>().is_ok() {
+            input_type = Some(input.parse::<CommandCodeSignatureInputType>()?);
         }
 
         input.parse::<Token![|]>()?;
 
-        input.parse::<Token![-]>()?;
-        input.parse::<Token![>]>()?;
+        let return_type = input.parse::<CommandCodeSignatureReturnType>()?;
 
-        let result_paramater_label = input.parse::<Ident>()?;
-        let span = result_paramater_label.span();
-        let result_paramater_label = result_paramater_label.to_string();
+        Ok(CommandCodeSignature {
+            input_type,
+            return_type
+        })
+    }
 
-        if result_paramater_label != "Result" {
-            return Err(syn::Error::new(span, "Expected 'Result' Label"));
+}
+
+type CommandCodeBlock = Block;
+
+#[derive(Clone)]
+struct CommandCodeSignatureInputType;
+
+impl Parse for CommandCodeSignatureInputType {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let input_type_label = input.parse::<Ident>()?;
+        let span = input_type_label.span();
+        let input_type_label = input_type_label.to_string();
+
+        if input_type_label != "input" {
+            return Err(syn::Error::new(span, "Expected 'input' Label"));
         }
 
-        input.parse::<Token![<]>()?;
+        Ok(CommandCodeSignatureInputType {})
+    }
+}
 
-        let output_parameter_label = input.parse::<Ident>()?;
-        let span = output_parameter_label.span();
-        let output_parameter_label = output_parameter_label.to_string();
+#[derive(Clone)]
+enum CommandCodeSignatureOutputType {
+    UnitType,
+    OutputType,
+}
 
-        if output_parameter_label != "Output" {
-            return Err(syn::Error::new(span, "Expected 'Output' Label"));
+impl Parse for CommandCodeSignatureOutputType {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.peek(Brace) {
+            let _content;
+            braced!(_content in input);
+
+            Ok(CommandCodeSignatureOutputType::UnitType)
+        } else if input.fork().parse::<Ident>().is_ok() {
+            let output_type_label = input.parse::<Ident>()?;
+            let span = output_type_label.span();
+            let output_type_label = output_type_label.to_string();
+    
+            if output_type_label != "Output" {
+                return Err(syn::Error::new(span, "Expected 'Output' Label"));
+            }
+
+            Ok(CommandCodeSignatureOutputType::OutputType)
+        } else {
+            Err(syn::Error::new(input.span(), "Expected 'Output' Label or Unit Label"))
+        }
+    }
+}
+
+#[derive(Clone)]
+struct CommandCodeSignatureResultType {
+    pub output_type: CommandCodeSignatureOutputType,
+}
+
+impl Parse for CommandCodeSignatureResultType {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let output_type;
+        if input.peek(Paren) {
+            let _content;
+            parenthesized!(_content in input);
+
+            output_type = CommandCodeSignatureOutputType::UnitType;
+        } else if input.fork().parse::<Ident>().is_ok() {
+            let output_type_label = input.parse::<Ident>()?;
+            let span = output_type_label.span();
+            let output_type_label = output_type_label.to_string();
+
+            if output_type_label != "Output" {
+                return Err(syn::Error::new(span, "Expected 'Output' Label"));
+            }
+
+            output_type = CommandCodeSignatureOutputType::OutputType;
+        } else {
+            return Err(syn::Error::new(input.span(), "Expected 'Output' Label or Unit Label"))
         }
 
         input.parse::<Token![,]>()?;
@@ -343,16 +466,56 @@ impl Parse for CommandCodeType {
             return Err(syn::Error::new(span, "Expected 'Error' Label"));
         }
 
-        input.parse::<Token![>]>()?;
-
-
-        let code_block = input.parse::<Block>()?;
-
-        Ok(CommandCodeType {
-            code_block
+        Ok(CommandCodeSignatureResultType {
+            output_type
         })
     }
+}
 
+#[derive(Clone)]
+enum CommandCodeSignatureReturnType {
+    OutputType(CommandCodeSignatureOutputType),
+    ResultType(CommandCodeSignatureResultType),
+}
+
+impl Parse for CommandCodeSignatureReturnType {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        input.parse::<Token![-]>()?;
+        input.parse::<Token![>]>()?;
+
+        if input.peek(Paren) {
+            let _content;
+            parenthesized!(_content in input);
+
+            Ok(Self::OutputType(CommandCodeSignatureOutputType::UnitType))
+        } else if input.fork().parse::<Ident>().is_ok() {
+            let return_type_label = input.parse::<Ident>()?;
+            let span = return_type_label.span();
+            let return_type_label = return_type_label.to_string();
+    
+            match return_type_label.as_str() {
+                "Output" => {
+                    let output_type = CommandCodeSignatureOutputType::OutputType;
+
+                    return Ok(Self::OutputType(output_type))
+                }
+                "Result" => {
+                    input.parse::<Token![<]>()?;
+
+                    let result_type = input.parse::<CommandCodeSignatureResultType>()?;
+
+                    input.parse::<Token![>]>()?;
+
+                    return Ok(Self::ResultType(result_type));
+                }
+                _ => {
+                    return Err(syn::Error::new(span, "Expected 'Output' Label or 'Result' Label"));
+                }
+            }
+        } else {
+            Err(syn::Error::new(input.span(), "Expected 'Output' Label or Unit Label or 'Result' Label"))
+        }
+    }
 }
 
 #[proc_macro]
@@ -937,7 +1100,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
         // Error Variant Infos
         let command_error_type = &command_type.error_type;
-        let error_variant_infos: Vec<LitStr> = command_error_type.error_variants.iter().map(|variant_type| {
+        let error_variant_infos: Vec<LitStr> = command_error_type.variant_types.iter().map(|variant_type| {
             variant_type.variant_name.clone()
         }).collect();
         let mut generated_error_variants = quote! {};
@@ -1157,14 +1320,44 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 */
-// Objects Module Definition
+// Components Module Definition
 
-struct ObjectsModuleType {
+struct ComponentsModuleType {
     pub module_id: LitStr,
     pub module_path: Path,
 }
 
-struct ObjectTypes(Vec<ObjectType>);
+impl Parse for ComponentsModuleType {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        todo!();
+    }
+}
 
-struct ObjectType {
+struct ComponentTypes(Vec<ComponentType>);
+
+impl Parse for ComponentTypes {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        todo!();
+    }
+}
+
+struct ComponentType {
+    
+}
+
+impl Parse for ComponentType {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        todo!();
+    }
+}
+
+#[proc_macro]
+pub fn define_components_module(tokens: TokenStream) -> TokenStream {
+    let components_module_type = parse_macro_input!(tokens as ComponentsModuleType);
+
+    let generated_code = quote! {
+
+    };
+
+    TokenStream::from(generated_code)
 }

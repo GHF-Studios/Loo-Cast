@@ -16,26 +16,12 @@ define_commands_module! {
         module_path: crate::kernel::commands,
         commands: [
             HelloWorld {
-                Input {
-                    value: i32,
-                },
-                Output {
-                    value: i32,
-                },
-                Error {
-                    InvalidInput,
-                },
-                Code |input| -> Result<Output, Error> {
-                    match input.value {
-                        0..=9 => {
-                            Ok(HelloWorldCommandOutput {
-                                value: 0,
-                            })
-                        },
-                        _ => {
-                            Err(HelloWorldCommandError::InvalidInput)
-                        },
-                    }
+                Input {},
+                Output {},
+                Error {},
+                Code || -> () {
+                    println!("Hello World!");
+                    Ok(HelloWorldCommandOutput {})
                 }
             },
             DrawGizmoLine {
@@ -73,58 +59,43 @@ define_commands_module! {
                     circle_id: u32,
                 },
                 Error {
-                    InvalidCenter,
                     InvalidRadius,
                 },
                 Code |input| -> Result<Output, Error> {
-                    if input.center.x == 0 && input.center.y == 0 {
-                        if input.radius > 0 {
-                            Ok(DrawGizmoCircleCommandOutput {
-                                circle_id: 0,
-                            })
-                        } else {
-                            Err(DrawGizmoCircleCommandError::InvalidRadius)
-                        }
+                    if input.radius > 0 {
+                        Ok(DrawGizmoCircleCommandOutput {
+                            circle_id: 0,
+                        })
                     } else {
-                        Err(DrawGizmoCircleCommandError::InvalidCenter)
+                        Err(DrawGizmoCircleCommandError::InvalidRadius)
                     }
                 }
             },
             SpawnEntity {
-                Input {
-                    position: Point,
-                },
+                Input {},
                 Output {
                     entity_id: u32,
                 },
                 Error {
                     InvalidPosition,
                 },
-                Code |input| -> Result<Output, Error> {
-                    if input.position.x == 0 && input.position.y == 0 {
-                        Ok(SpawnEntityCommandOutput {
-                            entity_id: 0,
-                        })
-                    } else {
-                        Err(SpawnEntityCommandError::InvalidPosition)
-                    }
+                Code || -> Result<Output, Error> {
+                    Ok(SpawnEntityCommandOutput {
+                        entity_id: 0,
+                    })
                 }
             },
             DespawnEntity {
                 Input {
                     entity_id: u32,
                 },
-                Output {
-                    success: bool,
-                },
+                Output {},
                 Error {
                     InvalidEntityId,
                 },
-                Code |input| -> Result<Output, Error> {
+                Code |input| -> Result<(), Error> {
                     if input.entity_id == 0 {
-                        Ok(DespawnEntityCommandOutput {
-                            success: true,
-                        })
+                        Ok(DespawnEntityCommandOutput {})
                     } else {
                         Err(DespawnEntityCommandError::InvalidEntityId)
                     }

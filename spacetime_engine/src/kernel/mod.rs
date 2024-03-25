@@ -1,12 +1,12 @@
 // Modules
 pub mod commands;
+pub mod components;
 pub mod config;
 pub mod data;
 pub mod debug;
 pub mod event;
 pub mod manager;
 pub mod math;
-pub mod objects;
 pub mod plugin;
 pub mod resource;
 
