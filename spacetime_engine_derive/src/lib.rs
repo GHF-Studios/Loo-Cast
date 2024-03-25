@@ -595,6 +595,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                         prev_was_uppercase = false;
                     }
                 }
+                let command_output_name_snake_case = Ident::new(&command_output_name_snake_case, command_id.span());
 
                 // Command Error Name
                 let command_error_name = command_id.clone() + "CommandError";
@@ -1109,7 +1110,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 if command_type.output_type.parameter_types.is_empty() {
                     if command_type.error_type.variant_types.is_empty() {
                         quote! {
-                            fn finalize(self) -> Option<#command_output_name> {
+                            fn finalize(self) -> Option<()> {
                                 if let #command_name::Executed {} = self {
                                     Some(())
                                 } else {
