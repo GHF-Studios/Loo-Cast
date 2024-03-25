@@ -752,13 +752,84 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             command_code_name: Ident,
         ) -> proc_macro2::TokenStream {
             if command_type.input_type.parameter_types.is_empty() {
+                if command_type.output_type.parameter_types.is_empty() {
+                    if command_type.error_type.variant_types.is_empty() {
+                        quote! {
+                            pub enum #command_name {
+                                Initialized {
+                                    code: #command_code_name,
+                                },
+                                Executed {},
+                            }
+                        }
+                    } else {
+                        quote! {
+                            pub enum #command_name {
+                                Initialized {
+                                    code: #command_code_name,
+                                },
+                                Executed {
+                                    result: Result<(), #command_error_name>,
+                                },
+                            }
+                        }
+                    }
+                } else if command_type.error_type.variant_types.is_empty() {
+                    quote! {
+                        pub enum #command_name {
+                            Initialized {
+                                code: #command_code_name,
+                            },
+                            Executed {
+                                output: #command_output_name,
+                            },
+                        }
+                    }
+                } else {
+                    quote! {
+                        pub enum #command_name {
+                            Initialized {
+                                code: #command_code_name,
+                            },
+                            Executed {
+                                result: Result<#command_output_name, #command_error_name>,
+                            },
+                        }
+                    }
+                }
+            } else if command_type.output_type.parameter_types.is_empty()  {
+                if command_type.error_type.variant_types.is_empty() {
+                    quote! {
+                        pub enum #command_name {
+                            Initialized {
+                                input: #command_input_name,
+                                code: #command_code_name,
+                            },
+                            Executed {},
+                        }
+                    }
+                } else {
+                    quote! {
+                        pub enum #command_name {
+                            Initialized {
+                                input: #command_input_name,
+                                code: #command_code_name,
+                            },
+                            Executed {
+                                result: Result<(), #command_error_name>,
+                            },
+                        }
+                    }
+                }
+            } else if command_type.error_type.variant_types.is_empty() {
                 quote! {
                     pub enum #command_name {
                         Initialized {
+                            input: #command_input_name,
                             code: #command_code_name,
                         },
                         Executed {
-                            result: Result<#command_output_name, #command_error_name>,
+                            result: #command_output_name,
                         },
                     }
                 }
@@ -952,7 +1023,6 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                         }
                     }
                 }
-            }
 
             let generated_command_initialize_function = generate_command_initialize_function(
                 command_type,
