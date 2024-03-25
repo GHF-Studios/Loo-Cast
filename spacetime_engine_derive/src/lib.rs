@@ -24,7 +24,7 @@ use syn::{
 */
 // Commands Module Definition
 
-pub(crate) struct CommandsModuleType {
+struct CommandsModuleType {
     pub module_id: LitStr,
     pub module_path: Path,
     pub command_types: CommandTypes,
@@ -75,7 +75,7 @@ impl Parse for CommandsModuleType {
 }
 
 #[derive(Clone)]
-pub(crate) struct CommandTypes(Vec<CommandType>);
+struct CommandTypes(Vec<CommandType>);
 
 impl Parse for CommandTypes {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -89,7 +89,7 @@ impl Parse for CommandTypes {
 }
 
 #[derive(Clone)]
-pub(crate) struct CommandType {
+struct CommandType {
     pub command_id: LitStr,
     pub input_type: CommandInputType,
     pub output_type: CommandOutputType,
@@ -132,7 +132,7 @@ impl Parse for CommandType {
 }
 
 #[derive(Clone)]
-pub(crate) struct CommandInputType {
+struct CommandInputType {
     pub parameter_types: Vec<CommandInputParameterType>
 }
 
@@ -164,7 +164,7 @@ impl Parse for CommandInputType {
 }
 
 #[derive(Clone)]
-pub(crate) struct CommandInputParameterType {
+struct CommandInputParameterType {
     pub parameter_name: LitStr,
     pub parameter_type: syn::Type
 }
@@ -187,7 +187,7 @@ impl Parse for CommandInputParameterType {
 }
 
 #[derive(Clone)]
-pub(crate) struct CommandOutputType {
+struct CommandOutputType {
     pub parameter_types: Vec<CommandOutputParameterType>
 }
 
@@ -219,7 +219,7 @@ impl Parse for CommandOutputType {
 }
 
 #[derive(Clone)]
-pub(crate) struct CommandOutputParameterType {
+struct CommandOutputParameterType {
     pub parameter_name: LitStr,
     pub parameter_type: syn::Type
 }
@@ -243,7 +243,7 @@ impl Parse for CommandOutputParameterType {
 }
 
 #[derive(Clone)]
-pub(crate) struct CommandErrorType {
+struct CommandErrorType {
     pub error_variants: Vec<CommandErrorVariantType>
 }
 
@@ -269,7 +269,7 @@ impl Parse for CommandErrorType {
 }
 
 #[derive(Clone)]
-pub(crate) struct CommandErrorVariantType {
+struct CommandErrorVariantType {
     pub variant_name: LitStr
 }
 
@@ -286,7 +286,7 @@ impl Parse for CommandErrorVariantType {
 }
 
 #[derive(Clone)]
-pub(crate) struct CommandCodeType {
+struct CommandCodeType {
     pub code_block: Block
 }
 
@@ -1157,17 +1157,14 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 */
-// Assets Module Definition
+// Objects Module Definition
 
-pub(crate) struct AssetsModuleType {
+struct ObjectsModuleType {
     pub module_id: LitStr,
     pub module_path: Path,
-    pub asset_types: AssetTypes,
 }
 
-pub(crate) struct AssetTypes(Vec<AssetType>);
+struct ObjectTypes(Vec<ObjectType>);
 
-pub(crate) struct AssetType {
-    pub asset_id: LitStr,
-    pub asset_type: syn::Type
+struct ObjectType {
 }
