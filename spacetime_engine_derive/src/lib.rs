@@ -744,26 +744,41 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
     fn generate_command(command_type: &CommandType) -> proc_macro2::TokenStream {
         fn generate_enum_definition(
+            command_type: &CommandType,
             command_name: Ident,
             command_input_name: Ident,
             command_output_name: Ident,
             command_error_name: Ident,
             command_code_name: Ident,
         ) -> proc_macro2::TokenStream {
-            quote! {
-                pub enum #command_name {
-                    Initialized {
-                        input: #command_input_name,
-                        code: #command_code_name,
-                    },
-                    Executed {
-                        result: Result<#command_output_name, #command_error_name>,
-                    },
+            if command_type.input_type.parameter_types.is_empty() {
+                quote! {
+                    pub enum #command_name {
+                        Initialized {
+                            code: #command_code_name,
+                        },
+                        Executed {
+                            result: Result<#command_output_name, #command_error_name>,
+                        },
+                    }
+                }
+            } else {
+                quote! {
+                    pub enum #command_name {
+                        Initialized {
+                            input: #command_input_name,
+                            code: #command_code_name,
+                        },
+                        Executed {
+                            result: Result<#command_output_name, #command_error_name>,
+                        },
+                    }
                 }
             }
         }
 
         fn generate_impl_enum(
+            command_type: &CommandType,
             command_name: Ident,
             command_input_name: Ident,
             command_output_name: Ident,
@@ -786,14 +801,91 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             }
 
             fn generate_command_execute_function(
+                command_type: &CommandType,
                 command_name: Ident,
             ) -> proc_macro2::TokenStream {
-                quote! {
-                    fn execute(&mut self) {
-                        if let #command_name::Initialized { input, code } = self {
-                            *self = #command_name::Executed {
-                                result: (code.closure)(&input),
-                            };
+                if command_type.input_type.parameter_types.is_empty() {
+                    if command_type.output_type.parameter_types.is_empty() {
+                        if command_type.error_type.variant_types.is_empty() {
+                            quote! {
+                                fn execute(&mut self) {
+                                    if let #command_name::Initialized { code } = self {
+                                        (code.closure)()
+                                        *self = #command_name::Executed {};
+                                    }
+                                }
+                            }
+                        } else {
+                            quote! {
+                                fn execute(&mut self) {
+                                    if let #command_name::Initialized { code } = self {
+                                        *self = #command_name::Executed {
+                                            result: (code.closure)(),
+                                        };
+                                    }
+                                }
+                            }
+                        }
+                    } else if command_type.error_type.variant_types.is_empty() {
+                        quote! {
+                            fn execute(&mut self) {
+                                if let #command_name::Initialized { code } = self {
+                                    *self = #command_name::Executed {
+                                        output: (code.closure)(),
+                                    };
+                                }
+                            }
+                        }
+                    } else {
+                        quote! {
+                            fn execute(&mut self) {
+                                if let #command_name::Initialized { code } = self {
+                                    *self = #command_name::Executed {
+                                        result: (code.closure)(),
+                                    };
+                                }
+                            }
+                        }
+                    }
+                } else if command_type.output_type.parameter_types.is_empty()  {
+                    if command_type.error_type.variant_types.is_empty() {
+                        quote! {
+                            fn execute(&mut self) {
+                                if let #command_name::Initialized { input, code } = self {
+                                    (code.closure)(&input)
+                                    *self = #command_name::Executed {};
+                                }
+                            }
+                        }
+                    } else {
+                        quote! {
+                            fn execute(&mut self) {
+                                if let #command_name::Initialized { input, code } = self {
+                                    *self = #command_name::Executed {
+                                        result: (code.closure)(&input),
+                                    };
+                                }
+                            }
+                        }
+                    }
+                } else if command_type.error_type.variant_types.is_empty() {
+                    quote! {
+                        fn execute(&mut self) {
+                            if let #command_name::Initialized { input, code } = self {
+                                *self = #command_name::Executed {
+                                    output: (code.closure)(&input),
+                                };
+                            }
+                        }
+                    }
+                } else {
+                    quote! {
+                        fn execute(&mut self) {
+                            if let #command_name::Initialized { input, code } = self {
+                                *self = #command_name::Executed {
+                                    result: (code.closure)(&input),
+                                };
+                            }
                         }
                     }
                 }
@@ -822,6 +914,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             );
 
             let generated_command_execute_function = generate_command_execute_function(
+                command_type,
                 command_name.clone()
             );
 
@@ -864,6 +957,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         let command_code_name = Ident::new(&command_code_name, command_id.span());
 
         let generated_enum_definition = generate_enum_definition(
+            command_type,
             command_name.clone(),
             command_input_name.clone(),
             command_output_name.clone(),
@@ -872,6 +966,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         );
 
         let generated_impl_enum = generate_impl_enum(
+            command_type,
             command_name,
             command_input_name,
             command_output_name,
@@ -1155,7 +1250,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
     }
 
-    fn generate_command_code(command_type: &CommandType) -> proc_macro2::TokenStream {
+    fn generate_command_code(command_type: &CommandType, has_input: bool, has_output: bool, has_error: bool) -> proc_macro2::TokenStream {
         fn generate_struct_definition(
             command_input_name: Ident,
             command_output_name: Ident,
@@ -1164,6 +1259,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         ) -> proc_macro2::TokenStream {
             quote! {
                 pub struct #command_code_name {
+                    // TODO: Make the input optional (same with output, result, and error)
                     closure: Box<dyn Fn(&#command_input_name) -> Result<#command_output_name, #command_error_name>>,
                 }
             }
@@ -1233,10 +1329,33 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
     let mut first = true;
     for command_type in commands_module_type.command_types.0 {
         let generated_command = generate_command(&command_type);
-        let generated_command_input = generate_command_input(&command_type);
-        let generated_command_output = generate_command_output(&command_type);
-        let generated_command_error = generate_command_error(&command_type);
-        let generated_command_code = generate_command_code(&command_type);
+
+        let has_input = command_type.input_type.parameter_types.is_empty();
+        let has_output = command_type.output_type.parameter_types.is_empty();
+        let has_error = command_type.error_type.variant_types.is_empty();
+
+        let generated_command_input;
+        let generated_command_output;
+        let generated_command_error;
+        let generated_command_code = generate_command_code(&command_type, has_input, has_output, has_error);
+
+        if has_input {
+            generated_command_input = Some(generate_command_input(&command_type));
+        } else {
+            generated_command_input = None;
+        }
+
+        if has_output {
+            generated_command_output = Some(generate_command_output(&command_type));
+        } else {
+            generated_command_output = None;
+        }
+
+        if has_error {
+            generated_command_error = Some(generate_command_error(&command_type));
+        } else {
+            generated_command_error = None;
+        }
 
         if !first {
             generated_commands = quote! {
