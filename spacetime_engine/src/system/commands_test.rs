@@ -35,14 +35,7 @@ impl CommandsTestManager {
         for i in 0..5 {
             println!("Test {}: ", i);
 
-            match test_commands.hello_world(i) {
-                Ok(output) => {
-                    println!("Output: {}", output.value);
-                },
-                Err(error) => {
-                    panic!("Error: {}", error);
-                },
-            };
+            test_commands.hello_world();
 
             println!("Test {} done.", i);
         }
