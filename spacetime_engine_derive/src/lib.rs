@@ -532,44 +532,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
 
         fn generate_impl_struct(commands_module_name: Ident, command_types: &CommandTypes) -> proc_macro2::TokenStream {
-            fn generate_command_request_function(
-                command_id_snake_case: Ident, 
-                command_name: Ident,
-                command_name_snake_case: Ident,
-                command_input_name: Ident,
-                command_output_name: Ident,
-                command_error_name: Ident,
-                command_code_name: Ident,
-                command_code_block: Block,
-                command_result_name_snake_case: Ident,
-                generated_input_parameter_names: proc_macro2::TokenStream,
-                generated_input_parameters: proc_macro2::TokenStream,
-                generated_interpolated_panic_message: LitStr,
-            ) -> proc_macro2::TokenStream {
-                quote! {
-                    pub fn #command_id_snake_case(&self, #generated_input_parameters) -> Result<#command_output_name, #command_error_name> {
-                        let mut #command_name_snake_case = #command_name::initialize(
-                            #command_input_name {
-                                #generated_input_parameter_names
-                            },
-                            #command_code_name {
-                                closure: Box::new(|input: &#command_input_name| -> Result<#command_output_name, #command_error_name> #command_code_block),
-                            }
-                        );
-        
-                        #command_name_snake_case.execute();
-        
-                        match #command_name_snake_case.finalize() {
-                            Some(#command_result_name_snake_case) => return #command_result_name_snake_case,
-                            None => panic!(#generated_interpolated_panic_message),
-                        };
-                    }
-                }
-            }
-
-            let mut generated_command_request_functions = quote! {};
-            let mut first = true;
-            for command_type in &command_types.0 {
+            fn generate_command_request_function(command_type: &CommandType) -> proc_macro2::TokenStream {
                 // Command ID Snake Case
                 let command_id = command_type.command_id.value().to_string();
                 let mut command_id_snake_case = String::new();
@@ -616,6 +579,22 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                 // Command Output Name
                 let command_output_name = command_id.clone() + "CommandOutput";
                 let command_output_name = Ident::new(&command_output_name, command_id.span());
+
+                // Command Output Name Snake Case
+                let mut command_output_name_snake_case = String::new();
+                let mut prev_was_uppercase = false;
+                for (i, c) in command_output_name.to_string().chars().enumerate() {
+                    if c.is_uppercase() {
+                        if i > 0 && !prev_was_uppercase {
+                            command_output_name_snake_case.push('_');
+                        }
+                        command_output_name_snake_case.push(c.to_lowercase().next().unwrap());
+                        prev_was_uppercase = true;
+                    } else {
+                        command_output_name_snake_case.push(c);
+                        prev_was_uppercase = false;
+                    }
+                }
 
                 // Command Error Name
                 let command_error_name = command_id.clone() + "CommandError";
@@ -687,20 +666,72 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
                     generated_interpolated_panic_message.span()
                 );
 
-                let generated_command_request_function = generate_command_request_function(
-                    command_id_snake_case, 
-                    command_name, 
-                    command_name_snake_case, 
-                    command_input_name, 
-                    command_output_name, 
-                    command_error_name, 
-                    command_code_name, 
-                    command_code_block,
-                    command_result_name_snake_case, 
-                    generated_input_parameter_names, 
-                    generated_input_parameters, 
-                    generated_interpolated_panic_message
-                );
+                // Code Generation
+                if command_type.input_type.parameter_types.is_empty() {
+                    if command_type.output_type.parameter_types.is_empty() {
+                        if command_type.error_type.variant_types.is_empty() {
+                            // No Input
+                            // No Output
+                            // No Error
+                        } else {
+                            // No Input
+                            // No Output
+                            // Yes Error
+                        }
+                    } else if command_type.error_type.variant_types.is_empty() {
+                        // No Input
+                        // Yes Output
+                        // No Error
+                    } else {
+                        // No Input
+                        // Yes Output
+                        // Yes Error
+                    }
+                } else if command_type.output_type.parameter_types.is_empty()  {
+                    if command_type.error_type.variant_types.is_empty() {
+                        // Yes Input
+                        // No Output
+                        // No Error
+                    } else {
+                        // Yes Input
+                        // No Output
+                        // Yes Error
+                    }
+                } else if command_type.error_type.variant_types.is_empty() {
+                    // Yes Input
+                    // Yes Output
+                    // No Error
+                } else {
+                    // Yes Input
+                    // Yes Output
+                    // Yes Error
+                }
+
+                quote! {
+                    pub fn #command_id_snake_case(&self, #generated_input_parameters) -> Result<#command_output_name, #command_error_name> {
+                        let mut #command_name_snake_case = #command_name::initialize(
+                            #command_input_name {
+                                #generated_input_parameter_names
+                            },
+                            #command_code_name {
+                                closure: Box::new(|input: &#command_input_name| -> Result<#command_output_name, #command_error_name> #command_code_block),
+                            }
+                        );
+        
+                        #command_name_snake_case.execute();
+        
+                        match #command_name_snake_case.finalize() {
+                            Some(#command_result_name_snake_case) => return #command_result_name_snake_case,
+                            None => panic!(#generated_interpolated_panic_message),
+                        };
+                    }
+                }
+            }
+
+            let mut generated_command_request_functions = quote! {};
+            let mut first = true;
+            for command_type in &command_types.0 {
+                let generated_command_request_function = generate_command_request_function(command_type);
 
                 if !first {
                     generated_command_request_functions = quote! {
@@ -1369,17 +1400,67 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }
     }
 
-    fn generate_command_code(command_type: &CommandType, has_input: bool, has_output: bool, has_error: bool) -> proc_macro2::TokenStream {
+    fn generate_command_code(command_type: &CommandType) -> proc_macro2::TokenStream {
         fn generate_struct_definition(
+            command_type: &CommandType,
             command_input_name: Ident,
             command_output_name: Ident,
             command_error_name: Ident,
             command_code_name: Ident,
         ) -> proc_macro2::TokenStream {
-            quote! {
-                pub struct #command_code_name {
-                    // TODO: Make the input optional (same with output, result, and error)
-                    closure: Box<dyn Fn(&#command_input_name) -> Result<#command_output_name, #command_error_name>>,
+            if command_type.input_type.parameter_types.is_empty() {
+                if command_type.output_type.parameter_types.is_empty() {
+                    if command_type.error_type.variant_types.is_empty() {
+                        quote! {
+                            pub struct #command_code_name {
+                                closure: Box<dyn Fn()>,
+                            }
+                        }
+                    } else {
+                        quote! {
+                            pub struct #command_code_name {
+                                closure: Box<dyn Fn() -> Result<(), #command_error_name>>,
+                            }
+                        }
+                    }
+                } else if command_type.error_type.variant_types.is_empty() {
+                    quote! {
+                        pub struct #command_code_name {
+                            closure: Box<dyn Fn() -> #command_output_name>,
+                        }
+                    }
+                } else {
+                    quote! {
+                        pub struct #command_code_name {
+                            closure: Box<dyn Fn() -> Result<#command_output_name, #command_error_name>>,
+                        }
+                    }
+                }
+            } else if command_type.output_type.parameter_types.is_empty()  {
+                if command_type.error_type.variant_types.is_empty() {
+                    quote! {
+                        pub struct #command_code_name {
+                            closure: Box<dyn Fn(&#command_input_name)>,
+                        }
+                    }
+                } else {
+                    quote! {
+                        pub struct #command_code_name {
+                            closure: Box<dyn Fn(&#command_input_name) -> Result<(), #command_error_name>>,
+                        }
+                    }
+                }
+            } else if command_type.error_type.variant_types.is_empty() {
+                quote! {
+                    pub struct #command_code_name {
+                        closure: Box<dyn Fn(&#command_input_name) -> #command_output_name>,
+                    }
+                }
+            } else {
+                quote! {
+                    pub struct #command_code_name {
+                        closure: Box<dyn Fn(&#command_input_name) -> Result<#command_output_name, #command_error_name>>,
+                    }
                 }
             }
         }
@@ -1420,6 +1501,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         }.to_string().replace("{ { {", "{{ {").replace("} } }", "} }}").replace("{ {", "{{").replace("} }", "}}");
 
         let generated_struct_definition = generate_struct_definition(
+            command_type,
             command_input_name,
             command_output_name,
             command_error_name,
@@ -1445,85 +1527,107 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
     let mut generated_command_outputs = quote! {};
     let mut generated_command_errors = quote! {};
     let mut generated_command_codes = quote! {};
-    let mut first = true;
+    let mut first_command = true;
+    let mut first_command_input = true;
+    let mut first_command_output = true;
+    let mut first_command_error = true;
+    let mut first_command_code = true;
     for command_type in commands_module_type.command_types.0 {
         let generated_command = generate_command(&command_type);
-
-        let has_input = command_type.input_type.parameter_types.is_empty();
-        let has_output = command_type.output_type.parameter_types.is_empty();
-        let has_error = command_type.error_type.variant_types.is_empty();
 
         let generated_command_input;
         let generated_command_output;
         let generated_command_error;
-        let generated_command_code = generate_command_code(&command_type, has_input, has_output, has_error);
+        let generated_command_code = generate_command_code(&command_type);
 
-        if has_input {
+        if command_type.input_type.parameter_types.is_empty() {
             generated_command_input = Some(generate_command_input(&command_type));
         } else {
             generated_command_input = None;
         }
 
-        if has_output {
+        if command_type.output_type.parameter_types.is_empty() {
             generated_command_output = Some(generate_command_output(&command_type));
         } else {
             generated_command_output = None;
         }
 
-        if has_error {
+        if command_type.error_type.variant_types.is_empty() {
             generated_command_error = Some(generate_command_error(&command_type));
         } else {
             generated_command_error = None;
         }
 
-        if !first {
+        if first_command {
+            first_command = false;
+
+            generated_commands = quote! {
+                #generated_command
+            };
+        } else {
             generated_commands = quote! {
                 #generated_commands
 
                 #generated_command
             };
+        }
 
-            generated_command_inputs = quote! {
-                #generated_command_inputs
+        if let Some(generated_command_input) = generated_command_input {
+            if first_command_input {
+                first_command_input = false;
 
-                #generated_command_input
-            };
+                generated_command_inputs = quote! {
+                    #generated_command_input
+                };
+            } else {
+                generated_command_inputs = quote! {
+                    #generated_command_inputs
 
-            generated_command_outputs = quote! {
-                #generated_command_outputs
+                    #generated_command_input
+                };
+            }
+        }
 
-                #generated_command_output
-            };
+        if let Some(generated_command_output) = generated_command_output {
+            if first_command_output {
+                first_command_output = false;
 
-            generated_command_errors = quote! {
-                #generated_command_errors
+                generated_command_outputs = quote! {
+                    #generated_command_output
+                };
+            } else {
+                generated_command_outputs = quote! {
+                    #generated_command_outputs
 
-                #generated_command_error
-            };
+                    #generated_command_output
+                };
+            }
+        }
 
+        if let Some(generated_command_error) = generated_command_error {
+            if first_command_error {
+                first_command_error = false;
+
+                generated_command_errors = quote! {
+                    #generated_command_error
+                };
+            } else {
+                generated_command_errors = quote! {
+                    #generated_command_errors
+
+                    #generated_command_error
+                };
+            }
+        }
+
+        if first_command_code {
             generated_command_codes = quote! {
                 #generated_command_codes
 
                 #generated_command_code
             };
         } else {
-            first = false;
-
-            generated_commands = quote! {
-                #generated_command
-            };
-
-            generated_command_inputs = quote! {
-                #generated_command_input
-            };
-
-            generated_command_outputs = quote! {
-                #generated_command_output
-            };
-
-            generated_command_errors = quote! {
-                #generated_command_error
-            };
+            first_command_code = false;
 
             generated_command_codes = quote! {
                 #generated_command_code
