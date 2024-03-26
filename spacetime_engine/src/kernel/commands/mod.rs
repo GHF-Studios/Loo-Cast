@@ -84,9 +84,28 @@ define_commands_module! {
             },
             DespawnEntity {
                 Input {
-                    entity_id: u32,
+                    BevyCommands,
+                    Primitive {
+                        entity_id: u32,
+                    },
+                    Component {
+                        health: Health,
+                    },
+                    Resource {
+                        EntityManager
+                    }
                 },
-                Output {},
+                Output {
+                    Primitive {
+                        entity_id: u32,
+                    },
+                    Component {
+                        health: Health,
+                    },
+                    Resource {
+                        EntityManager
+                    }
+                },
                 Error {
                     InvalidEntityId,
                 },
@@ -98,6 +117,11 @@ define_commands_module! {
                     }
                 }
             },
+            DepsawnAllEntities {
+                Input {
+
+                }
+            }
         ]
     }
 }
