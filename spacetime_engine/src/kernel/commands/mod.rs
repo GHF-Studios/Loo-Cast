@@ -1,4 +1,4 @@
-use spacetime_engine_derive::define_commands_module;
+use spacetime_engine_macro::define_commands_module;
 
 pub struct Point {
     pub x: i32,

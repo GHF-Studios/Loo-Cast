@@ -1,5 +1,5 @@
 use crate::system::AppState;
-use spacetime_engine_derive::*;
+use spacetime_engine_macro::*;
 
 use bevy::prelude::*;
 

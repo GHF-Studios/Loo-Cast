@@ -1,4 +1,4 @@
-use spacetime_engine_derive::define_systems_module;
+use spacetime_engine_macro::define_systems_module;
 
 define_systems_module! {
     Test {

@@ -1,3 +1,4 @@
+use spacetime_engine_macro_lib;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{

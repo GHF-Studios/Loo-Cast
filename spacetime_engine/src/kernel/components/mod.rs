@@ -1,4 +1,4 @@
-use spacetime_engine_derive::define_components_module;
+use spacetime_engine_macro::define_components_module;
 
 define_components_module! {
     Test {
