@@ -4,5 +4,5 @@ members = [
   "loo_cast_base_mod_macro",
   "spacetime_engine",
   "spacetime_engine_macro",
-  "spaceimt_engine_macro_lib"
+  "spacetime_engine_macro_lib"
 ]
