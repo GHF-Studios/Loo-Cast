@@ -3442,6 +3442,10 @@ dependencies = [
 [[package]]
 name = "spacetime_engine_macro_lib"
 version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "syn 2.0.48",
+]
 
 [[package]]
 name = "spade"
