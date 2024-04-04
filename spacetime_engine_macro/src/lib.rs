@@ -1,4 +1,4 @@
-use spacetime_engine_macro_lib::commands::parsed_input::*;
+use spacetime_engine_macro_lib::commands::parsed_input::commands_type::*;
 use spacetime_engine_macro_lib::commands::parsed_input::command_type::*;
 use proc_macro::TokenStream;
 use quote::quote;
