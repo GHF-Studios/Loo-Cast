@@ -2,7 +2,7 @@ pub mod command_type;
 
 use command_type::*;
 use syn::{
-    parse::{Parse, ParseStream}, spanned::Spanned, Ident, LitStr, Path, Token
+    parse::{Parse, ParseStream}, punctuated::Punctuated, spanned::Spanned, Ident, LitStr, Path, Token
 };
 
 pub struct CommandsModuleType {
@@ -53,4 +53,22 @@ impl Parse for CommandsModuleType {
         })
     }
 
+}
+
+#[derive(Clone)]
+pub struct CommandTypes {
+    pub values: Vec<CommandType>
+}
+
+impl Parse for CommandTypes {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let content;
+        syn::bracketed!(content in input);
+
+        let parsed_commands: Punctuated<CommandType, Token![,]> = Punctuated::parse_terminated(&content)?;
+
+        Ok(CommandTypes {
+            values: parsed_commands.into_iter().collect()
+        })
+    }
 }

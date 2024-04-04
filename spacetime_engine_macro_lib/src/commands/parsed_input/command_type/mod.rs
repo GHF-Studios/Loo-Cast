@@ -10,22 +10,8 @@ use code_type::*;
 use code_type::signature_type::return_type::*;
 use code_type::signature_type::return_type::output_type::*;
 use syn::{
-    parse::{Parse, ParseStream}, punctuated::Punctuated, spanned::Spanned, Ident, LitStr, Token
+    parse::{Parse, ParseStream}, spanned::Spanned, Ident, LitStr, Token
 };
-
-#[derive(Clone)]
-pub struct CommandTypes(Vec<CommandType>);
-
-impl Parse for CommandTypes {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        syn::bracketed!(content in input);
-
-        let parsed_commands: Punctuated<CommandType, Token![,]> = Punctuated::parse_terminated(&content)?;
-
-        Ok(CommandTypes(parsed_commands.into_iter().collect()))
-    }
-}
 
 #[derive(Clone)]
 pub struct CommandType {

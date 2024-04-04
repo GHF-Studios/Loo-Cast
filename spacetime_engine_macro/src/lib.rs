@@ -1,4 +1,5 @@
-use spacetime_engine_macro_lib::commands_type::*;
+use spacetime_engine_macro_lib::commands::parsed_input::*;
+use spacetime_engine_macro_lib::commands::parsed_input::command_type::*;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
@@ -326,7 +327,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
             let mut generated_command_request_functions = quote! {};
             let mut first = true;
-            for command_type in &command_types.0 {
+            for command_type in &command_types.values {
                 let generated_command_request_function = generate_command_request_function(command_type);
 
                 if !first {
@@ -1128,7 +1129,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
     let mut first_command_output = true;
     let mut first_command_error = true;
     let mut first_command_code = true;
-    for command_type in commands_module_type.command_types.0 {
+    for command_type in commands_module_type.command_types.values {
         let generated_command = generate_command(&command_type);
 
         let generated_command_input;
