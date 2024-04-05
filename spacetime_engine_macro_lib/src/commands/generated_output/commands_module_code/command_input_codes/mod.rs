@@ -3,14 +3,24 @@ pub mod command_input_code;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Result;
-use crate::commands::parsed_input::command_type::input_type::CommandInputType;
+use crate::commands::generated_output::commands_module_code::command_input_codes::command_input_code::CommandInputCode;
 
-pub struct CommandInputCodes {
-    pub tokens: TokenStream,
+pub enum CommandInputCodes {
+    Setup {
+        command_input_codes: Vec<CommandInputCode>,
+    },
+    Generation {
+        tokens: proc_macro2::TokenStream,
+    }
 }
 
-impl crate::Collect<CommandInputCode> for CommandInputCodes {
-    fn collect(parsed_macro_input: &CommandInputType) -> Result<Vec<Self>> {
-        todo!();
+impl crate::CodeOutputGenerator for CommandInputCodes {
+    fn generate(self) -> Result<Self> {
+        match self {
+            CommandInputCodes::Setup { command_input_codes } => {
+                todo!();
+            }
+            CommandInputCodes::Generation { tokens } => {}
+        }
     }
 }
