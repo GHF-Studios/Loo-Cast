@@ -1,8 +1,9 @@
 use syn::{Ident, LitStr};
 use quote::quote;
+use crate::commands::parsed_input::command_type::input_type::*;
+use super::CommandInputInfo;
 
-use crate::commands::parsed_input::command_type::input_type::CommandInputType;
-
+#[derive(Clone)]
 pub struct CommandInputParametersInfo {
     pub field_declarations: proc_macro2::TokenStream,
     pub self_accesses: proc_macro2::TokenStream,
@@ -10,14 +11,16 @@ pub struct CommandInputParametersInfo {
 }
 
 impl CommandInputParametersInfo {
-    pub fn extract(command_input_type: &CommandInputType) -> Self {
+    pub fn extract(command_input_type: &CommandInputType, _command_input_info: &CommandInputInfo) -> Self {
         let input_parameter_details: Vec<(LitStr, syn::Type)> = command_input_type.parameter_types.iter().map(|parameter_type| {
             (parameter_type.parameter_name.clone(), parameter_type.parameter_type.clone())
         }).collect();
+
         let mut field_declarations = quote! {};
         let mut self_accesses = quote! {};
         let mut interpolations = quote! {};
         let mut first = true;
+
         for (parameter_name, parameter_type) in input_parameter_details.clone() {
             let parameter_name = Ident::new(&parameter_name.value(), parameter_name.span());
 
@@ -48,6 +51,7 @@ impl CommandInputParametersInfo {
                 #parameter_name: {}
             };
         }
+        
         let interpolations = interpolations.to_string();
 
         Self {

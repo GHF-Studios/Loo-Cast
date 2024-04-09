@@ -757,7 +757,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         // Command Input Name
         let command_id = command_type.command_id.value().to_string();
         let command_input_name = command_id.clone() + "CommandInput";
-        let command_input_name = Ident::new(&command_input_name, command_id.span());
+        let command_input_name = Ident::new(&command_input_name, command_input_name.span());
 
         // Input Parameter Infos
         let command_input_type = &command_type.input_type;
@@ -847,7 +847,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         // Command Output Name
         let command_id = command_type.command_id.value().to_string();
         let command_output_name = command_id.clone() + "CommandOutput";
-        let command_output_name = Ident::new(&command_output_name, command_id.span());
+        let command_output_name = Ident::new(&command_output_name, command_output_name.span());
 
         // Output Parameter Infos
         let command_output_type = &command_type.output_type;
@@ -938,7 +938,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         // Command Error Name
         let command_id = command_type.command_id.value().to_string();
         let command_error_name = command_id.clone() + "CommandError";
-        let command_error_name = Ident::new(&command_error_name, command_id.span());
+        let command_error_name = Ident::new(&command_error_name, command_error_name.span());
 
         // Error Variant Infos
         let command_error_type = &command_type.error_type;
@@ -1078,19 +1078,19 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
         // Command Input Name
         let command_id = command_type.command_id.value().to_string();
         let command_input_name = command_id.clone() + "CommandInput";
-        let command_input_name = Ident::new(&command_input_name, command_id.span());
+        let command_input_name = Ident::new(&command_input_name, command_input_name.span());
 
         // Command Output Name
         let command_output_name = command_id.clone() + "CommandOutput";
-        let command_output_name = Ident::new(&command_output_name, command_id.span());
+        let command_output_name = Ident::new(&command_output_name, command_output_name.span());
 
         // Command Error Name
         let command_error_name = command_id.clone() + "CommandError";
-        let command_error_name = Ident::new(&command_error_name, command_id.span());
+        let command_error_name = Ident::new(&command_error_name, command_error_name.span());
 
         // Command Code Name
         let command_code_name = command_id.clone() + "CommandCode";
-        let command_code_name = Ident::new(&command_code_name, command_id.span());
+        let command_code_name = Ident::new(&command_code_name, command_code_name.span());
 
         // Code Parameter Infos
         let generated_interpolated_code_parameters = quote! {
