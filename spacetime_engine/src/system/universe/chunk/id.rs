@@ -159,7 +159,7 @@ impl ChunkIDBase10x10Converter {
             Ok(output) => output,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID Base10 to chunk ID Base10x10: {}",
+                    "Cannot convert chunk ID Base10 to chunk ID Base10x10: ({})",
                     e
                 ))
             }
@@ -256,7 +256,7 @@ impl ChunkIDBase57Converter {
             Ok(output) => output,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID Base10 to chunk ID Base57: {}",
+                    "Cannot convert chunk ID Base10 to chunk ID Base57: ({})",
                     e
                 ))
             }
@@ -381,7 +381,7 @@ impl LocalChunkID {
             Ok(id) => id,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert local chunk ID to local chunk ID Base10x10: {}",
+                    "Cannot convert local chunk ID to local chunk ID Base10x10: ({})",
                     e
                 ))
             }
@@ -397,7 +397,7 @@ impl LocalChunkID {
             Ok(id) => id,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert local chunk ID to local chunk ID Base10: {}",
+                    "Cannot convert local chunk ID to local chunk ID Base10: ({})",
                     e
                 ))
             }
@@ -473,7 +473,7 @@ impl TryFrom<ChunkIDBase10x10> for ChunkID {
                 Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
                 Err(e) => {
                     return Err(format!(
-                        "Cannot convert chunk ID Base10x10 to chunk ID: {}",
+                        "Cannot convert chunk ID Base10x10 to chunk ID: ({})",
                         e
                     ))
                 }
@@ -485,7 +485,7 @@ impl TryFrom<ChunkIDBase10x10> for ChunkID {
             Ok(chunk_id) => chunk_id,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID Base10x10 to chunk ID: {}",
+                    "Cannot convert chunk ID Base10x10 to chunk ID: ({})",
                     e
                 ))
             }
@@ -497,7 +497,7 @@ impl TryFrom<ChunkIDBase10x10> for ChunkID {
                     Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
                     Err(e) => {
                         return Err(format!(
-                            "Cannot convert chunk ID Base10x10 to chunk ID: {}",
+                            "Cannot convert chunk ID Base10x10 to chunk ID: ({})",
                             e
                         ))
                     }
@@ -509,7 +509,7 @@ impl TryFrom<ChunkIDBase10x10> for ChunkID {
                 Ok(chunk_id) => chunk_id,
                 Err(e) => {
                     return Err(format!(
-                        "Cannot convert chunk ID Base10x10 to chunk ID: {}",
+                        "Cannot convert chunk ID Base10x10 to chunk ID: ({})",
                         e
                     ))
                 }
@@ -530,7 +530,7 @@ impl TryInto<ChunkIDBase10x10> for ChunkID {
             Ok(local_chunk_id_base10x10) => local_chunk_id_base10x10,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID to chunk ID Base10x10: {}",
+                    "Cannot convert chunk ID to chunk ID Base10x10: ({})",
                     e
                 ))
             }
@@ -542,7 +542,7 @@ impl TryInto<ChunkIDBase10x10> for ChunkID {
                     Ok(parent_chunk_id_base10x10) => parent_chunk_id_base10x10,
                     Err(e) => {
                         return Err(format!(
-                            "Cannot convert chunk ID to chunk ID Base10x10: {}",
+                            "Cannot convert chunk ID to chunk ID Base10x10: ({})",
                             e
                         ))
                     }
@@ -559,7 +559,7 @@ impl TryInto<ChunkIDBase10x10> for ChunkID {
                 Ok(chunk_id_base10x10) => chunk_id_base10x10,
                 Err(e) => {
                     return Err(format!(
-                        "Cannot convert chunk ID to chunk ID Base10x10: {}",
+                        "Cannot convert chunk ID to chunk ID Base10x10: ({})",
                         e
                     ))
                 }
@@ -574,7 +574,7 @@ impl TryInto<ChunkIDBase10x10> for ChunkID {
                 Ok(chunk_id_base10x10) => chunk_id_base10x10,
                 Err(e) => {
                     return Err(format!(
-                        "Cannot convert chunk ID to chunk ID Base10x10: {}",
+                        "Cannot convert chunk ID to chunk ID Base10x10: ({})",
                         e
                     ))
                 }
@@ -593,7 +593,7 @@ impl TryFrom<ChunkIDBase10> for ChunkID {
             Ok(global_id_base10x10) => global_id_base10x10,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID Base10 to chunk ID Base10x10: {}",
+                    "Cannot convert chunk ID Base10 to chunk ID Base10x10: ({})",
                     e
                 ))
             }
@@ -603,7 +603,7 @@ impl TryFrom<ChunkIDBase10> for ChunkID {
             Ok(chunk_id) => chunk_id,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID Base10x10 to chunk ID: {}",
+                    "Cannot convert chunk ID Base10x10 to chunk ID: ({})",
                     e
                 ))
             }
@@ -621,7 +621,7 @@ impl TryInto<ChunkIDBase10> for ChunkID {
             Ok(chunk_id_base10x10) => chunk_id_base10x10,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID to chunk ID Base10x10: {}",
+                    "Cannot convert chunk ID to chunk ID Base10x10: ({})",
                     e
                 ))
             }
@@ -631,7 +631,7 @@ impl TryInto<ChunkIDBase10> for ChunkID {
             Ok(global_id_base10) => global_id_base10,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID Base10x10 to chunk ID Base10: {}",
+                    "Cannot convert chunk ID Base10x10 to chunk ID Base10: ({})",
                     e
                 ))
             }
@@ -649,7 +649,7 @@ impl TryFrom<ChunkIDBase57> for ChunkID {
             Ok(global_id_base10) => global_id_base10,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID Base57 to chunk ID Base10: {}",
+                    "Cannot convert chunk ID Base57 to chunk ID Base10: ({})",
                     e
                 ))
             }
@@ -659,7 +659,7 @@ impl TryFrom<ChunkIDBase57> for ChunkID {
             Ok(global_id_base10x10) => global_id_base10x10,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID Base57 to chunk ID Base10x10: {}",
+                    "Cannot convert chunk ID Base57 to chunk ID Base10x10: ({})",
                     e
                 ))
             }
@@ -667,7 +667,7 @@ impl TryFrom<ChunkIDBase57> for ChunkID {
 
         let chunk_id: ChunkID = match chunk_id_base10x10.try_into() {
             Ok(chunk_id) => chunk_id,
-            Err(e) => return Err(format!("Cannot convert chunk ID Base57 to chunk ID: {}", e)),
+            Err(e) => return Err(format!("Cannot convert chunk ID Base57 to chunk ID: ({})", e)),
         };
 
         Ok(chunk_id)
@@ -682,7 +682,7 @@ impl TryInto<ChunkIDBase57> for ChunkID {
             Ok(chunk_id_base10x10) => chunk_id_base10x10,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID to chunk ID Base10x10: {}",
+                    "Cannot convert chunk ID to chunk ID Base10x10: ({})",
                     e
                 ))
             }
@@ -692,7 +692,7 @@ impl TryInto<ChunkIDBase57> for ChunkID {
             Ok(global_id_base10) => global_id_base10,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID Base10x10 to chunk ID Base10: {}",
+                    "Cannot convert chunk ID Base10x10 to chunk ID Base10: ({})",
                     e
                 ))
             }
@@ -702,7 +702,7 @@ impl TryInto<ChunkIDBase57> for ChunkID {
             Ok(global_id_base57) => global_id_base57,
             Err(e) => {
                 return Err(format!(
-                    "Cannot convert chunk ID Base10 to chunk ID Base57: {}",
+                    "Cannot convert chunk ID Base10 to chunk ID Base57: ({})",
                     e
                 ))
             }

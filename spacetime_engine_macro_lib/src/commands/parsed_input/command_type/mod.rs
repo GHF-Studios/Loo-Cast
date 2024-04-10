@@ -19,7 +19,8 @@ pub struct CommandType {
     pub input_type: CommandInputType,
     pub output_type: CommandOutputType,
     pub error_type: CommandErrorType,
-    pub code_type: CommandCodeType
+    pub code_type: CommandCodeType,
+    pub interpolation: String
 }
 
 impl Parse for CommandType {
@@ -94,7 +95,8 @@ impl Parse for CommandType {
             input_type,
             output_type,
             error_type,
-            code_type
+            code_type,
+            interpolation: format!("command_id: ({}), input_type: ({}), output_type: ({}), error_type: ({}), code_type: ({})", command_id.value(), input_type.interpolation, output_type.interpolation, error_type.interpolation, code_type.interpolation)
         })
     }
 

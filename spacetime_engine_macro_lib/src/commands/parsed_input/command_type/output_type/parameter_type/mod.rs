@@ -5,7 +5,8 @@ use syn::{
 #[derive(Clone)]
 pub struct CommandOutputParameterType {
     pub parameter_name: LitStr,
-    pub parameter_type: syn::Type
+    pub parameter_type: syn::Type,
+    pub interpolation: String
 }
 
 impl Parse for CommandOutputParameterType {
@@ -20,7 +21,8 @@ impl Parse for CommandOutputParameterType {
 
         Ok(CommandOutputParameterType {
             parameter_name,
-            parameter_type
+            parameter_type,
+            interpolation: format!("{}: ({})", parameter_name.value(), quote::quote!{#parameter_type}.to_string())
         })
     }
 

@@ -21,7 +21,7 @@ Possible Framework Modules:
 
 commands.spawn_entity(
     |error| {
-        println!("Error: {}", error);
+        println!("Error: ({})", error);
     },
     |output| {
         commands.despawn_entity(output.entity_id);

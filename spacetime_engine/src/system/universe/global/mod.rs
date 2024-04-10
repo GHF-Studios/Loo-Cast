@@ -87,7 +87,7 @@ impl GlobalUniverse {
         let local_entity_id = match LocalEntityID::new(local_entity_id) {
             Ok(local_entity_id) => local_entity_id,
             Err(error) => {
-                return Err(format!("Generating a local entity id failed: {}", error));
+                return Err(format!("Generating a local entity id failed: ({})", error));
             }
         };
 
@@ -1539,7 +1539,7 @@ impl InfoHierarchy {
                 ) {
                     Ok(chunk_info) => chunk_info,
                     Err(error) => {
-                        return Err(format!("Failed to insert chunk info: {}", error));
+                        return Err(format!("Failed to insert chunk info: ({})", error));
                     }
                 };
 
@@ -1790,7 +1790,7 @@ impl ChunkInfo {
         let chunk_id = match ChunkID::new(parent_chunk_id, local_chunk_id) {
             Ok(chunk_id) => chunk_id,
             Err(error) => {
-                return Err(format!("Failed to create chunk info: {}", error));
+                return Err(format!("Failed to create chunk info: ({})", error));
             }
         };
 
@@ -1819,7 +1819,7 @@ impl ChunkInfo {
         let chunk_id = match ChunkID::new(parent_chunk_id, local_chunk_id) {
             Ok(chunk_id) => chunk_id,
             Err(error) => {
-                return Err(format!("Failed to create chunk info: {}", error));
+                return Err(format!("Failed to create chunk info: ({})", error));
             }
         };
 

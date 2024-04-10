@@ -7,7 +7,8 @@ use syn::{
 
 #[derive(Clone)]
 pub struct CommandErrorType {
-    pub variant_types: Vec<CommandErrorVariantType>
+    pub variant_types: Vec<CommandErrorVariantType>,
+    pub interpolation: String
 }
 
 impl Parse for CommandErrorType {
@@ -25,14 +26,16 @@ impl Parse for CommandErrorType {
 
         if content.is_empty() {
             return Ok(CommandErrorType {
-                variant_types: Vec::new()
+                variant_types: Vec::new(),
+                interpolation: String::new()
             });
         }
 
         let parsed_variants: Punctuated<CommandErrorVariantType, Token![,]> = Punctuated::parse_terminated(&content)?;
 
         Ok(CommandErrorType {
-            variant_types: parsed_variants.into_iter().collect()
+            variant_types: parsed_variants.into_iter().collect(),
+            interpolation: format!("variant_types: ({})", parsed_variants.iter().map(|variant_type| variant_type.interpolation.clone()).collect::<Vec<String>>().join(", "))
         })
     }
 }

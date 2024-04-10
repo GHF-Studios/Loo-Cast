@@ -6,17 +6,13 @@ use super::CommandInfo;
 
 #[derive(Clone)]
 pub struct CommandOutputInfo {
-    pub name: String,
     pub parameters_info: CommandOutputParametersInfo
 }
 
 impl CommandOutputInfo {
-    pub fn extract(command_type: &CommandType, command_info: &CommandInfo) -> Self {
-        let parameters_info = CommandOutputParametersInfo::extract(&command_type.output_type, &command_info.output_info);
-
+    pub fn extract(command_output_type: &CommandOutputType) -> Self {
         Self {
-            name: command_info.output_info.name.clone(),
-            parameters_info
+            parameters_info: CommandOutputParametersInfo::extract(command_output_type)
         }
     }
 }

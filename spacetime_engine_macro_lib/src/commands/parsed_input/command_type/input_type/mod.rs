@@ -7,7 +7,8 @@ use syn::{
 
 #[derive(Clone)]
 pub struct CommandInputType {
-    pub parameter_types: Vec<CommandInputParameterType>
+    pub parameter_types: Vec<CommandInputParameterType>,
+    pub interpolation: String
 }
 
 impl Parse for CommandInputType {
@@ -25,14 +26,16 @@ impl Parse for CommandInputType {
 
         if content.is_empty() {
             return Ok(CommandInputType {
-                parameter_types: Vec::new()
+                parameter_types: Vec::new(),
+                interpolation: String::new()
             });
         }
 
         let parsed_parameters: Punctuated<CommandInputParameterType, Token![,]> = Punctuated::parse_terminated(&content)?;
 
         Ok(CommandInputType {
-            parameter_types: parsed_parameters.into_iter().collect()
+            parameter_types: parsed_parameters.into_iter().collect(),
+            interpolation: format!("parameter_types: ({})", parsed_parameters.iter().map(|parameter_type| parameter_type.interpolation.clone()).collect::<Vec<String>>().join(", "))
         })
     }
 }

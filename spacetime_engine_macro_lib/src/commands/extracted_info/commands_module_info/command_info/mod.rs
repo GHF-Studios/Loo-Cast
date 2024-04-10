@@ -22,15 +22,18 @@ pub struct CommandInfo {
 }
 
 impl CommandInfo {
-    pub fn extract(_commands_module_type: CommandsModuleType, commands_module_info: CommandsModuleInfo) -> Vec<Self> {
-        commands_module_info.command_infos.iter().map(|command_info| {
-            Self {
-                name: command_info.name.clone(),
-                input_info: command_info.input_info.clone(),
-                output_info: command_info.output_info.clone(),
-                error_info: command_info.error_info.clone(),
-                code_info: command_info.code_info.clone()
-            }
-        }).collect()
+    pub fn extract(command_type: &CommandType) -> Self {
+        let name = command_type.name().to_string();
+        let input_info = CommandInputInfo::extract(command_type.input_type());
+        let output_info = CommandOutputInfo::extract(command_type.output_type());
+        let error_info = CommandErrorInfo::extract(command_type.error_type());
+        let code_info = CommandCodeInfo::extract(command_type.code_type());
+        CommandInfo {
+            name,
+            input_info,
+            output_info,
+            error_info,
+            code_info
+        }
     }
 }

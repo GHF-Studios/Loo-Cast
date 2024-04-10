@@ -4,7 +4,8 @@ use syn::{
 
 #[derive(Clone)]
 pub struct CommandErrorVariantType {
-    pub variant_name: LitStr
+    pub variant_name: LitStr,
+    pub interpolation: String
 }
 
 impl Parse for CommandErrorVariantType {
@@ -14,7 +15,8 @@ impl Parse for CommandErrorVariantType {
         let variant_name = LitStr::new(&variant_name, variant_name.span());
 
         Ok(CommandErrorVariantType {
-            variant_name
+            variant_name,
+            interpolation: variant_name.value()
         })
     }
 }

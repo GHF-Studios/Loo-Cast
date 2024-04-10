@@ -8,7 +8,8 @@ use syn::parse::{Parse, ParseStream};
 #[derive(Clone)]
 pub struct CommandCodeType {
     pub code_signature: CommandCodeSignature,
-    pub code_block: CommandCodeBlock
+    pub code_block: CommandCodeBlock,
+    pub interpolation: String
 }
 
 impl Parse for CommandCodeType {
@@ -19,6 +20,7 @@ impl Parse for CommandCodeType {
         Ok(CommandCodeType {
             code_signature,
             code_block,
+            interpolation: format!("code_signature: ({})", code_signature.interpolation)
         })
     }
 

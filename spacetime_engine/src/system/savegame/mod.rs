@@ -84,13 +84,13 @@ impl SavegameManager {
                     let display = info_path.display();
 
                     let mut file = match File::open(&info_path) {
-                        Err(why) => panic!("Couldn't open {}: {}", display, why),
+                        Err(why) => panic!("Couldn't open {}: ({})", display, why),
                         Ok(file) => file,
                     };
 
                     let mut serialized_savegame_info = String::new();
                     match file.read_to_string(&mut serialized_savegame_info) {
-                        Err(why) => panic!("Couldn't read {}: {}", display, why),
+                        Err(why) => panic!("Couldn't read {}: ({})", display, why),
                         Ok(_) => println!("Successfully read {}", display),
                     }
 
@@ -126,12 +126,12 @@ impl SavegameManager {
             let display = path.display();
 
             let mut file = match File::create(path) {
-                Err(why) => panic!("Couldn't create {}: {}", display, why),
+                Err(why) => panic!("Couldn't create {}: ({})", display, why),
                 Ok(file) => file,
             };
 
             match file.write_all(serialized_savegame_info.as_bytes()) {
-                Err(why) => panic!("Couldn't write to {}: {}", display, why),
+                Err(why) => panic!("Couldn't write to {}: ({})", display, why),
                 Ok(_) => println!("Successfully wrote to {}", display),
             }
 
@@ -152,7 +152,7 @@ impl SavegameManager {
             let display = path.display();
 
             match std::fs::remove_file(path) {
-                Err(why) => panic!("Couldn't delete {}: {}", display, why),
+                Err(why) => panic!("Couldn't delete {}: ({})", display, why),
                 Ok(_) => println!("Successfully deleted {}", display),
             }
 

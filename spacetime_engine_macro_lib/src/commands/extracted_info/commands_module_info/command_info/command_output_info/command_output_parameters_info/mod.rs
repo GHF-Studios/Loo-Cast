@@ -48,7 +48,7 @@ impl CommandOutputParametersInfo {
             };
             interpolations = quote! {
                 #interpolations
-                #parameter_name: {}
+                #parameter_name: ({})
             };
         }
         

@@ -1,3 +1,4 @@
+use spacetime_engine_macro_lib::commands::extracted_info::commands_module_info::CommandsModuleInfo;
 use spacetime_engine_macro_lib::commands::parsed_input::commands_type::*;
 use spacetime_engine_macro_lib::commands::parsed_input::command_type::*;
 use proc_macro::TokenStream;
@@ -17,6 +18,19 @@ use syn::{
 ////////////////////////////////////////////////////////////////////////////////
 */
 // Commands Module Definition
+
+#[proc_macro]
+pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
+    let commands_module_type = parse_macro_input!(tokens as CommandsModuleType);
+
+    // TODO: The information extraction and parsing need to happen at the same time, and the information should be stored in the type itself.
+
+    // After that we simply generate the code from the parsed type and return it
+
+    let commands_module_code = CommandsModuleCode::generate(&commands_module_type, &commands_module_info);
+
+    commands_module_code
+}
 
 #[proc_macro]
 pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
@@ -795,7 +809,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             };
             generated_interpolated_input_parameters = quote! {
                 #generated_interpolated_input_parameters
-                #parameter_name: {}
+                #parameter_name: ({})
             };
         }
         let generated_interpolated_input_parameters = generated_interpolated_input_parameters.to_string();
@@ -885,7 +899,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
             };
             generated_interpolated_output_parameters = quote! {
                 #generated_interpolated_output_parameters
-                #parameter_name: {}
+                #parameter_name: ({})
             };
         }
         let generated_interpolated_output_parameters = generated_interpolated_output_parameters.to_string();
