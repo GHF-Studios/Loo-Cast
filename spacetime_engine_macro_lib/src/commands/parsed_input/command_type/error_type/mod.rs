@@ -34,7 +34,7 @@ impl Parse for CommandErrorType {
         let parsed_variants: Punctuated<CommandErrorVariantType, Token![,]> = Punctuated::parse_terminated(&content)?;
 
         Ok(CommandErrorType {
-            variant_types: parsed_variants.into_iter().collect(),
+            variant_types: parsed_variants.clone().into_iter().collect(),
             interpolation: format!("variant_types: ({})", parsed_variants.iter().map(|variant_type| variant_type.interpolation.clone()).collect::<Vec<String>>().join(", "))
         })
     }

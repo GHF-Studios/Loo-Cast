@@ -1,12 +1,12 @@
 use syn::{
-    parse::{Parse, ParseStream}, spanned::Spanned, Ident, LitStr, Token
+    parse::{Parse, ParseStream}, spanned::Spanned, Ident, LitStr, Token, Type
 };
 use quote::quote;
 
 #[derive(Clone)]
 pub struct CommandInputParameterType {
     pub parameter_name: LitStr,
-    pub parameter_type: syn::Type,
+    pub parameter_type: Type,
     pub field_declaration: proc_macro2::TokenStream,
     pub self_access: proc_macro2::TokenStream,
     pub interpolation: String
@@ -20,11 +20,11 @@ impl Parse for CommandInputParameterType {
 
         input.parse::<Token![:]>()?;
 
-        let parameter_type = input.parse()?;
+        let parameter_type: Type = input.parse()?;
 
         Ok(CommandInputParameterType {
-            parameter_name,
-            parameter_type,
+            parameter_name: parameter_name.clone(),
+            parameter_type: parameter_type.clone(),
             field_declaration: quote! {
                 pub #parameter_name: #parameter_type
             },

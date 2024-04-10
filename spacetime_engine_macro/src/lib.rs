@@ -27,7 +27,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
     // After that we simply generate the code from the parsed type and return it
 
-    let commands_module_code = CommandsModuleCode::generate(&commands_module_type, &commands_module_info);
+    let commands_module_code = CommandsModuleCode::generate(&commands_module_type);
 
     commands_module_code
 }

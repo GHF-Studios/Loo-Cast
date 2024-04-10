@@ -18,7 +18,7 @@ impl Parse for CommandCodeType {
         let code_block = input.parse::<CommandCodeBlock>()?;
 
         Ok(CommandCodeType {
-            code_signature,
+            code_signature: code_signature.clone(),
             code_block,
             interpolation: format!("code_signature: ({})", code_signature.interpolation)
         })

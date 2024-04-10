@@ -34,7 +34,7 @@ impl Parse for CommandOutputType {
         let parsed_parameters: Punctuated<CommandOutputParameterType, Token![,]> = Punctuated::parse_terminated(&content)?;
 
         Ok(CommandOutputType {
-            parameter_types: parsed_parameters.into_iter().collect(),
+            parameter_types: parsed_parameters.clone().into_iter().collect(),
             interpolation: format!("parameter_types: ({})", parsed_parameters.iter().map(|parameter_type| parameter_type.interpolation.clone()).collect::<Vec<String>>().join(", "))
         })
     }

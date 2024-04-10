@@ -91,11 +91,11 @@ impl Parse for CommandType {
         }
 
         Ok(CommandType {
-            command_id,
-            input_type,
-            output_type,
-            error_type,
-            code_type,
+            command_id: command_id.clone(),
+            input_type: input_type.clone(),
+            output_type: output_type.clone(),
+            error_type: error_type.clone(),
+            code_type: code_type.clone(),
             interpolation: format!("command_id: ({}), input_type: ({}), output_type: ({}), error_type: ({}), code_type: ({})", command_id.value(), input_type.interpolation, output_type.interpolation, error_type.interpolation, code_type.interpolation)
         })
     }
