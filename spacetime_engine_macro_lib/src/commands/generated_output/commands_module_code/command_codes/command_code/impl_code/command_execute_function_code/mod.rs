@@ -2,11 +2,11 @@ use syn::Ident;
 use crate::commands::parsed_input::command_type::CommandType;
 use quote::quote;
 
-pub struct CommandsModuleCommandExecuteFunctionCode {
+pub struct CommandExecuteFunctionCode {
     pub tokens: proc_macro2::TokenStream,
 }
 
-impl CommandsModuleCommandExecuteFunctionCode {
+impl CommandExecuteFunctionCode {
     pub fn generate(
         command_type: &CommandType,
         command_name: Ident,

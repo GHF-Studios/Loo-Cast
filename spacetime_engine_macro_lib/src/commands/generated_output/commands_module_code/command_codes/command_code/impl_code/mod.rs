@@ -7,11 +7,11 @@ use crate::commands::parsed_input::command_type::CommandType;
 use quote::quote;
 use self::{command_initialize_function_code::*, command_execute_function_code::*, command_finalize_function_code::*};
 
-pub struct CommandsModuleCommandImplCode {
+pub struct CommandImplCode {
     pub tokens: proc_macro2::TokenStream,
 }
 
-impl CommandsModuleCommandImplCode {
+impl CommandImplCode {
     pub fn generate(
         command_type: &CommandType,
         command_name: Ident,
@@ -20,19 +20,19 @@ impl CommandsModuleCommandImplCode {
         command_error_name: Ident,
         command_code_name: Ident,
     ) -> Self {
-        let command_initialize_function_code = CommandsModuleCommandInitializeFunctionCode::generate(
+        let command_initialize_function_code = CommandInitializeFunctionCode::generate(
             command_type,
             command_name.clone(),
             command_input_name,
             command_code_name
         ).tokens;
 
-        let command_execute_function_code = CommandsModuleCommandExecuteFunctionCode::generate(
+        let command_execute_function_code = CommandExecuteFunctionCode::generate(
             command_type,
             command_name.clone()
         ).tokens;
 
-        let command_finalize_function_code = CommandsModuleCommandFinalizeFunctionCode::generate(
+        let command_finalize_function_code = CommandFinalizeFunctionCode::generate(
             command_type,
             command_name.clone(),
             command_output_name,
