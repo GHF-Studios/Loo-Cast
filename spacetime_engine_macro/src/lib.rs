@@ -1,4 +1,4 @@
-use spacetime_engine_macro_lib::commands::extracted_info::commands_module_info::CommandsModuleInfo;
+use spacetime_engine_macro_lib::commands::generated_output::commands_module_code::CommandsModuleCode;
 use spacetime_engine_macro_lib::commands::parsed_input::commands_type::*;
 use spacetime_engine_macro_lib::commands::parsed_input::command_type::*;
 use proc_macro::TokenStream;
@@ -29,7 +29,7 @@ pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
 
     let commands_module_code = CommandsModuleCode::generate(&commands_module_type);
 
-    commands_module_code
+    commands_module_code.tokens.into()
 }
 
 #[proc_macro]

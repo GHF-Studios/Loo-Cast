@@ -4,7 +4,6 @@ pub mod struct_code;
 use quote::quote;
 use syn::spanned::Spanned;
 use syn::Ident;
-use crate::commands::extracted_info::commands_module_info::command_info::command_input_info::command_input_parameters_info::*;
 use crate::commands::generated_output::commands_module_code::command_input_codes::command_input_code::struct_code::*;
 use crate::commands::generated_output::commands_module_code::command_input_codes::command_input_code::impl_code::*;
 use crate::commands::parsed_input::command_type::*;
