@@ -1,11 +1,23 @@
-use crate::commands::generated_output::commands_module_code::command_codes::command_code::CommandType;
+use syn::Ident;
+use quote::quote;
 
-pub struct CommandCodeStructCode {
+pub struct CommandOutputStructCode {
     pub tokens: proc_macro2::TokenStream,
 }
 
-impl CommandCodeStructCode {
-    pub fn generate(command_type: &CommandType) -> Self {
-        todo!();
+impl CommandOutputStructCode {
+    pub fn generate(
+        command_output_name: Ident,
+        command_output_parameter_declarations: proc_macro2::TokenStream
+    ) -> Self {
+        let tokens = quote! {
+            pub struct #command_output_name {
+                #command_output_parameter_declarations
+            }
+        };
+
+        Self {
+            tokens
+        }
     }
 }

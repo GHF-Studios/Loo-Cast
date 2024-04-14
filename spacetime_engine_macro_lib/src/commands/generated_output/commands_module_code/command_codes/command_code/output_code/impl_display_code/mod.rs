@@ -1,11 +1,26 @@
-use crate::commands::generated_output::commands_module_code::command_codes::command_code::CommandType;
+use syn::Ident;
+use quote::quote;
 
-pub struct CommandCodeImplDisplayCode {
+pub struct CommandOutputImplDisplayCode {
     pub tokens: proc_macro2::TokenStream,
 }
 
-impl CommandCodeImplDisplayCode {
-    pub fn generate(command_type: &CommandType) -> Self {
-        todo!();
+impl CommandOutputImplDisplayCode {
+    pub fn generate(
+        command_output_name: Ident,
+        command_output_parameters_interpolation: String,
+        command_output_parameter_self_accesses: proc_macro2::TokenStream
+    ) -> Self {
+        let tokens = quote! {
+            impl std::fmt::Display for #command_output_name {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+                    write!(f, #command_output_parameters_interpolation, #command_output_parameter_self_accesses)
+                }
+            }
+        };
+
+        Self {
+            tokens
+        }
     }
 }
