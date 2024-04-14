@@ -1,6 +1,7 @@
 use syn::{
     parse::{Parse, ParseStream}, spanned::Spanned, Ident, LitStr, Token, Type
 };
+use quote::quote;
 
 #[derive(Clone)]
 pub struct CommandOutputParameterType {
@@ -22,8 +23,7 @@ impl Parse for CommandOutputParameterType {
         Ok(CommandOutputParameterType {
             parameter_name: parameter_name.clone(),
             parameter_type: parameter_type.clone(),
-            interpolation: format!("{}: ({})", parameter_name.value(), quote::quote!{#parameter_type}.to_string())
+            interpolation: format!("{}: ({})", parameter_name.value(), quote!{#parameter_type})
         })
     }
-
 }
