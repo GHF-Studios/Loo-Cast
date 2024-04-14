@@ -53,17 +53,21 @@ impl CommandCode {
             command_code_name.clone()
         ).tokens;
 
-        let command_input_code = CommandInputCode::generate().tokens;
+        let command_input_code = CommandInputCode::generate(command_type).tokens;
 
-        let command_output_code = CommandOutputCode::generate().tokens;
+        let command_output_code = CommandOutputCode::generate(command_type).tokens;
 
-        let command_error_code = CommandErrorCode::generate().tokens;
+        let command_error_code = CommandErrorCode::generate(command_type).tokens;
 
-        let command_code_code = CommandCodeCode::generate().tokens;
+        let command_code_code = CommandCodeCode::generate(command_type).tokens;
 
         let tokens = quote! {
             #enum_code
             #impl_code
+            #command_input_code
+            #command_output_code
+            #command_error_code
+            #command_code_code
         };
 
         Self {
