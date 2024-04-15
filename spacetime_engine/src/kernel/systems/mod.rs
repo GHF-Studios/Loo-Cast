@@ -4,7 +4,7 @@ define_systems_module! {
     Test {
         module_path: crate::kernel::systems,
         systems: [
-            HelloWorld {
+            InsertPhysicalConstantsResource {
                 Input {
                     BevyCommands {
                         
