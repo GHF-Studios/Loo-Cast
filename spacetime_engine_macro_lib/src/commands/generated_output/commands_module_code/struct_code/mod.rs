@@ -1,6 +1,6 @@
 use quote::quote;
 use syn::Ident;
-use crate::commands::parsed_input::commands_type::CommandsModuleType;
+use crate::commands::parsed_input::commands_module_type::CommandsModuleType;
 
 pub struct CommandsModuleStructCode {
     pub tokens: proc_macro2::TokenStream,

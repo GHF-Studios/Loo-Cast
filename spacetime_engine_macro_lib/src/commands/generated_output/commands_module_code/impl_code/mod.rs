@@ -2,7 +2,7 @@ pub mod command_request_function_codes;
 
 use quote::quote;
 use syn::Ident;
-use crate::commands::parsed_input::commands_type::CommandsModuleType;
+use crate::commands::parsed_input::commands_module_type::CommandsModuleType;
 use self::command_request_function_codes::CommandsModuleCommandRequestFunctionCodes;
 
 pub struct CommandsModuleImplCode {

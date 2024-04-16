@@ -1,7 +1,7 @@
 pub mod command_code;
 
 use quote::quote;
-use crate::commands::parsed_input::commands_type::CommandsModuleType;
+use crate::commands::parsed_input::commands_module_type::CommandsModuleType;
 use self::command_code::*;
 
 pub struct CommandCodes {

@@ -1,6 +1,6 @@
 pub mod command_request_function_code;
 
-use crate::commands::parsed_input::commands_type::CommandsModuleType;
+use crate::commands::parsed_input::commands_module_type::CommandsModuleType;
 use quote::quote;
 use self::command_request_function_code::CommandsModuleCommandRequestFunctionCode;
 

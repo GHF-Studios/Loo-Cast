@@ -3,7 +3,7 @@ pub mod impl_code;
 pub mod command_codes;
 
 use quote::quote;
-use crate::commands::parsed_input::commands_type::CommandsModuleType;
+use crate::commands::parsed_input::commands_module_type::CommandsModuleType;
 
 use self::{command_codes::CommandCodes, impl_code::CommandsModuleImplCode, struct_code::CommandsModuleStructCode};
 
