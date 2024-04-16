@@ -3,7 +3,7 @@
 // Local imports
 
 // Internal imports
-use crate::kernel::math::*;
+use crate::kernel::math_utils::*;
 use crate::system::game::SimulationState;
 use crate::system::player::*;
 use crate::system::AppState;

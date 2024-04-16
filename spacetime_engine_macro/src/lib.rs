@@ -1,21 +1,23 @@
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
-use spacetime_engine_macro_lib::commands::generated_output::commands_module_code::*;
-use spacetime_engine_macro_lib::commands::parsed_input::commands_module_type::*;
-use spacetime_engine_macro_lib::systems::generated_output::systems_module_code::*;
-use spacetime_engine_macro_lib::systems::parsed_input::systems_type::*;
-use spacetime_engine_macro_lib::primitives::generated_output::primitives_module_code::*;
-use spacetime_engine_macro_lib::primitives::parsed_input::primitives_type::*;
-use spacetime_engine_macro_lib::components::generated_output::components_module_code::*;
-use spacetime_engine_macro_lib::components::parsed_input::components_type::*;
 use spacetime_engine_macro_lib::archetypes::generated_output::archetypes_module_code::*;
 use spacetime_engine_macro_lib::archetypes::parsed_input::archetypes_type::*;
+use spacetime_engine_macro_lib::attributes::generated_output::attributes_module_code::*;
+use spacetime_engine_macro_lib::attributes::parsed_input::attributes_type::*;
+use spacetime_engine_macro_lib::commands::generated_output::commands_module_code::*;
+use spacetime_engine_macro_lib::commands::parsed_input::commands_module_type::*;
+use spacetime_engine_macro_lib::components::generated_output::components_module_code::*;
+use spacetime_engine_macro_lib::components::parsed_input::components_type::*;
 use spacetime_engine_macro_lib::events::generated_output::events_module_code::*;
 use spacetime_engine_macro_lib::events::parsed_input::events_type::*;
+use spacetime_engine_macro_lib::primitives::generated_output::primitives_module_code::*;
+use spacetime_engine_macro_lib::primitives::parsed_input::primitives_type::*;
 use spacetime_engine_macro_lib::resources::generated_output::resources_module_code::*;
 use spacetime_engine_macro_lib::resources::parsed_input::resources_type::*;
 use spacetime_engine_macro_lib::states::generated_output::states_module_code::*;
 use spacetime_engine_macro_lib::states::parsed_input::states_type::*;
+use spacetime_engine_macro_lib::systems::generated_output::systems_module_code::*;
+use spacetime_engine_macro_lib::systems::parsed_input::systems_type::*;
 
 #[proc_macro]
 pub fn define_commands_module(tokens: TokenStream) -> TokenStream {

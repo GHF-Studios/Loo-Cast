@@ -1,9 +1,16 @@
 // Modules
+pub mod attributes;
 pub mod commands;
+pub mod components;
 pub mod debug;
+pub mod events;
 pub mod manager;
-pub mod math;
+pub mod math_utils;
 pub mod plugin;
+pub mod primitives;
+pub mod resources;
+pub mod states;
+pub mod systems;
 
 // Internal imports
 use manager::*;
