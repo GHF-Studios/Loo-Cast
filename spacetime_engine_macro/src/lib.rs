@@ -20,30 +20,30 @@ use spacetime_engine_macro_lib::systems::generated_output::systems_module_code::
 use spacetime_engine_macro_lib::systems::parsed_input::systems_type::*;
 
 #[proc_macro]
+pub fn defin_archetypes_module(tokens: TokenStream) -> TokenStream {
+    let archetypes_module_type = parse_macro_input!(tokens as ArchetypesModuleType);
+
+    let archetypes_module_code = ArchetypesModuleCode::generate(&archetypes_module_type);
+
+    archetypes_module_code.tokens.into()
+}
+
+#[proc_macro]
+pub fn define_attributes_module(tokens: TokenStream) -> TokenStream {
+    let attributes_module_type = parse_macro_input!(tokens as AttributesModuleType);
+
+    let attributes_module_code = AttributesModuleCode::generate(&attributes_module_type);
+
+    attributes_module_code.tokens.into()
+}
+
+#[proc_macro]
 pub fn define_commands_module(tokens: TokenStream) -> TokenStream {
     let commands_module_type = parse_macro_input!(tokens as CommandsModuleType);
 
     let commands_module_code = CommandsModuleCode::generate(&commands_module_type);
 
     commands_module_code.tokens.into()
-}
-
-#[proc_macro]
-pub fn define_systems_module(tokens: TokenStream) -> TokenStream {
-    let systems_module_type = parse_macro_input!(tokens as SystemsModuleType);
-
-    let systems_module_code = SystemsModuleCode::generate(&systems_module_type);
-
-    systems_module_code.tokens.into()
-}
-
-#[proc_macro]
-pub fn define_primitives_module(tokens: TokenStream) -> TokenStream {
-    let primitives_module_type = parse_macro_input!(tokens as PrimitivesModuleType);
-
-    let primitives_module_code = PrimitivesModuleCode::generate(&primitives_module_type);
-
-    primitives_module_code.tokens.into()
 }
 
 #[proc_macro]
@@ -56,21 +56,21 @@ pub fn define_components_module(tokens: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn defin_archetypes_module(tokens: TokenStream) -> TokenStream {
-    let archetypes_module_type = parse_macro_input!(tokens as ArchetypesModuleType);
-
-    let archetypes_module_code = ArchetypesModuleCode::generate(&archetypes_module_type);
-
-    archetypes_module_code.tokens.into()
-}
-
-#[proc_macro]
 pub fn define_events_module(tokens: TokenStream) -> TokenStream {
     let events_module_type = parse_macro_input!(tokens as EventsModuleType);
 
     let events_module_code = EventsModuleCode::generate(&events_module_type);
 
     events_module_code.tokens.into()
+}
+
+#[proc_macro]
+pub fn define_primitives_module(tokens: TokenStream) -> TokenStream {
+    let primitives_module_type = parse_macro_input!(tokens as PrimitivesModuleType);
+
+    let primitives_module_code = PrimitivesModuleCode::generate(&primitives_module_type);
+
+    primitives_module_code.tokens.into()
 }
 
 #[proc_macro]
@@ -89,4 +89,13 @@ pub fn define_states_module(tokens: TokenStream) -> TokenStream {
     let states_module_code = StatesModuleCode::generate(&states_module_type);
 
     states_module_code.tokens.into()
+}
+
+#[proc_macro]
+pub fn define_systems_module(tokens: TokenStream) -> TokenStream {
+    let systems_module_type = parse_macro_input!(tokens as SystemsModuleType);
+
+    let systems_module_code = SystemsModuleCode::generate(&systems_module_type);
+
+    systems_module_code.tokens.into()
 }
