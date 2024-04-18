@@ -1,0 +1,67 @@
+////Framework Macro Input Structures////
+
+/// A modular group of related command types
+struct CommandsModuleType {
+	command_types: CommandTypes
+}
+
+/// A collection of parsed information regarding different related types of commands
+struct CommandTypes {
+    values: Vec<CommandType>
+}
+
+/// Parsed information regarding one specific type of command
+struct CommandType {
+	input_type: CommandInputType,
+	output_type: CommandOutputType,
+	error_type: CommandErrorType,
+	code_type: CommandCodeType,
+}
+
+struct CommandInputType {
+	parameter_types: Vec<CommandInputParameterType>
+}
+
+struct CommandOutputType {
+    parameter_types: Vec<CommandOutputParameterType>,
+}
+
+struct CommandErrorType {
+    variant_types: Vec<CommandErrorVariantType>,
+}
+
+struct CommandCodeType {
+    code_signature: CommandCodeSignature,
+    code_block: CommandCodeBlock,
+}
+
+struct CommandInputParameterType;
+
+struct CommandOutputParameterType;
+
+struct CommandErrorVariantType;
+
+struct CommandCodeSignature {
+    input_type: Option<CommandCodeSignatureInputType>,
+    return_type: CommandCodeSignatureReturnType,
+}
+
+struct CommandCodeSignatureInputType;
+
+enum CommandCodeSignatureReturnType {
+    OutputType(CommandCodeSignatureOutputType),
+    ResultType(CommandCodeSignatureResultType),
+}
+
+enum CommandCodeSignatureOutputType {
+    UnitType,
+    OutputType,
+}
+
+struct CommandCodeSignatureResultType {
+    output_type: CommandCodeSignatureOutputType,
+}
+
+type CommandCodeBlock = syn::Block
+
+///Framework Macro Output Structures////
