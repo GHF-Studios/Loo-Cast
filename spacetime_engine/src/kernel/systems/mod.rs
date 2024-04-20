@@ -26,3 +26,10 @@ define_systems_module! {
         ]
     }
 }
+
+fn insert_physical_constants_resource_system(
+    bevy_commands: &mut bevy::prelude::Commands,
+    component_query: &ComponentQuery,
+) {
+    println!("Inserting Physical Constants Resource");
+}
