@@ -1,20 +1,10 @@
-1. Archetypes Module
-2. Attributes Module
-3. Commands Module
-4. Components Module
-5. Events Module
-6. Primitives Module
-7. Resources Module
-8. States Module
-9. Systems Module
-
 1.: Archetypes
 Archetypes are templates or blueprints for entities in Bevy. They are essentially just a collection of component types, 
     with some lightweight API wrapper for spawning an entity with exactly that set of components.
 Beyond that, archetypes are not a relevant concept, as once the entity is spawned, 
     you should use systems to operate on certain components, 
     rather than a specific entity configuration as a whole, as is usual in an ECS context. 
-Archetypes are really just a QOL feature, basically an archetype is just a way to directly associates a function,
+Archetypes are really just a QOL feature, basically an archetype is just a way to directly associate a function,
     which can spawn an entity with the specified set of components, to the archetype itself.
     For Example: PlayerArchetype::spawn() would spawn an entity with the components "Player", "Transform", etc.  
 
@@ -69,6 +59,7 @@ Every primitive must have the derive attributes of "clone", "send", and "sync".
 When a primitive type is used as a type of input to a command, then there will be no dependency checking of any kind regarding the primitives,
     or any scheduling considerations. A primitive parameter must immediately be passed to a command when requesting that command.
     It's essentially also fetched like other input types, but from the user, not from bevy's ECS, hence the clarification.
+Primitives are not defined by the framework like the other things on this list, but rather they are imported into the framework.
 
 7. Resources Module
 Resources are global data that can be accessed from anywhere in the application.
@@ -81,6 +72,14 @@ Managing/Tracking Resource Types is important so that we not only get the schedu
     cannot be directly passed as input to a command, unlike primitives.
 
 8. States Module
+States are essentially just a way to define a set of conditions that must be met for a command to be executed.
+This wrapper of bevy states is just a way to define states in a way that the framework can understand and consider,
+    but more importantly, the definition of states is streamlined and requires minimal effort from a developer,
+    just the most basic and essential information about a state, so the framework can recognize it for what it is, a managed bevy state type.
+Managing/Tracking State Types is important so that we not only get the scheduling benefits and dependency management of native bevy ecs systems,
+    but also for the commands framework which is really just a function-like wrapper on top of bevy's ecs system that should respect
+    inter-command dependencies and dependencies on non-primtive input paramaters (like state queries) which always need to be fetched and
+    cannot be directly passed as input to a command, unlike primitives.
 
 9. Systems Module
 The bevy ecs systems wrapper, or systems framework, is surprisingly simple, even though it wrapps such an integral aspect of bevy's ECS.
