@@ -1,0 +1,64 @@
+Spacetime Engine Framework Overview
+
+This framework, designed as an enhancement to the Bevy engine, fundamentally revolves around a series of macros that enable the creation of various game development modules such as 
+Commands, Events, and Components. Each module type is associated with a specific macro, facilitating the definition of customized modules seamlessly within a Rust module. 
+For example, the define_commands_module macro can be used to create specialized modules like EntityCommands or AudioCommands. These framework modules, acting as sub-modules within a Rust module, 
+represent managed components of the engine as opposed to native Rust code. This architecture not only modularizes game development tasks but also deeply integrates with Bevy’s ECS, 
+providing a streamlined and efficient development experience.
+
+
+Detailed Module Descriptions
+
+Commands Module
+The Commands module is central, designed to handle asynchronous operations and facilitate access to Bevy resources. It employs a custom macro to potentially construct a dependency graph 
+by analyzing command interactions, though the precise methodology for this analysis is yet to be determined. The challenges include developing a system to effectively parse and interpret 
+dependencies within Rust code, which is crucial for executing commands in an order that respects potentially complex dependencies, forming not merely chains but entire graphs of command dependencies.
+
+Resource Management: 
+Each Commands module operates with its own Bevy system to manage resources, leveraging Bevy's scheduler to handle resource allocation dynamically. 
+This decentralized approach highlights the need for potential future refinements towards more unified or global resource management strategies to optimize execution 
+across multiple command modules and maintain order in command execution.
+
+Execution Strategy: 
+The framework's execution strategy for commands critically depends on establishing a reliable dependency graph and a robust system for executing 
+commands according to this graph. Current considerations include managing command execution through a series of scheduled events that respect these dependencies, 
+potentially restructuring how commands are processed to avoid performance bottlenecks and ensure efficient task handling within Bevy’s ECS framework.
+
+
+Other Modules (Direct Wrappers)
+
+Each of the direct wrapper modules—Archetypes, Attributes, Components, Events, Primitives, Resources, States, and Systems—serves a specific role in importing types into the framework, 
+creating a meta representation of each type that includes necessary identifiers and meta information:
+
+Archetypes, Components, Resources, States, Systems: 
+Function as wrappers that not only replicate Bevy's functionalities but also introduce these elements into the engine’s ecosystem, 
+allowing them to be recognized and managed as non-primitive, imported entities.
+
+Attributes Module: 
+Facilitates annotations for managed types within the framework, specifically designed to apply only to framework-defined types, 
+enhancing their functionality and integration within the managed environment.
+
+Events Module: 
+Enhances Bevy’s event system by enabling events to be dispatched from any part of the application, not limited to specific systems. 
+This module provides a flexible interface for integrating event readers and writers into both Bevy systems and custom commands, emphasizing the utility of events beyond traditional boundaries.
+
+Primitives Module: 
+Ensures basic data types are efficiently managed within the framework, adhering to necessary traits for safe and effective use, 
+and introduces these primitives into the engine as well-defined entities.
+
+
+Additional Notes
+
+Components, Resources, States, Events, and Primitives are recognized as possible input types for all commands and systems, with Primitives also serving as possible output types for commands. 
+This recognition is crucial for the macros to correctly create the backend infrastructure that supports the definition of such input and output types in a type-safe manner. 
+Systems within the framework do not produce outputs, further distinguishing their functional role from that of commands.
+
+
+Summary
+
+This framework represents a sophisticated extension of the Bevy engine, structured around a series of powerful macros that simplify the declaration and management 
+of various game development modules. By enhancing modular capabilities and integrating deeply with Bevy's ECS, the framework aims to streamline the game development process, 
+allowing developers to focus more on game logic and design rather than the intricacies of backend management. Each module within the framework is designed to optimize 
+specific aspects of game development, from handling primitive data types to managing complex asynchronous tasks, making the entire system both powerful and efficient for 
+modern game development needs. Significant challenges remain, particularly in the Commands module, involving the development of dependency graphs and execution strategies 
+that respect command dependencies, which are crucial areas for future development and refinement.
