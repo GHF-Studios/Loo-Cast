@@ -1,24 +1,14 @@
 ########## DEFINE PATHS ##########
 
 # Loo cast paths
-$looCastBuildSourceDir = ".\target\debug"
+$looCastBuildSourceDir = ".\target\release"
 
 # Engine paths
 $engineProjectDir = ".\spacetime_engine"
-$engineBuildTargetDir = ".\build\debug"
+$engineBuildTargetDir = ".\build\release"
 
 $engineBuildModsSourceDir = "$engineProjectDir\mods"
 $engineBuildModsTargetDir = "$engineBuildTargetDir\mods"
-
-# Base mod paths
-$baseModProjectDir = ".\loo_cast_base_mod"
-$baseModBuildTargetDir = "$engineBuildModsTargetDir\loo_cast_base_mod"
-
-$baseModBuildDataSourceDir = "$baseModProjectDir\data"
-$baseModBuildDataTargetDir = "$baseModBuildTargetDir\data"
-
-$baseModBuildResourcesSourceDir = "$baseModProjectDir\resources"
-$baseModBuildResourcesTargetDir = "$baseModBuildTargetDir\resources"
 
 
 
@@ -29,11 +19,6 @@ if (Test-Path $engineBuildTargetDir) {
     Remove-Item -Path $engineBuildTargetDir -Recurse -Force
 }
 New-Item -Path $engineBuildTargetDir -ItemType Directory -Force
-
-if (Test-Path $baseModBuildTargetDir) {
-    Remove-Item -Path $baseModBuildTargetDir -Recurse -Force
-}
-New-Item -Path $baseModBuildTargetDir -ItemType Directory -Force
 
 
 
@@ -62,25 +47,6 @@ Copy-Item -Path $engineExeFile.FullName -Destination $engineBuildTargetDir -Forc
 # Copy program debug database from build source to build target
 $enginePdbFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "spacetime_engine.pdb" -Recurse
 Copy-Item -Path $enginePdbFile.FullName -Destination $engineBuildTargetDir -Force
-
-
-
-
-########## COPY LOO CAST BASE MOD FROM SOURCE TO TARGET ##########
-
-# Copy rust library from build source to build target
-$baseModLibFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "loo_cast_base_mod.dll" -Recurse
-Copy-Item -Path $baseModLibFile.FullName -Destination $baseModBuildTargetDir -Force
-
-# Copy program debug database from build source to build target
-$baseModPdbFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "loo_cast_base_mod.pdb" -Recurse
-Copy-Item -Path $baseModPdbFile.FullName -Destination $baseModBuildTargetDir -Force
-
-# Copy data directory from build source to build target
-Copy-Item -Path $baseModBuildDataSourceDir -Destination $baseModBuildDataTargetDir -Recurse -Force
-
-# Copy resources directory from build source to build target
-Copy-Item -Path $baseModBuildResourcesSourceDir -Destination $baseModBuildResourcesTargetDir -Recurse -Force
 
 
 
