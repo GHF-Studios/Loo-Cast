@@ -1,10 +1,7 @@
 // Modules
 pub mod background;
 pub mod camera;
-pub mod commands_test;
 pub mod game;
-//pub mod iteration_test;
-// TODO: Reimplement iteration_test module with the new commands framework
 pub mod player;
 pub mod savegame;
 pub mod ui;
@@ -17,9 +14,7 @@ pub mod ui;
 use super::kernel::manager::*;
 use background::BackgroundPlugin;
 use camera::CameraPlugin;
-use commands_test::CommandsTestPlugin;
 use game::GamePlugin;
-//use iteration_test::IterationTestPlugin;
 use player::PlayerPlugin;
 use savegame::SavegamePlugin;
 use ui::UIPlugin;
@@ -139,9 +134,7 @@ impl PluginGroup for SystemPlugins {
             // Internal Modules
             .add(BackgroundPlugin)
             .add(CameraPlugin)
-            .add(CommandsTestPlugin)
             .add(GamePlugin)
-            //.add(IterationTestPlugin)
             .add(PlayerPlugin)
             .add(SavegamePlugin)
             .add(UIPlugin)
