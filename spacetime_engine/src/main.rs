@@ -6,12 +6,14 @@ use bevy_rapier2d::prelude::*;
 #[derive(Resource)]
 struct ChunkManager {
     chunk_size: i16,
-    chunks: HashMap<I16Vec2, Entity>,
+    registered_chunks: Vec<I16Vec2>,
+    loaded_chunks: HashMap<I16Vec2, Entity>,
 }
 
 #[derive(Component)]
 struct ChunkLoader {
     load_radius: i16,
+    current_chunk_ids: Vec<I16Vec2>,
 }
 
 #[derive(Component)]
@@ -32,15 +34,14 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-        .add_systems(Startup, setup)
-        //.add_systems(Startup, setup_grid_background)
-        .add_systems(Update, player_movement)
-        .add_systems(Update, chunk_loading)
+        .add_systems(Startup, main_setup_system)
+        .add_systems(Update, player_movement_system)
+        .add_systems(Update, chunk_loader_system)
         .add_systems(Update, follower_system)
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn main_setup_system(mut commands: Commands) {
     // Player entity
     let player_entity = commands.spawn(Player)
     .insert(SpriteBundle {
@@ -55,11 +56,11 @@ fn setup(mut commands: Commands) {
     .insert(RigidBody::Dynamic)
     .insert(Collider::ball(15.0))
     .insert(Velocity::linear(Vec2::new(0.0, 0.0)))
-    .insert(ChunkLoader { load_radius: 4 })
+    .insert(ChunkLoader { load_radius: 4, current_chunk_ids: Vec::new() })
     .id();
     
     // Chunk manager
-    commands.insert_resource(ChunkManager { chunks: HashMap::new(), chunk_size: 1024 });
+    commands.insert_resource(ChunkManager { chunk_size: 64, registered_chunks: Vec::new(), loaded_chunks: HashMap::new() });
 
     // Camera that follows the player
     let _camera_entity = commands.spawn(Camera2dBundle::default())
@@ -67,7 +68,7 @@ fn setup(mut commands: Commands) {
     .id();
 }
 
-fn player_movement(
+fn player_movement_system(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Velocity, &Player)>,
 ) {
@@ -92,82 +93,101 @@ fn player_movement(
     }
 }
 
-fn chunk_loading(
+fn chunk_loader_system(
     mut commands: Commands,
-    chunk_loader_query: Query<(&Transform, &ChunkLoader)>,
+    mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
     mut chunk_manager: ResMut<ChunkManager>,
 ) {
-    let (chunk_loader_transform, chunk_loader) = chunk_loader_query.single();
-
+    let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
     let chunk_loader_translation = chunk_loader_transform.translation.truncate();
     let chunk_size = chunk_manager.chunk_size as f32;
     let current_chunk_id = chunk_loader_translation / chunk_size;
     let current_chunk_id = I16Vec2::new(current_chunk_id.x.floor() as i16, current_chunk_id.y.floor() as i16);
     let load_radius = chunk_loader.load_radius;
     
-    // Load and unload chunks
+    // Detect chunks around the player
+    let mut detected_chunk_ids: Vec<I16Vec2> = Vec::new();
     for x_offset in -load_radius..=load_radius {
         for y_offset in -load_radius..=load_radius {
-            let check_chunk_id = current_chunk_id + I16Vec2::new(x_offset, y_offset);
-            let check_chunk_translation = Vec3::new(
-                (check_chunk_id.x as f32 * chunk_size) + chunk_size / 2.0, 
-                (check_chunk_id.y as f32 * chunk_size) + chunk_size / 2.0, 
-                -1.0);
-
-            chunk_manager.chunks.entry(check_chunk_id).or_insert_with(|| {
-                let chunk_color = if (check_chunk_id.x + check_chunk_id.y) % 2 == 0 {
-                    Color::rgb(0.25, 0.25, 0.25)
-                } else {
-                    Color::rgb(0.75, 0.75, 0.75)
-                };
-
-                let check_chunk_entity = commands.spawn((
-                    Chunk { id: check_chunk_id },
-                    SpriteBundle {
-                        sprite: Sprite {
-                            color: chunk_color,
-                            custom_size: Some(Vec2::new(chunk_size, chunk_size)),
-                            ..default()
-                        },
-                        transform: Transform::from_translation(check_chunk_translation),
-                        ..default()
-                    },
-                )).id();
-
-                check_chunk_entity
-            });
+            detected_chunk_ids.push(current_chunk_id + I16Vec2::new(x_offset, y_offset));
         }
     }
 
-    // Optionally, implement a routine to unload chunks outside of a specific range
+    // Categorize the detected chunks
+    let mut old_chunk_ids: Vec<I16Vec2> = Vec::new(); // Chunks which are active, but have not been detected
+    let mut unchanged_chunk_ids: Vec<I16Vec2> = Vec::new(); // Chunks which are active and have been detected
+    let mut new_chunk_ids: Vec<I16Vec2> = Vec::new(); // Chunks which are not active but have been detected
+    for (loaded_chunk_id, _) in chunk_manager.loaded_chunks.iter() {
+        if !detected_chunk_ids.contains(loaded_chunk_id) {
+            old_chunk_ids.push(*loaded_chunk_id);
+        }
+    }
+    for detected_chunk_id in detected_chunk_ids {
+        if chunk_manager.loaded_chunks.contains_key(&detected_chunk_id) {
+            unchanged_chunk_ids.push(detected_chunk_id);
+        } else {
+            new_chunk_ids.push(detected_chunk_id);
+        }
+    }
+
+    // Handle old chunks
+    for old_chunk_id in old_chunk_ids {
+        // "Unload" the chunk
+        // TODO: Implement actual chunk unloading
+        if let Some(loaded_chunk_entity) = chunk_manager.loaded_chunks.remove(&old_chunk_id) {
+            commands.entity(loaded_chunk_entity).despawn_recursive();
+        }
+    }
+
+    // Handle new chunks
+    for new_chunk_id in new_chunk_ids.clone() {
+        if chunk_manager.registered_chunks.contains(&new_chunk_id) {
+            // "Load" the chunk
+            // TODO: Implement actual chunk loading
+            let new_chunk_entity = new_chunk_entity(&mut commands, &mut chunk_manager, new_chunk_id);
+
+            chunk_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
+        } else {
+            // Create a new chunk
+            let new_chunk_entity = new_chunk_entity(&mut commands, &mut chunk_manager, new_chunk_id);
+
+            chunk_manager.registered_chunks.push(new_chunk_id);
+            chunk_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
+        }
+    }
+
+    // Update the current chunk IDs
+    chunk_loader.current_chunk_ids = unchanged_chunk_ids;
+    chunk_loader.current_chunk_ids.append(&mut new_chunk_ids);
 }
 
-fn setup_grid_background(mut commands: Commands) {
-    let grid_size = 5000.0; // Extent of the grid from the center
-    let line_interval = 100.0; // Spacing between grid lines
+fn new_chunk_entity(commands: &mut Commands, chunk_manager: &mut ResMut<ChunkManager>, chunk_id: I16Vec2) -> Entity {
+    let chunk_size = chunk_manager.chunk_size as f32;
+    let chunk_translation = Vec3::new(
+        (chunk_id.x as f32 * chunk_size) + chunk_size / 2.0, 
+        (chunk_id.y as f32 * chunk_size) + chunk_size / 2.0, 
+        -1.0);
 
-    for x in (-grid_size as i32..=grid_size as i32).step_by(line_interval as usize) {
-        // Vertical lines
-        commands.spawn(SpriteBundle {
+    let chunk_color = if (chunk_id.x + chunk_id.y) % 2 == 0 {
+        Color::rgb(0.25, 0.25, 0.25)
+    } else {
+        Color::rgb(0.75, 0.75, 0.75)
+    };
+
+    let chunk_entity = commands.spawn((
+        Chunk { id: chunk_id },
+        SpriteBundle {
             sprite: Sprite {
-                color: Color::rgb(1.0, 1.0, 1.0),
-                custom_size: Some(Vec2::new(2.0, 2.0 * grid_size)),
+                color: chunk_color,
+                custom_size: Some(Vec2::new(chunk_size, chunk_size)),
                 ..default()
             },
-            transform: Transform::from_xyz(x as f32, 0.0, 1.0),
+            transform: Transform::from_translation(chunk_translation),
             ..default()
-        });
-        // Horizontal lines
-        commands.spawn(SpriteBundle {
-            sprite: Sprite {
-                color: Color::rgb(1.0, 1.0, 1.0),
-                custom_size: Some(Vec2::new(2.0 * grid_size, 2.0)),
-                ..default()
-            },
-            transform: Transform::from_xyz(0.0, x as f32, 1.0),
-            ..default()
-        });
-    }
+        },
+    )).id();
+
+    chunk_entity
 }
 
 fn follower_system(
