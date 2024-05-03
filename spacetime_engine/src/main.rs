@@ -146,13 +146,35 @@ impl EntityCoordinate {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct EntityID(u64);
+
 const CHUNK_SIZE: u16 = 128;
 const CHUNK_Z_INDEX: f32 = -1.0;
 
 #[derive(Resource)]
-struct ChunkManager {
+struct UniverseManager {
     registered_chunks: Vec<ChunkID>,
     loaded_chunks: HashMap<ChunkID, Entity>,
+    current_entity_id: EntityID,
+    recycled_entity_ids: Vec<EntityID>,
+}
+
+impl UniverseManager {
+    fn get_unused_entity_id(&mut self) -> EntityID {
+        if let Some(recycled_entity_id) = self.recycled_entity_ids.pop() {
+            recycled_entity_id
+        } else {
+            let new_entity_id = self.current_entity_id;
+            self.current_entity_id = EntityID(new_entity_id.0 + 1);
+
+            new_entity_id
+        }
+    }
+
+    fn recycle_entity_id(&mut self, entity_id: EntityID) {
+        self.recycled_entity_ids.push(entity_id);
+    }
 }
 
 #[derive(Component)]
@@ -163,8 +185,8 @@ struct ChunkLoader {
 
 #[derive(Component)]
 struct Chunk {
-    id: ChunkID,  // Identifier for the chunk based on its position
-    tracked_entities: Vec<Entity>,  // Entities currently within this chunk
+    id: ChunkID,
+    tracked_entities: Vec<EntityID>,
 }
 
 #[derive(Component)]
@@ -172,7 +194,8 @@ struct Player;
 
 #[derive(Component)]
 struct TrackedEntity {
-    current_chunk: Option<ChunkID>,  // The chunk ID the entity is currently within, None if in the void
+    id: EntityID,
+    current_chunk: Option<ChunkID>,
 }
 
 #[derive(Component)]
@@ -210,8 +233,13 @@ fn main_setup_system(mut commands: Commands) {
     .insert(ChunkLoader { load_radius: 4, current_chunk_ids: Vec::new() })
     .id();
     
-    // Chunk manager
-    commands.insert_resource(ChunkManager { registered_chunks: Vec::new(), loaded_chunks: HashMap::new() });
+    // Universe manager
+    commands.insert_resource(UniverseManager { 
+        registered_chunks: Vec::new(), 
+        loaded_chunks: HashMap::new(), 
+        current_entity_id: EntityID(0), 
+        recycled_entity_ids: Vec::new()
+    });
 
     // Camera that follows the player
     let _camera_entity = commands.spawn(Camera2dBundle::default())
@@ -247,7 +275,7 @@ fn player_movement_system(
 fn chunk_loader_system(
     mut commands: Commands,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
-    mut chunk_manager: ResMut<ChunkManager>,
+    mut universe_manager: ResMut<UniverseManager>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
     let chunk_loader_entity_coordinate: EntityCoordinate = chunk_loader_transform.translation.into();
@@ -266,7 +294,7 @@ fn chunk_loader_system(
     let mut old_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are active, but have not been detected
     let mut unchanged_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are active and have been detected
     let mut new_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are not active but have been detected
-    for (loaded_chunk_id, _) in chunk_manager.loaded_chunks.iter() {
+    for (loaded_chunk_id, _) in universe_manager.loaded_chunks.iter() {
         let loaded_chunk_coordinate: ChunkCoordinate = loaded_chunk_id.clone().into();
 
         if !detected_chunk_coordinates.contains(&loaded_chunk_coordinate) {
@@ -275,7 +303,7 @@ fn chunk_loader_system(
     }
     for detected_chunk_coordinate in detected_chunk_coordinates {
         let detected_chunk_id: ChunkID = detected_chunk_coordinate.clone().into();
-        if chunk_manager.loaded_chunks.contains_key(&detected_chunk_id) {
+        if universe_manager.loaded_chunks.contains_key(&detected_chunk_id) {
             unchanged_chunk_ids.push(detected_chunk_id);
         } else {
             new_chunk_ids.push(detected_chunk_id);
@@ -286,25 +314,25 @@ fn chunk_loader_system(
     for old_chunk_id in old_chunk_ids {
         // "Unload" the chunk
         // TODO: Implement actual chunk unloading and entity serialization
-        if let Some(loaded_chunk_entity) = chunk_manager.loaded_chunks.remove(&old_chunk_id) {
+        if let Some(loaded_chunk_entity) = universe_manager.loaded_chunks.remove(&old_chunk_id) {
             commands.entity(loaded_chunk_entity).despawn_recursive();
         }
     }
 
     // Handle new chunks
     for new_chunk_id in new_chunk_ids.clone() {
-        if chunk_manager.registered_chunks.contains(&new_chunk_id) {
+        if universe_manager.registered_chunks.contains(&new_chunk_id) {
             // "Load" the chunk
             // TODO: Implement actual chunk loading and entity deserialization
             let new_chunk_entity = new_chunk_entity(&mut commands, new_chunk_id);
 
-            chunk_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
+            universe_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
         } else {
             // Create a new chunk
             let new_chunk_entity = new_chunk_entity(&mut commands, new_chunk_id);
 
-            chunk_manager.registered_chunks.push(new_chunk_id);
-            chunk_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
+            universe_manager.registered_chunks.push(new_chunk_id);
+            universe_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
         }
     }
 
@@ -343,7 +371,7 @@ fn tracked_entity_system(
     mut commands: Commands,
     mut tracked_entity_query: Query<(Entity, &mut TrackedEntity, &Transform)>,
     mut chunk_query: Query<(&mut Chunk)>,
-    chunk_manager: Res<ChunkManager>,
+    universe_manager: Res<UniverseManager>,
 ) {
     // If a tracked entity has no current chunk and no chunk is found, do nothing
     // If a tracked entity has no current chunk and a chunk is found, add the entity to the chunk, and set the current chunk
