@@ -12,10 +12,10 @@ impl From<I16Vec2> for ChunkCoordinate {
     }
 }
 
-impl From<ObjectCoordinate> for ChunkCoordinate {
-    fn from(object_coordinate: ObjectCoordinate) -> Self {
-        let x = ((object_coordinate.0.x + CHUNK_SIZE as f32 / 2.0) / CHUNK_SIZE as f32).floor() as i16;
-        let y = ((object_coordinate.0.y + CHUNK_SIZE as f32 / 2.0) / CHUNK_SIZE as f32).floor() as i16;
+impl From<ChunkActorCoordinate> for ChunkCoordinate {
+    fn from(chunk_actor_coordinate: ChunkActorCoordinate) -> Self {
+        let x = ((chunk_actor_coordinate.0.x + CHUNK_SIZE as f32 / 2.0) / CHUNK_SIZE as f32).floor() as i16;
+        let y = ((chunk_actor_coordinate.0.y + CHUNK_SIZE as f32 / 2.0) / CHUNK_SIZE as f32).floor() as i16;
         ChunkCoordinate(I16Vec2::new(x, y))
     }
 }
@@ -80,63 +80,63 @@ impl ChunkID {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct ObjectCoordinate(Vec3);
+struct ChunkActorCoordinate(Vec3);
 
-impl From<Vec2> for ObjectCoordinate {
+impl From<Vec2> for ChunkActorCoordinate {
     fn from(vec2: Vec2) -> Self {
-        ObjectCoordinate(Vec3::new(vec2.x, vec2.y, 0.0))
+        ChunkActorCoordinate(Vec3::new(vec2.x, vec2.y, 0.0))
     }
 }
 
-impl From<Vec3> for ObjectCoordinate {
+impl From<Vec3> for ChunkActorCoordinate {
     fn from(vec3: Vec3) -> Self {
-        ObjectCoordinate(vec3)
+        ChunkActorCoordinate(vec3)
     }
 }
 
-impl From<ChunkCoordinate> for ObjectCoordinate {
+impl From<ChunkCoordinate> for ChunkActorCoordinate {
     fn from(chunk_coordinate: ChunkCoordinate) -> Self {
         let x = chunk_coordinate.0.x as f32 * CHUNK_SIZE as f32;
         let y = chunk_coordinate.0.y as f32 * CHUNK_SIZE as f32;
-        ObjectCoordinate(Vec3::new(x, y, CHUNK_Z_INDEX))
+        ChunkActorCoordinate(Vec3::new(x, y, CHUNK_Z_INDEX))
     }
 }
 
-impl ops::Add<ObjectCoordinate> for ObjectCoordinate {
-    type Output = ObjectCoordinate;
+impl ops::Add<ChunkActorCoordinate> for ChunkActorCoordinate {
+    type Output = ChunkActorCoordinate;
 
-    fn add(self, other: ObjectCoordinate) -> ObjectCoordinate {
-        ObjectCoordinate(self.0 + other.0)
+    fn add(self, other: ChunkActorCoordinate) -> ChunkActorCoordinate {
+        ChunkActorCoordinate(self.0 + other.0)
     }
 }
 
-impl ops::Sub<ObjectCoordinate> for ObjectCoordinate {
-    type Output = ObjectCoordinate;
+impl ops::Sub<ChunkActorCoordinate> for ChunkActorCoordinate {
+    type Output = ChunkActorCoordinate;
 
-    fn sub(self, other: ObjectCoordinate) -> ObjectCoordinate {
-        ObjectCoordinate(self.0 - other.0)
+    fn sub(self, other: ChunkActorCoordinate) -> ChunkActorCoordinate {
+        ChunkActorCoordinate(self.0 - other.0)
     }
 }
 
-impl ops::Mul<f32> for ObjectCoordinate {
-    type Output = ObjectCoordinate;
+impl ops::Mul<f32> for ChunkActorCoordinate {
+    type Output = ChunkActorCoordinate;
 
-    fn mul(self, scalar: f32) -> ObjectCoordinate {
-        ObjectCoordinate(self.0 * scalar)
+    fn mul(self, scalar: f32) -> ChunkActorCoordinate {
+        ChunkActorCoordinate(self.0 * scalar)
     }
 }
 
-impl ops::Div<f32> for ObjectCoordinate {
-    type Output = ObjectCoordinate;
+impl ops::Div<f32> for ChunkActorCoordinate {
+    type Output = ChunkActorCoordinate;
 
-    fn div(self, scalar: f32) -> ObjectCoordinate {
-        ObjectCoordinate(self.0 / scalar)
+    fn div(self, scalar: f32) -> ChunkActorCoordinate {
+        ChunkActorCoordinate(self.0 / scalar)
     }
 }
 
-impl ObjectCoordinate {
+impl ChunkActorCoordinate {
     fn new(x: f32, y: f32) -> Self {
-        ObjectCoordinate(Vec3::new(x, y, CHUNK_Z_INDEX))
+        ChunkActorCoordinate(Vec3::new(x, y, CHUNK_Z_INDEX))
     }
 }
 
@@ -243,7 +243,7 @@ fn main_setup_system(mut commands: Commands, mut rapier_configuration: ResMut<Ra
         recycled_chunk_actor_ids: Vec::new()
     });
 
-    // Camera that follows the player
+    // Camera entity
     let _camera_entity = commands.spawn(Camera2dBundle::default())
     .insert(TranslationLerpFollower { target: player_entity, smoothness: 0.1 })
     .id();
@@ -251,7 +251,7 @@ fn main_setup_system(mut commands: Commands, mut rapier_configuration: ResMut<Ra
 
 fn new_chunk_entity(commands: &mut Commands, chunk_id: ChunkID) -> Entity {
     let chunk_coordinate: ChunkCoordinate = chunk_id.into();
-    let chunk_object_coordinate: ObjectCoordinate = chunk_coordinate.into();
+    let chunk_chunk_actor_coordinate: ChunkActorCoordinate = chunk_coordinate.into();
 
     let chunk_color = if (chunk_coordinate.0.x + chunk_coordinate.0.y) % 2 == 0 {
         Color::rgb(0.25, 0.25, 0.25)
@@ -267,7 +267,7 @@ fn new_chunk_entity(commands: &mut Commands, chunk_id: ChunkID) -> Entity {
                 custom_size: Some(Vec2::new(CHUNK_SIZE as f32, CHUNK_SIZE as f32)),
                 ..default()
             },
-            transform: Transform::from_translation(chunk_object_coordinate.0),
+            transform: Transform::from_translation(chunk_chunk_actor_coordinate.0),
             ..default()
         },
     )).id();
@@ -281,8 +281,8 @@ fn chunk_loader_system(
     mut chunk_manager: ResMut<ChunkManager>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
-    let chunk_loader_object_coordinate: ObjectCoordinate = chunk_loader_transform.translation.into();
-    let current_chunk_coordinate: ChunkCoordinate = chunk_loader_object_coordinate.into();
+    let chunk_loader_chunk_actor_coordinate: ChunkActorCoordinate = chunk_loader_transform.translation.into();
+    let current_chunk_coordinate: ChunkCoordinate = chunk_loader_chunk_actor_coordinate.into();
     let load_radius = chunk_loader.load_radius as i16;
     
     // Detect chunks around the player
@@ -350,8 +350,8 @@ fn chunk_actor_system(
     mut chunk_manager: ResMut<ChunkManager>,
 ) {
     for (chunk_actor_entity, chunk_actor_transform, mut chunk_actor) in chunk_actor_query.iter_mut() {
-        let chunk_object_coordinate: ObjectCoordinate = chunk_actor_transform.translation.into();
-        let chunk_coordinate: ChunkCoordinate = chunk_object_coordinate.into();
+        let chunk_chunk_actor_coordinate: ChunkActorCoordinate = chunk_actor_transform.translation.into();
+        let chunk_coordinate: ChunkCoordinate = chunk_chunk_actor_coordinate.into();
         let chunk_id: ChunkID = chunk_coordinate.into();
 
         if !chunk_manager.loaded_chunks.contains_key(&chunk_id) {
@@ -422,8 +422,8 @@ fn player_creative_system(
             if let Ok((camera, camera_transform)) = camera_query.get_single() {
                 let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
                 let world_pos = ndc_to_world.project_point3(cursor_pos_ndc.extend(-1.0)).truncate();
-                let chunk_object_coordinate: ObjectCoordinate = world_pos.into();
-                let chunk_coordinate: ChunkCoordinate = chunk_object_coordinate.into();
+                let chunk_chunk_actor_coordinate: ChunkActorCoordinate = world_pos.into();
+                let chunk_coordinate: ChunkCoordinate = chunk_chunk_actor_coordinate.into();
                 let chunk_id: ChunkID = chunk_coordinate.into();
                 let half_prop_size = PLAYER_CREATIVE_SQUARE_PROP_SIZE / 2.0;
 
