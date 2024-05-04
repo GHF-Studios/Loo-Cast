@@ -294,18 +294,18 @@ fn chunk_loader_system(
     }
 
     // Categorize the detected chunks
-    let mut old_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are active, but have not been detected
-    let mut unchanged_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are active and have been detected
-    let mut new_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are not active but have been detected
+    let mut old_chunk_ids: Vec<ChunkID> = Vec::new();
+    let mut unchanged_chunk_ids: Vec<ChunkID> = Vec::new();
+    let mut new_chunk_ids: Vec<ChunkID> = Vec::new();
     for (loaded_chunk_id, _) in chunk_manager.loaded_chunks.iter() {
-        let loaded_chunk_coordinate: ChunkCoordinate = loaded_chunk_id.clone().into();
+        let loaded_chunk_coordinate: ChunkCoordinate = loaded_chunk_id.0;
 
         if !detected_chunk_coordinates.contains(&loaded_chunk_coordinate) {
             old_chunk_ids.push(*loaded_chunk_id);
         }
     }
     for detected_chunk_coordinate in detected_chunk_coordinates {
-        let detected_chunk_id: ChunkID = detected_chunk_coordinate.clone().into();
+        let detected_chunk_id: ChunkID = detected_chunk_coordinate.into();
         if chunk_manager.loaded_chunks.contains_key(&detected_chunk_id) {
             unchanged_chunk_ids.push(detected_chunk_id);
         } else {
