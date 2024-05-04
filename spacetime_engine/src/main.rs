@@ -12,17 +12,17 @@ impl From<I16Vec2> for ChunkCoordinate {
     }
 }
 
-impl Into<I16Vec2> for ChunkCoordinate {
-    fn into(self) -> I16Vec2 {
-        self.0
+impl From<ObjectCoordinate> for ChunkCoordinate {
+    fn from(object_coordinate: ObjectCoordinate) -> Self {
+        let x = ((object_coordinate.0.x + CHUNK_SIZE as f32 / 2.0) / CHUNK_SIZE as f32).floor() as i16;
+        let y = ((object_coordinate.0.y + CHUNK_SIZE as f32 / 2.0) / CHUNK_SIZE as f32).floor() as i16;
+        ChunkCoordinate(I16Vec2::new(x, y))
     }
 }
 
-impl From<ObjectCoordinate> for ChunkCoordinate {
-    fn from(object_coordinate: ObjectCoordinate) -> Self {
-        let x = (object_coordinate.0.x / CHUNK_SIZE as f32).floor() as i16;
-        let y = (object_coordinate.0.y / CHUNK_SIZE as f32).floor() as i16;
-        ChunkCoordinate(I16Vec2::new(x, y))
+impl From<ChunkID> for ChunkCoordinate {
+    fn from(chunk_id: ChunkID) -> Self {
+        chunk_id.0
     }
 }
 
@@ -73,12 +73,6 @@ impl From<ChunkCoordinate> for ChunkID {
     }
 }
 
-impl Into<ChunkCoordinate> for ChunkID {
-    fn into(self) -> ChunkCoordinate {
-        self.0
-    }
-}
-
 impl ChunkID {
     fn new(x: i16, y: i16) -> Self {
         ChunkID(ChunkCoordinate::new(x, y))
@@ -97,12 +91,6 @@ impl From<Vec2> for ObjectCoordinate {
 impl From<Vec3> for ObjectCoordinate {
     fn from(vec3: Vec3) -> Self {
         ObjectCoordinate(vec3)
-    }
-}
-
-impl Into<Vec3> for ObjectCoordinate {
-    fn into(self) -> Vec3 {
-        self.0
     }
 }
 
@@ -219,6 +207,7 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_systems(Startup, main_setup_system)
         .add_systems(Update, chunk_loader_system)
+        .add_systems(Update, chunk_actor_system)
         .add_systems(Update, player_movement_system)
         .add_systems(Update, player_creative_system)
         .add_systems(Update, translation_lerp_follower_system)
@@ -260,75 +249,6 @@ fn main_setup_system(mut commands: Commands, mut rapier_configuration: ResMut<Ra
     .id();
 }
 
-fn chunk_loader_system(
-    mut commands: Commands,
-    mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
-    mut universe_manager: ResMut<ChunkManager>,
-) {
-    let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
-    let chunk_loader_object_coordinate: ObjectCoordinate = chunk_loader_transform.translation.into();
-    let current_chunk_coordinate: ChunkCoordinate = chunk_loader_object_coordinate.into();
-    let load_radius = chunk_loader.load_radius as i16;
-    
-    // Detect chunks around the player
-    let mut detected_chunk_coordinates = Vec::new();
-    for x_offset in -load_radius..=load_radius {
-        for y_offset in -load_radius..=load_radius {
-            detected_chunk_coordinates.push(current_chunk_coordinate + ChunkCoordinate::new(x_offset, y_offset));
-        }
-    }
-
-    // Categorize the detected chunks
-    let mut old_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are active, but have not been detected
-    let mut unchanged_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are active and have been detected
-    let mut new_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are not active but have been detected
-    for (loaded_chunk_id, _) in universe_manager.loaded_chunks.iter() {
-        let loaded_chunk_coordinate: ChunkCoordinate = loaded_chunk_id.clone().into();
-
-        if !detected_chunk_coordinates.contains(&loaded_chunk_coordinate) {
-            old_chunk_ids.push(*loaded_chunk_id);
-        }
-    }
-    for detected_chunk_coordinate in detected_chunk_coordinates {
-        let detected_chunk_id: ChunkID = detected_chunk_coordinate.clone().into();
-        if universe_manager.loaded_chunks.contains_key(&detected_chunk_id) {
-            unchanged_chunk_ids.push(detected_chunk_id);
-        } else {
-            new_chunk_ids.push(detected_chunk_id);
-        }
-    }
-
-    // Handle old chunks
-    for old_chunk_id in old_chunk_ids {
-        // "Unload" the chunk
-        // TODO: Implement actual chunk unloading and entity serialization
-        if let Some(loaded_chunk_entity) = universe_manager.loaded_chunks.remove(&old_chunk_id) {
-            commands.entity(loaded_chunk_entity).despawn_recursive();
-        }
-    }
-
-    // Handle new chunks
-    for new_chunk_id in new_chunk_ids.clone() {
-        if universe_manager.registered_chunks.contains(&new_chunk_id) {
-            // "Load" the chunk
-            // TODO: Implement actual chunk loading and entity deserialization
-            let new_chunk_entity = new_chunk_entity(&mut commands, new_chunk_id);
-
-            universe_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
-        } else {
-            // Create a new chunk
-            let new_chunk_entity = new_chunk_entity(&mut commands, new_chunk_id);
-
-            universe_manager.registered_chunks.push(new_chunk_id);
-            universe_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
-        }
-    }
-
-    // Update the current chunk IDs
-    chunk_loader.current_chunk_ids = unchanged_chunk_ids;
-    chunk_loader.current_chunk_ids.append(&mut new_chunk_ids);
-}
-
 fn new_chunk_entity(commands: &mut Commands, chunk_id: ChunkID) -> Entity {
     let chunk_coordinate: ChunkCoordinate = chunk_id.into();
     let chunk_object_coordinate: ObjectCoordinate = chunk_coordinate.into();
@@ -355,19 +275,94 @@ fn new_chunk_entity(commands: &mut Commands, chunk_id: ChunkID) -> Entity {
     chunk_entity
 }
 
+fn chunk_loader_system(
+    mut commands: Commands,
+    mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
+    mut chunk_manager: ResMut<ChunkManager>,
+) {
+    let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
+    let chunk_loader_object_coordinate: ObjectCoordinate = chunk_loader_transform.translation.into();
+    let current_chunk_coordinate: ChunkCoordinate = chunk_loader_object_coordinate.into();
+    let load_radius = chunk_loader.load_radius as i16;
+    
+    // Detect chunks around the player
+    let mut detected_chunk_coordinates = Vec::new();
+    for x_offset in -load_radius..=load_radius {
+        for y_offset in -load_radius..=load_radius {
+            detected_chunk_coordinates.push(current_chunk_coordinate + ChunkCoordinate::new(x_offset, y_offset));
+        }
+    }
+
+    // Categorize the detected chunks
+    let mut old_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are active, but have not been detected
+    let mut unchanged_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are active and have been detected
+    let mut new_chunk_ids: Vec<ChunkID> = Vec::new(); // Chunks which are not active but have been detected
+    for (loaded_chunk_id, _) in chunk_manager.loaded_chunks.iter() {
+        let loaded_chunk_coordinate: ChunkCoordinate = loaded_chunk_id.clone().into();
+
+        if !detected_chunk_coordinates.contains(&loaded_chunk_coordinate) {
+            old_chunk_ids.push(*loaded_chunk_id);
+        }
+    }
+    for detected_chunk_coordinate in detected_chunk_coordinates {
+        let detected_chunk_id: ChunkID = detected_chunk_coordinate.clone().into();
+        if chunk_manager.loaded_chunks.contains_key(&detected_chunk_id) {
+            unchanged_chunk_ids.push(detected_chunk_id);
+        } else {
+            new_chunk_ids.push(detected_chunk_id);
+        }
+    }
+
+    // Handle old chunks
+    for old_chunk_id in old_chunk_ids {
+        // "Unload" the chunk
+        // TODO: Implement actual chunk unloading and entity serialization
+        if let Some(loaded_chunk_entity) = chunk_manager.loaded_chunks.remove(&old_chunk_id) {
+            commands.entity(loaded_chunk_entity).despawn_recursive();
+        }
+    }
+
+    // Handle new chunks
+    for new_chunk_id in new_chunk_ids.clone() {
+        if chunk_manager.registered_chunks.contains(&new_chunk_id) {
+            // "Load" the chunk
+            // TODO: Implement actual chunk loading and entity deserialization
+            let new_chunk_entity = new_chunk_entity(&mut commands, new_chunk_id);
+
+            chunk_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
+        } else {
+            // Create a new chunk
+            let new_chunk_entity = new_chunk_entity(&mut commands, new_chunk_id);
+
+            chunk_manager.registered_chunks.push(new_chunk_id);
+            chunk_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
+        }
+    }
+
+    // Update the current chunk IDs
+    chunk_loader.current_chunk_ids = unchanged_chunk_ids;
+    chunk_loader.current_chunk_ids.append(&mut new_chunk_ids);
+}
+
 fn chunk_actor_system(
     mut commands: Commands,
     mut chunk_actor_query: Query<(Entity, &Transform, &mut ChunkActor)>,
-    mut chunk_query: Query<(&mut Chunk)>,
-    universe_manager: Res<ChunkManager>,
+    mut chunk_manager: ResMut<ChunkManager>,
 ) {
-    // If a tracked entity has no current chunk and no chunk is found, do nothing
-    // If a tracked entity has no current chunk and a chunk is found, add the entity to the chunk, and set the current chunk
-    // If a tracked entity has a current chunk and that same chunk is found, do nothing
-    // If a tracked entity has a current chunk and a different chunk is found, remove the entity from the current chunk, add it to the new chunk, and update the current chunk
-    // If a tracked entity has a current chunk and no chunk is found, remove the entity from the current chunk and destroy the entity recursively
-
     for (chunk_actor_entity, chunk_actor_transform, mut chunk_actor) in chunk_actor_query.iter_mut() {
+        let chunk_object_coordinate: ObjectCoordinate = chunk_actor_transform.translation.into();
+        let chunk_coordinate: ChunkCoordinate = chunk_object_coordinate.into();
+        let chunk_id: ChunkID = chunk_coordinate.into();
+
+        if !chunk_manager.loaded_chunks.contains_key(&chunk_id) {
+            chunk_manager.recycle_chunk_actor_id(chunk_actor.id);
+            commands.entity(chunk_actor_entity).despawn_recursive();
+            continue;
+        }
+
+        if chunk_id != chunk_actor.current_chunk {
+            chunk_actor.current_chunk = chunk_id;
+        }
     }
 }
 
@@ -462,4 +457,3 @@ fn player_creative_system(
         }
     }
 }
-
