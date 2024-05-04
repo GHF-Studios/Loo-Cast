@@ -207,6 +207,7 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_systems(Startup, main_setup_system)
         .add_systems(Update, chunk_loader_system)
+        .add_systems(Update, change_chunk_loader_radius_system)
         .add_systems(Update, chunk_actor_system)
         .add_systems(Update, player_movement_system)
         .add_systems(Update, player_creative_system)
@@ -273,6 +274,20 @@ fn new_chunk_entity(commands: &mut Commands, chunk_id: ChunkID) -> Entity {
     )).id();
 
     chunk_entity
+}
+
+fn change_chunk_loader_radius_system(
+    mut chunk_loader_query: Query<(&mut ChunkLoader, &Player)>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    for (mut chunk_loader, _) in chunk_loader_query.iter_mut() {
+        if keyboard_input.just_pressed(KeyCode::KeyQ) {
+            chunk_loader.load_radius = (chunk_loader.load_radius as i16 - 1).max(1) as u16;
+        }
+        if keyboard_input.just_pressed(KeyCode::KeyE) {
+            chunk_loader.load_radius = (chunk_loader.load_radius as i16 + 1) as u16;
+        }
+    }
 }
 
 fn chunk_loader_system(
