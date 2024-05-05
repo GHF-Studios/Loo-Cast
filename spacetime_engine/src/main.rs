@@ -325,10 +325,20 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_event::<CreateChunk>()
+        .add_event::<DestroyChunk>()
+        .add_event::<LoadChunk>()
+        .add_event::<UnloadChunk>()
+        .add_event::<CreateChunkActor>()
+        .add_event::<DestroyChunkActor>()
+        .add_event::<LoadChunkActor>()
+        .add_event::<UnloadChunkActor>()
         .add_systems(Startup, main_setup_system)
-        .add_systems(Update, chunk_actor_system)
-        .add_systems(Update, chunk_loader_system)
         .add_systems(Update, chunk_loader_change_radius_system)
+        .add_systems(Update, chunk_loader_system)
+        .add_systems(Update, handle_create_chunk_events_system)
+        .add_systems(Update, handle_destroy_chunk_events_system)
+        .add_systems(Update, chunk_actor_system)
         .add_systems(Update, player_movement_system)
         .add_systems(Update, player_creative_system)
         .add_systems(Update, translation_lerp_follower_system)
@@ -353,7 +363,7 @@ fn main_setup_system(mut commands: Commands, mut rapier_configuration: ResMut<Ra
     .insert(RigidBody::Dynamic)
     .insert(Collider::ball(15.0))
     .insert(Velocity::linear(Vec2::new(0.0, 0.0)))
-    .insert(ChunkLoader { load_radius: 4, current_chunk_ids: Vec::new() })
+    .insert(ChunkLoader { load_radius: 1, current_chunk_ids: Vec::new() })
     .id();
     
     // Universe manager
@@ -378,6 +388,109 @@ fn main_setup_system(mut commands: Commands, mut rapier_configuration: ResMut<Ra
     let _camera_entity = commands.spawn(Camera2dBundle::default())
     .insert(TranslationLerpFollower { target: player_entity, smoothness: 0.1 })
     .id();
+}
+
+fn chunk_loader_change_radius_system(
+    mut chunk_loader_query: Query<(&mut ChunkLoader, &Player)>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+) {
+    for (mut chunk_loader, _) in chunk_loader_query.iter_mut() {
+        if keyboard_input.just_pressed(KeyCode::KeyQ) {
+            chunk_loader.load_radius = (chunk_loader.load_radius as i16 - 1).max(0) as u16;
+        }
+        if keyboard_input.just_pressed(KeyCode::KeyE) {
+            chunk_loader.load_radius = (chunk_loader.load_radius as i16 + 1) as u16;
+        }
+    }
+}
+
+fn chunk_loader_system(
+    mut create_chunk_event_writer: EventWriter<CreateChunk>,
+    mut destroy_chunk_event_writer: EventWriter<DestroyChunk>,
+    mut load_chunk_event_writer: EventWriter<LoadChunk>,
+    mut unload_chunk_event_writer: EventWriter<UnloadChunk>,
+    mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
+    mut chunk_manager: ResMut<ChunkManager>,
+) {
+    let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
+    let chunk_loader_chunk_actor_coordinate: ChunkActorCoordinate = chunk_loader_transform.translation.into();
+    let current_chunk_coordinate: ChunkCoordinate = chunk_loader_chunk_actor_coordinate.into();
+    let load_radius = chunk_loader.load_radius as i16;
+    
+    // Detect chunks around the player
+    let mut detected_chunk_coordinates = Vec::new();
+    for x_offset in -load_radius..=load_radius {
+        for y_offset in -load_radius..=load_radius {
+            detected_chunk_coordinates.push(current_chunk_coordinate + ChunkCoordinate::new(x_offset, y_offset));
+        }
+    }
+
+    // Categorize the detected chunks
+    let mut old_chunk_ids: Vec<ChunkID> = Vec::new();
+    let mut unchanged_chunk_ids: Vec<ChunkID> = Vec::new();
+    let mut new_chunk_ids: Vec<ChunkID> = Vec::new();
+    for (loaded_chunk_id, _) in chunk_manager.loaded_chunks.iter() {
+        let loaded_chunk_coordinate: ChunkCoordinate = loaded_chunk_id.0;
+
+        if !detected_chunk_coordinates.contains(&loaded_chunk_coordinate) {
+            old_chunk_ids.push(*loaded_chunk_id);
+        }
+    }
+    for detected_chunk_coordinate in detected_chunk_coordinates {
+        let detected_chunk_id: ChunkID = detected_chunk_coordinate.into();
+        if chunk_manager.loaded_chunks.contains_key(&detected_chunk_id) {
+            unchanged_chunk_ids.push(detected_chunk_id);
+        } else {
+            new_chunk_ids.push(detected_chunk_id);
+        }
+    }
+
+    // Handle old chunks
+    for old_chunk_id in old_chunk_ids {
+        // "Unload" the chunk (currently the chunk is just destroyed)
+        // TODO: Implement actual chunk unloading and entity serialization
+        chunk_manager.destroying_chunks.insert(old_chunk_id);
+        destroy_chunk_event_writer.send(DestroyChunk(old_chunk_id));
+    }
+
+    // Handle new chunks
+    for new_chunk_id in new_chunk_ids.clone() {
+        // "Load" the chunk if it is registered(currently we just create a new chunk every time)
+        // TODO: Implement actual chunk loading and entity deserialization
+        chunk_manager.creating_chunks.insert(new_chunk_id);
+        create_chunk_event_writer.send(CreateChunk(new_chunk_id));
+    }
+
+    // Update the current chunk IDs
+    chunk_loader.current_chunk_ids = unchanged_chunk_ids;
+    chunk_loader.current_chunk_ids.append(&mut new_chunk_ids);
+}
+
+fn handle_create_chunk_events_system(
+    mut commands: Commands,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mut create_chunk_event_reader: EventReader<CreateChunk>,
+) {
+    for create_chunk_event in create_chunk_event_reader.read() {
+        let new_chunk_entity = new_chunk_entity(&mut commands, create_chunk_event.0);
+        chunk_manager.registered_chunks.insert(create_chunk_event.0);
+        chunk_manager.loaded_chunks.insert(create_chunk_event.0, new_chunk_entity);
+        println!("Chunk created: {:?}", create_chunk_event.0);
+    }
+}
+
+fn handle_destroy_chunk_events_system(
+    mut commands: Commands,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mut destroy_chunk_event_reader: EventReader<DestroyChunk>,
+) {
+    for destroy_chunk_event in destroy_chunk_event_reader.read() {
+        if let Some(loaded_chunk_entity) = chunk_manager.loaded_chunks.remove(&destroy_chunk_event.0) {
+            chunk_manager.registered_chunks.remove(&destroy_chunk_event.0);
+            commands.entity(loaded_chunk_entity).despawn_recursive();
+            println!("Chunk destroyed: {:?}", destroy_chunk_event.0);
+        }
+    }
 }
 
 fn new_chunk_entity(commands: &mut Commands, chunk_id: ChunkID) -> Entity {
@@ -460,121 +573,6 @@ fn handle_unload_chunk_actor_events_system(
     // TODO: Implement
 }
 
-fn chunk_loader_change_radius_system(
-    mut chunk_loader_query: Query<(&mut ChunkLoader, &Player)>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-) {
-    for (mut chunk_loader, _) in chunk_loader_query.iter_mut() {
-        if keyboard_input.just_pressed(KeyCode::KeyQ) {
-            chunk_loader.load_radius = (chunk_loader.load_radius as i16 - 1).max(1) as u16;
-        }
-        if keyboard_input.just_pressed(KeyCode::KeyE) {
-            chunk_loader.load_radius = (chunk_loader.load_radius as i16 + 1) as u16;
-        }
-    }
-}
-
-fn chunk_loader_system(
-    mut commands: Commands,
-    mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
-    mut chunk_manager: ResMut<ChunkManager>,
-) {
-    let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
-    let chunk_loader_chunk_actor_coordinate: ChunkActorCoordinate = chunk_loader_transform.translation.into();
-    let current_chunk_coordinate: ChunkCoordinate = chunk_loader_chunk_actor_coordinate.into();
-    let load_radius = chunk_loader.load_radius as i16;
-    
-    // Detect chunks around the player
-    let mut detected_chunk_coordinates = Vec::new();
-    for x_offset in -load_radius..=load_radius {
-        for y_offset in -load_radius..=load_radius {
-            detected_chunk_coordinates.push(current_chunk_coordinate + ChunkCoordinate::new(x_offset, y_offset));
-        }
-    }
-
-    // Categorize the detected chunks
-    let mut old_chunk_ids: Vec<ChunkID> = Vec::new();
-    let mut unchanged_chunk_ids: Vec<ChunkID> = Vec::new();
-    let mut new_chunk_ids: Vec<ChunkID> = Vec::new();
-    for (loaded_chunk_id, _) in chunk_manager.loaded_chunks.iter() {
-        let loaded_chunk_coordinate: ChunkCoordinate = loaded_chunk_id.0;
-
-        if !detected_chunk_coordinates.contains(&loaded_chunk_coordinate) {
-            old_chunk_ids.push(*loaded_chunk_id);
-        }
-    }
-    for detected_chunk_coordinate in detected_chunk_coordinates {
-        let detected_chunk_id: ChunkID = detected_chunk_coordinate.into();
-        if chunk_manager.loaded_chunks.contains_key(&detected_chunk_id) {
-            unchanged_chunk_ids.push(detected_chunk_id);
-        } else {
-            new_chunk_ids.push(detected_chunk_id);
-        }
-    }
-
-    // Handle old chunks
-    for old_chunk_id in old_chunk_ids {
-        // "Unload" the chunk
-        // TODO: Implement actual chunk unloading and entity serialization
-        if let Some(loaded_chunk_entity) = chunk_manager.loaded_chunks.remove(&old_chunk_id) {
-            commands.entity(loaded_chunk_entity).despawn_recursive();
-        }
-    }
-
-    // Handle new chunks
-    for new_chunk_id in new_chunk_ids.clone() {
-        if chunk_manager.registered_chunks.contains(&new_chunk_id) {
-            // "Load" the chunk
-            // TODO: Implement actual chunk loading and entity deserialization
-            let new_chunk_entity = new_chunk_entity(&mut commands, new_chunk_id);
-
-            chunk_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
-        } else {
-            // Create a new chunk
-            let new_chunk_entity = new_chunk_entity(&mut commands, new_chunk_id);
-
-            chunk_manager.registered_chunks.insert(new_chunk_id);
-            chunk_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
-        }
-    }
-
-    // Update the current chunk IDs
-    chunk_loader.current_chunk_ids = unchanged_chunk_ids;
-    chunk_loader.current_chunk_ids.append(&mut new_chunk_ids);
-}
-
-fn handle_create_chunk_events_system(
-    mut commands: Commands,
-    mut chunk_manager: ResMut<ChunkManager>,
-    mut create_chunk_event_reader: EventReader<CreateChunk>,
-) {
-    // TODO: Implement
-}
-
-fn handle_destroy_chunk_events_system(
-    mut commands: Commands,
-    mut chunk_manager: ResMut<ChunkManager>,
-    mut destroy_chunk_event_reader: EventReader<DestroyChunk>,
-) {
-    // TODO: Implement
-}
-
-fn handle_load_chunk_events_system(
-    mut commands: Commands,
-    mut chunk_manager: ResMut<ChunkManager>,
-    mut load_chunk_event_reader: EventReader<LoadChunk>,
-) {
-    // TODO: Implement
-}
-
-fn handle_unload_chunk_events_system(
-    mut commands: Commands,
-    mut chunk_manager: ResMut<ChunkManager>,
-    mut unload_chunk_event_reader: EventReader<UnloadChunk>,
-) {
-    // TODO: Implement
-}
-
 fn translation_lerp_follower_system(
     mut translation_lerp_follower_query: Query<(&mut Transform, &TranslationLerpFollower)>,
     target_query: Query<&Transform, Without<TranslationLerpFollower>>
@@ -638,7 +636,7 @@ fn player_creative_system(
 
                 // Place a new prop on right click
                 if mouse_button_input.just_pressed(MouseButton::Right) {
-                    let mut entity = commands.spawn(SpriteBundle {
+                    commands.spawn(SpriteBundle {
                         sprite: Sprite {
                             color: Color::rgb(0.5, 0.5, 1.0),
                             custom_size: Some(Vec2::splat(PLAYER_CREATIVE_SQUARE_PROP_SIZE)),
