@@ -1,7 +1,6 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::ops;
-use std::ops::Deref;
-use std::ops::DerefMut;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
 use serde::*;
@@ -236,8 +235,18 @@ const PLAYER_CREATIVE_SQUARE_PROP_SIZE: f32 = 50.0;
 
 #[derive(Resource)]
 struct ChunkManager {
-    registered_chunks: Vec<ChunkID>,
+    registered_chunks: HashSet<ChunkID>,
     loaded_chunks: HashMap<ChunkID, Entity>,
+    creating_chunks: HashSet<ChunkID>,
+    destroying_chunks: HashSet<ChunkID>,
+    loading_chunks: HashSet<ChunkID>,
+    unloading_chunks: HashSet<ChunkID>,
+    registered_chunk_actors: HashSet<ChunkActorID>,
+    loaded_chunk_actors: HashMap<ChunkActorID, Entity>,
+    creating_chunk_actors: HashSet<ChunkActorID>,
+    destroying_chunk_actors: HashSet<ChunkActorID>,
+    loading_chunk_actors: HashSet<ChunkActorID>,
+    unloading_chunk_actors: HashSet<ChunkActorID>,
     current_chunk_actor_id: ChunkActorID,
     recycled_chunk_actor_ids: Vec<ChunkActorID>,
 }
@@ -287,16 +296,30 @@ struct TranslationLerpFollower {
 struct Player;
 
 #[derive(Event)]
+struct CreateChunk(ChunkID);
+
+#[derive(Event)]
+struct DestroyChunk(ChunkID);
+
+#[derive(Event)]
 struct LoadChunk(ChunkID);
 
 #[derive(Event)]
 struct UnloadChunk(ChunkID);
 
 #[derive(Event)]
-struct SpawnChunkActor(ChunkActorID);
+struct CreateChunkActor(ChunkActorID);
 
 #[derive(Event)]
-struct DespawnChunkActor(ChunkActorID);
+struct DestroyChunkActor(ChunkActorID);
+
+#[derive(Event)]
+struct LoadChunkActor(ChunkActorID);
+
+#[derive(Event)]
+struct UnloadChunkActor(ChunkActorID);
+
+// TODO: 1. Implement event handlers, 2. Integrate events
 
 fn main() {
     App::new()
@@ -334,11 +357,21 @@ fn main_setup_system(mut commands: Commands, mut rapier_configuration: ResMut<Ra
     .id();
     
     // Universe manager
-    commands.insert_resource(ChunkManager { 
-        registered_chunks: Vec::new(), 
-        loaded_chunks: HashMap::new(), 
-        current_chunk_actor_id: ChunkActorID(0), 
-        recycled_chunk_actor_ids: Vec::new()
+    commands.insert_resource(ChunkManager {
+        registered_chunks: HashSet::new(),
+        loaded_chunks: HashMap::new(),
+        creating_chunks: HashSet::new(),
+        destroying_chunks: HashSet::new(),
+        loading_chunks: HashSet::new(),
+        unloading_chunks: HashSet::new(),
+        registered_chunk_actors: HashSet::new(),
+        loaded_chunk_actors: HashMap::new(),
+        creating_chunk_actors: HashSet::new(),
+        destroying_chunk_actors: HashSet::new(),
+        loading_chunk_actors: HashSet::new(),
+        unloading_chunk_actors: HashSet::new(),
+        current_chunk_actor_id: ChunkActorID(0),
+        recycled_chunk_actor_ids: Vec::new(),
     });
 
     // Camera entity
@@ -393,6 +426,38 @@ fn chunk_actor_system(
             chunk_actor.current_chunk = chunk_id;
         }
     }
+}
+
+fn handle_create_chunk_actor_events_system(
+    mut commands: Commands,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mut create_chunk_actor_event_reader: EventReader<CreateChunkActor>,
+) {
+    // TODO: Implement
+}
+
+fn handle_destroy_chunk_actor_events_system(
+    mut commands: Commands,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mut destroy_chunk_actor_event_reader: EventReader<DestroyChunkActor>,
+) {
+    // TODO: Implement
+}
+
+fn handle_load_chunk_actor_events_system(
+    mut commands: Commands,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mut load_chunk_actor_event_reader: EventReader<LoadChunkActor>,
+) {
+    // TODO: Implement
+}
+
+fn handle_unload_chunk_actor_events_system(
+    mut commands: Commands,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mut unload_chunk_actor_event_reader: EventReader<UnloadChunkActor>,
+) {
+    // TODO: Implement
 }
 
 fn chunk_loader_change_radius_system(
@@ -468,7 +533,7 @@ fn chunk_loader_system(
             // Create a new chunk
             let new_chunk_entity = new_chunk_entity(&mut commands, new_chunk_id);
 
-            chunk_manager.registered_chunks.push(new_chunk_id);
+            chunk_manager.registered_chunks.insert(new_chunk_id);
             chunk_manager.loaded_chunks.insert(new_chunk_id, new_chunk_entity);
         }
     }
@@ -476,6 +541,38 @@ fn chunk_loader_system(
     // Update the current chunk IDs
     chunk_loader.current_chunk_ids = unchanged_chunk_ids;
     chunk_loader.current_chunk_ids.append(&mut new_chunk_ids);
+}
+
+fn handle_create_chunk_events_system(
+    mut commands: Commands,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mut create_chunk_event_reader: EventReader<CreateChunk>,
+) {
+    // TODO: Implement
+}
+
+fn handle_destroy_chunk_events_system(
+    mut commands: Commands,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mut destroy_chunk_event_reader: EventReader<DestroyChunk>,
+) {
+    // TODO: Implement
+}
+
+fn handle_load_chunk_events_system(
+    mut commands: Commands,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mut load_chunk_event_reader: EventReader<LoadChunk>,
+) {
+    // TODO: Implement
+}
+
+fn handle_unload_chunk_events_system(
+    mut commands: Commands,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mut unload_chunk_event_reader: EventReader<UnloadChunk>,
+) {
+    // TODO: Implement
 }
 
 fn translation_lerp_follower_system(
