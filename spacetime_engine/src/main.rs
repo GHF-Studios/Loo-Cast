@@ -1,9 +1,67 @@
 use std::collections::HashMap;
 use std::ops;
-use bevy::{math::I16Vec2, prelude::*, window::PrimaryWindow};
+use std::ops::Deref;
+use std::ops::DerefMut;
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::prelude::*;
+use serde::*;
+use serde::ser::*;
+use serde::de::*;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
+struct I16Vec2(i16, i16);
+
+impl From<(i16, i16)> for I16Vec2 {
+    fn from((x, y): (i16, i16)) -> Self {
+        I16Vec2(x, y)
+    }
+}
+
+impl From<I16Vec2> for (i16, i16) {
+    fn from(i16_vec2: I16Vec2) -> Self {
+        (i16_vec2.0, i16_vec2.1)
+    }
+}
+
+impl ops::Add<I16Vec2> for I16Vec2 {
+    type Output = I16Vec2;
+
+    fn add(self, other: I16Vec2) -> I16Vec2 {
+        I16Vec2(self.0 + other.0, self.1 + other.1)
+    }
+}
+
+impl ops::Sub<I16Vec2> for I16Vec2 {
+    type Output = I16Vec2;
+
+    fn sub(self, other: I16Vec2) -> I16Vec2 {
+        I16Vec2(self.0 - other.0, self.1 - other.1)
+    }
+}
+
+impl ops::Mul<i16> for I16Vec2 {
+    type Output = I16Vec2;
+
+    fn mul(self, scalar: i16) -> I16Vec2 {
+        I16Vec2(self.0 * scalar, self.1 * scalar)
+    }
+}
+
+impl ops::Div<i16> for I16Vec2 {
+    type Output = I16Vec2;
+
+    fn div(self, scalar: i16) -> I16Vec2 {
+        I16Vec2(self.0 / scalar, self.1 / scalar)
+    }
+}
+
+impl I16Vec2 {
+    fn new(x: i16, y: i16) -> Self {
+        I16Vec2(x, y)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct ChunkCoordinate(I16Vec2);
 
 impl From<I16Vec2> for ChunkCoordinate {
@@ -64,7 +122,7 @@ impl ChunkCoordinate {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct ChunkID(ChunkCoordinate);
 
 impl From<ChunkCoordinate> for ChunkID {
@@ -79,7 +137,7 @@ impl ChunkID {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Reflect)]
 struct ChunkActorCoordinate(Vec3);
 
 impl From<Vec2> for ChunkActorCoordinate {
@@ -96,8 +154,8 @@ impl From<Vec3> for ChunkActorCoordinate {
 
 impl From<ChunkCoordinate> for ChunkActorCoordinate {
     fn from(chunk_coordinate: ChunkCoordinate) -> Self {
-        let x = chunk_coordinate.0.x as f32 * CHUNK_SIZE as f32;
-        let y = chunk_coordinate.0.y as f32 * CHUNK_SIZE as f32;
+        let x = chunk_coordinate.0.0 as f32 * CHUNK_SIZE as f32;
+        let y = chunk_coordinate.0.1 as f32 * CHUNK_SIZE as f32;
         ChunkActorCoordinate(Vec3::new(x, y, CHUNK_Z_INDEX))
     }
 }
@@ -140,8 +198,35 @@ impl ChunkActorCoordinate {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct ChunkActorID(u64);
+
+impl From<u64> for ChunkActorID {
+    fn from(id: u64) -> Self {
+        ChunkActorID(id)
+    }
+}
+
+impl From<ChunkActorID> for u64 {
+    fn from(chunk_actor_id: ChunkActorID) -> Self {
+        chunk_actor_id.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
+struct EntityID(Entity);
+
+impl From<Entity> for EntityID {
+    fn from(entity: Entity) -> Self {
+        EntityID(entity)
+    }
+}
+
+impl From<EntityID> for Entity {
+    fn from(entity_id: EntityID) -> Self {
+        entity_id.0
+    }
+}
 
 const CHUNK_SIZE: u16 = 128;
 const CHUNK_Z_INDEX: f32 = -1.0;
@@ -181,15 +266,15 @@ struct Chunk {
 }
 
 #[derive(Component)]
-struct ChunkLoader {
-    load_radius: u16,
-    current_chunk_ids: Vec<ChunkID>,
-}
-
-#[derive(Component)]
 struct ChunkActor {
     id: ChunkActorID,
     current_chunk: ChunkID,
+}
+
+#[derive(Component)]
+struct ChunkLoader {
+    load_radius: u16,
+    current_chunk_ids: Vec<ChunkID>,
 }
 
 #[derive(Component)]
@@ -201,14 +286,26 @@ struct TranslationLerpFollower {
 #[derive(Component)]
 struct Player;
 
+#[derive(Event)]
+struct LoadChunk(ChunkID);
+
+#[derive(Event)]
+struct UnloadChunk(ChunkID);
+
+#[derive(Event)]
+struct SpawnChunkActor(ChunkActorID);
+
+#[derive(Event)]
+struct DespawnChunkActor(ChunkActorID);
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_systems(Startup, main_setup_system)
-        .add_systems(Update, chunk_loader_system)
-        .add_systems(Update, change_chunk_loader_radius_system)
         .add_systems(Update, chunk_actor_system)
+        .add_systems(Update, chunk_loader_system)
+        .add_systems(Update, chunk_loader_change_radius_system)
         .add_systems(Update, player_movement_system)
         .add_systems(Update, player_creative_system)
         .add_systems(Update, translation_lerp_follower_system)
@@ -254,7 +351,7 @@ fn new_chunk_entity(commands: &mut Commands, chunk_id: ChunkID) -> Entity {
     let chunk_coordinate: ChunkCoordinate = chunk_id.into();
     let chunk_chunk_actor_coordinate: ChunkActorCoordinate = chunk_coordinate.into();
 
-    let chunk_color = if (chunk_coordinate.0.x + chunk_coordinate.0.y) % 2 == 0 {
+    let chunk_color = if (chunk_coordinate.0.0 + chunk_coordinate.0.1) % 2 == 0 {
         Color::rgb(0.25, 0.25, 0.25)
     } else {
         Color::rgb(0.75, 0.75, 0.75)
@@ -276,7 +373,29 @@ fn new_chunk_entity(commands: &mut Commands, chunk_id: ChunkID) -> Entity {
     chunk_entity
 }
 
-fn change_chunk_loader_radius_system(
+fn chunk_actor_system(
+    mut commands: Commands,
+    mut chunk_actor_query: Query<(Entity, &Transform, &mut ChunkActor)>,
+    mut chunk_manager: ResMut<ChunkManager>,
+) {
+    for (chunk_actor_entity, chunk_actor_transform, mut chunk_actor) in chunk_actor_query.iter_mut() {
+        let chunk_chunk_actor_coordinate: ChunkActorCoordinate = chunk_actor_transform.translation.into();
+        let chunk_coordinate: ChunkCoordinate = chunk_chunk_actor_coordinate.into();
+        let chunk_id: ChunkID = chunk_coordinate.into();
+
+        if !chunk_manager.loaded_chunks.contains_key(&chunk_id) {
+            chunk_manager.recycle_chunk_actor_id(chunk_actor.id);
+            commands.entity(chunk_actor_entity).despawn_recursive();
+            continue;
+        }
+
+        if chunk_id != chunk_actor.current_chunk {
+            chunk_actor.current_chunk = chunk_id;
+        }
+    }
+}
+
+fn chunk_loader_change_radius_system(
     mut chunk_loader_query: Query<(&mut ChunkLoader, &Player)>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
 ) {
@@ -359,28 +478,6 @@ fn chunk_loader_system(
     chunk_loader.current_chunk_ids.append(&mut new_chunk_ids);
 }
 
-fn chunk_actor_system(
-    mut commands: Commands,
-    mut chunk_actor_query: Query<(Entity, &Transform, &mut ChunkActor)>,
-    mut chunk_manager: ResMut<ChunkManager>,
-) {
-    for (chunk_actor_entity, chunk_actor_transform, mut chunk_actor) in chunk_actor_query.iter_mut() {
-        let chunk_chunk_actor_coordinate: ChunkActorCoordinate = chunk_actor_transform.translation.into();
-        let chunk_coordinate: ChunkCoordinate = chunk_chunk_actor_coordinate.into();
-        let chunk_id: ChunkID = chunk_coordinate.into();
-
-        if !chunk_manager.loaded_chunks.contains_key(&chunk_id) {
-            chunk_manager.recycle_chunk_actor_id(chunk_actor.id);
-            commands.entity(chunk_actor_entity).despawn_recursive();
-            continue;
-        }
-
-        if chunk_id != chunk_actor.current_chunk {
-            chunk_actor.current_chunk = chunk_id;
-        }
-    }
-}
-
 fn translation_lerp_follower_system(
     mut translation_lerp_follower_query: Query<(&mut Transform, &TranslationLerpFollower)>,
     target_query: Query<&Transform, Without<TranslationLerpFollower>>
@@ -444,7 +541,7 @@ fn player_creative_system(
 
                 // Place a new prop on right click
                 if mouse_button_input.just_pressed(MouseButton::Right) {
-                    commands.spawn(SpriteBundle {
+                    let mut entity = commands.spawn(SpriteBundle {
                         sprite: Sprite {
                             color: Color::rgb(0.5, 0.5, 1.0),
                             custom_size: Some(Vec2::splat(PLAYER_CREATIVE_SQUARE_PROP_SIZE)),
