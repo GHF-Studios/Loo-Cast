@@ -321,6 +321,13 @@ struct LoadChunkActor(ChunkActorID);
 #[derive(Clone, Event)]
 struct UnloadChunkActor(ChunkActorID);
 
+// TODO: Fix chunk loading
+// TODO: Implement sub-chunks
+// TODO: Implement gravity via sub-chunks
+// TODO: Implement electromagnetism via sub-chunks
+// TODO: Implement planets via gravity
+// TODO: Implement magnets via electromagnetism
+// TODO: Implement stars via gravity and electromagnetism
 
 fn main() {
     App::new()
