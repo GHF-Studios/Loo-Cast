@@ -352,6 +352,8 @@ fn main() {
         .add_systems(Update, player_movement_system)
         .add_systems(Update, player_creative_system)
         .add_systems(Update, translation_lerp_follower_system)
+        .register_type::<Option<Vec2>>()
+        .register_type::<Option<bevy::math::Rect>>()
         .run();
 }
 
@@ -522,34 +524,52 @@ fn handle_load_chunk_events_system(
         load_chunk_events.push(load_chunk_event.clone());
     }
 
+    println!("# of Events: {}", load_chunk_events.len());
+
     for load_chunk_event in load_chunk_events {
+        println!("One");
         let (_, mut chunk_manager) = params.get_mut(world);
         let serialized = chunk_manager.serialized_chunks.remove(&load_chunk_event.0).unwrap();
+        println!("Two");
 
         let dyn_scene = {
             let type_registry_rwlock = &world.resource::<AppTypeRegistry>().0.read();
+
+            println!("Three");
         
             let deserializer = SceneDeserializer {
                 type_registry: type_registry_rwlock,
             };
+
+            println!("Four");
         
             let mut ron_deserializer = ron::de::Deserializer::from_str(&serialized).unwrap();
+
+            println!("Five");
         
             use serde::de::DeserializeSeed;
         
             deserializer.deserialize(&mut ron_deserializer).unwrap()
         };
+
+        println!("Six");
     
         dyn_scene
             .write_to_world(world, &mut default())
             .unwrap();
 
+        println!("Seven");
+
         let chunk_entity = dyn_scene.entities.last().unwrap().entity;
+
+        println!("Eight");
 
         let (_, mut chunk_manager) = params.get_mut(world);
         chunk_manager.loading_chunks.remove(&load_chunk_event.0);
         chunk_manager.registered_chunks.insert(load_chunk_event.0);
         chunk_manager.loaded_chunks.insert(load_chunk_event.0, chunk_entity);
+
+        println!("Nine");
     }
 }
 
@@ -566,25 +586,19 @@ fn handle_unload_chunk_events_system(
         unload_chunk_events.push(unload_chunk_event.clone());
     }
 
-    println!("# of Events: {}", unload_chunk_events.len());
-
     for unload_chunk_event in unload_chunk_events {
-        println!("One");
         let mut chunk_actor_entities = world
             .query::<(Entity, &ChunkActor)>()
             .iter(world)
             .filter(|(_, chunk_actor)| chunk_actor.current_chunk == unload_chunk_event.0)
             .map(|(entity, _)| entity)
             .collect::<Vec<_>>();
-        println!("Two");
 
         let (_, chunk_manager) = params.get_mut(world);
-        println!("Three");
         let chunk_entity = match chunk_manager.loaded_chunks.get(&unload_chunk_event.0) {
             Some(chunk_entity) => *chunk_entity,
             None => continue,
         };
-        println!("Four");
 
         chunk_actor_entities.push(chunk_entity);
         let all_entities = chunk_actor_entities;
@@ -592,22 +606,14 @@ fn handle_unload_chunk_events_system(
         let mut builder = DynamicSceneBuilder::from_world(world);
         builder = builder.extract_entities(all_entities.clone().into_iter());
 
-        println!("Five");
-
         let dyn_scene = builder.build();
         let type_registry_arc = &world.resource::<AppTypeRegistry>().0;
         let serializer = SceneSerializer::new(&dyn_scene, type_registry_arc);
         let serialized = ron::to_string(&serializer).unwrap();
 
-        println!("Six");
-
-        println!("Seven");
         for entity in all_entities {
-            println!("Eight");
             world.entity_mut(entity).despawn_recursive();
-            println!("Nine");
         }
-        println!("Ten");
 
         let (_, mut chunk_manager) = params.get_mut(world);
         chunk_manager.serialized_chunks.insert(unload_chunk_event.0, serialized);
