@@ -339,6 +339,7 @@ fn main() {
         .add_systems(Update, chunk_loader_system)
         .add_systems(Update, handle_create_chunk_events_system)
         .add_systems(Update, handle_destroy_chunk_events_system)
+        // TODO: Fix something regarding the events. I think they have to be handled differently when doing direct bevy world access?
         .add_systems(Update, handle_load_chunk_events_system)
         .add_systems(Update, handle_unload_chunk_events_system)
         .add_systems(Update, chunk_actor_system)
