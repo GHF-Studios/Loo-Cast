@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ops;
 use bevy::ecs::system::SystemState;
+use bevy::reflect::TypeRegistryArc;
 use bevy::scene::ron;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy::scene::serde::{SceneDeserializer, SceneSerializer};
@@ -320,7 +321,6 @@ struct LoadChunkActor(ChunkActorID);
 #[derive(Clone, Event)]
 struct UnloadChunkActor(ChunkActorID);
 
-// TODO: 1. Implement event handlers, 2. Integrate events
 
 fn main() {
     App::new()
@@ -339,7 +339,6 @@ fn main() {
         .add_systems(Update, chunk_loader_system)
         .add_systems(Update, handle_create_chunk_events_system)
         .add_systems(Update, handle_destroy_chunk_events_system)
-        // TODO: Fix something regarding the events. I think they have to be handled differently when doing direct bevy world access?
         .add_systems(Update, handle_load_chunk_events_system)
         .add_systems(Update, handle_unload_chunk_events_system)
         .add_systems(Update, chunk_actor_system)
@@ -452,18 +451,23 @@ fn chunk_loader_system(
 
     // Handle old chunks
     for old_chunk_id in old_chunk_ids {
-        // "Unload" the chunk (currently the chunk is just destroyed)
-        // TODO: Implement actual chunk unloading and entity serialization
-        chunk_manager.destroying_chunks.insert(old_chunk_id);
-        destroy_chunk_event_writer.send(DestroyChunk(old_chunk_id));
+        if !chunk_manager.unloading_chunks.contains(&old_chunk_id) {
+            chunk_manager.unloading_chunks.insert(old_chunk_id);
+            unload_chunk_event_writer.send(UnloadChunk(old_chunk_id));
+        }
     }
 
     // Handle new chunks
     for new_chunk_id in new_chunk_ids.clone() {
-        // "Load" the chunk if it is registered(currently we just create a new chunk every time)
-        // TODO: Implement actual chunk loading and entity deserialization
-        chunk_manager.creating_chunks.insert(new_chunk_id);
-        create_chunk_event_writer.send(CreateChunk(new_chunk_id));
+        if chunk_manager.registered_chunks.contains(&new_chunk_id) {
+            if !chunk_manager.loading_chunks.contains(&new_chunk_id) {
+                chunk_manager.loading_chunks.insert(new_chunk_id);
+                load_chunk_event_writer.send(LoadChunk(new_chunk_id));
+            }
+        } else if !chunk_manager.creating_chunks.contains(&new_chunk_id) {
+            chunk_manager.creating_chunks.insert(new_chunk_id);
+            create_chunk_event_writer.send(CreateChunk(new_chunk_id));
+        }
     }
 
     // Update the current chunk IDs
@@ -555,34 +559,53 @@ fn handle_unload_chunk_events_system(
         unload_chunk_events.push(unload_chunk_event.clone());
     }
 
+    println!("# of Events: {}", unload_chunk_events.len());
+
     for unload_chunk_event in unload_chunk_events {
+        println!("One");
         let mut chunk_actor_entities = world
             .query::<(Entity, &ChunkActor)>()
             .iter(world)
             .filter(|(_, chunk_actor)| chunk_actor.current_chunk == unload_chunk_event.0)
             .map(|(entity, _)| entity)
             .collect::<Vec<_>>();
+        println!("Two");
 
         let (_, chunk_manager) = params.get_mut(world);
+        println!("Three");
         let chunk_entity = match chunk_manager.loaded_chunks.get(&unload_chunk_event.0) {
             Some(chunk_entity) => *chunk_entity,
             None => continue,
         };
+        println!("Four");
 
         chunk_actor_entities.push(chunk_entity);
+        let all_entities = chunk_actor_entities;
         
         let mut builder = DynamicSceneBuilder::from_world(world);
-        builder = builder.extract_entities(chunk_actor_entities.into_iter());
+        builder = builder.extract_entities(all_entities.clone().into_iter());
 
+        println!("Five");
 
         let dyn_scene = builder.build();
         let type_registry_arc = &world.resource::<AppTypeRegistry>().0;
         let serializer = SceneSerializer::new(&dyn_scene, type_registry_arc);
         let serialized = ron::to_string(&serializer).unwrap();
 
+        println!("Six");
+
+        println!("Seven");
+        for entity in all_entities {
+            println!("Eight");
+            world.entity_mut(entity).despawn_recursive();
+            println!("Nine");
+        }
+        println!("Ten");
+
         let (_, mut chunk_manager) = params.get_mut(world);
-        chunk_manager.unloading_chunks.remove(&unload_chunk_event.0);
         chunk_manager.serialized_chunks.insert(unload_chunk_event.0, serialized);
+        chunk_manager.loaded_chunks.remove(&unload_chunk_event.0);
+        chunk_manager.unloading_chunks.remove(&unload_chunk_event.0);
     }
 }
 
