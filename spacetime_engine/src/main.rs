@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ops;
+use bevy::ecs::system::SystemState;
+use bevy::scene::ron;
 use bevy::{prelude::*, window::PrimaryWindow};
+use bevy::scene::serde::{SceneDeserializer, SceneSerializer};
 use bevy_rapier2d::prelude::*;
-use serde::*;
-use serde::ser::*;
-use serde::de::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct I16Vec2(i16, i16);
@@ -237,6 +237,7 @@ const PLAYER_CREATIVE_SQUARE_PROP_SIZE: f32 = 50.0;
 struct ChunkManager {
     registered_chunks: HashSet<ChunkID>,
     loaded_chunks: HashMap<ChunkID, Entity>,
+    serialized_chunks: HashMap<ChunkID, String>,
     creating_chunks: HashSet<ChunkID>,
     destroying_chunks: HashSet<ChunkID>,
     loading_chunks: HashSet<ChunkID>,
@@ -268,19 +269,19 @@ impl ChunkManager {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 struct Chunk {
     id: ChunkID,
     chunk_actors: Vec<ChunkActorID>,
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 struct ChunkActor {
     id: ChunkActorID,
     current_chunk: ChunkID,
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 struct ChunkLoader {
     load_radius: u16,
     current_chunk_ids: Vec<ChunkID>,
@@ -295,28 +296,28 @@ struct TranslationLerpFollower {
 #[derive(Component)]
 struct Player;
 
-#[derive(Event)]
+#[derive(Clone, Event)]
 struct CreateChunk(ChunkID);
 
-#[derive(Event)]
+#[derive(Clone, Event)]
 struct DestroyChunk(ChunkID);
 
-#[derive(Event)]
+#[derive(Clone, Event)]
 struct LoadChunk(ChunkID);
 
-#[derive(Event)]
+#[derive(Clone, Event)]
 struct UnloadChunk(ChunkID);
 
-#[derive(Event)]
+#[derive(Clone, Event)]
 struct CreateChunkActor(ChunkActorID);
 
-#[derive(Event)]
+#[derive(Clone, Event)]
 struct DestroyChunkActor(ChunkActorID);
 
-#[derive(Event)]
+#[derive(Clone, Event)]
 struct LoadChunkActor(ChunkActorID);
 
-#[derive(Event)]
+#[derive(Clone, Event)]
 struct UnloadChunkActor(ChunkActorID);
 
 // TODO: 1. Implement event handlers, 2. Integrate events
@@ -338,6 +339,8 @@ fn main() {
         .add_systems(Update, chunk_loader_system)
         .add_systems(Update, handle_create_chunk_events_system)
         .add_systems(Update, handle_destroy_chunk_events_system)
+        .add_systems(Update, handle_load_chunk_events_system)
+        .add_systems(Update, handle_unload_chunk_events_system)
         .add_systems(Update, chunk_actor_system)
         .add_systems(Update, player_movement_system)
         .add_systems(Update, player_creative_system)
@@ -370,6 +373,7 @@ fn main_setup_system(mut commands: Commands, mut rapier_configuration: ResMut<Ra
     commands.insert_resource(ChunkManager {
         registered_chunks: HashSet::new(),
         loaded_chunks: HashMap::new(),
+        serialized_chunks: HashMap::new(),
         creating_chunks: HashSet::new(),
         destroying_chunks: HashSet::new(),
         loading_chunks: HashSet::new(),
@@ -468,28 +472,122 @@ fn chunk_loader_system(
 
 fn handle_create_chunk_events_system(
     mut commands: Commands,
-    mut chunk_manager: ResMut<ChunkManager>,
     mut create_chunk_event_reader: EventReader<CreateChunk>,
+    mut chunk_manager: ResMut<ChunkManager>,
 ) {
     for create_chunk_event in create_chunk_event_reader.read() {
         let new_chunk_entity = new_chunk_entity(&mut commands, create_chunk_event.0);
+
         chunk_manager.registered_chunks.insert(create_chunk_event.0);
         chunk_manager.loaded_chunks.insert(create_chunk_event.0, new_chunk_entity);
-        println!("Chunk created: {:?}", create_chunk_event.0);
     }
 }
 
 fn handle_destroy_chunk_events_system(
     mut commands: Commands,
-    mut chunk_manager: ResMut<ChunkManager>,
     mut destroy_chunk_event_reader: EventReader<DestroyChunk>,
+    mut chunk_manager: ResMut<ChunkManager>,
 ) {
     for destroy_chunk_event in destroy_chunk_event_reader.read() {
+        chunk_manager.registered_chunks.remove(&destroy_chunk_event.0);
+
         if let Some(loaded_chunk_entity) = chunk_manager.loaded_chunks.remove(&destroy_chunk_event.0) {
-            chunk_manager.registered_chunks.remove(&destroy_chunk_event.0);
             commands.entity(loaded_chunk_entity).despawn_recursive();
-            println!("Chunk destroyed: {:?}", destroy_chunk_event.0);
         }
+    }
+}
+
+fn handle_load_chunk_events_system(
+    mut world: World,
+    params: &mut SystemState<(
+        EventReader<LoadChunk>,
+        ResMut<ChunkManager>,
+    )>
+) {
+    let (mut load_chunk_event_reader, _) = params.get_mut(&mut world);
+    let mut load_chunk_events: Vec<LoadChunk> = Vec::new();
+    for load_chunk_event in load_chunk_event_reader.read() {
+        load_chunk_events.push(load_chunk_event.clone());
+    }
+    drop(load_chunk_event_reader);
+
+    for load_chunk_event in load_chunk_events {
+        let (_, mut chunk_manager) = params.get_mut(&mut world);
+        let serialized = chunk_manager.serialized_chunks.remove(&load_chunk_event.0).unwrap();
+        drop(chunk_manager);
+
+        let dyn_scene = {
+            let type_registry_rwlock = &world.resource::<AppTypeRegistry>().0.read();
+        
+            let deserializer = SceneDeserializer {
+                type_registry: &type_registry_rwlock,
+            };
+        
+            let mut ron_deserializer = ron::de::Deserializer::from_str(&serialized).unwrap();
+        
+            use serde::de::DeserializeSeed;
+        
+            deserializer.deserialize(&mut ron_deserializer).unwrap()
+        };
+    
+        dyn_scene
+            .write_to_world(&mut world, &mut default())
+            .unwrap();
+
+        let chunk_entity = dyn_scene.entities.last().unwrap().entity;
+
+        let (_, mut chunk_manager) = params.get_mut(&mut world);
+        chunk_manager.loading_chunks.remove(&load_chunk_event.0);
+        chunk_manager.registered_chunks.insert(load_chunk_event.0);
+        chunk_manager.loaded_chunks.insert(load_chunk_event.0, chunk_entity);
+        drop(chunk_manager);
+    }
+}
+
+fn handle_unload_chunk_events_system(
+    mut world: World,
+    params: &mut SystemState<(
+        EventReader<UnloadChunk>,
+        ResMut<ChunkManager>,
+    )>
+) {
+    let (mut unload_chunk_event_reader, _) = params.get_mut(&mut world);
+    let mut unload_chunk_events: Vec<UnloadChunk> = Vec::new();
+    for unload_chunk_event in unload_chunk_event_reader.read() {
+        unload_chunk_events.push(unload_chunk_event.clone());
+    }
+    drop(unload_chunk_event_reader);
+
+    for unload_chunk_event in unload_chunk_events {
+        let mut chunk_actor_entities = world
+            .query::<(Entity, &ChunkActor)>()
+            .iter(&world)
+            .filter(|(_, chunk_actor)| chunk_actor.current_chunk == unload_chunk_event.0)
+            .map(|(entity, _)| entity)
+            .collect::<Vec<_>>();
+
+        let (_, chunk_manager) = params.get_mut(&mut world);
+        let chunk_entity = match chunk_manager.loaded_chunks.get(&unload_chunk_event.0) {
+            Some(chunk_entity) => *chunk_entity,
+            None => continue,
+        };
+        drop(chunk_manager);
+
+        chunk_actor_entities.push(chunk_entity);
+        
+        let mut builder = DynamicSceneBuilder::from_world(&world);
+        builder = builder.extract_entities(chunk_actor_entities.into_iter());
+
+
+        let dyn_scene = builder.build();
+        let type_registry_arc = &world.resource::<AppTypeRegistry>().0;
+        let serializer = SceneSerializer::new(&dyn_scene, type_registry_arc);
+        let serialized = ron::to_string(&serializer).unwrap();
+
+        let (_, mut chunk_manager) = params.get_mut(&mut world);
+        chunk_manager.unloading_chunks.remove(&unload_chunk_event.0);
+        chunk_manager.serialized_chunks.insert(unload_chunk_event.0, serialized);
+        drop(chunk_manager);
     }
 }
 
@@ -543,32 +641,32 @@ fn chunk_actor_system(
 
 fn handle_create_chunk_actor_events_system(
     mut commands: Commands,
-    mut chunk_manager: ResMut<ChunkManager>,
     mut create_chunk_actor_event_reader: EventReader<CreateChunkActor>,
+    mut chunk_manager: ResMut<ChunkManager>,
 ) {
     // TODO: Implement
 }
 
 fn handle_destroy_chunk_actor_events_system(
     mut commands: Commands,
-    mut chunk_manager: ResMut<ChunkManager>,
     mut destroy_chunk_actor_event_reader: EventReader<DestroyChunkActor>,
+    mut chunk_manager: ResMut<ChunkManager>,
 ) {
     // TODO: Implement
 }
 
 fn handle_load_chunk_actor_events_system(
     mut commands: Commands,
-    mut chunk_manager: ResMut<ChunkManager>,
     mut load_chunk_actor_event_reader: EventReader<LoadChunkActor>,
+    mut chunk_manager: ResMut<ChunkManager>,
 ) {
     // TODO: Implement
 }
 
 fn handle_unload_chunk_actor_events_system(
     mut commands: Commands,
-    mut chunk_manager: ResMut<ChunkManager>,
     mut unload_chunk_actor_event_reader: EventReader<UnloadChunkActor>,
+    mut chunk_manager: ResMut<ChunkManager>,
 ) {
     // TODO: Implement
 }
