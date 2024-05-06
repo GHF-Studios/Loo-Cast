@@ -499,29 +499,27 @@ fn handle_destroy_chunk_events_system(
 }
 
 fn handle_load_chunk_events_system(
-    mut world: World,
+    world: &mut World,
     params: &mut SystemState<(
         EventReader<LoadChunk>,
         ResMut<ChunkManager>,
     )>
 ) {
-    let (mut load_chunk_event_reader, _) = params.get_mut(&mut world);
+    let (mut load_chunk_event_reader, _) = params.get_mut(world);
     let mut load_chunk_events: Vec<LoadChunk> = Vec::new();
     for load_chunk_event in load_chunk_event_reader.read() {
         load_chunk_events.push(load_chunk_event.clone());
     }
-    drop(load_chunk_event_reader);
 
     for load_chunk_event in load_chunk_events {
-        let (_, mut chunk_manager) = params.get_mut(&mut world);
+        let (_, mut chunk_manager) = params.get_mut(world);
         let serialized = chunk_manager.serialized_chunks.remove(&load_chunk_event.0).unwrap();
-        drop(chunk_manager);
 
         let dyn_scene = {
             let type_registry_rwlock = &world.resource::<AppTypeRegistry>().0.read();
         
             let deserializer = SceneDeserializer {
-                type_registry: &type_registry_rwlock,
+                type_registry: type_registry_rwlock,
             };
         
             let mut ron_deserializer = ron::de::Deserializer::from_str(&serialized).unwrap();
@@ -532,51 +530,48 @@ fn handle_load_chunk_events_system(
         };
     
         dyn_scene
-            .write_to_world(&mut world, &mut default())
+            .write_to_world(world, &mut default())
             .unwrap();
 
         let chunk_entity = dyn_scene.entities.last().unwrap().entity;
 
-        let (_, mut chunk_manager) = params.get_mut(&mut world);
+        let (_, mut chunk_manager) = params.get_mut(world);
         chunk_manager.loading_chunks.remove(&load_chunk_event.0);
         chunk_manager.registered_chunks.insert(load_chunk_event.0);
         chunk_manager.loaded_chunks.insert(load_chunk_event.0, chunk_entity);
-        drop(chunk_manager);
     }
 }
 
 fn handle_unload_chunk_events_system(
-    mut world: World,
+    world: &mut World,
     params: &mut SystemState<(
         EventReader<UnloadChunk>,
         ResMut<ChunkManager>,
     )>
 ) {
-    let (mut unload_chunk_event_reader, _) = params.get_mut(&mut world);
+    let (mut unload_chunk_event_reader, _) = params.get_mut(world);
     let mut unload_chunk_events: Vec<UnloadChunk> = Vec::new();
     for unload_chunk_event in unload_chunk_event_reader.read() {
         unload_chunk_events.push(unload_chunk_event.clone());
     }
-    drop(unload_chunk_event_reader);
 
     for unload_chunk_event in unload_chunk_events {
         let mut chunk_actor_entities = world
             .query::<(Entity, &ChunkActor)>()
-            .iter(&world)
+            .iter(world)
             .filter(|(_, chunk_actor)| chunk_actor.current_chunk == unload_chunk_event.0)
             .map(|(entity, _)| entity)
             .collect::<Vec<_>>();
 
-        let (_, chunk_manager) = params.get_mut(&mut world);
+        let (_, chunk_manager) = params.get_mut(world);
         let chunk_entity = match chunk_manager.loaded_chunks.get(&unload_chunk_event.0) {
             Some(chunk_entity) => *chunk_entity,
             None => continue,
         };
-        drop(chunk_manager);
 
         chunk_actor_entities.push(chunk_entity);
         
-        let mut builder = DynamicSceneBuilder::from_world(&world);
+        let mut builder = DynamicSceneBuilder::from_world(world);
         builder = builder.extract_entities(chunk_actor_entities.into_iter());
 
 
@@ -585,10 +580,9 @@ fn handle_unload_chunk_events_system(
         let serializer = SceneSerializer::new(&dyn_scene, type_registry_arc);
         let serialized = ron::to_string(&serializer).unwrap();
 
-        let (_, mut chunk_manager) = params.get_mut(&mut world);
+        let (_, mut chunk_manager) = params.get_mut(world);
         chunk_manager.unloading_chunks.remove(&unload_chunk_event.0);
         chunk_manager.serialized_chunks.insert(unload_chunk_event.0, serialized);
-        drop(chunk_manager);
     }
 }
 
