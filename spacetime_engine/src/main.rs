@@ -353,8 +353,6 @@ fn main() {
         .add_systems(Update, player_movement_system)
         .add_systems(Update, player_creative_system)
         .add_systems(Update, translation_lerp_follower_system)
-        .register_type::<Option<Vec2>>()
-        .register_type::<Option<bevy::math::Rect>>()
         .run();
 }
 
@@ -612,23 +610,20 @@ fn handle_unload_chunk_events_system(
             None => continue,
         };
 
+        println!("Checking integrity of chunk entity...");
+        match world.get_entity(chunk_entity) {
+            Some(_) => {
+                println!("Chunk Entity '{:?}' exists!", chunk_entity);
+            },
+            None => {
+                panic!("Chunk Entity '{:?}' does not exist!", chunk_entity);
+            },
+        }
+
         chunk_actor_entities.push(chunk_entity);
         let all_entities = chunk_actor_entities;
         
         let mut builder = DynamicSceneBuilder::from_world(world);
-
-        println!("# of unloading entities: {}", all_entities.len());
-        println!("Checking integrity of entities...");
-        for entity in &all_entities {
-            match world.get_entity(*entity) {
-                Some(_) => {
-                    println!("Entity '{:?}' exists!", entity);
-                },
-                None => {
-                    panic!("Entity '{:?}' does not exist!", entity);
-                },
-            }
-        }
         
         builder = builder.extract_entities(all_entities.clone().into_iter());
 
