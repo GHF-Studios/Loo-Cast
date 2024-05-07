@@ -7,8 +7,9 @@ use bevy::scene::ron;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy::scene::serde::{SceneDeserializer, SceneSerializer};
 use bevy_rapier2d::prelude::*;
+use serde::*;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 struct I16Vec2(i16, i16);
 
 impl From<(i16, i16)> for I16Vec2 {
@@ -61,7 +62,7 @@ impl I16Vec2 {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 struct ChunkCoordinate(I16Vec2);
 
 impl From<I16Vec2> for ChunkCoordinate {
@@ -122,7 +123,7 @@ impl ChunkCoordinate {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 struct ChunkID(ChunkCoordinate);
 
 impl From<ChunkCoordinate> for ChunkID {
@@ -137,7 +138,7 @@ impl ChunkID {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 struct ChunkActorCoordinate(Vec3);
 
 impl From<Vec2> for ChunkActorCoordinate {
@@ -198,7 +199,7 @@ impl ChunkActorCoordinate {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 struct ChunkActorID(u64);
 
 impl From<u64> for ChunkActorID {
@@ -213,7 +214,7 @@ impl From<ChunkActorID> for u64 {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 struct EntityID(Entity);
 
 impl From<Entity> for EntityID {
@@ -270,19 +271,19 @@ impl ChunkManager {
     }
 }
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Serialize, Deserialize)]
 struct Chunk {
     id: ChunkID,
     chunk_actors: Vec<ChunkActorID>,
 }
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Serialize, Deserialize)]
 struct ChunkActor {
     id: ChunkActorID,
     current_chunk: ChunkID,
 }
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Serialize, Deserialize)]
 struct ChunkLoader {
     load_radius: u16,
     current_chunk_ids: Vec<ChunkID>,
@@ -546,7 +547,22 @@ fn handle_load_chunk_events_system(
             .write_to_world(world, &mut default())
             .unwrap();
 
+        println!("# of loading entities: {}", dyn_scene.entities.len());
+
+        for entity in &dyn_scene.entities {
+            println!("Deserialized Entity: {:?}", entity.entity);
+    
+            for component in &entity.components {
+                let component_reflect: &dyn Reflect = component.as_reflect();
+                let type_name = component_reflect.type_id();
+                
+                println!("Component Type: {:?}", type_name);
+            }
+        }
+
         let chunk_entity = dyn_scene.entities.last().unwrap().entity;
+
+        println!("Chunk Entity: {:?}", chunk_entity);
 
         let (_, mut chunk_manager) = params.get_mut(world);
         chunk_manager.loading_chunks.remove(&load_chunk_event.0);
@@ -569,8 +585,6 @@ fn handle_unload_chunk_events_system(
     }
 
     for unload_chunk_event in unload_chunk_events {
-        println!("One");
-
         let mut chunk_actor_entities = world
             .query::<(Entity, &ChunkActor)>()
             .iter(world)
@@ -578,56 +592,59 @@ fn handle_unload_chunk_events_system(
             .map(|(entity, _)| entity)
             .collect::<Vec<_>>();
 
-        println!("Two");
+        chunk_actor_entities.retain(|entity| {
+            match world.get_entity_mut(*entity) {
+                Some(_) => {
+                    true
+                },
+                None => {
+                    println!("Tried to unload non-existent entity!");
+                    
+                    false
+                },
+            }
+        });
 
         let (_, chunk_manager) = params.get_mut(world);
-
-        println!("Three");
 
         let chunk_entity = match chunk_manager.loaded_chunks.get(&unload_chunk_event.0) {
             Some(chunk_entity) => *chunk_entity,
             None => continue,
         };
 
-        println!("Four");
-
         chunk_actor_entities.push(chunk_entity);
         let all_entities = chunk_actor_entities;
-
-        println!("Five");
         
         let mut builder = DynamicSceneBuilder::from_world(world);
 
-        println!("Six");
-        println!("# of entities: {}", all_entities.len());
+        println!("# of unloading entities: {}", all_entities.len());
+        println!("Checking integrity of entities...");
+        for entity in &all_entities {
+            match world.get_entity(*entity) {
+                Some(_) => {
+                    println!("Entity '{:?}' exists!", entity);
+                },
+                None => {
+                    panic!("Entity '{:?}' does not exist!", entity);
+                },
+            }
+        }
         
-        // TODO: This shit' broken
         builder = builder.extract_entities(all_entities.clone().into_iter());
 
-        println!("Seven");
-
         let dyn_scene = builder.build();
-        println!("Eight");
         let type_registry_arc = &world.resource::<AppTypeRegistry>().0;
-        println!("Nine");
         let serializer = SceneSerializer::new(&dyn_scene, type_registry_arc);
-        println!("Ten");
         let serialized = ron::to_string(&serializer).unwrap();
-
-        println!("Eleven");
 
         for entity in all_entities {
             world.entity_mut(entity).despawn_recursive();
         }
 
-        println!("Twelve");
-
         let (_, mut chunk_manager) = params.get_mut(world);
-        println!("Thirteen");
         chunk_manager.serialized_chunks.insert(unload_chunk_event.0, serialized);
         chunk_manager.loaded_chunks.remove(&unload_chunk_event.0);
         chunk_manager.unloading_chunks.remove(&unload_chunk_event.0);
-        println!("Fourteen\n\n\n\n\n\n\n\n");
     }
 }
 
