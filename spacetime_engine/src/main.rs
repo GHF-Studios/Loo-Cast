@@ -2,14 +2,12 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ops;
 use bevy::ecs::system::SystemState;
-use bevy::reflect::TypeRegistryArc;
 use bevy::scene::ron;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy::scene::serde::{SceneDeserializer, SceneSerializer};
 use bevy_rapier2d::prelude::*;
-use serde::*;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct I16Vec2(i16, i16);
 
 impl From<(i16, i16)> for I16Vec2 {
@@ -62,7 +60,7 @@ impl I16Vec2 {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct ChunkCoordinate(I16Vec2);
 
 impl From<I16Vec2> for ChunkCoordinate {
@@ -123,7 +121,7 @@ impl ChunkCoordinate {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct ChunkID(ChunkCoordinate);
 
 impl From<ChunkCoordinate> for ChunkID {
@@ -138,7 +136,7 @@ impl ChunkID {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Reflect)]
 struct ChunkActorCoordinate(Vec3);
 
 impl From<Vec2> for ChunkActorCoordinate {
@@ -199,7 +197,7 @@ impl ChunkActorCoordinate {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct ChunkActorID(u64);
 
 impl From<u64> for ChunkActorID {
@@ -214,7 +212,7 @@ impl From<ChunkActorID> for u64 {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct EntityID(Entity);
 
 impl From<Entity> for EntityID {
@@ -271,19 +269,19 @@ impl ChunkManager {
     }
 }
 
-#[derive(Component, Reflect, Serialize, Deserialize)]
+#[derive(Component, Reflect)]
 struct Chunk {
     id: ChunkID,
     chunk_actors: Vec<ChunkActorID>,
 }
 
-#[derive(Component, Reflect, Serialize, Deserialize)]
+#[derive(Component, Reflect)]
 struct ChunkActor {
     id: ChunkActorID,
     current_chunk: ChunkID,
 }
 
-#[derive(Component, Reflect, Serialize, Deserialize)]
+#[derive(Component, Reflect)]
 struct ChunkLoader {
     load_radius: u16,
     current_chunk_ids: Vec<ChunkID>,
@@ -322,10 +320,10 @@ struct LoadChunkActor(ChunkActorID);
 #[derive(Clone, Event)]
 struct UnloadChunkActor(ChunkActorID);
 
-// TODO: Fix chunk loading
-// TODO: Implement sub-chunks
-// TODO: Implement gravity via sub-chunks
-// TODO: Implement electromagnetism via sub-chunks
+// TODO: Fix chunk loading by implementing serializable proxies for all necessary rapier components (necessary as of now)
+// TODO: Implement sub-chunking/fields
+// TODO: Implement gravity via sub-chunking/fields
+// TODO: Implement electromagnetism via sub-chunking/fields
 // TODO: Implement planets via gravity
 // TODO: Implement magnets via electromagnetism
 // TODO: Implement stars via gravity and electromagnetism
@@ -353,6 +351,8 @@ fn main() {
         .add_systems(Update, player_movement_system)
         .add_systems(Update, player_creative_system)
         .add_systems(Update, translation_lerp_follower_system)
+        .register_type::<Option<Vec2>>()
+        .register_type::<Option<bevy::math::Rect>>()
         .run();
 }
 
@@ -377,7 +377,7 @@ fn main_setup_system(mut commands: Commands, mut rapier_configuration: ResMut<Ra
     .insert(ChunkLoader { load_radius: 1, current_chunk_ids: Vec::new() })
     .id();
     
-    // Universe manager
+    // Chunk manager
     commands.insert_resource(ChunkManager {
         registered_chunks: HashSet::new(),
         loaded_chunks: HashMap::new(),
@@ -769,7 +769,6 @@ fn player_creative_system(
 ) {
     if let Ok(window) = window_query.get_single() {
         if let Some(cursor_pos) = window.cursor_position() {
-            // Adjust for the y-coordinate to correctly map from screen to NDC
             let window_size = Vec2::new(window.width(), window.height());
             let cursor_pos_ndc = Vec2::new(
                 (cursor_pos.x / window_size.x) * 2.0 - 1.0, 

@@ -1,3 +1,6 @@
+//// Rightful author and owner of this holy manuscript (seriously dude you saved my ass, i hope this "message in a bottle" (rather message in a commit lol) reaches you in the far far future sometime you absolutely don't expect this and it'll be fucking funny and you will hate me for the fact that I've written all of this into a singular giant fucking line)
+
+
 use bevy::prelude::*;
 use bevy::scene::serde::{SceneDeserializer, SceneSerializer};
 
