@@ -1,3 +1,5 @@
+extern crate spacetime_engine;
+
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::ops;
@@ -6,6 +8,7 @@ use bevy::scene::ron;
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy::scene::serde::{SceneDeserializer, SceneSerializer};
 use bevy_rapier2d::prelude::*;
+use spacetime_engine::SpacetimeEnginePlugins;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct I16Vec2(i16, i16);
@@ -329,6 +332,12 @@ struct UnloadChunkActor(ChunkActorID);
 // TODO: Implement stars via gravity and electromagnetism
 
 fn main() {
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_plugins(SpacetimeEnginePlugins)
+        .run();
+
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
