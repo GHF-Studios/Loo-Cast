@@ -4,6 +4,7 @@ use bevy::scene::ron;
 use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
 use std::any::type_name;
 use std::fmt::{Debug, Display};
+use crate::chunk::components::Chunk;
 use crate::chunk::id::structs::*;
 use crate::chunk::coordinate::structs::*;
 use crate::chunk::actor::coordinate::structs::*;
@@ -163,28 +164,41 @@ pub(in crate) fn handle_load_events(
 
         println!("# of loading entities: {}", entity_hash_map.len());
 
+        let mut chunk_entity = None;
         for (_, entity_id) in entity_hash_map {
             println!("Checking integrity of deserialized Entity: {:?}", entity_id);
 
-            match world.get_entity(entity_id) {
+            let entity = match world.get_entity(entity_id) {
                 Some(entity) => {
-                    if entity.contains::<Transform>() {
-                        println!("Entity '{:?}' contains Transform!", entity_id);
-                    }
+                    println!("Entity '{:?}' exists!", entity_id);
+                    entity
                 },
                 None => {
                     panic!("Entity '{:?}' does not exist!", entity_id);
                 },
+            };
+
+            if entity.contains::<Chunk>() {
+                match chunk_entity {
+                    Some(_) => {
+                        panic!("Multiple chunks detected!");
+                    },
+                    None => {
+                        chunk_entity = Some(entity_id);
+                    },
+                }
             }
         }
 
-        let chunk_entity = dyn_scene.entities.last().unwrap().entity;
+        let chunk_entity = match chunk_entity {
+            Some(chunk_entity) => chunk_entity,
+            None => panic!("No chunk detected!"),
+        };
 
-        println!("Chunk Entity: {:?}", chunk_entity);
+        println!("Detected chunk entity: {:?}", chunk_entity);
 
         let (_, mut chunk_manager) = params.get_mut(world);
         chunk_manager.loading_chunks.remove(&load_chunk_event.0);
-        chunk_manager.registered_chunks.insert(load_chunk_event.0);
         chunk_manager.loaded_chunks.insert(load_chunk_event.0, chunk_entity);
     }
 }

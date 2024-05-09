@@ -8,5 +8,7 @@ pub(in crate) struct LoaderPlugin;
 
 impl Plugin for LoaderPlugin {
     fn build(&self, app: &mut App) {
+        app
+            .register_type::<components::ChunkLoader>();
     }
 }

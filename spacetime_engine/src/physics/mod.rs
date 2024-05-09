@@ -11,6 +11,9 @@ impl Plugin for PhysicsPlugin {
         app
             .add_systems(Update, handle_added_components)
             .add_systems(Update, handle_removed_components)
-            .add_systems(Update, handle_changed_components);
+            .add_systems(Update, handle_changed_components)
+            .register_type::<components::ProxyRigidBody>()
+            .register_type::<components::ProxyCollider>()
+            .register_type::<components::ProxyVelocity>();
     }
 }

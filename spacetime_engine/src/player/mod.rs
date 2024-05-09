@@ -19,6 +19,6 @@ impl Plugin for PlayerPlugin {
             .add_plugins(CreativePlugin)
             .add_plugins(MovementPlugin)
             .add_systems(Startup, startup)
-        ;
+            .register_type::<components::Player>();
     }
 }

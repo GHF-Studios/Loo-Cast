@@ -37,6 +37,8 @@ impl Plugin for ChunkPlugin {
             .add_systems(Update, handle_create_events)
             .add_systems(Update, handle_destroy_events)
             .add_systems(Update, handle_load_events)
-            .add_systems(Update, handle_unload_events);
+            .add_systems(Update, handle_unload_events)
+            .register_type::<components::Chunk>()
+            .register_type::<Vec<actor::id::structs::ChunkActorID>>();
     }
 }

@@ -8,6 +8,7 @@ pub(in crate) struct TranslationPlugin;
 impl Plugin for TranslationPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Update, systems::update);
+            .add_systems(Update, systems::update)
+            .register_type::<components::TranslationLerpFollower>();
     }
 }
