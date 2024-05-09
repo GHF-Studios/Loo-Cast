@@ -9,6 +9,7 @@ pub(in crate) fn handle_added_components(
     added_velocity_query: Query<(Entity, &ProxyVelocity), (Added<ProxyVelocity>, Without<Velocity>)>,
 ) {
     for (entity, rigidbody) in added_rigidbody_query.iter() {
+        println!("Adding rigidbody to entity {:?}", entity);
         match rigidbody {
             ProxyRigidBody::Dynamic => {
                 commands.entity(entity).insert(RigidBody::Dynamic);
@@ -26,6 +27,7 @@ pub(in crate) fn handle_added_components(
     }
 
     for (entity, collider) in added_collider_query.iter() {
+        println!("Adding collider to entity {:?}", entity);
         match collider {
             ProxyCollider::Square { half_length } => {
                 commands.entity(entity).insert(Collider::cuboid(*half_length, *half_length));
@@ -40,49 +42,178 @@ pub(in crate) fn handle_added_components(
     }
 
     for (entity, velocity) in added_velocity_query.iter() {
+        println!("Adding velocity to entity {:?}", entity);
         commands.entity(entity).insert(Velocity { linvel: velocity.linvel, angvel: velocity.angvel });
     }
 }
 
-pub(in crate) fn handle_changed_components(
-    mut changed_rigidbody_query: Query<(&ProxyRigidBody, &mut RigidBody), Changed<ProxyRigidBody>>,
-    mut changed_collider_query: Query<(&ProxyCollider, &mut Collider), Changed<ProxyCollider>>,
-    mut changed_velocity_query: Query<(&ProxyVelocity, &mut Velocity), Changed<ProxyVelocity>>,
-) {
-    for (proxy_rigidbody, mut rigidbody) in changed_rigidbody_query.iter_mut() {
-        match proxy_rigidbody {
-            ProxyRigidBody::Dynamic => {
-                *rigidbody = RigidBody::Dynamic;
-            },
-            ProxyRigidBody::Fixed => {
-                *rigidbody = RigidBody::Fixed;
-            },
-            ProxyRigidBody::KinematicPositionBased => {
-                *rigidbody = RigidBody::KinematicPositionBased;
-            },
-            ProxyRigidBody::KinematicVelocityBased => {
-                *rigidbody = RigidBody::KinematicVelocityBased;
-            },
+pub(in crate) fn handle_changed_raw_components(world: &mut World) {
+    let changed_rigidbody_entities = world
+        .query_filtered::<Entity, (With<ProxyRigidBody>, With<RigidBody>, Changed<RigidBody>)>()
+        .iter_mut(world)
+        .collect::<Vec<_>>();
+
+    for changed_rigidbody_entity in changed_rigidbody_entities {
+        if !world.entity(changed_rigidbody_entity).contains::<InternalChangeFromProxyRigidBody>() {
+            if let Some((entity, mut proxy_rigidbody, rigidbody)) = world
+                .query_filtered::<(Entity, &mut ProxyRigidBody, &RigidBody), Changed<RigidBody>>()
+                .iter_mut(world)
+                .find(|(entity, _, _)| *entity == changed_rigidbody_entity
+            ) {
+                println!("Manually changing proxy rigidbody of entity {:?}", changed_rigidbody_entity);
+
+                *proxy_rigidbody = match rigidbody {
+                    RigidBody::Dynamic => ProxyRigidBody::Dynamic,
+                    RigidBody::Fixed => ProxyRigidBody::Fixed,
+                    RigidBody::KinematicPositionBased => ProxyRigidBody::KinematicPositionBased,
+                    RigidBody::KinematicVelocityBased => ProxyRigidBody::KinematicVelocityBased,
+                };
+
+                world.entity_mut(entity).insert(InternalChangeFromRawRigidBody);
+            }
+        } else {
+            println!("Internally changed proxy rigidbody of entity {:?}", changed_rigidbody_entity);
+
+            world.entity_mut(changed_rigidbody_entity).remove::<InternalChangeFromProxyRigidBody>();
         }
     }
 
-    for (proxy_collider, mut collider) in changed_collider_query.iter_mut() {
-        match proxy_collider {
-            ProxyCollider::Square { half_length } => {
-                *collider = Collider::cuboid(*half_length, *half_length);
-            },
-            ProxyCollider::Rectangle { half_size } => {
-                *collider = Collider::cuboid(half_size.x, half_size.y);
-            },
-            ProxyCollider::Circle { radius } => {
-                *collider = Collider::ball(*radius);
-            },
+    let changed_collider_entities = world
+        .query_filtered::<Entity, Changed<Collider>>()
+        .iter_mut(world)
+        .collect::<Vec<_>>();
+
+    if let Some(changed_collider_entity) = changed_collider_entities.first() {
+        if !world.entity(*changed_collider_entity).contains::<InternalChangeFromProxyCollider>() {
+            todo!("Manually changing a raw collider is not permitted due to rapier not natively implementing Reflect for the Collider type yet! Please use the proxy collider for peforming mutable operations on colliders.");
+
+            // TODO: Implement this, whenever rapier has implemented Reflect for Collider
+
+            //println!("Changing proxy collider of entity {:?}", changed_collider_entity);
+
+            //world.entity_mut(changed_collider_entity).insert(InternalChangeFromRawCollider);
+        } else {
+            println!("Internally changing raw collider of entity {:?}", changed_collider_entity);
+            world.entity_mut(*changed_collider_entity).remove::<InternalChangeFromProxyCollider>();
         }
     }
 
-    for (proxy_velocity, mut velocity) in changed_velocity_query.iter_mut() {
-        velocity.linvel = proxy_velocity.linvel;
-        velocity.angvel = proxy_velocity.angvel;
+    let changed_velocity_entities = world
+        .query_filtered::<Entity, (With<ProxyVelocity>, With<Velocity>, Changed<Velocity>)>()
+        .iter_mut(world)
+        .collect::<Vec<_>>();
+
+    for changed_velocity_entity in changed_velocity_entities {
+        if !world.entity(changed_velocity_entity).contains::<InternalChangeFromProxyVelocity>() {
+            if let Some((entity, mut proxy_velocity, velocity)) = world
+                .query_filtered::<(Entity, &mut ProxyVelocity, &Velocity), Changed<Velocity>>()
+                .iter_mut(world)
+                .find(|(entity, _, _)| *entity == changed_velocity_entity
+            ) {
+                println!("Manually changing proxy velocity of entity {:?}", entity);
+
+                proxy_velocity.linvel = velocity.linvel;
+                proxy_velocity.angvel = velocity.angvel;
+
+                world.entity_mut(entity).insert(InternalChangeFromRawVelocity);
+            } 
+        } else {
+            println!("Internally changing proxy velocity of entity {:?}", changed_velocity_entity);
+            world.entity_mut(changed_velocity_entity).remove::<InternalChangeFromProxyVelocity>();
+        }
+    }
+}
+
+pub(in crate) fn handle_changed_proxy_components(world: &mut World) {
+    let changed_rigidbody_entities = world
+        .query_filtered::<Entity, (With<ProxyRigidBody>, With<RigidBody>, Changed<ProxyRigidBody>)>()
+        .iter_mut(world)
+        .collect::<Vec<_>>();
+
+    for changed_rigidbody_entity in changed_rigidbody_entities {
+        if !world.entity(changed_rigidbody_entity).contains::<InternalChangeFromRawRigidBody>() {
+            if let Some((entity, proxy_rigidbody, mut rigidbody)) = world
+                .query_filtered::<(Entity, &ProxyRigidBody, &mut RigidBody), Changed<ProxyRigidBody>>()
+                .iter_mut(world)
+                .find(|(entity, _, _)| *entity == changed_rigidbody_entity
+            ) {
+                println!("Manually changing raw rigidbody of entity {:?}", entity);
+                
+                *rigidbody = match proxy_rigidbody {
+                    ProxyRigidBody::Dynamic => RigidBody::Dynamic,
+                    ProxyRigidBody::Fixed => RigidBody::Fixed,
+                    ProxyRigidBody::KinematicPositionBased => RigidBody::KinematicPositionBased,
+                    ProxyRigidBody::KinematicVelocityBased => RigidBody::KinematicVelocityBased,
+                };
+
+                world.entity_mut(entity).insert(InternalChangeFromProxyRigidBody);
+            }
+        } else {
+            println!("Internally changing raw rigidbody of entity {:?}", changed_rigidbody_entity);
+
+            world.entity_mut(changed_rigidbody_entity).remove::<InternalChangeFromRawRigidBody>();
+        }
+    }
+
+    let changed_collider_entities = world
+        .query_filtered::<Entity, Changed<ProxyCollider>>()
+        .iter_mut(world)
+        .collect::<Vec<_>>();
+
+    for changed_collider_entity in changed_collider_entities {
+        if !world.entity(changed_collider_entity).contains::<InternalChangeFromRawCollider>() {
+            if let Some((entity, proxy_collider, mut collider)) = world
+                .query_filtered::<(Entity, &ProxyCollider, &mut Collider), Changed<ProxyCollider>>()
+                .iter_mut(world)
+                .find(|(entity, _, _)| *entity == changed_collider_entity
+            ) {
+                println!("Manually changing raw collider of entity {:?}", entity);
+
+                match proxy_collider {
+                    ProxyCollider::Square { half_length } => {
+                        *collider = Collider::cuboid(*half_length, *half_length);
+                    },
+                    ProxyCollider::Rectangle { half_size } => {
+                        *collider = Collider::cuboid(half_size.x, half_size.y);
+                    },
+                    ProxyCollider::Circle { radius } => {
+                        *collider = Collider::ball(*radius);
+                    },
+                }
+
+                world.entity_mut(entity).insert(InternalChangeFromProxyCollider);
+            }
+        } else {
+            println!("Internally changing raw collider of entity {:?}", changed_collider_entity);
+
+            world.entity_mut(changed_collider_entity).remove::<InternalChangeFromRawCollider>();
+        }
+    }
+
+    let changed_velocity_entities = world
+        .query_filtered::<Entity, (With<ProxyVelocity>, With<Velocity>, Changed<ProxyVelocity>)>()
+        .iter_mut(world)
+        .collect::<Vec<_>>();
+
+    for changed_velocity_entity in changed_velocity_entities {
+        if !world.entity(changed_velocity_entity).contains::<InternalChangeFromRawVelocity>() {
+            if let Some((entity, proxy_velocity, mut velocity)) = world
+                .query_filtered::<(Entity, &ProxyVelocity, &mut Velocity), Changed<ProxyVelocity>>()
+                .iter_mut(world)
+                .find(|(entity, _, _)| *entity == changed_velocity_entity
+            ) {
+                //println!("Manually changing raw velocity of entity {:?}", entity);
+
+                velocity.linvel = proxy_velocity.linvel;
+                velocity.angvel = proxy_velocity.angvel;
+
+                world.entity_mut(entity).insert(InternalChangeFromProxyVelocity);
+            }
+        } else {
+            println!("Internally changing raw velocity of entity {:?}", changed_velocity_entity);
+
+            world.entity_mut(changed_velocity_entity).remove::<InternalChangeFromRawVelocity>();
+        }
     }
 }
 
@@ -102,6 +233,7 @@ pub(in crate) fn handle_removed_components(
 
     for orphaned_rigidbody_entity in orphaned_rigidbody_query.iter() {
         if rigidbody_removal_entities.contains(&orphaned_rigidbody_entity) {
+            println!("Removing rigidbody from entity {:?}", orphaned_rigidbody_entity);
             commands.entity(orphaned_rigidbody_entity).remove::<RigidBody>();
         }
     }
@@ -113,6 +245,7 @@ pub(in crate) fn handle_removed_components(
 
     for orphaned_collider_entity in orphaned_collider_query.iter() {
         if collider_removal_entities.contains(&orphaned_collider_entity) {
+            println!("Removing collider from entity {:?}", orphaned_collider_entity);
             commands.entity(orphaned_collider_entity).remove::<Collider>();
         }
     }
@@ -124,6 +257,7 @@ pub(in crate) fn handle_removed_components(
 
     for orphaned_velocity_entity in orphaned_velocity_query.iter() {
         if velocity_removal_entities.contains(&orphaned_velocity_entity) {
+            println!("Removing velocity from entity {:?}", orphaned_velocity_entity);
             commands.entity(orphaned_velocity_entity).remove::<Velocity>();
         }
     }

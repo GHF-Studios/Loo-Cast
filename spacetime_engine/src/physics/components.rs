@@ -5,6 +5,7 @@ use bevy::prelude::*;
 /// use this proxy to create, destroy, and modify rigidbodies.
 /// For immutable operations on rigidbodies, it is safe to use the underlying rapier components.
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Component, Reflect)]
+#[reflect(Component)]
 pub enum ProxyRigidBody {
     #[default]
     Dynamic,
@@ -18,6 +19,7 @@ pub enum ProxyRigidBody {
 /// use this proxy to create, destroy, and modify colliders.
 /// For immutable operations on colliders, it is safe to use the underlying rapier components.
 #[derive(Copy, Clone, Debug, PartialEq, Component, Reflect)]
+#[reflect(Component)]
 pub enum ProxyCollider {
     Square { half_length: f32 },
     Rectangle { half_size: Vec2 },
@@ -30,6 +32,7 @@ pub enum ProxyCollider {
 /// use this proxy to create, destroy, and modify velocities.
 /// For immutable operations on velocities, it is safe to use the underlying rapier components.
 #[derive(Copy, Clone, Debug, PartialEq, Component, Reflect)]
+#[reflect(Component)]
 pub struct ProxyVelocity {
     pub linvel: Vec2,
     pub angvel: f32,
@@ -48,3 +51,21 @@ impl ProxyVelocity {
         Self { linvel: Vec2::ZERO, angvel }
     }
 }
+
+#[derive(Component)]
+pub(in crate) struct InternalChangeFromRawRigidBody;
+
+#[derive(Component)]
+pub(in crate) struct InternalChangeFromRawCollider;
+
+#[derive(Component)]
+pub(in crate) struct InternalChangeFromRawVelocity;
+
+#[derive(Component)]
+pub(in crate) struct InternalChangeFromProxyRigidBody;
+
+#[derive(Component)]
+pub(in crate) struct InternalChangeFromProxyCollider;
+
+#[derive(Component)]
+pub(in crate) struct InternalChangeFromProxyVelocity;
