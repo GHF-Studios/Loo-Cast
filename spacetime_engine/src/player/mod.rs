@@ -2,6 +2,7 @@ pub mod creative;
 pub mod movement;
 
 pub mod components;
+pub mod events;
 pub mod systems;
 
 use creative::*;

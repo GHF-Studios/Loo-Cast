@@ -1,7 +1,6 @@
 pub(in crate) mod constants;
 pub(in crate) mod systems;
 
-use systems::*;
 use bevy::prelude::*;
 
 pub(in crate) struct MovementPlugin;

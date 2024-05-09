@@ -163,20 +163,7 @@ impl From<ChunkActorID> for u64 {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
-struct EntityID(Entity);
 
-impl From<Entity> for EntityID {
-    fn from(entity: Entity) -> Self {
-        EntityID(entity)
-    }
-}
-
-impl From<EntityID> for Entity {
-    fn from(entity_id: EntityID) -> Self {
-        entity_id.0
-    }
-}
 
 #[derive(Resource)]
 struct ChunkManager {
@@ -232,14 +219,7 @@ struct ChunkLoader {
     current_chunk_ids: Vec<ChunkID>,
 }
 
-#[derive(Component)]
-struct TranslationLerpFollower {
-    target: Entity,
-    smoothness: f32, // Higher values mean slower following (less smooth)
-}
 
-#[derive(Component)]
-struct Player;
 
 #[derive(Clone, Event)]
 struct CreateChunk(ChunkID);
@@ -299,7 +279,6 @@ fn main() {
         .add_systems(Update, handle_load_chunk_events_system)
         .add_systems(Update, handle_unload_chunk_events_system)
         .add_systems(Update, chunk_actor_system)
-        .add_systems(Update, translation_lerp_follower_system)
         .run();
 }
 
@@ -653,17 +632,7 @@ fn handle_unload_chunk_actor_events_system(
     // TODO: Implement
 }
 
-fn translation_lerp_follower_system(
-    mut translation_lerp_follower_query: Query<(&mut Transform, &TranslationLerpFollower)>,
-    target_query: Query<&Transform, Without<TranslationLerpFollower>>
-) {
-    for (mut transform, translation_lerp_follower) in translation_lerp_follower_query.iter_mut() {
-        if let Ok(target_transform) = target_query.get(translation_lerp_follower.target) {
-            let target_position = target_transform.translation;
-            transform.translation = transform.translation.lerp(target_position, 1.0 - translation_lerp_follower.smoothness);
-        }
-    }
-}
+
 
 
 

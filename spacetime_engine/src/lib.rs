@@ -1,9 +1,11 @@
+pub mod camera;
 pub mod chunk;
 pub mod entity;
 pub mod follower;
 pub mod math;
 pub mod player;
 
+use camera::CameraPlugin;
 use chunk::ChunkPlugin;
 use entity::EntityPlugin;
 use follower::FollowerPlugin;
@@ -16,6 +18,7 @@ pub struct SpacetimeEnginePlugins;
 impl PluginGroup for SpacetimeEnginePlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
+            .add(CameraPlugin)
             .add(ChunkPlugin)
             .add(EntityPlugin)
             .add(FollowerPlugin)
