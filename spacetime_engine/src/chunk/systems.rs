@@ -2,16 +2,19 @@ use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use bevy::scene::ron;
 use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
+use std::any::type_name;
+use std::fmt::{Debug, Display};
 use crate::chunk::id::structs::*;
 use crate::chunk::coordinate::structs::*;
 use crate::chunk::actor::coordinate::structs::*;
 use crate::chunk::actor::components::*;
 use crate::chunk::events::*;
 use crate::chunk::resources::*;
-use crate::math::structs::*;
 use crate::chunk::loader::components::*;
-use crate::player::components::*;
 use crate::chunk::functions::*;
+use crate::math::structs::*;
+use crate::physics::components::*;
+use crate::player::components::*;
 
 pub(in crate) fn update(
     mut create_chunk_event_writer: EventWriter<CreateChunk>,
@@ -152,20 +155,26 @@ pub(in crate) fn handle_load_events(
             deserializer.deserialize(&mut ron_deserializer).unwrap()
         };
 
+        let mut entity_hash_map = default();
+
         dyn_scene
-            .write_to_world(world, &mut default())
+            .write_to_world(world, &mut entity_hash_map)
             .unwrap();
 
-        println!("# of loading entities: {}", dyn_scene.entities.len());
+        println!("# of loading entities: {}", entity_hash_map.len());
 
-        for entity in &dyn_scene.entities {
-            println!("Deserialized Entity: {:?}", entity.entity);
-    
-            for component in &entity.components {
-                let component_reflect: &dyn Reflect = component.as_reflect();
-                let type_name = component_reflect.type_id();
-                
-                println!("Component Type: {:?}", type_name);
+        for (_, entity_id) in entity_hash_map {
+            println!("Checking integrity of deserialized Entity: {:?}", entity_id);
+
+            match world.get_entity(entity_id) {
+                Some(entity) => {
+                    if entity.contains::<Transform>() {
+                        println!("Entity '{:?}' contains Transform!", entity_id);
+                    }
+                },
+                None => {
+                    panic!("Entity '{:?}' does not exist!", entity_id);
+                },
             }
         }
 

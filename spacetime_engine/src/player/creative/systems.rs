@@ -1,17 +1,18 @@
 use bevy::{prelude::*, window::PrimaryWindow};
-use bevy_rapier2d::{dynamics::RigidBody, geometry::Collider};
+use bevy_rapier2d::geometry::Collider;
 use super::constants::*;
 use crate::chunk::resources::*;
 use crate::chunk::id::structs::*;
 use crate::chunk::coordinate::structs::*;
 use crate::chunk::actor::coordinate::structs::*;
 use crate::chunk::actor::components::*;
+use crate::physics::components::*;
 
 pub(in crate) fn update(
     mut commands: Commands,
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
-    collider_query: Query<(Entity, &Collider, &Transform)>,
+    collider_query: Query<(Entity, &Transform), With<Collider>>,
     mut chunk_manager: ResMut<ChunkManager>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
 ) {
@@ -42,18 +43,18 @@ pub(in crate) fn update(
                         transform: Transform::from_translation(world_pos.extend(0.0)),
                         ..default()
                     })
-                    .insert(RigidBody::Dynamic)
-                    .insert(Collider::cuboid(half_prop_size, half_prop_size))
+                    .insert(ProxyRigidBody::Dynamic)
+                    .insert(ProxyCollider::Square { half_length: half_prop_size })
                     .insert(ChunkActor { id: chunk_manager.get_unused_chunk_actor_id(), current_chunk: chunk_id });
                 }
 
                 // Delete props under the cursor on left click
                 if mouse_button_input.just_pressed(MouseButton::Left) {
-                    for (entity, _, transform) in collider_query.iter() {
-                        let collider_position = transform.translation.truncate();
+                    for (collider_entity, collider_transform) in collider_query.iter() {
+                        let collider_position = collider_transform.translation.truncate();
 
                         if (collider_position - world_pos).abs().max_element() < SQUARE_PROP_SIZE / 2.0 {
-                            commands.entity(entity).despawn_recursive();
+                            commands.entity(collider_entity).despawn_recursive();
                         }
                     }
                 }

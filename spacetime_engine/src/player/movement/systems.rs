@@ -1,11 +1,11 @@
 use bevy::prelude::*;
-use bevy_rapier2d::dynamics::Velocity;
+use crate::physics::components::*;	
 use crate::player::components::Player;
 use super::constants::*;
 
 pub(in crate) fn update(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query: Query<(&mut Velocity, &Player)>,
+    mut query: Query<(&mut ProxyVelocity, &Player)>,
 ) {
     let mut player_velocity = Vec2::new(0.0, 0.0);
 
