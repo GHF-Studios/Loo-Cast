@@ -9,6 +9,6 @@ pub(in crate) struct CreativePlugin;
 impl Plugin for CreativePlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Update, systems::update);
+            .add_systems(Update, update);
     }
 }

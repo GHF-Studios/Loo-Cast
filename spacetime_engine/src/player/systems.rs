@@ -1,10 +1,12 @@
+use crate::entity::resources::*;
+use crate::chunk::loader::components::*;
 use bevy::prelude::*;
 use bevy_rapier2d::{dynamics::{RigidBody, Velocity}, geometry::Collider};
 
 pub(in crate) fn startup(
     mut commands: Commands, 
     mut player_startup_event_writer: EventWriter<super::events::Startup>,
-    mut entity_manager: ResMut<crate::entity::resources::Manager>
+    mut entity_manager: ResMut<EntityManager>
 ) {
     let player_entity = commands
         .spawn(super::components::Player)

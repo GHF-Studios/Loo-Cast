@@ -1,6 +1,11 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::{dynamics::RigidBody, geometry::Collider};
 use super::constants::*;
+use crate::chunk::resources::*;
+use crate::chunk::id::structs::*;
+use crate::chunk::coordinate::structs::*;
+use crate::chunk::actor::coordinate::structs::*;
+use crate::chunk::actor::components::*;
 
 pub(in crate) fn update(
     mut commands: Commands,

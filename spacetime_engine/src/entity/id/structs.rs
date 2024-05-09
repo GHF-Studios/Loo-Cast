@@ -2,7 +2,7 @@ use bevy::reflect::Reflect;
 use std::ops;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
-pub(in crate) struct EntityID(u64);
+pub struct EntityID(u64);
 
 impl From<u64> for EntityID {
     fn from(id: u64) -> Self {

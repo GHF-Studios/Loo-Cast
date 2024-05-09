@@ -1,8 +1,8 @@
 use std::ops;
 use bevy::reflect::Reflect;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
-pub struct I16Vec2(i16, i16);
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+pub struct I16Vec2(pub i16, pub i16);
 
 impl From<(i16, i16)> for I16Vec2 {
     fn from((x, y): (i16, i16)) -> Self {

@@ -1,10 +1,11 @@
 use super::components::*;
 use bevy::prelude::*;
+use crate::entity::resources::*;
 
 pub(in crate) fn update(
     mut translation_lerp_follower_query: Query<(&mut Transform, &TranslationLerpFollower)>,
     target_query: Query<&Transform, Without<TranslationLerpFollower>>,
-    entity_manager: Res<crate::entity::resources::Manager>
+    entity_manager: Res<EntityManager>
 
 ) {
     for (mut transform, translation_lerp_follower) in translation_lerp_follower_query.iter_mut() {
