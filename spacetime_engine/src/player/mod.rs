@@ -2,11 +2,11 @@ pub mod creative;
 pub mod movement;
 
 pub mod components;
-pub(crate) mod constants;
-pub(crate) mod systems;
+pub mod systems;
 
-use creative::CreativePlugin;
-use movement::MovementPlugin;
+use creative::*;
+use movement::*;
+use systems::*;
 use bevy::prelude::*;
 
 pub(in crate) struct PlayerPlugin;
@@ -15,7 +15,8 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins(CreativePlugin)
-            .add_plugins(MovementPlugin);
-    
+            .add_plugins(MovementPlugin)
+            .add_systems(Startup, startup)
+        ;
     }
 }

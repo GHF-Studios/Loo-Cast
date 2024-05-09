@@ -1,0 +1,1 @@
+pub(in crate) const SQUARE_PROP_SIZE: f32 = 50.0;

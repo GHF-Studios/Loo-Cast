@@ -1,0 +1,58 @@
+use bevy::{prelude::*, window::PrimaryWindow};
+use bevy_rapier2d::{dynamics::RigidBody, geometry::Collider};
+use super::constants::*;
+
+pub(in crate) fn update(
+    mut commands: Commands,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    collider_query: Query<(Entity, &Collider, &Transform)>,
+    mut chunk_manager: ResMut<ChunkManager>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
+) {
+    if let Ok(window) = window_query.get_single() {
+        if let Some(cursor_pos) = window.cursor_position() {
+            let window_size = Vec2::new(window.width(), window.height());
+            let cursor_pos_ndc = Vec2::new(
+                (cursor_pos.x / window_size.x) * 2.0 - 1.0, 
+                1.0 - (cursor_pos.y / window_size.y) * 2.0
+            );
+
+            if let Ok((camera, camera_transform)) = camera_query.get_single() {
+                let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+                let world_pos = ndc_to_world.project_point3(cursor_pos_ndc.extend(-1.0)).truncate();
+                let chunk_chunk_actor_coordinate: ChunkActorCoordinate = world_pos.into();
+                let chunk_coordinate: ChunkCoordinate = chunk_chunk_actor_coordinate.into();
+                let chunk_id: ChunkID = chunk_coordinate.into();
+                let half_prop_size = SQUARE_PROP_SIZE / 2.0;
+
+                // Place a new prop on right click
+                if mouse_button_input.just_pressed(MouseButton::Right) {
+                    commands.spawn(SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::rgb(0.5, 0.5, 1.0),
+                            custom_size: Some(Vec2::splat(SQUARE_PROP_SIZE)),
+                            ..default()
+                        },
+                        transform: Transform::from_translation(world_pos.extend(0.0)),
+                        ..default()
+                    })
+                    .insert(RigidBody::Dynamic)
+                    .insert(Collider::cuboid(half_prop_size, half_prop_size))
+                    .insert(ChunkActor { id: chunk_manager.get_unused_chunk_actor_id(), current_chunk: chunk_id });
+                }
+
+                // Delete props under the cursor on left click
+                if mouse_button_input.just_pressed(MouseButton::Left) {
+                    for (entity, _, transform) in collider_query.iter() {
+                        let collider_position = transform.translation.truncate();
+
+                        if (collider_position - world_pos).abs().max_element() < SQUARE_PROP_SIZE / 2.0 {
+                            commands.entity(entity).despawn_recursive();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

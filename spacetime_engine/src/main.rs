@@ -10,58 +10,6 @@ use bevy::scene::serde::{SceneDeserializer, SceneSerializer};
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
-struct I16Vec2(i16, i16);
-
-impl From<(i16, i16)> for I16Vec2 {
-    fn from((x, y): (i16, i16)) -> Self {
-        I16Vec2(x, y)
-    }
-}
-
-impl From<I16Vec2> for (i16, i16) {
-    fn from(i16_vec2: I16Vec2) -> Self {
-        (i16_vec2.0, i16_vec2.1)
-    }
-}
-
-impl ops::Add<I16Vec2> for I16Vec2 {
-    type Output = I16Vec2;
-
-    fn add(self, other: I16Vec2) -> I16Vec2 {
-        I16Vec2(self.0 + other.0, self.1 + other.1)
-    }
-}
-
-impl ops::Sub<I16Vec2> for I16Vec2 {
-    type Output = I16Vec2;
-
-    fn sub(self, other: I16Vec2) -> I16Vec2 {
-        I16Vec2(self.0 - other.0, self.1 - other.1)
-    }
-}
-
-impl ops::Mul<i16> for I16Vec2 {
-    type Output = I16Vec2;
-
-    fn mul(self, scalar: i16) -> I16Vec2 {
-        I16Vec2(self.0 * scalar, self.1 * scalar)
-    }
-}
-
-impl ops::Div<i16> for I16Vec2 {
-    type Output = I16Vec2;
-
-    fn div(self, scalar: i16) -> I16Vec2 {
-        I16Vec2(self.0 / scalar, self.1 / scalar)
-    }
-}
-
-impl I16Vec2 {
-    fn new(x: i16, y: i16) -> Self {
-        I16Vec2(x, y)
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
 struct ChunkCoordinate(I16Vec2);
@@ -230,12 +178,6 @@ impl From<EntityID> for Entity {
     }
 }
 
-const CHUNK_SIZE: u16 = 128;
-const CHUNK_Z_INDEX: f32 = -1.0;
-
-const PLAYER_MOVEMENT_SPEED: f32 = 1000.0;
-const PLAYER_CREATIVE_SQUARE_PROP_SIZE: f32 = 50.0;
-
 #[derive(Resource)]
 struct ChunkManager {
     registered_chunks: HashSet<ChunkID>,
@@ -357,34 +299,13 @@ fn main() {
         .add_systems(Update, handle_load_chunk_events_system)
         .add_systems(Update, handle_unload_chunk_events_system)
         .add_systems(Update, chunk_actor_system)
-        .add_systems(Update, player_movement_system)
-        .add_systems(Update, player_creative_system)
         .add_systems(Update, translation_lerp_follower_system)
-        .register_type::<Option<Vec2>>()
-        .register_type::<Option<bevy::math::Rect>>()
         .run();
 }
 
 fn main_setup_system(mut commands: Commands, mut rapier_configuration: ResMut<RapierConfiguration>) {
     // Rapier Configuration
     rapier_configuration.gravity = Vec2::new(0.0, 0.0);
-    
-    // Player entity
-    let player_entity = commands.spawn(Player)
-    .insert(SpriteBundle {
-        sprite: Sprite {
-            color: Color::rgb(0.1, 0.1, 1.0),
-            custom_size: Some(Vec2::new(30.0, 30.0)),
-            ..default()
-        },
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 10.0)),
-        ..default()
-    })
-    .insert(RigidBody::Dynamic)
-    .insert(Collider::ball(15.0))
-    .insert(Velocity::linear(Vec2::new(0.0, 0.0)))
-    .insert(ChunkLoader { load_radius: 1, current_chunk_ids: Vec::new() })
-    .id();
     
     // Chunk manager
     commands.insert_resource(ChunkManager {
@@ -744,81 +665,5 @@ fn translation_lerp_follower_system(
     }
 }
 
-fn player_movement_system(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query: Query<(&mut Velocity, &Player)>,
-) {
-    let mut player_velocity = Vec2::new(0.0, 0.0);
 
-    if keyboard_input.pressed(KeyCode::KeyW) {
-        player_velocity.y += 1.0;
-    }
-    if keyboard_input.pressed(KeyCode::KeyS) {
-        player_velocity.y -= 1.0;
-    }
-    if keyboard_input.pressed(KeyCode::KeyA) {
-        player_velocity.x -= 1.0;
-    }
-    if keyboard_input.pressed(KeyCode::KeyD) {
-        player_velocity.x += 1.0;
-    }
 
-    for (mut velocity, _) in query.iter_mut() {
-        velocity.linvel = player_velocity.normalize_or_zero() * PLAYER_MOVEMENT_SPEED;
-    }
-}
-
-fn player_creative_system(
-    mut commands: Commands,
-    window_query: Query<&Window, With<PrimaryWindow>>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
-    collider_query: Query<(Entity, &Collider, &Transform)>,
-    mut chunk_manager: ResMut<ChunkManager>,
-    mouse_button_input: Res<ButtonInput<MouseButton>>,
-) {
-    if let Ok(window) = window_query.get_single() {
-        if let Some(cursor_pos) = window.cursor_position() {
-            let window_size = Vec2::new(window.width(), window.height());
-            let cursor_pos_ndc = Vec2::new(
-                (cursor_pos.x / window_size.x) * 2.0 - 1.0, 
-                1.0 - (cursor_pos.y / window_size.y) * 2.0
-            );
-
-            if let Ok((camera, camera_transform)) = camera_query.get_single() {
-                let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
-                let world_pos = ndc_to_world.project_point3(cursor_pos_ndc.extend(-1.0)).truncate();
-                let chunk_chunk_actor_coordinate: ChunkActorCoordinate = world_pos.into();
-                let chunk_coordinate: ChunkCoordinate = chunk_chunk_actor_coordinate.into();
-                let chunk_id: ChunkID = chunk_coordinate.into();
-                let half_prop_size = PLAYER_CREATIVE_SQUARE_PROP_SIZE / 2.0;
-
-                // Place a new prop on right click
-                if mouse_button_input.just_pressed(MouseButton::Right) {
-                    commands.spawn(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::rgb(0.5, 0.5, 1.0),
-                            custom_size: Some(Vec2::splat(PLAYER_CREATIVE_SQUARE_PROP_SIZE)),
-                            ..default()
-                        },
-                        transform: Transform::from_translation(world_pos.extend(0.0)),
-                        ..default()
-                    })
-                    .insert(RigidBody::Dynamic)
-                    .insert(Collider::cuboid(half_prop_size, half_prop_size))
-                    .insert(ChunkActor { id: chunk_manager.get_unused_chunk_actor_id(), current_chunk: chunk_id });
-                }
-
-                // Delete props under the cursor on left click
-                if mouse_button_input.just_pressed(MouseButton::Left) {
-                    for (entity, _, transform) in collider_query.iter() {
-                        let collider_position = transform.translation.truncate();
-
-                        if (collider_position - world_pos).abs().max_element() < PLAYER_CREATIVE_SQUARE_PROP_SIZE / 2.0 {
-                            commands.entity(entity).despawn_recursive();
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
