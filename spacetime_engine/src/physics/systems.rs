@@ -8,9 +8,9 @@ pub(in crate) fn handle_added_components(
     added_collider_query: Query<(Entity, &ProxyCollider), (Added<ProxyCollider>, Without<Collider>)>,
     added_velocity_query: Query<(Entity, &ProxyVelocity), (Added<ProxyVelocity>, Without<Velocity>)>,
 ) {
-    for (entity, rigidbody) in added_rigidbody_query.iter() {
+    for (entity, proxy_rigidbody) in added_rigidbody_query.iter() {
         println!("Adding rigidbody to entity {:?}", entity);
-        match rigidbody {
+        match proxy_rigidbody {   
             ProxyRigidBody::Dynamic => {
                 commands.entity(entity).insert(RigidBody::Dynamic);
             },
@@ -26,9 +26,9 @@ pub(in crate) fn handle_added_components(
         }
     }
 
-    for (entity, collider) in added_collider_query.iter() {
+    for (entity, proxy_collider) in added_collider_query.iter() {
         println!("Adding collider to entity {:?}", entity);
-        match collider {
+        match proxy_collider {
             ProxyCollider::Square { half_length } => {
                 commands.entity(entity).insert(Collider::cuboid(*half_length, *half_length));
             },
@@ -41,9 +41,9 @@ pub(in crate) fn handle_added_components(
         }
     }
 
-    for (entity, velocity) in added_velocity_query.iter() {
+    for (entity, proxy_velocity) in added_velocity_query.iter() {
         println!("Adding velocity to entity {:?}", entity);
-        commands.entity(entity).insert(Velocity { linvel: velocity.linvel, angvel: velocity.angvel });
+        commands.entity(entity).insert(Velocity { linvel: proxy_velocity.linvel, angvel: proxy_velocity.angvel });
     }
 }
 

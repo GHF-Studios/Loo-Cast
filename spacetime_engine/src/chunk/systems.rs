@@ -2,6 +2,7 @@ use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use bevy::scene::ron;
 use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
+use bevy_rapier2d::dynamics::Velocity;
 use std::any::type_name;
 use std::fmt::{Debug, Display};
 use crate::chunk::components::Chunk;
@@ -187,6 +188,15 @@ pub(in crate) fn handle_load_events(
                         chunk_entity = Some(entity_id);
                     },
                 }
+            }
+
+            if entity.contains::<ChunkActor>() {
+                println!("Chunk actor detected!");
+            }
+
+            if entity.contains::<Velocity>() {
+                let velocity = entity.get::<Velocity>().unwrap();
+                println!("Velocity detected: {:?}", velocity);
             }
         }
 
