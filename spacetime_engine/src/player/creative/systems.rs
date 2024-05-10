@@ -45,6 +45,7 @@ pub(in crate) fn update(
                     })
                     .insert(ProxyRigidBody::Dynamic)
                     .insert(ProxyCollider::Square { half_length: half_prop_size })
+                    .insert(ProxyVelocity::linear(Vec2 { x: 0.0, y: 0.0 }))
                     .insert(ChunkActor { id: chunk_manager.get_unused_chunk_actor_id(), current_chunk: chunk_id });
                 }
 

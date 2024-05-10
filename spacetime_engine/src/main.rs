@@ -5,6 +5,8 @@ use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
 // TODO: Fix chunk loading by implementing serializable proxies for all necessary rapier components (necessary as of now)
+    // Kinda worked, but Velocity somehow does not survive serialization.
+    // Also when we start the game and immediately start moving erratically, at some point the game crashes.
 // TODO: Implement sub-chunking/fields
 // TODO: Implement gravity via sub-chunking/fields
 // TODO: Implement electromagnetism via sub-chunking/fields
