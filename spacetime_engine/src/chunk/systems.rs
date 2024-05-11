@@ -194,6 +194,11 @@ pub(in crate) fn handle_load_events(
                 println!("Chunk actor detected!");
             }
 
+            if entity.contains::<ProxyVelocity>() {
+                let velocity = entity.get::<ProxyVelocity>().unwrap();
+                println!("ProxyVelocity detected: {:?}", velocity);
+            }
+
             if entity.contains::<Velocity>() {
                 let velocity = entity.get::<Velocity>().unwrap();
                 println!("Velocity detected: {:?}", velocity);

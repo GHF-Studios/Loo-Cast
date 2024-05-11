@@ -34,19 +34,23 @@ pub(in crate) fn update(
 
                 // Place a new prop on right click
                 if mouse_button_input.just_pressed(MouseButton::Right) {
-                    commands.spawn(SpriteBundle {
+                    let prop_chunk_actor_id = chunk_manager.register_chunk_actor();
+                    let prop_entity = commands.spawn(SpriteBundle {
                         sprite: Sprite {
                             color: Color::rgb(0.5, 0.5, 1.0),
                             custom_size: Some(Vec2::splat(SQUARE_PROP_SIZE)),
                             ..default()
                         },
-                        transform: Transform::from_translation(world_pos.extend(0.0)),
+                        transform: Transform::from_translation(world_pos.extend(PROP_Z_INDEX)),
                         ..default()
                     })
                     .insert(ProxyRigidBody::Dynamic)
                     .insert(ProxyCollider::Square { half_length: half_prop_size })
                     .insert(ProxyVelocity::linear(Vec2 { x: 0.0, y: 0.0 }))
-                    .insert(ChunkActor { id: chunk_manager.get_unused_chunk_actor_id(), current_chunk: chunk_id });
+                    .insert(ChunkActor { id: prop_chunk_actor_id, current_chunk: chunk_id })
+                    .id();
+
+                    chunk_manager.load_chunk_actor(prop_chunk_actor_id, prop_entity);
                 }
 
                 // Delete props under the cursor on left click

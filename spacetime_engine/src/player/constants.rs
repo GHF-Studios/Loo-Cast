@@ -1,0 +1,1 @@
+pub(in crate) const PLAYER_Z_INDEX: f32 = 10.0;

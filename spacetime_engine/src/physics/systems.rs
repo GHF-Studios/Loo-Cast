@@ -202,7 +202,7 @@ pub(in crate) fn handle_changed_proxy_components(world: &mut World) {
                 .iter_mut(world)
                 .find(|(entity, _, _)| *entity == changed_velocity_entity
             ) {
-                //println!("Manually changing raw velocity of entity {:?}", entity);
+                println!("Manually changing raw velocity of entity {:?}", entity);
 
                 velocity.linvel = proxy_velocity.linvel;
                 velocity.angvel = proxy_velocity.angvel;

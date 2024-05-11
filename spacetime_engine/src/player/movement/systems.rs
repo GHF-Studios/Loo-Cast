@@ -5,7 +5,7 @@ use super::constants::*;
 
 pub(in crate) fn update(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut query: Query<(&mut ProxyVelocity, &Player)>,
+    mut query: Query<&mut ProxyVelocity, With<Player>>,
 ) {
     let mut player_velocity = Vec2::new(0.0, 0.0);
 
@@ -22,7 +22,7 @@ pub(in crate) fn update(
         player_velocity.x += 1.0;
     }
 
-    for (mut velocity, _) in query.iter_mut() {
+    for (mut velocity) in query.iter_mut() {
         velocity.linvel = player_velocity.normalize_or_zero() * SPEED;
     }
 }

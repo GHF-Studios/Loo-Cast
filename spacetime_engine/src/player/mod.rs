@@ -1,12 +1,15 @@
 pub mod creative;
 pub mod movement;
+pub mod teleportation;
 
 pub mod components;
+pub mod constants;
 pub mod events;
 pub mod systems;
 
 use creative::*;
 use movement::*;
+use teleportation::*;
 use systems::*;
 use bevy::prelude::*;
 
@@ -18,6 +21,7 @@ impl Plugin for PlayerPlugin {
             .add_event::<events::Startup>()
             .add_plugins(CreativePlugin)
             .add_plugins(MovementPlugin)
+            .add_plugins(TeleportationPlugin)
             .add_systems(Startup, startup)
             .register_type::<components::Player>();
     }

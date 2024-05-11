@@ -4,10 +4,10 @@ use super::id::structs::*;
 
 #[derive(Resource, Debug, Default)]
 pub(in crate) struct EntityManager {
-    pub registered_entities: Vec<EntityID>,
-    pub loaded_entities: HashMap<EntityID, Entity>,
-    pub next_entity_id: EntityID,
-    pub recycled_entity_ids: Vec<EntityID>,
+    registered_entities: Vec<EntityID>,
+    loaded_entities: HashMap<EntityID, Entity>,
+    next_entity_id: EntityID,
+    recycled_entity_ids: Vec<EntityID>,
 }
 
 impl EntityManager {
