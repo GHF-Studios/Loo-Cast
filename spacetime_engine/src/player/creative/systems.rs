@@ -35,6 +35,7 @@ pub(in crate) fn update(
                 // Place a new prop on right click
                 if mouse_button_input.just_pressed(MouseButton::Right) {
                     let prop_chunk_actor_id = chunk_manager.register_chunk_actor();
+                    
                     let prop_entity = commands.spawn(SpriteBundle {
                         sprite: Sprite {
                             color: Color::rgb(0.5, 0.5, 1.0),

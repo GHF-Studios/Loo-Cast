@@ -5,11 +5,12 @@ use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
 // TODO: Integrate the entity and chunk managers into the existing code (look where all the red squiggly lines are)
-// TODO: Automate registration of specific types of components or entire entities for managers. Like, you register the thing to get a registered unused id, and then it is *automatically* loaded when a system detects the added component)
+// TODO: Automate registration of specific types of components or entire entities for managers. 
+//       Like, you register the thing to get a registered unused id, and then it is *automatically* loaded when a system detects the added component. And when you remove the component, it is *automatically* unloaded.
 // TODO: Implement world border
 // TODO: Fix chunk loading by implementing serializable proxies for all necessary rapier components (necessary as of now)
-    // Kinda worked, but Velocity somehow does not survive serialization.
-    // Also when we start the game and immediately start moving erratically, at some point the game crashes.
+//       Kinda worked, but Velocity somehow does not survive serialization.
+//       Also when we start the game and immediately start moving erratically, at some point the game crashes.
 // TODO: Implement sub-chunking/fields
 // TODO: Implement gravity via sub-chunking/fields
 // TODO: Implement electromagnetism via sub-chunking/fields
