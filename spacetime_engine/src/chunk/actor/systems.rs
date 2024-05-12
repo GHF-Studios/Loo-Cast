@@ -17,8 +17,15 @@ pub(in crate) fn update(
         let chunk_id: ChunkID = chunk_coordinate.into();
 
         if !chunk_registry.is_chunk_loaded(chunk_id) {
-            // TODO: unload and unregister chunk actor and unload, unregister, and despawn the chunk actor entity via the entity registry and associated lifecycle events
-            // TODO: Implement lifecycle events like I did for chunks, to handle this
+            // TODO: Local: unload and unregister chunk actor and unload, unregister, and despawn the chunk actor entity via the entity registry and associated lifecycle events
+            
+            // TODO: Global: Implement entity lifecycle events like I did for chunks, to handle this
+            // TODO: Global: Implement chunk actor lifecycle events to handle this
+            // TODO: Global: Move chunk actor related stuff from chunk registry to a new chunk actor registry
+
+            // I feel that generally we need to embrace events more in our code, with a temporary focus on chunks/entities and their sub-modules
+
+            // OLD CODE
             chunk_registry.recycle_chunk_actor_id(chunk_actor.id);
             commands.entity(chunk_actor_entity).despawn_recursive();
             continue;

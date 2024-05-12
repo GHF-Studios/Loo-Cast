@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
+// TODO: See chunk/actor/systems.rs:20-21
 // TODO: Integrate the entity and chunk registrys into the existing code (look where all the red squiggly lines are)
 // TODO: Implement checks in the chunk and entity registry to prevent invalid chunk/entity states as represented by the data in the registrys
 // TODO: Automate registration of specific types of components or entire entities for registrys. 

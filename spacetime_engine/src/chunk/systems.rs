@@ -2,9 +2,8 @@ use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use bevy::scene::ron;
 use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
-use bevy_rapier2d::dynamics::Velocity;
-use std::any::type_name;
-use std::fmt::{Debug, Display};
+use bevy_rapier2d::dynamics::{RigidBody, Velocity};
+use bevy_rapier2d::geometry::Collider;
 use crate::chunk::components::Chunk;
 use crate::chunk::id::structs::*;
 use crate::chunk::coordinate::structs::*;
@@ -201,6 +200,26 @@ pub(in crate) fn handle_load_chunk_events(
                 println!("Chunk actor detected!");
             }
 
+            if entity.contains::<ProxyRigidBody>() {
+                let rigid_body = entity.get::<ProxyRigidBody>().unwrap();
+                println!("ProxyRigidBody detected: {:?}", rigid_body);
+            }
+
+            if entity.contains::<RigidBody>() {
+                let rigid_body = entity.get::<RigidBody>().unwrap();
+                println!("RigidBody detected: {:?}", rigid_body);
+            }
+
+            if entity.contains::<ProxyCollider>() {
+                let collider = entity.get::<ProxyCollider>().unwrap();
+                println!("ProxyCollider detected: {:?}", collider);
+            }
+
+            if entity.contains::<Collider>() {
+                let collider = entity.get::<Collider>().unwrap();
+                println!("Collider detected: {:?}", collider);
+            }
+
             if entity.contains::<ProxyVelocity>() {
                 let velocity = entity.get::<ProxyVelocity>().unwrap();
                 println!("ProxyVelocity detected: {:?}", velocity);
@@ -297,7 +316,7 @@ pub(in crate) fn handle_unload_chunk_events(
         let (_, mut chunk_registry) = params.get_mut(world);
 
         chunk_registry.serialize_chunk(unload_chunk_event.0, serialized);
-        
+
         chunk_registry.unload_chunk(unload_chunk_event.0);
 
         chunk_registry.stop_unloading_chunk(unload_chunk_event.0);
