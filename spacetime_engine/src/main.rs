@@ -4,7 +4,6 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
-// TODO: Finish implementing the entity and chunk managers so that they can be queried for a variety of things, without exposing the underlying data structures.
 // TODO: Integrate the entity and chunk managers into the existing code (look where all the red squiggly lines are)
 // TODO: Automate registration of specific types of components or entire entities for managers. Like, you register the thing to get a registered unused id, and then it is *automatically* loaded when a system detects the added component)
 // TODO: Implement world border
