@@ -97,7 +97,7 @@ impl EntityManager {
         &mut self.registered_entities
     }
 
-    pub fn get_loaded_entity(&self, entity_id: &EntityID) -> Option<Entity> {
+    pub fn get_loaded_entity_reference(&self, entity_id: &EntityID) -> Option<Entity> {
         self.loaded_entities.get(entity_id).copied()
     }
 
@@ -105,7 +105,7 @@ impl EntityManager {
         self.loaded_entities.iter().find(|(_, e)| **e == *entity).map(|(id, _)| *id)
     }
 
-    pub fn loaded_entity(&self, entity_id: EntityID) -> Entity {
+    pub fn loaded_entity_reference(&self, entity_id: EntityID) -> Entity {
         self.loaded_entities[&entity_id]
     }
 
@@ -119,6 +119,14 @@ impl EntityManager {
 
     pub fn loaded_entities_mut(&mut self) -> &mut HashMap<EntityID, Entity> {
         &mut self.loaded_entities
+    }
+
+    pub fn loaded_entity_ids(&self) -> HashSet<EntityID> {
+        self.loaded_entities.keys().copied().collect()
+    }
+
+    pub fn loaded_entity_references(&self) -> HashSet<Entity> {
+        self.loaded_entities.values().copied().collect()
     }
 
     fn get_unused_entity_id(&mut self) -> EntityID {

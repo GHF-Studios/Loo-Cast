@@ -83,6 +83,76 @@ impl ChunkManager {
         true
     }
 
+    pub fn is_chunk_serialized(&self, chunk_id: ChunkID) -> bool {
+        self.serialized_chunks.contains_key(&chunk_id)
+    }
+
+    pub fn are_chunks_serialized(&self, chunk_ids: HashSet<ChunkID>) -> bool {
+        for chunk_id in chunk_ids {
+            if !self.serialized_chunks.contains_key(&chunk_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_creating_chunk(&self, chunk_id: ChunkID) -> bool {
+        self.creating_chunks.contains(&chunk_id)
+    }
+
+    pub fn are_chunks_creating(&self, chunk_ids: HashSet<ChunkID>) -> bool {
+        for chunk_id in chunk_ids {
+            if !self.creating_chunks.contains(&chunk_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_destroying_chunk(&self, chunk_id: ChunkID) -> bool {
+        self.destroying_chunks.contains(&chunk_id)
+    }
+
+    pub fn are_chunks_destroying(&self, chunk_ids: HashSet<ChunkID>) -> bool {
+        for chunk_id in chunk_ids {
+            if !self.destroying_chunks.contains(&chunk_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_loading_chunk(&self, chunk_id: ChunkID) -> bool {
+        self.loading_chunks.contains(&chunk_id)
+    }
+
+    pub fn are_chunks_loading(&self, chunk_ids: HashSet<ChunkID>) -> bool {
+        for chunk_id in chunk_ids {
+            if !self.loading_chunks.contains(&chunk_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_unloading_chunk(&self, chunk_id: ChunkID) -> bool {
+        self.unloading_chunks.contains(&chunk_id)
+    }
+
+    pub fn are_chunks_unloading(&self, chunk_ids: HashSet<ChunkID>) -> bool {
+        for chunk_id in chunk_ids {
+            if !self.unloading_chunks.contains(&chunk_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn registered_chunks(&self) -> &HashSet<ChunkID> {
         &self.registered_chunks
     }
@@ -107,28 +177,20 @@ impl ChunkManager {
         &mut self.loaded_chunks
     }
 
+    pub fn loaded_chunk_ids(&self) -> HashSet<ChunkID> {
+        self.loaded_chunks.keys().copied().collect()
+    }
+
+    pub fn loaded_chunk_entities(&self) -> HashSet<Entity> {
+        self.loaded_chunks.values().copied().collect()
+    }
+
     pub fn serialized_chunks(&self) -> &HashMap<ChunkID, String> {
         &self.serialized_chunks
     }
 
     pub fn serialized_chunks_mut(&mut self) -> &mut HashMap<ChunkID, String> {
         &mut self.serialized_chunks
-    }
-
-    pub fn is_creating_chunk(&self, chunk_id: ChunkID) -> bool {
-        self.creating_chunks.contains(&chunk_id)
-    }
-
-    pub fn is_destroying_chunk(&self, chunk_id: ChunkID) -> bool {
-        self.destroying_chunks.contains(&chunk_id)
-    }
-
-    pub fn is_loading_chunk(&self, chunk_id: ChunkID) -> bool {
-        self.loading_chunks.contains(&chunk_id)
-    }
-
-    pub fn is_unloading_chunk(&self, chunk_id: ChunkID) -> bool {
-        self.unloading_chunks.contains(&chunk_id)
     }
 
     pub fn creating_chunks(&self) -> &HashSet<ChunkID> {
@@ -145,14 +207,6 @@ impl ChunkManager {
 
     pub fn unloading_chunks(&self) -> &HashSet<ChunkID> {
         &self.unloading_chunks
-    }
-
-    pub fn get_chunk_entity(&self, chunk_id: ChunkID) -> Option<Entity> {
-        self.loaded_chunks.get(&chunk_id).copied()
-    }
-
-    pub fn chunk_entity(&self, chunk_id: ChunkID) -> Entity {
-        self.loaded_chunks[&chunk_id]
     }
 
     pub fn register_chunk_actor(&mut self) -> ChunkActorID {
@@ -224,6 +278,62 @@ impl ChunkManager {
         true
     }
 
+    pub fn is_creating_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> bool {
+        self.creating_chunk_actors.contains(&chunk_actor_id)
+    }
+
+    pub fn are_chunk_actors_creating(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
+        for chunk_actor_id in chunk_actor_ids {
+            if !self.creating_chunk_actors.contains(&chunk_actor_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_destroying_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> bool {
+        self.destroying_chunk_actors.contains(&chunk_actor_id)
+    }
+
+    pub fn are_chunk_actors_destroying(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
+        for chunk_actor_id in chunk_actor_ids {
+            if !self.destroying_chunk_actors.contains(&chunk_actor_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_loading_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> bool {
+        self.loading_chunk_actors.contains(&chunk_actor_id)
+    }
+
+    pub fn are_chunk_actors_loading(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
+        for chunk_actor_id in chunk_actor_ids {
+            if !self.loading_chunk_actors.contains(&chunk_actor_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_unloading_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> bool {
+        self.unloading_chunk_actors.contains(&chunk_actor_id)
+    }
+
+    pub fn are_chunk_actors_unloading(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
+        for chunk_actor_id in chunk_actor_ids {
+            if !self.unloading_chunk_actors.contains(&chunk_actor_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn registered_chunk_actors(&self) -> &HashSet<ChunkActorID> {
         &self.registered_chunk_actors
     }
@@ -248,20 +358,12 @@ impl ChunkManager {
         &mut self.loaded_chunk_actors
     }
 
-    pub fn is_creating_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> bool {
-        self.creating_chunk_actors.contains(&chunk_actor_id)
+    pub fn loaded_chunk_actor_ids(&self) -> HashSet<ChunkActorID> {
+        self.loaded_chunk_actors.keys().copied().collect()
     }
 
-    pub fn is_destroying_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> bool {
-        self.destroying_chunk_actors.contains(&chunk_actor_id)
-    }
-
-    pub fn is_loading_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> bool {
-        self.loading_chunk_actors.contains(&chunk_actor_id)
-    }
-
-    pub fn is_unloading_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> bool {
-        self.unloading_chunk_actors.contains(&chunk_actor_id)
+    pub fn loaded_chunk_actor_entities(&self) -> HashSet<Entity> {
+        self.loaded_chunk_actors.values().copied().collect()
     }
 
     pub fn creating_chunk_actors(&self) -> &HashSet<ChunkActorID> {
