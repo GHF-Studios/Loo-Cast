@@ -24,7 +24,7 @@ pub(in crate) fn update(
     mut load_chunk_event_writer: EventWriter<LoadChunk>,
     mut unload_chunk_event_writer: EventWriter<UnloadChunk>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
-    mut chunk_manager: ResMut<ChunkManager>,
+    mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
     let chunk_loader_chunk_actor_coordinate: ChunkActorCoordinate = chunk_loader_transform.translation.into();
@@ -43,7 +43,7 @@ pub(in crate) fn update(
     let mut old_chunk_ids: Vec<ChunkID> = Vec::new();
     let mut unchanged_chunk_ids: Vec<ChunkID> = Vec::new();
     let mut new_chunk_ids: Vec<ChunkID> = Vec::new();
-    for (loaded_chunk_id, _) in chunk_manager.loaded_chunks.iter() {
+    for loaded_chunk_id in chunk_registry.loaded_chunk_ids().iter() {
         let loaded_chunk_coordinate: ChunkCoordinate = loaded_chunk_id.0;
 
         if !detected_chunk_coordinates.contains(&loaded_chunk_coordinate) {
@@ -52,7 +52,7 @@ pub(in crate) fn update(
     }
     for detected_chunk_coordinate in detected_chunk_coordinates {
         let detected_chunk_id: ChunkID = detected_chunk_coordinate.into();
-        if chunk_manager.loaded_chunks.contains_key(&detected_chunk_id) {
+        if chunk_registry.is_chunk_loaded(detected_chunk_id) {
             unchanged_chunk_ids.push(detected_chunk_id);
         } else {
             new_chunk_ids.push(detected_chunk_id);
@@ -61,21 +61,22 @@ pub(in crate) fn update(
 
     // Handle old chunks
     for old_chunk_id in old_chunk_ids {
-        if !chunk_manager.unloading_chunks.contains(&old_chunk_id) {
-            chunk_manager.unloading_chunks.insert(old_chunk_id);
+        if let Some(_) = chunk_registry.unload_chunk(old_chunk_id) {
             unload_chunk_event_writer.send(UnloadChunk(old_chunk_id));
         }
     }
 
     // Handle new chunks
     for new_chunk_id in new_chunk_ids.clone() {
-        if chunk_manager.registered_chunks.contains(&new_chunk_id) {
-            if !chunk_manager.loading_chunks.contains(&new_chunk_id) {
-                chunk_manager.loading_chunks.insert(new_chunk_id);
+        if chunk_registry.is_chunk_registered(new_chunk_id) {
+            if !chunk_registry.is_loading_chunk(new_chunk_id) {
+                chunk_registry.start_loading_chunk(new_chunk_id);
+
                 load_chunk_event_writer.send(LoadChunk(new_chunk_id));
             }
-        } else if !chunk_manager.creating_chunks.contains(&new_chunk_id) {
-            chunk_manager.creating_chunks.insert(new_chunk_id);
+        } else if !chunk_registry.is_creating_chunk(new_chunk_id) {
+            chunk_registry.start_creating_chunk(new_chunk_id);
+
             create_chunk_event_writer.send(CreateChunk(new_chunk_id));
         }
     }
@@ -99,38 +100,43 @@ pub(in crate) fn change_radius(
     }
 }
 
-pub(in crate) fn handle_create_events(
+pub(in crate) fn handle_create_chunk_events(
     mut commands: Commands,
     mut create_chunk_event_reader: EventReader<CreateChunk>,
-    mut chunk_manager: ResMut<ChunkManager>,
+    mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     for create_chunk_event in create_chunk_event_reader.read() {
         let new_chunk_entity = new_chunk_entity(&mut commands, create_chunk_event.0);
 
-        chunk_manager.registered_chunks.insert(create_chunk_event.0);
-        chunk_manager.loaded_chunks.insert(create_chunk_event.0, new_chunk_entity);
+        chunk_registry.register_chunk(create_chunk_event.0);
+        
+        chunk_registry.load_chunk(create_chunk_event.0, new_chunk_entity);
+
+        chunk_registry.stop_creating_chunk(create_chunk_event.0);
     }
 }
 
-pub(in crate) fn handle_destroy_events(
+pub(in crate) fn handle_destroy_chunk_events(
     mut commands: Commands,
     mut destroy_chunk_event_reader: EventReader<DestroyChunk>,
-    mut chunk_manager: ResMut<ChunkManager>,
+    mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     for destroy_chunk_event in destroy_chunk_event_reader.read() {
-        chunk_manager.registered_chunks.remove(&destroy_chunk_event.0);
-
-        if let Some(loaded_chunk_entity) = chunk_manager.loaded_chunks.remove(&destroy_chunk_event.0) {
+        if let Some(loaded_chunk_entity) = chunk_registry.unload_chunk(destroy_chunk_event.0) {
             commands.entity(loaded_chunk_entity).despawn_recursive();
         }
+        
+        chunk_registry.unregister_chunk(destroy_chunk_event.0);
+
+        chunk_registry.stop_destroying_chunk(destroy_chunk_event.0);
     }
 }
 
-pub(in crate) fn handle_load_events(
+pub(in crate) fn handle_load_chunk_events(
     world: &mut World,
     params: &mut SystemState<(
         EventReader<LoadChunk>,
-        ResMut<ChunkManager>,
+        ResMut<ChunkRegistry>,
     )>
 ) {
     let (mut load_chunk_event_reader, _) = params.get_mut(world);
@@ -140,8 +146,9 @@ pub(in crate) fn handle_load_events(
     }
 
     for load_chunk_event in load_chunk_events {
-        let (_, mut chunk_manager) = params.get_mut(world);
-        let serialized = chunk_manager.serialized_chunks.remove(&load_chunk_event.0).unwrap();
+        let (_, mut chunk_registry) = params.get_mut(world);
+
+        let serialized = chunk_registry.deserialize_chunk(load_chunk_event.0).unwrap();
 
         let dyn_scene = {
             let type_registry_rwlock = &world.resource::<AppTypeRegistry>().0.read();
@@ -212,17 +219,19 @@ pub(in crate) fn handle_load_events(
 
         println!("Detected chunk entity: {:?}", chunk_entity);
 
-        let (_, mut chunk_manager) = params.get_mut(world);
-        chunk_manager.loading_chunks.remove(&load_chunk_event.0);
-        chunk_manager.loaded_chunks.insert(load_chunk_event.0, chunk_entity);
+        let (_, mut chunk_registry) = params.get_mut(world);
+
+        chunk_registry.load_chunk(load_chunk_event.0, chunk_entity);
+
+        chunk_registry.stop_loading_chunk(load_chunk_event.0);
     }
 }
 
-pub(in crate) fn handle_unload_events(
+pub(in crate) fn handle_unload_chunk_events(
     world: &mut World,
     params: &mut SystemState<(
         EventReader<UnloadChunk>,
-        ResMut<ChunkManager>,
+        ResMut<ChunkRegistry>,
     )>
 ) {
     let (mut unload_chunk_event_reader, _) = params.get_mut(world);
@@ -252,10 +261,10 @@ pub(in crate) fn handle_unload_events(
             }
         });
 
-        let (_, chunk_manager) = params.get_mut(world);
+        let (_, chunk_registry) = params.get_mut(world);
 
-        let chunk_entity = match chunk_manager.loaded_chunks.get(&unload_chunk_event.0) {
-            Some(chunk_entity) => *chunk_entity,
+        let chunk_entity = match chunk_registry.get_loaded_chunk_entity(unload_chunk_event.0) {
+            Some(chunk_entity) => chunk_entity,
             None => continue,
         };
 
@@ -285,9 +294,12 @@ pub(in crate) fn handle_unload_events(
             world.entity_mut(entity).despawn_recursive();
         }
 
-        let (_, mut chunk_manager) = params.get_mut(world);
-        chunk_manager.serialized_chunks.insert(unload_chunk_event.0, serialized);
-        chunk_manager.loaded_chunks.remove(&unload_chunk_event.0);
-        chunk_manager.unloading_chunks.remove(&unload_chunk_event.0);
+        let (_, mut chunk_registry) = params.get_mut(world);
+
+        chunk_registry.serialize_chunk(unload_chunk_event.0, serialized);
+        
+        chunk_registry.unload_chunk(unload_chunk_event.0);
+
+        chunk_registry.stop_unloading_chunk(unload_chunk_event.0);
     }
 }

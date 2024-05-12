@@ -31,13 +31,13 @@ impl Plugin for ChunkPlugin {
             .add_plugins(CoordinatePlugin)
             .add_plugins(IdPlugin)
             .add_plugins(LoaderPlugin)
-            .insert_resource(ChunkManager::default())
+            .insert_resource(ChunkRegistry::default())
             .add_systems(Update, update)
             .add_systems(Update, change_radius)
-            .add_systems(Update, handle_create_events)
-            .add_systems(Update, handle_destroy_events)
-            .add_systems(Update, handle_load_events)
-            .add_systems(Update, handle_unload_events)
+            .add_systems(Update, handle_create_chunk_events)
+            .add_systems(Update, handle_destroy_chunk_events)
+            .add_systems(Update, handle_load_chunk_events)
+            .add_systems(Update, handle_unload_chunk_events)
             .register_type::<components::Chunk>()
             .register_type::<Vec<actor::id::structs::ChunkActorID>>();
     }

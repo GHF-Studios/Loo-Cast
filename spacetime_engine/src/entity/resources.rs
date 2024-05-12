@@ -3,14 +3,14 @@ use std::collections::{HashMap, HashSet};
 use super::id::structs::*;
 
 #[derive(Resource, Debug, Default)]
-pub(in crate) struct EntityManager {
+pub(in crate) struct EntityRegistry {
     registered_entities: HashSet<EntityID>,
     loaded_entities: HashMap<EntityID, Entity>,
     next_entity_id: EntityID,
     recycled_entity_ids: Vec<EntityID>,
 }
 
-impl EntityManager {
+impl EntityRegistry {
     pub fn register_entity(&mut self) -> EntityID {
         let entity_id = self.get_unused_entity_id();
         

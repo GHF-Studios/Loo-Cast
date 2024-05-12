@@ -4,8 +4,9 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
-// TODO: Integrate the entity and chunk managers into the existing code (look where all the red squiggly lines are)
-// TODO: Automate registration of specific types of components or entire entities for managers. 
+// TODO: Integrate the entity and chunk registrys into the existing code (look where all the red squiggly lines are)
+// TODO: Implement checks in the chunk and entity registry to prevent invalid chunk/entity states as represented by the data in the registrys
+// TODO: Automate registration of specific types of components or entire entities for registrys. 
 //       Like, you register the thing to get a registered unused id, and then it is *automatically* loaded when a system detects the added component. And when you remove the component, it is *automatically* unloaded.
 // TODO: Implement world border
 // TODO: Fix chunk loading by implementing serializable proxies for all necessary rapier components (necessary as of now)

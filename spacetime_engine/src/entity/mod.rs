@@ -11,6 +11,6 @@ impl Plugin for EntityPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_plugins(id::IDPlugin)
-            .insert_resource(EntityManager::default());
+            .insert_resource(EntityRegistry::default());
     }
 }
