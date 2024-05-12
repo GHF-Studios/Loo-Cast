@@ -24,6 +24,7 @@ pub(in crate) fn update(
             // TODO: Global: Move chunk actor related stuff from chunk registry to a new chunk actor registry
 
             // I feel that generally we need to embrace events more in our code, with a temporary focus on chunks/entities and their sub-modules
+            // Also I should inspect every location closely where I interact with chunks, it's sub-modules (like actors and loaders), and entities to ensure that I'm not missing anything
 
             // OLD CODE
             chunk_registry.recycle_chunk_actor_id(chunk_actor.id);
