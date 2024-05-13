@@ -3,6 +3,7 @@ use std::ops;
 use crate::chunk::constants::*;
 use crate::chunk::coordinate::structs::*;
 
+/// This represents a position in regular bevy world space.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Reflect)]
 pub struct ChunkActorCoordinate(pub Vec3);
 

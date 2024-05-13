@@ -1,6 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::geometry::Collider;
 use super::constants::*;
+use crate::chunk::actor::events::CreateChunkActor;
 use crate::chunk::resources::*;
 use crate::chunk::id::structs::*;
 use crate::chunk::coordinate::structs::*;
@@ -34,6 +35,14 @@ pub(in crate) fn update(
 
                 // Place a new prop on right click
                 if mouse_button_input.just_pressed(MouseButton::Right) {
+                    // NEW CODE
+                    create_chunk_actor_event_writer.send(CreateChunkActor());
+
+
+
+
+
+                    // OLD CODE
                     let prop_chunk_actor_id = chunk_registry.register_chunk_actor();
 
                     let prop_entity = commands.spawn(SpriteBundle {
@@ -48,7 +57,7 @@ pub(in crate) fn update(
                     .insert(ProxyRigidBody::Dynamic)
                     .insert(ProxyCollider::Square { half_length: half_prop_size })
                     .insert(ProxyVelocity::linear(Vec2 { x: 0.0, y: 0.0 }))
-                    .insert(ChunkActor { id: prop_chunk_actor_id, current_chunk: chunk_id })
+                    .insert(ChunkActor::new(prop_chunk_actor_id, chunk_id))
                     .id();
 
                     chunk_registry.load_chunk_actor(prop_chunk_actor_id, prop_entity);

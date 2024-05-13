@@ -5,6 +5,7 @@ use crate::chunk::constants::*;
 use crate::chunk::id::structs::ChunkID;
 use crate::chunk::actor::coordinate::structs::*;
 
+/// This represents a position in chunk space.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
 pub struct ChunkCoordinate(pub I16Vec2);
 

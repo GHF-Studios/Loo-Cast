@@ -27,6 +27,10 @@ impl Plugin for ChunkPlugin {
             .add_event::<events::DestroyChunk>()
             .add_event::<events::LoadChunk>()
             .add_event::<events::UnloadChunk>()
+            .add_event::<events::CreateChunkInternal>()
+            .add_event::<events::DestroyChunkInternal>()
+            .add_event::<events::LoadChunkInternal>()
+            .add_event::<events::UnloadChunkInternal>()
             .add_plugins(ActorPlugin)
             .add_plugins(CoordinatePlugin)
             .add_plugins(IdPlugin)
@@ -38,6 +42,10 @@ impl Plugin for ChunkPlugin {
             .add_systems(Update, handle_destroy_chunk_events)
             .add_systems(Update, handle_load_chunk_events)
             .add_systems(Update, handle_unload_chunk_events)
+            .add_systems(Update, handle_create_chunk_internal_events)
+            .add_systems(Update, handle_destroy_chunk_internal_events)
+            .add_systems(Update, handle_load_chunk_internal_events)
+            .add_systems(Update, handle_unload_chunk_internal_events)
             .register_type::<components::Chunk>()
             .register_type::<Vec<actor::id::structs::ChunkActorID>>();
     }

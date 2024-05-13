@@ -66,19 +66,3 @@ pub(in crate) fn handle_destroy_events(
     // TODO: Implement
 }
 
-pub(in crate) fn handle_load_events(
-    mut commands: Commands,
-    mut load_chunk_actor_event_reader: EventReader<LoadChunkActor>,
-    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
-) {
-    // TODO: Implement
-}
-
-pub(in crate) fn handle_unload_events(
-    mut commands: Commands,
-    mut unload_chunk_actor_event_reader: EventReader<UnloadChunkActor>,
-    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
-) {
-    // TODO: Implement
-}
-

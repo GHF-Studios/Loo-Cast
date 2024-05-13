@@ -14,15 +14,11 @@ pub(in crate) struct EntityPlugin;
 impl Plugin for EntityPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<CreateEntity>()
-            .add_event::<DestroyEntity>()
-            .add_event::<LoadEntity>()
-            .add_event::<UnloadEntity>()
+            .add_event::<RegisterEntity>()
+            .add_event::<UnregisterEntity>()
             .add_plugins(id::IDPlugin)
-            .add_systems(Update, handle_create_events)
-            .add_systems(Update, handle_destroy_events)
-            .add_systems(Update, handle_load_events)
-            .add_systems(Update, handle_unload_events)
+            .add_systems(Update, handle_register_events)
+            .add_systems(Update, handle_unregister_events)
             .insert_resource(EntityRegistry::default());
     }
 }
