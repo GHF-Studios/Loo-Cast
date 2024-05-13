@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use std::ops;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
 pub struct ChunkActorID(pub u64);
@@ -12,5 +13,61 @@ impl From<u64> for ChunkActorID {
 impl From<ChunkActorID> for u64 {
     fn from(chunk_actor_id: ChunkActorID) -> Self {
         chunk_actor_id.0
+    }
+}
+
+impl ops::Add<u64> for ChunkActorID {
+    type Output = ChunkActorID;
+
+    fn add(self, rhs: u64) -> Self::Output {
+        ChunkActorID(self.0 + rhs)
+    }
+}
+
+impl ops::AddAssign<u64> for ChunkActorID {
+    fn add_assign(&mut self, rhs: u64) {
+        self.0 += rhs;
+    }
+}
+
+impl ops::Sub<u64> for ChunkActorID {
+    type Output = ChunkActorID;
+
+    fn sub(self, rhs: u64) -> Self::Output {
+        ChunkActorID(self.0 - rhs)
+    }
+}
+
+impl ops::SubAssign<u64> for ChunkActorID {
+    fn sub_assign(&mut self, rhs: u64) {
+        self.0 -= rhs;
+    }
+}
+
+impl ops::Mul<u64> for ChunkActorID {
+    type Output = ChunkActorID;
+
+    fn mul(self, rhs: u64) -> Self::Output {
+        ChunkActorID(self.0 * rhs)
+    }
+}
+
+impl ops::MulAssign<u64> for ChunkActorID {
+    fn mul_assign(&mut self, rhs: u64) {
+        self.0 *= rhs;
+    }
+}
+
+impl ops::Div<u64> for ChunkActorID {
+    type Output = ChunkActorID;
+
+    fn div(self, rhs: u64) -> Self::Output {
+        ChunkActorID(self.0 / rhs)
+    }
+}
+
+impl ops::DivAssign<u64> for ChunkActorID {
+    fn div_assign(&mut self, rhs: u64) {
+        self.0 /= rhs;
     }
 }

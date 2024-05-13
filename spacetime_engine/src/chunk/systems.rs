@@ -263,7 +263,7 @@ pub(in crate) fn handle_unload_chunk_events(
         let mut chunk_actor_entities = world
             .query::<(Entity, &ChunkActor)>()
             .iter(world)
-            .filter(|(_, chunk_actor)| chunk_actor.current_chunk == unload_chunk_event.0)
+            .filter(|(_, chunk_actor)| chunk_actor.current_chunk() == unload_chunk_event.0)
             .map(|(entity, _)| entity)
             .collect::<Vec<_>>();
 

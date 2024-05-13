@@ -3,9 +3,11 @@ pub mod id;
 
 pub mod components;
 pub mod events;
+pub mod resources;
 pub(in crate) mod systems;
 
 use id::*;
+use resources::*;
 use systems::*;
 use bevy::prelude::*;
 
@@ -19,6 +21,7 @@ impl Plugin for ActorPlugin {
             .add_event::<events::LoadChunkActor>()
             .add_event::<events::UnloadChunkActor>()
             .add_plugins(IDPlugin)
+            .insert_resource(ChunkActorRegistry::default())
             .add_systems(Update, update)
             .add_systems(Update, handle_create_events)
             .add_systems(Update, handle_destroy_events)
