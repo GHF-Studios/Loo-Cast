@@ -3,7 +3,6 @@ use crate::chunk::id::structs::*;
 use crate::chunk::coordinate::structs::*;
 use crate::chunk::actor::coordinate::structs::*;
 use crate::chunk::actor::components::*;
-use crate::chunk::actor::events::*;
 use crate::chunk::actor::resources::*;
 use crate::chunk::components::*;
 use crate::chunk::resources::*;
@@ -49,20 +48,3 @@ pub(in crate) fn update(
         }
     }
 }
-
-pub(in crate) fn handle_create_events(
-    mut commands: Commands,
-    mut create_chunk_actor_event_reader: EventReader<CreateChunkActor>,
-    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
-) {
-    // TODO: Implement
-}
-
-pub(in crate) fn handle_destroy_events(
-    mut commands: Commands,
-    mut destroy_chunk_actor_event_reader: EventReader<DestroyChunkActor>,
-    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
-) {
-    // TODO: Implement
-}
-

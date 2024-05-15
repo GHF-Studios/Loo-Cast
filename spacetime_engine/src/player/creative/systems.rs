@@ -1,20 +1,23 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::geometry::Collider;
-use super::constants::*;
-use crate::chunk::actor::events::CreateChunkActor;
+use crate::chunk::actor::constants::*;
+use crate::chunk::actor::functions;
+use crate::chunk::actor::resources::ChunkActorRegistry;
+use crate::chunk::components::Chunk;
 use crate::chunk::resources::*;
 use crate::chunk::id::structs::*;
 use crate::chunk::coordinate::structs::*;
 use crate::chunk::actor::coordinate::structs::*;
 use crate::chunk::actor::components::*;
-use crate::physics::components::*;
 
 pub(in crate) fn update(
     mut commands: Commands,
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
-    collider_query: Query<(Entity, &Transform), With<Collider>>,
-    mut chunk_registry: ResMut<ChunkRegistry>,
+    chunk_actor_query: Query<(Entity, &Transform, &ChunkActor), With<Collider>>,
+    mut chunk_query: Query<&mut Chunk>,
+    chunk_registry: Res<ChunkRegistry>,
+    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
 ) {
     if let Ok(window) = window_query.get_single() {
@@ -26,50 +29,62 @@ pub(in crate) fn update(
             );
 
             if let Ok((camera, camera_transform)) = camera_query.get_single() {
-                let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
-                let world_pos = ndc_to_world.project_point3(cursor_pos_ndc.extend(-1.0)).truncate();
-                let chunk_chunk_actor_coordinate: ChunkActorCoordinate = world_pos.into();
-                let chunk_coordinate: ChunkCoordinate = chunk_chunk_actor_coordinate.into();
-                let chunk_id: ChunkID = chunk_coordinate.into();
-                let half_prop_size = SQUARE_PROP_SIZE / 2.0;
+                let hit_ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+                let hit_world_pos = hit_ndc_to_world.project_point3(cursor_pos_ndc.extend(-1.0)).truncate();
+                let hit_chunk_chunk_actor_coordinate: ChunkActorCoordinate = hit_world_pos.into();
+                let hit_chunk_coordinate: ChunkCoordinate = hit_chunk_chunk_actor_coordinate.into();
+                let hit_chunk_id: ChunkID = hit_chunk_coordinate.into();
 
-                // Place a new prop on right click
+                // Place a new chunk actor on right click
                 if mouse_button_input.just_pressed(MouseButton::Right) {
-                    // NEW CODE
-                    create_chunk_actor_event_writer.send(CreateChunkActor());
 
+                    let hit_chunk_entity = match chunk_registry.get_loaded_chunk_entity(hit_chunk_id) {
+                        Some(chunk_entity) => chunk_entity,
+                        None => {
+                            return;
+                        }
+                    };
 
+                    let mut hit_chunk = match chunk_query.get_mut(hit_chunk_entity) {
+                        Ok(chunk) => chunk,
+                        Err(_) => {
+                            return;
+                        }
+                    };
 
+                    let new_chunk_actor_id = chunk_actor_registry.register_chunk_actor();
+                    let new_chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, hit_world_pos, hit_chunk_id, new_chunk_actor_id);
+                    chunk_actor_registry.load_chunk_actor(new_chunk_actor_id, new_chunk_actor_entity);
+                    hit_chunk.add_chunk_actor(new_chunk_actor_id);
+                } else {
+                    // Delete all chunk actors under the cursor on left click
+                    if mouse_button_input.just_pressed(MouseButton::Left) {
+                        for (chunk_actor_entity, chunk_actor_transform, chunk_actor) in chunk_actor_query.iter() {
+                            let chunk_actor_position = chunk_actor_transform.translation.truncate();
+                            let chunk_actor_id = chunk_actor.id();
 
+                            if (chunk_actor_position - hit_world_pos).abs().max_element() < CHUNK_ACTOR_SIZE / 2.0 {
+                                let chunk_id = chunk_actor.current_chunk();
 
-                    // OLD CODE
-                    let prop_chunk_actor_id = chunk_registry.register_chunk_actor();
+                                let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+                                    Some(chunk_entity) => chunk_entity,
+                                    None => {
+                                        return;
+                                    }
+                                };
 
-                    let prop_entity = commands.spawn(SpriteBundle {
-                        sprite: Sprite {
-                            color: Color::rgb(0.5, 0.5, 1.0),
-                            custom_size: Some(Vec2::splat(SQUARE_PROP_SIZE)),
-                            ..default()
-                        },
-                        transform: Transform::from_translation(world_pos.extend(PROP_Z_INDEX)),
-                        ..default()
-                    })
-                    .insert(ProxyRigidBody::Dynamic)
-                    .insert(ProxyCollider::Square { half_length: half_prop_size })
-                    .insert(ProxyVelocity::linear(Vec2 { x: 0.0, y: 0.0 }))
-                    .insert(ChunkActor::new(prop_chunk_actor_id, chunk_id))
-                    .id();
+                                let mut chunk = match chunk_query.get_mut(chunk_entity) {
+                                    Ok(chunk) => chunk,
+                                    Err(_) => {
+                                        return;
+                                    }
+                                };
 
-                    chunk_registry.load_chunk_actor(prop_chunk_actor_id, prop_entity);
-                }
-
-                // Delete props under the cursor on left click
-                if mouse_button_input.just_pressed(MouseButton::Left) {
-                    for (collider_entity, collider_transform) in collider_query.iter() {
-                        let collider_position = collider_transform.translation.truncate();
-
-                        if (collider_position - world_pos).abs().max_element() < SQUARE_PROP_SIZE / 2.0 {
-                            commands.entity(collider_entity).despawn_recursive();
+                                chunk.remove_chunk_actor(chunk_actor.id());
+                                chunk_actor_registry.unload_chunk_actor(chunk_actor_id);
+                                commands.entity(chunk_actor_entity).despawn_recursive();
+                                chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
+                            }
                         }
                     }
                 }

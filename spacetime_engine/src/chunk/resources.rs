@@ -4,27 +4,6 @@ use crate::chunk::id::structs::*;
 use crate::chunk::actor::id::structs::*;
 
 #[derive(Resource, Debug, Default)]
-pub struct ChunkManager;
-
-impl ChunkManager {
-    pub fn create_chunk(&mut self, chunk_id: ChunkID) {
-
-    }
-
-    pub fn destroy_chunk(&mut self, chunk_id: ChunkID) {
-
-    }
-
-    pub fn load_chunk(&mut self, chunk_id: ChunkID) {
-
-    }
-
-    pub fn unload_chunk(&mut self, chunk_id: ChunkID) {
-
-    }
-}
-
-#[derive(Resource, Debug, Default)]
 pub struct ChunkRegistry {
     registered_chunks: HashSet<ChunkID>,
     loaded_chunks: HashMap<ChunkID, Entity>,

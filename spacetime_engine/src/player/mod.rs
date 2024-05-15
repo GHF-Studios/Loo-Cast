@@ -5,7 +5,8 @@ pub mod teleportation;
 pub mod components;
 pub mod constants;
 pub mod events;
-pub mod systems;
+pub mod functions;
+pub(in crate) mod systems;
 
 use creative::*;
 use movement::*;

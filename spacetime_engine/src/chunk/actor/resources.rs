@@ -14,13 +14,22 @@ pub struct ChunkActorRegistry {
 impl ChunkActorRegistry {
     pub fn register_chunk_actor(&mut self) -> ChunkActorID {
         let chunk_actor_id = self.get_unused_chunk_actor_id();
+
         self.registered_chunk_actors.insert(chunk_actor_id);
 
         chunk_actor_id
     }
 
-    pub fn register_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
-        self.registered_chunk_actors.extend(chunk_actor_ids);
+    pub fn register_chunk_actors(&mut self, batch_size: usize) -> HashSet<ChunkActorID> {
+        let mut chunk_actor_ids = HashSet::new();
+
+        for _ in 0..batch_size {
+            let chunk_actor_id = self.get_unused_chunk_actor_id();
+            self.registered_chunk_actors.insert(chunk_actor_id);
+            chunk_actor_ids.insert(chunk_actor_id);
+        }
+
+        chunk_actor_ids
     }
 
     pub fn unregister_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
@@ -37,8 +46,8 @@ impl ChunkActorRegistry {
         }
     }
 
-    pub fn load_chunk_actor(&mut self, chunk_actor_id: ChunkActorID, entity: Entity) {
-        self.loaded_chunk_actors.insert(chunk_actor_id, entity);
+    pub fn load_chunk_actor(&mut self, chunk_actor_id: ChunkActorID, chunk_actor_entity: Entity) {
+        self.loaded_chunk_actors.insert(chunk_actor_id, chunk_actor_entity);
     }
 
     pub fn load_chunk_actors(&mut self, chunk_actor_entities: HashMap<ChunkActorID, Entity>) {

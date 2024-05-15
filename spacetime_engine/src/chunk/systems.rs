@@ -13,6 +13,7 @@ use crate::chunk::events::*;
 use crate::chunk::resources::*;
 use crate::chunk::loader::components::*;
 use crate::chunk::functions;
+use crate::entity::resources::EntityRegistry;
 use crate::math::structs::*;
 use crate::physics::components::*;
 use crate::player::components::*;
@@ -169,15 +170,20 @@ pub(in crate) fn handle_create_chunk_internal_events(
     mut commands: Commands,
     mut create_chunk_event_reader: EventReader<CreateChunkInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
+    mut entity_registry: ResMut<EntityRegistry>,
 ) {
     for create_chunk_event in create_chunk_event_reader.read() {
-        let new_chunk_entity = functions::create_chunk_entity(&mut commands, create_chunk_event.0);
+        let chunk_id = create_chunk_event.0;
 
-        chunk_registry.register_chunk(create_chunk_event.0);
+        let entity_id = entity_registry.register_entity();
+        chunk_registry.register_chunk(chunk_id);
+
+        let new_chunk_entity = functions::new_chunk_entity(&mut commands, chunk_id);
         
-        chunk_registry.load_chunk(create_chunk_event.0, new_chunk_entity);
+        entity_registry.load_entity(entity_id, new_chunk_entity);
+        chunk_registry.load_chunk(chunk_id, new_chunk_entity);
 
-        chunk_registry.stop_creating_chunk(create_chunk_event.0);
+        chunk_registry.stop_creating_chunk(chunk_id);
     }
 }
 
@@ -185,15 +191,35 @@ pub(in crate) fn handle_destroy_chunk_internal_events(
     mut commands: Commands,
     mut destroy_chunk_event_reader: EventReader<DestroyChunkInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
+    mut entity_registry: ResMut<EntityRegistry>,
 ) {
     for destroy_chunk_event in destroy_chunk_event_reader.read() {
-        if let Some(loaded_chunk_entity) = chunk_registry.unload_chunk(destroy_chunk_event.0) {
-            commands.entity(loaded_chunk_entity).despawn_recursive();
-        }
-        
-        chunk_registry.unregister_chunk(destroy_chunk_event.0);
+        let chunk_id: ChunkID = destroy_chunk_event.0;
 
-        chunk_registry.stop_destroying_chunk(destroy_chunk_event.0);
+        let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+            Some(chunk_entity) => chunk_entity,
+            None => continue,
+        };
+        let chunk_entity_id = match entity_registry.get_loaded_entity_id(&chunk_entity) {
+            Some(entity_id) => entity_id,
+            None => continue,
+        };
+
+        match chunk_registry.unload_chunk(chunk_id) {
+            Some(_) => {},
+            None => continue,
+        }
+        match entity_registry.unload_entity(chunk_entity_id) {
+            Some(_) => {},
+            None => continue,
+        }
+
+        commands.entity(chunk_entity).despawn_recursive();
+
+        entity_registry.unregister_entity(chunk_entity_id);
+        chunk_registry.unregister_chunk(chunk_id);
+
+        chunk_registry.stop_destroying_chunk(chunk_id);
     }
 }
 
@@ -215,14 +241,16 @@ pub(in crate) fn handle_load_chunk_internal_events(
 
     for load_chunk_event in load_chunk_events {
         let chunk_id = load_chunk_event.0;
-
-        let mut chunk_registry = registry_parameter.get_mut(world).0;
-        let serialized_chunk = chunk_registry.deserialize_chunk(chunk_id).unwrap();
         
+        let mut chunk_registry = registry_parameter.get_mut(world).0;
+        
+        let serialized_chunk = chunk_registry.deserialize_chunk(chunk_id).unwrap();
         let chunk_entity = functions::deserialize_chunk(world, serialized_chunk);
 
         let mut chunk_registry = registry_parameter.get_mut(world).0;
+
         chunk_registry.load_chunk(chunk_id, chunk_entity);
+
         chunk_registry.stop_loading_chunk(chunk_id);
     }
 }
@@ -249,8 +277,11 @@ pub(in crate) fn handle_unload_chunk_internal_events(
         let serialized_chunk = functions::serialize_chunk(world, registry_parameter, chunk_id);
 
         let mut chunk_registry = registry_parameter.get_mut(world).0;
+        
         chunk_registry.serialize_chunk(chunk_id, serialized_chunk);
+
         chunk_registry.unload_chunk(chunk_id);
+
         chunk_registry.stop_unloading_chunk(chunk_id);
     }
 }
