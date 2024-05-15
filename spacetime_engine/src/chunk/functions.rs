@@ -3,11 +3,13 @@ use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use bevy::scene::ron;
 use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
+use bevy_rapier2d::dynamics::Velocity;
 use crate::chunk::components::*;
 use crate::chunk::constants::*;
 use crate::chunk::id::structs::ChunkID as ChunkID;
 use crate::chunk::coordinate::structs::ChunkCoordinate as ChunkCoordinate;
 use crate::chunk::actor::coordinate::structs::ChunkActorCoordinate as ChunkActorCoordinate;
+use crate::physics::components::*;
 use serde::de::DeserializeSeed;
 use super::actor::components::ChunkActor;
 use super::ChunkRegistry;
@@ -83,10 +85,12 @@ pub(in crate) fn deserialize_chunk(
             }
     }
 
-    match chunk_entity {
+    let chunk_entity = match chunk_entity {
         Some(chunk_entity) => chunk_entity,
         None => panic!("No chunk detected!"),
-    }
+    };
+
+    chunk_entity
 }
 
 pub(in crate) fn serialize_chunk(

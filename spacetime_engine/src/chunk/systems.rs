@@ -206,8 +206,14 @@ pub(in crate) fn handle_destroy_chunk_internal_events(
             None => continue,
         };
 
-        let _ = chunk_registry.unload_chunk(chunk_id);
-        let _ = entity_registry.unload_entity(chunk_entity_id);
+        match chunk_registry.unload_chunk(chunk_id) {
+            Some(_) => {},
+            None => continue,
+        }
+        match entity_registry.unload_entity(chunk_entity_id) {
+            Some(_) => {},
+            None => continue,
+        }
 
         commands.entity(chunk_entity).despawn_recursive();
 
