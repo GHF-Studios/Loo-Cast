@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
-use super::components::*;
 use super::id::structs::*;
 
 #[derive(Resource, Debug, Default)]

@@ -1,21 +1,14 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
-use bevy::scene::ron;
-use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
-use bevy_rapier2d::dynamics::{RigidBody, Velocity};
-use bevy_rapier2d::geometry::Collider;
-use crate::chunk::components::Chunk;
 use crate::chunk::id::structs::*;
 use crate::chunk::coordinate::structs::*;
 use crate::chunk::actor::coordinate::structs::*;
-use crate::chunk::actor::components::*;
 use crate::chunk::events::*;
 use crate::chunk::resources::*;
 use crate::chunk::loader::components::*;
 use crate::chunk::functions;
 use crate::entity::resources::EntityRegistry;
 use crate::math::structs::*;
-use crate::physics::components::*;
 use crate::player::components::*;
 
 pub(in crate) fn update(
@@ -24,7 +17,7 @@ pub(in crate) fn update(
     mut load_chunk_event_writer: EventWriter<LoadChunk>,
     mut unload_chunk_event_writer: EventWriter<UnloadChunk>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
-    mut chunk_registry: ResMut<ChunkRegistry>,
+    chunk_registry: Res<ChunkRegistry>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
     let chunk_loader_chunk_actor_coordinate: ChunkActorCoordinate = chunk_loader_transform.translation.into();
@@ -105,10 +98,12 @@ pub(in crate) fn handle_create_chunk_events(
     }
 
     for chunk_id in chunk_ids {
-        if !chunk_registry.is_creating_chunk(chunk_id) {
-            chunk_registry.start_creating_chunk(chunk_id);
-            create_chunk_internal_event_writer.send(CreateChunkInternal(chunk_id));
+        if chunk_registry.is_creating_chunk(chunk_id) {
+            continue;
         }
+        
+        chunk_registry.start_creating_chunk(chunk_id);
+        create_chunk_internal_event_writer.send(CreateChunkInternal(chunk_id));
     }
 }
 
@@ -123,10 +118,12 @@ pub(in crate) fn handle_destroy_chunk_events(
     }
 
     for chunk_id in chunk_ids {
-        if !chunk_registry.is_destroying_chunk(chunk_id) {
-            chunk_registry.start_destroying_chunk(chunk_id);
-            destroy_chunk_internal_event_writer.send(DestroyChunkInternal(chunk_id));
+        if chunk_registry.is_destroying_chunk(chunk_id) {
+            continue;
         }
+
+        chunk_registry.start_destroying_chunk(chunk_id);
+        destroy_chunk_internal_event_writer.send(DestroyChunkInternal(chunk_id));
     }
 }
 
@@ -141,10 +138,12 @@ pub(in crate) fn handle_load_chunk_events(
     }
 
     for chunk_id in chunk_ids {
-        if !chunk_registry.is_loading_chunk(chunk_id) {
-            chunk_registry.start_loading_chunk(chunk_id);
-            load_chunk_internal_event_writer.send(LoadChunkInternal(chunk_id));
+        if chunk_registry.is_loading_chunk(chunk_id) {
+            continue;
         }
+        
+        chunk_registry.start_loading_chunk(chunk_id);
+        load_chunk_internal_event_writer.send(LoadChunkInternal(chunk_id));
     }
 }
 
@@ -159,10 +158,12 @@ pub(in crate) fn handle_unload_chunk_events(
     }
 
     for chunk_id in chunk_ids {
-        if !chunk_registry.is_unloading_chunk(chunk_id) {
-            chunk_registry.start_unloading_chunk(chunk_id);
-            unload_chunk_internal_event_writer.send(UnloadChunkInternal(chunk_id));
+        if chunk_registry.is_unloading_chunk(chunk_id) {
+            continue;
         }
+
+        chunk_registry.start_unloading_chunk(chunk_id);
+        unload_chunk_internal_event_writer.send(UnloadChunkInternal(chunk_id));
     }
 }
 
@@ -242,16 +243,21 @@ pub(in crate) fn handle_load_chunk_internal_events(
     for load_chunk_event in load_chunk_events {
         let chunk_id = load_chunk_event.0;
         
-        let mut chunk_registry = registry_parameter.get_mut(world).0;
-        
-        let serialized_chunk = chunk_registry.deserialize_chunk(chunk_id).unwrap();
+        let serialized_chunk = {
+            let mut chunk_registry = registry_parameter.get_mut(world).0;
+
+            chunk_registry.deserialize_chunk(chunk_id).unwrap()
+        };
+
         let chunk_entity = functions::deserialize_chunk(world, serialized_chunk);
 
-        let mut chunk_registry = registry_parameter.get_mut(world).0;
+        {
+            let mut chunk_registry = registry_parameter.get_mut(world).0;
 
-        chunk_registry.load_chunk(chunk_id, chunk_entity);
+            chunk_registry.load_chunk(chunk_id, chunk_entity);
 
-        chunk_registry.stop_loading_chunk(chunk_id);
+            chunk_registry.stop_loading_chunk(chunk_id);
+        }
     }
 }
 
@@ -276,12 +282,14 @@ pub(in crate) fn handle_unload_chunk_internal_events(
 
         let serialized_chunk = functions::serialize_chunk(world, registry_parameter, chunk_id);
 
-        let mut chunk_registry = registry_parameter.get_mut(world).0;
-        
-        chunk_registry.serialize_chunk(chunk_id, serialized_chunk);
+        {
+            let mut chunk_registry = registry_parameter.get_mut(world).0;
 
-        chunk_registry.unload_chunk(chunk_id);
+            chunk_registry.serialize_chunk(chunk_id, serialized_chunk);
 
-        chunk_registry.stop_unloading_chunk(chunk_id);
+            chunk_registry.unload_chunk(chunk_id);
+    
+            chunk_registry.stop_unloading_chunk(chunk_id);
+        };
     }
 }
