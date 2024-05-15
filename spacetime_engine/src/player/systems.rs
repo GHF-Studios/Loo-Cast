@@ -25,7 +25,7 @@ pub(in crate) fn startup(
 
 
 
-    // TODO: Also make all the chunk systems (except update) and the player create system and the player startup system use direct ECS world access and separetly read and handle events and use blocks and such to make this work
+    // TODO: Also make all the chunk systems (except update) and the chunk actor system and the player create system and the player startup system use direct ECS world access and separetly read and handle events and use blocks and such to make this work
     // TODO: Use direct ECS world access instead of commands and generally fix everywhere else
     // TODO: Also implement/refactor & integrate custom position types for flat world position, deep world position(flat world position, but including the z-axis as a depth index) and chunk position, essentially generalizing chunk coordionate and chunk actor coordinate and other current coordinate/position types
     // TODO: Refer back to the main.rs file for further, more high-level TODOs
