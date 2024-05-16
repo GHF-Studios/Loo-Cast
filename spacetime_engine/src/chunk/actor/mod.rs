@@ -1,10 +1,11 @@
 pub mod coordinate;
-pub(in crate) mod constants;
 pub mod id;
 
 pub mod components;
+pub mod constants;
 pub mod functions;
 pub mod resources;
+pub mod structs;
 pub(in crate) mod systems;
 
 use id::*;
