@@ -9,7 +9,7 @@ use crate::physics::components::*;
 use super::constants::*;
 
 pub(in crate) fn new_player_entity(
-    commands: &mut Commands,
+    world: &mut World,
     player_chunk_id: ChunkID,
     player_chunk_actor_id: ChunkActorID,
 ) -> Entity {
@@ -17,7 +17,7 @@ pub(in crate) fn new_player_entity(
     let player_chunk_actor_coordinate: ChunkActorCoordinate = player_chunk_coordinate.into();
     let player_world_pos: Vec3 = player_chunk_actor_coordinate.0;
 
-    let player_entity = commands
+    let player_entity = world
         .spawn(super::components::Player)
         .insert(SpriteBundle {
             sprite: Sprite {

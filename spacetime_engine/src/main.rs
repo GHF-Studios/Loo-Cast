@@ -7,13 +7,9 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 
 
-
-// TODO: Make all the chunk event handler systems and the chunk actor system and the player create system and the player startup system use direct ECS world access and separetly read and handle events and use blocks and such to make this work
-// TODO: Use direct ECS world access instead of commands and generally fix everywhere else
-// TODO: Also implement/refactor & integrate custom position types for flat world position, deep world position(flat world position, but including the z-axis as a depth index) and chunk position, essentially generalizing chunk coordionate and chunk actor coordinate and other current coordinate/position types
-
-
-// TODO: Implement checks in the chunk and entity registry to prevent invalid chunk/entity states as represented by the data in the registries
+// TODO: Fix
+// TODO: Implement/Refactor & integrate custom position types for flat world position, deep world position(flat world position, but including the z-axis as a depth index) and chunk position, essentially generalizing chunk coordionate and chunk actor coordinate and other current coordinate/position types
+// TODO: Implement checks in the chunk and chunk actor and entity registries to prevent invalid chunk/entity states as represented by the data in the registries
 // TODO: Automate registration of specific types of components or entire entities for registrys. 
 //       Like, you register the thing to get a registered unused id, and then it is *automatically* loaded when a system detects the added component. And when you remove the component, it is *automatically* unloaded.
 // TODO: Implement world border

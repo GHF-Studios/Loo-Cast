@@ -35,7 +35,7 @@ fn collect_actor_updates(
     )>,
 ) -> (Vec<ActorUpdateInfo>, Vec<ActorDespawnInfo>) {
     let mut chunk_actor_query = world.query::<(Entity, &Transform, &ChunkActor)>();
-    let mut chunk_actor_query_size = chunk_actor_query.iter(world).count();
+    let chunk_actor_query_size = chunk_actor_query.iter(world).count();
     let mut chunk_ids = Vec::new();
     let mut chunk_actor_ids = Vec::new();
     let mut chunk_actor_entities = Vec::new();
@@ -52,7 +52,6 @@ fn collect_actor_updates(
         chunk_actor_ids.push(chunk_actor_id);
         chunk_actor_entities.push(chunk_actor_entity);
         old_chunk_ids.push(old_chunk_id);
-        chunk_actor_query_size += 1;
     }
 
     let mut updates = Vec::new();

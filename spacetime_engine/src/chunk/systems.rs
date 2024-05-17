@@ -168,19 +168,26 @@ pub(in crate) fn handle_unload_chunk_events(
 }
 
 pub(in crate) fn handle_create_chunk_internal_events(
-    mut commands: Commands,
-    mut create_chunk_event_reader: EventReader<CreateChunkInternal>,
-    mut chunk_registry: ResMut<ChunkRegistry>,
-    mut entity_registry: ResMut<EntityRegistry>,
+    world: &mut World,
+    event_writer_parameter: &mut SystemState<(
+        EventReader<CreateChunkInternal>,
+    )>,
+    registry_parameters: &mut SystemState<(
+        ResMut<ChunkRegistry>,
+        ResMut<EntityRegistry>,
+    )>,
 ) {
-    for create_chunk_event in create_chunk_event_reader.read() {
-        let chunk_id = create_chunk_event.0;
+    let mut create_chunk_event_reader = event_writer_parameter.get_mut(world).0;
+    let chunk_ids = create_chunk_event_reader.read().map(|create_chunk_event| create_chunk_event.0).collect::<Vec<ChunkID>>();
 
+    for chunk_id in chunk_ids {
+        let (mut chunk_registry, mut entity_registry) = registry_parameters.get_mut(world);
         let entity_id = entity_registry.register_entity();
         chunk_registry.register_chunk(chunk_id);
 
-        let new_chunk_entity = functions::new_chunk_entity(&mut commands, chunk_id);
+        let new_chunk_entity = functions::new_chunk_entity(world, chunk_id);
         
+        let (mut chunk_registry, mut entity_registry) = registry_parameters.get_mut(world);
         entity_registry.load_entity(entity_id, new_chunk_entity);
         chunk_registry.load_chunk(chunk_id, new_chunk_entity);
 
@@ -189,14 +196,20 @@ pub(in crate) fn handle_create_chunk_internal_events(
 }
 
 pub(in crate) fn handle_destroy_chunk_internal_events(
-    mut commands: Commands,
-    mut destroy_chunk_event_reader: EventReader<DestroyChunkInternal>,
-    mut chunk_registry: ResMut<ChunkRegistry>,
-    mut entity_registry: ResMut<EntityRegistry>,
+    world: &mut World,
+    event_writer_parameter: &mut SystemState<(
+        EventReader<DestroyChunkInternal>,
+    )>,
+    registry_parameters: &mut SystemState<(
+        ResMut<ChunkRegistry>,
+        ResMut<EntityRegistry>,
+    )>,
 ) {
-    for destroy_chunk_event in destroy_chunk_event_reader.read() {
-        let chunk_id: ChunkID = destroy_chunk_event.0;
+    let mut destroy_chunk_event_reader = event_writer_parameter.get_mut(world).0;
+    let chunk_ids = destroy_chunk_event_reader.read().map(|destroy_chunk_event| destroy_chunk_event.0).collect::<Vec<ChunkID>>();
 
+    for chunk_id in chunk_ids {
+        let (mut chunk_registry, mut entity_registry) = registry_parameters.get_mut(world);
         let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity) => chunk_entity,
             None => continue,
@@ -209,8 +222,9 @@ pub(in crate) fn handle_destroy_chunk_internal_events(
         let _ = chunk_registry.unload_chunk(chunk_id);
         let _ = entity_registry.unload_entity(chunk_entity_id);
 
-        commands.entity(chunk_entity).despawn_recursive();
+        world.despawn(chunk_entity);
 
+        let (mut chunk_registry, mut entity_registry) = registry_parameters.get_mut(world);
         entity_registry.unregister_entity(chunk_entity_id);
         chunk_registry.unregister_chunk(chunk_id);
 

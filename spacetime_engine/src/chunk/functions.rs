@@ -12,7 +12,7 @@ use serde::de::DeserializeSeed;
 use super::actor::components::ChunkActor;
 use super::ChunkRegistry;
 
-pub(in crate) fn new_chunk_entity(commands: &mut Commands, chunk_id: ChunkID) -> Entity {
+pub(in crate) fn new_chunk_entity(world: &mut World, chunk_id: ChunkID) -> Entity {
     let chunk_coordinate: ChunkCoordinate = chunk_id.into();
     let chunk_chunk_actor_coordinate: ChunkActorCoordinate = chunk_coordinate.into();
     let chunk_pos = chunk_coordinate.0;
@@ -24,7 +24,7 @@ pub(in crate) fn new_chunk_entity(commands: &mut Commands, chunk_id: ChunkID) ->
         Color::rgb(0.75, 0.75, 0.75)
     };
 
-    let chunk_entity = commands.spawn((
+    let chunk_entity = world.spawn((
         Chunk::new(chunk_id),
         SpriteBundle {
             sprite: Sprite {
