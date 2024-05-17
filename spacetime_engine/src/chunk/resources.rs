@@ -31,6 +31,8 @@ impl ChunkRegistry {
     }
 
     pub fn load_chunk(&mut self, chunk_id: ChunkID, entity: Entity) {
+        println!("Loaded chunk '{:?}!", chunk_id);
+
         self.loaded_chunks.insert(chunk_id, entity);
     }
 

@@ -116,7 +116,7 @@ pub(in crate) fn serialize_chunk(
 
     let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
         Some(chunk_entity) => chunk_entity,
-        None => panic!("Chunk Entity '{:?}' does not exist!", chunk_id)
+        None => panic!("Chunk Entity '{:?}' is not loaded!", chunk_id)
     };
 
     match world.get_entity(chunk_entity) {
