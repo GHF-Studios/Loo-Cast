@@ -8,10 +8,11 @@ use crate::chunk::loader::components::ChunkLoader;
 use crate::physics::components::*;
 use super::constants::*;
 
-// TODO: Revamp this completely so that we attach a ProxyPlayer instead of a Player Component. 
-// We can then add a system to replace the ProxyPlayer with a Player component EXACTLY 
-// in the frame in which the player's chunk loader component has fully loaded the eligible chunks.
-// TODO: Or more general: 
+// TODO: Revamp this completely: Request a new chunk loader entity (which will be available once it's starting chunk has been loaded) 
+//       and attach a Player component and any other relevant components to it.
+//       This will allow the player to be spawned in a chunk that is already loaded.
+// Do this as well for regular chunk actor entities.
+// But think about this some more and in regards to chunk actors as opposed to chunk loaders and shit.
 pub(in crate) fn new_player_entity(
     world: &mut World,
     player_chunk_id: ChunkID,
@@ -35,7 +36,7 @@ pub(in crate) fn new_player_entity(
         .insert(ProxyRigidBody::Dynamic)
         .insert(ProxyCollider::Circle { radius: 15.0 })
         .insert(ProxyVelocity::linear(Vec2::new(0.0, 0.0)))
-        .insert(ChunkLoader { load_radius: 1, current_chunk_ids: Vec::new() })
+        .insert(ChunkLoader::new(chunk_loader_id, 1))
         .insert(ChunkActor::new(player_chunk_actor_id, player_chunk_id))
         .id();
 

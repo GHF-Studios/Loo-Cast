@@ -24,6 +24,7 @@ impl Plugin for PlayerPlugin {
             .add_plugins(MovementPlugin)
             .add_plugins(TeleportationPlugin)
             .add_systems(Startup, startup)
+            .add_systems(Update, change_player_chunk_load_radius)
             .register_type::<components::Player>();
     }
 }

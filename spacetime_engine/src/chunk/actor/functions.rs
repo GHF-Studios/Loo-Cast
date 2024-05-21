@@ -10,7 +10,7 @@ use crate::physics::components::*;
 use super::position::structs::ChunkActorPosition;
 use super::{constants::*, ChunkActorRegistry};
 
-pub(in crate::chunk::actor) fn OLD_new_chunk_actor_entity(
+pub(in crate::chunk::actor) fn new_chunk_actor_entity(
     commands: &mut Commands,
     hit_world_position: Vec2,
     hit_chunk_id: ChunkID,
@@ -34,18 +34,4 @@ pub(in crate::chunk::actor) fn OLD_new_chunk_actor_entity(
     .id();
 
     new_chunk_actor_entity
-}
-
-pub(in crate::chunk::actor) fn new_chunk_actor_entity(
-    world: &mut World,
-    registry_parameters: &mut SystemState<(
-        ResMut<ChunkRegistry>,
-        ResMut<ChunkActorRegistry>,
-        ResMut<EntityRegistry>,
-    )>,
-    new_chunk_actor_world_position: Vec2
-) {
-    let world_position = new_chunk_actor_world_position.extend(CHUNK_ACTOR_Z_INDEX);
-    let chunk_actor_position: ChunkActorPosition = world_position.into();
-    let chunk_position: ChunkPosition = chunk_actor_position.into();
 }

@@ -58,8 +58,6 @@ impl Plugin for ChunkPlugin {
             .add_plugins(IdPlugin)
             .add_plugins(LoaderPlugin)
             .insert_resource(ChunkRegistry::default())
-            .add_systems(Update, update)
-            .add_systems(Update, change_radius)
             .add_systems(Update, (
                 handle_create_chunk_events, 
                 handle_destroy_chunk_events, 

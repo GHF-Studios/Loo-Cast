@@ -1,91 +1,9 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
-use crate::chunk::id::structs::*;
-use crate::chunk::position::structs::*;
-use crate::chunk::actor::position::structs::*;
 use crate::chunk::events::*;
 use crate::chunk::resources::*;
-use crate::chunk::loader::components::*;
 use crate::chunk::functions;
-use crate::entity::resources::EntityRegistry;
-use crate::math::structs::*;
-use crate::player::components::*;
-
-pub(in crate) fn update(
-    mut create_chunk_event_writer: EventWriter<CreateChunk>,
-    mut destroy_chunk_event_writer: EventWriter<DestroyChunk>,
-    mut load_chunk_event_writer: EventWriter<LoadChunk>,
-    mut unload_chunk_event_writer: EventWriter<UnloadChunk>,
-    mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
-    chunk_registry: Res<ChunkRegistry>,
-) {
-    let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
-    let chunk_loader_chunk_actor_position: ChunkActorPosition = chunk_loader_transform.translation.into();
-    let current_chunk_position: ChunkPosition = chunk_loader_chunk_actor_position.into();
-    let load_radius = chunk_loader.load_radius as i16;
-    
-    // Detect chunks around the player
-    let mut detected_chunk_positions = Vec::new();
-    for x_offset in -load_radius..=load_radius {
-        for y_offset in -load_radius..=load_radius {
-            detected_chunk_positions.push(current_chunk_position + ChunkPosition(I16Vec2(x_offset, y_offset)));
-        }
-    }
-
-    // Categorize the detected chunks
-    let mut old_chunk_ids: Vec<ChunkID> = Vec::new();
-    let mut unchanged_chunk_ids: Vec<ChunkID> = Vec::new();
-    let mut new_chunk_ids: Vec<ChunkID> = Vec::new();
-    for loaded_chunk_id in chunk_registry.loaded_chunk_ids().iter() {
-        let loaded_chunk_position: ChunkPosition = loaded_chunk_id.0;
-
-        if !detected_chunk_positions.contains(&loaded_chunk_position) {
-            old_chunk_ids.push(*loaded_chunk_id);
-        }
-    }
-    for detected_chunk_position in detected_chunk_positions {
-        let detected_chunk_id: ChunkID = detected_chunk_position.into();
-        if chunk_registry.is_chunk_loaded(detected_chunk_id) {
-            unchanged_chunk_ids.push(detected_chunk_id);
-        } else {
-            new_chunk_ids.push(detected_chunk_id);
-        }
-    }
-
-    // Handle old chunks
-    for old_chunk_id in old_chunk_ids {
-        unload_chunk_event_writer.send(UnloadChunk { chunk_id: old_chunk_id });
-    }
-
-    // Handle new chunks
-    for new_chunk_id in new_chunk_ids.iter() {
-        let new_chunk_id = *new_chunk_id;
-        
-        if chunk_registry.is_chunk_registered(new_chunk_id) {
-            load_chunk_event_writer.send(LoadChunk { chunk_id: new_chunk_id });
-        } else {
-            create_chunk_event_writer.send(CreateChunk { chunk_id: new_chunk_id });
-        }
-    }
-
-    // Update the current chunk IDs
-    chunk_loader.current_chunk_ids = unchanged_chunk_ids;
-    chunk_loader.current_chunk_ids.append(&mut new_chunk_ids);
-}
-
-pub(in crate) fn change_radius(
-    mut chunk_loader_query: Query<(&mut ChunkLoader, &Player)>,
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-) {
-    for (mut chunk_loader, _) in chunk_loader_query.iter_mut() {
-        if keyboard_input.just_pressed(KeyCode::KeyQ) {
-            chunk_loader.load_radius = (chunk_loader.load_radius as i16 - 1).max(0) as u16;
-        }
-        if keyboard_input.just_pressed(KeyCode::KeyE) {
-            chunk_loader.load_radius = (chunk_loader.load_radius as i16 + 1) as u16;
-        }
-    }
-}
+use crate::entity::resources::*;
 
 pub(in crate) fn handle_create_chunk_events(
     mut create_chunk_event_reader: EventReader<CreateChunk>,
