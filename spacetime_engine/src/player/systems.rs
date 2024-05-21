@@ -9,7 +9,6 @@ use crate::entity::resources::*;
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use super::components::Player;
-use super::functions;
 
 pub(in crate) fn startup(
     world: &mut World,
@@ -22,30 +21,49 @@ pub(in crate) fn startup(
         ResMut<EntityRegistry>,
     )>,
 ) {
-    let (
-        spawn_chunk_entity_id, 
-        spawn_chunk_id, 
-        player_entity_id, 
-        player_chunk_actor_id
-    ) = prepare_startup_data(world);
+    // Create a new chunk actor entity, and also attach a ProxyPlayer to it, 
+    // containing all of the startup information, which can be used to register the player with the starting chunk
+    // (which is a necessary step in being useable in my game world) specifically after said starting chunk has been loaded.
+    // We achieve this by also having a system for starting the player entity, which will wait until the starting chunk has been loaded (via event) 
+    // and then will remove the proxy player component and add the player component to the entity according to the contained information.
 
-    let (spawn_chunk_entity, player_entity) = create_entities(
-        world,
-        spawn_chunk_id,
-        player_chunk_actor_id,
-    );
 
-    apply_startup_state(
+
+
+
+
+
+
+    let mut entity_registry = world.get_resource_mut::<EntityRegistry>().unwrap();
+    let spawn_chunk_entity_id = entity_registry.register_entity();
+
+    let spawn_chunk_id = ChunkID::default();
+    let player_entity_id = entity_registry.register_entity();
+
+    let mut chunk_actor_registry = world.get_resource_mut::<ChunkActorRegistry>().unwrap();
+    let player_chunk_actor_id = chunk_actor_registry.register_chunk_actor();
+
+    let player_entity = new_chunk_actor_entity(world, player_chunk_actor_id);
+
+    apply_proxy_startup_state(
         world,
         event_writer_parameter,
         registry_parameters,
-        spawn_chunk_entity,
         player_entity,
         spawn_chunk_entity_id,
         spawn_chunk_id,
         player_entity_id,
         player_chunk_actor_id,
     );
+}
+
+pub(in crate) fn startup_internal(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<crate::chunk::events::StartPlayerInternal>,
+        EventWriter<super::events::StartedPlayer>,
+    )>,
+) {
 }
 
 pub(in crate) fn change_player_chunk_load_radius(
@@ -62,35 +80,9 @@ pub(in crate) fn change_player_chunk_load_radius(
     }
 }
 
-fn prepare_startup_data(
-    world: &mut World,
-) -> (EntityID, ChunkID, EntityID, ChunkActorID) {
-    let mut entity_registry = world.get_resource_mut::<EntityRegistry>().unwrap();
-    let spawn_chunk_entity_id = entity_registry.register_entity();
-
-    let spawn_chunk_id = ChunkID::default();
-    let player_entity_id = entity_registry.register_entity();
-
-    let mut chunk_actor_registry = world.get_resource_mut::<ChunkActorRegistry>().unwrap();
-    let player_chunk_actor_id = chunk_actor_registry.register_chunk_actor();
-
-    (spawn_chunk_entity_id, spawn_chunk_id, player_entity_id, player_chunk_actor_id)
-}
-
-fn create_entities(
-    world: &mut World,
-    spawn_chunk_id: ChunkID,
-    player_chunk_actor_id: ChunkActorID,
-) -> (Entity, Entity) {
-    let spawn_chunk_entity = crate::chunk::functions::new_chunk_entity(world, spawn_chunk_id);
-    let player_entity = functions::new_player_entity(world, spawn_chunk_id, player_chunk_actor_id);
-
-    (spawn_chunk_entity, player_entity)
-}
-
 // TODO: See player/functions.rs
 #[allow(clippy::too_many_arguments)]
-fn apply_startup_state(
+fn apply_proxy_startup_state(
     world: &mut World,
     event_writer_parameter: &mut SystemState<(
         EventWriter<super::events::Startup>,
