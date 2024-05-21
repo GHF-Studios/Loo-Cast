@@ -1,8 +1,8 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use crate::chunk::id::structs::*;
-use crate::chunk::coordinate::structs::*;
-use crate::chunk::actor::coordinate::structs::*;
+use crate::chunk::position::structs::*;
+use crate::chunk::actor::position::structs::*;
 use crate::chunk::actor::components::*;
 use crate::chunk::actor::resources::*;
 use crate::chunk::actor::structs::*;
@@ -42,9 +42,9 @@ fn collect_actor_updates(
     let mut old_chunk_ids = Vec::new();
 
     for (chunk_actor_entity, chunk_actor_transform, chunk_actor) in chunk_actor_query.iter(world) {
-        let actor_coordinate: ChunkActorCoordinate = chunk_actor_transform.translation.into();
-        let chunk_coordinate: ChunkCoordinate = actor_coordinate.into();
-        let chunk_id: ChunkID = chunk_coordinate.into();
+        let actor_position: ChunkActorPosition = chunk_actor_transform.translation.into();
+        let chunk_position: ChunkPosition = actor_position.into();
+        let chunk_id: ChunkID = chunk_position.into();
         let chunk_actor_id = chunk_actor.id();
         let old_chunk_id = chunk_actor.current_chunk();
 

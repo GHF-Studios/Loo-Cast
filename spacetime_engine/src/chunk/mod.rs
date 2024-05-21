@@ -1,5 +1,5 @@
 pub mod actor;
-pub mod coordinate;
+pub mod position;
 pub mod id;
 pub mod loader;
 
@@ -11,7 +11,7 @@ pub mod resources;
 pub(in crate) mod systems;
 
 use actor::*;
-use coordinate::*;
+use position::*;
 use id::*;
 use loader::*;
 use resources::*;
@@ -54,7 +54,7 @@ impl Plugin for ChunkPlugin {
             .add_event::<events::UnloadChunkInternal>()
             .add_event::<events::UnloadedChunkInternal>()
             .add_plugins(ActorPlugin)
-            .add_plugins(CoordinatePlugin)
+            .add_plugins(PositionPlugin)
             .add_plugins(IdPlugin)
             .add_plugins(LoaderPlugin)
             .insert_resource(ChunkRegistry::default())

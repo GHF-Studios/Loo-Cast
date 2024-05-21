@@ -6,8 +6,8 @@ use crate::chunk::actor::resources::ChunkActorRegistry;
 use crate::chunk::components::Chunk;
 use crate::chunk::resources::*;
 use crate::chunk::id::structs::*;
-use crate::chunk::coordinate::structs::*;
-use crate::chunk::actor::coordinate::structs::*;
+use crate::chunk::position::structs::*;
+use crate::chunk::actor::position::structs::*;
 use crate::chunk::actor::components::*;
 
 pub(in crate) fn update(
@@ -27,17 +27,17 @@ pub(in crate) fn update(
         }
     };
 
-    let cursor_pos = match window.cursor_position() {
-        Some(cursor_pos) => cursor_pos,
+    let cursor_position = match window.cursor_position() {
+        Some(cursor_position) => cursor_position,
         None => {
             return;
         }
     };
     
     let window_size = Vec2::new(window.width(), window.height());
-    let cursor_pos_ndc = Vec2::new(
-        (cursor_pos.x / window_size.x) * 2.0 - 1.0, 
-        1.0 - (cursor_pos.y / window_size.y) * 2.0
+    let cursor_position_ndc = Vec2::new(
+        (cursor_position.x / window_size.x) * 2.0 - 1.0, 
+        1.0 - (cursor_position.y / window_size.y) * 2.0
     );
 
     let (camera, camera_transform) = match camera_query.get_single() {
@@ -48,10 +48,10 @@ pub(in crate) fn update(
     };
 
     let hit_ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
-    let hit_world_pos = hit_ndc_to_world.project_point3(cursor_pos_ndc.extend(-1.0)).truncate();
-    let hit_chunk_chunk_actor_coordinate: ChunkActorCoordinate = hit_world_pos.into();
-    let hit_chunk_coordinate: ChunkCoordinate = hit_chunk_chunk_actor_coordinate.into();
-    let hit_chunk_id: ChunkID = hit_chunk_coordinate.into();
+    let hit_world_position = hit_ndc_to_world.project_point3(cursor_position_ndc.extend(-1.0)).truncate();
+    let hit_chunk_chunk_actor_position: ChunkActorPosition = hit_world_position.into();
+    let hit_chunk_position: ChunkPosition = hit_chunk_chunk_actor_position.into();
+    let hit_chunk_id: ChunkID = hit_chunk_position.into();
 
     if mouse_button_input.just_pressed(MouseButton::Right) {
         let hit_chunk_entity = match chunk_registry.get_loaded_chunk_entity(hit_chunk_id) {
@@ -69,14 +69,14 @@ pub(in crate) fn update(
         };
 
         let new_chunk_actor_id = chunk_actor_registry.register_chunk_actor();
-        let new_chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, hit_world_pos, hit_chunk_id, new_chunk_actor_id);
+        let new_chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, hit_world_position, hit_chunk_id, new_chunk_actor_id);
         chunk_actor_registry.load_chunk_actor(new_chunk_actor_id, new_chunk_actor_entity);
         hit_chunk.add_chunk_actor(new_chunk_actor_id);
     } else if mouse_button_input.just_pressed(MouseButton::Left) {
         for (chunk_actor_entity, chunk_actor_transform, chunk_actor) in chunk_actor_query.iter() {
             let chunk_actor_position = chunk_actor_transform.translation.truncate();
 
-            if (chunk_actor_position - hit_world_pos).abs().max_element() >= CHUNK_ACTOR_SIZE / 2.0 {
+            if (chunk_actor_position - hit_world_position).abs().max_element() >= CHUNK_ACTOR_SIZE / 2.0 {
                 continue;
             }
 

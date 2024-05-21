@@ -1,4 +1,4 @@
-pub mod coordinate;
+pub mod position;
 pub mod id;
 
 pub mod components;

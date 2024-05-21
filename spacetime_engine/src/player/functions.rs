@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::chunk::actor::components::ChunkActor;
-use crate::chunk::coordinate::structs::*;
-use crate::chunk::actor::coordinate::structs::*;
+use crate::chunk::position::structs::*;
+use crate::chunk::actor::position::structs::*;
 use crate::chunk::id::structs::*;
 use crate::chunk::actor::id::structs::*;
 use crate::chunk::loader::components::ChunkLoader;
@@ -17,9 +17,9 @@ pub(in crate) fn new_player_entity(
     player_chunk_id: ChunkID,
     player_chunk_actor_id: ChunkActorID,
 ) -> Entity {
-    let player_chunk_coordinate: ChunkCoordinate = player_chunk_id.into();
-    let player_chunk_actor_coordinate: ChunkActorCoordinate = player_chunk_coordinate.into();
-    let player_world_pos: Vec3 = player_chunk_actor_coordinate.0;
+    let player_chunk_position: ChunkPosition = player_chunk_id.into();
+    let player_chunk_actor_position: ChunkActorPosition = player_chunk_position.into();
+    let player_world_position: Vec3 = player_chunk_actor_position.0;
 
     let player_entity = world
         .spawn(super::components::Player)
@@ -29,7 +29,7 @@ pub(in crate) fn new_player_entity(
                 custom_size: Some(Vec2::splat(PLAYER_SIZE)),
                 ..default()
             },
-            transform: Transform::from_translation(Vec3::new(player_world_pos.x, player_world_pos.y, PLAYER_Z_INDEX)),
+            transform: Transform::from_translation(Vec3::new(player_world_position.x, player_world_position.y, PLAYER_Z_INDEX)),
             ..default()
         })
         .insert(ProxyRigidBody::Dynamic)

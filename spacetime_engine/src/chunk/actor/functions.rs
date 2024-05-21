@@ -1,18 +1,18 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 
-use crate::chunk::coordinate::structs::ChunkCoordinate;
+use crate::chunk::position::structs::ChunkPosition;
 use crate::{chunk::actor::components::*, entity::resources::EntityRegistry};
 use crate::chunk::id::structs::*;
 use crate::chunk::actor::id::structs::*;
 use crate::chunk::ChunkRegistry;
 use crate::physics::components::*;
-use super::coordinate::structs::ChunkActorCoordinate;
+use super::position::structs::ChunkActorPosition;
 use super::{constants::*, ChunkActorRegistry};
 
 pub(in crate::chunk::actor) fn OLD_new_chunk_actor_entity(
     commands: &mut Commands,
-    hit_world_pos: Vec2,
+    hit_world_position: Vec2,
     hit_chunk_id: ChunkID,
     new_chunk_actor_id: ChunkActorID,
 ) -> Entity {
@@ -24,7 +24,7 @@ pub(in crate::chunk::actor) fn OLD_new_chunk_actor_entity(
             custom_size: Some(Vec2::splat(CHUNK_ACTOR_SIZE)),
             ..default()
         },
-        transform: Transform::from_translation(hit_world_pos.extend(CHUNK_ACTOR_Z_INDEX)),
+        transform: Transform::from_translation(hit_world_position.extend(CHUNK_ACTOR_Z_INDEX)),
         ..default()
     })
     .insert(ProxyRigidBody::Dynamic)
@@ -43,9 +43,9 @@ pub(in crate::chunk::actor) fn new_chunk_actor_entity(
         ResMut<ChunkActorRegistry>,
         ResMut<EntityRegistry>,
     )>,
-    new_chunk_actor_world_pos: Vec2
+    new_chunk_actor_world_position: Vec2
 ) {
-    let world_pos = new_chunk_actor_world_pos.extend(CHUNK_ACTOR_Z_INDEX);
-    let chunk_actor_pos: ChunkActorCoordinate = world_pos.into();
-    let chunk_pos: ChunkCoordinate = chunk_actor_pos.into();
+    let world_position = new_chunk_actor_world_position.extend(CHUNK_ACTOR_Z_INDEX);
+    let chunk_actor_position: ChunkActorPosition = world_position.into();
+    let chunk_position: ChunkPosition = chunk_actor_position.into();
 }

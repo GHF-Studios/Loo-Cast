@@ -6,19 +6,19 @@ use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
 use crate::chunk::components::*;
 use crate::chunk::constants::*;
 use crate::chunk::id::structs::ChunkID as ChunkID;
-use crate::chunk::coordinate::structs::ChunkCoordinate as ChunkCoordinate;
-use crate::chunk::actor::coordinate::structs::ChunkActorCoordinate as ChunkActorCoordinate;
+use crate::chunk::position::structs::ChunkPosition as ChunkPosition;
+use crate::chunk::actor::position::structs::ChunkActorPosition as ChunkActorPosition;
 use serde::de::DeserializeSeed;
 use super::actor::components::ChunkActor;
 use super::ChunkRegistry;
 
 pub(in crate) fn new_chunk_entity(world: &mut World, chunk_id: ChunkID) -> Entity {
-    let chunk_coordinate: ChunkCoordinate = chunk_id.into();
-    let chunk_chunk_actor_coordinate: ChunkActorCoordinate = chunk_coordinate.into();
-    let chunk_pos = chunk_coordinate.0;
-    let world_pos = chunk_chunk_actor_coordinate.0;
+    let chunk_position: ChunkPosition = chunk_id.into();
+    let chunk_chunk_actor_position: ChunkActorPosition = chunk_position.into();
+    let chunk_position = chunk_position.0;
+    let world_position = chunk_chunk_actor_position.0;
 
-    let chunk_color = if (chunk_pos.0 + chunk_pos.1) % 2 == 0 {
+    let chunk_color = if (chunk_position.0 + chunk_position.1) % 2 == 0 {
         Color::rgb(0.25, 0.25, 0.25)
     } else {
         Color::rgb(0.75, 0.75, 0.75)
@@ -32,7 +32,7 @@ pub(in crate) fn new_chunk_entity(world: &mut World, chunk_id: ChunkID) -> Entit
                 custom_size: Some(Vec2::new(CHUNK_SIZE as f32, CHUNK_SIZE as f32)),
                 ..default()
             },
-            transform: Transform::from_translation(world_pos),
+            transform: Transform::from_translation(world_position),
             ..default()
         },
     )).id();
