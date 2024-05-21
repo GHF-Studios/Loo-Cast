@@ -27,6 +27,30 @@ pub(in crate) fn startup(
     // We achieve this by also having a system for starting the player entity, which will wait until the starting chunk has been loaded (via event) 
     // and then will remove the proxy player component and add the player component to the entity according to the contained information.
 
+    // We also should stop manually creating entities.
+    // Hm, I think we need some sort of elaborate builder pattern, spanning multiple events and systems, to create entities of any kind, 
+    // providing similar abstractions like the OOP/Inheritance of languages like C#.
+
+
+    // Like we go:
+
+    entity_builder::new_chunk_actor_request(position)
+        .with_player(some, arguments, that, make, sense)
+        .with_sprite(some, arguments, that, also, make, sense)
+        .with_rigid_body(some, arguments)
+        .with_collider(some, arguments, that, make, sense)
+        .issue();
+
+
+    // This will add the necessary components for a chunk actor, and then once the starting chunk has been loaded, 
+    // add a sprite, a rigidbody a collider, and a player component to the entity, successfully completing the issued request.
+
+    // This builder is literally only building the entity. No registration or loading of any kind happens. That's all to be done before/after the builder is used.
+    // Seeing as the buildr is inherently asynchronous, this is achieved by having a "BuiltChunkActor" event, which is sent when the entity has been built, 
+    // or more specifically when any *chunk actor* entity is spawned; this also helps to more easily integrate other (potentially not implemented, nor conceived) 
+    // "entity types" like I explained before where I compared that to C# but without the drawbacks of classical Inheritance.
+    // Basically entity "type" is just a imprecise name; it should rather be called an entity "build type" or something like that.
+
 
 
 
