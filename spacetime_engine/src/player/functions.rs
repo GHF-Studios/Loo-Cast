@@ -11,6 +11,7 @@ use super::constants::*;
 // TODO: Revamp this completely so that we attach a ProxyPlayer instead of a Player Component. 
 // We can then add a system to replace the ProxyPlayer with a Player component EXACTLY 
 // in the frame in which the player's chunk loader component has fully loaded the eligible chunks.
+// TODO: Or more general: 
 pub(in crate) fn new_player_entity(
     world: &mut World,
     player_chunk_id: ChunkID,

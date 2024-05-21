@@ -92,12 +92,12 @@ fn apply_startup_state(
     player_chunk_actor_id: ChunkActorID,
 ) {
     let (mut chunk_registry, mut chunk_actor_registry, mut entity_registry) = registry_parameters.get_mut(world);
-    entity_registry.load_entity(spawn_chunk_entity_id, spawn_chunk_entity);
-    chunk_registry.register_chunk(spawn_chunk_id);
-    chunk_registry.load_chunk(spawn_chunk_id, spawn_chunk_entity);
+    //entity_registry.load_entity(spawn_chunk_entity_id, spawn_chunk_entity);
+    //chunk_registry.register_chunk(spawn_chunk_id);
+    //chunk_registry.load_chunk(spawn_chunk_id, spawn_chunk_entity);
 
-    entity_registry.load_entity(player_entity_id, player_entity);
-    chunk_actor_registry.load_chunk_actor(player_chunk_actor_id, player_entity);
+    //entity_registry.load_entity(player_entity_id, player_entity);
+    //chunk_actor_registry.load_chunk_actor(player_chunk_actor_id, player_entity);
 
     let mut chunk_query = world.query::<&mut Chunk>();
     let mut spawn_chunk = chunk_query.get_mut(world, spawn_chunk_entity).unwrap();

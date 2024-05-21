@@ -1,12 +1,16 @@
+use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 
-use crate::chunk::actor::components::*;
+use crate::chunk::coordinate::structs::ChunkCoordinate;
+use crate::{chunk::actor::components::*, entity::resources::EntityRegistry};
 use crate::chunk::id::structs::*;
 use crate::chunk::actor::id::structs::*;
+use crate::chunk::ChunkRegistry;
 use crate::physics::components::*;
-use super::constants::*;
+use super::coordinate::structs::ChunkActorCoordinate;
+use super::{constants::*, ChunkActorRegistry};
 
-pub(in crate) fn new_chunk_actor_entity(
+pub(in crate::chunk::actor) fn OLD_new_chunk_actor_entity(
     commands: &mut Commands,
     hit_world_pos: Vec2,
     hit_chunk_id: ChunkID,
@@ -30,4 +34,18 @@ pub(in crate) fn new_chunk_actor_entity(
     .id();
 
     new_chunk_actor_entity
+}
+
+pub(in crate::chunk::actor) fn new_chunk_actor_entity(
+    world: &mut World,
+    registry_parameters: &mut SystemState<(
+        ResMut<ChunkRegistry>,
+        ResMut<ChunkActorRegistry>,
+        ResMut<EntityRegistry>,
+    )>,
+    new_chunk_actor_world_pos: Vec2
+) {
+    let world_pos = new_chunk_actor_world_pos.extend(CHUNK_ACTOR_Z_INDEX);
+    let chunk_actor_pos: ChunkActorCoordinate = world_pos.into();
+    let chunk_pos: ChunkCoordinate = chunk_actor_pos.into();
 }
