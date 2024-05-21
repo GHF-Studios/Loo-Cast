@@ -9,7 +9,7 @@ pub(in crate) fn handle_added_components(
     added_velocity_query: Query<(Entity, &ProxyVelocity), (Added<ProxyVelocity>, Without<Velocity>)>,
 ) {
     for (entity, proxy_rigidbody) in added_rigidbody_query.iter() {
-        println!("Adding rigidbody to entity {:?}", entity);
+        info!("Adding rigidbody to entity {:?}", entity);
         match proxy_rigidbody {   
             ProxyRigidBody::Dynamic => {
                 commands.entity(entity).insert(RigidBody::Dynamic);
@@ -27,7 +27,7 @@ pub(in crate) fn handle_added_components(
     }
 
     for (entity, proxy_collider) in added_collider_query.iter() {
-        println!("Adding collider to entity {:?}", entity);
+        info!("Adding collider to entity {:?}", entity);
         match proxy_collider {
             ProxyCollider::Square { half_length } => {
                 commands.entity(entity).insert(Collider::cuboid(*half_length, *half_length));
@@ -42,7 +42,7 @@ pub(in crate) fn handle_added_components(
     }
 
     for (entity, proxy_velocity) in added_velocity_query.iter() {
-        println!("Adding velocity to entity {:?}", entity);
+        info!("Adding velocity to entity {:?}", entity);
         commands.entity(entity).insert(Velocity { linvel: proxy_velocity.linvel, angvel: proxy_velocity.angvel });
     }
 }
@@ -60,7 +60,7 @@ pub(in crate) fn handle_changed_raw_components(world: &mut World) {
                 .iter_mut(world)
                 .find(|(entity, _, _)| *entity == changed_rigidbody_entity
             ) {
-                println!("Manually changing proxy rigidbody of entity {:?}", changed_rigidbody_entity);
+                info!("Manually changing proxy rigidbody of entity {:?}", changed_rigidbody_entity);
 
                 *proxy_rigidbody = match rigidbody {
                     RigidBody::Dynamic => ProxyRigidBody::Dynamic,
@@ -72,7 +72,7 @@ pub(in crate) fn handle_changed_raw_components(world: &mut World) {
                 world.entity_mut(entity).insert(InternalChangeFromRawRigidBody);
             }
         } else {
-            println!("Internally changed proxy rigidbody of entity {:?}", changed_rigidbody_entity);
+            info!("Internally changed proxy rigidbody of entity {:?}", changed_rigidbody_entity);
 
             world.entity_mut(changed_rigidbody_entity).remove::<InternalChangeFromProxyRigidBody>();
         }
@@ -89,11 +89,11 @@ pub(in crate) fn handle_changed_raw_components(world: &mut World) {
 
             // TODO: Implement this, whenever rapier has implemented Reflect for Collider
 
-            //println!("Changing proxy collider of entity {:?}", changed_collider_entity);
+            //info!("Changing proxy collider of entity {:?}", changed_collider_entity);
 
             //world.entity_mut(changed_collider_entity).insert(InternalChangeFromRawCollider);
         } else {
-            println!("Internally changing raw collider of entity {:?}", changed_collider_entity);
+            info!("Internally changing raw collider of entity {:?}", changed_collider_entity);
             world.entity_mut(*changed_collider_entity).remove::<InternalChangeFromProxyCollider>();
         }
     }
@@ -110,7 +110,7 @@ pub(in crate) fn handle_changed_raw_components(world: &mut World) {
                 .iter_mut(world)
                 .find(|(entity, _, _)| *entity == changed_velocity_entity
             ) {
-                println!("Manually changing proxy velocity of entity {:?}", entity);
+                info!("Manually changing proxy velocity of entity {:?}", entity);
 
                 proxy_velocity.linvel = velocity.linvel;
                 proxy_velocity.angvel = velocity.angvel;
@@ -118,7 +118,7 @@ pub(in crate) fn handle_changed_raw_components(world: &mut World) {
                 world.entity_mut(entity).insert(InternalChangeFromRawVelocity);
             } 
         } else {
-            println!("Internally changing proxy velocity of entity {:?}", changed_velocity_entity);
+            info!("Internally changing proxy velocity of entity {:?}", changed_velocity_entity);
             world.entity_mut(changed_velocity_entity).remove::<InternalChangeFromProxyVelocity>();
         }
     }
@@ -137,7 +137,7 @@ pub(in crate) fn handle_changed_proxy_components(world: &mut World) {
                 .iter_mut(world)
                 .find(|(entity, _, _)| *entity == changed_rigidbody_entity
             ) {
-                println!("Manually changing raw rigidbody of entity {:?}", entity);
+                info!("Manually changing raw rigidbody of entity {:?}", entity);
                 
                 *rigidbody = match proxy_rigidbody {
                     ProxyRigidBody::Dynamic => RigidBody::Dynamic,
@@ -149,7 +149,7 @@ pub(in crate) fn handle_changed_proxy_components(world: &mut World) {
                 world.entity_mut(entity).insert(InternalChangeFromProxyRigidBody);
             }
         } else {
-            println!("Internally changing raw rigidbody of entity {:?}", changed_rigidbody_entity);
+            info!("Internally changing raw rigidbody of entity {:?}", changed_rigidbody_entity);
 
             world.entity_mut(changed_rigidbody_entity).remove::<InternalChangeFromRawRigidBody>();
         }
@@ -167,7 +167,7 @@ pub(in crate) fn handle_changed_proxy_components(world: &mut World) {
                 .iter_mut(world)
                 .find(|(entity, _, _)| *entity == changed_collider_entity
             ) {
-                println!("Manually changing raw collider of entity {:?}", entity);
+                info!("Manually changing raw collider of entity {:?}", entity);
 
                 match proxy_collider {
                     ProxyCollider::Square { half_length } => {
@@ -184,7 +184,7 @@ pub(in crate) fn handle_changed_proxy_components(world: &mut World) {
                 world.entity_mut(entity).insert(InternalChangeFromProxyCollider);
             }
         } else {
-            println!("Internally changing raw collider of entity {:?}", changed_collider_entity);
+            info!("Internally changing raw collider of entity {:?}", changed_collider_entity);
 
             world.entity_mut(changed_collider_entity).remove::<InternalChangeFromRawCollider>();
         }
@@ -202,7 +202,7 @@ pub(in crate) fn handle_changed_proxy_components(world: &mut World) {
                 .iter_mut(world)
                 .find(|(entity, _, _)| *entity == changed_velocity_entity
             ) {
-                //println!("Manually changing raw velocity of entity {:?}", entity);
+                trace!("Manually changing raw velocity of entity {:?}", entity);
 
                 velocity.linvel = proxy_velocity.linvel;
                 velocity.angvel = proxy_velocity.angvel;
@@ -210,7 +210,7 @@ pub(in crate) fn handle_changed_proxy_components(world: &mut World) {
                 world.entity_mut(entity).insert(InternalChangeFromProxyVelocity);
             }
         } else {
-            println!("Internally changing raw velocity of entity {:?}", changed_velocity_entity);
+            info!("Internally changing raw velocity of entity {:?}", changed_velocity_entity);
 
             world.entity_mut(changed_velocity_entity).remove::<InternalChangeFromRawVelocity>();
         }
@@ -233,7 +233,7 @@ pub(in crate) fn handle_removed_components(
 
     for orphaned_rigidbody_entity in orphaned_rigidbody_query.iter() {
         if rigidbody_removal_entities.contains(&orphaned_rigidbody_entity) {
-            println!("Removing rigidbody from entity {:?}", orphaned_rigidbody_entity);
+            info!("Removing rigidbody from entity {:?}", orphaned_rigidbody_entity);
             commands.entity(orphaned_rigidbody_entity).remove::<RigidBody>();
         }
     }
@@ -245,7 +245,7 @@ pub(in crate) fn handle_removed_components(
 
     for orphaned_collider_entity in orphaned_collider_query.iter() {
         if collider_removal_entities.contains(&orphaned_collider_entity) {
-            println!("Removing collider from entity {:?}", orphaned_collider_entity);
+            info!("Removing collider from entity {:?}", orphaned_collider_entity);
             commands.entity(orphaned_collider_entity).remove::<Collider>();
         }
     }
@@ -257,7 +257,7 @@ pub(in crate) fn handle_removed_components(
 
     for orphaned_velocity_entity in orphaned_velocity_query.iter() {
         if velocity_removal_entities.contains(&orphaned_velocity_entity) {
-            println!("Removing velocity from entity {:?}", orphaned_velocity_entity);
+            info!("Removing velocity from entity {:?}", orphaned_velocity_entity);
             commands.entity(orphaned_velocity_entity).remove::<Velocity>();
         }
     }

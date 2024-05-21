@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::chunk::id::structs::*;
 
 #[derive(Resource, Debug, Default)]
-pub struct ChunkRegistry {
+pub(in crate) struct ChunkRegistry {
     registered_chunks: HashSet<ChunkID>,
     loaded_chunks: HashMap<ChunkID, Entity>,
     serialized_chunks: HashMap<ChunkID, String>,
@@ -31,8 +31,6 @@ impl ChunkRegistry {
     }
 
     pub fn load_chunk(&mut self, chunk_id: ChunkID, entity: Entity) {
-        println!("Loaded chunk '{:?}!", chunk_id);
-
         self.loaded_chunks.insert(chunk_id, entity);
     }
 

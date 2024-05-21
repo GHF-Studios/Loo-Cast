@@ -7,7 +7,7 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 
 
-// TODO: Fix
+// TODO: Change player creation so it uses a chunk actor factory thingy which provides you with a blank chunk actor entity but is inherently asynchronous and powered by events and a proxy chunk actor component which is replaced by a real chunk actor once the proxy chunk actor's current chunk is registered and loaded.
 // TODO: Implement/Refactor & integrate custom position types for flat world position, deep world position(flat world position, but including the z-axis as a depth index) and chunk position, essentially generalizing chunk coordionate and chunk actor coordinate and other current coordinate/position types
 // TODO: Implement checks in the chunk and chunk actor and entity registries to prevent invalid chunk/entity states as represented by the data in the registries
 // TODO: Automate registration of specific types of components or entire entities for registrys. 

@@ -72,6 +72,7 @@ fn create_entities(
     (spawn_chunk_entity, player_entity)
 }
 
+// TODO: See player/functions.rs
 #[allow(clippy::too_many_arguments)]
 fn apply_startup_state(
     world: &mut World,
