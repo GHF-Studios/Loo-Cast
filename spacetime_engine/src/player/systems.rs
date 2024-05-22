@@ -34,13 +34,6 @@ pub(in crate) fn startup(
 
     // Like we go:
 
-    entity_builder::new_chunk_actor_request(position)
-        .with_player(some, arguments, that, make, sense)
-        .with_sprite(some, arguments, that, also, make, sense)
-        .with_rigid_body(some, arguments)
-        .with_collider(some, arguments, that, make, sense)
-        .issue();
-
 
     // This will add the necessary components for a chunk actor, and then once the starting chunk has been loaded, 
     // add a sprite, a rigidbody a collider, and a player component to the entity, successfully completing the issued request.
@@ -50,6 +43,9 @@ pub(in crate) fn startup(
     // or more specifically when any *chunk actor* entity is spawned; this also helps to more easily integrate other (potentially not implemented, nor conceived) 
     // "entity types" like I explained before where I compared that to C# but without the drawbacks of classical Inheritance.
     // Basically entity "type" is just a imprecise name; it should rather be called an entity "build type" or something like that.
+
+
+    // NEW IDEA
 
 
 

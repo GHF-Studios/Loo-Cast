@@ -4,6 +4,8 @@ use crate::chunk::events::*;
 use crate::chunk::resources::*;
 use crate::chunk::functions;
 use crate::entity::resources::*;
+use super::actor::events::*;
+use super::actor::resources::*;
 
 pub(in crate) fn handle_create_chunk_events(
     mut create_chunk_event_reader: EventReader<CreateChunk>,
@@ -465,4 +467,51 @@ pub(in crate) fn handle_unloaded_chunk_internal_events(
 
         unloaded_chunk_event_writer.send(UnloadedChunk { chunk_id, success });
     }
+}
+
+pub(in crate) fn handle_create_chunk_actor_entity_events(
+    mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
+    mut create_chunk_actor_entity_internal_event_writer: EventWriter<CreateChunkActorEntityInternal>,
+    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+) {
+    let mut create_chunk_actor_entity_events = Vec::new();
+    for create_chunk_actor_entity_event in create_chunk_actor_entity_event_reader.read() {
+        create_chunk_actor_entity_events.push(create_chunk_actor_entity_event.clone());
+    }
+
+    for create_chunk_actor_entity_event in create_chunk_actor_entity_events {
+        let chunk_actor_entity_id = create_chunk_actor_entity_event.chunk_actor_entity_id;
+        let chunk_id = create_chunk_actor_entity_event.chunk_id;
+        let world_position = create_chunk_actor_entity_event.world_position;
+
+        info!("Trying to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
+
+        if chunk_actor_registry.is_creating_chunk_actor_entity(chunk_actor_entity_id) {
+            error!("Chunk actor entity '{:?}' is already being created!", chunk_actor_entity_id);
+
+            continue;
+        }
+        
+        chunk_actor_registry.start_creating_chunk_actor_entity(chunk_actor_entity_id);
+        create_chunk_actor_entity_internal_event_writer.send(CreateChunkActorEntityInternal { chunk_actor_entity_id, chunk_id, world_position });
+    }
+}
+
+pub(in crate) fn handle_create_chunk_actor_entity_internal_events(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<CreateChunkActorEntityInternal>,
+        EventWriter<CreatedChunkActorEntityInternal>,
+    )>,
+) {
+    
+}
+
+pub(in crate) fn handle_created_chunk_actor_entity_internal_events(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<CreatedChunkActorEntityInternal>,
+        EventWriter<CreatedChunkActorEntity>,
+    )>,
+) {
 }

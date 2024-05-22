@@ -27,9 +27,10 @@ pub(in crate::chunk::actor) fn new_chunk_actor_entity(
         transform: Transform::from_translation(hit_world_position.extend(CHUNK_ACTOR_Z_INDEX)),
         ..default()
     })
-    .insert(ProxyRigidBody::Dynamic)
-    .insert(ProxyCollider::Square { half_length: half_prop_size })
-    .insert(ProxyVelocity::linear(Vec2 { x: 0.0, y: 0.0 }))
+    // TODO: This should be moved to each location where a new chunk actor is created and needs custom components apart from the basics like a Transform and a ChunkActor component.
+    //.insert(ProxyRigidBody::Dynamic)
+    //.insert(ProxyCollider::Square { half_length: half_prop_size })
+    //.insert(ProxyVelocity::linear(Vec2 { x: 0.0, y: 0.0 }))
     .insert(ChunkActor::new(new_chunk_actor_id, hit_chunk_id))
     .id();
 

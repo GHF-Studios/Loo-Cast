@@ -8,6 +8,8 @@ use crate::chunk::actor::resources::*;
 use crate::chunk::actor::structs::*;
 use crate::chunk::components::*;
 use crate::chunk::resources::*;
+use super::events::*;
+use super::functions;
 
 
 pub(in crate) fn update(
@@ -114,3 +116,4 @@ fn apply_actor_updates(
         chunk_actor_registry.unregister_chunk_actor(despawn.actor_id);
     }
 }
+
