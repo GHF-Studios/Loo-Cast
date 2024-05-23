@@ -6,6 +6,18 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 
 
+// NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+
+// TODO: Implement event-based chunk actor  entity          destruction
+// TODO: Implement event-based chunk loader entity creation/destruction
+// TODO: Implement event-based chunk        entity creation/destruction/loading/unloading
+
+
+
+
+
+
+// DUSTY ASS OLD ASS TODOOOOOOOOO
 
 // TODO: Change player creation so it uses a chunk actor factory thingy which provides you with a blank chunk actor entity but is inherently asynchronous and powered by events and a proxy chunk actor component which is replaced by a real chunk actor once the proxy chunk actor's current chunk is registered and loaded.
 // TODO: Implement/Refactor & integrate custom position types for flat world position, deep world position(flat world position, but including the z-axis as a depth index) and chunk position, essentially generalizing chunk positionionate and chunk actor position and other current position/position types
