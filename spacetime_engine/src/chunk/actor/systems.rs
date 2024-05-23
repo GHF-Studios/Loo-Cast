@@ -138,16 +138,14 @@ pub(in crate) fn handle_create_chunk_actor_entity_events(
         let world_position = create_chunk_actor_entity_event.world_position;
 
         info!("Trying to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
-
-        // Check if the starting chunk is already loaded
-        // If so, create the chunk actor entity and send the CreatedChunkActorEntity event right here and immediately
-        // Else, issue a request to create the chunk actor entity, and let the other system "process_create_chunk_actor_requests" deal with it
         
-        if chunk_registry.is_chunk_loaded(chunk_id) {
+        if let Some(chunk_entity) = chunk_registry.get_loaded_chunk_entity(chunk_id) {
+            info!("Chunk loaded, creating chunk actor entity '{:?}' ...", chunk_actor_entity_id);
+
             // create the chunk and register it everywhere with the module function new_chunk_actor_entity
             // TODO: Change the existing module function so that it also registers the entity and chunk actor everywhere necessary, including the starting chunk, aka so that the resulting chunk actor entity is fully and immediately functional after having called this function
         } else {
-            println!("Chunk not loaded, issuing request to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
+            info!("Chunk not loaded, issuing request to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
 
             if chunk_actor_registry.is_chunk_actor_entity_creating(chunk_actor_id) {
                 error!("The request for creating chunk actor entity '{:?}' has already been issued!", chunk_actor_entity_id);
@@ -190,6 +188,9 @@ pub(in crate) fn process_create_chunk_actor_requests(
         let success = created_chunk_event.success;
 
         if !success {
+            // check if any of the requested chunk actor entities are waiting for this chunk to be loaded
+            // if so, essentially do nothing and wait, but send a warning log message, stating that the chunk actor entity creation has been postponed due to the starting chunk loading failure
+
             continue;
         }
 
