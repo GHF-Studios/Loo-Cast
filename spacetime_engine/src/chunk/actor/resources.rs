@@ -1,16 +1,15 @@
 use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
-use crate::entity::id::structs::*;
-
-use super::id::structs::*;
+use crate::chunk::actor::id::structs::*;
+use crate::chunk::actor::structs::*;
 
 #[derive(Resource, Debug, Default)]
-pub struct ChunkActorRegistry {
+pub(in crate) struct ChunkActorRegistry {
     registered_chunk_actors: HashSet<ChunkActorID>,
     loaded_chunk_actors: HashMap<ChunkActorID, Entity>,
     next_chunk_actor_id: ChunkActorID,
     recycled_chunk_actor_ids: Vec<ChunkActorID>,
-    currently_creating_chunk_actor_entities: HashSet<EntityID>,
+    create_chunk_actor_entity_requests: HashMap<ChunkActorID, ChunkActorCreateRequest>,
 }
 
 impl ChunkActorRegistry {
@@ -64,20 +63,22 @@ impl ChunkActorRegistry {
         self.loaded_chunk_actors.retain(|&chunk_actor_id, _| !chunk_actor_ids.contains(&chunk_actor_id));
     }
 
-    pub fn start_creating_chunk_actor_entity(&mut self, chunk_actor_entity_id: EntityID) {
-        self.currently_creating_chunk_actor_entities.insert(chunk_actor_entity_id);
+    pub fn start_creating_chunk_actor_entity(&mut self, request: ChunkActorCreateRequest) {
+        self.create_chunk_actor_entity_requests.insert(request.chunk_actor_id, request);
     }
 
-    pub fn start_creating_chunk_actor_entities(&mut self, chunk_actor_entity_ids: HashSet<EntityID>) {
-        self.currently_creating_chunk_actor_entities.extend(chunk_actor_entity_ids);
+    pub fn start_creating_chunk_actor_entities(&mut self, requests: HashMap<ChunkActorID, ChunkActorCreateRequest>) {
+        self.create_chunk_actor_entity_requests.extend(requests);
     }
 
-    pub fn stop_creating_chunk_actor_entity(&mut self, chunk_actor_entity_id: EntityID) {
-        self.currently_creating_chunk_actor_entities.remove(&chunk_actor_entity_id);
+    pub fn stop_creating_chunk_actor_entity(&mut self, chunk_actor_id: ChunkActorID) {
+        self.create_chunk_actor_entity_requests.remove(&chunk_actor_id);
     }
 
-    pub fn stop_creating_chunk_actor_entities(&mut self, chunk_actor_entity_ids: HashSet<EntityID>) {
-        self.currently_creating_chunk_actor_entities.retain(|&chunk_actor_entity_id| !chunk_actor_entity_ids.contains(&chunk_actor_entity_id));
+    pub fn stop_creating_chunk_actor_entities(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
+        self.create_chunk_actor_entity_requests.retain(|chunk_actor_id, _| {
+            !chunk_actor_ids.contains(chunk_actor_id)
+        });
     }
 
     pub fn is_chunk_actor_registered(&self, chunk_actor_id: ChunkActorID) -> bool {
@@ -108,13 +109,13 @@ impl ChunkActorRegistry {
         true
     }
 
-    pub fn is_creating_chunk_actor_entity(&self, chunk_actor_entity_id: EntityID) -> bool {
-        self.currently_creating_chunk_actor_entities.contains(&chunk_actor_entity_id)
+    pub fn is_chunk_actor_entity_creating(&self, chunk_actor_id: ChunkActorID) -> bool {
+        self.create_chunk_actor_entity_requests.contains_key(&chunk_actor_id)
     }
 
-    pub fn are_chunk_actor_entities_creating(&self, chunk_actor_entity_ids: HashSet<EntityID>) -> bool {
-        for chunk_actor_entity_id in chunk_actor_entity_ids {
-            if !self.currently_creating_chunk_actor_entities.contains(&chunk_actor_entity_id) {
+    pub fn are_chunk_actor_entities_creating(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
+        for chunk_actor_id in chunk_actor_ids {
+            if !self.create_chunk_actor_entity_requests.contains_key(&chunk_actor_id) {
                 return false;
             }
         }

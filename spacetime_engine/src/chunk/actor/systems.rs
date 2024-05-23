@@ -1,5 +1,6 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
+use crate::chunk::events::CreatedChunk;
 use crate::chunk::id::structs::*;
 use crate::chunk::position::structs::*;
 use crate::chunk::actor::position::structs::*;
@@ -8,6 +9,7 @@ use crate::chunk::actor::resources::*;
 use crate::chunk::actor::structs::*;
 use crate::chunk::components::*;
 use crate::chunk::resources::*;
+use crate::entity::resources::EntityRegistry;
 use super::events::*;
 use super::functions;
 
@@ -35,7 +37,7 @@ fn collect_actor_updates(
         ResMut<ChunkRegistry>,
         ResMut<ChunkActorRegistry>,
     )>,
-) -> (Vec<ActorUpdateInfo>, Vec<ActorDespawnInfo>) {
+) -> (Vec<ChunkActorUpdateInfo>, Vec<ChunkActorDespawnInfo>) {
     let mut chunk_actor_query = world.query::<(Entity, &Transform, &ChunkActor)>();
     let chunk_actor_query_size = chunk_actor_query.iter(world).count();
     let mut chunk_ids = Vec::new();
@@ -68,12 +70,12 @@ fn collect_actor_updates(
         let (chunk_registry, _) = registry_parameters.get_mut(world);
         
         if !chunk_registry.is_chunk_loaded(chunk_id) {
-            despawns.push(ActorDespawnInfo {
+            despawns.push(ChunkActorDespawnInfo {
                 actor_entity: chunk_actor_entity,
                 actor_id: chunk_actor_id,
             });
         } else if old_chunk_id != chunk_id {
-            updates.push(ActorUpdateInfo {
+            updates.push(ChunkActorUpdateInfo {
                 actor_entity: chunk_actor_entity,
                 old_chunk_id,
                 new_chunk_id: chunk_id,
@@ -91,8 +93,8 @@ fn apply_actor_updates(
         ResMut<ChunkRegistry>,
         ResMut<ChunkActorRegistry>,
     )>,
-    updates: Vec<ActorUpdateInfo>,
-    despawns: Vec<ActorDespawnInfo>,
+    updates: Vec<ChunkActorUpdateInfo>,
+    despawns: Vec<ChunkActorDespawnInfo>,
 ) {
     let mut chunk_query = world.query::<&mut Chunk>();
 
@@ -117,3 +119,75 @@ fn apply_actor_updates(
     }
 }
 
+pub(in crate) fn handle_create_chunk_actor_entity_events(
+    mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
+    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+) {
+    let mut create_chunk_actor_entity_events = Vec::new();
+    for create_chunk_actor_entity_event in create_chunk_actor_entity_event_reader.read() {
+        create_chunk_actor_entity_events.push(create_chunk_actor_entity_event.clone());
+    }
+
+    for create_chunk_actor_entity_event in create_chunk_actor_entity_events {
+        let chunk_actor_id = create_chunk_actor_entity_event.chunk_actor_id;
+        let chunk_actor_entity_id = create_chunk_actor_entity_event.chunk_actor_entity_id;
+        let chunk_id = create_chunk_actor_entity_event.chunk_id;
+        let world_position = create_chunk_actor_entity_event.world_position;
+
+        info!("Trying to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
+
+        if chunk_actor_registry.is_chunk_actor_entity_creating(chunk_actor_id) {
+            error!("Chunk actor entity '{:?}' is already being created!", chunk_actor_entity_id);
+
+            continue;
+        }
+        
+        chunk_actor_registry.start_creating_chunk_actor_entity(
+            ChunkActorCreateRequest {
+                chunk_actor_id,
+                chunk_actor_entity_id,
+                chunk_id,
+                world_position,
+            }
+        );
+    }
+}
+
+pub(in crate) fn process_create_chunk_actor_requests(
+    mut commands: Commands,
+    mut created_chunk_event_reader: EventReader<CreatedChunk>,
+    mut created_chunk_actor_entity_event_writer: EventWriter<CreatedChunkActorEntity>,
+    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    mut chunk_registry: ResMut<ChunkRegistry>,
+    mut entity_registry: ResMut<EntityRegistry>,
+    mut chunk_query: Query<&Chunk>,
+) {
+    for created_chunk_event in created_chunk_event_reader.read() {
+        let chunk_id = created_chunk_event.chunk_id;
+        let success = created_chunk_event.success;
+
+        if !success {
+            continue;
+        }
+
+        let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+            Some(chunk_entity) => chunk_entity,
+            None => {
+                continue;
+            }
+        };
+
+        // LOGIC COMMENTS
+        // create the chunk actor entity
+        // register it with the entity registry
+        // register it with the chunk actor registry
+        // register it with the chunk entity
+        // send the CreatedChunkActorEntity event
+        // END LOGIC COMMENTS
+
+        // package this into a re-created new_chunk_actor_entity module function
+
+        // then tie this new chunk into the chunk creation system or whatever. 
+        //Like, have a look at the revamped chunk actor system and see how this can benefit thew chunk systems?
+    }
+}
