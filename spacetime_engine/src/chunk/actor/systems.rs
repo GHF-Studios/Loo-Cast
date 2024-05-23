@@ -37,7 +37,7 @@ fn collect_actor_updates(
         ResMut<ChunkRegistry>,
         ResMut<ChunkActorRegistry>,
     )>,
-) -> (Vec<ChunkActorUpdateInfo>, Vec<ChunkActorDespawnInfo>) {
+) -> (Vec<UpdateChunkActorInfo>, Vec<DespawnChunkActorInfo>) {
     let mut chunk_actor_query = world.query::<(Entity, &Transform, &ChunkActor)>();
     let chunk_actor_query_size = chunk_actor_query.iter(world).count();
     let mut chunk_ids = Vec::new();
@@ -70,12 +70,12 @@ fn collect_actor_updates(
         let (chunk_registry, _) = registry_parameters.get_mut(world);
         
         if !chunk_registry.is_chunk_loaded(chunk_id) {
-            despawns.push(ChunkActorDespawnInfo {
+            despawns.push(DespawnChunkActorInfo {
                 actor_entity: chunk_actor_entity,
                 actor_id: chunk_actor_id,
             });
         } else if old_chunk_id != chunk_id {
-            updates.push(ChunkActorUpdateInfo {
+            updates.push(UpdateChunkActorInfo {
                 actor_entity: chunk_actor_entity,
                 old_chunk_id,
                 new_chunk_id: chunk_id,
@@ -93,8 +93,8 @@ fn apply_actor_updates(
         ResMut<ChunkRegistry>,
         ResMut<ChunkActorRegistry>,
     )>,
-    updates: Vec<ChunkActorUpdateInfo>,
-    despawns: Vec<ChunkActorDespawnInfo>,
+    updates: Vec<UpdateChunkActorInfo>,
+    despawns: Vec<DespawnChunkActorInfo>,
 ) {
     let mut chunk_query = world.query::<&mut Chunk>();
 
@@ -121,10 +121,12 @@ fn apply_actor_updates(
 
 // REVIEW THE LOGIC OF THIS CAREFULLY
 pub(in crate) fn handle_create_chunk_actor_entity_events(
+    mut commands: Commands,
     mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
     mut created_chunk_actor_entity_event_writer: EventWriter<CreatedChunkActorEntity>,
     chunk_registry: ResMut<ChunkRegistry>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    mut entity_registry: ResMut<EntityRegistry>,
     mut chunk_query: Query<&mut Chunk>,
 ) {
     let mut create_chunk_actor_entity_events = Vec::new();
@@ -133,23 +135,44 @@ pub(in crate) fn handle_create_chunk_actor_entity_events(
     }
 
     for create_chunk_actor_entity_event in create_chunk_actor_entity_events {
-        let chunk_actor_id = create_chunk_actor_entity_event.chunk_actor_id;
-        let chunk_actor_entity_id = create_chunk_actor_entity_event.chunk_actor_entity_id;
+        let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
+        let chunk_actor_entity_id = entity_registry.register_entity();
         let chunk_id = create_chunk_actor_entity_event.chunk_id;
         let world_position = create_chunk_actor_entity_event.world_position;
 
         info!("Trying to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
         
         if let Some(chunk_entity) = chunk_registry.get_loaded_chunk_entity(chunk_id) {
-            info!("Chunk loaded, creating chunk actor entity '{:?}' ...", chunk_actor_entity_id);
+            info!("Chunk loaded, creating chunk actor entity '{:?}' immediately ...", chunk_actor_entity_id);
 
-            // create the chunk and register it everywhere with the module function new_chunk_actor_entity
-            // TODO: Change the existing module function so that it also registers the entity and chunk actor everywhere necessary, including the starting chunk, aka so that the resulting chunk actor entity is fully and immediately functional after having called this function
+            let mut chunk = match chunk_query.get_mut(chunk_entity) {
+                Ok(chunk) => chunk,
+                Err(_) => {
+                    panic!("Chunk entity '{:?}' is loaded, but the chunk query failed to get the chunk!", chunk_entity);
+                }
+            };
+
+            let chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, world_position, chunk_id, chunk_actor_id);
+
+            entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity);
+            chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity);
+            chunk.add_chunk_actor(chunk_actor_id);
+
+            created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity {
+                chunk_actor_id,
+                chunk_actor_entity_id,
+                chunk_id,
+                world_position,
+                success: true,
+            });
         } else {
-            info!("Chunk not loaded, issuing request to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
+            info!("Chunk not loaded, issuing request to create chunk actor entity '{:?}' when the chunk is loaded ...", chunk_actor_entity_id);
 
             if chunk_actor_registry.is_chunk_actor_entity_creating(chunk_actor_id) {
                 error!("The request for creating chunk actor entity '{:?}' has already been issued!", chunk_actor_entity_id);
+
+                chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
+                entity_registry.unregister_entity(chunk_actor_entity_id);
 
                 created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity {
                     chunk_actor_id,
@@ -163,7 +186,7 @@ pub(in crate) fn handle_create_chunk_actor_entity_events(
             }
             
             chunk_actor_registry.start_creating_chunk_actor_entity(
-                ChunkActorCreateRequest {
+                CreateChunkActorEntityRequest {
                     chunk_actor_id,
                     chunk_actor_entity_id,
                     chunk_id,
@@ -179,9 +202,9 @@ pub(in crate) fn process_create_chunk_actor_requests(
     mut created_chunk_event_reader: EventReader<CreatedChunk>,
     mut created_chunk_actor_entity_event_writer: EventWriter<CreatedChunkActorEntity>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
-    mut chunk_registry: ResMut<ChunkRegistry>,
+    chunk_registry: ResMut<ChunkRegistry>,
     mut entity_registry: ResMut<EntityRegistry>,
-    mut chunk_query: Query<&Chunk>,
+    mut chunk_query: Query<&mut Chunk>,
 ) {
     for created_chunk_event in created_chunk_event_reader.read() {
 
@@ -189,8 +212,25 @@ pub(in crate) fn process_create_chunk_actor_requests(
         let success = created_chunk_event.success;
 
         if !success {
-            // check if any of the requested chunk actor entities are waiting for this chunk to be loaded
-            // if so, essentially do nothing and wait, but send a warning log message, stating that the chunk actor entity creation has been postponed due to the starting chunk loading failure
+            let requests = chunk_actor_registry.creating_chunk_actor_entity_requests().clone();
+            for request in requests.values() {
+                if request.chunk_id != chunk_id {
+                    warn!("The creation request for chunk actor entity '{:?}' has been cancelled due to the starting chunk '{:?}' failing to load!", request.chunk_actor_entity_id, request.chunk_id);
+
+                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+                    entity_registry.unregister_entity(request.chunk_actor_entity_id);
+
+                    chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
+
+                    created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity {
+                        chunk_actor_id: request.chunk_actor_id,
+                        chunk_actor_entity_id: request.chunk_actor_entity_id,
+                        chunk_id: request.chunk_id,
+                        world_position: request.world_position,
+                        success: false,
+                    });
+                }
+            }
 
             continue;
         }
@@ -198,20 +238,43 @@ pub(in crate) fn process_create_chunk_actor_requests(
         let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity) => chunk_entity,
             None => {
-                continue;
+                panic!("Chunk '{:?}' is loaded, but the chunk registry failed to get the chunk entity!", chunk_id);
             }
         };
 
-        // LOGIC COMMENTS
-        // create the chunk actor entity using the associated module function "new_chunk_actor_entity"
-        // register it with the entity registry
-        // register it with the chunk actor registry
-        // register it with the chunk entity
-        // send the CreatedChunkActorEntity event
-        return;
-        // END LOGIC COMMENTS
+        let mut chunk = match chunk_query.get_mut(chunk_entity) {
+            Ok(chunk) => chunk,
+            Err(_) => {
+                panic!("Chunk entity '{:?}' is loaded, but the chunk query failed to get the chunk!", chunk_entity);
+            }
+        };
 
-        // then tie this new chunk into the chunk creation system or whatever. 
-        //Like, have a look at the revamped chunk actor system and see how this can benefit the chunk systems?
+        let create_chunk_actor_entity_requests = chunk_actor_registry.creating_chunk_actor_entity_requests().clone();
+        for create_chunk_actor_entity_request in create_chunk_actor_entity_requests.values() {
+            let chunk_actor_id = create_chunk_actor_entity_request.chunk_actor_id;
+            let chunk_actor_entity_id = create_chunk_actor_entity_request.chunk_actor_entity_id;
+            let chunk_id = create_chunk_actor_entity_request.chunk_id;
+            let world_position = create_chunk_actor_entity_request.world_position;
+
+            if chunk_id != chunk_id {
+                continue;
+            }
+
+            let chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, world_position, chunk_id, chunk_actor_id);
+
+            entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity);
+            chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity);
+            chunk.add_chunk_actor(chunk_actor_id);
+
+            chunk_actor_registry.stop_creating_chunk_actor_entity(chunk_actor_id);
+
+            created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity {
+                chunk_actor_id,
+                chunk_actor_entity_id,
+                chunk_id,
+                world_position,
+                success: true,
+            });
+        }
     }
 }

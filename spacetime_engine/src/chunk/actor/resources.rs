@@ -9,7 +9,7 @@ pub(in crate) struct ChunkActorRegistry {
     loaded_chunk_actors: HashMap<ChunkActorID, Entity>,
     next_chunk_actor_id: ChunkActorID,
     recycled_chunk_actor_ids: Vec<ChunkActorID>,
-    create_chunk_actor_entity_requests: HashMap<ChunkActorID, ChunkActorCreateRequest>,
+    create_chunk_actor_entity_requests: HashMap<ChunkActorID, CreateChunkActorEntityRequest>,
 }
 
 impl ChunkActorRegistry {
@@ -63,11 +63,11 @@ impl ChunkActorRegistry {
         self.loaded_chunk_actors.retain(|&chunk_actor_id, _| !chunk_actor_ids.contains(&chunk_actor_id));
     }
 
-    pub fn start_creating_chunk_actor_entity(&mut self, request: ChunkActorCreateRequest) {
+    pub fn start_creating_chunk_actor_entity(&mut self, request: CreateChunkActorEntityRequest) {
         self.create_chunk_actor_entity_requests.insert(request.chunk_actor_id, request);
     }
 
-    pub fn start_creating_chunk_actor_entities(&mut self, requests: HashMap<ChunkActorID, ChunkActorCreateRequest>) {
+    pub fn start_creating_chunk_actor_entities(&mut self, requests: HashMap<ChunkActorID, CreateChunkActorEntityRequest>) {
         self.create_chunk_actor_entity_requests.extend(requests);
     }
 
@@ -153,6 +153,14 @@ impl ChunkActorRegistry {
 
     pub fn loaded_chunk_actor_entities(&self) -> HashSet<Entity> {
         self.loaded_chunk_actors.values().copied().collect()
+    }
+
+    pub fn creating_chunk_actor_entity_request(&self, chunk_actor_id: ChunkActorID) -> Option<&CreateChunkActorEntityRequest> {
+        self.create_chunk_actor_entity_requests.get(&chunk_actor_id)
+    }
+
+    pub fn creating_chunk_actor_entity_requests(&self) -> &HashMap<ChunkActorID, CreateChunkActorEntityRequest> {
+        &self.create_chunk_actor_entity_requests
     }
 
     fn get_unused_chunk_actor_id(&mut self) -> ChunkActorID {
