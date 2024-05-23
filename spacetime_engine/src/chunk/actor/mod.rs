@@ -22,8 +22,6 @@ impl Plugin for ActorPlugin {
         app
             .add_event::<CreateChunkActorEntity>()
             .add_event::<CreatedChunkActorEntity>()
-            .add_event::<CreateChunkActorEntityInternal>()
-            .add_event::<CreatedChunkActorEntityInternal>()
             .add_plugins(IDPlugin)
             .insert_resource(ChunkActorRegistry::default())
             .add_systems(Update, update)
