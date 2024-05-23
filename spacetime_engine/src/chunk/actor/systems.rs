@@ -119,7 +119,6 @@ fn apply_actor_updates(
     }
 }
 
-// REVIEW THE LOGIC OF THIS CAREFULLY
 pub(in crate) fn handle_create_chunk_actor_entity_events(
     mut commands: Commands,
     mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
@@ -152,7 +151,7 @@ pub(in crate) fn handle_create_chunk_actor_entity_events(
                 }
             };
 
-            let chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, world_position, chunk_id, chunk_actor_id);
+            let chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, chunk_actor_id, chunk_id, world_position);
 
             entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity);
             chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity);
@@ -260,7 +259,7 @@ pub(in crate) fn process_create_chunk_actor_requests(
                 continue;
             }
 
-            let chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, world_position, chunk_id, chunk_actor_id);
+            let chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, chunk_actor_id, chunk_id, world_position);
 
             entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity);
             chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity);
