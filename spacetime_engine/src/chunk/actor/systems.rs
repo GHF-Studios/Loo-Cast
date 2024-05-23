@@ -119,6 +119,7 @@ fn apply_actor_updates(
     }
 }
 
+// REVIEW THE LOGIC OF THIS CAREFULLY
 pub(in crate) fn handle_create_chunk_actor_entity_events(
     mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
     mut created_chunk_actor_entity_event_writer: EventWriter<CreatedChunkActorEntity>,
