@@ -121,7 +121,10 @@ fn apply_actor_updates(
 
 pub(in crate) fn handle_create_chunk_actor_entity_events(
     mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
+    mut created_chunk_actor_entity_event_writer: EventWriter<CreatedChunkActorEntity>,
+    chunk_registry: ResMut<ChunkRegistry>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    mut chunk_query: Query<&mut Chunk>,
 ) {
     let mut create_chunk_actor_entity_events = Vec::new();
     for create_chunk_actor_entity_event in create_chunk_actor_entity_event_reader.read() {
@@ -136,20 +139,39 @@ pub(in crate) fn handle_create_chunk_actor_entity_events(
 
         info!("Trying to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
 
-        if chunk_actor_registry.is_chunk_actor_entity_creating(chunk_actor_id) {
-            error!("Chunk actor entity '{:?}' is already being created!", chunk_actor_entity_id);
-
-            continue;
-        }
+        // Check if the starting chunk is already loaded
+        // If so, create the chunk actor entity and send the CreatedChunkActorEntity event right here and immediately
+        // Else, issue a request to create the chunk actor entity, and let the other system "process_create_chunk_actor_requests" deal with it
         
-        chunk_actor_registry.start_creating_chunk_actor_entity(
-            ChunkActorCreateRequest {
-                chunk_actor_id,
-                chunk_actor_entity_id,
-                chunk_id,
-                world_position,
+        if chunk_registry.is_chunk_loaded(chunk_id) {
+            // create the chunk and register it everywhere with the module function new_chunk_actor_entity
+            // TODO: Change the existing module function so that it also registers the entity and chunk actor everywhere necessary, including the starting chunk, aka so that the resulting chunk actor entity is fully and immediately functional after having called this function
+        } else {
+            println!("Chunk not loaded, issuing request to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
+
+            if chunk_actor_registry.is_chunk_actor_entity_creating(chunk_actor_id) {
+                error!("The request for creating chunk actor entity '{:?}' has already been issued!", chunk_actor_entity_id);
+
+                created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity {
+                    chunk_actor_id,
+                    chunk_actor_entity_id,
+                    chunk_id,
+                    world_position,
+                    success: false,
+                });
+
+                continue;
             }
-        );
+            
+            chunk_actor_registry.start_creating_chunk_actor_entity(
+                ChunkActorCreateRequest {
+                    chunk_actor_id,
+                    chunk_actor_entity_id,
+                    chunk_id,
+                    world_position,
+                }
+            );
+        }
     }
 }
 
@@ -163,6 +185,7 @@ pub(in crate) fn process_create_chunk_actor_requests(
     mut chunk_query: Query<&Chunk>,
 ) {
     for created_chunk_event in created_chunk_event_reader.read() {
+
         let chunk_id = created_chunk_event.chunk_id;
         let success = created_chunk_event.success;
 
@@ -178,16 +201,15 @@ pub(in crate) fn process_create_chunk_actor_requests(
         };
 
         // LOGIC COMMENTS
-        // create the chunk actor entity
+        // create the chunk actor entity using the associated module function "new_chunk_actor_entity"
         // register it with the entity registry
         // register it with the chunk actor registry
         // register it with the chunk entity
         // send the CreatedChunkActorEntity event
+        return;
         // END LOGIC COMMENTS
 
-        // package this into a re-created new_chunk_actor_entity module function
-
         // then tie this new chunk into the chunk creation system or whatever. 
-        //Like, have a look at the revamped chunk actor system and see how this can benefit thew chunk systems?
+        //Like, have a look at the revamped chunk actor system and see how this can benefit the chunk systems?
     }
 }
