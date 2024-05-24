@@ -134,8 +134,8 @@ pub(in crate) fn handle_create_chunk_actor_entity_events(
     }
 
     for create_chunk_actor_entity_event in create_chunk_actor_entity_events {
-        let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
         let chunk_actor_entity_id = entity_registry.register_entity();
+        let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
         let chunk_id = create_chunk_actor_entity_event.chunk_id;
         let world_position = create_chunk_actor_entity_event.world_position;
 
@@ -155,6 +155,7 @@ pub(in crate) fn handle_create_chunk_actor_entity_events(
 
             entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity);
             chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity);
+
             chunk.add_chunk_actor(chunk_actor_id);
 
             created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity {
@@ -216,8 +217,8 @@ pub(in crate) fn process_create_chunk_actor_requests(
                 if request.chunk_id != chunk_id {
                     warn!("The creation request for chunk actor entity '{:?}' has been cancelled due to the starting chunk '{:?}' failing to load!", request.chunk_actor_entity_id, request.chunk_id);
 
-                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
                     entity_registry.unregister_entity(request.chunk_actor_entity_id);
+                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
 
                     chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
 
@@ -263,6 +264,7 @@ pub(in crate) fn process_create_chunk_actor_requests(
 
             entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity);
             chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity);
+
             chunk.add_chunk_actor(chunk_actor_id);
 
             chunk_actor_registry.stop_creating_chunk_actor_entity(chunk_actor_id);
@@ -275,5 +277,91 @@ pub(in crate) fn process_create_chunk_actor_requests(
                 success: true,
             });
         }
+    }
+}
+
+pub(in crate) fn handle_destroy_chunk_actor_entity_events(
+    mut commands: Commands,
+    mut destroy_chunk_actor_entity_event_reader: EventReader<DestroyChunkActorEntity>,
+    mut destroyed_chunk_actor_entity_event_writer: EventWriter<DestroyedChunkActorEntity>,
+    chunk_registry: ResMut<ChunkRegistry>,
+    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    mut entity_registry: ResMut<EntityRegistry>,
+    mut chunk_query: Query<&mut Chunk>,
+    chunk_actor_query: Query<&ChunkActor>
+) {
+    let mut destroy_chunk_actor_entity_events = Vec::new();
+    for destroy_chunk_actor_entity_event in destroy_chunk_actor_entity_event_reader.read() {
+        destroy_chunk_actor_entity_events.push(destroy_chunk_actor_entity_event.clone());
+    }
+
+    for destroy_chunk_actor_entity_event in destroy_chunk_actor_entity_events {
+        let chunk_actor_id = destroy_chunk_actor_entity_event.chunk_actor_id;
+
+        let chunk_actor_entity = match chunk_actor_registry.get_loaded_chunk_actor(chunk_actor_id) {
+            Some(chunk_actor_entity) => chunk_actor_entity,
+            None => {
+                error!("Cannot destroy chunk actor entity '{:?}' because it is not loaded!", chunk_actor_id);
+
+                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity {
+                    chunk_actor_id,
+                    success: false,
+                });
+
+                continue;
+            }
+        };
+
+        let chunk_actor = match chunk_actor_query.get(chunk_actor_entity) {
+            Ok(chunk_actor) => chunk_actor,
+            Err(_) => {
+                panic!("Chunk actor entity '{:?}' is loaded, but the chunk query failed to get the chunk actor!", chunk_actor_entity);
+            }
+        };
+
+        let chunk_actor_entity_id = match entity_registry.get_loaded_entity_id(&chunk_actor_entity) {
+            Some(chunk_actor_entity_id) => chunk_actor_entity_id,
+            None => {
+                panic!("Chunk actor entity '{:?}' is loaded, but the entity registry failed to get the entity id!", chunk_actor_entity);
+            }
+        };
+
+        let chunk_id = chunk_actor.current_chunk();
+
+        let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+            Some(chunk_entity) => chunk_entity,
+            None => {
+                error!("Cannot destroy chunk actor entity '{:?}', because the chunk '{:?}' is not loaded!", chunk_actor_id, chunk_id);
+
+                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity {
+                    chunk_actor_id,
+                    success: false,
+                });
+
+                continue;
+            }
+        };
+
+        let mut chunk = match chunk_query.get_mut(chunk_entity) {
+            Ok(chunk) => chunk,
+            Err(_) => {
+                panic!("Chunk entity '{:?}' is loaded, but the chunk query failed to get the chunk!", chunk_entity);
+            }
+        };
+
+        chunk.remove_chunk_actor(chunk_actor_id);
+
+        chunk_actor_registry.unload_chunk_actor(chunk_actor_id);
+        entity_registry.unload_entity(chunk_actor_entity_id);
+
+        chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
+        entity_registry.unregister_entity(chunk_actor_entity_id);
+
+        commands.entity(chunk_actor_entity).despawn();
+
+        destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity {
+            chunk_actor_id,
+            success: true,
+        });
     }
 }

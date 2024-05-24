@@ -131,11 +131,11 @@ impl ChunkActorRegistry {
         &mut self.registered_chunk_actors
     }
 
-    pub fn get_loaded_chunk_actor_entity(&self, chunk_actor_id: ChunkActorID) -> Option<Entity> {
+    pub fn get_loaded_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> Option<Entity> {
         self.loaded_chunk_actors.get(&chunk_actor_id).copied()
     }
 
-    pub fn loaded_chunk_actor_entity(&self, chunk_actor_id: ChunkActorID) -> Entity {
+    pub fn loaded_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> Entity {
         self.loaded_chunk_actors[&chunk_actor_id]
     }
 
@@ -145,14 +145,6 @@ impl ChunkActorRegistry {
 
     pub fn loaded_chunk_actors_mut(&mut self) -> &mut HashMap<ChunkActorID, Entity> {
         &mut self.loaded_chunk_actors
-    }
-
-    pub fn loaded_chunk_actor_ids(&self) -> HashSet<ChunkActorID> {
-        self.loaded_chunk_actors.keys().copied().collect()
-    }
-
-    pub fn loaded_chunk_actor_entities(&self) -> HashSet<Entity> {
-        self.loaded_chunk_actors.values().copied().collect()
     }
 
     pub fn creating_chunk_actor_entity_request(&self, chunk_actor_id: ChunkActorID) -> Option<&CreateChunkActorEntityRequest> {

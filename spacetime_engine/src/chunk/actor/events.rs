@@ -16,3 +16,14 @@ pub struct CreatedChunkActorEntity {
     pub world_position: Vec2,
     pub success: bool,
 }
+
+#[derive(Clone, Event)]
+pub struct DestroyChunkActorEntity {
+    pub chunk_actor_id: ChunkActorID,
+}
+
+#[derive(Clone, Event)]
+pub struct DestroyedChunkActorEntity {
+    pub chunk_actor_id: ChunkActorID,
+    pub success: bool,
+}

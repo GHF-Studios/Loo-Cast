@@ -11,6 +11,7 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // TODO: Implement event-based chunk actor  entity          destruction
 // TODO: Implement event-based chunk loader entity creation/destruction
 // TODO: Implement event-based chunk        entity creation/destruction/loading/unloading
+// Note: DONT FORGET ADAPTING THE REGISTRIES
 
 
 
