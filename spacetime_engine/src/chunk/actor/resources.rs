@@ -10,6 +10,7 @@ pub(in crate) struct ChunkActorRegistry {
     next_chunk_actor_id: ChunkActorID,
     recycled_chunk_actor_ids: Vec<ChunkActorID>,
     create_chunk_actor_entity_requests: HashMap<ChunkActorID, CreateChunkActorEntityRequest>,
+    convert_to_chunk_actor_entity_requests: HashMap<ChunkActorID, ConvertToChunkActorEntityRequest>,
 }
 
 impl ChunkActorRegistry {
@@ -81,6 +82,24 @@ impl ChunkActorRegistry {
         });
     }
 
+    pub fn start_converting_to_chunk_actor_entity(&mut self, request: ConvertToChunkActorEntityRequest) {
+        self.convert_to_chunk_actor_entity_requests.insert(request.chunk_actor_id, request);
+    }
+
+    pub fn start_converting_to_chunk_actor_entities(&mut self, requests: HashMap<ChunkActorID, ConvertToChunkActorEntityRequest>) {
+        self.convert_to_chunk_actor_entity_requests.extend(requests);
+    }
+
+    pub fn stop_converting_to_chunk_actor_entity(&mut self, chunk_actor_id: ChunkActorID) {
+        self.convert_to_chunk_actor_entity_requests.remove(&chunk_actor_id);
+    }
+
+    pub fn stop_converting_to_chunk_actor_entities(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
+        self.convert_to_chunk_actor_entity_requests.retain(|chunk_actor_id, _| {
+            !chunk_actor_ids.contains(chunk_actor_id)
+        });
+    }
+
     pub fn is_chunk_actor_registered(&self, chunk_actor_id: ChunkActorID) -> bool {
         self.registered_chunk_actors.contains(&chunk_actor_id)
     }
@@ -123,6 +142,20 @@ impl ChunkActorRegistry {
         true
     }
 
+    pub fn is_chunk_actor_entity_converted_to(&self, chunk_actor_id: ChunkActorID) -> bool {
+        self.convert_to_chunk_actor_entity_requests.contains_key(&chunk_actor_id)
+    }
+
+    pub fn are_chunk_actor_entities_converted_to(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
+        for chunk_actor_id in chunk_actor_ids {
+            if !self.convert_to_chunk_actor_entity_requests.contains_key(&chunk_actor_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn registered_chunk_actors(&self) -> &HashSet<ChunkActorID> {
         &self.registered_chunk_actors
     }
@@ -147,12 +180,20 @@ impl ChunkActorRegistry {
         &mut self.loaded_chunk_actors
     }
 
-    pub fn creating_chunk_actor_entity_request(&self, chunk_actor_id: ChunkActorID) -> Option<&CreateChunkActorEntityRequest> {
+    pub fn create_chunk_actor_entity_request(&self, chunk_actor_id: ChunkActorID) -> Option<&CreateChunkActorEntityRequest> {
         self.create_chunk_actor_entity_requests.get(&chunk_actor_id)
     }
 
-    pub fn creating_chunk_actor_entity_requests(&self) -> &HashMap<ChunkActorID, CreateChunkActorEntityRequest> {
+    pub fn create_chunk_actor_entity_requests(&self) -> &HashMap<ChunkActorID, CreateChunkActorEntityRequest> {
         &self.create_chunk_actor_entity_requests
+    }
+
+    pub fn convert_to_chunk_actor_entity_request(&self, chunk_actor_id: ChunkActorID) -> Option<&ConvertToChunkActorEntityRequest> {
+        self.convert_to_chunk_actor_entity_requests.get(&chunk_actor_id)
+    }
+
+    pub fn convert_to_chunk_actor_entity_requests(&self) -> &HashMap<ChunkActorID, ConvertToChunkActorEntityRequest> {
+        &self.convert_to_chunk_actor_entity_requests
     }
 
     fn get_unused_chunk_actor_id(&mut self) -> ChunkActorID {

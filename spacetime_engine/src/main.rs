@@ -4,7 +4,6 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
-
 // Types of world modifications
 // 1. Chunk Creation/Destruction/Loading/Unloading
 // 2. Chunk Actor Entity Creation/Destruction

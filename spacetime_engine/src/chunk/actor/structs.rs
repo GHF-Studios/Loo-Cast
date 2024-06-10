@@ -25,3 +25,10 @@ pub(in crate::chunk::actor) struct CreateChunkActorEntityRequest {
     pub chunk_id: ChunkID,
     pub world_position: Vec2,
 }
+
+#[derive(Clone, Debug)]
+pub(in crate::chunk::actor) struct ConvertToChunkActorEntityRequest {
+    pub chunk_actor_id: ChunkActorID,
+    pub target_entity_id: EntityID,
+    pub chunk_id: ChunkID,
+}

@@ -1,5 +1,6 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
+use crate::chunk;
 use crate::chunk::events::CreatedChunk;
 use crate::chunk::id::structs::*;
 use crate::chunk::position::structs::*;
@@ -151,10 +152,10 @@ pub(in crate) fn handle_create_chunk_actor_entity_events(
                 }
             };
 
-            let chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, chunk_actor_id, chunk_id, world_position);
+            let chunk_actor_entity_reference = functions::new_chunk_actor_entity(&mut commands, chunk_actor_id, chunk_id, world_position);
 
-            entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity);
-            chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity);
+            entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity_reference);
+            chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
 
             chunk.add_chunk_actor(chunk_actor_id);
 
@@ -206,13 +207,17 @@ pub(in crate) fn process_create_chunk_actor_requests(
     mut entity_registry: ResMut<EntityRegistry>,
     mut chunk_query: Query<&mut Chunk>,
 ) {
+    let mut created_chunk_events = Vec::new();
     for created_chunk_event in created_chunk_event_reader.read() {
+        created_chunk_events.push(created_chunk_event.clone());
+    }
 
+    for created_chunk_event in created_chunk_events {
         let chunk_id = created_chunk_event.chunk_id;
         let success = created_chunk_event.success;
 
         if !success {
-            let requests = chunk_actor_registry.creating_chunk_actor_entity_requests().clone();
+            let requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
             for request in requests.values() {
                 if request.chunk_id != chunk_id {
                     warn!("The creation request for chunk actor entity '{:?}' has been cancelled due to the starting chunk '{:?}' failing to load!", request.chunk_actor_entity_id, request.chunk_id);
@@ -235,21 +240,21 @@ pub(in crate) fn process_create_chunk_actor_requests(
             continue;
         }
 
-        let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity) => chunk_entity,
             None => {
                 panic!("Chunk '{:?}' is loaded, but the chunk registry failed to get the chunk entity!", chunk_id);
             }
         };
 
-        let mut chunk = match chunk_query.get_mut(chunk_entity) {
+        let mut chunk = match chunk_query.get_mut(chunk_entity_reference) {
             Ok(chunk) => chunk,
             Err(_) => {
-                panic!("Chunk entity '{:?}' is loaded, but the chunk query failed to get the chunk!", chunk_entity);
+                panic!("Chunk entity '{:?}' is loaded, but the chunk query failed to get the chunk!", chunk_entity_reference);
             }
         };
 
-        let create_chunk_actor_entity_requests = chunk_actor_registry.creating_chunk_actor_entity_requests().clone();
+        let create_chunk_actor_entity_requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
         for create_chunk_actor_entity_request in create_chunk_actor_entity_requests.values() {
             let chunk_actor_id = create_chunk_actor_entity_request.chunk_actor_id;
             let chunk_actor_entity_id = create_chunk_actor_entity_request.chunk_actor_entity_id;
@@ -298,7 +303,7 @@ pub(in crate) fn handle_destroy_chunk_actor_entity_events(
     for destroy_chunk_actor_entity_event in destroy_chunk_actor_entity_events {
         let chunk_actor_id = destroy_chunk_actor_entity_event.chunk_actor_id;
 
-        let chunk_actor_entity = match chunk_actor_registry.get_loaded_chunk_actor(chunk_actor_id) {
+        let chunk_actor_entity_reference = match chunk_actor_registry.get_loaded_chunk_actor(chunk_actor_id) {
             Some(chunk_actor_entity) => chunk_actor_entity,
             None => {
                 error!("Cannot destroy chunk actor entity '{:?}' because it is not loaded!", chunk_actor_id);
@@ -312,23 +317,23 @@ pub(in crate) fn handle_destroy_chunk_actor_entity_events(
             }
         };
 
-        let chunk_actor = match chunk_actor_query.get(chunk_actor_entity) {
+        let chunk_actor = match chunk_actor_query.get(chunk_actor_entity_reference) {
             Ok(chunk_actor) => chunk_actor,
             Err(_) => {
-                panic!("Chunk actor entity '{:?}' is loaded, but the chunk query failed to get the chunk actor!", chunk_actor_entity);
+                panic!("Chunk actor entity '{:?}' is loaded, but the chunk query failed to get the chunk actor!", chunk_actor_entity_reference);
             }
         };
 
-        let chunk_actor_entity_id = match entity_registry.get_loaded_entity_id(&chunk_actor_entity) {
+        let chunk_actor_entity_id = match entity_registry.get_loaded_entity_id(&chunk_actor_entity_reference) {
             Some(chunk_actor_entity_id) => chunk_actor_entity_id,
             None => {
-                panic!("Chunk actor entity '{:?}' is loaded, but the entity registry failed to get the entity id!", chunk_actor_entity);
+                panic!("Chunk actor entity '{:?}' is loaded, but the entity registry failed to get the entity id!", chunk_actor_entity_reference);
             }
         };
 
         let chunk_id = chunk_actor.current_chunk();
 
-        let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity) => chunk_entity,
             None => {
                 error!("Cannot destroy chunk actor entity '{:?}', because the chunk '{:?}' is not loaded!", chunk_actor_id, chunk_id);
@@ -342,10 +347,10 @@ pub(in crate) fn handle_destroy_chunk_actor_entity_events(
             }
         };
 
-        let mut chunk = match chunk_query.get_mut(chunk_entity) {
+        let mut chunk = match chunk_query.get_mut(chunk_entity_reference) {
             Ok(chunk) => chunk,
             Err(_) => {
-                panic!("Chunk entity '{:?}' is loaded, but the chunk query failed to get the chunk!", chunk_entity);
+                panic!("Chunk entity '{:?}' is loaded, but the chunk query failed to get the chunk!", chunk_entity_reference);
             }
         };
 
@@ -357,11 +362,183 @@ pub(in crate) fn handle_destroy_chunk_actor_entity_events(
         chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
         entity_registry.unregister_entity(chunk_actor_entity_id);
 
-        commands.entity(chunk_actor_entity).despawn();
+        commands.entity(chunk_actor_entity_reference).despawn();
 
         destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity {
             chunk_actor_id,
             success: true,
         });
+    }
+}
+
+pub(in crate) fn handle_convert_to_chunk_actor_entity_events(
+    mut commands: Commands,
+    mut convert_to_chunk_actor_entity_event_reader: EventReader<ConvertToChunkActorEntity>,
+    mut converted_to_chunk_actor_entity_event_writer: EventWriter<ConvertedToChunkActorEntity>,
+    chunk_registry: ResMut<ChunkRegistry>,
+    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    mut entity_registry: ResMut<EntityRegistry>,
+    mut chunk_query: Query<&mut Chunk>,
+    mut eligible_entity_query: Query<Entity, (With<Transform>, Without<ChunkActor>)>,
+) {
+    let mut convert_to_chunk_actor_entity_events = Vec::new();
+    for convert_to_chunk_actor_entity_event in convert_to_chunk_actor_entity_event_reader.read() {
+        convert_to_chunk_actor_entity_events.push(convert_to_chunk_actor_entity_event.clone());
+    }
+
+    for convert_to_chunk_actor_entity_event in convert_to_chunk_actor_entity_events {
+        let target_entity_id = convert_to_chunk_actor_entity_event.target_entity_id;
+        let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
+        let chunk_id = convert_to_chunk_actor_entity_event.chunk_id;
+
+        info!("Trying to convert entity '{:?}' to a chunk actor entity ...", target_entity_id);
+
+        if let Some(chunk_entity) = chunk_registry.get_loaded_chunk_entity(chunk_id) {
+            info!("Chunk loaded, converting entity '{:?}' to a chunk actor entity immediately ...", target_entity_id);
+
+            let mut chunk = match chunk_query.get_mut(chunk_entity) {
+                Ok(chunk) => chunk,
+                Err(_) => {
+                    panic!("Chunk entity '{:?}' is loaded, but the chunk query failed to get the chunk!", chunk_entity);
+                }
+            };
+
+            let target_entity_reference = match entity_registry.get_loaded_entity_reference(&target_entity_id) {
+                Some(target_entity) => target_entity,
+                None => {
+                    panic!("Entity '{:?}' is loaded, but the entity registry failed to get the entity!", target_entity_id);
+                }
+            };
+
+            let chunk_actor_entity_reference = functions::convert_to_chunk_actor_entity(&mut commands, chunk_actor_id, chunk_id, target_entity_reference, &mut eligible_entity_query);
+
+            chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
+
+            chunk.add_chunk_actor(chunk_actor_id);
+
+            converted_to_chunk_actor_entity_event_writer.send(ConvertedToChunkActorEntity {
+                chunk_actor_id,
+                chunk_actor_entity_id: target_entity_id,
+                chunk_id,
+                success: true,
+            });
+        } else {
+            info!("Chunk not loaded, issuing request to convert entity '{:?}' to a chunk actor entity when the chunk is loaded ...", target_entity_id);
+
+            if chunk_actor_registry.is_chunk_actor_entity_converted_to(chunk_actor_id) {
+                error!("The request for converting entity '{:?}' to a chunk actor entity has already been issued!", target_entity_id);
+
+                chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
+                entity_registry.unregister_entity(target_entity_id);
+
+                converted_to_chunk_actor_entity_event_writer.send(ConvertedToChunkActorEntity {
+                    chunk_actor_id,
+                    chunk_actor_entity_id: target_entity_id,
+                    chunk_id,
+                    success: false,
+                });
+
+                continue;
+            }
+            
+            chunk_actor_registry.start_converting_to_chunk_actor_entity(
+                ConvertToChunkActorEntityRequest {
+                    chunk_actor_id,
+                    target_entity_id,
+                    chunk_id,
+                }
+            );
+        }
+    }
+}
+
+pub(in crate) fn process_convert_to_chunk_actor_requests(
+    mut commands: Commands,
+    mut created_chunk_event_reader: EventReader<CreatedChunk>,
+    mut converted_to_chunk_actor_entity_event_writer: EventWriter<ConvertedToChunkActorEntity>,
+    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    chunk_registry: ResMut<ChunkRegistry>,
+    entity_registry: Res<EntityRegistry>,
+    mut chunk_query: Query<&mut Chunk>,
+    mut eligible_entity_query: Query<Entity, (With<Transform>, Without<ChunkActor>)>,
+) {
+    let mut created_chunk_events = Vec::new();
+    for created_chunk_event in created_chunk_event_reader.read() {
+        created_chunk_events.push(created_chunk_event.clone());
+    }
+
+    for created_chunk_event in created_chunk_events {
+        let chunk_id = created_chunk_event.chunk_id;
+        let success = created_chunk_event.success;
+
+        if !success {
+            let requests = chunk_actor_registry.convert_to_chunk_actor_entity_requests().clone();
+            for request in requests.values() {
+                if request.chunk_id != chunk_id {
+                    warn!("The chunk actor entity conversion request for entity '{:?}' has been cancelled due to the starting chunk '{:?}' failing to load!", request.target_entity_id, request.chunk_id);
+
+                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+
+                    chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
+
+                    converted_to_chunk_actor_entity_event_writer.send(ConvertedToChunkActorEntity {
+                        chunk_actor_id: request.chunk_actor_id,
+                        chunk_actor_entity_id: request.target_entity_id,
+                        chunk_id: request.chunk_id,
+                        success: false,
+                    });
+                }
+            }
+
+            continue;
+        }
+
+        let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+            Some(chunk_entity) => chunk_entity,
+            None => {
+                panic!("Chunk '{:?}' is loaded, but the chunk registry failed to get the chunk entity!", chunk_id);
+            }
+        };
+
+        let mut chunk = match chunk_query.get_mut(chunk_entity) {
+            Ok(chunk) => chunk,
+            Err(_) => {
+                panic!("Chunk entity '{:?}' is loaded, but the chunk query failed to get the chunk!", chunk_entity);
+            }
+        };
+
+        let convert_to_chunk_actor_entity_requests = chunk_actor_registry.convert_to_chunk_actor_entity_requests().clone();
+        for convert_to_chunk_actor_entity_request in convert_to_chunk_actor_entity_requests.values() {
+            let chunk_actor_id = convert_to_chunk_actor_entity_request.chunk_actor_id;
+            let target_entity_id = convert_to_chunk_actor_entity_request.target_entity_id;
+            let chunk_id = convert_to_chunk_actor_entity_request.chunk_id;
+
+            if chunk_id != chunk_id {
+                continue;
+            }
+
+            let target_entity_reference = match entity_registry.get_loaded_entity_reference(&target_entity_id) {
+                Some(target_entity) => target_entity,
+                None => {
+                    panic!("Entity '{:?}' is loaded, but the entity registry failed to get the entity!", target_entity_id);
+                }
+            };
+
+            let chunk_actor_entity_reference = functions::convert_to_chunk_actor_entity(&mut commands, chunk_actor_id, chunk_id, target_entity_reference, &mut eligible_entity_query);
+            let chunk_actor_entity_id = target_entity_id;
+
+            chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
+
+            chunk.add_chunk_actor(chunk_actor_id);
+
+            chunk_actor_registry.stop_converting_to_chunk_actor_entity(chunk_actor_id);
+
+            converted_to_chunk_actor_entity_event_writer.send(ConvertedToChunkActorEntity {
+                chunk_actor_id,
+                chunk_actor_entity_id,
+                chunk_id,
+                success: true,
+            });
+        }
     }
 }

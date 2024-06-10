@@ -27,3 +27,17 @@ pub struct DestroyedChunkActorEntity {
     pub chunk_actor_id: ChunkActorID,
     pub success: bool,
 }
+
+#[derive(Clone, Event)]
+pub struct ConvertToChunkActorEntity {
+    pub target_entity_id: EntityID,
+    pub chunk_id: ChunkID,
+}
+
+#[derive(Clone, Event)]
+pub struct ConvertedToChunkActorEntity {
+    pub chunk_actor_id: ChunkActorID,
+    pub chunk_actor_entity_id: EntityID,
+    pub chunk_id: ChunkID,
+    pub success: bool,
+}
