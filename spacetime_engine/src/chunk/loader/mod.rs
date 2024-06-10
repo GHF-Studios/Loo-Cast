@@ -2,6 +2,8 @@ pub mod components;
 pub mod events;
 pub mod functions;
 pub(in crate) mod systems;
+pub mod resources;
+pub mod structs;
 
 pub mod id;
 

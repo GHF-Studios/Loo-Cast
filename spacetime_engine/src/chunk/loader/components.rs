@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::chunk::id::structs::*;
 
-use super::structs::ChunkLoaderID;
+use super::id::structs::ChunkLoaderID;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
