@@ -2,19 +2,22 @@ use bevy::prelude::*;
 use crate::{chunk::id::structs::ChunkID, entity::id::structs::*};
 use super::id::structs::ChunkActorID;
 
+// TODO: Implement
+#[derive(Debug, Clone, Event)]
+pub(super) struct StartChunkActor {
+    pub chunk_actor_id: ChunkActorID
+}
+
+// TODO: Implement
+#[derive(Debug, Clone, Event)]
+pub(super) struct UpdateChunkActor {
+    pub chunk_actor_id: ChunkActorID
+}
+
 #[derive(Clone, Event)]
 pub struct CreateChunkActorEntity {
     pub chunk_id: ChunkID,
     pub world_position: Vec2,
-}
-
-#[derive(Clone, Event)]
-pub struct CreatedChunkActorEntity {
-    pub chunk_actor_id: ChunkActorID,
-    pub chunk_actor_entity_id: EntityID,
-    pub chunk_id: ChunkID,
-    pub world_position: Vec2,
-    pub success: bool,
 }
 
 #[derive(Clone, Event)]
@@ -23,21 +26,66 @@ pub struct DestroyChunkActorEntity {
 }
 
 #[derive(Clone, Event)]
-pub struct DestroyedChunkActorEntity {
-    pub chunk_actor_id: ChunkActorID,
-    pub success: bool,
-}
-
-#[derive(Clone, Event)]
-pub struct ConvertToChunkActorEntity {
+pub struct UpgradeToChunkActorEntity {
     pub target_entity_id: EntityID,
     pub chunk_id: ChunkID,
 }
 
+// TODO: Implement
+#[derive(Debug, Clone, Event)]
+pub(super) enum StartChunkActorResult {
+    Success {
+        chunk_actor_id: ChunkActorID,
+    },
+    Failure {
+        chunk_actor_id: ChunkActorID,
+    }
+}
+
+// TODO: Implement
+#[derive(Debug, Clone, Event)]
+pub(super) enum UpdateChunkActorResult {
+    Success {
+        chunk_actor_id: ChunkActorID,
+    },
+    Failure {
+        chunk_actor_id: ChunkActorID,
+    }
+}
+
 #[derive(Clone, Event)]
-pub struct ConvertedToChunkActorEntity {
-    pub chunk_actor_id: ChunkActorID,
-    pub chunk_actor_entity_id: EntityID,
-    pub chunk_id: ChunkID,
-    pub success: bool,
+pub enum CreateChunkActorEntityResult {
+    Success {
+        chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
+    },
+    Failure {
+        chunk_id: ChunkID,
+        world_position: Vec2,
+    }
+}
+
+#[derive(Clone, Event)]
+pub enum DestroyChunkActorEntityResult {
+    Success {
+        chunk_actor_id: ChunkActorID,
+    },
+    Failure {
+        chunk_actor_id: ChunkActorID
+    },
+}
+
+#[derive(Clone, Event)]
+pub enum UpgradeToChunkActorEntityResult {
+    Success {
+        chunk_actor_id: ChunkActorID,
+        target_entity_id: EntityID,
+        chunk_id: ChunkID,
+    },
+    Failure {
+        target_entity_id: EntityID,
+        chunk_id: ChunkID,
+    },
 }

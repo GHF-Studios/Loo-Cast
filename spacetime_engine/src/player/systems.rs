@@ -10,12 +10,12 @@ use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use super::components::Player;
 
-pub(in crate) fn startup(
+pub(in crate) fn start(
 ) {
     david
 }
 
-pub(in crate) fn handle_startup(
+pub(in crate) fn handle_start(
 ) {
     jackson
 }

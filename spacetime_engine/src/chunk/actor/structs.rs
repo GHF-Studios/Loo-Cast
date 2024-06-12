@@ -27,7 +27,7 @@ pub(in crate::chunk::actor) struct CreateChunkActorEntityRequest {
 }
 
 #[derive(Clone, Debug)]
-pub(in crate::chunk::actor) struct ConvertToChunkActorEntityRequest {
+pub(in crate::chunk::actor) struct UpgradeToChunkActorEntityRequest {
     pub chunk_actor_id: ChunkActorID,
     pub target_entity_id: EntityID,
     pub chunk_id: ChunkID,

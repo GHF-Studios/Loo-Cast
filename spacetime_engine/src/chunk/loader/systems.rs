@@ -3,15 +3,12 @@ use crate::chunk::events::*;
 use crate::chunk::resources::*;
 use crate::chunk::loader::components::*;
 use crate::chunk::loader::events::*;
-use crate::chunk::loader::functions;	
+use crate::chunk::functions;	
 
-// TODO: ???????
-// Maybe we should control startup not via the startup schedule but via some startup event or whatever
-// See player/functions.rs
-pub(in crate) fn startup(
+pub(in crate) fn start(
     create_chunk_event_writer: EventWriter<CreateChunk>,
     load_chunk_event_writer: EventWriter<LoadChunk>,
-    mut started_chunk_loader_event_writer: EventWriter<StartedChunkLoader>,
+    mut started_chunk_loader_event_writer: EventWriter<StartChunkLoaderResult>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader), Added<ChunkLoader>>,
     chunk_registry: Res<ChunkRegistry>,
 ) {
@@ -30,14 +27,14 @@ pub(in crate) fn startup(
 
     *chunk_loader.current_chunk_ids_mut() = detected_chunk_ids;
 
-    started_chunk_loader_event_writer.send(StartedChunkLoader { chunk_loader_id });
+    started_chunk_loader_event_writer.send(StartChunkLoaderResult::Success { chunk_loader_id });
 }
 
 pub(in crate) fn update(
     create_chunk_event_writer: EventWriter<CreateChunk>,
     load_chunk_event_writer: EventWriter<LoadChunk>,
     unload_chunk_event_writer: EventWriter<UnloadChunk>,
-    mut updated_chunk_loader_event_writer: EventWriter<UpdatedChunkLoader>,
+    mut updated_chunk_loader_event_writer: EventWriter<UpdateChunkLoaderResult>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
     chunk_registry: Res<ChunkRegistry>,
 ) {
@@ -64,5 +61,5 @@ pub(in crate) fn update(
 
     *chunk_loader.current_chunk_ids_mut() = vec![unchanged_chunk_ids, new_chunk_ids].concat();
 
-    updated_chunk_loader_event_writer.send(UpdatedChunkLoader { chunk_loader_id });
+    updated_chunk_loader_event_writer.send(UpdateChunkLoaderResult::Success { chunk_loader_id });
 }

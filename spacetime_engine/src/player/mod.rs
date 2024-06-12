@@ -19,11 +19,11 @@ pub(in crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<events::Startup>()
+            .add_event::<events::Start>()
             .add_plugins(CreativePlugin)
             .add_plugins(MovementPlugin)
             .add_plugins(TeleportationPlugin)
-            .add_systems(Startup, startup)
+            .add_systems(Start, start)
             .add_systems(Update, change_player_chunk_load_radius)
             .register_type::<components::Player>();
     }

@@ -22,6 +22,10 @@ pub(in crate) fn new_player_entity(
     let player_chunk_actor_position: ChunkActorPosition = player_chunk_position.into();
     let player_world_position: Vec3 = player_chunk_actor_position.0;
 
+    // TODO: Read this
+    // Instead of simply inserting a ChunkLoader and ChunkActor component into the player entity, 
+    // we should rather use events to request both a chunk loader upgrade of the player entity, 
+    // and on completion of that upgrade also upgrade the entity to a chunk actor
     let player_entity = world
         .spawn(super::components::Player)
         .insert(SpriteBundle {
