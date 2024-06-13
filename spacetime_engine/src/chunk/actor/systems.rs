@@ -197,8 +197,10 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
     mut upgraded_to_chunk_actor_entity_event_writer: EventWriter<UpgradeToChunkActorEntityResult>,
     chunk_registry: ResMut<ChunkRegistry>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
-    mut entity_registry: ResMut<EntityRegistry>,
+    entity_registry: Res<EntityRegistry>,
     mut chunk_query: Query<&mut Chunk>,
+    mut ineligible_entity_query_0: Query<Entity, Without<Transform>>,
+    mut ineligible_entity_query_1: Query<Entity, With<ChunkActor>>,
     mut eligible_entity_query: Query<Entity, (With<Transform>, Without<ChunkActor>)>,
 ) {
     let mut upgrade_to_chunk_actor_entity_events = Vec::new();
@@ -230,7 +232,30 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
                 }
             };
 
-            let chunk_actor_entity_reference = functions::upgrade_to_chunk_actor_entity(&mut commands, chunk_actor_id, chunk_id, target_entity_reference, &mut eligible_entity_query);
+            let chunk_actor_entity_reference = match functions::upgrade_to_chunk_actor_entity(
+                &mut commands, 
+                chunk_actor_id, 
+                chunk_id, 
+                target_entity_reference,
+                &mut ineligible_entity_query_0,
+                &mut ineligible_entity_query_1,
+                &mut eligible_entity_query
+            ) {
+                Ok(chunk_actor_entity_reference) => chunk_actor_entity_reference,
+                Err(_) => {
+                    error!("Failed to upgrade entity '{:?}' to a chunk actor entity!", target_entity_id);
+
+                    chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
+
+                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradeToChunkActorEntityResult::Failure {
+                        target_entity_id,
+                        chunk_id,
+                    });
+
+                    continue;
+                }
+            
+            };
 
             chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
 
@@ -248,7 +273,6 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
                 error!("The request for upgrading entity '{:?}' to a chunk actor entity has already been issued!", target_entity_id);
 
                 chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
-                entity_registry.unregister_entity(target_entity_id);
 
                 upgraded_to_chunk_actor_entity_event_writer.send(UpgradeToChunkActorEntityResult::Failure {
                     target_entity_id,
@@ -360,6 +384,8 @@ pub(super) fn process_upgrade_to_chunk_actor_requests(
     chunk_registry: ResMut<ChunkRegistry>,
     entity_registry: Res<EntityRegistry>,
     mut chunk_query: Query<&mut Chunk>,
+    mut ineligible_entity_query_0: Query<Entity, Without<Transform>>,
+    mut ineligible_entity_query_1: Query<Entity, With<ChunkActor>>,
     mut eligible_entity_query: Query<Entity, (With<Transform>, Without<ChunkActor>)>,
 ) {
     let mut created_chunk_entity_events = Vec::new();
@@ -422,7 +448,29 @@ pub(super) fn process_upgrade_to_chunk_actor_requests(
                 }
             };
 
-            let chunk_actor_entity_reference = functions::upgrade_to_chunk_actor_entity(&mut commands, chunk_actor_id, chunk_id, target_entity_reference, &mut eligible_entity_query);
+            let chunk_actor_entity_reference = match functions::upgrade_to_chunk_actor_entity(
+                &mut commands, 
+                chunk_actor_id, 
+                chunk_id, 
+                target_entity_reference, 
+                &mut ineligible_entity_query_0,
+                &mut ineligible_entity_query_1,
+                &mut eligible_entity_query
+            ) {
+                Ok(chunk_actor_entity_reference) => chunk_actor_entity_reference,
+                Err(_) => {
+                    error!("Failed to upgrade entity '{:?}' to a chunk actor entity!", target_entity_id);
+
+                    chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
+
+                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradeToChunkActorEntityResult::Failure {
+                        target_entity_id,
+                        chunk_id,
+                    });
+
+                    continue;
+                }
+            };
 
             chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
 

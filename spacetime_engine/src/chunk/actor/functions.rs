@@ -31,16 +31,27 @@ pub(super) fn upgrade_to_chunk_actor_entity(
     chunk_actor_id: ChunkActorID,
     chunk_id: ChunkID,
     target_entity_reference: Entity,
+    ineligible_entity_query_0: &mut Query<Entity, Without<Transform>>,
+    ineligible_entity_query_1: &mut Query<Entity, With<ChunkActor>>,
     eligible_entity_query: &mut Query<Entity, (With<Transform>, Without<ChunkActor>)>,
-) -> Entity {
-    match eligible_entity_query.get_mut(target_entity_reference) {
-        Ok(eligible_entity) => {
-            commands.entity(eligible_entity).insert(ChunkActor::new(chunk_actor_id, chunk_id)).id()
-        },
-        Err(_) => {
-            panic!("Entity does not exist or does not have a Transform component.");
-        }
-    }
+) -> Result<Entity, Entity> {
+    if let Ok(_) = ineligible_entity_query_0.get(target_entity_reference) {
+        error!("Entity '{:?}' does not have a Transform component!", target_entity_reference);
+
+        return Err(target_entity_reference);
+    };
+
+    if let Ok(_) = ineligible_entity_query_1.get(target_entity_reference) {
+        error!("Entity '{:?}' already has a ChunkActor component!", target_entity_reference);
+
+        return Err(target_entity_reference);
+    };
+
+    if let Ok(eligible_entity) = eligible_entity_query.get_mut(target_entity_reference) {
+        return Ok(commands.entity(eligible_entity).insert(ChunkActor::new(chunk_actor_id, chunk_id)).id());
+    } else {
+        panic!("Entity does not exist or does not have a Transform component.");
+    };
 }
 
 pub(super) fn collect_chunk_actor_updates(
