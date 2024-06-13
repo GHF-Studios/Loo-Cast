@@ -22,7 +22,7 @@ pub(in crate) fn update(
         player_velocity.x += 1.0;
     }
 
-    for (mut velocity) in query.iter_mut() {
+    for mut velocity in query.iter_mut() {
         velocity.linvel = player_velocity.normalize_or_zero() * SPEED;
     }
 }

@@ -69,7 +69,7 @@ pub(in crate) fn update(
         };
 
         let new_chunk_actor_id = chunk_actor_registry.register_chunk_actor();
-        let new_chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, hit_world_position, hit_chunk_id, new_chunk_actor_id);
+        let new_chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, new_chunk_actor_id, hit_chunk_id, hit_world_position);
         chunk_actor_registry.load_chunk_actor(new_chunk_actor_id, new_chunk_actor_entity);
         hit_chunk.add_chunk_actor(new_chunk_actor_id);
     } else if mouse_button_input.just_pressed(MouseButton::Left) {
