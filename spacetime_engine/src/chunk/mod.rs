@@ -37,22 +37,22 @@ impl Plugin for ChunkPlugin {
         ));
 
         app
-            .add_event::<events::CreateChunk>()
-            .add_event::<events::CreatedChunk>()
-            .add_event::<events::DestroyChunk>()
-            .add_event::<events::DestroyedChunk>()
-            .add_event::<events::LoadChunk>()
-            .add_event::<events::LoadedChunk>()
-            .add_event::<events::UnloadChunk>()
-            .add_event::<events::UnloadedChunk>()
-            .add_event::<events::CreateChunkInternal>()
-            .add_event::<events::CreatedChunkInternal>()
-            .add_event::<events::DestroyChunkInternal>()
-            .add_event::<events::DestroyedChunkInternal>()
-            .add_event::<events::LoadChunkInternal>()
-            .add_event::<events::LoadedChunkInternal>()
-            .add_event::<events::UnloadChunkInternal>()
-            .add_event::<events::UnloadedChunkInternal>()
+            .add_event::<events::CreateChunkEntity>()
+            .add_event::<events::CreatedChunkEntity>()
+            .add_event::<events::DestroyChunkEntity>()
+            .add_event::<events::DestroyedChunkEntity>()
+            .add_event::<events::LoadChunkEntity>()
+            .add_event::<events::LoadedChunkEntity>()
+            .add_event::<events::UnloadChunkEntity>()
+            .add_event::<events::UnloadedChunkEntity>()
+            .add_event::<events::CreateChunkEntityInternal>()
+            .add_event::<events::CreatedChunkEntityInternal>()
+            .add_event::<events::DestroyChunkEntityInternal>()
+            .add_event::<events::DestroyedChunkEntityInternal>()
+            .add_event::<events::LoadChunkEntityInternal>()
+            .add_event::<events::LoadedChunkEntityInternal>()
+            .add_event::<events::UnloadChunkEntityInternal>()
+            .add_event::<events::UnloadedChunkEntityInternal>()
             .add_plugins(ActorPlugin)
             .add_plugins(PositionPlugin)
             .add_plugins(IdPlugin)
@@ -65,16 +65,16 @@ impl Plugin for ChunkPlugin {
                 handle_unload_chunk_events
             ).in_set(StartExternalOperationSystems))
             .add_systems(Update, (
-                handle_create_chunk_internal_events,
-                handle_destroy_chunk_internal_events,
-                handle_load_chunk_internal_events,
-                handle_unload_chunk_internal_events
+                handle_create_chunk_entity_internal_events,
+                handle_destroy_chunk_entity_internal_events,
+                handle_load_chunk_entity_internal_events,
+                handle_unload_chunk_entity_internal_events
             ).in_set(StartInternalOperationSystems))
             .add_systems(Update, (
-                handle_created_chunk_internal_events,
-                handle_destroyed_chunk_internal_events,
-                handle_loaded_chunk_internal_events,
-                handle_unloaded_chunk_internal_events
+                handle_created_chunk_entity_internal_events,
+                handle_destroyed_chunk_entity_internal_events,
+                handle_loaded_chunk_entity_internal_events,
+                handle_unloaded_chunk_entity_internal_events
             ).in_set(FinishedInternalOperationSystems))
             .register_type::<components::Chunk>()
             .register_type::<Vec<actor::id::structs::ChunkActorID>>();

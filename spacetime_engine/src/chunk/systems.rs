@@ -6,8 +6,8 @@ use crate::chunk::functions;
 use crate::entity::resources::*;
 
 pub(in crate) fn handle_create_chunk_events(
-    mut create_chunk_event_reader: EventReader<CreateChunk>,
-    mut create_chunk_internal_event_writer: EventWriter<CreateChunkInternal>,
+    mut create_chunk_event_reader: EventReader<CreateChunkEntity>,
+    mut create_chunk_entity_internal_event_writer: EventWriter<CreateChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let mut chunk_ids = Vec::new();
@@ -25,13 +25,13 @@ pub(in crate) fn handle_create_chunk_events(
         }
         
         chunk_registry.start_creating_chunk(chunk_id);
-        create_chunk_internal_event_writer.send(CreateChunkInternal { chunk_id });
+        create_chunk_entity_internal_event_writer.send(CreateChunkEntityInternal { chunk_id });
     }
 }
 
 pub(in crate) fn handle_destroy_chunk_events(
-    mut destroy_chunk_event_reader: EventReader<DestroyChunk>,
-    mut destroy_chunk_internal_event_writer: EventWriter<DestroyChunkInternal>,
+    mut destroy_chunk_event_reader: EventReader<DestroyChunkEntity>,
+    mut destroy_chunk_entity_internal_event_writer: EventWriter<DestroyChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let mut chunk_ids = Vec::new();
@@ -49,13 +49,13 @@ pub(in crate) fn handle_destroy_chunk_events(
         }
 
         chunk_registry.start_destroying_chunk(chunk_id);
-        destroy_chunk_internal_event_writer.send(DestroyChunkInternal { chunk_id });
+        destroy_chunk_entity_internal_event_writer.send(DestroyChunkEntityInternal { chunk_id });
     }
 }
 
 pub(in crate) fn handle_load_chunk_events(
-    mut load_chunk_event_reader: EventReader<LoadChunk>,
-    mut load_chunk_internal_event_writer: EventWriter<LoadChunkInternal>,
+    mut load_chunk_event_reader: EventReader<LoadChunkEntity>,
+    mut load_chunk_entity_internal_event_writer: EventWriter<LoadChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let mut chunk_ids = Vec::new();
@@ -73,13 +73,13 @@ pub(in crate) fn handle_load_chunk_events(
         }
         
         chunk_registry.start_loading_chunk(chunk_id);
-        load_chunk_internal_event_writer.send(LoadChunkInternal { chunk_id });
+        load_chunk_entity_internal_event_writer.send(LoadChunkEntityInternal { chunk_id });
     }
 }
 
 pub(in crate) fn handle_unload_chunk_events(
-    mut unload_chunk_event_reader: EventReader<UnloadChunk>,
-    mut unload_chunk_internal_event_writer: EventWriter<UnloadChunkInternal>,
+    mut unload_chunk_event_reader: EventReader<UnloadChunkEntity>,
+    mut unload_chunk_entity_internal_event_writer: EventWriter<UnloadChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let mut chunk_ids = Vec::new();
@@ -97,15 +97,15 @@ pub(in crate) fn handle_unload_chunk_events(
         }
 
         chunk_registry.start_unloading_chunk(chunk_id);
-        unload_chunk_internal_event_writer.send(UnloadChunkInternal { chunk_id });
+        unload_chunk_entity_internal_event_writer.send(UnloadChunkEntityInternal { chunk_id });
     }
 }
 
-pub(in crate) fn handle_create_chunk_internal_events(
+pub(in crate) fn handle_create_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
-        EventReader<CreateChunkInternal>,
-        EventWriter<CreatedChunkInternal>,
+        EventReader<CreateChunkEntityInternal>,
+        EventWriter<CreatedChunkEntityInternal>,
     )>,
     registry_parameters: &mut SystemState<(
         ResMut<ChunkRegistry>,
@@ -114,7 +114,7 @@ pub(in crate) fn handle_create_chunk_internal_events(
 ) {
     let mut create_chunk_event_reader = event_parameters.get_mut(world).0;
 
-    let mut create_chunk_events: Vec<CreateChunkInternal> = Vec::new();
+    let mut create_chunk_events: Vec<CreateChunkEntityInternal> = Vec::new();
     for create_chunk_event in create_chunk_event_reader.read() {
         create_chunk_events.push(create_chunk_event.clone());
     }
@@ -130,8 +130,8 @@ pub(in crate) fn handle_create_chunk_internal_events(
         if is_chunk_registered {
             warn!("Chunk '{:?}' is already registered!", chunk_id);
             
-            let mut created_chunk_event_writer = event_parameters.get_mut(world).1;
-            created_chunk_event_writer.send(CreatedChunkInternal { chunk_id, success: false });
+            let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+            created_chunk_entity_event_writer.send(CreatedChunkEntityInternal { chunk_id, success: false });
 
             continue;
         }
@@ -139,8 +139,8 @@ pub(in crate) fn handle_create_chunk_internal_events(
         if is_chunk_loaded {
             warn!("Chunk '{:?}' is already loaded!", chunk_id);
 
-            let mut created_chunk_event_writer = event_parameters.get_mut(world).1;
-            created_chunk_event_writer.send(CreatedChunkInternal { chunk_id, success: false });
+            let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+            created_chunk_entity_event_writer.send(CreatedChunkEntityInternal { chunk_id, success: false });
 
             continue;
         }
@@ -157,16 +157,16 @@ pub(in crate) fn handle_create_chunk_internal_events(
 
         chunk_registry.stop_creating_chunk(chunk_id);
 
-        let mut created_chunk_event_writer = event_parameters.get_mut(world).1;
-        created_chunk_event_writer.send(CreatedChunkInternal { chunk_id, success: true });
+        let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+        created_chunk_entity_event_writer.send(CreatedChunkEntityInternal { chunk_id, success: true });
     }
 }
 
-pub(in crate) fn handle_destroy_chunk_internal_events(
+pub(in crate) fn handle_destroy_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
-        EventReader<DestroyChunkInternal>,
-        EventWriter<DestroyedChunkInternal>,
+        EventReader<DestroyChunkEntityInternal>,
+        EventWriter<DestroyedChunkEntityInternal>,
     )>,
     registry_parameters: &mut SystemState<(
         ResMut<ChunkRegistry>,
@@ -175,7 +175,7 @@ pub(in crate) fn handle_destroy_chunk_internal_events(
 ) {
     let mut destroy_chunk_event_reader = event_parameters.get_mut(world).0;
 
-    let mut destroy_chunk_events: Vec<DestroyChunkInternal> = Vec::new();
+    let mut destroy_chunk_events: Vec<DestroyChunkEntityInternal> = Vec::new();
     for destroy_chunk_event in destroy_chunk_event_reader.read() {
         destroy_chunk_events.push(destroy_chunk_event.clone());
     }
@@ -191,8 +191,8 @@ pub(in crate) fn handle_destroy_chunk_internal_events(
         if !is_chunk_loaded {
             warn!("Chunk '{:?}' is already unloaded!", chunk_id);
 
-            let mut destroyed_chunk_event_writer = event_parameters.get_mut(world).1;
-            destroyed_chunk_event_writer.send(DestroyedChunkInternal { chunk_id, success: false });
+            let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+            destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal { chunk_id, success: false });
 
             continue;
         }
@@ -200,8 +200,8 @@ pub(in crate) fn handle_destroy_chunk_internal_events(
         if !is_chunk_registered {
             warn!("Chunk '{:?}' is already unregistered!", chunk_id);
             
-            let mut destroyed_chunk_event_writer = event_parameters.get_mut(world).1;
-            destroyed_chunk_event_writer.send(DestroyedChunkInternal { chunk_id, success: false });
+            let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+            destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal { chunk_id, success: false });
 
             continue;
         }
@@ -226,24 +226,24 @@ pub(in crate) fn handle_destroy_chunk_internal_events(
 
         chunk_registry.stop_destroying_chunk(chunk_id);
 
-        let mut destroyed_chunk_event_writer = event_parameters.get_mut(world).1;
-        destroyed_chunk_event_writer.send(DestroyedChunkInternal { chunk_id, success: true });
+        let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+        destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal { chunk_id, success: true });
     }
 }
 
-pub(in crate) fn handle_load_chunk_internal_events(
+pub(in crate) fn handle_load_chunk_entity_internal_events(
     world: &mut World,
     registry_parameter: &mut SystemState<(
         ResMut<ChunkRegistry>,
     )>,
     event_parameters: &mut SystemState<(
-        EventReader<LoadChunkInternal>,
-        EventWriter<LoadedChunkInternal>,
+        EventReader<LoadChunkEntityInternal>,
+        EventWriter<LoadedChunkEntityInternal>,
     )>
 ) {
     let mut load_chunk_event_reader = event_parameters.get_mut(world).0;
 
-    let mut load_chunk_events: Vec<LoadChunkInternal> = Vec::new();
+    let mut load_chunk_events: Vec<LoadChunkEntityInternal> = Vec::new();
     for load_chunk_event in load_chunk_event_reader.read() {
         load_chunk_events.push(load_chunk_event.clone());
     }
@@ -259,8 +259,8 @@ pub(in crate) fn handle_load_chunk_internal_events(
         if !is_chunk_registered {
             warn!("Chunk '{:?}' is not registered!", chunk_id);
 
-            let mut loaded_chunk_event_writer = event_parameters.get_mut(world).1;
-            loaded_chunk_event_writer.send(LoadedChunkInternal { chunk_id, success: false });
+            let mut loaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+            loaded_chunk_entity_event_writer.send(LoadedChunkEntityInternal { chunk_id, success: false });
 
             continue;
         }
@@ -268,8 +268,8 @@ pub(in crate) fn handle_load_chunk_internal_events(
         if is_chunk_loaded {
             warn!("Chunk '{:?}' is already loaded!", chunk_id);
 
-            let mut loaded_chunk_event_writer = event_parameters.get_mut(world).1;
-            loaded_chunk_event_writer.send(LoadedChunkInternal { chunk_id, success: false });
+            let mut loaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+            loaded_chunk_entity_event_writer.send(LoadedChunkEntityInternal { chunk_id, success: false });
 
             continue;
         }
@@ -288,24 +288,24 @@ pub(in crate) fn handle_load_chunk_internal_events(
 
         chunk_registry.stop_loading_chunk(chunk_id);
 
-        let mut loaded_chunk_event_writer = event_parameters.get_mut(world).1;
-        loaded_chunk_event_writer.send(LoadedChunkInternal { chunk_id, success: true });
+        let mut loaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+        loaded_chunk_entity_event_writer.send(LoadedChunkEntityInternal { chunk_id, success: true });
     }
 }
 
-pub(in crate) fn handle_unload_chunk_internal_events(
+pub(in crate) fn handle_unload_chunk_entity_internal_events(
     world: &mut World,
     registry_parameter: &mut SystemState<(
         ResMut<ChunkRegistry>,
     )>,
     event_parameters: &mut SystemState<(
-        EventReader<UnloadChunkInternal>,
-        EventWriter<UnloadedChunkInternal>,
+        EventReader<UnloadChunkEntityInternal>,
+        EventWriter<UnloadedChunkEntityInternal>,
     )>
 ) {
     let mut unload_chunk_event_reader = event_parameters.get_mut(world).0;
 
-    let mut unload_chunk_events: Vec<UnloadChunkInternal> = Vec::new();
+    let mut unload_chunk_events: Vec<UnloadChunkEntityInternal> = Vec::new();
     for unload_chunk_event in unload_chunk_event_reader.read() {
         unload_chunk_events.push(unload_chunk_event.clone());
     }
@@ -321,8 +321,8 @@ pub(in crate) fn handle_unload_chunk_internal_events(
         if !is_chunk_loaded {
             warn!("Chunk '{:?}' is already unloaded!", chunk_id);
 
-            let mut unloaded_chunk_event_writer = event_parameters.get_mut(world).1;
-            unloaded_chunk_event_writer.send(UnloadedChunkInternal { chunk_id, success: false });
+            let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+            unloaded_chunk_entity_event_writer.send(UnloadedChunkEntityInternal { chunk_id, success: false });
 
             continue;
         }
@@ -330,8 +330,8 @@ pub(in crate) fn handle_unload_chunk_internal_events(
         if !is_chunk_registered {
             warn!("Chunk '{:?}' is already unregistered!", chunk_id);
 
-            let mut unloaded_chunk_event_writer = event_parameters.get_mut(world).1;
-            unloaded_chunk_event_writer.send(UnloadedChunkInternal { chunk_id, success: false });
+            let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+            unloaded_chunk_entity_event_writer.send(UnloadedChunkEntityInternal { chunk_id, success: false });
 
             continue;
         }
@@ -346,123 +346,123 @@ pub(in crate) fn handle_unload_chunk_internal_events(
 
         chunk_registry.stop_unloading_chunk(chunk_id);
 
-        let mut unloaded_chunk_event_writer = event_parameters.get_mut(world).1;
-        unloaded_chunk_event_writer.send(UnloadedChunkInternal { chunk_id, success: true });
+        let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
+        unloaded_chunk_entity_event_writer.send(UnloadedChunkEntityInternal { chunk_id, success: true });
     }
 }
 
-pub(in crate) fn handle_created_chunk_internal_events(
+pub(in crate) fn handle_created_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
-        EventReader<CreatedChunkInternal>,
-        EventWriter<CreatedChunk>,
+        EventReader<CreatedChunkEntityInternal>,
+        EventWriter<CreatedChunkEntity>,
     )>,
 ) {
-    let mut created_chunk_event_reader = event_parameters.get_mut(world).0;
+    let mut created_chunk_entity_event_reader = event_parameters.get_mut(world).0;
 
-    let mut created_chunk_events: Vec<CreatedChunkInternal> = Vec::new();
-    for created_chunk_event in created_chunk_event_reader.read() {
-        created_chunk_events.push(created_chunk_event.clone());
+    let mut created_chunk_entity_events: Vec<CreatedChunkEntityInternal> = Vec::new();
+    for created_chunk_entity_event in created_chunk_entity_event_reader.read() {
+        created_chunk_entity_events.push(created_chunk_entity_event.clone());
     }
 
-    for created_chunk_event in created_chunk_events {
-        let chunk_id = created_chunk_event.chunk_id;
-        let success = created_chunk_event.success;
+    for created_chunk_entity_event in created_chunk_entity_events {
+        let chunk_id = created_chunk_entity_event.chunk_id;
+        let success = created_chunk_entity_event.success;
 
         match success {
             true => info!("Chunk '{:?}' has been created successfully!", chunk_id),
             false => error!("Chunk '{:?}' has failed to be created!", chunk_id),
         };
 
-        let mut created_chunk_event_writer = event_parameters.get_mut(world).1;
+        let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
 
-        created_chunk_event_writer.send(CreatedChunk { chunk_id, success });
+        created_chunk_entity_event_writer.send(CreatedChunkEntity { chunk_id, success });
     }
 }
 
-pub(in crate) fn handle_destroyed_chunk_internal_events(
+pub(in crate) fn handle_destroyed_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
-        EventReader<DestroyedChunkInternal>,
-        EventWriter<DestroyedChunk>,
+        EventReader<DestroyedChunkEntityInternal>,
+        EventWriter<DestroyedChunkEntity>,
     )>,
 ) {
-    let mut destroyed_chunk_event_reader = event_parameters.get_mut(world).0;
+    let mut destroyed_chunk_entity_event_reader = event_parameters.get_mut(world).0;
 
-    let mut destroyed_chunk_events: Vec<DestroyedChunkInternal> = Vec::new();
-    for destroyed_chunk_event in destroyed_chunk_event_reader.read() {
-        destroyed_chunk_events.push(destroyed_chunk_event.clone());
+    let mut destroyed_chunk_entity_events: Vec<DestroyedChunkEntityInternal> = Vec::new();
+    for destroyed_chunk_entity_event in destroyed_chunk_entity_event_reader.read() {
+        destroyed_chunk_entity_events.push(destroyed_chunk_entity_event.clone());
     }
 
-    for destroyed_chunk_event in destroyed_chunk_events {
-        let chunk_id = destroyed_chunk_event.chunk_id;
-        let success = destroyed_chunk_event.success;
+    for destroyed_chunk_entity_event in destroyed_chunk_entity_events {
+        let chunk_id = destroyed_chunk_entity_event.chunk_id;
+        let success = destroyed_chunk_entity_event.success;
 
         match success {
             true => info!("Chunk '{:?}' has been destroyed successfully!", chunk_id),
             false => error!("Chunk '{:?}' has failed to be destroyed!", chunk_id),
         };
 
-        let mut destroyed_chunk_event_writer = event_parameters.get_mut(world).1;
+        let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
 
-        destroyed_chunk_event_writer.send(DestroyedChunk { chunk_id, success });
+        destroyed_chunk_entity_event_writer.send(DestroyedChunkEntity { chunk_id, success });
     }
 }
 
-pub(in crate) fn handle_loaded_chunk_internal_events(
+pub(in crate) fn handle_loaded_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
-        EventReader<LoadedChunkInternal>,
-        EventWriter<LoadedChunk>,
+        EventReader<LoadedChunkEntityInternal>,
+        EventWriter<LoadedChunkEntity>,
     )>,
 ) {
-    let mut loaded_chunk_event_reader = event_parameters.get_mut(world).0;
+    let mut loaded_chunk_entity_event_reader = event_parameters.get_mut(world).0;
 
-    let mut loaded_chunk_events: Vec<LoadedChunkInternal> = Vec::new();
-    for loaded_chunk_event in loaded_chunk_event_reader.read() {
-        loaded_chunk_events.push(loaded_chunk_event.clone());
+    let mut loaded_chunk_entity_events: Vec<LoadedChunkEntityInternal> = Vec::new();
+    for loaded_chunk_entity_event in loaded_chunk_entity_event_reader.read() {
+        loaded_chunk_entity_events.push(loaded_chunk_entity_event.clone());
     }
 
-    for loaded_chunk_event in loaded_chunk_events {
-        let chunk_id = loaded_chunk_event.chunk_id;
-        let success = loaded_chunk_event.success;
+    for loaded_chunk_entity_event in loaded_chunk_entity_events {
+        let chunk_id = loaded_chunk_entity_event.chunk_id;
+        let success = loaded_chunk_entity_event.success;
 
         match success {
             true => info!("Chunk '{:?}' has been loaded successfully!", chunk_id),
             false => error!("Chunk '{:?}' has failed to be loaded!", chunk_id),
         };
 
-        let mut loaded_chunk_event_writer = event_parameters.get_mut(world).1;
+        let mut loaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
 
-        loaded_chunk_event_writer.send(LoadedChunk { chunk_id, success });
+        loaded_chunk_entity_event_writer.send(LoadedChunkEntity { chunk_id, success });
     }
 }
 
-pub(in crate) fn handle_unloaded_chunk_internal_events(
+pub(in crate) fn handle_unloaded_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
-        EventReader<UnloadedChunkInternal>,
-        EventWriter<UnloadedChunk>,
+        EventReader<UnloadedChunkEntityInternal>,
+        EventWriter<UnloadedChunkEntity>,
     )>,
 ) {
-    let mut unloaded_chunk_event_reader = event_parameters.get_mut(world).0;
+    let mut unloaded_chunk_entity_event_reader = event_parameters.get_mut(world).0;
 
-    let mut unloaded_chunk_events: Vec<UnloadedChunkInternal> = Vec::new();
-    for unloaded_chunk_event in unloaded_chunk_event_reader.read() {
-        unloaded_chunk_events.push(unloaded_chunk_event.clone());
+    let mut unloaded_chunk_entity_events: Vec<UnloadedChunkEntityInternal> = Vec::new();
+    for unloaded_chunk_entity_event in unloaded_chunk_entity_event_reader.read() {
+        unloaded_chunk_entity_events.push(unloaded_chunk_entity_event.clone());
     }
 
-    for unloaded_chunk_event in unloaded_chunk_events {
-        let chunk_id = unloaded_chunk_event.chunk_id;
-        let success = unloaded_chunk_event.success;
+    for unloaded_chunk_entity_event in unloaded_chunk_entity_events {
+        let chunk_id = unloaded_chunk_entity_event.chunk_id;
+        let success = unloaded_chunk_entity_event.success;
 
         match success {
             true => info!("Chunk '{:?}' has been unloaded successfully!", chunk_id),
             false => error!("Chunk '{:?}' has failed to be unloaded!", chunk_id),
         };
 
-        let mut unloaded_chunk_event_writer = event_parameters.get_mut(world).1;
+        let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
 
-        unloaded_chunk_event_writer.send(UnloadedChunk { chunk_id, success });
+        unloaded_chunk_entity_event_writer.send(UnloadedChunkEntity { chunk_id, success });
     }
 }

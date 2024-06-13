@@ -2,89 +2,89 @@ use bevy::prelude::*;
 use crate::chunk::id::structs::*;
 
 #[derive(Clone, Event)]
-pub struct CreateChunk {
+pub struct CreateChunkEntity {
     pub chunk_id: ChunkID,
 }
 
 #[derive(Clone, Event)]
-pub struct CreatedChunk {
-    pub chunk_id: ChunkID,
-    pub success: bool,
-}
-
-#[derive(Clone, Event)]
-pub struct DestroyChunk {
-    pub chunk_id: ChunkID,
-}
-
-#[derive(Clone, Event)]
-pub struct DestroyedChunk {
+pub struct CreatedChunkEntity {
     pub chunk_id: ChunkID,
     pub success: bool,
 }
 
 #[derive(Clone, Event)]
-pub struct LoadChunk {
+pub struct DestroyChunkEntity {
     pub chunk_id: ChunkID,
 }
 
 #[derive(Clone, Event)]
-pub struct LoadedChunk {
-    pub chunk_id: ChunkID,
-    pub success: bool,
-}
-
-#[derive(Clone, Event)]
-pub struct UnloadChunk {
-    pub chunk_id: ChunkID,
-}
-
-#[derive(Clone, Event)]
-pub struct UnloadedChunk {
+pub struct DestroyedChunkEntity {
     pub chunk_id: ChunkID,
     pub success: bool,
 }
 
 #[derive(Clone, Event)]
-pub(in crate) struct CreateChunkInternal {
+pub struct LoadChunkEntity {
     pub chunk_id: ChunkID,
 }
 
 #[derive(Clone, Event)]
-pub(in crate) struct CreatedChunkInternal {
-    pub chunk_id: ChunkID,
-    pub success: bool,
-}
-
-#[derive(Clone, Event)]
-pub(in crate) struct DestroyChunkInternal {
-    pub chunk_id: ChunkID,
-}
-
-#[derive(Clone, Event)]
-pub(in crate) struct DestroyedChunkInternal {
+pub struct LoadedChunkEntity {
     pub chunk_id: ChunkID,
     pub success: bool,
 }
 
 #[derive(Clone, Event)]
-pub(in crate) struct LoadChunkInternal {
+pub struct UnloadChunkEntity {
     pub chunk_id: ChunkID,
 }
 
 #[derive(Clone, Event)]
-pub(in crate) struct LoadedChunkInternal {
+pub struct UnloadedChunkEntity {
     pub chunk_id: ChunkID,
     pub success: bool,
 }
 
 #[derive(Clone, Event)]
-pub(in crate) struct UnloadChunkInternal {
+pub(in crate) struct CreateChunkEntityInternal {
     pub chunk_id: ChunkID,
 }
 
 #[derive(Clone, Event)]
-pub(in crate) struct UnloadedChunkInternal {
+pub(in crate) struct CreatedChunkEntityInternal {
+    pub chunk_id: ChunkID,
+    pub success: bool,
+}
+
+#[derive(Clone, Event)]
+pub(in crate) struct DestroyChunkEntityInternal {
+    pub chunk_id: ChunkID,
+}
+
+#[derive(Clone, Event)]
+pub(in crate) struct DestroyedChunkEntityInternal {
+    pub chunk_id: ChunkID,
+    pub success: bool,
+}
+
+#[derive(Clone, Event)]
+pub(in crate) struct LoadChunkEntityInternal {
+    pub chunk_id: ChunkID,
+}
+
+#[derive(Clone, Event)]
+pub(in crate) struct LoadedChunkEntityInternal {
+    pub chunk_id: ChunkID,
+    pub success: bool,
+}
+
+#[derive(Clone, Event)]
+pub(in crate) struct UnloadChunkEntityInternal {
+    pub chunk_id: ChunkID,
+}
+
+#[derive(Clone, Event)]
+pub(in crate) struct UnloadedChunkEntityInternal {
     pub chunk_id: ChunkID,
     pub success: bool,
 }

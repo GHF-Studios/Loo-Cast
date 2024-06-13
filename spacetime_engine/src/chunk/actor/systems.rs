@@ -1,6 +1,6 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
-use crate::chunk::events::CreatedChunk;
+use crate::chunk::events::CreatedChunkEntity;
 use crate::chunk::actor::components::*;
 use crate::chunk::actor::resources::*;
 use crate::chunk::actor::structs::*;
@@ -10,10 +10,17 @@ use crate::entity::resources::EntityRegistry;
 use super::events::*;
 use super::functions;
 
-// TODO: Implement
-pub(super) fn start() {}
+pub(super) fn start(
+    mut started_chunk_actor_event_writer: EventWriter<StartChunkActorResult>,
+    chunk_actor_query: Query<&ChunkActor, Added<ChunkActor>>,
+) {
+    for chunk_actor in chunk_actor_query.iter() {
+        started_chunk_actor_event_writer.send(StartChunkActorResult::Success {
+            chunk_actor_id: chunk_actor.id(),
+        });
+    }
+}
 
-// TODO: Implement
 pub(super) fn update(
     world: &mut World,
     registry_parameters: &mut SystemState<(
@@ -30,12 +37,6 @@ pub(super) fn update(
         despawns,
     );
 }
-
-// TODO: Implement
-pub(super) fn handle_start_chunk_actor_events() {}
-
-// TODO: Implement
-pub(super) fn handle_update_chunk_actor_events() {}
 
 pub(super) fn handle_create_chunk_actor_entity_events(
     mut commands: Commands,
@@ -268,23 +269,23 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
     }
 }
 
-pub(super) fn process_create_chunk_actor_requests(
+pub(super) fn process_create_chunk_actor_entity_requests(
     mut commands: Commands,
-    mut created_chunk_event_reader: EventReader<CreatedChunk>,
+    mut created_chunk_entity_event_reader: EventReader<CreatedChunkEntity>,
     mut created_chunk_actor_entity_event_writer: EventWriter<CreateChunkActorEntityResult>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
     chunk_registry: ResMut<ChunkRegistry>,
     mut entity_registry: ResMut<EntityRegistry>,
     mut chunk_query: Query<&mut Chunk>,
 ) {
-    let mut created_chunk_events = Vec::new();
-    for created_chunk_event in created_chunk_event_reader.read() {
-        created_chunk_events.push(created_chunk_event.clone());
+    let mut created_chunk_entity_events = Vec::new();
+    for created_chunk_entity_event in created_chunk_entity_event_reader.read() {
+        created_chunk_entity_events.push(created_chunk_entity_event.clone());
     }
 
-    for created_chunk_event in created_chunk_events {
-        let chunk_id = created_chunk_event.chunk_id;
-        let success = created_chunk_event.success;
+    for created_chunk_entity_event in created_chunk_entity_events {
+        let chunk_id = created_chunk_entity_event.chunk_id;
+        let success = created_chunk_entity_event.success;
 
         if !success {
             let requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
@@ -353,7 +354,7 @@ pub(super) fn process_create_chunk_actor_requests(
 
 pub(super) fn process_upgrade_to_chunk_actor_requests(
     mut commands: Commands,
-    mut created_chunk_event_reader: EventReader<CreatedChunk>,
+    mut created_chunk_entity_event_reader: EventReader<CreatedChunkEntity>,
     mut upgraded_to_chunk_actor_entity_event_writer: EventWriter<UpgradeToChunkActorEntityResult>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
     chunk_registry: ResMut<ChunkRegistry>,
@@ -361,14 +362,14 @@ pub(super) fn process_upgrade_to_chunk_actor_requests(
     mut chunk_query: Query<&mut Chunk>,
     mut eligible_entity_query: Query<Entity, (With<Transform>, Without<ChunkActor>)>,
 ) {
-    let mut created_chunk_events = Vec::new();
-    for created_chunk_event in created_chunk_event_reader.read() {
-        created_chunk_events.push(created_chunk_event.clone());
+    let mut created_chunk_entity_events = Vec::new();
+    for created_chunk_entity_event in created_chunk_entity_event_reader.read() {
+        created_chunk_entity_events.push(created_chunk_entity_event.clone());
     }
 
-    for created_chunk_event in created_chunk_events {
-        let chunk_id = created_chunk_event.chunk_id;
-        let success = created_chunk_event.success;
+    for created_chunk_entity_event in created_chunk_entity_events {
+        let chunk_id = created_chunk_entity_event.chunk_id;
+        let success = created_chunk_entity_event.success;
 
         if !success {
             let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();

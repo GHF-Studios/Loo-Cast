@@ -196,8 +196,8 @@ pub(in crate) fn categorize_chunks(
 }
 
 pub(in crate) fn start_chunks(
-    mut create_chunk_event_writer: EventWriter<CreateChunk>,
-    mut load_chunk_event_writer: EventWriter<LoadChunk>,
+    mut create_chunk_event_writer: EventWriter<CreateChunkEntity>,
+    mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
     chunk_registry: &Res<ChunkRegistry>,
     detected_chunk_ids: &Vec<ChunkID>,
 ) {
@@ -205,9 +205,9 @@ pub(in crate) fn start_chunks(
         let detected_chunk_id = *detected_chunk_id;
 
         if chunk_registry.is_chunk_registered(detected_chunk_id) {
-            load_chunk_event_writer.send(LoadChunk { chunk_id: detected_chunk_id });
+            load_chunk_event_writer.send(LoadChunkEntity { chunk_id: detected_chunk_id });
         } else {
-            create_chunk_event_writer.send(CreateChunk { chunk_id: detected_chunk_id });
+            create_chunk_event_writer.send(CreateChunkEntity { chunk_id: detected_chunk_id });
         }
     }
 }
@@ -216,21 +216,21 @@ pub(in crate) fn update_chunks(
     old_chunk_ids: Vec<ChunkID>,
     new_chunk_ids: Vec<ChunkID>,
     chunk_registry: &Res<ChunkRegistry>,
-    mut create_chunk_event_writer: EventWriter<CreateChunk>,
-    mut load_chunk_event_writer: EventWriter<LoadChunk>,
-    mut unload_chunk_event_writer: EventWriter<UnloadChunk>,
+    mut create_chunk_event_writer: EventWriter<CreateChunkEntity>,
+    mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
+    mut unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
 ) {
     for old_chunk_id in old_chunk_ids {
-        unload_chunk_event_writer.send(UnloadChunk { chunk_id: old_chunk_id });
+        unload_chunk_event_writer.send(UnloadChunkEntity { chunk_id: old_chunk_id });
     }
 
     for new_chunk_id in new_chunk_ids.iter() {
         let new_chunk_id = *new_chunk_id;
         
         if chunk_registry.is_chunk_registered(new_chunk_id) {
-            load_chunk_event_writer.send(LoadChunk { chunk_id: new_chunk_id });
+            load_chunk_event_writer.send(LoadChunkEntity { chunk_id: new_chunk_id });
         } else {
-            create_chunk_event_writer.send(CreateChunk { chunk_id: new_chunk_id });
+            create_chunk_event_writer.send(CreateChunkEntity { chunk_id: new_chunk_id });
         }
     }
 }

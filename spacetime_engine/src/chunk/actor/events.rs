@@ -2,18 +2,8 @@ use bevy::prelude::*;
 use crate::{chunk::id::structs::ChunkID, entity::id::structs::*};
 use super::id::structs::ChunkActorID;
 
-// TODO: Implement
-#[derive(Debug, Clone, Event)]
-pub(super) struct StartChunkActor {
-    pub chunk_actor_id: ChunkActorID
-}
-
-// TODO: Implement
-#[derive(Debug, Clone, Event)]
-pub(super) struct UpdateChunkActor {
-    pub chunk_actor_id: ChunkActorID
-}
-
+// TODO: Remove the chunk_id from this event. 
+// It should be computed from the world_position, as to keep the event's fields simple and intuitive to understand and use.
 #[derive(Clone, Event)]
 pub struct CreateChunkActorEntity {
     pub chunk_id: ChunkID,
@@ -31,20 +21,8 @@ pub struct UpgradeToChunkActorEntity {
     pub chunk_id: ChunkID,
 }
 
-// TODO: Implement
 #[derive(Debug, Clone, Event)]
-pub(super) enum StartChunkActorResult {
-    Success {
-        chunk_actor_id: ChunkActorID,
-    },
-    Failure {
-        chunk_actor_id: ChunkActorID,
-    }
-}
-
-// TODO: Implement
-#[derive(Debug, Clone, Event)]
-pub(super) enum UpdateChunkActorResult {
+pub enum StartChunkActorResult {
     Success {
         chunk_actor_id: ChunkActorID,
     },
