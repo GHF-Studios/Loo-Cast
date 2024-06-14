@@ -17,7 +17,7 @@ pub(in crate) struct LoaderPlugin;
 impl Plugin for LoaderPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<StartChunkLoaderResult>()
+            .add_event::<StartedChunkLoader>()
             .add_plugins(IDPlugin)
             .add_systems(Update, (start, update))
             .register_type::<components::ChunkLoader>();

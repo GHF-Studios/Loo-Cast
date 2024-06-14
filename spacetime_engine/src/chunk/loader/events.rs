@@ -3,26 +3,26 @@ use crate::entity::id::structs::EntityID;
 use super::id::structs::*;
 
 // TODO: Implement
-#[derive(Clone, Event)]
+#[derive(Debug, Clone, Event)]
 pub struct CreateChunkLoaderEntity {
     pub chunk_loader_id: ChunkLoaderID
 }
 
 // TODO: Implement
-#[derive(Clone, Event)]
+#[derive(Debug, Clone, Event)]
 pub struct DestroyChunkLoaderEntity {
     pub chunk_loader_id: ChunkLoaderID
 }
 
 // TODO: Implement
-#[derive(Clone, Event)]
+#[derive(Debug, Clone, Event)]
 pub struct UpgradeToChunkLoaderEntity {
     pub target_entity_id: EntityID,
     pub chunk_loader_id: ChunkLoaderID
 }
 
 #[derive(Debug, Clone, Event)]
-pub enum StartChunkLoaderResult {
+pub enum StartedChunkLoader {
     Success {
         chunk_loader_id: ChunkLoaderID
     },
@@ -32,7 +32,8 @@ pub enum StartChunkLoaderResult {
 }
 
 // TODO: Implement
-pub enum CreateChunkLoaderEntityResult {
+#[derive(Debug, Clone, Event)]
+pub enum CreatedChunkLoaderEntity {
     Success {
         chunk_loader_id: ChunkLoaderID,
         chunk_loader_entity_id: EntityID
@@ -43,7 +44,8 @@ pub enum CreateChunkLoaderEntityResult {
 }
 
 // TODO: Implement
-pub enum DestroyChunkLoaderEntityResult {
+#[derive(Debug, Clone, Event)]
+pub enum DestroyedChunkLoaderEntity {
     Success {
         chunk_loader_id: ChunkLoaderID
     },
@@ -53,7 +55,8 @@ pub enum DestroyChunkLoaderEntityResult {
 }
 
 // TODO: Implement
-pub enum UpgradeToChunkLoaderEntityResult {
+#[derive(Debug, Clone, Event)]
+pub enum UpgradedToChunkLoaderEntity {
     Success {
         target_entity_id: EntityID,
         chunk_loader_id: ChunkLoaderID
