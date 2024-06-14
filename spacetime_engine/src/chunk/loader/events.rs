@@ -2,19 +2,16 @@ use bevy::prelude::*;
 use crate::entity::id::structs::EntityID;
 use super::id::structs::*;
 
-// TODO: Implement
 #[derive(Debug, Clone, Event)]
 pub struct CreateChunkLoaderEntity {
     pub chunk_loader_id: ChunkLoaderID
 }
 
-// TODO: Implement
 #[derive(Debug, Clone, Event)]
 pub struct DestroyChunkLoaderEntity {
     pub chunk_loader_id: ChunkLoaderID
 }
 
-// TODO: Implement
 #[derive(Debug, Clone, Event)]
 pub struct UpgradeToChunkLoaderEntity {
     pub target_entity_id: EntityID,
@@ -31,7 +28,6 @@ pub enum StartedChunkLoader {
     }
 }
 
-// TODO: Implement
 #[derive(Debug, Clone, Event)]
 pub enum CreatedChunkLoaderEntity {
     Success {
@@ -43,7 +39,6 @@ pub enum CreatedChunkLoaderEntity {
     }
 }
 
-// TODO: Implement
 #[derive(Debug, Clone, Event)]
 pub enum DestroyedChunkLoaderEntity {
     Success {
@@ -54,7 +49,6 @@ pub enum DestroyedChunkLoaderEntity {
     }
 }
 
-// TODO: Implement
 #[derive(Debug, Clone, Event)]
 pub enum UpgradedToChunkLoaderEntity {
     Success {

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
-use crate::chunk::actor::id::structs::*;
-use crate::chunk::actor::structs::*;
+use super::id::structs::*;
+use super::structs::*;
 
 #[derive(Resource, Debug, Default)]
 pub(in crate) struct ChunkActorRegistry {
