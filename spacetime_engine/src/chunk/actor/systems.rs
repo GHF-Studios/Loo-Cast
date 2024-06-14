@@ -1,5 +1,4 @@
 use bevy::ecs::system::SystemState;
-use bevy::ecs::world::error;
 use bevy::prelude::*;
 use crate::chunk::events::CreatedChunkEntity;
 use crate::chunk::actor::components::*;
@@ -60,12 +59,10 @@ pub(super) fn handle_create_chunk_actor_entity_events(
         let chunk_id = create_chunk_actor_entity_event.chunk_id;
         let world_position = create_chunk_actor_entity_event.world_position;
 
-        // TODO: Improve this log message
         info!("Trying to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
-        
+
         if let Some(chunk_entity) = chunk_registry.get_loaded_chunk_entity(chunk_id) {
-            // TODO: Improve this log message
-            info!("Chunk loaded; creating chunk actor entity '{:?}' immediately ...", chunk_actor_entity_id);
+            info!("Chunk '{:?}' loaded; creating chunk actor entity '{:?}' immediately ...", chunk_id, chunk_actor_entity_id);
 
             let mut chunk = match chunk_query.get_mut(chunk_entity) {
                 Ok(chunk) => chunk,
@@ -98,8 +95,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
                 world_position,
             });
         } else {
-            // TODO: Improve this log message
-            info!("Chunk not loaded; issuing request to create chunk actor entity '{:?}' when the chunk is loaded ...", chunk_actor_entity_id);
+            info!("Chunk '{:?}' not loaded; issuing request to create chunk actor entity '{:?}' when the chunk is created or loaded ...", chunk_id, chunk_actor_entity_id);
 
             if chunk_actor_registry.is_chunk_actor_entity_creating(chunk_actor_id) {
                 error!("The request for creating the chunk actor entity (chunk actor id '{:?}' | entity id '{:?}') has been cancelled due to the request already being issued!", chunk_actor_id, chunk_actor_entity_id);
@@ -240,12 +236,10 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
         let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
         let chunk_id = upgrade_to_chunk_actor_entity_event.chunk_id;
 
-        // TODO: Improve this log message
         info!("Trying to upgrade entity '{:?}' to a chunk actor entity ...", target_entity_id);
 
         if let Some(chunk_entity) = chunk_registry.get_loaded_chunk_entity(chunk_id) {
-            // TODO: Improve this log message
-            info!("Chunk loaded, upgrading entity '{:?}' to a chunk actor entity immediately ...", target_entity_id);
+            info!("Chunk '{:?}' loaded; upgrading entity '{:?}' to a chunk actor entity immediately ...", chunk_id, target_entity_id);
 
             let mut chunk = match chunk_query.get_mut(chunk_entity) {
                 Ok(chunk) => chunk,
@@ -314,8 +308,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
                 chunk_id,
             });
         } else {
-            // TODO: Improve this log message
-            info!("Chunk not loaded, issuing request to upgrade entity '{:?}' to a chunk actor entity when the appropriate chunk is loaded ...", target_entity_id);
+            info!("Chunk '{:?}' not loaded, issuing request to upgrade entity '{:?}' to a chunk actor entity when the appropriate chunk is loaded ...", chunk_id, target_entity_id);
 
             if chunk_actor_registry.is_chunk_actor_entity_upgraded_to(chunk_actor_id) {
                 error!("The chunk actor upgrade request for target entity '{:?}' has been cancelled due to the request already being issued!", target_entity_id);
@@ -572,6 +565,11 @@ pub(super) fn process_upgrade_to_chunk_actor_requests(
         created_chunk_entity_events.push(created_chunk_entity_event.clone());
     }
 
+    let mut loaded_chunk_entity_events = Vec::new();
+    for loaded_chunk_entity_event in loaded_chunk_entity_event_reader.read() {
+        loaded_chunk_entity_events.push(loaded_chunk_entity_event.clone());
+    }
+
     for created_chunk_entity_event in created_chunk_entity_events {
         let chunk_id = created_chunk_entity_event.chunk_id;
         let success = created_chunk_entity_event.success;
@@ -580,7 +578,6 @@ pub(super) fn process_upgrade_to_chunk_actor_requests(
             let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
             for request in requests.values() {
                 if request.chunk_id != chunk_id {
-                    // Example of a good log message
                     error!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the starting chunk '{:?}' failing to load!", request.target_entity_id, request.chunk_id);
                     
                     chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
@@ -597,19 +594,45 @@ pub(super) fn process_upgrade_to_chunk_actor_requests(
             continue;
         }
 
-        let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity) => chunk_entity,
             None => {
-                // TODO: Improve this log message
-                panic!("Chunk '{:?}' is loaded, but the chunk registry failed to get the chunk entity!", chunk_id);
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk not being loaded!", chunk_id);
+
+                let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
+                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+
+                    chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
+
+                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        target_entity_id: request.target_entity_id,
+                        chunk_id: request.chunk_id,
+                    });
+                });
+
+                continue;
             }
         };
 
-        let mut chunk = match chunk_query.get_mut(chunk_entity) {
+        let mut chunk = match chunk_query.get_mut(chunk_entity_reference) {
             Ok(chunk) => chunk,
             Err(_) => {
-                // TODO: Improve this log message
-                panic!("Chunk entity '{:?}' is loaded, but the chunk query failed to get the chunk!", chunk_entity);
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be queried!", chunk_id);
+
+                let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
+                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+
+                    chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
+
+                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        target_entity_id: request.target_entity_id,
+                        chunk_id: request.chunk_id,
+                    });
+                });
+
+                continue;
             }
         };
 
@@ -626,8 +649,16 @@ pub(super) fn process_upgrade_to_chunk_actor_requests(
             let target_entity_reference = match entity_registry.get_loaded_entity_reference(&target_entity_id) {
                 Some(target_entity) => target_entity,
                 None => {
-                    // TODO: Improve this log message
-                    panic!("Entity '{:?}' is loaded, but the entity registry failed to get the entity!", target_entity_id);
+                    error!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the entity reference not being found!", target_entity_id);
+
+                    chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
+
+                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        target_entity_id,
+                        chunk_id,
+                    });
+
+                    continue;
                 }
             };
 
@@ -642,8 +673,137 @@ pub(super) fn process_upgrade_to_chunk_actor_requests(
             ) {
                 Ok(chunk_actor_entity_reference) => chunk_actor_entity_reference,
                 Err(_) => {
-                    // TODO: Improve this log message
-                    error!("Failed to upgrade entity '{:?}' to a chunk actor entity!", target_entity_id);
+                    error!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the upgrade failing!", target_entity_id);
+
+                    chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
+
+                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        target_entity_id,
+                        chunk_id,
+                    });
+
+                    continue;
+                }
+            };
+
+            chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
+
+            chunk.add_chunk_actor(chunk_actor_id);
+
+            chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(chunk_actor_id);
+
+            upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Success {
+                chunk_actor_id,
+                target_entity_id,
+                chunk_id,
+            });
+        }
+    }
+
+    for loaded_chunk_entity_event in loaded_chunk_entity_events {
+        let chunk_id = loaded_chunk_entity_event.chunk_id;
+        let success = loaded_chunk_entity_event.success;
+
+        if !success {
+            let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
+            for request in requests.values() {
+                if request.chunk_id != chunk_id {
+                    error!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the starting chunk '{:?}' failing to load!", request.target_entity_id, request.chunk_id);
+                    
+                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+
+                    chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
+
+                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        target_entity_id: request.target_entity_id,
+                        chunk_id: request.chunk_id,
+                    });
+                }
+            }
+
+            continue;
+        }
+
+        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+            Some(chunk_entity) => chunk_entity,
+            None => {
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk not being loaded!", chunk_id);
+
+                let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
+                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+
+                    chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
+
+                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        target_entity_id: request.target_entity_id,
+                        chunk_id: request.chunk_id,
+                    });
+                });
+
+                continue;
+            }
+        };
+
+        let mut chunk = match chunk_query.get_mut(chunk_entity_reference) {
+            Ok(chunk) => chunk,
+            Err(_) => {
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be queried!", chunk_id);
+
+                let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
+                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+
+                    chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
+
+                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        target_entity_id: request.target_entity_id,
+                        chunk_id: request.chunk_id,
+                    });
+                });
+
+                continue;
+            }
+        };
+
+        let upgrade_to_chunk_actor_entity_requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
+        for upgrade_to_chunk_actor_entity_request in upgrade_to_chunk_actor_entity_requests.values() {
+            let chunk_actor_id = upgrade_to_chunk_actor_entity_request.chunk_actor_id;
+            let target_entity_id = upgrade_to_chunk_actor_entity_request.target_entity_id;
+            let chunk_id = upgrade_to_chunk_actor_entity_request.chunk_id;
+
+            if chunk_id != chunk_id {
+                continue;
+            }
+
+            let target_entity_reference = match entity_registry.get_loaded_entity_reference(&target_entity_id) {
+                Some(target_entity) => target_entity,
+                None => {
+                    error!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the entity reference not being found!", target_entity_id);
+
+                    chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
+
+                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        target_entity_id,
+                        chunk_id,
+                    });
+
+                    continue;
+                }
+            };
+
+            let chunk_actor_entity_reference = match functions::upgrade_to_chunk_actor_entity(
+                &mut commands, 
+                chunk_actor_id, 
+                chunk_id, 
+                target_entity_reference, 
+                &mut ineligible_entity_query_0,
+                &mut ineligible_entity_query_1,
+                &mut eligible_entity_query
+            ) {
+                Ok(chunk_actor_entity_reference) => chunk_actor_entity_reference,
+                Err(_) => {
+                    error!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the upgrade failing!", target_entity_id);
 
                     chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
 
