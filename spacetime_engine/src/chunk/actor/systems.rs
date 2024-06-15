@@ -310,7 +310,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
         } else {
             info!("Chunk '{:?}' not loaded, issuing request to upgrade entity '{:?}' to a chunk actor entity when the appropriate chunk is loaded ...", chunk_id, target_entity_id);
 
-            if chunk_actor_registry.is_chunk_actor_entity_upgraded_to(chunk_actor_id) {
+            if chunk_actor_registry.is_chunk_actor_entity_being_upgraded_to(chunk_actor_id) {
                 error!("The chunk actor upgrade request for target entity '{:?}' has been cancelled due to the request already being issued!", target_entity_id);
 
                 chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);

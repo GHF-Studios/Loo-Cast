@@ -37,3 +37,9 @@ pub(super) fn upgrade_to_chunk_loader_entity(
         panic!("Entity does not exist or does not have a Transform component.");
     };
 }
+
+// TODO: Implement
+pub(super) fn collect_chunk_loader_updates() {}
+
+// TODO: Implement
+pub(super) fn apply_chunk_loader_updates() {}

@@ -142,11 +142,11 @@ impl ChunkActorRegistry {
         true
     }
 
-    pub fn is_chunk_actor_entity_upgraded_to(&self, chunk_actor_id: ChunkActorID) -> bool {
+    pub fn is_chunk_actor_entity_being_upgraded_to(&self, chunk_actor_id: ChunkActorID) -> bool {
         self.upgrade_to_chunk_actor_entity_requests.contains_key(&chunk_actor_id)
     }
 
-    pub fn are_chunk_actor_entities_upgraded_to(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
+    pub fn are_chunk_actor_entities_being_upgraded_to(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
         for chunk_actor_id in chunk_actor_ids {
             if !self.upgrade_to_chunk_actor_entity_requests.contains_key(&chunk_actor_id) {
                 return false;

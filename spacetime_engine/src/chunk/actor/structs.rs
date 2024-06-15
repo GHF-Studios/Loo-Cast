@@ -1,11 +1,10 @@
 use bevy::prelude::*;
-
 use crate::chunk::id::structs::*;
 use crate::entity::id::structs::*;
 use super::id::structs::*;
 
 #[derive(Clone, Debug)]
-pub(in crate::chunk::actor) struct UpdateChunkActorInfo {
+pub(super) struct UpdateChunkActorInfo {
     pub actor_entity: Entity,
     pub old_chunk_id: ChunkID,
     pub new_chunk_id: ChunkID,
@@ -13,13 +12,13 @@ pub(in crate::chunk::actor) struct UpdateChunkActorInfo {
 }
 
 #[derive(Clone, Debug)]
-pub(in crate::chunk::actor) struct DespawnChunkActorInfo {
+pub(super) struct DespawnChunkActorInfo {
     pub actor_entity: Entity,
     pub actor_id: ChunkActorID,
 }
 
 #[derive(Clone, Debug)]
-pub(in crate::chunk::actor) struct CreateChunkActorEntityRequest {
+pub(super) struct CreateChunkActorEntityRequest {
     pub chunk_actor_id: ChunkActorID,
     pub chunk_actor_entity_id: EntityID,
     pub chunk_id: ChunkID,
@@ -27,7 +26,7 @@ pub(in crate::chunk::actor) struct CreateChunkActorEntityRequest {
 }
 
 #[derive(Clone, Debug)]
-pub(in crate::chunk::actor) struct UpgradeToChunkActorEntityRequest {
+pub(super) struct UpgradeToChunkActorEntityRequest {
     pub chunk_actor_id: ChunkActorID,
     pub target_entity_id: EntityID,
     pub chunk_id: ChunkID,
