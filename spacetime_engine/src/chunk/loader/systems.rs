@@ -15,6 +15,7 @@ pub(in crate) fn start(
     mut started_chunk_loader_event_writer: EventWriter<StartedChunkLoader>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader), Added<ChunkLoader>>,
     chunk_registry: Res<ChunkRegistry>,
+    mut chunk_event_registry: ResMut<ChunkEventRegistry>,
     mut chunk_loader_event_registry: ResMut<ChunkLoaderEventRegistry>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
@@ -27,6 +28,7 @@ pub(in crate) fn start(
         create_chunk_event_writer, 
         load_chunk_event_writer, 
         &chunk_registry, 
+        &mut chunk_event_registry,
         &detected_chunk_ids
     );
 
@@ -46,6 +48,7 @@ pub(in crate) fn update(
     unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
     chunk_registry: Res<ChunkRegistry>,
+    mut chunk_event_registry: ResMut<ChunkEventRegistry>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
     let chunk_loader_load_radius = chunk_loader.load_radius();
@@ -56,15 +59,16 @@ pub(in crate) fn update(
         old_chunk_ids, 
         unchanged_chunk_ids, 
         new_chunk_ids
-    ) = chunk_functions::categorize_chunks(detected_chunk_ids, &chunk_registry);
+    ) = chunk_functions::categorize_chunks(&chunk_registry, detected_chunk_ids);
 
     chunk_functions::update_chunks(
-        old_chunk_ids, 
-        new_chunk_ids.clone(), 
-        &chunk_registry, 
         create_chunk_event_writer, 
         load_chunk_event_writer, 
-        unload_chunk_event_writer
+        unload_chunk_event_writer,
+        &chunk_registry, 
+        &mut chunk_event_registry,
+        old_chunk_ids, 
+        new_chunk_ids.clone(), 
     );
 
     *chunk_loader.current_chunk_ids_mut() = vec![unchanged_chunk_ids, new_chunk_ids].concat();

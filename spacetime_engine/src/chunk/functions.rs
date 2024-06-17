@@ -12,7 +12,7 @@ use crate::chunk::events::*;
 use crate::math::structs::I16Vec2;
 use serde::de::DeserializeSeed;
 use super::actor::components::ChunkActor;
-use super::ChunkRegistry;
+use super::{ChunkEventRegistry, ChunkRegistry};
 
 pub(in crate) fn new_chunk_entity(world: &mut World, chunk_id: ChunkID) -> Entity {
     let chunk_position: ChunkPosition = chunk_id.into();
@@ -171,8 +171,8 @@ pub(in crate) fn detect_chunks(
 }
 
 pub(in crate) fn categorize_chunks(
-    detected_chunk_ids: Vec<ChunkID>,
     chunk_registry: &Res<ChunkRegistry>,
+    detected_chunk_ids: Vec<ChunkID>,
 ) -> (Vec<ChunkID>, Vec<ChunkID>, Vec<ChunkID>) {
     let mut old_chunks: Vec<ChunkID> = Vec::new();
     let mut unchanged_chunks: Vec<ChunkID> = Vec::new();
@@ -199,38 +199,59 @@ pub(in crate) fn start_chunks(
     mut create_chunk_event_writer: EventWriter<CreateChunkEntity>,
     mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
     chunk_registry: &Res<ChunkRegistry>,
+    chunk_event_registry: &mut ResMut<ChunkEventRegistry>,
     detected_chunk_ids: &Vec<ChunkID>,
 ) {
     for detected_chunk_id in detected_chunk_ids {
-        let detected_chunk_id = *detected_chunk_id;
+        let chunk_id = *detected_chunk_id;
+        let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
 
-        if chunk_registry.is_chunk_registered(detected_chunk_id) {
-            load_chunk_event_writer.send(LoadChunkEntity { chunk_id: detected_chunk_id });
+        if chunk_registry.is_chunk_registered(chunk_id) {
+            load_chunk_event_writer.send(LoadChunkEntity { 
+                chunk_event_id,
+                chunk_id
+            });
         } else {
-            create_chunk_event_writer.send(CreateChunkEntity { chunk_id: detected_chunk_id });
+            create_chunk_event_writer.send(CreateChunkEntity { 
+                chunk_event_id,
+                chunk_id
+            });
         }
     }
 }
 
 pub(in crate) fn update_chunks(
-    old_chunk_ids: Vec<ChunkID>,
-    new_chunk_ids: Vec<ChunkID>,
-    chunk_registry: &Res<ChunkRegistry>,
     mut create_chunk_event_writer: EventWriter<CreateChunkEntity>,
     mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
     mut unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
+    chunk_registry: &Res<ChunkRegistry>,
+    chunk_event_registry: &mut ResMut<ChunkEventRegistry>,
+    old_chunk_ids: Vec<ChunkID>,
+    new_chunk_ids: Vec<ChunkID>,
 ) {
     for old_chunk_id in old_chunk_ids {
-        unload_chunk_event_writer.send(UnloadChunkEntity { chunk_id: old_chunk_id });
+        let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
+
+        unload_chunk_event_writer.send(UnloadChunkEntity {
+            chunk_event_id,
+            chunk_id: old_chunk_id
+        });
     }
 
     for new_chunk_id in new_chunk_ids.iter() {
-        let new_chunk_id = *new_chunk_id;
+        let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
+        let chunk_id = *new_chunk_id;
         
-        if chunk_registry.is_chunk_registered(new_chunk_id) {
-            load_chunk_event_writer.send(LoadChunkEntity { chunk_id: new_chunk_id });
+        if chunk_registry.is_chunk_registered(chunk_id) {
+            load_chunk_event_writer.send(LoadChunkEntity {
+                chunk_event_id,
+                chunk_id
+            });
         } else {
-            create_chunk_event_writer.send(CreateChunkEntity { chunk_id: new_chunk_id });
+            create_chunk_event_writer.send(CreateChunkEntity {
+                chunk_event_id,
+                chunk_id
+            });
         }
     }
 }

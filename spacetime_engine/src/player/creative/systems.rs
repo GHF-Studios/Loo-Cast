@@ -17,6 +17,7 @@ pub(in crate) fn update(
     camera_query: Query<(&Camera, &GlobalTransform)>,
     chunk_actor_query: Query<(&Transform, &ChunkActor), With<Collider>>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
+    mut chunk_actor_event_registry: ResMut<ChunkActorEventRegistry>,
 ) {
     let window = match window_query.get_single() {
         Ok(window) => window,
@@ -52,7 +53,10 @@ pub(in crate) fn update(
     let hit_chunk_id: ChunkID = hit_chunk_position.into();
 
     if mouse_button_input.just_pressed(MouseButton::Right) {
+        let chunk_actor_event_id = chunk_actor_event_registry.get_unused_chunk_actor_event_id();
+        
         create_chunk_actor_entity_event_writer.send(CreateChunkActorEntity {
+            chunk_actor_event_id,
             chunk_id: hit_chunk_id,
             world_position: hit_world_position,
         });
@@ -70,7 +74,10 @@ pub(in crate) fn update(
                 continue;
             }
 
+            let chunk_actor_event_id = chunk_actor_event_registry.get_unused_chunk_actor_event_id();
+
             destroy_chunk_actor_entity_event_writer.send(DestroyChunkActorEntity {
+                chunk_actor_event_id,
                 chunk_actor_id: chunk_actor.id(),
             });
         }
