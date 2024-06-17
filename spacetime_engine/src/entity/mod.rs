@@ -1,6 +1,7 @@
 pub mod id;
 
 pub mod resources;
+pub mod types;
 
 use resources::*;
 use bevy::prelude::*;

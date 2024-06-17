@@ -2,11 +2,12 @@ use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
 use super::id::structs::*;
 use super::structs::*;
+use crate::entity::types::*;
 
 #[derive(Resource, Debug, Default)]
 pub(in crate) struct ChunkActorRegistry {
     registered_chunk_actors: HashSet<ChunkActorID>,
-    loaded_chunk_actors: HashMap<ChunkActorID, Entity>,
+    loaded_chunk_actors: HashMap<ChunkActorID, EntityReference>,
     next_chunk_actor_id: ChunkActorID,
     recycled_chunk_actor_ids: Vec<ChunkActorID>,
     create_chunk_actor_entity_requests: HashMap<ChunkActorID, CreateChunkActorEntityRequest>,
@@ -48,15 +49,15 @@ impl ChunkActorRegistry {
         }
     }
 
-    pub fn load_chunk_actor(&mut self, chunk_actor_id: ChunkActorID, chunk_actor_entity: Entity) {
-        self.loaded_chunk_actors.insert(chunk_actor_id, chunk_actor_entity);
+    pub fn load_chunk_actor(&mut self, chunk_actor_id: ChunkActorID, chunk_actor_entity_reference: EntityReference) {
+        self.loaded_chunk_actors.insert(chunk_actor_id, chunk_actor_entity_reference);
     }
 
-    pub fn load_chunk_actors(&mut self, chunk_actor_entities: HashMap<ChunkActorID, Entity>) {
+    pub fn load_chunk_actors(&mut self, chunk_actor_entities: HashMap<ChunkActorID, EntityReference>) {
         self.loaded_chunk_actors.extend(chunk_actor_entities);
     }
 
-    pub fn unload_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) -> Option<Entity> {
+    pub fn unload_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) -> Option<EntityReference> {
         self.loaded_chunk_actors.remove(&chunk_actor_id)
     }
 
@@ -164,19 +165,19 @@ impl ChunkActorRegistry {
         &mut self.registered_chunk_actors
     }
 
-    pub fn get_loaded_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> Option<Entity> {
+    pub fn get_loaded_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> Option<EntityReference> {
         self.loaded_chunk_actors.get(&chunk_actor_id).copied()
     }
 
-    pub fn loaded_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> Entity {
+    pub fn loaded_chunk_actor(&self, chunk_actor_id: ChunkActorID) -> EntityReference {
         self.loaded_chunk_actors[&chunk_actor_id]
     }
 
-    pub fn loaded_chunk_actors(&self) -> &HashMap<ChunkActorID, Entity> {
+    pub fn loaded_chunk_actors(&self) -> &HashMap<ChunkActorID, EntityReference> {
         &self.loaded_chunk_actors
     }
 
-    pub fn loaded_chunk_actors_mut(&mut self) -> &mut HashMap<ChunkActorID, Entity> {
+    pub fn loaded_chunk_actors_mut(&mut self) -> &mut HashMap<ChunkActorID, EntityReference> {
         &mut self.loaded_chunk_actors
     }
 

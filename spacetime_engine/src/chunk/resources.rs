@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
 use crate::chunk::id::structs::*;
+use crate::entity::types::*;
 
 #[derive(Resource, Debug, Default)]
 pub(in crate) struct ChunkRegistry {
     registered_chunks: HashSet<ChunkID>,
-    loaded_chunks: HashMap<ChunkID, Entity>,
+    loaded_chunks: HashMap<ChunkID, EntityReference>,
     serialized_chunks: HashMap<ChunkID, String>,
     currently_creating_chunks: HashSet<ChunkID>,
     currently_destroying_chunks: HashSet<ChunkID>,
@@ -30,15 +31,15 @@ impl ChunkRegistry {
         self.registered_chunks.retain(|&chunk_id| !chunk_ids.contains(&chunk_id));
     }
 
-    pub fn load_chunk(&mut self, chunk_id: ChunkID, entity: Entity) {
-        self.loaded_chunks.insert(chunk_id, entity);
+    pub fn load_chunk(&mut self, chunk_id: ChunkID, chunk_entity_reference: EntityReference) {
+        self.loaded_chunks.insert(chunk_id, chunk_entity_reference);
     }
 
-    pub fn load_chunks(&mut self, chunk_entities: HashMap<ChunkID, Entity>) {
+    pub fn load_chunks(&mut self, chunk_entities: HashMap<ChunkID, EntityReference>) {
         self.loaded_chunks.extend(chunk_entities);
     }
 
-    pub fn unload_chunk(&mut self, chunk_id: ChunkID) -> Option<Entity> {
+    pub fn unload_chunk(&mut self, chunk_id: ChunkID) -> Option<EntityReference> {
         self.loaded_chunks.remove(&chunk_id)
     }
 
@@ -238,19 +239,19 @@ impl ChunkRegistry {
         &mut self.registered_chunks
     }
 
-    pub fn get_loaded_chunk_entity(&self, chunk_id: ChunkID) -> Option<Entity> {
+    pub fn get_loaded_chunk_entity(&self, chunk_id: ChunkID) -> Option<EntityReference> {
         self.loaded_chunks.get(&chunk_id).copied()
     }
 
-    pub fn loaded_chunk_entity(&self, chunk_id: ChunkID) -> Entity {
+    pub fn loaded_chunk_entity(&self, chunk_id: ChunkID) -> EntityReference {
         self.loaded_chunks[&chunk_id]
     }
 
-    pub fn loaded_chunks(&self) -> &HashMap<ChunkID, Entity> {
+    pub fn loaded_chunks(&self) -> &HashMap<ChunkID, EntityReference> {
         &self.loaded_chunks
     }
 
-    pub fn loaded_chunks_mut(&mut self) -> &mut HashMap<ChunkID, Entity> {
+    pub fn loaded_chunks_mut(&mut self) -> &mut HashMap<ChunkID, EntityReference> {
         &mut self.loaded_chunks
     }
 
@@ -258,7 +259,7 @@ impl ChunkRegistry {
         self.loaded_chunks.keys().copied().collect()
     }
 
-    pub fn loaded_chunk_entities(&self) -> HashSet<Entity> {
+    pub fn loaded_chunk_entities(&self) -> HashSet<EntityReference> {
         self.loaded_chunks.values().copied().collect()
     }
 

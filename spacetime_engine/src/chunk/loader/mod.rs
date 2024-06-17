@@ -19,7 +19,13 @@ impl Plugin for LoaderPlugin {
         app
             .add_event::<StartedChunkLoader>()
             .add_plugins(IDPlugin)
-            .add_systems(Update, (start, update))
+            .add_systems(Update, (
+                start, 
+                update,
+                handle_create_chunk_loader_entity_events,
+                handle_destroy_chunk_loader_entity_events,
+                handle_upgrade_to_chunk_loader_entity_events
+            ))
             .register_type::<components::ChunkLoader>();
     }
 }

@@ -4,34 +4,14 @@ use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
-// Types of world modifications
-// 1. Chunk Creation/Destruction/Loading/Unloading
-// 2. Chunk Actor Entity Creation/Destruction
-// 3. Chunk Loader Entity Creation/Destruction
-
-
 
 // NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
-// TODO: Identify every kind of event-based world modification
-// TODO: Identify every system that does world modification and further separate the results into fully-integrated/event-based and unintegrated/non-event-based
-// TODO: Implement event-based chunk loader entity creation/destruction/destruction
-// TODO: Implement event-based chunk        entity creation/destruction/destruction/loading/unloading
-// Note: DONT FORGET ADAPTING THE REGISTRIES
-
-// TODO: Integrate event-based chunk actor  entity creation/destruction/destruction
-// TODO: Integrate event-based chunk loader entity creation/destruction/destruction
-// TODO: Integrate event-based chunk        entity creation/destruction/destruction/loading/unloading
-
-
-// IDEA!!!!!
-
-// What if we not only create a way to create certain types of entities via events and resources, 
-// but also a way to "upgrade" an entity, which instead of creating a whole new Entity from that template, 
-// will instead overlay that template over the entity, inserting all related components. 
-// So you could not only create and destroy a chunk for example, but you could also create some entity, 
-// and then after the fact decide that it shall now also function as a chunk, so you would "upgrade" it to a chunk entity, 
-// and it would then be treated as a chunk entity by the systems that care about chunks. 
+// TODO: Take a look at all TODOs outside this file
+// TODO: Integrate event-based chunk actor  entity creation/destruction/upgrading
+// TODO: Integrate event-based chunk loader entity creation/destruction/upgrading
+// TODO: Integrate event-based chunk        entity creation/destruction/upgrading/loading/unloading
+// TODO: Take a look at all TODOs outside this file again
 
 
 

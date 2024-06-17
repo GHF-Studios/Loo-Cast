@@ -59,7 +59,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
         let chunk_id = create_chunk_actor_entity_event.chunk_id;
         let world_position = create_chunk_actor_entity_event.world_position;
 
-        info!("Trying to create chunk actor entity '{:?}' ...", chunk_actor_entity_id);
+        info!("Trying to create chunk actor entity '{:?}' at world position '{:?}'...", chunk_actor_entity_id, world_position);
 
         if let Some(chunk_entity) = chunk_registry.get_loaded_chunk_entity(chunk_id) {
             info!("Chunk '{:?}' loaded; creating chunk actor entity '{:?}' immediately ...", chunk_id, chunk_actor_entity_id);
@@ -547,7 +547,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
     }
 }
 
-pub(super) fn process_upgrade_to_chunk_actor_requests(
+pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
     mut commands: Commands,
     mut created_chunk_entity_event_reader: EventReader<CreatedChunkEntity>,
     mut loaded_chunk_entity_event_reader: EventReader<LoadedChunkEntity>,

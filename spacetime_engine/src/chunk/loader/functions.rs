@@ -3,10 +3,11 @@ use super::{components::ChunkLoader, id::structs::*};
 
 pub(super) fn new_chunk_loader_entity(
     commands: &mut Commands, 
-    chunk_loader_id: ChunkLoaderID
+    chunk_loader_id: ChunkLoaderID,
+    world_position: Vec2,
 ) -> Entity {
     commands
-        .spawn(Transform::default())
+        .spawn(Transform::from_translation(Vec3::new(world_position.x, world_position.y, 0.0)))
         .insert(ChunkLoader::new(chunk_loader_id, 4))
         .id()
 }
@@ -37,9 +38,3 @@ pub(super) fn upgrade_to_chunk_loader_entity(
         panic!("Entity does not exist or does not have a Transform component.");
     };
 }
-
-// TODO: Implement
-pub(super) fn collect_chunk_loader_updates() {}
-
-// TODO: Implement
-pub(super) fn apply_chunk_loader_updates() {}
