@@ -129,3 +129,17 @@ impl ChunkLoaderRegistry {
         self.recycled_chunk_loader_ids.push(chunk_loader_id);
     }
 }
+
+#[derive(Resource, Debug, Default)]
+pub(in crate) struct ChunkLoaderEventRegistry {
+    next_chunk_loader_event_id: ChunkLoaderEventID,
+}
+
+impl ChunkLoaderEventRegistry {
+    pub fn get_unused_chunk_loader_event_id(&mut self) -> ChunkLoaderEventID {
+        let chunk_loader_event_id = self.next_chunk_loader_event_id;
+        self.next_chunk_loader_event_id = ChunkLoaderEventID(chunk_loader_event_id.0 + 1);
+
+        chunk_loader_event_id
+    }
+}

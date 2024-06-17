@@ -14,9 +14,13 @@ use super::functions;
 pub(super) fn start(
     mut started_chunk_actor_event_writer: EventWriter<StartedChunkActor>,
     chunk_actor_query: Query<&ChunkActor, Added<ChunkActor>>,
+    mut chunk_actor_event_registry: ResMut<ChunkActorEventRegistry>,
 ) {
     for chunk_actor in chunk_actor_query.iter() {
+        let chunk_actor_event_id = chunk_actor_event_registry.get_unused_chunk_actor_event_id();
+
         started_chunk_actor_event_writer.send(StartedChunkActor::Success {
+            chunk_actor_event_id,
             chunk_actor_id: chunk_actor.id(),
         });
     }
@@ -56,6 +60,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
     for create_chunk_actor_entity_event in create_chunk_actor_entity_events {
         let chunk_actor_entity_id = entity_registry.register_entity();
         let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
+        let chunk_actor_event_id = create_chunk_actor_entity_event.chunk_actor_event_id;
         let chunk_id = create_chunk_actor_entity_event.chunk_id;
         let world_position = create_chunk_actor_entity_event.world_position;
 
@@ -73,6 +78,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
                     entity_registry.unregister_entity(chunk_actor_entity_id);
 
                     created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
+                        chunk_actor_event_id,
                         chunk_id,
                         world_position,
                     });
@@ -89,6 +95,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
             chunk.add_chunk_actor(chunk_actor_id);
 
             created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Success {
+                chunk_actor_event_id,
                 chunk_actor_id,
                 chunk_actor_entity_id,
                 chunk_id,
@@ -104,6 +111,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
                 entity_registry.unregister_entity(chunk_actor_entity_id);
 
                 created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
+                    chunk_actor_event_id,
                     chunk_id,
                     world_position,
                 });
@@ -113,6 +121,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
             
             chunk_actor_registry.start_creating_chunk_actor_entity(
                 CreateChunkActorEntityRequest {
+                    chunk_actor_event_id,
                     chunk_actor_id,
                     chunk_actor_entity_id,
                     chunk_id,
@@ -140,13 +149,17 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
 
     for destroy_chunk_actor_entity_event in destroy_chunk_actor_entity_events {
         let chunk_actor_id = destroy_chunk_actor_entity_event.chunk_actor_id;
+        let chunk_actor_event_id = destroy_chunk_actor_entity_event.chunk_actor_event_id;
 
         let chunk_actor_entity_reference = match chunk_actor_registry.get_loaded_chunk_actor(chunk_actor_id) {
             Some(chunk_actor_entity) => chunk_actor_entity,
             None => {
                 error!("The request for destroying the chunk actor entity '{:?}' has been cancelled due to the chunk actor not being loaded!", chunk_actor_id);
 
-                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Failure { chunk_actor_id });
+                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Failure {
+                    chunk_actor_event_id,
+                    chunk_actor_id 
+                });
 
                 continue;
             }
@@ -157,7 +170,10 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
             Err(_) => {
                 error!("The request for destroying the chunk actor entity '{:?}' has been cancelled due to the chunk actor failing to be queried!", chunk_actor_id);
 
-                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Failure { chunk_actor_id });
+                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Failure { 
+                    chunk_actor_event_id,
+                    chunk_actor_id
+                });
 
                 continue;
             }
@@ -168,7 +184,10 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
             None => {
                 error!("The request for destroying the chunk actor entity '{:?}' has been cancelled due to the respective chunk actor entity id not being found!", chunk_actor_id);
 
-                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Failure { chunk_actor_id });
+                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Failure { 
+                    chunk_actor_event_id,
+                    chunk_actor_id
+                });
 
                 continue;
             }
@@ -181,7 +200,10 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
             None => {
                 error!("The request for destroying the chunk actor entity '{:?}' has been cancelled due to the chunk '{:?}' not being loaded!", chunk_actor_id, chunk_id);
 
-                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Failure { chunk_actor_id });
+                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Failure { 
+                    chunk_actor_event_id,
+                    chunk_actor_id
+                });
 
                 continue;
             }
@@ -192,7 +214,10 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
             Err(_) => {
                 error!("The request for destroying the chunk actor entity '{:?}' has been cancelled due to the chunk '{:?}' failing to be queried!", chunk_actor_id, chunk_id);
 
-                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Failure { chunk_actor_id });
+                destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Failure { 
+                    chunk_actor_event_id,
+                    chunk_actor_id
+                });
 
                 continue;
             }
@@ -209,6 +234,7 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
         commands.entity(chunk_actor_entity_reference).despawn();
 
         destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Success {
+            chunk_actor_event_id,
             chunk_actor_id,
         });
     }
@@ -235,6 +261,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
         let target_entity_id = upgrade_to_chunk_actor_entity_event.target_entity_id;
         let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
         let chunk_id = upgrade_to_chunk_actor_entity_event.chunk_id;
+        let chunk_actor_event_id = upgrade_to_chunk_actor_entity_event.chunk_actor_event_id;
 
         info!("Trying to upgrade entity '{:?}' to a chunk actor entity ...", target_entity_id);
 
@@ -249,6 +276,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
                     chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id,
                         target_entity_id,
                         chunk_id,
                     });
@@ -265,6 +293,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
                     chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id,
                         target_entity_id,
                         chunk_id,
                     });
@@ -289,6 +318,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
                     chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id,
                         target_entity_id,
                         chunk_id,
                     });
@@ -303,6 +333,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
             chunk.add_chunk_actor(chunk_actor_id);
 
             upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Success {
+                chunk_actor_event_id,
                 chunk_actor_id,
                 target_entity_id,
                 chunk_id,
@@ -316,6 +347,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
                 chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
 
                 upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                    chunk_actor_event_id,
                     target_entity_id,
                     chunk_id,
                 });
@@ -325,6 +357,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
             
             chunk_actor_registry.start_upgrading_to_chunk_actor_entity(
                 UpgradeToChunkActorEntityRequest {
+                    chunk_actor_event_id,
                     chunk_actor_id,
                     target_entity_id,
                     chunk_id,
@@ -355,27 +388,30 @@ pub(super) fn process_create_chunk_actor_entity_requests(
     }
 
     for created_chunk_entity_event in created_chunk_entity_events {
-        let chunk_id = created_chunk_entity_event.chunk_id;
-        let success = created_chunk_entity_event.success;
-
-        if !success {
-            error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be loaded!", chunk_id);
-
-            let requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
-            requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
-                entity_registry.unregister_entity(request.chunk_actor_entity_id);
-                chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
-
-                chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
-
-                created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
-                    chunk_id: request.chunk_id,
-                    world_position: request.world_position,
+        let (_, chunk_id) = match created_chunk_entity_event {
+            CreatedChunkEntity::Success { chunk_event_id, chunk_id } => {
+                (chunk_event_id, chunk_id)
+            },
+            CreatedChunkEntity::Failure { chunk_id, .. } => {
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be loaded!", chunk_id);
+    
+                let requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
+                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                    entity_registry.unregister_entity(request.chunk_actor_entity_id);
+                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+    
+                    chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
+    
+                    created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
+                        chunk_actor_event_id: request.chunk_actor_event_id,
+                        chunk_id: request.chunk_id,
+                        world_position: request.world_position,
+                    });
                 });
-            });
-
-            continue;
-        }
+    
+                continue;
+            },
+        };
 
         let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity) => chunk_entity,
@@ -390,6 +426,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
                     chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
 
                     created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
+                        chunk_actor_event_id: request.chunk_actor_event_id,
                         chunk_id: request.chunk_id,
                         world_position: request.world_position,
                     });
@@ -412,6 +449,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
                     chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
 
                     created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
+                        chunk_actor_event_id: request.chunk_actor_event_id,
                         chunk_id: request.chunk_id,
                         world_position: request.world_position,
                     });
@@ -423,6 +461,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
 
         let create_chunk_actor_entity_requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
         for create_chunk_actor_entity_request in create_chunk_actor_entity_requests.values() {
+            let chunk_actor_event_id = create_chunk_actor_entity_request.chunk_actor_event_id;
             let chunk_actor_id = create_chunk_actor_entity_request.chunk_actor_id;
             let chunk_actor_entity_id = create_chunk_actor_entity_request.chunk_actor_entity_id;
             let chunk_id = create_chunk_actor_entity_request.chunk_id;
@@ -442,6 +481,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
             chunk_actor_registry.stop_creating_chunk_actor_entity(chunk_actor_id);
 
             created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Success {
+                chunk_actor_event_id,
                 chunk_actor_id,
                 chunk_actor_entity_id,
                 chunk_id,
@@ -451,27 +491,28 @@ pub(super) fn process_create_chunk_actor_entity_requests(
     }
 
     for loaded_chunk_entity_event in loaded_chunk_entity_events {
-        let chunk_id = loaded_chunk_entity_event.chunk_id;
-        let success = loaded_chunk_entity_event.success;
+        let (_, chunk_id) = match loaded_chunk_entity_event {
+            LoadedChunkEntity::Success { chunk_event_id, chunk_id } => (chunk_event_id, chunk_id),
+            LoadedChunkEntity::Failure { chunk_id, .. } => {
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be loaded!", chunk_id);
 
-        if !success {
-            error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be loaded!", chunk_id);
+                let requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
+                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                    entity_registry.unregister_entity(request.chunk_actor_entity_id);
+                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
 
-            let requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
-            requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
-                entity_registry.unregister_entity(request.chunk_actor_entity_id);
-                chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+                    chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
 
-                chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
-
-                created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
-                    chunk_id: request.chunk_id,
-                    world_position: request.world_position,
+                    created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
+                        chunk_actor_event_id: request.chunk_actor_event_id,
+                        chunk_id: request.chunk_id,
+                        world_position: request.world_position,
+                    });
                 });
-            });
 
-            continue;
-        }
+                continue;
+            },
+        };
 
         let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity) => chunk_entity,
@@ -486,6 +527,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
                     chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
 
                     created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
+                        chunk_actor_event_id: request.chunk_actor_event_id,
                         chunk_id: request.chunk_id,
                         world_position: request.world_position,
                     });
@@ -508,6 +550,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
                     chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
 
                     created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
+                        chunk_actor_event_id: request.chunk_actor_event_id,
                         chunk_id: request.chunk_id,
                         world_position: request.world_position,
                     });
@@ -519,6 +562,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
 
         let create_chunk_actor_entity_requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
         for create_chunk_actor_entity_request in create_chunk_actor_entity_requests.values() {
+            let chunk_actor_event_id = create_chunk_actor_entity_request.chunk_actor_event_id;
             let chunk_actor_id = create_chunk_actor_entity_request.chunk_actor_id;
             let chunk_actor_entity_id = create_chunk_actor_entity_request.chunk_actor_entity_id;
             let chunk_id = create_chunk_actor_entity_request.chunk_id;
@@ -538,6 +582,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
             chunk_actor_registry.stop_creating_chunk_actor_entity(chunk_actor_id);
 
             created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Success {
+                chunk_actor_event_id,
                 chunk_actor_id,
                 chunk_actor_entity_id,
                 chunk_id,
@@ -571,28 +616,31 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
     }
 
     for created_chunk_entity_event in created_chunk_entity_events {
-        let chunk_id = created_chunk_entity_event.chunk_id;
-        let success = created_chunk_entity_event.success;
-
-        if !success {
-            let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
-            for request in requests.values() {
-                if request.chunk_id != chunk_id {
-                    error!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the starting chunk '{:?}' failing to load!", request.target_entity_id, request.chunk_id);
-                    
-                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
-
-                    chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
-
-                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
-                        target_entity_id: request.target_entity_id,
-                        chunk_id: request.chunk_id,
-                    });
+        let (_, chunk_id) = match created_chunk_entity_event {
+            CreatedChunkEntity::Success { chunk_event_id, chunk_id } => {
+                (chunk_event_id, chunk_id)
+            },
+            CreatedChunkEntity::Failure { chunk_id, .. } => {
+                let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
+                for request in requests.values() {
+                    if request.chunk_id != chunk_id {
+                        error!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the starting chunk '{:?}' failing to load!", request.target_entity_id, request.chunk_id);
+                        
+                        chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+    
+                        chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
+    
+                        upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                            chunk_actor_event_id: request.chunk_actor_event_id,
+                            target_entity_id: request.target_entity_id,
+                            chunk_id: request.chunk_id,
+                        });
+                    }
                 }
-            }
-
-            continue;
-        }
+    
+                continue;
+            },
+        };
 
         let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity) => chunk_entity,
@@ -606,6 +654,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
                     chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id: request.chunk_actor_event_id,
                         target_entity_id: request.target_entity_id,
                         chunk_id: request.chunk_id,
                     });
@@ -627,6 +676,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
                     chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id: request.chunk_actor_event_id,
                         target_entity_id: request.target_entity_id,
                         chunk_id: request.chunk_id,
                     });
@@ -638,6 +688,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
 
         let upgrade_to_chunk_actor_entity_requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
         for upgrade_to_chunk_actor_entity_request in upgrade_to_chunk_actor_entity_requests.values() {
+            let chunk_actor_event_id = upgrade_to_chunk_actor_entity_request.chunk_actor_event_id;
             let chunk_actor_id = upgrade_to_chunk_actor_entity_request.chunk_actor_id;
             let target_entity_id = upgrade_to_chunk_actor_entity_request.target_entity_id;
             let chunk_id = upgrade_to_chunk_actor_entity_request.chunk_id;
@@ -654,6 +705,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
                     chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id,
                         target_entity_id,
                         chunk_id,
                     });
@@ -678,6 +730,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
                     chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id,
                         target_entity_id,
                         chunk_id,
                     });
@@ -693,6 +746,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
             chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(chunk_actor_id);
 
             upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Success {
+                chunk_actor_event_id,
                 chunk_actor_id,
                 target_entity_id,
                 chunk_id,
@@ -701,28 +755,29 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
     }
 
     for loaded_chunk_entity_event in loaded_chunk_entity_events {
-        let chunk_id = loaded_chunk_entity_event.chunk_id;
-        let success = loaded_chunk_entity_event.success;
-
-        if !success {
-            let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
-            for request in requests.values() {
-                if request.chunk_id != chunk_id {
-                    error!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the starting chunk '{:?}' failing to load!", request.target_entity_id, request.chunk_id);
-                    
-                    chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
-
-                    chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
-
-                    upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
-                        target_entity_id: request.target_entity_id,
-                        chunk_id: request.chunk_id,
-                    });
+        let (_, chunk_id) = match loaded_chunk_entity_event {
+            LoadedChunkEntity::Success { chunk_event_id, chunk_id } => (chunk_event_id, chunk_id),
+            LoadedChunkEntity::Failure { chunk_id, .. } => {
+                let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
+                for request in requests.values() {
+                    if request.chunk_id != chunk_id {
+                        error!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the starting chunk '{:?}' failing to load!", request.target_entity_id, request.chunk_id);
+                        
+                        chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
+    
+                        chunk_actor_registry.stop_creating_chunk_actor_entity(request.chunk_actor_id);
+    
+                        upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                            chunk_actor_event_id: request.chunk_actor_event_id,
+                            target_entity_id: request.target_entity_id,
+                            chunk_id: request.chunk_id,
+                        });
+                    }
                 }
+    
+                continue;
             }
-
-            continue;
-        }
+        };
 
         let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity) => chunk_entity,
@@ -736,6 +791,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
                     chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id: request.chunk_actor_event_id,
                         target_entity_id: request.target_entity_id,
                         chunk_id: request.chunk_id,
                     });
@@ -757,6 +813,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
                     chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id: request.chunk_actor_event_id,
                         target_entity_id: request.target_entity_id,
                         chunk_id: request.chunk_id,
                     });
@@ -768,6 +825,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
 
         let upgrade_to_chunk_actor_entity_requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
         for upgrade_to_chunk_actor_entity_request in upgrade_to_chunk_actor_entity_requests.values() {
+            let chunk_actor_event_id = upgrade_to_chunk_actor_entity_request.chunk_actor_event_id;
             let chunk_actor_id = upgrade_to_chunk_actor_entity_request.chunk_actor_id;
             let target_entity_id = upgrade_to_chunk_actor_entity_request.target_entity_id;
             let chunk_id = upgrade_to_chunk_actor_entity_request.chunk_id;
@@ -784,6 +842,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
                     chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id,
                         target_entity_id,
                         chunk_id,
                     });
@@ -808,6 +867,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
                     chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
 
                     upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                        chunk_actor_event_id,
                         target_entity_id,
                         chunk_id,
                     });
@@ -823,6 +883,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
             chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(chunk_actor_id);
 
             upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Success {
+                chunk_actor_event_id,
                 chunk_actor_id,
                 target_entity_id,
                 chunk_id,

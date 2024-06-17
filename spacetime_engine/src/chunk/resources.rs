@@ -287,3 +287,17 @@ impl ChunkRegistry {
         &self.currently_unloading_chunks
     }
 }
+
+#[derive(Resource, Debug, Default)]
+pub(in crate) struct ChunkEventRegistry {
+    next_chunk_event_id: ChunkEventID,
+}
+
+impl ChunkEventRegistry {
+    pub fn get_unused_chunk_event_id(&mut self) -> ChunkEventID {
+        let chunk_event_id = self.next_chunk_event_id;
+        self.next_chunk_event_id = ChunkEventID(chunk_event_id.0 + 1);
+
+        chunk_event_id
+    }
+}

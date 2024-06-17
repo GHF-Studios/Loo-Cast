@@ -19,6 +19,7 @@ pub(super) struct DespawnChunkActorInfo {
 
 #[derive(Clone, Debug)]
 pub(super) struct CreateChunkActorEntityRequest {
+    pub chunk_actor_event_id: ChunkActorEventID,
     pub chunk_actor_id: ChunkActorID,
     pub chunk_actor_entity_id: EntityID,
     pub chunk_id: ChunkID,
@@ -27,6 +28,7 @@ pub(super) struct CreateChunkActorEntityRequest {
 
 #[derive(Clone, Debug)]
 pub(super) struct UpgradeToChunkActorEntityRequest {
+    pub chunk_actor_event_id: ChunkActorEventID,
     pub chunk_actor_id: ChunkActorID,
     pub target_entity_id: EntityID,
     pub chunk_id: ChunkID,

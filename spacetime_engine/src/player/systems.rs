@@ -10,16 +10,6 @@ use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use super::components::Player;
 
-pub(in crate) fn start(
-) {
-    david
-}
-
-pub(in crate) fn handle_start(
-) {
-    jackson
-}
-
 pub(in crate) fn change_player_chunk_load_radius(
     mut chunk_loader_query: Query<(&mut ChunkLoader, &Player)>,
     keyboard_input: Res<ButtonInput<KeyCode>>,

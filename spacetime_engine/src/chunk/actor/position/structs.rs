@@ -3,7 +3,6 @@ use std::ops;
 use crate::chunk::constants::*;
 use crate::chunk::position::structs::*;
 
-/// This represents a position in regular bevy world space.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Reflect)]
 pub struct ChunkActorPosition(pub Vec3);
 
@@ -35,11 +34,23 @@ impl ops::Add<ChunkActorPosition> for ChunkActorPosition {
     }
 }
 
+impl ops::AddAssign<ChunkActorPosition> for ChunkActorPosition {
+    fn add_assign(&mut self, other: ChunkActorPosition) {
+        self.0 += other.0;
+    }
+}
+
 impl ops::Sub<ChunkActorPosition> for ChunkActorPosition {
     type Output = ChunkActorPosition;
 
     fn sub(self, other: ChunkActorPosition) -> ChunkActorPosition {
         ChunkActorPosition(self.0 - other.0)
+    }
+}
+
+impl ops::SubAssign<ChunkActorPosition> for ChunkActorPosition {
+    fn sub_assign(&mut self, other: ChunkActorPosition) {
+        self.0 -= other.0;
     }
 }
 
@@ -51,11 +62,23 @@ impl ops::Mul<f32> for ChunkActorPosition {
     }
 }
 
+impl ops::MulAssign<f32> for ChunkActorPosition {
+    fn mul_assign(&mut self, scalar: f32) {
+        self.0 *= scalar;
+    }
+}
+
 impl ops::Div<f32> for ChunkActorPosition {
     type Output = ChunkActorPosition;
 
     fn div(self, scalar: f32) -> ChunkActorPosition {
         ChunkActorPosition(self.0 / scalar)
+    }
+}
+
+impl ops::DivAssign<f32> for ChunkActorPosition {
+    fn div_assign(&mut self, scalar: f32) {
+        self.0 /= scalar;
     }
 }
 

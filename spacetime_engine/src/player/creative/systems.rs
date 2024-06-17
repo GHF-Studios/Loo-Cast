@@ -1,8 +1,8 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_rapier2d::geometry::Collider;
 use crate::chunk::actor::constants::*;
-use crate::chunk::actor::functions;
-use crate::chunk::actor::resources::ChunkActorRegistry;
+use crate::chunk::actor::events::*;
+use crate::chunk::actor::resources::*;
 use crate::chunk::components::Chunk;
 use crate::chunk::resources::*;
 use crate::chunk::id::structs::*;
@@ -11,13 +11,11 @@ use crate::chunk::actor::position::structs::*;
 use crate::chunk::actor::components::*;
 
 pub(in crate) fn update(
-    mut commands: Commands,
+    mut create_chunk_actor_entity_event_writer: EventWriter<CreateChunkActorEntity>,
+    mut destroy_chunk_actor_entity_event_writer: EventWriter<DestroyChunkActorEntity>,
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
-    chunk_actor_query: Query<(Entity, &Transform, &ChunkActor), With<Collider>>,
-    mut chunk_query: Query<&mut Chunk>,
-    chunk_registry: Res<ChunkRegistry>,
-    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    chunk_actor_query: Query<(&Transform, &ChunkActor), With<Collider>>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
 ) {
     let window = match window_query.get_single() {
@@ -54,53 +52,27 @@ pub(in crate) fn update(
     let hit_chunk_id: ChunkID = hit_chunk_position.into();
 
     if mouse_button_input.just_pressed(MouseButton::Right) {
-        let hit_chunk_entity = match chunk_registry.get_loaded_chunk_entity(hit_chunk_id) {
-            Some(chunk_entity) => chunk_entity,
-            None => {
-                return;
-            }
-        };
+        create_chunk_actor_entity_event_writer.send(CreateChunkActorEntity {
+            chunk_id: hit_chunk_id,
+            world_position: hit_world_position,
+        });
 
-        let mut hit_chunk = match chunk_query.get_mut(hit_chunk_entity) {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                return;
-            }
-        };
-
-        let new_chunk_actor_id = chunk_actor_registry.register_chunk_actor();
-        let new_chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, new_chunk_actor_id, hit_chunk_id, hit_world_position);
-        chunk_actor_registry.load_chunk_actor(new_chunk_actor_id, new_chunk_actor_entity);
-        hit_chunk.add_chunk_actor(new_chunk_actor_id);
+        // TODO: somehow add secondary components to the chunk actor entity
     } else if mouse_button_input.just_pressed(MouseButton::Left) {
-        for (chunk_actor_entity, chunk_actor_transform, chunk_actor) in chunk_actor_query.iter() {
+        for (chunk_actor_transform, chunk_actor) in chunk_actor_query.iter() {
             let chunk_actor_position = chunk_actor_transform.translation.truncate();
+
+            if hit_chunk_id != chunk_actor.current_chunk() {
+                continue;
+            }
 
             if (chunk_actor_position - hit_world_position).abs().max_element() >= CHUNK_ACTOR_SIZE / 2.0 {
                 continue;
             }
 
-            let chunk_actor_id = chunk_actor.id();
-            let chunk_id = chunk_actor.current_chunk();
-
-            let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
-                Some(chunk_entity) => chunk_entity,
-                None => {
-                    continue;
-                }
-            };
-
-            let mut chunk = match chunk_query.get_mut(chunk_entity) {
-                Ok(chunk) => chunk,
-                Err(_) => {
-                    continue;
-                }
-            };
-
-            chunk.remove_chunk_actor(chunk_actor.id());
-            chunk_actor_registry.unload_chunk_actor(chunk_actor_id);
-            commands.entity(chunk_actor_entity).despawn_recursive();
-            chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
+            destroy_chunk_actor_entity_event_writer.send(DestroyChunkActorEntity {
+                chunk_actor_id: chunk_actor.id(),
+            });
         }
     }
 }

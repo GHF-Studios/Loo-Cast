@@ -37,11 +37,23 @@ impl ops::Add<ChunkPosition> for ChunkPosition {
     }
 }
 
+impl ops::AddAssign<ChunkPosition> for ChunkPosition {
+    fn add_assign(&mut self, other: ChunkPosition) {
+        self.0 += other.0;
+    }
+}
+
 impl ops::Sub<ChunkPosition> for ChunkPosition {
     type Output = ChunkPosition;
 
     fn sub(self, other: ChunkPosition) -> ChunkPosition {
         ChunkPosition(self.0 - other.0)
+    }
+}
+
+impl ops::SubAssign<ChunkPosition> for ChunkPosition {
+    fn sub_assign(&mut self, other: ChunkPosition) {
+        self.0 -= other.0;
     }
 }
 
@@ -53,6 +65,12 @@ impl ops::Mul<i16> for ChunkPosition {
     }
 }
 
+impl ops::MulAssign<i16> for ChunkPosition {
+    fn mul_assign(&mut self, scalar: i16) {
+        self.0 *= scalar;
+    }
+}
+
 impl ops::Div<i16> for ChunkPosition {
     type Output = ChunkPosition;
 
@@ -60,3 +78,10 @@ impl ops::Div<i16> for ChunkPosition {
         ChunkPosition(self.0 / scalar)
     }
 }
+
+impl ops::DivAssign<i16> for ChunkPosition {
+    fn div_assign(&mut self, scalar: i16) {
+        self.0 /= scalar;
+    }
+}
+

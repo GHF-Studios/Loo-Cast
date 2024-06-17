@@ -5,6 +5,7 @@ use crate::chunk::loader::components::*;
 use crate::chunk::loader::events::*;
 use crate::chunk::functions as chunk_functions;
 use super::functions as chunk_loader_functions;
+use super::ChunkLoaderEventRegistry;
 use crate::entity::resources::EntityRegistry;
 use super::resources::ChunkLoaderRegistry;	
 
@@ -14,6 +15,7 @@ pub(in crate) fn start(
     mut started_chunk_loader_event_writer: EventWriter<StartedChunkLoader>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader), Added<ChunkLoader>>,
     chunk_registry: Res<ChunkRegistry>,
+    mut chunk_loader_event_registry: ResMut<ChunkLoaderEventRegistry>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
     let chunk_loader_id = chunk_loader.id();
@@ -30,7 +32,12 @@ pub(in crate) fn start(
 
     *chunk_loader.current_chunk_ids_mut() = detected_chunk_ids;
 
-    started_chunk_loader_event_writer.send(StartedChunkLoader::Success { chunk_loader_id });
+    let chunk_loader_event_id = chunk_loader_event_registry.get_unused_chunk_loader_event_id();
+
+    started_chunk_loader_event_writer.send(StartedChunkLoader::Success {
+        chunk_loader_event_id,
+        chunk_loader_id
+    });
 }
 
 pub(in crate) fn update(
@@ -76,6 +83,7 @@ pub(super) fn handle_create_chunk_loader_entity_events(
     }
 
     for create_chunk_loader_entity_event in create_chunk_loader_entity_events {
+        let chunk_loader_event_id = create_chunk_loader_entity_event.chunk_loader_event_id;
         let chunk_loader_entity_id = entity_registry.register_entity();
         let chunk_loader_id = chunk_loader_registry.register_chunk_loader();
         let world_position = create_chunk_loader_entity_event.world_position;
@@ -88,6 +96,7 @@ pub(super) fn handle_create_chunk_loader_entity_events(
         chunk_loader_registry.load_chunk_loader(chunk_loader_id, chunk_loader_entity_reference);
 
         created_chunk_loader_entity_event_writer.send(CreatedChunkLoaderEntity::Success {
+            chunk_loader_event_id,
             chunk_loader_id,
             chunk_loader_entity_id,
             world_position
@@ -108,6 +117,7 @@ pub(super) fn handle_destroy_chunk_loader_entity_events(
     }
 
     for destroy_chunk_loader_entity_event in destroy_chunk_loader_entity_events {
+        let chunk_loader_event_id = destroy_chunk_loader_entity_event.chunk_loader_event_id;
         let chunk_loader_id = destroy_chunk_loader_entity_event.chunk_loader_id;
 
         let chunk_loader_entity_reference = match chunk_loader_registry.get_loaded_chunk_loader(chunk_loader_id) {
@@ -115,7 +125,10 @@ pub(super) fn handle_destroy_chunk_loader_entity_events(
             None => {
                 error!("The request for destroying the chunk loader entity '{:?}' has been cancelled due to the chunk loader not being loaded!", chunk_loader_id);
 
-                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntity::Failure { chunk_loader_id });
+                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntity::Failure {
+                    chunk_loader_event_id,
+                    chunk_loader_id
+                });
 
                 continue;
             }
@@ -126,7 +139,10 @@ pub(super) fn handle_destroy_chunk_loader_entity_events(
             None => {
                 error!("The request for destroying the chunk loader entity '{:?}' has been cancelled due to the respective chunk loader entity id not being found!", chunk_loader_id);
 
-                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntity::Failure { chunk_loader_id });
+                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntity::Failure {
+                    chunk_loader_event_id,
+                    chunk_loader_id
+                });
 
                 continue;
             }
@@ -141,6 +157,7 @@ pub(super) fn handle_destroy_chunk_loader_entity_events(
         commands.entity(chunk_loader_entity_reference).despawn();
 
         destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntity::Success {
+            chunk_loader_event_id,
             chunk_loader_id,
         });
     }
@@ -162,6 +179,7 @@ pub(super) fn handle_upgrade_to_chunk_loader_entity_events(
     }
 
     for upgrade_to_chunk_loader_entity_event in upgrade_to_chunk_loader_entity_events {
+        let chunk_loader_event_id = upgrade_to_chunk_loader_entity_event.chunk_loader_event_id;
         let target_entity_id = upgrade_to_chunk_loader_entity_event.target_entity_id;
         let chunk_loader_id = chunk_loader_registry.register_chunk_loader();
 
@@ -175,6 +193,7 @@ pub(super) fn handle_upgrade_to_chunk_loader_entity_events(
                 chunk_loader_registry.unregister_chunk_loader(chunk_loader_id);
 
                 upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntity::Failure {
+                    chunk_loader_event_id,
                     target_entity_id,
                 });
 
@@ -197,6 +216,7 @@ pub(super) fn handle_upgrade_to_chunk_loader_entity_events(
                 chunk_loader_registry.unregister_chunk_loader(chunk_loader_id);
 
                 upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntity::Failure {
+                    chunk_loader_event_id,
                     target_entity_id,
                 });
 
@@ -208,6 +228,7 @@ pub(super) fn handle_upgrade_to_chunk_loader_entity_events(
         chunk_loader_registry.load_chunk_loader(chunk_loader_id, chunk_loader_entity_reference);
 
         upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntity::Success {
+            chunk_loader_event_id,
             chunk_loader_id,
             target_entity_id,
         });

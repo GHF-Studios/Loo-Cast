@@ -8,6 +8,7 @@ pub mod structs;
 pub mod id;
 
 use events::*;
+use resources::*;
 use systems::*;
 use id::*;
 use bevy::prelude::*;
@@ -19,6 +20,8 @@ impl Plugin for LoaderPlugin {
         app
             .add_event::<StartedChunkLoader>()
             .add_plugins(IDPlugin)
+            .insert_resource(ChunkLoaderRegistry::default())
+            .insert_resource(ChunkLoaderEventRegistry::default())
             .add_systems(Update, (
                 start, 
                 update,

@@ -24,11 +24,25 @@ impl ops::Add<I16Vec2> for I16Vec2 {
     }
 }
 
+impl ops::AddAssign<I16Vec2> for I16Vec2 {
+    fn add_assign(&mut self, other: I16Vec2) {
+        self.0 += other.0;
+        self.1 += other.1;
+    }
+}
+
 impl ops::Sub<I16Vec2> for I16Vec2 {
     type Output = I16Vec2;
 
     fn sub(self, other: I16Vec2) -> I16Vec2 {
         I16Vec2(self.0 - other.0, self.1 - other.1)
+    }
+}
+
+impl ops::SubAssign<I16Vec2> for I16Vec2 {
+    fn sub_assign(&mut self, other: I16Vec2) {
+        self.0 -= other.0;
+        self.1 -= other.1;
     }
 }
 
@@ -40,10 +54,24 @@ impl ops::Mul<i16> for I16Vec2 {
     }
 }
 
+impl ops::MulAssign<i16> for I16Vec2 {
+    fn mul_assign(&mut self, scalar: i16) {
+        self.0 *= scalar;
+        self.1 *= scalar;
+    }
+}
+
 impl ops::Div<i16> for I16Vec2 {
     type Output = I16Vec2;
 
     fn div(self, scalar: i16) -> I16Vec2 {
         I16Vec2(self.0 / scalar, self.1 / scalar)
+    }
+}
+
+impl ops::DivAssign<i16> for I16Vec2 {
+    fn div_assign(&mut self, scalar: i16) {
+        self.0 /= scalar;
+        self.1 /= scalar;
     }
 }

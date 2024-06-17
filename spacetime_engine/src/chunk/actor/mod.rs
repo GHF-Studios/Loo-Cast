@@ -29,6 +29,7 @@ impl Plugin for ActorPlugin {
             .add_event::<UpgradedToChunkActorEntity>()
             .add_plugins(IDPlugin)
             .insert_resource(ChunkActorRegistry::default())
+            .insert_resource(ChunkActorEventRegistry::default())
             .add_systems(Update, (
                 start, 
                 update, 

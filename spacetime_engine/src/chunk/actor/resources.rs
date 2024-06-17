@@ -212,3 +212,18 @@ impl ChunkActorRegistry {
         self.recycled_chunk_actor_ids.push(chunk_actor_id);
     }
 }
+
+#[derive(Resource, Debug, Default)]
+pub(in crate) struct ChunkActorEventRegistry {
+    next_chunk_actor_event_id: ChunkActorEventID,
+}
+
+impl ChunkActorEventRegistry {
+    pub fn get_unused_chunk_actor_event_id(&mut self) -> ChunkActorEventID {
+        let chunk_actor_event_id = self.next_chunk_actor_event_id;
+
+        self.next_chunk_actor_event_id = ChunkActorEventID(chunk_actor_event_id.0 + 1);
+
+        chunk_actor_event_id
+    }
+}
