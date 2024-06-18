@@ -45,10 +45,10 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(SpacetimeEnginePlugins)
-        .add_systems(Start, start)
+        .add_systems(PreStartup, pre_start)
         .run();
 }
 
-fn start(mut rapier_configuration: ResMut<RapierConfiguration>) {
+fn pre_start(mut rapier_configuration: ResMut<RapierConfiguration>) {
     rapier_configuration.gravity = Vec2::new(0.0, 0.0);
 }

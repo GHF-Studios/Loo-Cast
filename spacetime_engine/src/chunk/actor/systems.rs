@@ -388,7 +388,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
     }
 
     for created_chunk_entity_event in created_chunk_entity_events {
-        let (_, chunk_id) = match created_chunk_entity_event {
+        let (_, created_chunk_id) = match created_chunk_entity_event {
             CreatedChunkEntity::Success { chunk_event_id, chunk_id } => {
                 (chunk_event_id, chunk_id)
             },
@@ -413,13 +413,13 @@ pub(super) fn process_create_chunk_actor_entity_requests(
             },
         };
 
-        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(created_chunk_id) {
             Some(chunk_entity) => chunk_entity,
             None => {
-                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk not being loaded!", chunk_id);
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk not being loaded!", created_chunk_id);
 
                 let requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
-                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                requests.values().filter(|request| request.chunk_id == created_chunk_id).for_each(|request| {
                     entity_registry.unregister_entity(request.chunk_actor_entity_id);
                     chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
 
@@ -439,10 +439,10 @@ pub(super) fn process_create_chunk_actor_entity_requests(
         let mut chunk = match chunk_query.get_mut(chunk_entity_reference) {
             Ok(chunk) => chunk,
             Err(_) => {
-                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be queried!", chunk_id);
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be queried!", created_chunk_id);
 
                 let requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
-                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                requests.values().filter(|request| request.chunk_id == created_chunk_id).for_each(|request| {
                     entity_registry.unregister_entity(request.chunk_actor_entity_id);
                     chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
 
@@ -467,11 +467,11 @@ pub(super) fn process_create_chunk_actor_entity_requests(
             let chunk_id = create_chunk_actor_entity_request.chunk_id;
             let world_position = create_chunk_actor_entity_request.world_position;
 
-            if chunk_id != chunk_id {
+            if chunk_id != created_chunk_id {
                 continue;
             }
 
-            let chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, chunk_actor_id, chunk_id, world_position);
+            let chunk_actor_entity = functions::new_chunk_actor_entity(&mut commands, chunk_actor_id, created_chunk_id, world_position);
 
             entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity);
             chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity);
@@ -484,14 +484,14 @@ pub(super) fn process_create_chunk_actor_entity_requests(
                 chunk_actor_event_id,
                 chunk_actor_id,
                 chunk_actor_entity_id,
-                chunk_id,
+                chunk_id: created_chunk_id,
                 world_position,
             });
         }
     }
 
     for loaded_chunk_entity_event in loaded_chunk_entity_events {
-        let (_, chunk_id) = match loaded_chunk_entity_event {
+        let (_, created_chunk_id) = match loaded_chunk_entity_event {
             LoadedChunkEntity::Success { chunk_event_id, chunk_id } => (chunk_event_id, chunk_id),
             LoadedChunkEntity::Failure { chunk_id, .. } => {
                 error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be loaded!", chunk_id);
@@ -514,13 +514,13 @@ pub(super) fn process_create_chunk_actor_entity_requests(
             },
         };
 
-        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(created_chunk_id) {
             Some(chunk_entity) => chunk_entity,
             None => {
-                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk not being loaded!", chunk_id);
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk not being loaded!", created_chunk_id);
 
                 let requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
-                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                requests.values().filter(|request| request.chunk_id == created_chunk_id).for_each(|request| {
                     entity_registry.unregister_entity(request.chunk_actor_entity_id);
                     chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
 
@@ -540,10 +540,10 @@ pub(super) fn process_create_chunk_actor_entity_requests(
         let mut chunk = match chunk_query.get_mut(chunk_entity_reference) {
             Ok(chunk) => chunk,
             Err(_) => {
-                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be queried!", chunk_id);
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be queried!", created_chunk_id);
 
                 let requests = chunk_actor_registry.create_chunk_actor_entity_requests().clone();
-                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                requests.values().filter(|request| request.chunk_id == created_chunk_id).for_each(|request| {
                     entity_registry.unregister_entity(request.chunk_actor_entity_id);
                     chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
 
@@ -568,7 +568,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
             let chunk_id = create_chunk_actor_entity_request.chunk_id;
             let world_position = create_chunk_actor_entity_request.world_position;
 
-            if chunk_id != chunk_id {
+            if chunk_id != created_chunk_id {
                 continue;
             }
 
@@ -616,7 +616,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
     }
 
     for created_chunk_entity_event in created_chunk_entity_events {
-        let (_, chunk_id) = match created_chunk_entity_event {
+        let (_, created_chunk_id) = match created_chunk_entity_event {
             CreatedChunkEntity::Success { chunk_event_id, chunk_id } => {
                 (chunk_event_id, chunk_id)
             },
@@ -642,13 +642,13 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
             },
         };
 
-        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(created_chunk_id) {
             Some(chunk_entity) => chunk_entity,
             None => {
-                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk not being loaded!", chunk_id);
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk not being loaded!", created_chunk_id);
 
                 let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
-                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                requests.values().filter(|request| request.chunk_id == created_chunk_id).for_each(|request| {
                     chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
 
                     chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
@@ -667,10 +667,10 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
         let mut chunk = match chunk_query.get_mut(chunk_entity_reference) {
             Ok(chunk) => chunk,
             Err(_) => {
-                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be queried!", chunk_id);
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be queried!", created_chunk_id);
 
                 let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
-                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                requests.values().filter(|request| request.chunk_id == created_chunk_id).for_each(|request| {
                     chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
 
                     chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
@@ -693,7 +693,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
             let target_entity_id = upgrade_to_chunk_actor_entity_request.target_entity_id;
             let chunk_id = upgrade_to_chunk_actor_entity_request.chunk_id;
 
-            if chunk_id != chunk_id {
+            if chunk_id != created_chunk_id {
                 continue;
             }
 
@@ -755,7 +755,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
     }
 
     for loaded_chunk_entity_event in loaded_chunk_entity_events {
-        let (_, chunk_id) = match loaded_chunk_entity_event {
+        let (_, created_chunk_id) = match loaded_chunk_entity_event {
             LoadedChunkEntity::Success { chunk_event_id, chunk_id } => (chunk_event_id, chunk_id),
             LoadedChunkEntity::Failure { chunk_id, .. } => {
                 let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
@@ -779,13 +779,13 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
             }
         };
 
-        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(created_chunk_id) {
             Some(chunk_entity) => chunk_entity,
             None => {
-                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk not being loaded!", chunk_id);
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk not being loaded!", created_chunk_id);
 
                 let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
-                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                requests.values().filter(|request| request.chunk_id == created_chunk_id).for_each(|request| {
                     chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
 
                     chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
@@ -804,10 +804,10 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
         let mut chunk = match chunk_query.get_mut(chunk_entity_reference) {
             Ok(chunk) => chunk,
             Err(_) => {
-                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be queried!", chunk_id);
+                error!("The chunk actor entity creation requests related to chunk '{:?}' have been cancelled due to the chunk failing to be queried!", created_chunk_id);
 
                 let requests = chunk_actor_registry.upgrade_to_chunk_actor_entity_requests().clone();
-                requests.values().filter(|request| request.chunk_id == chunk_id).for_each(|request| {
+                requests.values().filter(|request| request.chunk_id == created_chunk_id).for_each(|request| {
                     chunk_actor_registry.unregister_chunk_actor(request.chunk_actor_id);
 
                     chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(request.chunk_actor_id);
@@ -830,7 +830,7 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
             let target_entity_id = upgrade_to_chunk_actor_entity_request.target_entity_id;
             let chunk_id = upgrade_to_chunk_actor_entity_request.chunk_id;
 
-            if chunk_id != chunk_id {
+            if chunk_id != created_chunk_id {
                 continue;
             }
 

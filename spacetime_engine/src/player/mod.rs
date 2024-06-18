@@ -14,7 +14,9 @@ use creative::*;
 use id::*;
 use movement::*;
 use teleportation::*;
+use events::*;
 use systems::*;
+use resources::*;
 use bevy::prelude::*;
 
 pub(in crate) struct PlayerPlugin;
@@ -22,11 +24,19 @@ pub(in crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<events::StartedPlayer>()
+            .add_event::<CreatePlayerEntity>()
+            .add_event::<DestroyPlayerEntity>()
+            .add_event::<UpgradeToPlayerEntity>()
+            .add_event::<StartedPlayer>()
+            .add_event::<CreatedPlayerEntity>()
+            .add_event::<DestroyedPlayerEntity>()
+            .add_event::<UpgradedToPlayerEntity>()
             .add_plugins(CreativePlugin)
             .add_plugins(IDPlugin)
             .add_plugins(MovementPlugin)
             .add_plugins(TeleportationPlugin)
+            .insert_resource(PlayerRegistry::default())
+            .insert_resource(PlayerEventRegistry::default())
             .add_systems(PostStartup, pre_start)
             .add_systems(Update, (
                 start_phase1.before(start_phase2),

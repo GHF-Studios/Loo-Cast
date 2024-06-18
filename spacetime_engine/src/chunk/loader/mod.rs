@@ -18,7 +18,13 @@ pub(in crate) struct LoaderPlugin;
 impl Plugin for LoaderPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_event::<CreateChunkLoaderEntity>()
+            .add_event::<DestroyChunkLoaderEntity>()
+            .add_event::<UpgradeToChunkLoaderEntity>()
             .add_event::<StartedChunkLoader>()
+            .add_event::<CreatedChunkLoaderEntity>()
+            .add_event::<DestroyedChunkLoaderEntity>()
+            .add_event::<UpgradedToChunkLoaderEntity>()
             .add_plugins(IDPlugin)
             .insert_resource(ChunkLoaderRegistry::default())
             .insert_resource(ChunkLoaderEventRegistry::default())

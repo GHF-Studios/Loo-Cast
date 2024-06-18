@@ -33,7 +33,7 @@ impl EntityRegistry {
     }
 
     pub fn unregister_entity(&mut self, entity_id: EntityID) {
-        self.registered_entities.retain(|&entity_id| entity_id != entity_id);
+        self.registered_entities.retain(|&other_entity_id| entity_id != other_entity_id);
 
         self.recycle_entity_id(entity_id);
     }

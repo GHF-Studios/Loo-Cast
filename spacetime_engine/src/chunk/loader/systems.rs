@@ -18,7 +18,13 @@ pub(in crate) fn start(
     mut chunk_event_registry: ResMut<ChunkEventRegistry>,
     mut chunk_loader_event_registry: ResMut<ChunkLoaderEventRegistry>,
 ) {
-    let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
+    let (chunk_loader_transform, mut chunk_loader) = match chunk_loader_query.get_single_mut() {
+        Ok((chunk_loader_transform, chunk_loader)) => (chunk_loader_transform, chunk_loader),
+        Err(_) => {
+            return;
+        }
+    };
+    
     let chunk_loader_id = chunk_loader.id();
     let chunk_loader_load_radius = chunk_loader.load_radius();
     
@@ -50,7 +56,13 @@ pub(in crate) fn update(
     chunk_registry: Res<ChunkRegistry>,
     mut chunk_event_registry: ResMut<ChunkEventRegistry>,
 ) {
-    let (chunk_loader_transform, mut chunk_loader) = chunk_loader_query.single_mut();
+    let (chunk_loader_transform, mut chunk_loader) = match chunk_loader_query.get_single_mut() {
+        Ok((chunk_loader_transform, chunk_loader)) => (chunk_loader_transform, chunk_loader),
+        Err(_) => {
+            return;
+        }
+    };
+
     let chunk_loader_load_radius = chunk_loader.load_radius();
 
     let detected_chunk_ids = chunk_functions::detect_chunks(chunk_loader_transform, chunk_loader_load_radius);
