@@ -1,48 +1,51 @@
 use bevy::prelude::*;
-use crate::chunk::actor::components::ChunkActor;
-use crate::chunk::position::structs::*;
-use crate::chunk::actor::position::structs::*;
-use crate::chunk::id::structs::*;
-use crate::chunk::actor::id::structs::*;
-use crate::chunk::loader::components::ChunkLoader;
-use crate::physics::components::*;
 use super::constants::*;
+use super::components::*;
+use super::structs::PlayerID;
 
 // TODO: Revamp this completely: Request a new chunk loader entity (which will be available once it's starting chunk has been loaded) 
 //       and attach a Player component and any other relevant components to it.
 //       This will allow the player to be spawned in a chunk that is already loaded.
 // Do this as well for regular chunk actor entities.
 // But think about this some more and in regards to chunk actors as opposed to chunk loaders and shit.
-pub(in crate) fn new_player_entity(
-    world: &mut World,
-    player_chunk_id: ChunkID,
-    player_chunk_actor_id: ChunkActorID,
+pub(super) fn new_player_entity(
+    commands: &mut Commands,
+    player_id: PlayerID,
+    player_world_position: Vec2
 ) -> Entity {
-    let player_chunk_position: ChunkPosition = player_chunk_id.into();
-    let player_chunk_actor_position: ChunkActorPosition = player_chunk_position.into();
-    let player_world_position: Vec3 = player_chunk_actor_position.0;
-
-    // TODO: Read this
-    // Instead of simply inserting a ChunkLoader and ChunkActor component into the player entity, 
-    // we should rather use events to request both a chunk loader upgrade of the player entity, 
-    // and on completion of that upgrade also upgrade the entity to a chunk actor
-    let player_entity = world
-        .spawn(super::components::Player)
-        .insert(SpriteBundle {
-            sprite: Sprite {
-                color: Color::rgb(0.1, 0.1, 1.0),
-                custom_size: Some(Vec2::splat(PLAYER_SIZE)),
-                ..default()
-            },
-            transform: Transform::from_translation(Vec3::new(player_world_position.x, player_world_position.y, PLAYER_Z_INDEX)),
-            ..default()
-        })
-        .insert(ProxyRigidBody::Dynamic)
-        .insert(ProxyCollider::Circle { radius: 15.0 })
-        .insert(ProxyVelocity::linear(Vec2::new(0.0, 0.0)))
-        .insert(ChunkLoader::new(chunk_loader_id, 1))
-        .insert(ChunkActor::new(player_chunk_actor_id, player_chunk_id))
+    let player_entity = commands
+        .spawn(Transform::from_translation(Vec3::new(player_world_position.x, player_world_position.y, PLAYER_Z_INDEX)))
+        .insert(Player { id: player_id, create_chunk_actor_event_ids: Vec::new() })
         .id();
 
     player_entity
+}
+
+pub(super) fn upgrade_to_player_entity(
+    commands: &mut Commands, 
+    player_id: PlayerID, 
+    target_entity_reference: Entity,
+    ineligible_entity_query_0: &mut Query<Entity, Without<Transform>>,
+    ineligible_entity_query_1: &mut Query<Entity, With<Player>>,
+    eligible_entity_query: &mut Query<Entity, (With<Transform>, Without<Player>)>,
+) -> Result<Entity, Entity> {
+    if let Ok(_) = ineligible_entity_query_0.get(target_entity_reference) {
+        error!("Entity '{:?}' does not have a Transform component!", target_entity_reference);
+
+        return Err(target_entity_reference);
+    };
+
+    if let Ok(_) = ineligible_entity_query_1.get(target_entity_reference) {
+        error!("Entity '{:?}' already has a Player component!", target_entity_reference);
+
+        return Err(target_entity_reference);
+    };
+
+    if let Ok(eligible_entity) = eligible_entity_query.get_mut(target_entity_reference) {
+        return Ok(commands.entity(eligible_entity).insert(Player { id: player_id, create_chunk_actor_event_ids: Vec::new() }).id());
+    } else {
+        error!("Entity does not exist or does not have a Transform component.");
+
+        return Err(target_entity_reference);
+    };
 }

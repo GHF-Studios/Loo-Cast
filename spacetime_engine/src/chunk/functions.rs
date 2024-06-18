@@ -14,6 +14,8 @@ use serde::de::DeserializeSeed;
 use super::actor::components::ChunkActor;
 use super::{ChunkEventRegistry, ChunkRegistry};
 
+// TODO: The addition of secondary components as shown below should be done in each location where a new chunk actor is created and needs custom components apart from the basics like a Transform and a ChunkActor component.
+// TODO: Implement and integrate chunk entity upgrading
 pub(in crate) fn new_chunk_entity(world: &mut World, chunk_id: ChunkID) -> Entity {
     let chunk_position: ChunkPosition = chunk_id.into();
     let chunk_chunk_actor_position: ChunkActorPosition = chunk_position.into();
