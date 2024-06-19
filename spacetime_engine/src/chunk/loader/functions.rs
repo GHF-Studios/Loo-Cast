@@ -34,7 +34,7 @@ pub(super) fn upgrade_to_chunk_loader_entity(
 
     // TODO: Remove hardcoded load radius
     if let Ok(eligible_entity) = eligible_entity_query.get_mut(target_entity_reference) {
-        Ok(commands.entity(eligible_entity).insert(ChunkLoader::new(chunk_loader_id, 0)).id())
+        Ok(commands.entity(eligible_entity).insert(ChunkLoader::new(chunk_loader_id, 1)).id())
     } else {
         error!("Entity does not exist or does not have a Transform component.");
 
