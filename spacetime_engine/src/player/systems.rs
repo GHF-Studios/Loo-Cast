@@ -38,6 +38,8 @@ pub(super) fn start_phase1(
     entity_registry: Res<EntityRegistry>,
 ) {
     for player_entity_reference in player_query.iter() {
+        info!("Starting player [Phase 1]...");
+
         let chunk_loader_event_id = chunk_loader_event_registry.get_unused_chunk_loader_event_id();
         let player_entity_id = match entity_registry.get_loaded_entity_id(&player_entity_reference) {
             Some(player_entity_id) => player_entity_id,
@@ -67,6 +69,8 @@ pub(super) fn start_phase2(
     }
 
     'outer: for upgraded_to_chunk_loader_entity_event in upgraded_to_chunk_loader_entity_events {
+        info!("Starting player [Phase 2]...");
+
         let (_, _, target_entity_id) = match upgraded_to_chunk_loader_entity_event {
             UpgradedToChunkLoaderEntity::Success { chunk_loader_event_id, chunk_loader_id, target_entity_id } => {
                 (chunk_loader_event_id, chunk_loader_id, target_entity_id)
@@ -106,9 +110,6 @@ pub(super) fn start_phase2(
             continue 'outer;
         }
 
-        // TODO: Make this better
-        panic!("The request for upgrading the player entity '{:?}' to a chunk loader entity has been cancelled due to the player entity not being found!", target_entity_id);
-
         continue;
     }
 }
@@ -127,6 +128,8 @@ pub(super) fn start_phase3(
     }
 
     'outer: for upgraded_to_chunk_actor_entity_event in upgraded_to_chunk_actor_entity_events {
+        info!("Starting player [Phase 3]...");
+
         let (_, _, target_entity_id, _) = match upgraded_to_chunk_actor_entity_event { 
             UpgradedToChunkActorEntity::Success { chunk_actor_event_id, chunk_actor_id, target_entity_id, chunk_id } => {
                 (chunk_actor_event_id, chunk_actor_id, target_entity_id, chunk_id)
@@ -168,6 +171,8 @@ pub(super) fn start_phase3(
 
             let player_event_id = player_event_registry.get_unused_player_event_id();
 
+            info!("Successfully started player '{:?}'!", player_entity_id);
+
             started_player_event_writer.send(StartedPlayer::Success {
                 player_event_id,
                 player_id: player.id
@@ -175,9 +180,6 @@ pub(super) fn start_phase3(
 
             continue 'outer;
         }
-
-        // TODO: Make this better, but it's already fairly good
-        panic!("Starting the player has been cancelled due to the player entity not being found!");
 
         continue;
     }

@@ -20,13 +20,13 @@ pub(super) fn upgrade_to_chunk_loader_entity(
     ineligible_entity_query_1: &mut Query<Entity, With<ChunkLoader>>,
     eligible_entity_query: &mut Query<Entity, (With<Transform>, Without<ChunkLoader>)>,
 ) -> Result<Entity, Entity> {
-    if let Ok(_) = ineligible_entity_query_0.get(target_entity_reference) {
+    if ineligible_entity_query_0.get(target_entity_reference).is_ok() {
         error!("Entity '{:?}' does not have a Transform component!", target_entity_reference);
 
         return Err(target_entity_reference);
     };
 
-    if let Ok(_) = ineligible_entity_query_1.get(target_entity_reference) {
+    if ineligible_entity_query_1.get(target_entity_reference).is_ok() {
         error!("Entity '{:?}' already has a ChunkLoader component!", target_entity_reference);
 
         return Err(target_entity_reference);
@@ -34,10 +34,10 @@ pub(super) fn upgrade_to_chunk_loader_entity(
 
     // TODO: Remove hardcoded load radius
     if let Ok(eligible_entity) = eligible_entity_query.get_mut(target_entity_reference) {
-        return Ok(commands.entity(eligible_entity).insert(ChunkLoader::new(chunk_loader_id, 4)).id());
+        Ok(commands.entity(eligible_entity).insert(ChunkLoader::new(chunk_loader_id, 0)).id())
     } else {
         error!("Entity does not exist or does not have a Transform component.");
 
-        return Err(target_entity_reference);
-    };
+        Err(target_entity_reference)
+    }
 }

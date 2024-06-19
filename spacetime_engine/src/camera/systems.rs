@@ -11,6 +11,8 @@ pub(in crate) fn attach_to_player(
     player_registry: Res<PlayerRegistry>,
 ) {
     for player_setup_event in player_start_event_reader.read() {
+        info!("Attaching main camera to player ...");
+
         let player_id = match player_setup_event {
             StartedPlayer::Success { player_id, .. } => player_id,
             StartedPlayer::Failure { .. } => {
@@ -26,5 +28,7 @@ pub(in crate) fn attach_to_player(
         commands
             .spawn(Camera2dBundle::default())
             .insert(TranslationLerpFollower { target: player_entity_id, smoothness: TRANSLATION_LERP_FOLLOWER_SMOOTHNESS });
+
+        info!("Main camera attached to player!");
     }
 }

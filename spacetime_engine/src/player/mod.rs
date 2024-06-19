@@ -41,6 +41,7 @@ impl Plugin for PlayerPlugin {
             .add_systems(Update, (
                 start_phase1.before(start_phase2),
                 start_phase2.before(start_phase3),
+                start_phase3,
                 change_player_chunk_load_radius,
                 handle_create_player_entity_events,
                 handle_destroy_player_entity_events,

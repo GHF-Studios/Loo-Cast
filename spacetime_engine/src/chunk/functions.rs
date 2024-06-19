@@ -207,6 +207,8 @@ pub(in crate) fn start_chunks(
     for detected_chunk_id in detected_chunk_ids {
         let chunk_id = *detected_chunk_id;
         let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
+        // TODO: Remove this debug message
+        warn!("Starting chunk. Chunk Event ID: {:?}", chunk_event_id);
 
         if chunk_registry.is_chunk_registered(chunk_id) {
             load_chunk_event_writer.send(LoadChunkEntity { 
@@ -233,6 +235,12 @@ pub(in crate) fn update_chunks(
 ) {
     for old_chunk_id in old_chunk_ids {
         let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
+        // TODO: Remove this debug message
+        warn!("Updating old chunk. Chunk Event ID: {:?}", chunk_event_id);
+
+        if chunk_registry.is_unloading_chunk(old_chunk_id) {
+            continue;
+        }
 
         unload_chunk_event_writer.send(UnloadChunkEntity {
             chunk_event_id,
@@ -242,14 +250,24 @@ pub(in crate) fn update_chunks(
 
     for new_chunk_id in new_chunk_ids.iter() {
         let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
+        // TODO: Remove this debug message
+        warn!("Updating new chunk. Chunk Event ID: {:?}", chunk_event_id);
         let chunk_id = *new_chunk_id;
         
         if chunk_registry.is_chunk_registered(chunk_id) {
+            if chunk_registry.is_loading_chunk(chunk_id) {
+                continue;
+            }
+
             load_chunk_event_writer.send(LoadChunkEntity {
                 chunk_event_id,
                 chunk_id
             });
         } else {
+            if chunk_registry.is_creating_chunk(chunk_id) {
+                continue;
+            }
+
             create_chunk_event_writer.send(CreateChunkEntity {
                 chunk_event_id,
                 chunk_id

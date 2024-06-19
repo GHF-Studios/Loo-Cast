@@ -94,6 +94,8 @@ pub(super) fn handle_create_chunk_actor_entity_events(
 
             chunk.add_chunk_actor(chunk_actor_id);
 
+            info!("Successfully created chunk actor entity '{:?}'!", chunk_actor_entity_id);
+
             created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Success {
                 chunk_actor_event_id,
                 chunk_actor_id,
@@ -102,7 +104,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
                 world_position,
             });
         } else {
-            info!("Chunk '{:?}' not loaded; issuing request to create chunk actor entity '{:?}' when the chunk is created or loaded ...", chunk_id, chunk_actor_entity_id);
+            info!("Chunk '{:?}' not loaded; issuing request to create chunk actor entity '{:?}' whenever the chunk is created or loaded ...", chunk_id, chunk_actor_entity_id);
 
             if chunk_actor_registry.is_chunk_actor_entity_creating(chunk_actor_id) {
                 error!("The request for creating the chunk actor entity (chunk actor id '{:?}' | entity id '{:?}') has been cancelled due to the request already being issued!", chunk_actor_id, chunk_actor_entity_id);
@@ -128,6 +130,8 @@ pub(super) fn handle_create_chunk_actor_entity_events(
                     world_position,
                 }
             );
+
+            info!("Request to create chunk actor entity '{:?}' issued!", chunk_actor_entity_id);
         }
     }
 }
@@ -150,6 +154,8 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
     for destroy_chunk_actor_entity_event in destroy_chunk_actor_entity_events {
         let chunk_actor_id = destroy_chunk_actor_entity_event.chunk_actor_id;
         let chunk_actor_event_id = destroy_chunk_actor_entity_event.chunk_actor_event_id;
+
+        info!("Destroying chunk actor entity '{:?}' immediately...", chunk_actor_id);
 
         let chunk_actor_entity_reference = match chunk_actor_registry.get_loaded_chunk_actor(chunk_actor_id) {
             Some(chunk_actor_entity) => chunk_actor_entity,
@@ -232,6 +238,8 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
         entity_registry.unregister_entity(chunk_actor_entity_id);
 
         commands.entity(chunk_actor_entity_reference).despawn();
+
+        info!("Successfully destroyed chunk actor entity '{:?}'!", chunk_actor_id);
 
         destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntity::Success {
             chunk_actor_event_id,
@@ -332,6 +340,8 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
 
             chunk.add_chunk_actor(chunk_actor_id);
 
+            info!("Successfully upgraded entity '{:?}' to a chunk actor entity immediately!", target_entity_id);
+
             upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Success {
                 chunk_actor_event_id,
                 chunk_actor_id,
@@ -339,7 +349,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
                 chunk_id,
             });
         } else {
-            info!("Chunk '{:?}' not loaded, issuing request to upgrade entity '{:?}' to a chunk actor entity when the appropriate chunk is loaded ...", chunk_id, target_entity_id);
+            info!("Chunk '{:?}' not loaded, issuing request to upgrade entity '{:?}' to a chunk actor entity whenever the appropriate chunk is loaded ...", chunk_id, target_entity_id);
 
             if chunk_actor_registry.is_chunk_actor_entity_being_upgraded_to(chunk_actor_id) {
                 error!("The chunk actor upgrade request for target entity '{:?}' has been cancelled due to the request already being issued!", target_entity_id);
@@ -363,6 +373,8 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
                     chunk_id,
                 }
             );
+
+            info!("Request to upgrade entity '{:?}' to a chunk actor entity issued!", target_entity_id);
         }
     }
 }
@@ -745,6 +757,8 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
 
             chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(chunk_actor_id);
 
+            info!("Successfully upgraded entity '{:?}' to a chunk actor entity after the associated chunk '{:?}' had been created!", target_entity_id, chunk_id);
+
             upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Success {
                 chunk_actor_event_id,
                 chunk_actor_id,
@@ -881,6 +895,8 @@ pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
             chunk.add_chunk_actor(chunk_actor_id);
 
             chunk_actor_registry.stop_upgrading_to_chunk_actor_entity(chunk_actor_id);
+
+            info!("Successfully upgraded entity '{:?}' to a chunk actor entity after the associated chunk '{:?}' had been loaded!", target_entity_id, chunk_id);
 
             upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Success {
                 chunk_actor_event_id,

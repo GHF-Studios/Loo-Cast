@@ -27,6 +27,8 @@ pub(in crate) fn handle_create_chunk_events(
             continue;
         }
         
+        info!("Creating chunk '{:?}' ...", chunk_id);
+
         chunk_registry.start_creating_chunk(chunk_id);
         create_chunk_entity_internal_event_writer.send(CreateChunkEntityInternal {
             chunk_event_id,
