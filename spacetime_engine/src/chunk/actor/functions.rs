@@ -59,7 +59,7 @@ pub(super) fn collect_chunk_actor_updates(
         ResMut<ChunkActorRegistry>,
     )>,
 ) -> (Vec<UpdateChunkActorInfo>, Vec<DespawnChunkActorInfo>) {
-    let mut chunk_actor_query = world.query::<(Entity, &Transform, &ChunkActor)>();
+    let mut chunk_actor_query = world.query::<(Entity, &Transform, &mut ChunkActor)>();
     let chunk_actor_query_size = chunk_actor_query.iter(world).count();
     let mut chunk_ids = Vec::new();
     let mut chunk_actor_ids = Vec::new();
@@ -91,11 +91,25 @@ pub(super) fn collect_chunk_actor_updates(
         let (chunk_registry, _) = registry_parameters.get_mut(world);
         
         if !chunk_registry.is_chunk_loaded(chunk_id) {
+            warn!("Chunk actor '{:?}' despawned because chunk '{:?}' is not loaded!", chunk_actor_id, chunk_id);
+
             despawns.push(DespawnChunkActorInfo {
                 actor_entity: chunk_actor_entity,
                 actor_id: chunk_actor_id,
             });
         } else if old_chunk_id != chunk_id {
+            info!("Chunk actor '{:?}' moved from chunk '{:?}' to chunk '{:?}'!", chunk_actor_id, old_chunk_id, chunk_id);
+
+            let mut chunk_actor = match chunk_actor_query.iter_mut(world).find(|(_, _, chunk_actor)| chunk_actor.id() == chunk_actor_id) {
+                Some((_, _, chunk_actor)) => chunk_actor,
+                None => {
+                    error!("Chunk actor '{:?}' not found in query!", chunk_actor_id);
+                    continue;
+                }
+            };
+
+            *chunk_actor.current_chunk_mut() = chunk_id;
+
             updates.push(UpdateChunkActorInfo {
                 actor_entity: chunk_actor_entity,
                 old_chunk_id,
