@@ -38,7 +38,7 @@ pub(super) fn start_phase1(
     entity_registry: Res<EntityRegistry>,
 ) {
     for player_entity_reference in player_query.iter() {
-        info!("Starting player [Phase 1]...");
+        info!("Starting player [Phase 1] ...");
 
         let chunk_loader_event_id = chunk_loader_event_registry.get_unused_chunk_loader_event_id();
         let player_entity_id = match entity_registry.get_loaded_entity_id(&player_entity_reference) {
@@ -49,6 +49,7 @@ pub(super) fn start_phase1(
             }
         };
 
+        info!("Upgrading player '{:?}' to a chunk loader entity ...", player_entity_id);
         upgrade_to_chunk_loader_entity_event_writer.send(UpgradeToChunkLoaderEntity {
             chunk_loader_event_id,
             target_entity_id: player_entity_id,
@@ -69,7 +70,7 @@ pub(super) fn start_phase2(
     }
 
     'outer: for upgraded_to_chunk_loader_entity_event in upgraded_to_chunk_loader_entity_events {
-        info!("Starting player [Phase 2]...");
+        info!("Starting player [Phase 2] ...");
 
         let (_, _, target_entity_id) = match upgraded_to_chunk_loader_entity_event {
             UpgradedToChunkLoaderEntity::Success { chunk_loader_event_id, chunk_loader_id, target_entity_id } => {
@@ -91,6 +92,9 @@ pub(super) fn start_phase2(
             };
 
             if player_entity_id != *target_entity_id {
+                // TODO: Remove this debug message
+                warn!("Skipping player entity '{:?}' because it does not match the target entity id '{:?}' ...", player_entity_id, target_entity_id);
+
                 continue;
             }
 
@@ -101,6 +105,7 @@ pub(super) fn start_phase2(
 
             let chunk_actor_event_id = chunk_actor_event_registry.get_unused_chunk_actor_event_id();
 
+            info!("Upgrading player entity '{:?}' to a chunk actor entity in chunk '{:?}' ...", player_entity_id, player_chunk_id);
             upgrade_to_chunk_actor_entity_event_writer.send(UpgradeToChunkActorEntity {
                 chunk_actor_event_id,
                 target_entity_id: player_entity_id,
@@ -128,7 +133,7 @@ pub(super) fn start_phase3(
     }
 
     'outer: for upgraded_to_chunk_actor_entity_event in upgraded_to_chunk_actor_entity_events {
-        info!("Starting player [Phase 3]...");
+        info!("Starting player [Phase 3] ...");
 
         let (_, _, target_entity_id, _) = match upgraded_to_chunk_actor_entity_event { 
             UpgradedToChunkActorEntity::Success { chunk_actor_event_id, chunk_actor_id, target_entity_id, chunk_id } => {
@@ -139,6 +144,9 @@ pub(super) fn start_phase3(
                 panic!("The request for upgrading the player entity '{:?}' to a chunk actor entity has been cancelled due to the upgrade failing!", target_entity_id);
             }
         };
+
+        // TODO: Remove this debug message
+        warn!("Player query size: {:?}", player_query.iter().len());
 
         for (player_entity_reference, player_transform, player) in player_query.iter() {
             let player_entity_id = match entity_registry.get_loaded_entity_id(&player_entity_reference) {
@@ -153,6 +161,7 @@ pub(super) fn start_phase3(
                 continue;
             }
 
+            info!("Adding secondary components to player entity '{:?}' ...", player_entity_id);
             commands
                 .entity(player_entity_reference)
                 .insert(SpriteBundle {
