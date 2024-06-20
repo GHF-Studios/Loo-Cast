@@ -7,6 +7,7 @@ use crate::chunk::id::structs::*;
 use crate::chunk::position::structs::*;
 use crate::chunk::actor::position::structs::*;
 use crate::chunk::actor::components::*;
+use crate::entity::resources::EntityRegistry;
 use crate::physics::components::*;
 use crate::player::components::Player;
 
@@ -16,6 +17,7 @@ pub(in crate) fn update_phase1(
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
     chunk_actor_query: Query<(&Transform, &ChunkActor), With<Collider>>,
+    mut player_query: Query<(&mut Player)>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     mut chunk_actor_event_registry: ResMut<ChunkActorEventRegistry>,
 ) {
@@ -53,7 +55,16 @@ pub(in crate) fn update_phase1(
     let hit_chunk_id: ChunkID = hit_chunk_position.into();
 
     if mouse_button_input.just_pressed(MouseButton::Right) {
+        let mut player = match player_query.get_single_mut() {
+            Ok(player) => player,
+            Err(_) => {
+                panic!("Player entity does not exist or there is more than one player entity.");
+            }
+        };
+
         let chunk_actor_event_id = chunk_actor_event_registry.get_unused_chunk_actor_event_id();
+
+        player.create_chunk_actor_event_ids.push(chunk_actor_event_id);
 
         create_chunk_actor_entity_event_writer.send(CreateChunkActorEntity {
             chunk_actor_event_id,
@@ -85,49 +96,67 @@ pub(in crate) fn update_phase1(
 pub(in crate) fn update_phase2(
     mut commands: Commands,
     mut created_chunk_actor_entity_event_reader: EventReader<CreatedChunkActorEntity>,
-    mut player_query: Query<(Entity, &mut Player)>,
+    chunk_actor_query: Query<&Transform, With<ChunkActor>>,
+    mut player_query: Query<&mut Player>,
+    entity_registry: Res<EntityRegistry>,
 ) {
     let mut created_chunk_actor_entity_events = Vec::new();
     for created_chunk_actor_entity_event in created_chunk_actor_entity_event_reader.read() {
         created_chunk_actor_entity_events.push(created_chunk_actor_entity_event);
     }
 
-    'outer: for created_chunk_actor_entity_event in created_chunk_actor_entity_events {
-        // gather event info
-        let chunk_actor_event_id = match created_chunk_actor_entity_event {
-            CreatedChunkActorEntity::Success { chunk_actor_event_id, .. } => chunk_actor_event_id,
+    for created_chunk_actor_entity_event in created_chunk_actor_entity_events {
+        let (chunk_actor_event_id, chunk_actor_entity_id) = match created_chunk_actor_entity_event {
+            CreatedChunkActorEntity::Success { 
+                chunk_actor_event_id, 
+                chunk_actor_entity_id, 
+                ..
+            } => (chunk_actor_event_id, chunk_actor_entity_id),
             CreatedChunkActorEntity::Failure { .. } => {
                 // TODO: Make this better
                 panic!("Something is wrong, I can feel it");
             }
         };
 
-        for (player_entity_reference, player) in player_query.iter_mut() {
-            if !player.create_chunk_actor_event_ids.contains(chunk_actor_event_id) {
-                continue;
+        let player = match player_query.get_single_mut() {
+            Ok(player) => player,
+            Err(_) => {
+                panic!("Player entity does not exist or there is more than one player entity.");
             }
+        };
 
-            commands
-                .entity(player_entity_reference)
-                .insert((
-                    Sprite {
-                        color: Color::rgb(1.0, 1.0, 1.0),
-                        custom_size: Some(Vec2::splat(CHUNK_ACTOR_SIZE)),
-                        ..default()
-                    },
-                    GlobalTransform::default(),
-                    Handle::<Image>::default(),
-                    Visibility::default(),
-                ))
-                .insert(ProxyRigidBody::Dynamic)
-                .insert(ProxyCollider::Square { half_length: CHUNK_ACTOR_SIZE / 2.0})
-                .insert(ProxyVelocity::linear(Vec2 { x: 0.0, y: 0.0 }));
-
-            continue 'outer;
+        if !player.create_chunk_actor_event_ids.contains(chunk_actor_event_id) {
+            continue;
         }
 
-        // TODO: Make this better
-        panic!("Something is wrong, I can feel it");
+        let chunk_actor_entity_reference = match entity_registry.get_loaded_entity_reference(chunk_actor_entity_id) {
+            Some(chunk_actor_entity_reference) => chunk_actor_entity_reference,
+            None => {
+                panic!("Chunk Actor Entity '{:?}' does not exist!", chunk_actor_entity_id);
+            }
+        };
+
+        let chunk_actor_transform = match chunk_actor_query.get(chunk_actor_entity_reference) {
+            Ok(chunk_actor_transform) => chunk_actor_transform,
+            Err(_) => {
+                panic!("Chunk Actor Entity '{:?}' does not exist!", chunk_actor_entity_id);
+            }
+        };
+
+        commands
+            .entity(chunk_actor_entity_reference)
+            .insert(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb(1.0, 0.1, 0.1),
+                    custom_size: Some(Vec2::splat(CHUNK_ACTOR_SIZE)),
+                    ..default()
+                },
+                transform: *chunk_actor_transform,
+                ..default()
+            })
+            .insert(ProxyRigidBody::Dynamic)
+            .insert(ProxyCollider::Square { half_length: CHUNK_ACTOR_SIZE / 2.0})
+            .insert(ProxyVelocity::linear(Vec2 { x: 0.0, y: 0.0 }));
 
         continue;
     }

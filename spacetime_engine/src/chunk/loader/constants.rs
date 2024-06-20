@@ -1,0 +1,1 @@
+pub const CHUNK_LOADER_LOAD_RADIUS: u16 = 1;

@@ -1,4 +1,5 @@
 pub mod components;
+pub mod constants;
 pub mod events;
 pub mod functions;
 pub(in crate) mod systems;

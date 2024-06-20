@@ -1,5 +1,7 @@
+use std::num::NonZeroU16;
+
 use bevy::prelude::*;
-use super::{components::ChunkLoader, id::structs::*};
+use super::{components::ChunkLoader, constants::*, id::structs::*};
 
 pub(super) fn new_chunk_loader_entity(
     commands: &mut Commands, 
@@ -8,7 +10,7 @@ pub(super) fn new_chunk_loader_entity(
 ) -> Entity {
     commands
         .spawn(Transform::from_translation(Vec3::new(world_position.x, world_position.y, 0.0)))
-        .insert(ChunkLoader::new(chunk_loader_id, 4))
+        .insert(ChunkLoader::new(chunk_loader_id, CHUNK_LOADER_LOAD_RADIUS))
         .id()
 }
 
@@ -32,9 +34,8 @@ pub(super) fn upgrade_to_chunk_loader_entity(
         return Err(target_entity_reference);
     };
 
-    // TODO: Remove hardcoded load radius
     if let Ok(eligible_entity) = eligible_entity_query.get_mut(target_entity_reference) {
-        Ok(commands.entity(eligible_entity).insert(ChunkLoader::new(chunk_loader_id, 1)).id())
+        Ok(commands.entity(eligible_entity).insert(ChunkLoader::new(chunk_loader_id, CHUNK_LOADER_LOAD_RADIUS)).id())
     } else {
         error!("Entity does not exist or does not have a Transform component.");
 

@@ -21,6 +21,7 @@ pub(in crate) fn new_chunk_entity(world: &mut World, chunk_id: ChunkID) -> Entit
     let chunk_chunk_actor_position: ChunkActorPosition = chunk_position.into();
     let chunk_position = chunk_position.0;
     let world_position = chunk_chunk_actor_position.0;
+    let world_position = Vec3::new(world_position.x, world_position.y, CHUNK_Z_INDEX);
 
     let chunk_color = if (chunk_position.0 + chunk_position.1) % 2 == 0 {
         Color::rgb(0.25, 0.25, 0.25)
@@ -207,8 +208,6 @@ pub(in crate) fn start_chunks(
     for detected_chunk_id in detected_chunk_ids {
         let chunk_id = *detected_chunk_id;
         let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
-        // TODO: Remove this debug message
-        warn!("Starting chunk. Chunk Event ID: {:?}", chunk_event_id);
 
         if chunk_registry.is_chunk_registered(chunk_id) {
             load_chunk_event_writer.send(LoadChunkEntity { 
@@ -235,8 +234,6 @@ pub(in crate) fn update_chunks(
 ) {
     for old_chunk_id in old_chunk_ids {
         let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
-        // TODO: Remove this debug message
-        warn!("Updating old chunk. Chunk Event ID: {:?}", chunk_event_id);
 
         if chunk_registry.is_unloading_chunk(old_chunk_id) {
             continue;
@@ -250,8 +247,6 @@ pub(in crate) fn update_chunks(
 
     for new_chunk_id in new_chunk_ids.iter() {
         let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
-        // TODO: Remove this debug message
-        warn!("Updating new chunk. Chunk Event ID: {:?}", chunk_event_id);
         let chunk_id = *new_chunk_id;
         
         if chunk_registry.is_chunk_registered(chunk_id) {

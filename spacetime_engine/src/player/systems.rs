@@ -140,7 +140,7 @@ pub(super) fn start_phase3(
             }
         };
 
-        for (player_entity_reference, _, player) in player_query.iter() {
+        for (player_entity_reference, player_transform, player) in player_query.iter() {
             let player_entity_id = match entity_registry.get_loaded_entity_id(&player_entity_reference) {
                 Some(player_entity_id) => player_entity_id,
                 None => { 
@@ -155,16 +155,15 @@ pub(super) fn start_phase3(
 
             commands
                 .entity(player_entity_reference)
-                .insert((
-                    Sprite {
+                .insert(SpriteBundle {
+                    sprite: Sprite {
                         color: Color::rgb(0.1, 0.1, 1.0),
                         custom_size: Some(Vec2::splat(PLAYER_SIZE)),
                         ..default()
                     },
-                    GlobalTransform::default(),
-                    Handle::<Image>::default(),
-                    Visibility::default(),
-                ))
+                    transform: *player_transform,
+                    ..default()
+                })
                 .insert(ProxyRigidBody::Dynamic)
                 .insert(ProxyCollider::Circle { radius: 15.0 })
                 .insert(ProxyVelocity::linear(Vec2::new(0.0, 0.0)));
