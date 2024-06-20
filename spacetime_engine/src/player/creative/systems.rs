@@ -118,7 +118,7 @@ pub(in crate) fn update_phase2(
             }
         };
 
-        let player = match player_query.get_single_mut() {
+        let mut player = match player_query.get_single_mut() {
             Ok(player) => player,
             Err(_) => {
                 panic!("Player entity does not exist or there is more than one player entity.");
@@ -127,6 +127,8 @@ pub(in crate) fn update_phase2(
 
         if !player.create_chunk_actor_event_ids.contains(chunk_actor_event_id) {
             continue;
+        } else {
+            player.create_chunk_actor_event_ids.retain(|&id| id != *chunk_actor_event_id);
         }
 
         let chunk_actor_entity_reference = match entity_registry.get_loaded_entity_reference(chunk_actor_entity_id) {

@@ -7,17 +7,16 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 // NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
-// TODO: Take a look at all TODOs outside this file
-// TODO: Integrate event-based chunk actor  entity creation/destruction/upgrading
-// TODO: Integrate event-based chunk loader entity creation/destruction/upgrading
-// TODO: Integrate event-based chunk        entity creation/destruction/upgrading/loading/unloading
+// "Optional" tasks
 // TODO: Take a look at all TODOs outside this file again
-
 // TODO: Add good logging everywhere for all events and handlers and shit
+
+// Mandatory tasks
 // TODO: Implement downgrading of chunks, chunk actors, chunk loaders, players, etc.
 // TODO: Implement entity creation/destruction/upgrading/downgrading for all entity "types" like Player, Chunk, etc.
 // TODO: Ensure that destroyed entities always have all component properly unloaded and unregistered;
-//       like have some way to notify the associated systems to downgrade the entity until we are left with a barebones entity that we can safely despawn 
+//       like have some way to notify the associated systems to downgrade the entity until we are left with a barebones entity that we can safely despawn
+//       instead of just rawdogging it and immediately deleting the entity from existence without notifying any registries and whatnot (which is bad, duh)
 
 
 
