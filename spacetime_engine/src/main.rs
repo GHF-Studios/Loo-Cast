@@ -7,6 +7,10 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 // NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
+// Bug fix tasks:
+// TODO: Fix chunk loader/actor upgrading sometimes silently failing
+//       (potentially by also introducing an internal layer to the upgrade process, but maybe we also remove that from chunks instead?)
+
 // "Optional" tasks
 // TODO: Take a look at all TODOs outside this file again
 // TODO: Add good logging everywhere for all events and handlers and shit
