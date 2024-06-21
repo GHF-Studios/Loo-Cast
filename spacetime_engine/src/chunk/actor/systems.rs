@@ -136,6 +136,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_destroy_chunk_actor_entity_events(
     mut commands: Commands,
     mut destroy_chunk_actor_entity_event_reader: EventReader<DestroyChunkActorEntity>,
@@ -248,6 +249,7 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
     mut commands: Commands,
     mut upgrade_to_chunk_actor_entity_event_reader: EventReader<UpgradeToChunkActorEntity>,
@@ -379,6 +381,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn process_create_chunk_actor_entity_requests(
     mut commands: Commands,
     mut created_chunk_entity_event_reader: EventReader<CreatedChunkEntity>,
@@ -604,6 +607,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
     mut commands: Commands,
     mut created_chunk_entity_event_reader: EventReader<CreatedChunkEntity>,

@@ -9,6 +9,7 @@ use super::ChunkLoaderEventRegistry;
 use crate::entity::resources::EntityRegistry;
 use super::resources::ChunkLoaderRegistry;	
 
+#[allow(clippy::too_many_arguments)]
 pub(in crate) fn start(
     create_chunk_event_writer: EventWriter<CreateChunkEntity>,
     load_chunk_event_writer: EventWriter<LoadChunkEntity>,
@@ -193,6 +194,7 @@ pub(super) fn handle_destroy_chunk_loader_entity_events(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_upgrade_to_chunk_loader_entity_events(
     mut commands: Commands,
     mut upgrade_to_chunk_loader_entity_event_reader: EventReader<UpgradeToChunkLoaderEntity>,

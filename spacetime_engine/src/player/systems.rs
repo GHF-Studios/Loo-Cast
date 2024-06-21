@@ -57,6 +57,7 @@ pub(super) fn start_phase1(
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub(super) fn start_phase2(
     mut upgraded_to_chunk_loader_entity_event_reader: EventReader<UpgradedToChunkLoaderEntity>,
     mut upgrade_to_chunk_actor_entity_event_writer: EventWriter<UpgradeToChunkActorEntity>,
@@ -144,9 +145,6 @@ pub(super) fn start_phase3(
                 panic!("The request for upgrading the player entity '{:?}' to a chunk actor entity has been cancelled due to the upgrade failing!", target_entity_id);
             }
         };
-
-        // TODO: Remove this debug message
-        warn!("Player query size: {:?}", player_query.iter().len());
 
         for (player_entity_reference, player_transform, player) in player_query.iter() {
             let player_entity_id = match entity_registry.get_loaded_entity_id(&player_entity_reference) {
