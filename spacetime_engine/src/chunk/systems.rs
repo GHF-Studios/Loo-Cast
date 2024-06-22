@@ -5,6 +5,10 @@ use crate::chunk::resources::*;
 use crate::chunk::functions;
 use crate::entity::resources::*;
 
+pub(super) fn start() {}
+
+pub(super) fn update() {}
+
 pub(in crate) fn handle_create_chunk_entity_events(
     mut create_chunk_event_reader: EventReader<CreateChunkEntity>,
     mut create_chunk_entity_internal_event_writer: EventWriter<CreateChunkEntityInternal>,

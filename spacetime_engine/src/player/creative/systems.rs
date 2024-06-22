@@ -17,7 +17,7 @@ pub(in crate) fn update_phase1(
     window_query: Query<&Window, With<PrimaryWindow>>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
     chunk_actor_query: Query<(&Transform, &ChunkActor), With<Collider>>,
-    mut player_query: Query<(&mut Player)>,
+    mut player_query: Query<&mut Player>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     mut chunk_actor_event_registry: ResMut<ChunkActorEventRegistry>,
 ) {

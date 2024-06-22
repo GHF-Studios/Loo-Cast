@@ -95,6 +95,24 @@ pub(in crate) fn update(
     *chunk_loader.current_chunk_ids_mut() = [unchanged_chunk_ids, new_chunk_ids].concat();
 }
 
+pub(super) fn handle_create_chunk_loader_entity_events() {}
+
+pub(super) fn handle_destroy_chunk_loader_entity_events() {}
+
+pub(super) fn handle_upgrade_to_chunk_loader_entity_events() {}
+
+pub(super) fn handle_create_chunk_loader_entity_internal_events() {}
+
+pub(super) fn handle_destroy_chunk_loader_entity_internal_events() {}
+
+pub(super) fn handle_upgrade_to_chunk_loader_entity_internal_events() {}
+
+pub(super) fn handle_created_chunk_loader_entity_internal_events() {}
+
+pub(super) fn handle_destroyed_chunk_loader_entity_internal_events() {}
+
+pub(super) fn handle_upgraded_to_chunk_loader_entity_internal_events() {}
+
 pub(super) fn handle_create_chunk_loader_entity_events_OLD(
     mut commands: Commands,
     mut create_chunk_loader_entity_event_reader: EventReader<CreateChunkLoaderEntity>,
