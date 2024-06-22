@@ -2,6 +2,9 @@ use bevy::prelude::*;
 use crate::{chunk::id::structs::ChunkID, entity::id::structs::*};
 use super::id::structs::*;
 
+// TODO: Read this (muy importánte)
+// Hier, und bei den anderen Events für chunk loader die chunk id aus den non-internen events komplett entfernen
+// und im handler für die externen events berechnet werden durch ggf. zu implementierende implementationen von dem From-Trait
 #[derive(Debug, Clone, Event)]
 pub struct CreateChunkActorEntity {
     pub chunk_actor_event_id: ChunkActorEventID,

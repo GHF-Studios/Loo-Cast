@@ -60,12 +60,12 @@ impl Plugin for LoaderPlugin {
             .add_systems(Update, (
                 handle_create_chunk_loader_entity_internal_events,
                 handle_destroy_chunk_loader_entity_internal_events,
-                handle_upgrade_chunk_loader_entity_internal_events,
+                handle_upgrade_to_chunk_loader_entity_internal_events,
             ).in_set(StartInternalOperationSystems))
             .add_systems(Update, (
                 handle_created_chunk_loader_entity_internal_events,
                 handle_destroyed_chunk_loader_entity_internal_events,
-                handle_upgraded_chunk_loader_entity_internal_events,
+                handle_upgraded_to_chunk_loader_entity_internal_events,
             ).in_set(FinishedInternalOperationSystems))
             .register_type::<components::ChunkLoader>();
     }
