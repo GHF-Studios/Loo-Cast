@@ -8,8 +8,7 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
 // Bug fix tasks:
-// TODO: Fix chunk loader/actor upgrading sometimes silently failing
-//       (potentially by also introducing an internal layer to the upgrade process, but maybe we also remove that from chunks instead?)
+// TODO: Fix chunk loader/actor upgrading sometimes silently failing due to timing/race conditions as a result of using commands directly without an internal layer directly accessing the ecs world
 
 // "Optional" tasks
 // TODO: Take a look at all TODOs outside this file again
