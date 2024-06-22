@@ -95,7 +95,7 @@ pub(in crate) fn update(
     *chunk_loader.current_chunk_ids_mut() = [unchanged_chunk_ids, new_chunk_ids].concat();
 }
 
-pub(super) fn handle_create_chunk_loader_entity_events(
+pub(super) fn handle_create_chunk_loader_entity_events_OLD(
     mut commands: Commands,
     mut create_chunk_loader_entity_event_reader: EventReader<CreateChunkLoaderEntity>,
     mut created_chunk_loader_entity_event_writer: EventWriter<CreatedChunkLoaderEntity>,
@@ -131,7 +131,7 @@ pub(super) fn handle_create_chunk_loader_entity_events(
     }
 }
 
-pub(super) fn handle_destroy_chunk_loader_entity_events(
+pub(super) fn handle_destroy_chunk_loader_entity_events_OLD(
     mut commands: Commands,
     mut destroy_chunk_loader_entity_event_reader: EventReader<DestroyChunkLoaderEntity>,
     mut destroyed_chunk_loader_entity_event_writer: EventWriter<DestroyedChunkLoaderEntity>,
@@ -195,7 +195,7 @@ pub(super) fn handle_destroy_chunk_loader_entity_events(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn handle_upgrade_to_chunk_loader_entity_events(
+pub(super) fn handle_upgrade_to_chunk_loader_entity_events_OLD(
     mut commands: Commands,
     mut upgrade_to_chunk_loader_entity_event_reader: EventReader<UpgradeToChunkLoaderEntity>,
     mut upgraded_to_chunk_loader_entity_event_writer: EventWriter<UpgradedToChunkLoaderEntity>,

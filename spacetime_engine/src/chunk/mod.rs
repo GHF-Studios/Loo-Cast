@@ -31,11 +31,6 @@ pub(in crate) struct ChunkPlugin;
 
 impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
-        app.configure_sets(Update, (
-            StartExternalOperationSystems.before(StartInternalOperationSystems),
-            StartInternalOperationSystems.before(FinishedInternalOperationSystems),
-        ));
-
         app
             .add_event::<events::CreateChunkEntity>()
             .add_event::<events::CreatedChunkEntity>()
@@ -59,11 +54,15 @@ impl Plugin for ChunkPlugin {
             .add_plugins(LoaderPlugin)
             .insert_resource(ChunkRegistry::default())
             .insert_resource(ChunkEventRegistry::default())
+            .configure_sets(Update, (
+                StartExternalOperationSystems.before(StartInternalOperationSystems),
+                StartInternalOperationSystems.before(FinishedInternalOperationSystems),
+            ))
             .add_systems(Update, (
-                handle_create_chunk_events, 
-                handle_destroy_chunk_events, 
-                handle_load_chunk_events, 
-                handle_unload_chunk_events
+                handle_create_chunk_entity_events, 
+                handle_destroy_chunk_entity_events, 
+                handle_load_chunk_entity_events, 
+                handle_unload_chunk_entity_events
             ).in_set(StartExternalOperationSystems))
             .add_systems(Update, (
                 handle_create_chunk_entity_internal_events,

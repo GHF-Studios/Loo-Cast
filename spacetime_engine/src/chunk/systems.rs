@@ -5,7 +5,7 @@ use crate::chunk::resources::*;
 use crate::chunk::functions;
 use crate::entity::resources::*;
 
-pub(in crate) fn handle_create_chunk_events(
+pub(in crate) fn handle_create_chunk_entity_events(
     mut create_chunk_event_reader: EventReader<CreateChunkEntity>,
     mut create_chunk_entity_internal_event_writer: EventWriter<CreateChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
@@ -37,7 +37,7 @@ pub(in crate) fn handle_create_chunk_events(
     }
 }
 
-pub(in crate) fn handle_destroy_chunk_events(
+pub(in crate) fn handle_destroy_chunk_entity_events(
     mut destroy_chunk_event_reader: EventReader<DestroyChunkEntity>,
     mut destroy_chunk_entity_internal_event_writer: EventWriter<DestroyChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
@@ -67,7 +67,7 @@ pub(in crate) fn handle_destroy_chunk_events(
     }
 }
 
-pub(in crate) fn handle_load_chunk_events(
+pub(in crate) fn handle_load_chunk_entity_events(
     mut load_chunk_event_reader: EventReader<LoadChunkEntity>,
     mut load_chunk_entity_internal_event_writer: EventWriter<LoadChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
@@ -97,7 +97,7 @@ pub(in crate) fn handle_load_chunk_events(
     }
 }
 
-pub(in crate) fn handle_unload_chunk_events(
+pub(in crate) fn handle_unload_chunk_entity_events(
     mut unload_chunk_event_reader: EventReader<UnloadChunkEntity>,
     mut unload_chunk_entity_internal_event_writer: EventWriter<UnloadChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,

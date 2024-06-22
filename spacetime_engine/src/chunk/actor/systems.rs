@@ -43,7 +43,7 @@ pub(super) fn update(
     );
 }
 
-pub(super) fn handle_create_chunk_actor_entity_events(
+pub(super) fn handle_create_chunk_actor_entity_events_OLD(
     mut commands: Commands,
     mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
     mut created_chunk_actor_entity_event_writer: EventWriter<CreatedChunkActorEntity>,
@@ -137,7 +137,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn handle_destroy_chunk_actor_entity_events(
+pub(super) fn handle_destroy_chunk_actor_entity_events_OLD(
     mut commands: Commands,
     mut destroy_chunk_actor_entity_event_reader: EventReader<DestroyChunkActorEntity>,
     mut destroyed_chunk_actor_entity_event_writer: EventWriter<DestroyedChunkActorEntity>,
@@ -250,7 +250,7 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
+pub(super) fn handle_upgrade_to_chunk_actor_entity_events_OLD(
     mut commands: Commands,
     mut upgrade_to_chunk_actor_entity_event_reader: EventReader<UpgradeToChunkActorEntity>,
     mut upgraded_to_chunk_actor_entity_event_writer: EventWriter<UpgradedToChunkActorEntity>,
@@ -382,7 +382,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn process_create_chunk_actor_entity_requests(
+pub(super) fn process_create_chunk_actor_entity_requests_OLD(
     mut commands: Commands,
     mut created_chunk_entity_event_reader: EventReader<CreatedChunkEntity>,
     mut loaded_chunk_entity_event_reader: EventReader<LoadedChunkEntity>,
@@ -608,7 +608,7 @@ pub(super) fn process_create_chunk_actor_entity_requests(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn process_upgrade_to_chunk_actor_entity_requests(
+pub(super) fn process_upgrade_to_chunk_actor_entity_requests_OLD(
     mut commands: Commands,
     mut created_chunk_entity_event_reader: EventReader<CreatedChunkEntity>,
     mut loaded_chunk_entity_event_reader: EventReader<LoadedChunkEntity>,

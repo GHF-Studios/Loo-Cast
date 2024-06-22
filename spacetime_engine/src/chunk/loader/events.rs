@@ -70,3 +70,60 @@ pub enum UpgradedToChunkLoaderEntity {
         target_entity_id: EntityID
     }
 }
+
+#[derive(Debug, Clone, Event)]
+pub struct CreateChunkLoaderEntityInternal {
+    pub chunk_loader_event_id: ChunkLoaderEventID,
+    pub world_position: Vec2
+}
+
+#[derive(Debug, Clone, Event)]
+pub struct DestroyChunkLoaderEntityInternal {
+    pub chunk_loader_event_id: ChunkLoaderEventID,
+    pub chunk_loader_id: ChunkLoaderID
+}
+
+#[derive(Debug, Clone, Event)]
+pub struct UpgradeToChunkLoaderEntityInternal {
+    pub chunk_loader_event_id: ChunkLoaderEventID,
+    pub target_entity_id: EntityID,
+}
+
+#[derive(Debug, Clone, Event)]
+pub enum CreatedChunkLoaderEntityInternal {
+    Success {
+        chunk_loader_event_id: ChunkLoaderEventID,
+        chunk_loader_id: ChunkLoaderID,
+        chunk_loader_entity_id: EntityID,
+        world_position: Vec2
+    },
+    Failure {
+        chunk_loader_event_id: ChunkLoaderEventID,
+        world_position: Vec2
+    }
+}
+
+#[derive(Debug, Clone, Event)]
+pub enum DestroyedChunkLoaderEntityInternal {
+    Success {
+        chunk_loader_event_id: ChunkLoaderEventID,
+        chunk_loader_id: ChunkLoaderID
+    },
+    Failure {
+        chunk_loader_event_id: ChunkLoaderEventID,
+        chunk_loader_id: ChunkLoaderID
+    }
+}
+
+#[derive(Debug, Clone, Event)]
+pub enum UpgradedToChunkLoaderEntityInternal {
+    Success {
+        chunk_loader_event_id: ChunkLoaderEventID,
+        chunk_loader_id: ChunkLoaderID,
+        target_entity_id: EntityID,
+    },
+    Failure {
+        chunk_loader_event_id: ChunkLoaderEventID,
+        target_entity_id: EntityID
+    }
+}
