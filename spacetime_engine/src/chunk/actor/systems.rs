@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use crate::chunk::events::CreatedChunkEntity;
 use crate::chunk::actor::components::*;
 use crate::chunk::actor::resources::*;
-use crate::chunk::actor::structs::*;
 use crate::chunk::components::*;
 use crate::chunk::events::LoadedChunkEntity;
 use crate::chunk::resources::*;
