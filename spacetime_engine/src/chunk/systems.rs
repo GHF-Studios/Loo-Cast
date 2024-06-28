@@ -1,5 +1,4 @@
 use bevy::ecs::system::SystemState;
-use bevy::ecs::world::error;
 use bevy::prelude::*;
 use crate::chunk::events::*;
 use crate::chunk::resources::*;
@@ -27,8 +26,6 @@ pub(in crate) fn handle_create_chunk_entity_events(
 
             continue;
         }
-        
-        
 
         chunk_registry.start_creating_chunk(chunk_id);
         create_chunk_entity_internal_event_writer.send(CreateChunkEntityInternal {

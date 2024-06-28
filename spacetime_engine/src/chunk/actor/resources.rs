@@ -8,10 +8,11 @@ use crate::entity::types::*;
 pub(in crate) struct ChunkActorRegistry {
     registered_chunk_actors: HashSet<ChunkActorID>,
     loaded_chunk_actors: HashMap<ChunkActorID, EntityReference>,
+    currently_creating_chunk_actors: HashSet<ChunkActorID>,
+    currently_destroying_chunk_actors: HashSet<ChunkActorID>,
+    currently_upgrading_to_chunk_actors: HashSet<ChunkActorID>,
     next_chunk_actor_id: ChunkActorID,
     recycled_chunk_actor_ids: Vec<ChunkActorID>,
-    create_chunk_actor_entity_requests: HashMap<ChunkActorID, CreateChunkActorEntityRequest>,
-    upgrade_to_chunk_actor_entity_requests: HashMap<ChunkActorID, UpgradeToChunkActorEntityRequest>,
 }
 
 impl ChunkActorRegistry {
@@ -65,40 +66,52 @@ impl ChunkActorRegistry {
         self.loaded_chunk_actors.retain(|&chunk_actor_id, _| !chunk_actor_ids.contains(&chunk_actor_id));
     }
 
-    pub fn start_creating_chunk_actor_entity(&mut self, request: CreateChunkActorEntityRequest) {
-        self.create_chunk_actor_entity_requests.insert(request.chunk_actor_id, request);
+    pub fn start_creating_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
+        self.currently_creating_chunk_actors.insert(chunk_actor_id);
     }
 
-    pub fn start_creating_chunk_actor_entities(&mut self, requests: HashMap<ChunkActorID, CreateChunkActorEntityRequest>) {
-        self.create_chunk_actor_entity_requests.extend(requests);
+    pub fn start_creating_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
+        self.currently_creating_chunk_actors.extend(chunk_actor_ids);
     }
 
-    pub fn stop_creating_chunk_actor_entity(&mut self, chunk_actor_id: ChunkActorID) {
-        self.create_chunk_actor_entity_requests.remove(&chunk_actor_id);
+    pub fn stop_creating_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
+        self.currently_creating_chunk_actors.remove(&chunk_actor_id);
     }
 
-    pub fn stop_creating_chunk_actor_entities(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
-        self.create_chunk_actor_entity_requests.retain(|chunk_actor_id, _| {
-            !chunk_actor_ids.contains(chunk_actor_id)
-        });
+    pub fn stop_creating_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
+        self.currently_creating_chunk_actors.retain(|&chunk_actor_id| !chunk_actor_ids.contains(&chunk_actor_id));
     }
 
-    pub fn start_upgrading_to_chunk_actor_entity(&mut self, request: UpgradeToChunkActorEntityRequest) {
-        self.upgrade_to_chunk_actor_entity_requests.insert(request.chunk_actor_id, request);
+    pub fn start_destroying_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
+        self.currently_destroying_chunk_actors.insert(chunk_actor_id);
     }
 
-    pub fn start_upgrading_to_chunk_actor_entities(&mut self, requests: HashMap<ChunkActorID, UpgradeToChunkActorEntityRequest>) {
-        self.upgrade_to_chunk_actor_entity_requests.extend(requests);
+    pub fn start_destroying_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
+        self.currently_destroying_chunk_actors.extend(chunk_actor_ids);
     }
 
-    pub fn stop_upgrading_to_chunk_actor_entity(&mut self, chunk_actor_id: ChunkActorID) {
-        self.upgrade_to_chunk_actor_entity_requests.remove(&chunk_actor_id);
+    pub fn stop_destroying_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
+        self.currently_destroying_chunk_actors.remove(&chunk_actor_id);
     }
 
-    pub fn stop_upgrading_to_chunk_actor_entities(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
-        self.upgrade_to_chunk_actor_entity_requests.retain(|chunk_actor_id, _| {
-            !chunk_actor_ids.contains(chunk_actor_id)
-        });
+    pub fn stop_destroying_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
+        self.currently_destroying_chunk_actors.retain(|&chunk_actor_id| !chunk_actor_ids.contains(&chunk_actor_id));
+    }
+
+    pub fn start_upgrading_to_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
+        self.currently_upgrading_to_chunk_actors.insert(chunk_actor_id);
+    }
+
+    pub fn start_upgrading_to_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
+        self.currently_upgrading_to_chunk_actors.extend(chunk_actor_ids);
+    }
+
+    pub fn stop_upgrading_to_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
+        self.currently_upgrading_to_chunk_actors.remove(&chunk_actor_id);
+    }
+
+    pub fn stop_upgrading_to_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
+        self.currently_upgrading_to_chunk_actors.retain(|&chunk_actor_id| !chunk_actor_ids.contains(&chunk_actor_id));
     }
 
     pub fn is_chunk_actor_registered(&self, chunk_actor_id: ChunkActorID) -> bool {
@@ -129,13 +142,13 @@ impl ChunkActorRegistry {
         true
     }
 
-    pub fn is_chunk_actor_entity_creating(&self, chunk_actor_id: ChunkActorID) -> bool {
-        self.create_chunk_actor_entity_requests.contains_key(&chunk_actor_id)
+    pub fn is_chunk_actor_creating(&self, chunk_actor_id: ChunkActorID) -> bool {
+        self.currently_creating_chunk_actors.contains(&chunk_actor_id)
     }
 
-    pub fn are_chunk_actor_entities_creating(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
+    pub fn are_chunk_actors_creating(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
         for chunk_actor_id in chunk_actor_ids {
-            if !self.create_chunk_actor_entity_requests.contains_key(&chunk_actor_id) {
+            if !self.currently_creating_chunk_actors.contains(&chunk_actor_id) {
                 return false;
             }
         }
@@ -143,13 +156,27 @@ impl ChunkActorRegistry {
         true
     }
 
-    pub fn is_chunk_actor_entity_being_upgraded_to(&self, chunk_actor_id: ChunkActorID) -> bool {
-        self.upgrade_to_chunk_actor_entity_requests.contains_key(&chunk_actor_id)
+    pub fn is_chunk_actor_destroying(&self, chunk_actor_id: ChunkActorID) -> bool {
+        self.currently_destroying_chunk_actors.contains(&chunk_actor_id)
     }
 
-    pub fn are_chunk_actor_entities_being_upgraded_to(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
+    pub fn are_chunk_actors_destroying(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
         for chunk_actor_id in chunk_actor_ids {
-            if !self.upgrade_to_chunk_actor_entity_requests.contains_key(&chunk_actor_id) {
+            if !self.currently_destroying_chunk_actors.contains(&chunk_actor_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_chunk_actor_upgrading_to(&self, chunk_actor_id: ChunkActorID) -> bool {
+        self.currently_upgrading_to_chunk_actors.contains(&chunk_actor_id)
+    }
+
+    pub fn are_chunk_actors_upgrading_to(&self, chunk_actor_ids: HashSet<ChunkActorID>) -> bool {
+        for chunk_actor_id in chunk_actor_ids {
+            if !self.currently_upgrading_to_chunk_actors.contains(&chunk_actor_id) {
                 return false;
             }
         }
@@ -181,20 +208,28 @@ impl ChunkActorRegistry {
         &mut self.loaded_chunk_actors
     }
 
-    pub fn create_chunk_actor_entity_request(&self, chunk_actor_id: ChunkActorID) -> Option<&CreateChunkActorEntityRequest> {
-        self.create_chunk_actor_entity_requests.get(&chunk_actor_id)
+    pub fn creating_chunk_actors(&self) -> &HashSet<ChunkActorID> {
+        &self.currently_creating_chunk_actors
     }
 
-    pub fn create_chunk_actor_entity_requests(&self) -> &HashMap<ChunkActorID, CreateChunkActorEntityRequest> {
-        &self.create_chunk_actor_entity_requests
+    pub fn creating_chunk_actors_mut(&mut self) -> &mut HashSet<ChunkActorID> {
+        &mut self.currently_creating_chunk_actors
     }
 
-    pub fn upgrade_to_chunk_actor_entity_request(&self, chunk_actor_id: ChunkActorID) -> Option<&UpgradeToChunkActorEntityRequest> {
-        self.upgrade_to_chunk_actor_entity_requests.get(&chunk_actor_id)
+    pub fn destroying_chunk_actors(&self) -> &HashSet<ChunkActorID> {
+        &self.currently_destroying_chunk_actors
     }
 
-    pub fn upgrade_to_chunk_actor_entity_requests(&self) -> &HashMap<ChunkActorID, UpgradeToChunkActorEntityRequest> {
-        &self.upgrade_to_chunk_actor_entity_requests
+    pub fn destroying_chunk_actors_mut(&mut self) -> &mut HashSet<ChunkActorID> {
+        &mut self.currently_destroying_chunk_actors
+    }
+
+    pub fn upgrading_to_chunk_actors(&self) -> &HashSet<ChunkActorID> {
+        &self.currently_upgrading_to_chunk_actors
+    }
+
+    pub fn upgrading_to_chunk_actors_mut(&mut self) -> &mut HashSet<ChunkActorID> {
+        &mut self.currently_upgrading_to_chunk_actors
     }
 
     fn get_unused_chunk_actor_id(&mut self) -> ChunkActorID {

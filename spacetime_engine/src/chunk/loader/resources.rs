@@ -8,6 +8,9 @@ pub(in crate) struct ChunkLoaderRegistry {
     registered_chunk_loaders: HashSet<ChunkLoaderID>,
     loaded_chunk_loaders: HashMap<ChunkLoaderID, EntityReference>,
     started_chunk_loaders: HashMap<ChunkLoaderID, EntityReference>,
+    currently_creating_chunk_loaders: HashSet<ChunkLoaderID>,
+    currently_destroying_chunk_loaders: HashSet<ChunkLoaderID>,
+    currently_upgrading_to_chunk_loaders: HashSet<ChunkLoaderID>,
     next_chunk_loader_id: ChunkLoaderID,
     recycled_chunk_loader_ids: Vec<ChunkLoaderID>,
 }
@@ -83,6 +86,54 @@ impl ChunkLoaderRegistry {
         }
     }
 
+    pub fn start_creating_chunk_loader(&mut self, chunk_loader_id: ChunkLoaderID) {
+        self.currently_creating_chunk_loaders.insert(chunk_loader_id);
+    }
+
+    pub fn start_creating_chunk_loaders(&mut self, chunk_loader_ids: HashSet<ChunkLoaderID>) {
+        self.currently_creating_chunk_loaders.extend(chunk_loader_ids);
+    }
+
+    pub fn stop_creating_chunk_loader(&mut self, chunk_loader_id: ChunkLoaderID) {
+        self.currently_creating_chunk_loaders.remove(&chunk_loader_id);
+    }
+
+    pub fn stop_creating_chunk_loaders(&mut self, chunk_loader_ids: HashSet<ChunkLoaderID>) {
+        self.currently_creating_chunk_loaders.retain(|&chunk_loader_id| !chunk_loader_ids.contains(&chunk_loader_id));
+    }
+
+    pub fn start_destroying_chunk_loader(&mut self, chunk_loader_id: ChunkLoaderID) {
+        self.currently_destroying_chunk_loaders.insert(chunk_loader_id);
+    }
+
+    pub fn start_destroying_chunk_loaders(&mut self, chunk_loader_ids: HashSet<ChunkLoaderID>) {
+        self.currently_destroying_chunk_loaders.extend(chunk_loader_ids);
+    }
+
+    pub fn stop_destroying_chunk_loader(&mut self, chunk_loader_id: ChunkLoaderID) {
+        self.currently_destroying_chunk_loaders.remove(&chunk_loader_id);
+    }
+
+    pub fn stop_destroying_chunk_loaders(&mut self, chunk_loader_ids: HashSet<ChunkLoaderID>) {
+        self.currently_destroying_chunk_loaders.retain(|&chunk_loader_id| !chunk_loader_ids.contains(&chunk_loader_id));
+    }
+
+    pub fn start_upgrading_to_chunk_loader(&mut self, chunk_loader_id: ChunkLoaderID) {
+        self.currently_upgrading_to_chunk_loaders.insert(chunk_loader_id);
+    }
+
+    pub fn start_upgrading_to_chunk_loaders(&mut self, chunk_loader_ids: HashSet<ChunkLoaderID>) {
+        self.currently_upgrading_to_chunk_loaders.extend(chunk_loader_ids);
+    }
+
+    pub fn stop_upgrading_to_chunk_loader(&mut self, chunk_loader_id: ChunkLoaderID) {
+        self.currently_upgrading_to_chunk_loaders.remove(&chunk_loader_id);
+    }
+
+    pub fn stop_upgrading_to_chunk_loaders(&mut self, chunk_loader_ids: HashSet<ChunkLoaderID>) {
+        self.currently_upgrading_to_chunk_loaders.retain(|&chunk_loader_id| !chunk_loader_ids.contains(&chunk_loader_id));
+    }
+
     pub fn is_chunk_loader_registered(&self, chunk_loader_id: ChunkLoaderID) -> bool {
         self.registered_chunk_loaders.contains(&chunk_loader_id)
     }
@@ -118,6 +169,48 @@ impl ChunkLoaderRegistry {
     pub fn are_chunk_loaders_started(&self, chunk_loader_ids: HashSet<ChunkLoaderID>) -> bool {
         for chunk_loader_id in chunk_loader_ids {
             if !self.started_chunk_loaders.contains_key(&chunk_loader_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_chunk_loader_creating(&self, chunk_loader_id: ChunkLoaderID) -> bool {
+        self.currently_creating_chunk_loaders.contains(&chunk_loader_id)
+    }
+
+    pub fn are_chunk_loaders_creating(&self, chunk_loader_ids: HashSet<ChunkLoaderID>) -> bool {
+        for chunk_loader_id in chunk_loader_ids {
+            if !self.currently_creating_chunk_loaders.contains(&chunk_loader_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_chunk_loader_destroying(&self, chunk_loader_id: ChunkLoaderID) -> bool {
+        self.currently_destroying_chunk_loaders.contains(&chunk_loader_id)
+    }
+
+    pub fn are_chunk_loaders_destroying(&self, chunk_loader_ids: HashSet<ChunkLoaderID>) -> bool {
+        for chunk_loader_id in chunk_loader_ids {
+            if !self.currently_destroying_chunk_loaders.contains(&chunk_loader_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn is_chunk_loader_upgrading_to(&self, chunk_loader_id: ChunkLoaderID) -> bool {
+        self.currently_upgrading_to_chunk_loaders.contains(&chunk_loader_id)
+    }
+
+    pub fn are_chunk_loaders_upgrading_to(&self, chunk_loader_ids: HashSet<ChunkLoaderID>) -> bool {
+        for chunk_loader_id in chunk_loader_ids {
+            if !self.currently_upgrading_to_chunk_loaders.contains(&chunk_loader_id) {
                 return false;
             }
         }
@@ -163,6 +256,30 @@ impl ChunkLoaderRegistry {
 
     pub fn started_chunk_loaders_mut(&mut self) -> &mut HashMap<ChunkLoaderID, EntityReference> {
         &mut self.started_chunk_loaders
+    }
+
+    pub fn currently_creating_chunk_loaders(&self) -> &HashSet<ChunkLoaderID> {
+        &self.currently_creating_chunk_loaders
+    }
+
+    pub fn currently_creating_chunk_loaders_mut(&mut self) -> &mut HashSet<ChunkLoaderID> {
+        &mut self.currently_creating_chunk_loaders
+    }
+
+    pub fn currently_destroying_chunk_loaders(&self) -> &HashSet<ChunkLoaderID> {
+        &self.currently_destroying_chunk_loaders
+    }
+
+    pub fn currently_destroying_chunk_loaders_mut(&mut self) -> &mut HashSet<ChunkLoaderID> {
+        &mut self.currently_destroying_chunk_loaders
+    }
+
+    pub fn currently_upgrading_to_chunk_loaders(&self) -> &HashSet<ChunkLoaderID> {
+        &self.currently_upgrading_to_chunk_loaders
+    }
+
+    pub fn currently_upgrading_to_chunk_loaders_mut(&mut self) -> &mut HashSet<ChunkLoaderID> {
+        &mut self.currently_upgrading_to_chunk_loaders
     }
 
     fn get_unused_chunk_loader_id(&mut self) -> ChunkLoaderID {
