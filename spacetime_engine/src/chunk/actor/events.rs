@@ -2,13 +2,9 @@ use bevy::prelude::*;
 use crate::{chunk::id::structs::ChunkID, entity::id::structs::*};
 use super::id::structs::*;
 
-// TODO: Read this (muy importánte)
-// Hier, und bei den anderen Events für chunk loader die chunk id aus den non-internen events komplett entfernen
-// und im handler für die externen events berechnet werden durch ggf. zu implementierende implementationen von dem From-Trait
 #[derive(Debug, Clone, Event)]
 pub struct CreateChunkActorEntity {
     pub chunk_actor_event_id: ChunkActorEventID,
-    pub chunk_id: ChunkID,
     pub world_position: Vec2,
 }
 
@@ -22,7 +18,6 @@ pub struct DestroyChunkActorEntity {
 pub struct UpgradeToChunkActorEntity {
     pub chunk_actor_event_id: ChunkActorEventID,
     pub target_entity_id: EntityID,
-    pub chunk_id: ChunkID,
 }
 
 #[derive(Debug, Clone, Event)]
@@ -43,12 +38,10 @@ pub enum CreatedChunkActorEntity {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
-        chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
-        chunk_id: ChunkID,
         world_position: Vec2,
     }
 }
@@ -71,12 +64,10 @@ pub enum UpgradedToChunkActorEntity {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
         target_entity_id: EntityID,
-        chunk_id: ChunkID,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
         target_entity_id: EntityID,
-        chunk_id: ChunkID,
     },
 }
 
@@ -106,12 +97,10 @@ pub enum CreatedChunkActorEntityInternal {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
-        chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
-        chunk_id: ChunkID,
         world_position: Vec2,
     }
 }
@@ -134,11 +123,9 @@ pub enum UpgradedToChunkActorEntityInternal {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
         target_entity_id: EntityID,
-        chunk_id: ChunkID,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
         target_entity_id: EntityID,
-        chunk_id: ChunkID,
     },
 }

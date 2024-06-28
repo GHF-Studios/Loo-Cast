@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
 use super::id::structs::*;
-use super::structs::*;
 use crate::entity::types::*;
 
 #[derive(Resource, Debug, Default)]
