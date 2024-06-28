@@ -124,7 +124,7 @@ pub(super) fn handle_create_chunk_actor_entity_events_OLD(
         } else {
             info!("Chunk '{:?}' not loaded; issuing request to create chunk actor entity '{:?}' whenever the chunk is created or loaded ...", chunk_id, chunk_actor_entity_id);
 
-            if chunk_actor_registry.is_chunk_actor_entity_creating(chunk_actor_id) {
+            if chunk_actor_registry.is_chunk_actor_creating(chunk_actor_id) {
                 error!("The request for creating the chunk actor entity (chunk actor id '{:?}' | entity id '{:?}') has been cancelled due to the request already being issued!", chunk_actor_id, chunk_actor_entity_id);
 
                 chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
@@ -139,7 +139,7 @@ pub(super) fn handle_create_chunk_actor_entity_events_OLD(
                 continue;
             }
             
-            chunk_actor_registry.start_creating_chunk_actor_entity(
+            chunk_actor_registry.start_creating_chunk_actor(
                 CreateChunkActorEntityRequest {
                     chunk_actor_event_id,
                     chunk_actor_id,
