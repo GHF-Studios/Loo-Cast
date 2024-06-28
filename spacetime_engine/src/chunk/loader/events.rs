@@ -74,6 +74,8 @@ pub enum UpgradedToChunkLoaderEntity {
 #[derive(Debug, Clone, Event)]
 pub struct CreateChunkLoaderEntityInternal {
     pub chunk_loader_event_id: ChunkLoaderEventID,
+    pub chunk_loader_id: ChunkLoaderID,
+    pub chunk_loader_entity_id: EntityID,
     pub world_position: Vec2
 }
 
@@ -86,6 +88,7 @@ pub struct DestroyChunkLoaderEntityInternal {
 #[derive(Debug, Clone, Event)]
 pub struct UpgradeToChunkLoaderEntityInternal {
     pub chunk_loader_event_id: ChunkLoaderEventID,
+    pub chunk_loader_id: ChunkLoaderID,
     pub target_entity_id: EntityID,
 }
 

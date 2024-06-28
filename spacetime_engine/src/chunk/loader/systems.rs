@@ -1,3 +1,4 @@
+use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use crate::chunk::events::*;
 use crate::chunk::resources::*;
@@ -95,28 +96,9 @@ pub(in crate) fn update(
     *chunk_loader.current_chunk_ids_mut() = [unchanged_chunk_ids, new_chunk_ids].concat();
 }
 
-pub(super) fn handle_create_chunk_loader_entity_events() {}
-
-pub(super) fn handle_destroy_chunk_loader_entity_events() {}
-
-pub(super) fn handle_upgrade_to_chunk_loader_entity_events() {}
-
-pub(super) fn handle_create_chunk_loader_entity_internal_events() {}
-
-pub(super) fn handle_destroy_chunk_loader_entity_internal_events() {}
-
-pub(super) fn handle_upgrade_to_chunk_loader_entity_internal_events() {}
-
-pub(super) fn handle_created_chunk_loader_entity_internal_events() {}
-
-pub(super) fn handle_destroyed_chunk_loader_entity_internal_events() {}
-
-pub(super) fn handle_upgraded_to_chunk_loader_entity_internal_events() {}
-
-pub(super) fn handle_create_chunk_loader_entity_events_OLD(
-    mut commands: Commands,
+pub(super) fn handle_create_chunk_loader_entity_events(
     mut create_chunk_loader_entity_event_reader: EventReader<CreateChunkLoaderEntity>,
-    mut created_chunk_loader_entity_event_writer: EventWriter<CreatedChunkLoaderEntity>,
+    mut create_chunk_loader_entity_internal_event_writer: EventWriter<CreateChunkLoaderEntityInternal>,
     mut chunk_loader_registry: ResMut<ChunkLoaderRegistry>,
     mut entity_registry: ResMut<EntityRegistry>,
 ) {
@@ -131,16 +113,9 @@ pub(super) fn handle_create_chunk_loader_entity_events_OLD(
         let chunk_loader_id = chunk_loader_registry.register_chunk_loader();
         let world_position = create_chunk_loader_entity_event.world_position;
 
-        info!("Creating chunk loader entity '{:?}' at world position '{:?}' immediately...", chunk_loader_entity_id, world_position);
+        info!("Trying to create chunk loader entity '{:?}' at world position '{:?}' ...", chunk_loader_entity_id, world_position);
 
-        let chunk_loader_entity_reference = chunk_loader_functions::new_chunk_loader_entity(&mut commands, chunk_loader_id, world_position);
-
-        entity_registry.load_entity(chunk_loader_entity_id, chunk_loader_entity_reference);
-        chunk_loader_registry.load_chunk_loader(chunk_loader_id, chunk_loader_entity_reference);
-
-        info!("Successfully created chunk loader entity '{:?}' at world position '{:?}'!", chunk_loader_entity_id, world_position);
-
-        created_chunk_loader_entity_event_writer.send(CreatedChunkLoaderEntity::Success {
+        create_chunk_loader_entity_internal_event_writer.send(CreateChunkLoaderEntityInternal {
             chunk_loader_event_id,
             chunk_loader_id,
             chunk_loader_entity_id,
@@ -149,12 +124,9 @@ pub(super) fn handle_create_chunk_loader_entity_events_OLD(
     }
 }
 
-pub(super) fn handle_destroy_chunk_loader_entity_events_OLD(
-    mut commands: Commands,
+pub(super) fn handle_destroy_chunk_loader_entity_events(
     mut destroy_chunk_loader_entity_event_reader: EventReader<DestroyChunkLoaderEntity>,
-    mut destroyed_chunk_loader_entity_event_writer: EventWriter<DestroyedChunkLoaderEntity>,
-    mut chunk_loader_registry: ResMut<ChunkLoaderRegistry>,
-    mut entity_registry: ResMut<EntityRegistry>,
+    mut destroy_chunk_loader_entity_internal_event_writer: EventWriter<DestroyChunkLoaderEntityInternal>,
 ) {
     let mut destroy_chunk_loader_entity_events = Vec::new();
     for destroy_chunk_loader_entity_event in destroy_chunk_loader_entity_event_reader.read() {
@@ -165,47 +137,9 @@ pub(super) fn handle_destroy_chunk_loader_entity_events_OLD(
         let chunk_loader_event_id = destroy_chunk_loader_entity_event.chunk_loader_event_id;
         let chunk_loader_id = destroy_chunk_loader_entity_event.chunk_loader_id;
 
-        info!("Destroying chunk loader entity '{:?}' immediately...", chunk_loader_id);
+        info!("Trying to destroy chunk loader entity '{:?}' ...", chunk_loader_id);
 
-        let chunk_loader_entity_reference = match chunk_loader_registry.get_loaded_chunk_loader(chunk_loader_id) {
-            Some(chunk_loader_entity) => chunk_loader_entity,
-            None => {
-                error!("The request for destroying the chunk loader entity '{:?}' has been cancelled due to the chunk loader not being loaded!", chunk_loader_id);
-
-                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntity::Failure {
-                    chunk_loader_event_id,
-                    chunk_loader_id
-                });
-
-                continue;
-            }
-        };
-
-        let chunk_loader_entity_id = match entity_registry.get_loaded_entity_id(&chunk_loader_entity_reference) {
-            Some(chunk_loader_entity_id) => chunk_loader_entity_id,
-            None => {
-                error!("The request for destroying the chunk loader entity '{:?}' has been cancelled due to the respective chunk loader entity id not being found!", chunk_loader_id);
-
-                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntity::Failure {
-                    chunk_loader_event_id,
-                    chunk_loader_id
-                });
-
-                continue;
-            }
-        };
-
-        chunk_loader_registry.unload_chunk_loader(chunk_loader_id);
-        entity_registry.unload_entity(chunk_loader_entity_id);
-
-        chunk_loader_registry.unregister_chunk_loader(chunk_loader_id);
-        entity_registry.unregister_entity(chunk_loader_entity_id);
-
-        commands.entity(chunk_loader_entity_reference).despawn();
-
-        info!("Successfully destroyed chunk loader entity '{:?}'!", chunk_loader_id);
-
-        destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntity::Success {
+        destroy_chunk_loader_entity_internal_event_writer.send(DestroyChunkLoaderEntityInternal {
             chunk_loader_event_id,
             chunk_loader_id,
         });
@@ -213,15 +147,10 @@ pub(super) fn handle_destroy_chunk_loader_entity_events_OLD(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn handle_upgrade_to_chunk_loader_entity_events_OLD(
-    mut commands: Commands,
+pub(super) fn handle_upgrade_to_chunk_loader_entity_events(
     mut upgrade_to_chunk_loader_entity_event_reader: EventReader<UpgradeToChunkLoaderEntity>,
-    mut upgraded_to_chunk_loader_entity_event_writer: EventWriter<UpgradedToChunkLoaderEntity>,
+    mut upgrade_to_chunk_loader_entity_internal_event_writer: EventWriter<UpgradeToChunkLoaderEntityInternal>,
     mut chunk_loader_registry: ResMut<ChunkLoaderRegistry>,
-    entity_registry: Res<EntityRegistry>,
-    mut ineligible_entity_query_0: Query<Entity, Without<Transform>>,
-    mut ineligible_entity_query_1: Query<Entity, With<ChunkLoader>>,
-    mut eligible_entity_query: Query<Entity, (With<Transform>, Without<ChunkLoader>)>,
 ) {
     let mut upgrade_to_chunk_loader_entity_events = Vec::new();
     for upgrade_to_chunk_loader_entity_event in upgrade_to_chunk_loader_entity_event_reader.read() {
@@ -233,16 +162,247 @@ pub(super) fn handle_upgrade_to_chunk_loader_entity_events_OLD(
         let target_entity_id = upgrade_to_chunk_loader_entity_event.target_entity_id;
         let chunk_loader_id = chunk_loader_registry.register_chunk_loader();
 
-        info!("Upgrading entity '{:?}' to a chunk loader entity '{:?}' immediately...", target_entity_id, chunk_loader_id);
+        info!("Trying to upgrade entity '{:?}' to a chunk loader entity ...", target_entity_id);
+
+        upgrade_to_chunk_loader_entity_internal_event_writer.send(UpgradeToChunkLoaderEntityInternal {
+            chunk_loader_event_id,
+            chunk_loader_id,
+            target_entity_id,
+        });
+    }
+}
+
+pub(super) fn handle_create_chunk_loader_entity_internal_events(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<CreateChunkLoaderEntityInternal>,
+        EventWriter<CreatedChunkLoaderEntityInternal>,
+    )>,
+    registry_parameters: &mut SystemState<(
+        ResMut<ChunkLoaderRegistry>,
+        ResMut<EntityRegistry>,
+    )>,
+) {
+    let mut create_chunk_loader_entity_event_reader = event_parameters.get_mut(world).0;
+
+    let mut create_chunk_loader_entity_events: Vec<CreateChunkLoaderEntityInternal> = Vec::new();
+    for create_chunk_loader_entity_event in create_chunk_loader_entity_event_reader.read() {
+        create_chunk_loader_entity_events.push(create_chunk_loader_entity_event.clone());
+    }
+
+    for create_chunk_loader_entity_event in create_chunk_loader_entity_events {
+        let chunk_loader_event_id = create_chunk_loader_entity_event.chunk_loader_event_id;
+        let chunk_loader_id = create_chunk_loader_entity_event.chunk_loader_id;
+        let chunk_loader_entity_id = create_chunk_loader_entity_event.chunk_loader_entity_id;
+        let world_position = create_chunk_loader_entity_event.world_position;
+
+        let (chunk_loader_registry, _) = registry_parameters.get_mut(world);
+
+        let is_chunk_loader_registered = chunk_loader_registry.is_chunk_loader_registered(chunk_loader_id);
+        if is_chunk_loader_registered {
+            warn!("The request for creating the chunk loader '{:?}' entity has been cancelled due to the chunk loader already being registered!", chunk_loader_id);
+
+            let mut created_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+            created_chunk_loader_entity_event_writer.send(CreatedChunkLoaderEntityInternal::Failure {
+                chunk_loader_event_id,
+                world_position: create_chunk_loader_entity_event.world_position
+            });
+
+            continue;
+        }
+
+        let is_chunk_loader_loaded = chunk_loader_registry.is_chunk_loader_loaded(chunk_loader_id);
+        if is_chunk_loader_loaded {
+            warn!("The request for creating the chunk loader '{:?}' entity has been cancelled due to the chunk loader already being loaded!", chunk_loader_id);
+
+            let mut created_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+            created_chunk_loader_entity_event_writer.send(CreatedChunkLoaderEntityInternal::Failure {
+                chunk_loader_event_id,
+                world_position: create_chunk_loader_entity_event.world_position
+            });
+
+            continue;
+        }
+
+        let chunk_loader_entity_reference = chunk_loader_functions::new_chunk_loader_entity(world, chunk_loader_id, world_position);
+
+        let (mut chunk_loader_registry, mut entity_registry) = registry_parameters.get_mut(world);
+        entity_registry.load_entity(chunk_loader_entity_id, chunk_loader_entity_reference);
+        chunk_loader_registry.load_chunk_loader(chunk_loader_id, chunk_loader_entity_reference);
+
+        chunk_loader_registry.stop_creating_chunk_loader(chunk_loader_id);
+
+        info!("Successfully created chunk loader entity '{:?}' at world position '{:?}'!", chunk_loader_entity_id, world_position);
+
+        let mut created_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+        created_chunk_loader_entity_event_writer.send(CreatedChunkLoaderEntityInternal::Success {
+            chunk_loader_event_id,
+            chunk_loader_id,
+            chunk_loader_entity_id,
+            world_position
+        });
+    }
+}
+
+pub(super) fn handle_destroy_chunk_loader_entity_internal_events(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<DestroyChunkLoaderEntityInternal>,
+        EventWriter<DestroyedChunkLoaderEntityInternal>,
+    )>,
+    registry_parameters: &mut SystemState<(
+        ResMut<ChunkLoaderRegistry>,
+        ResMut<EntityRegistry>,
+    )>,
+) {
+    let mut destroy_chunk_loader_entity_event_reader = event_parameters.get_mut(world).0;
+
+    let mut destroy_chunk_loader_entity_events: Vec<DestroyChunkLoaderEntityInternal> = Vec::new();
+    for destroy_chunk_loader_entity_event in destroy_chunk_loader_entity_event_reader.read() {
+        destroy_chunk_loader_entity_events.push(destroy_chunk_loader_entity_event.clone());
+    }
+
+    for destroy_chunk_loader_entity_event in destroy_chunk_loader_entity_events {
+        let chunk_loader_event_id = destroy_chunk_loader_entity_event.chunk_loader_event_id;
+        let chunk_loader_id = destroy_chunk_loader_entity_event.chunk_loader_id;
+
+        let (mut chunk_loader_registry, mut entity_registry) = registry_parameters.get_mut(world);
+
+        let is_chunk_loader_registered = chunk_loader_registry.is_chunk_loader_registered(chunk_loader_id);
+        if !is_chunk_loader_registered {
+            warn!("The request for destroying the chunk loader entity '{:?}' has been cancelled due to the chunk loader not being registered!", chunk_loader_id);
+
+            let mut destroyed_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+            destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntityInternal::Failure {
+                chunk_loader_event_id,
+                chunk_loader_id
+            });
+
+            continue;
+        }
+
+        let is_chunk_loader_loaded = chunk_loader_registry.is_chunk_loader_loaded(chunk_loader_id);
+        if !is_chunk_loader_loaded {
+            warn!("The request for destroying the chunk loader entity '{:?}' has been cancelled due to the chunk loader not being loaded!", chunk_loader_id);
+
+            let mut destroyed_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+            destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntityInternal::Failure {
+                chunk_loader_event_id,
+                chunk_loader_id
+            });
+
+            continue;
+        }
+
+        let chunk_loader_entity_reference = match chunk_loader_registry.get_loaded_chunk_loader(chunk_loader_id) {
+            Some(chunk_loader_entity) => chunk_loader_entity,
+            None => {
+                warn!("The request for destroying the chunk loader entity '{:?}' has been cancelled due to the chunk loader entity reference not being found!", chunk_loader_id);
+
+                let mut destroyed_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntityInternal::Failure {
+                    chunk_loader_event_id,
+                    chunk_loader_id
+                });
+
+                continue;
+            }
+        };
+
+        let chunk_loader_entity_id = match entity_registry.get_loaded_entity_id(&chunk_loader_entity_reference) {
+            Some(chunk_loader_entity_id) => chunk_loader_entity_id,
+            None => {
+                warn!("The request for destroying the chunk loader entity '{:?}' has been cancelled due to the chunk loader entity id not being found!", chunk_loader_id);
+
+                let mut destroyed_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntityInternal::Failure {
+                    chunk_loader_event_id,
+                    chunk_loader_id
+                });
+
+                continue;
+            }
+        };
+
+        let _ = chunk_loader_registry.unload_chunk_loader(chunk_loader_id);
+        let _ = entity_registry.unload_entity(chunk_loader_entity_id);
+
+        world.despawn(chunk_loader_entity_reference);
+
+        let (mut chunk_loader_registry, mut entity_registry) = registry_parameters.get_mut(world);
+        entity_registry.unregister_entity(chunk_loader_entity_id);
+        chunk_loader_registry.unregister_chunk_loader(chunk_loader_id);
+
+        chunk_loader_registry.stop_destroying_chunk_loader(chunk_loader_id);
+
+        info!("Successfully destroyed chunk loader '{:?}' entity '{:?}'!", chunk_loader_id, chunk_loader_entity_id);
+
+        let mut destroyed_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+        destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntityInternal::Success {
+            chunk_loader_event_id,
+            chunk_loader_id
+        });
+    }
+}
+
+pub(super) fn handle_upgrade_to_chunk_loader_entity_internal_events(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<UpgradeToChunkLoaderEntityInternal>,
+        EventWriter<UpgradedToChunkLoaderEntityInternal>,
+    )>,
+    registry_parameters: &mut SystemState<(
+        ResMut<ChunkLoaderRegistry>,
+        Res<EntityRegistry>,
+    )>,
+) {
+    let mut upgrade_to_chunk_loader_entity_event_reader = event_parameters.get_mut(world).0;
+
+    let mut upgrade_to_chunk_loader_entity_events: Vec<UpgradeToChunkLoaderEntityInternal> = Vec::new();
+    for upgrade_to_chunk_loader_entity_event in upgrade_to_chunk_loader_entity_event_reader.read() {
+        upgrade_to_chunk_loader_entity_events.push(upgrade_to_chunk_loader_entity_event.clone());
+    }
+
+    for upgrade_to_chunk_loader_entity_event in upgrade_to_chunk_loader_entity_events {
+        let chunk_loader_event_id = upgrade_to_chunk_loader_entity_event.chunk_loader_event_id;
+        let chunk_loader_id = upgrade_to_chunk_loader_entity_event.chunk_loader_id;
+        let target_entity_id = upgrade_to_chunk_loader_entity_event.target_entity_id;
+
+        let (chunk_loader_registry, entity_registry) = registry_parameters.get_mut(world);
+
+        let is_chunk_loader_registered = chunk_loader_registry.is_chunk_loader_registered(chunk_loader_id);
+        if is_chunk_loader_registered {
+            warn!("The request for upgrading entity '{:?}' to a chunk loader entity has been cancelled due to the chunk loader already being registered!", target_entity_id);
+
+            let mut upgraded_to_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+            upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntityInternal::Failure {
+                chunk_loader_event_id,
+                target_entity_id,
+            });
+
+            continue;
+        }
+
+        let is_chunk_loader_loaded = chunk_loader_registry.is_chunk_loader_loaded(chunk_loader_id);
+        if is_chunk_loader_loaded {
+            warn!("The request for upgrading entity '{:?}' to a chunk loader entity has been cancelled due to the chunk loader already being loaded!", target_entity_id);
+
+            let mut upgraded_to_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+            upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntityInternal::Failure {
+                chunk_loader_event_id,
+                target_entity_id,
+            });
+
+            continue;
+        }
 
         let target_entity_reference = match entity_registry.get_loaded_entity_reference(&target_entity_id) {
             Some(target_entity) => target_entity,
             None => {
-                error!("The request for upgrading entity '{:?}' to a chunk loader entity has been cancelled due to the entity reference not being found!", target_entity_id);
+                warn!("The request for upgrading entity '{:?}' to a chunk loader entity has been cancelled due to the entity reference not being found!", target_entity_id);
 
-                chunk_loader_registry.unregister_chunk_loader(chunk_loader_id);
-
-                upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntity::Failure {
+                let mut upgraded_to_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+                upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntityInternal::Failure {
                     chunk_loader_event_id,
                     target_entity_id,
                 });
@@ -252,20 +412,16 @@ pub(super) fn handle_upgrade_to_chunk_loader_entity_events_OLD(
         };
 
         let chunk_loader_entity_reference = match chunk_loader_functions::upgrade_to_chunk_loader_entity(
-            &mut commands, 
+            world, 
             chunk_loader_id, 
-            target_entity_reference,
-            &mut ineligible_entity_query_0,
-            &mut ineligible_entity_query_1,
-            &mut eligible_entity_query
+            target_entity_reference
         ) {
             Ok(chunk_loader_entity_reference) => chunk_loader_entity_reference,
             Err(_) => {
-                error!("The request for upgrading entity '{:?}' to a chunk loader entity has been cancelled due to the upgrade failing!", target_entity_id);
+                warn!("The request for upgrading entity '{:?}' to a chunk loader entity has been cancelled due to the upgrade failing!", target_entity_id);
 
-                chunk_loader_registry.unregister_chunk_loader(chunk_loader_id);
-
-                upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntity::Failure {
+                let mut upgraded_to_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+                upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntityInternal::Failure {
                     chunk_loader_event_id,
                     target_entity_id,
                 });
@@ -275,14 +431,119 @@ pub(super) fn handle_upgrade_to_chunk_loader_entity_events_OLD(
         
         };
 
+        let (mut chunk_loader_registry, _) = registry_parameters.get_mut(world);
+
         chunk_loader_registry.load_chunk_loader(chunk_loader_id, chunk_loader_entity_reference);
 
-        info!("Successfully upgraded entity '{:?}' to a chunk loader entity '{:?}'!", target_entity_id, chunk_loader_id);
+        info!("Successfully upgraded entity '{:?}' to a chunk loader '{:?}' entity!", target_entity_id, chunk_loader_id);
 
-        upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntity::Success {
+        let mut upgraded_to_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+
+        upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntityInternal::Success {
             chunk_loader_event_id,
             chunk_loader_id,
             target_entity_id,
         });
+    }
+}
+
+pub(super) fn handle_created_chunk_loader_entity_internal_events(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<CreatedChunkLoaderEntityInternal>,
+        EventWriter<CreatedChunkLoaderEntity>,
+    )>,
+) {
+    let mut created_chunk_loader_entity_event_reader = event_parameters.get_mut(world).0;
+
+    let mut created_chunk_loader_entity_events: Vec<CreatedChunkLoaderEntityInternal> = Vec::new();
+    for created_chunk_loader_entity_event in created_chunk_loader_entity_event_reader.read() {
+        created_chunk_loader_entity_events.push(created_chunk_loader_entity_event.clone());
+    }
+
+    for created_chunk_loader_entity_event in created_chunk_loader_entity_events {
+        let mut created_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+
+        match created_chunk_loader_entity_event {
+            CreatedChunkLoaderEntityInternal::Success {
+                chunk_loader_event_id, 
+                chunk_loader_id, 
+                chunk_loader_entity_id, 
+                world_position
+            } => {
+                info!("Successfully created chunk loader '{:?}' at world position '{:?}'!", chunk_loader_id, world_position);
+
+                created_chunk_loader_entity_event_writer.send(CreatedChunkLoaderEntity::Success { chunk_loader_event_id, chunk_loader_id, chunk_loader_entity_id, world_position });
+            },
+            CreatedChunkLoaderEntityInternal::Failure { chunk_loader_event_id, world_position } => {
+                error!("Failed to create chunk loader at world position '{:?}'!", world_position);
+
+                created_chunk_loader_entity_event_writer.send(CreatedChunkLoaderEntity::Failure { chunk_loader_event_id, world_position });
+            },
+        }
+    }
+}
+
+pub(super) fn handle_destroyed_chunk_loader_entity_internal_events(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<DestroyedChunkLoaderEntityInternal>,
+        EventWriter<DestroyedChunkLoaderEntity>,
+    )>,
+) {
+    let mut destroyed_chunk_loader_entity_event_reader = event_parameters.get_mut(world).0;
+
+    let mut destroyed_chunk_loader_entity_events: Vec<DestroyedChunkLoaderEntityInternal> = Vec::new();
+    for destroyed_chunk_loader_entity_event in destroyed_chunk_loader_entity_event_reader.read() {
+        destroyed_chunk_loader_entity_events.push(destroyed_chunk_loader_entity_event.clone());
+    }
+
+    for destroyed_chunk_loader_entity_event in destroyed_chunk_loader_entity_events {
+        let mut destroyed_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+
+        match destroyed_chunk_loader_entity_event {
+            DestroyedChunkLoaderEntityInternal::Success { chunk_loader_event_id, chunk_loader_id } => {
+                info!("Successfully destroyed chunk loader '{:?}'!", chunk_loader_id);
+
+                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntity::Success { chunk_loader_event_id, chunk_loader_id });
+            },
+            DestroyedChunkLoaderEntityInternal::Failure { chunk_loader_event_id, chunk_loader_id } => {
+                error!("Failed to destroy chunk loader '{:?}'!", chunk_loader_id);
+
+                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntity::Failure { chunk_loader_event_id, chunk_loader_id });
+            },
+        }
+    }
+}
+
+pub(super) fn handle_upgraded_to_chunk_loader_entity_internal_events(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<UpgradedToChunkLoaderEntityInternal>,
+        EventWriter<UpgradedToChunkLoaderEntity>,
+    )>,
+) {
+    let mut upgraded_to_chunk_loader_entity_event_reader = event_parameters.get_mut(world).0;
+
+    let mut upgraded_to_chunk_loader_entity_events: Vec<UpgradedToChunkLoaderEntityInternal> = Vec::new();
+    for upgraded_to_chunk_loader_entity_event in upgraded_to_chunk_loader_entity_event_reader.read() {
+        upgraded_to_chunk_loader_entity_events.push(upgraded_to_chunk_loader_entity_event.clone());
+    }
+
+    for upgraded_to_chunk_loader_entity_event in upgraded_to_chunk_loader_entity_events {
+        let mut upgraded_to_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
+
+        match upgraded_to_chunk_loader_entity_event {
+            UpgradedToChunkLoaderEntityInternal::Success { chunk_loader_event_id, chunk_loader_id, target_entity_id } => {
+                info!("Successfully upgraded entity '{:?}' to a chunk loader '{:?}' entity!", target_entity_id, chunk_loader_id);
+
+                upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntity::Success { chunk_loader_event_id, chunk_loader_id, target_entity_id });
+            },
+            UpgradedToChunkLoaderEntityInternal::Failure { chunk_loader_event_id, target_entity_id } => {
+                error!("Failed to upgrade entity '{:?}' to a chunk loader entity!", target_entity_id);
+
+                upgraded_to_chunk_loader_entity_event_writer.send(UpgradedToChunkLoaderEntity::Failure { chunk_loader_event_id, target_entity_id });
+            },
+        }
     }
 }

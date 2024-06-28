@@ -5,7 +5,7 @@ use crate::chunk::resources::*;
 use crate::chunk::functions;
 use crate::entity::resources::*;
 
-pub(in crate) fn handle_create_chunk_entity_events(
+pub(super) fn handle_create_chunk_entity_events(
     mut create_chunk_entity_event_reader: EventReader<CreateChunkEntity>,
     mut create_chunk_entity_internal_event_writer: EventWriter<CreateChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
@@ -35,7 +35,7 @@ pub(in crate) fn handle_create_chunk_entity_events(
     }
 }
 
-pub(in crate) fn handle_destroy_chunk_entity_events(
+pub(super) fn handle_destroy_chunk_entity_events(
     mut destroy_chunk_entity_event_reader: EventReader<DestroyChunkEntity>,
     mut destroy_chunk_entity_internal_event_writer: EventWriter<DestroyChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
@@ -65,7 +65,7 @@ pub(in crate) fn handle_destroy_chunk_entity_events(
     }
 }
 
-pub(in crate) fn handle_load_chunk_entity_events(
+pub(super) fn handle_load_chunk_entity_events(
     mut load_chunk_entity_event_reader: EventReader<LoadChunkEntity>,
     mut load_chunk_entity_internal_event_writer: EventWriter<LoadChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
@@ -95,7 +95,7 @@ pub(in crate) fn handle_load_chunk_entity_events(
     }
 }
 
-pub(in crate) fn handle_unload_chunk_entity_events(
+pub(super) fn handle_unload_chunk_entity_events(
     mut unload_chunk_entity_event_reader: EventReader<UnloadChunkEntity>,
     mut unload_chunk_entity_internal_event_writer: EventWriter<UnloadChunkEntityInternal>,
     mut chunk_registry: ResMut<ChunkRegistry>,
@@ -125,7 +125,7 @@ pub(in crate) fn handle_unload_chunk_entity_events(
     }
 }
 
-pub(in crate) fn handle_create_chunk_entity_internal_events(
+pub(super) fn handle_create_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
         EventReader<CreateChunkEntityInternal>,
@@ -150,10 +150,8 @@ pub(in crate) fn handle_create_chunk_entity_internal_events(
         let (chunk_registry, _) = registry_parameters.get_mut(world);
 
         let is_chunk_registered = chunk_registry.is_chunk_registered(chunk_id);
-        let is_chunk_loaded = chunk_registry.is_chunk_loaded(chunk_id);
-
         if is_chunk_registered {
-            warn!("Chunk '{:?}' is already registered!", chunk_id);
+            warn!("The request for creating chunk '{:?}' has been cancelled due to the chunk already being registered!", chunk_id);
             
             let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
             created_chunk_entity_event_writer.send(CreatedChunkEntityInternal::Failure { 
@@ -164,8 +162,9 @@ pub(in crate) fn handle_create_chunk_entity_internal_events(
             continue;
         }
 
+        let is_chunk_loaded = chunk_registry.is_chunk_loaded(chunk_id);
         if is_chunk_loaded {
-            warn!("Chunk '{:?}' is already loaded!", chunk_id);
+            warn!("The request for creating chunk '{:?}' has been cancelled due to the chunk already being loaded!", chunk_id);
 
             let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
             created_chunk_entity_event_writer.send(CreatedChunkEntityInternal::Failure { 
@@ -196,7 +195,7 @@ pub(in crate) fn handle_create_chunk_entity_internal_events(
     }
 }
 
-pub(in crate) fn handle_destroy_chunk_entity_internal_events(
+pub(super) fn handle_destroy_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
         EventReader<DestroyChunkEntityInternal>,
@@ -220,18 +219,17 @@ pub(in crate) fn handle_destroy_chunk_entity_internal_events(
 
         let (mut chunk_registry, mut entity_registry) = registry_parameters.get_mut(world);
 
-        let is_chunk_registered = chunk_registry.is_chunk_registered(chunk_id);
         let is_chunk_loaded = chunk_registry.is_chunk_loaded(chunk_id);
-
         if !is_chunk_loaded {
             warn!("Chunk '{:?}' is already unloaded!", chunk_id);
-
+            
             let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
             destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal::Failure { chunk_event_id, chunk_id });
-
+            
             continue;
         }
-
+        
+        let is_chunk_registered = chunk_registry.is_chunk_registered(chunk_id);
         if !is_chunk_registered {
             warn!("Chunk '{:?}' is already unregistered!", chunk_id);
             
@@ -262,11 +260,14 @@ pub(in crate) fn handle_destroy_chunk_entity_internal_events(
         chunk_registry.stop_destroying_chunk(chunk_id);
 
         let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-        destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal::Success { chunk_event_id, chunk_id });
+        destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal::Success {
+            chunk_event_id, 
+            chunk_id
+        });
     }
 }
 
-pub(in crate) fn handle_load_chunk_entity_internal_events(
+pub(super) fn handle_load_chunk_entity_internal_events(
     world: &mut World,
     registry_parameter: &mut SystemState<(
         ResMut<ChunkRegistry>,
@@ -329,7 +330,7 @@ pub(in crate) fn handle_load_chunk_entity_internal_events(
     }
 }
 
-pub(in crate) fn handle_unload_chunk_entity_internal_events(
+pub(super) fn handle_unload_chunk_entity_internal_events(
     world: &mut World,
     registry_parameter: &mut SystemState<(
         ResMut<ChunkRegistry>,
@@ -388,7 +389,7 @@ pub(in crate) fn handle_unload_chunk_entity_internal_events(
     }
 }
 
-pub(in crate) fn handle_created_chunk_entity_internal_events(
+pub(super) fn handle_created_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
         EventReader<CreatedChunkEntityInternal>,
@@ -420,7 +421,7 @@ pub(in crate) fn handle_created_chunk_entity_internal_events(
     }
 }
 
-pub(in crate) fn handle_destroyed_chunk_entity_internal_events(
+pub(super) fn handle_destroyed_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
         EventReader<DestroyedChunkEntityInternal>,
@@ -452,7 +453,7 @@ pub(in crate) fn handle_destroyed_chunk_entity_internal_events(
     }
 }
 
-pub(in crate) fn handle_loaded_chunk_entity_internal_events(
+pub(super) fn handle_loaded_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
         EventReader<LoadedChunkEntityInternal>,
@@ -484,7 +485,7 @@ pub(in crate) fn handle_loaded_chunk_entity_internal_events(
     }
 }
 
-pub(in crate) fn handle_unloaded_chunk_entity_internal_events(
+pub(super) fn handle_unloaded_chunk_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
         EventReader<UnloadedChunkEntityInternal>,
