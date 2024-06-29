@@ -1,10 +1,13 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
+use crate::chunk::actor::position::structs::ChunkActorPosition;
 use crate::chunk::events::CreatedChunkEntity;
 use crate::chunk::actor::components::*;
 use crate::chunk::actor::resources::*;
 use crate::chunk::components::*;
 use crate::chunk::events::LoadedChunkEntity;
+use crate::chunk::id::structs::ChunkID;
+use crate::chunk::position::structs::ChunkPosition;
 use crate::chunk::resources::*;
 use crate::entity::resources::EntityRegistry;
 use super::events::*;
@@ -42,7 +45,42 @@ pub(super) fn update(
     );
 }
 
-pub(super) fn handle_create_chunk_actor_entity_events() {}
+pub(super) fn handle_create_chunk_actor_entity_events(
+    mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
+    mut create_chunk_actor_entity_internal_event_writer: EventWriter<CreateChunkActorEntityInternal>,
+    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    mut entity_registry: ResMut<EntityRegistry>,
+) {
+    let mut create_chunk_actor_entity_events = Vec::new();
+    for create_chunk_actor_entity_event in create_chunk_actor_entity_event_reader.read() {
+        create_chunk_actor_entity_events.push(create_chunk_actor_entity_event.clone());
+    }
+
+    for create_chunk_actor_entity_event in create_chunk_actor_entity_events {
+        let chunk_actor_event_id = create_chunk_actor_entity_event.chunk_actor_event_id;
+        let chunk_actor_entity_id = entity_registry.register_entity();
+        let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
+        let chunk_id = {
+            let world_position = create_chunk_actor_entity_event.world_position;
+            let chunk_actor_position: ChunkActorPosition = world_position.into();
+            let chunk_position: ChunkPosition = chunk_actor_position.into();
+            let chunk_id: ChunkID = chunk_position.into();
+
+            chunk_id
+        };
+        let world_position = create_chunk_actor_entity_event.world_position;
+
+        info!("Trying to create chunk actor entity '{:?}' at world position '{:?}' in chunk '{:?}' ...", chunk_actor_entity_id, world_position, chunk_id);
+
+        create_chunk_actor_entity_internal_event_writer.send(CreateChunkActorEntityInternal {
+            chunk_actor_event_id,
+            chunk_actor_id,
+            chunk_actor_entity_id,
+            chunk_id,
+            world_position
+        });
+    }
+}
 
 pub(super) fn handle_destroy_chunk_actor_entity_events() {}
 
@@ -60,6 +98,8 @@ pub(super) fn handle_destroyed_chunk_actor_entity_internal_events() {}
 
 pub(super) fn handle_upgraded_to_chunk_actor_entity_internal_events() {}
 
+#[allow(clippy::too_many_arguments)]
+#[deprecated]
 pub(super) fn handle_create_chunk_actor_entity_events_OLD(
     mut commands: Commands,
     mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
@@ -78,7 +118,14 @@ pub(super) fn handle_create_chunk_actor_entity_events_OLD(
         let chunk_actor_entity_id = entity_registry.register_entity();
         let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
         let chunk_actor_event_id = create_chunk_actor_entity_event.chunk_actor_event_id;
-        let chunk_id = create_chunk_actor_entity_event.chunk_id;
+        let chunk_id = {
+            let world_position = create_chunk_actor_entity_event.world_position;
+            let chunk_actor_position: ChunkActorPosition = world_position.into();
+            let chunk_position: ChunkPosition = chunk_actor_position.into();
+            let chunk_id: ChunkID = chunk_position.into();
+
+            chunk_id
+        };
         let world_position = create_chunk_actor_entity_event.world_position;
 
         info!("Trying to create chunk actor entity '{:?}' at world position '{:?}'...", chunk_actor_entity_id, world_position);
@@ -96,7 +143,6 @@ pub(super) fn handle_create_chunk_actor_entity_events_OLD(
 
                     created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
                         chunk_actor_event_id,
-                        chunk_id,
                         world_position,
                     });
 
@@ -117,7 +163,6 @@ pub(super) fn handle_create_chunk_actor_entity_events_OLD(
                 chunk_actor_event_id,
                 chunk_actor_id,
                 chunk_actor_entity_id,
-                chunk_id,
                 world_position,
             });
         } else {
@@ -131,7 +176,6 @@ pub(super) fn handle_create_chunk_actor_entity_events_OLD(
 
                 created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntity::Failure {
                     chunk_actor_event_id,
-                    chunk_id,
                     world_position,
                 });
 
@@ -154,6 +198,7 @@ pub(super) fn handle_create_chunk_actor_entity_events_OLD(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[deprecated]
 pub(super) fn handle_destroy_chunk_actor_entity_events_OLD(
     mut commands: Commands,
     mut destroy_chunk_actor_entity_event_reader: EventReader<DestroyChunkActorEntity>,
@@ -267,6 +312,7 @@ pub(super) fn handle_destroy_chunk_actor_entity_events_OLD(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[deprecated]
 pub(super) fn handle_upgrade_to_chunk_actor_entity_events_OLD(
     mut commands: Commands,
     mut upgrade_to_chunk_actor_entity_event_reader: EventReader<UpgradeToChunkActorEntity>,
@@ -399,6 +445,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events_OLD(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[deprecated]
 pub(super) fn process_create_chunk_actor_entity_requests_OLD(
     mut commands: Commands,
     mut created_chunk_entity_event_reader: EventReader<CreatedChunkEntity>,
@@ -625,6 +672,7 @@ pub(super) fn process_create_chunk_actor_entity_requests_OLD(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[deprecated]
 pub(super) fn process_upgrade_to_chunk_actor_entity_requests_OLD(
     mut commands: Commands,
     mut created_chunk_entity_event_reader: EventReader<CreatedChunkEntity>,
