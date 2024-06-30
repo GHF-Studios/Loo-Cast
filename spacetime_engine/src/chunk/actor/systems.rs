@@ -82,7 +82,27 @@ pub(super) fn handle_create_chunk_actor_entity_events(
     }
 }
 
-pub(super) fn handle_destroy_chunk_actor_entity_events() {}
+pub(super) fn handle_destroy_chunk_actor_entity_events(
+    mut destroy_chunk_actor_entity_event_reader: EventReader<DestroyChunkActorEntity>,
+    mut destroy_chunk_actor_entity_internal_event_writer: EventWriter<DestroyChunkActorEntityInternal>,
+) {
+    let mut destroy_chunk_actor_entity_events = Vec::new();
+    for destroy_chunk_actor_entity_event in destroy_chunk_actor_entity_event_reader.read() {
+        destroy_chunk_actor_entity_events.push(destroy_chunk_actor_entity_event.clone());
+    }
+
+    for destroy_chunk_actor_entity_event in destroy_chunk_actor_entity_events {
+        let chunk_actor_id = destroy_chunk_actor_entity_event.chunk_actor_id;
+        let chunk_actor_event_id = destroy_chunk_actor_entity_event.chunk_actor_event_id;
+
+        info!("Destroying chunk actor entity '{:?}' immediately ...", chunk_actor_id);
+
+        destroy_chunk_actor_entity_internal_event_writer.send(DestroyChunkActorEntityInternal {
+            chunk_actor_event_id,
+            chunk_actor_id
+        });
+    }
+}
 
 pub(super) fn handle_upgrade_to_chunk_actor_entity_events() {}
 

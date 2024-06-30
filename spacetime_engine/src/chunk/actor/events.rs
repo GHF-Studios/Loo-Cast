@@ -25,10 +25,16 @@ pub enum StartedChunkActor {
     Success {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
     }
 }
 
@@ -38,10 +44,14 @@ pub enum CreatedChunkActorEntity {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
         world_position: Vec2,
     }
 }
@@ -51,10 +61,16 @@ pub enum DestroyedChunkActorEntity {
     Success {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
-        chunk_actor_id: ChunkActorID
+        chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
     },
 }
 
@@ -64,16 +80,23 @@ pub enum UpgradedToChunkActorEntity {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
         target_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_id: ChunkActorID,
         target_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
     },
 }
 
 #[derive(Debug, Clone, Event)]
 pub struct CreateChunkActorEntityInternal {
     pub chunk_actor_event_id: ChunkActorEventID,
+    pub chunk_actor_id: ChunkActorID,
+    pub chunk_actor_entity_id: EntityID,
     pub chunk_id: ChunkID,
     pub world_position: Vec2,
 }
@@ -82,13 +105,16 @@ pub struct CreateChunkActorEntityInternal {
 pub struct DestroyChunkActorEntityInternal {
     pub chunk_actor_event_id: ChunkActorEventID,
     pub chunk_actor_id: ChunkActorID,
+    pub chunk_actor_entity_id: EntityID,
 }
 
 #[derive(Debug, Clone, Event)]
 pub struct UpgradeToChunkActorEntityInternal {
     pub chunk_actor_event_id: ChunkActorEventID,
+    pub chunk_actor_id: ChunkActorID,
     pub target_entity_id: EntityID,
     pub chunk_id: ChunkID,
+    pub world_position: Vec2,
 }
 
 #[derive(Debug, Clone, Event)]
@@ -97,10 +123,14 @@ pub enum CreatedChunkActorEntityInternal {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
         world_position: Vec2,
     }
 }
@@ -110,10 +140,16 @@ pub enum DestroyedChunkActorEntityInternal {
     Success {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
-        chunk_actor_id: ChunkActorID
+        chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
     },
 }
 
@@ -122,10 +158,15 @@ pub enum UpgradedToChunkActorEntityInternal {
     Success {
         chunk_actor_event_id: ChunkActorEventID,
         chunk_actor_id: ChunkActorID,
-        target_entity_id: EntityID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
     },
     Failure {
         chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_id: ChunkActorID,
         target_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
     },
 }
