@@ -12,18 +12,44 @@ use crate::chunk::resources::*;
 use crate::entity::resources::EntityRegistry;
 use super::events::*;
 use super::functions;
+use super::id::structs::ChunkActorID;
 
 pub(super) fn start(
     mut started_chunk_actor_event_writer: EventWriter<StartedChunkActor>,
-    chunk_actor_query: Query<&ChunkActor, Added<ChunkActor>>,
+    chunk_actor_query: Query<(&ChunkActor, &Transform), Added<ChunkActor>>,
+    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
     mut chunk_actor_event_registry: ResMut<ChunkActorEventRegistry>,
+    mut entity_registry: ResMut<EntityRegistry>,
 ) {
-    for chunk_actor in chunk_actor_query.iter() {
+    for (chunk_actor, chunk_actor_transform) in chunk_actor_query.iter() {
         let chunk_actor_event_id = chunk_actor_event_registry.get_unused_chunk_actor_event_id();
+        let chunk_actor_id: ChunkActorID = chunk_actor.id();
+        let chunk_actor_entity_id = {
+            let chunk_actor_entity_reference = chunk_actor_registry.loaded_chunk_actor(chunk_actor_id);
+            let chunk_actor_entity_id = match entity_registry.get_loaded_entity_id(&chunk_actor_entity_reference) {
+                Some(chunk_actor_entity_id) => chunk_actor_entity_id,
+                None => {
+                    panic!("The chunk actor entity id for chunk actor '{:?}' could not be found!", chunk_actor_id);
+                }
+            };
+
+            chunk_actor_entity_id
+        };
+        let world_position = chunk_actor_transform.translation.truncate();
+        let chunk_id = {
+            let chunk_actor_position: ChunkActorPosition = world_position.into();
+            let chunk_position: ChunkPosition = chunk_actor_position.into();
+            let chunk_id: ChunkID = chunk_position.into();
+
+            chunk_id
+        };
 
         started_chunk_actor_event_writer.send(StartedChunkActor::Success {
             chunk_actor_event_id,
-            chunk_actor_id: chunk_actor.id(),
+            chunk_actor_id,
+            chunk_actor_entity_id,
+            chunk_id,
+            world_position,
         });
     }
 }
@@ -85,6 +111,8 @@ pub(super) fn handle_create_chunk_actor_entity_events(
 pub(super) fn handle_destroy_chunk_actor_entity_events(
     mut destroy_chunk_actor_entity_event_reader: EventReader<DestroyChunkActorEntity>,
     mut destroy_chunk_actor_entity_internal_event_writer: EventWriter<DestroyChunkActorEntityInternal>,
+    chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    entity_registry: ResMut<EntityRegistry>,
 ) {
     let mut destroy_chunk_actor_entity_events = Vec::new();
     for destroy_chunk_actor_entity_event in destroy_chunk_actor_entity_event_reader.read() {
@@ -94,17 +122,76 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
     for destroy_chunk_actor_entity_event in destroy_chunk_actor_entity_events {
         let chunk_actor_id = destroy_chunk_actor_entity_event.chunk_actor_id;
         let chunk_actor_event_id = destroy_chunk_actor_entity_event.chunk_actor_event_id;
+        let chunk_actor_entity_id = {
+            let chunk_actor_entity_reference = chunk_actor_registry.loaded_chunk_actor(chunk_actor_id);
+            let chunk_actor_entity_id = match entity_registry.get_loaded_entity_id(&chunk_actor_entity_reference) {
+                Some(chunk_actor_entity_id) => chunk_actor_entity_id,
+                None => {
+                    panic!("The chunk actor entity id for chunk actor '{:?}' could not be found!", chunk_actor_id);
+                }
+            };
 
-        info!("Destroying chunk actor entity '{:?}' immediately ...", chunk_actor_id);
+            chunk_actor_entity_id
+        };
+
+        info!("Trying to destroy chunk actor entity '{:?}'  ...", chunk_actor_id);
 
         destroy_chunk_actor_entity_internal_event_writer.send(DestroyChunkActorEntityInternal {
             chunk_actor_event_id,
-            chunk_actor_id
+            chunk_actor_id,
+            chunk_actor_entity_id,
         });
     }
 }
 
-pub(super) fn handle_upgrade_to_chunk_actor_entity_events() {}
+pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
+    mut upgrade_to_chunk_actor_entity_event_reader: EventReader<UpgradeToChunkActorEntity>,
+    mut upgrade_to_chunk_actor_entity_internal_event_writer: EventWriter<UpgradeToChunkActorEntityInternal>,
+    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    entity_registry: Res<EntityRegistry>,
+    target_entity_query: Query<&Transform, Without<ChunkActor>>,
+) {
+    let mut upgrade_to_chunk_actor_entity_events = Vec::new();
+    for upgrade_to_chunk_actor_entity_event in upgrade_to_chunk_actor_entity_event_reader.read() {
+        upgrade_to_chunk_actor_entity_events.push(upgrade_to_chunk_actor_entity_event.clone());
+    }
+
+    for upgrade_to_chunk_actor_entity_event in upgrade_to_chunk_actor_entity_events {
+        let target_entity_reference = match entity_registry.get_loaded_entity_reference(&upgrade_to_chunk_actor_entity_event.target_entity_id) {
+            Some(target_entity_reference) => target_entity_reference,
+            None => {
+                panic!("The target entity '{:?}' either does not exist or does not have a transform component!", upgrade_to_chunk_actor_entity_event.target_entity_id);
+            }
+        };
+        let target_transform = match target_entity_query.get(target_entity_reference) {
+            Ok(target_transform) => target_transform,
+            Err(_) => {
+                panic!("The target entity '{:?}' either does not exist or does not have a transform component!", upgrade_to_chunk_actor_entity_event.target_entity_id);
+            }
+        };
+        let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
+        let chunk_actor_event_id = upgrade_to_chunk_actor_entity_event.chunk_actor_event_id;
+        let target_entity_id = upgrade_to_chunk_actor_entity_event.target_entity_id;
+        let (chunk_id, world_position) = {
+            let world_position = target_transform.translation.truncate();
+            let chunk_actor_position: ChunkActorPosition = world_position.into();
+            let chunk_position: ChunkPosition = chunk_actor_position.into();
+            let chunk_id: ChunkID = chunk_position.into();
+
+            (chunk_id, world_position)
+        };
+
+        info!("Trying to upgrade entity '{:?}' to a chunk actor entity ...", target_entity_id);
+
+        upgrade_to_chunk_actor_entity_internal_event_writer.send(UpgradeToChunkActorEntityInternal {
+            chunk_actor_event_id,
+            chunk_actor_id,
+            target_entity_id,
+            chunk_id,
+            world_position,
+        });
+    }
+}
 
 pub(super) fn handle_create_chunk_actor_entity_internal_events() {}
 
@@ -118,7 +205,7 @@ pub(super) fn handle_destroyed_chunk_actor_entity_internal_events() {}
 
 pub(super) fn handle_upgraded_to_chunk_actor_entity_internal_events() {}
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, non_snake_case)]
 #[deprecated]
 pub(super) fn handle_create_chunk_actor_entity_events_OLD(
     mut commands: Commands,
@@ -217,7 +304,7 @@ pub(super) fn handle_create_chunk_actor_entity_events_OLD(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, non_snake_case)]
 #[deprecated]
 pub(super) fn handle_destroy_chunk_actor_entity_events_OLD(
     mut commands: Commands,
@@ -331,7 +418,7 @@ pub(super) fn handle_destroy_chunk_actor_entity_events_OLD(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, non_snake_case)]
 #[deprecated]
 pub(super) fn handle_upgrade_to_chunk_actor_entity_events_OLD(
     mut commands: Commands,
@@ -464,7 +551,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events_OLD(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, non_snake_case)]
 #[deprecated]
 pub(super) fn process_create_chunk_actor_entity_requests_OLD(
     mut commands: Commands,
@@ -691,7 +778,7 @@ pub(super) fn process_create_chunk_actor_entity_requests_OLD(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, non_snake_case)]
 #[deprecated]
 pub(super) fn process_upgrade_to_chunk_actor_entity_requests_OLD(
     mut commands: Commands,
