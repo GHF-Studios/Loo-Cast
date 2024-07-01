@@ -8,8 +8,11 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
 // IMPORTANT TASKS:
-// TODO: Fix stupid bug titled 'already registered' in the chunk loader (and potentially actor) systems
-// TODO: Fix chunk actor systems not checking if the respective chunk is registered, loaded, and started, before trying to access it
+// TODO: Fix chunk actor systems not checking if the respective chunk is registered and loaded before accessing it
+//       When creating a chunk actor or upgrading and entity to a chunk actor, we need some way to delay the internal creation/loading logic 
+//       until the chunk is registered and loaded one way or another (that being either Chunk Creation or Chunk Loading)
+//       We do that by taking two event readers as parameters: one for chunk creations and one for chunk loadings; we check if the chunk creating/loading failed or succeeded, and we check if any chunk actors are waiting for that chunk to be created/loaded. Then we simply create/load the chunk actor and remove it from the waiting list.
+//       We also need a registry of chunk actors that are waiting for their respective chunks to be either created or loaded.
 
 // Repeating tasks:
 // TODO: Take a look at all TODOs outside this file

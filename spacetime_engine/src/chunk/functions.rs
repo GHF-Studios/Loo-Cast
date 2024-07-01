@@ -12,6 +12,7 @@ use crate::chunk::events::*;
 use crate::math::structs::I16Vec2;
 use serde::de::DeserializeSeed;
 use super::actor::components::ChunkActor;
+use super::loader::components::ChunkLoader;
 use super::{ChunkEventRegistry, ChunkRegistry};
 
 // TODO: The addition of secondary components as shown below should be done in each location where a new chunk actor is created and needs custom components apart from the basics like a Transform and a ChunkActor component.
@@ -201,6 +202,7 @@ pub(in crate) fn categorize_chunks(
 pub(in crate) fn start_chunks(
     mut create_chunk_event_writer: EventWriter<CreateChunkEntity>,
     mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
+    chunk_loader: &mut Mut<ChunkLoader>,
     chunk_registry: &Res<ChunkRegistry>,
     chunk_event_registry: &mut ResMut<ChunkEventRegistry>,
     detected_chunk_ids: &Vec<ChunkID>,
@@ -209,12 +211,32 @@ pub(in crate) fn start_chunks(
         let chunk_id = *detected_chunk_id;
         let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
 
+        if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
+            continue;
+        }
+
+        if chunk_loader.currently_loading_chunks().contains(&chunk_id) {
+            continue;
+        }
+
         if chunk_registry.is_chunk_registered(chunk_id) {
+            if chunk_registry.is_loading_chunk(chunk_id) {
+                continue;
+            }
+
+            chunk_loader.start_loading_chunk(chunk_id);
+
             load_chunk_event_writer.send(LoadChunkEntity { 
                 chunk_event_id,
                 chunk_id
             });
         } else {
+            if chunk_registry.is_creating_chunk(chunk_id) {
+                continue;
+            }
+
+            chunk_loader.start_creating_chunk(chunk_id);
+
             create_chunk_event_writer.send(CreateChunkEntity { 
                 chunk_event_id,
                 chunk_id
@@ -223,10 +245,12 @@ pub(in crate) fn start_chunks(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(in crate) fn update_chunks(
     mut create_chunk_event_writer: EventWriter<CreateChunkEntity>,
     mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
     mut unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
+    chunk_loader: &mut Mut<ChunkLoader>,
     chunk_registry: &Res<ChunkRegistry>,
     chunk_event_registry: &mut ResMut<ChunkEventRegistry>,
     old_chunk_ids: Vec<ChunkID>,
@@ -234,10 +258,17 @@ pub(in crate) fn update_chunks(
 ) {
     for old_chunk_id in old_chunk_ids {
         let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
+        let chunk_id = old_chunk_id;
 
-        if chunk_registry.is_unloading_chunk(old_chunk_id) {
+        if chunk_loader.currently_unloading_chunks().contains(&chunk_id) {
             continue;
         }
+
+        if chunk_registry.is_unloading_chunk(chunk_id) {
+            continue;
+        }
+
+        chunk_loader.start_unloading_chunk(chunk_id);
 
         unload_chunk_event_writer.send(UnloadChunkEntity {
             chunk_event_id,
@@ -249,10 +280,20 @@ pub(in crate) fn update_chunks(
         let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
         let chunk_id = *new_chunk_id;
         
+        if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
+            continue;
+        }
+
+        if chunk_loader.currently_loading_chunks().contains(&chunk_id) {
+            continue;
+        }
+
         if chunk_registry.is_chunk_registered(chunk_id) {
             if chunk_registry.is_loading_chunk(chunk_id) {
                 continue;
             }
+
+            chunk_loader.start_loading_chunk(chunk_id);
 
             load_chunk_event_writer.send(LoadChunkEntity {
                 chunk_event_id,
@@ -262,6 +303,8 @@ pub(in crate) fn update_chunks(
             if chunk_registry.is_creating_chunk(chunk_id) {
                 continue;
             }
+
+            chunk_loader.start_creating_chunk(chunk_id);
 
             create_chunk_event_writer.send(CreateChunkEntity {
                 chunk_event_id,

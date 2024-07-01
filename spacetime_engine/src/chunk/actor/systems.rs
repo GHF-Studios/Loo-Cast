@@ -24,14 +24,13 @@ pub(super) fn start(
         let chunk_actor_id: ChunkActorID = chunk_actor.id();
         let chunk_actor_entity_id = {
             let chunk_actor_entity_reference = chunk_actor_registry.loaded_chunk_actor(chunk_actor_id);
-            let chunk_actor_entity_id = match entity_registry.get_loaded_entity_id(&chunk_actor_entity_reference) {
+
+            match entity_registry.get_loaded_entity_id(&chunk_actor_entity_reference) {
                 Some(chunk_actor_entity_id) => chunk_actor_entity_id,
                 None => {
                     panic!("The chunk actor entity id for chunk actor '{:?}' could not be found!", chunk_actor_id);
                 }
-            };
-
-            chunk_actor_entity_id
+            }
         };
         let world_position = chunk_actor_transform.translation.truncate();
         let chunk_id = {
@@ -123,14 +122,13 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
         let chunk_actor_event_id = destroy_chunk_actor_entity_event.chunk_actor_event_id;
         let chunk_actor_entity_id = {
             let chunk_actor_entity_reference = chunk_actor_registry.loaded_chunk_actor(chunk_actor_id);
-            let chunk_actor_entity_id = match entity_registry.get_loaded_entity_id(&chunk_actor_entity_reference) {
+
+            match entity_registry.get_loaded_entity_id(&chunk_actor_entity_reference) {
                 Some(chunk_actor_entity_id) => chunk_actor_entity_id,
                 None => {
                     panic!("The chunk actor entity id for chunk actor '{:?}' could not be found!", chunk_actor_id);
                 }
-            };
-
-            chunk_actor_entity_id
+            }
         };
         let (chunk_id, world_position) = {
             let target_entity_reference = match entity_registry.get_loaded_entity_reference(&chunk_actor_entity_id) {
@@ -243,94 +241,29 @@ pub(super) fn handle_create_chunk_actor_entity_internal_events(
         let chunk_id = create_chunk_actor_entity_event.chunk_id;
         let world_position = create_chunk_actor_entity_event.world_position;
 
-        let (_, chunk_actor_registry, _) = registry_parameters.get_mut(world);
-
-        let is_chunk_actor_registered = chunk_actor_registry.is_chunk_actor_registered(chunk_actor_id);
-        if is_chunk_actor_registered {
-            warn!("The request for creating the chunk actor '{:?}' entity has been cancelled due to the chunk actor already being registered!", chunk_actor_id);
-
-            let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
-            created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntityInternal::Failure {
-                chunk_actor_event_id,
-                chunk_actor_id,
-                chunk_actor_entity_id,
-                chunk_id,
-                world_position
-            });
-
-            continue;
-        }
-
-        let is_chunk_actor_loaded = chunk_actor_registry.is_chunk_actor_loaded(chunk_actor_id);
-        if is_chunk_actor_loaded {
-            warn!("The request for creating the chunk actor '{:?}' entity has been cancelled due to the chunk actor already being loaded!", chunk_actor_id);
-
-            let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
-            created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntityInternal::Failure {
-                chunk_actor_event_id,
-                chunk_actor_id,
-                chunk_actor_entity_id,
-                chunk_id,
-                world_position
-            });
-
-            continue;
-        }
-
-        let chunk_actor_entity_reference = functions::new_chunk_actor_entity(world, chunk_actor_id, chunk_id, world_position);
-        
-        let (chunk_registry, mut chunk_actor_registry, mut entity_registry) = registry_parameters.get_mut(world);
+        let (chunk_registry, _, _) = registry_parameters.get_mut(world);
 
         let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity_reference) => chunk_entity_reference,
             None => {
-                warn!("The request for creating the chunk actor entity '{:?}' has been cancelled due to the chunk '{:?}' not being loaded!", chunk_actor_entity_id, chunk_id);
-
-                chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
-                entity_registry.unregister_entity(chunk_actor_entity_id);
-
-                let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
-                created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntityInternal::Failure {
-                    chunk_actor_event_id,
-                    chunk_actor_id,
-                    chunk_actor_entity_id,
-                    chunk_id,
-                    world_position
-                });
-
-                continue;
+                panic!("The chunk entity reference for chunk '{:?}' could not be found!", chunk_id);
             }
         };
 
         let mut chunk = {
             let mut chunk_query_state = world.query::<&mut Chunk>();
         
-
             match chunk_query_state.get_mut(world, chunk_entity_reference) {
                 Ok(chunk) => chunk,
                 Err(_) => {
-                    warn!("The request for creating the chunk actor entity '{:?}' has been cancelled due to the chunk '{:?}' failing to be queried!", chunk_actor_entity_id, chunk_id);
-
-                    let (_, mut chunk_actor_registry, mut entity_registry) = registry_parameters.get_mut(world);
-
-                    chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
-                    entity_registry.unregister_entity(chunk_actor_entity_id);
-
-                    let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
-                    created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntityInternal::Failure {
-                        chunk_actor_event_id,
-                        chunk_actor_id,
-                        chunk_actor_entity_id,
-                        chunk_id,
-                        world_position
-                    });
-
-                    continue;
+                    panic!("The chunk component for chunk '{:?}' could not be found!", chunk_id);
                 }
             }
         };
 
         chunk.add_chunk_actor(chunk_actor_id);
+        
+        let chunk_actor_entity_reference = functions::new_chunk_actor_entity(world, chunk_actor_id, chunk_id, world_position);
         
         let (_, mut chunk_actor_registry, mut entity_registry) = registry_parameters.get_mut(world);
         
@@ -378,53 +311,7 @@ pub(super) fn handle_destroy_chunk_actor_entity_internal_events(
         let chunk_id = destroy_chunk_actor_entity_event.chunk_id;
         let world_position = destroy_chunk_actor_entity_event.world_position;
 
-        let (chunk_registry, chunk_actor_registry, entity_registry) = registry_parameters.get_mut(world);
-
-        let is_chunk_actor_registered = chunk_actor_registry.is_chunk_actor_registered(chunk_actor_id);
-        if !is_chunk_actor_registered {
-            warn!("The request for destroying the chunk actor '{:?}' entity has been cancelled due to the chunk actor not being registered!", chunk_actor_id);
-
-            let mut destroyed_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
-            destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntityInternal::Failure {
-                chunk_actor_event_id,
-                chunk_actor_id,
-                chunk_actor_entity_id,
-                chunk_id,
-                world_position
-            });
-
-            continue;
-        }
-
-        let is_chunk_actor_loaded = chunk_actor_registry.is_chunk_actor_loaded(chunk_actor_id);
-        if !is_chunk_actor_loaded {
-            warn!("The request for destroying the chunk actor '{:?}' entity has been cancelled due to the chunk actor not being loaded!", chunk_actor_id);
-
-            let mut destroyed_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
-            destroyed_chunk_actor_entity_event_writer.send(DestroyedChunkActorEntityInternal::Failure {
-                chunk_actor_event_id,
-                chunk_actor_id,
-                chunk_actor_entity_id,
-                chunk_id,
-                world_position
-            });
-
-            continue;
-        }
-
-        let chunk_actor_entity_reference = match chunk_actor_registry.get_loaded_chunk_actor(chunk_actor_id) {
-            Some(chunk_actor_entity_reference) => chunk_actor_entity_reference,
-            None => {
-                panic!("The chunk actor entity reference for chunk actor '{:?}' could not be found!", chunk_actor_id);
-            }
-        };
-
-        let chunk_actor_entity_id = match entity_registry.get_loaded_entity_id(&chunk_actor_entity_reference) {
-            Some(chunk_actor_entity_id) => chunk_actor_entity_id,
-            None => {
-                panic!("The chunk actor entity id for chunk actor '{:?}' could not be found!", chunk_actor_id);
-            }
-        };
+        let (chunk_registry, _, _) = registry_parameters.get_mut(world);
 
         let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
             Some(chunk_entity_reference) => chunk_entity_reference,
@@ -495,51 +382,12 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
         let chunk_id = upgrade_to_chunk_actor_entity_event.chunk_id;
         let world_position = upgrade_to_chunk_actor_entity_event.world_position;
 
-        let (chunk_registry, chunk_actor_registry, entity_registry) = registry_parameters.get_mut(world);
+        let (chunk_registry, _, entity_registry) = registry_parameters.get_mut(world);
 
-        let is_chunk_actor_registered = chunk_actor_registry.is_chunk_actor_registered(chunk_actor_id);
-        if is_chunk_actor_registered {
-            warn!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the chunk actor already being registered!", target_entity_id);
-
-            let mut upgraded_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
-            upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Failure {
-                chunk_actor_event_id,
-                chunk_actor_id,
-                target_entity_id,
-                chunk_id,
-                world_position
-            });
-
-            continue;
-        }
-
-        let is_chunk_actor_loaded = chunk_actor_registry.is_chunk_actor_loaded(chunk_actor_id);
-        if is_chunk_actor_loaded {
-            warn!("The request for upgrading entity '{:?}' to a chunk actor entity has been cancelled due to the chunk actor already being loaded!", target_entity_id);
-
-            let mut upgraded_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
-            upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Failure {
-                chunk_actor_event_id,
-                chunk_actor_id,
-                target_entity_id,
-                chunk_id,
-                world_position
-            });
-
-            continue;
-        }
-
-        let chunk_actor_entity_reference = match chunk_actor_registry.get_loaded_chunk_actor(chunk_actor_id) {
-            Some(chunk_actor_entity_reference) => chunk_actor_entity_reference,
+        let target_entity_reference = match entity_registry.get_loaded_entity_reference(&target_entity_id) {
+            Some(target_entity_reference) => target_entity_reference,
             None => {
-                panic!("The chunk actor entity reference for chunk actor '{:?}' could not be found!", chunk_actor_id);
-            }
-        };
-
-        let chunk_actor_entity_id = match entity_registry.get_loaded_entity_id(&chunk_actor_entity_reference) {
-            Some(chunk_actor_entity_id) => chunk_actor_entity_id,
-            None => {
-                panic!("The chunk actor entity id for chunk actor '{:?}' could not be found!", chunk_actor_id);
+                panic!("The target entity '{:?}' either does not exist or does not have a transform component!", target_entity_id);
             }
         };
 
@@ -565,7 +413,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
 
         let (_, mut chunk_actor_registry, _) = registry_parameters.get_mut(world);
 
-        chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
+        chunk_actor_registry.load_chunk_actor(chunk_actor_id, target_entity_reference);
 
         chunk_actor_registry.stop_creating_chunk_actor(chunk_actor_id);
 
@@ -575,7 +423,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
         upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Success {
             chunk_actor_event_id,
             chunk_actor_id,
-            chunk_actor_entity_id,
+            chunk_actor_entity_id: target_entity_id,
             chunk_id,
             world_position
         });
