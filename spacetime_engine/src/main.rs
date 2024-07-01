@@ -7,6 +7,10 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 // NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
+// IMPORTANT TASKS:
+// TODO: Fix stupid bug titled 'already registered' in the chunk loader (and potentially actor) systems
+// TODO: Fix chunk actor systems not checking if the respective chunk is registered, loaded, and started, before trying to access it
+
 // Repeating tasks:
 // TODO: Take a look at all TODOs outside this file
 

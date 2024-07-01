@@ -9,21 +9,23 @@ use crate::chunk::ChunkRegistry;
 use super::{constants::*, position::structs::ChunkActorPosition, structs::{DespawnChunkActorInfo, UpdateChunkActorInfo}, ChunkActorRegistry};
 
 pub(super) fn new_chunk_actor_entity(
-    commands: &mut Commands,
+    world: &mut World,
     chunk_actor_id: ChunkActorID,
     chunk_id: ChunkID,
     world_position: Vec2,
 ) -> Entity {
-    let new_chunk_actor_entity = commands
-    .spawn(Transform::from_translation(world_position.extend(CHUNK_ACTOR_Z_INDEX)))
-    .insert(ChunkActor::new(chunk_actor_id, chunk_id))
+    let new_chunk_actor_entity = world
+    .spawn((
+        Transform::from_translation(world_position.extend(CHUNK_ACTOR_Z_INDEX)),
+        ChunkActor::new(chunk_actor_id, chunk_id)
+    ))
     .id();
 
     new_chunk_actor_entity
 }
 
 pub(super) fn upgrade_to_chunk_actor_entity(
-    commands: &mut Commands,
+    world: &mut World,
     chunk_actor_id: ChunkActorID,
     chunk_id: ChunkID,
     target_entity_reference: Entity,
@@ -44,7 +46,7 @@ pub(super) fn upgrade_to_chunk_actor_entity(
     };
 
     if let Ok(eligible_entity) = eligible_entity_query.get_mut(target_entity_reference) {
-        return Ok(commands.entity(eligible_entity).insert(ChunkActor::new(chunk_actor_id, chunk_id)).id());
+        return Ok(world.entity_mut(eligible_entity).insert(ChunkActor::new(chunk_actor_id, chunk_id)).id());
     } else {
         error!("Entity does not exist or does not have a Transform component.");
 

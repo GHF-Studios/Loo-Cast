@@ -110,7 +110,6 @@ pub(super) fn start_phase2(
             upgrade_to_chunk_actor_entity_event_writer.send(UpgradeToChunkActorEntity {
                 chunk_actor_event_id,
                 target_entity_id: player_entity_id,
-                chunk_id: player_chunk_id
             });
 
             continue 'outer;
@@ -137,7 +136,7 @@ pub(super) fn start_phase3(
         info!("Starting player [Phase 3] ...");
 
         let (_, _, target_entity_id, _) = match upgraded_to_chunk_actor_entity_event { 
-            UpgradedToChunkActorEntity::Success { chunk_actor_event_id, chunk_actor_id, target_entity_id, chunk_id } => {
+            UpgradedToChunkActorEntity::Success { chunk_actor_event_id, chunk_actor_id, target_entity_id, chunk_id, world_position: _ } => {
                 (chunk_actor_event_id, chunk_actor_id, target_entity_id, chunk_id)
             },
             UpgradedToChunkActorEntity::Failure { target_entity_id, .. } => {

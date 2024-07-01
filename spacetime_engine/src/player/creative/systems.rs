@@ -68,7 +68,6 @@ pub(in crate) fn update_phase1(
 
         create_chunk_actor_entity_event_writer.send(CreateChunkActorEntity {
             chunk_actor_event_id,
-            chunk_id: hit_chunk_id,
             world_position: hit_world_position,
         });
     } else if mouse_button_input.just_pressed(MouseButton::Left) {

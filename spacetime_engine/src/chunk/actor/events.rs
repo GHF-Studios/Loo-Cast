@@ -106,6 +106,8 @@ pub struct DestroyChunkActorEntityInternal {
     pub chunk_actor_event_id: ChunkActorEventID,
     pub chunk_actor_id: ChunkActorID,
     pub chunk_actor_entity_id: EntityID,
+    pub chunk_id: ChunkID,
+    pub world_position: Vec2,
 }
 
 #[derive(Debug, Clone, Event)]

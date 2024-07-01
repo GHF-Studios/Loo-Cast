@@ -1,3 +1,5 @@
+use std::panic;
+
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use crate::chunk::events::*;
@@ -297,30 +299,14 @@ pub(super) fn handle_destroy_chunk_loader_entity_internal_events(
         let chunk_loader_entity_reference = match chunk_loader_registry.get_loaded_chunk_loader(chunk_loader_id) {
             Some(chunk_loader_entity) => chunk_loader_entity,
             None => {
-                warn!("The request for destroying the chunk loader entity '{:?}' has been cancelled due to the chunk loader entity reference not being found!", chunk_loader_id);
-
-                let mut destroyed_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
-                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntityInternal::Failure {
-                    chunk_loader_event_id,
-                    chunk_loader_id
-                });
-
-                continue;
+                panic!("The chunk loader entity reference for chunk loader '{:?}' could not be found!", chunk_loader_id);
             }
         };
 
         let chunk_loader_entity_id = match entity_registry.get_loaded_entity_id(&chunk_loader_entity_reference) {
             Some(chunk_loader_entity_id) => chunk_loader_entity_id,
             None => {
-                warn!("The request for destroying the chunk loader entity '{:?}' has been cancelled due to the chunk loader entity id not being found!", chunk_loader_id);
-
-                let mut destroyed_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
-                destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntityInternal::Failure {
-                    chunk_loader_event_id,
-                    chunk_loader_id
-                });
-
-                continue;
+                panic!("The chunk loader entity ID for chunk loader '{:?}' could not be found!", chunk_loader_id);
             }
         };
 
