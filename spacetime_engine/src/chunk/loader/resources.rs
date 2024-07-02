@@ -299,11 +299,11 @@ impl ChunkLoaderRegistry {
 }
 
 #[derive(Resource, Debug, Default)]
-pub(in crate) struct ChunkLoaderEventRegistry {
+pub(in crate) struct ChunkLoaderRequestRegistry {
     next_chunk_loader_request_id: ChunkLoaderRequestID,
 }
 
-impl ChunkLoaderEventRegistry {
+impl ChunkLoaderRequestRegistry {
     pub fn get_unused_chunk_loader_request_id(&mut self) -> ChunkLoaderRequestID {
         let chunk_loader_request_id = self.next_chunk_loader_request_id;
         self.next_chunk_loader_request_id = ChunkLoaderRequestID(chunk_loader_request_id.0 + 1);

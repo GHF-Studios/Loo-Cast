@@ -289,11 +289,11 @@ impl ChunkRegistry {
 }
 
 #[derive(Resource, Debug, Default)]
-pub(in crate) struct ChunkEventRegistry {
+pub(in crate) struct ChunkRequestRegistry {
     next_chunk_request_id: ChunkRequestID,
 }
 
-impl ChunkEventRegistry {
+impl ChunkRequestRegistry {
     pub fn get_unused_chunk_request_id(&mut self) -> ChunkRequestID {
         let chunk_request_id = self.next_chunk_request_id;
         self.next_chunk_request_id = ChunkRequestID(chunk_request_id.0 + 1);

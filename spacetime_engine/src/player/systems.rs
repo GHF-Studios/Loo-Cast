@@ -3,11 +3,11 @@ use std::panic;
 use crate::chunk::actor::components::ChunkActor;
 use crate::chunk::actor::events::*;
 use crate::chunk::actor::position::structs::ChunkActorPosition;
-use crate::chunk::actor::resources::ChunkActorEventRegistry;
+use crate::chunk::actor::resources::ChunkActorRequestRegistry;
 use crate::chunk::id::structs::ChunkID;
 use crate::chunk::loader::components::ChunkLoader;
 use crate::chunk::loader::events::*;
-use crate::chunk::loader::resources::ChunkLoaderEventRegistry;
+use crate::chunk::loader::resources::ChunkLoaderRequestRegistry;
 use crate::chunk::position::structs::ChunkPosition;
 use crate::entity::resources::*;
 use crate::physics::components::*;
@@ -20,7 +20,7 @@ use super::constants::*;
 
 pub(super) fn pre_start(
     mut create_player_entity_event_writer: EventWriter<CreatePlayerEntity>,
-    mut player_event_registry: ResMut<PlayerEventRegistry>,
+    mut player_event_registry: ResMut<PlayerRequestRegistry>,
 ) {
     let player_request_id = player_event_registry.get_unused_player_request_id();
 
@@ -34,7 +34,7 @@ pub(super) fn start_phase1(
     mut commands: Commands,
     mut upgrade_to_chunk_loader_entity_event_writer: EventWriter<UpgradeToChunkLoaderEntity>,
     player_query: Query<Entity, Added<Player>>,
-    mut chunk_loader_event_registry: ResMut<ChunkLoaderEventRegistry>,
+    mut chunk_loader_event_registry: ResMut<ChunkLoaderRequestRegistry>,
     entity_registry: Res<EntityRegistry>,
 ) {
     for player_entity_reference in player_query.iter() {
@@ -62,7 +62,7 @@ pub(super) fn start_phase2(
     mut upgraded_to_chunk_loader_entity_event_reader: EventReader<UpgradedToChunkLoaderEntity>,
     mut upgrade_to_chunk_actor_entity_event_writer: EventWriter<UpgradeToChunkActorEntity>,
     player_query: Query<(Entity, &Transform), (With<Player>, With<ChunkLoader>)>,
-    mut chunk_actor_event_registry: ResMut<ChunkActorEventRegistry>,
+    mut chunk_actor_event_registry: ResMut<ChunkActorRequestRegistry>,
     entity_registry: Res<EntityRegistry>,
 ) {
     let mut upgraded_to_chunk_loader_entity_events = Vec::new();
@@ -125,7 +125,7 @@ pub(super) fn start_phase3(
     mut started_player_event_writer: EventWriter<StartedPlayer>,
     player_query: Query<(Entity, &Transform, &Player), (With<ChunkLoader>, With<ChunkActor>)>,
     entity_registry: Res<EntityRegistry>,
-    mut player_event_registry: ResMut<PlayerEventRegistry>,
+    mut player_event_registry: ResMut<PlayerRequestRegistry>,
 ) {
     let mut upgraded_to_chunk_actor_entity_events = Vec::new();
     for upgraded_to_chunk_actor_entity_event in upgraded_to_chunk_actor_entity_event_reader.read() {

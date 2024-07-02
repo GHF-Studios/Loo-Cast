@@ -13,7 +13,7 @@ use crate::math::structs::I16Vec2;
 use serde::de::DeserializeSeed;
 use super::actor::components::ChunkActor;
 use super::loader::components::ChunkLoader;
-use super::{ChunkEventRegistry, ChunkRegistry};
+use super::{ChunkRequestRegistry, ChunkRegistry};
 
 // TODO: The addition of secondary components as shown below should be done in each location where a new chunk actor is created and needs custom components apart from the basics like a Transform and a ChunkActor component.
 // TODO: Implement and integrate chunk entity upgrading
@@ -204,7 +204,7 @@ pub(in crate) fn start_chunks(
     mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
     chunk_loader: &mut Mut<ChunkLoader>,
     chunk_registry: &Res<ChunkRegistry>,
-    chunk_event_registry: &mut ResMut<ChunkEventRegistry>,
+    chunk_event_registry: &mut ResMut<ChunkRequestRegistry>,
     detected_chunk_ids: &Vec<ChunkID>,
 ) {
     for detected_chunk_id in detected_chunk_ids {
@@ -252,7 +252,7 @@ pub(in crate) fn update_chunks(
     mut unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
     chunk_loader: &mut Mut<ChunkLoader>,
     chunk_registry: &Res<ChunkRegistry>,
-    chunk_event_registry: &mut ResMut<ChunkEventRegistry>,
+    chunk_event_registry: &mut ResMut<ChunkRequestRegistry>,
     old_chunk_ids: Vec<ChunkID>,
     new_chunk_ids: Vec<ChunkID>,
 ) {

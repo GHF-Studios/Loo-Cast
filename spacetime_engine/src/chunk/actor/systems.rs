@@ -16,7 +16,7 @@ pub(super) fn start(
     mut started_chunk_actor_event_writer: EventWriter<StartedChunkActor>,
     chunk_actor_query: Query<(&ChunkActor, &Transform), Added<ChunkActor>>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
-    mut chunk_actor_event_registry: ResMut<ChunkActorEventRegistry>,
+    mut chunk_actor_event_registry: ResMut<ChunkActorRequestRegistry>,
     mut entity_registry: ResMut<EntityRegistry>,
 ) {
     for (chunk_actor, chunk_actor_transform) in chunk_actor_query.iter() {

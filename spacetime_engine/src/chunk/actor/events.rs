@@ -93,28 +93,10 @@ pub enum UpgradedToChunkActorEntity {
 }
 
 #[derive(Debug, Clone, Event)]
-pub struct CreateChunkActorEntityInternal {
-    pub chunk_actor_request_id: ChunkActorRequestID,
-    pub chunk_actor_id: ChunkActorID,
-    pub chunk_actor_entity_id: EntityID,
-    pub chunk_id: ChunkID,
-    pub world_position: Vec2,
-}
-
-#[derive(Debug, Clone, Event)]
 pub struct DestroyChunkActorEntityInternal {
     pub chunk_actor_request_id: ChunkActorRequestID,
     pub chunk_actor_id: ChunkActorID,
     pub chunk_actor_entity_id: EntityID,
-    pub chunk_id: ChunkID,
-    pub world_position: Vec2,
-}
-
-#[derive(Debug, Clone, Event)]
-pub struct UpgradeToChunkActorEntityInternal {
-    pub chunk_actor_request_id: ChunkActorRequestID,
-    pub chunk_actor_id: ChunkActorID,
-    pub target_entity_id: EntityID,
     pub chunk_id: ChunkID,
     pub world_position: Vec2,
 }

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
-use super::id::structs::*;
+use super::{id::structs::*, structs::*};
 use crate::entity::types::*;
 
 #[derive(Resource, Debug, Default)]
@@ -10,6 +10,8 @@ pub(in crate) struct ChunkActorRegistry {
     currently_creating_chunk_actors: HashSet<ChunkActorID>,
     currently_destroying_chunk_actors: HashSet<ChunkActorID>,
     currently_upgrading_to_chunk_actors: HashSet<ChunkActorID>,
+    create_chunk_actor_requests: HashMap<ChunkActorRequestID, ChunkActorCreateRequest>,
+    upgrade_to_chunk_actor_requests: HashMap<ChunkActorRequestID, ChunkActorUpgradeRequest>,
     next_chunk_actor_id: ChunkActorID,
     recycled_chunk_actor_ids: Vec<ChunkActorID>,
 }
@@ -65,20 +67,56 @@ impl ChunkActorRegistry {
         self.loaded_chunk_actors.retain(|&chunk_actor_id, _| !chunk_actor_ids.contains(&chunk_actor_id));
     }
 
-    pub fn start_creating_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
-        self.currently_creating_chunk_actors.insert(chunk_actor_id);
+    pub fn start_creating_chunk_actor(&mut self, request: ChunkActorCreateRequest) {
+        self.currently_creating_chunk_actors.insert(request.chunk_actor_id);
+        self.create_chunk_actor_requests.insert(request.chunk_actor_request_id, request);
     }
 
-    pub fn start_creating_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
-        self.currently_creating_chunk_actors.extend(chunk_actor_ids);
+    pub fn start_creating_chunk_actors(&mut self, requests: HashSet<ChunkActorCreateRequest>) {
+        for request in requests {
+            self.currently_creating_chunk_actors.insert(request.chunk_actor_id);
+            self.create_chunk_actor_requests.insert(request.chunk_actor_request_id, request.clone());
+        }
     }
 
-    pub fn stop_creating_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
+    pub fn stop_creating_chunk_actor(&mut self, chunk_actor_id: ChunkActorID, request_id: ChunkActorRequestID) {
+        let removed_request = match self.create_chunk_actor_requests.remove(&request_id) {
+            Some(request) => request,
+            None => {
+                panic!("Request '{:?}' could not be found!", request_id);
+            },
+        };
+
+        if removed_request.chunk_actor_id != chunk_actor_id {
+            panic!("Request '{:?}' does not belong to chunk actor '{:?}'!", request_id, chunk_actor_id);
+        }
+
         self.currently_creating_chunk_actors.remove(&chunk_actor_id);
     }
 
-    pub fn stop_creating_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
-        self.currently_creating_chunk_actors.retain(|&chunk_actor_id| !chunk_actor_ids.contains(&chunk_actor_id));
+    pub fn stop_creating_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>, request_ids: HashSet<ChunkActorRequestID>) {
+        if chunk_actor_ids.len() != request_ids.len() {
+            panic!("Mismatched number of chunk actor IDs and request IDs!");
+        }
+
+        let mut remaining_chunk_actor_ids = chunk_actor_ids.clone();
+
+        for request_id in request_ids {
+            let removed_request = match self.create_chunk_actor_requests.remove(&request_id) {
+                Some(request) => request,
+                None => {
+                    panic!("Request '{:?}' could not be found!", request_id);
+                },
+            };
+
+            if !remaining_chunk_actor_ids.remove(&removed_request.chunk_actor_id) {
+                panic!("Request '{:?}' does not belong to any of the provided chunk actor IDs or has already been matched!", request_id);
+            }
+        }
+
+        for chunk_actor_id in chunk_actor_ids {
+            self.currently_creating_chunk_actors.remove(&chunk_actor_id);
+        }
     }
 
     pub fn start_destroying_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
@@ -97,20 +135,56 @@ impl ChunkActorRegistry {
         self.currently_destroying_chunk_actors.retain(|&chunk_actor_id| !chunk_actor_ids.contains(&chunk_actor_id));
     }
 
-    pub fn start_upgrading_to_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
-        self.currently_upgrading_to_chunk_actors.insert(chunk_actor_id);
+    pub fn start_upgrading_to_chunk_actor(&mut self, request: ChunkActorUpgradeRequest) {
+        self.currently_upgrading_to_chunk_actors.insert(request.chunk_actor_id);
+        self.upgrade_to_chunk_actor_requests.insert(request.chunk_actor_request_id, request);
     }
 
-    pub fn start_upgrading_to_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
-        self.currently_upgrading_to_chunk_actors.extend(chunk_actor_ids);
+    pub fn start_upgrading_to_chunk_actors(&mut self, requests: HashSet<ChunkActorUpgradeRequest>) {
+        for request in requests {
+            self.currently_upgrading_to_chunk_actors.insert(request.chunk_actor_id);
+            self.upgrade_to_chunk_actor_requests.insert(request.chunk_actor_request_id, request.clone());
+        }
     }
 
-    pub fn stop_upgrading_to_chunk_actor(&mut self, chunk_actor_id: ChunkActorID) {
+    pub fn stop_upgrading_to_chunk_actor(&mut self, chunk_actor_id: ChunkActorID, request_id: ChunkActorRequestID) {
+        let removed_request = match self.upgrade_to_chunk_actor_requests.remove(&request_id) {
+            Some(request) => request,
+            None => {
+                panic!("Request '{:?}' could not be found!", request_id);
+            },
+        };
+
+        if removed_request.chunk_actor_id != chunk_actor_id {
+            panic!("Request '{:?}' does not belong to chunk actor '{:?}'!", request_id, chunk_actor_id);
+        }
+
         self.currently_upgrading_to_chunk_actors.remove(&chunk_actor_id);
     }
 
-    pub fn stop_upgrading_to_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>) {
-        self.currently_upgrading_to_chunk_actors.retain(|&chunk_actor_id| !chunk_actor_ids.contains(&chunk_actor_id));
+    pub fn stop_upgrading_to_chunk_actors(&mut self, chunk_actor_ids: HashSet<ChunkActorID>, request_ids: HashSet<ChunkActorRequestID>) {
+        if chunk_actor_ids.len() != request_ids.len() {
+            panic!("Mismatched number of chunk actor IDs and request IDs!");
+        }
+
+        let mut remaining_chunk_actor_ids = chunk_actor_ids.clone();
+
+        for request_id in request_ids {
+            let removed_request = match self.upgrade_to_chunk_actor_requests.remove(&request_id) {
+                Some(request) => request,
+                None => {
+                    panic!("Request '{:?}' could not be found!", request_id);
+                },
+            };
+
+            if !remaining_chunk_actor_ids.remove(&removed_request.chunk_actor_id) {
+                panic!("Request '{:?}' does not belong to any of the provided chunk actor IDs or has already been matched!", request_id);
+            }
+        }
+
+        for chunk_actor_id in chunk_actor_ids {
+            self.currently_upgrading_to_chunk_actors.remove(&chunk_actor_id);
+        }
     }
 
     pub fn is_chunk_actor_registered(&self, chunk_actor_id: ChunkActorID) -> bool {
@@ -231,6 +305,38 @@ impl ChunkActorRegistry {
         &mut self.currently_upgrading_to_chunk_actors
     }
 
+    pub fn get_create_chunk_actor_request(&self, request_id: ChunkActorRequestID) -> Option<&ChunkActorCreateRequest> {
+        self.create_chunk_actor_requests.get(&request_id)
+    }
+
+    pub fn create_chunk_actor_request(&self, request_id: ChunkActorRequestID) -> &ChunkActorCreateRequest {
+        &self.create_chunk_actor_requests[&request_id]
+    }
+
+    pub fn create_chunk_actor_requests(&self) -> &HashMap<ChunkActorRequestID, ChunkActorCreateRequest> {
+        &self.create_chunk_actor_requests
+    }
+
+    pub fn create_chunk_actor_requests_mut(&mut self) -> &mut HashMap<ChunkActorRequestID, ChunkActorCreateRequest> {
+        &mut self.create_chunk_actor_requests
+    }
+
+    pub fn get_upgrade_to_chunk_actor_request(&self, request_id: ChunkActorRequestID) -> Option<&ChunkActorUpgradeRequest> {
+        self.upgrade_to_chunk_actor_requests.get(&request_id)
+    }
+
+    pub fn upgrade_to_chunk_actor_request(&self, request_id: ChunkActorRequestID) -> &ChunkActorUpgradeRequest {
+        &self.upgrade_to_chunk_actor_requests[&request_id]
+    }
+
+    pub fn upgrade_to_chunk_actor_requests(&self) -> &HashMap<ChunkActorRequestID, ChunkActorUpgradeRequest> {
+        &self.upgrade_to_chunk_actor_requests
+    }
+
+    pub fn upgrade_to_chunk_actor_requests_mut(&mut self) -> &mut HashMap<ChunkActorRequestID, ChunkActorUpgradeRequest> {
+        &mut self.upgrade_to_chunk_actor_requests
+    }
+
     fn get_unused_chunk_actor_id(&mut self) -> ChunkActorID {
         if let Some(recycled_chunk_actor_id) = self.recycled_chunk_actor_ids.pop() {
             recycled_chunk_actor_id
@@ -248,11 +354,11 @@ impl ChunkActorRegistry {
 }
 
 #[derive(Resource, Debug, Default)]
-pub(in crate) struct ChunkActorEventRegistry {
+pub(in crate) struct ChunkActorRequestRegistry {
     next_chunk_actor_request_id: ChunkActorRequestID,
 }
 
-impl ChunkActorEventRegistry {
+impl ChunkActorRequestRegistry {
     pub fn get_unused_chunk_actor_request_id(&mut self) -> ChunkActorRequestID {
         let chunk_actor_request_id = self.next_chunk_actor_request_id;
 

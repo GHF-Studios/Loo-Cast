@@ -43,7 +43,7 @@ impl Plugin for LoaderPlugin {
             .add_event::<UpgradedToChunkLoaderEntityInternal>()
             .add_plugins(IDPlugin)
             .insert_resource(ChunkLoaderRegistry::default())
-            .insert_resource(ChunkLoaderEventRegistry::default())
+            .insert_resource(ChunkLoaderRequestRegistry::default())
             .configure_sets(Update, (
                 StartExternalOperationSystems.before(StartInternalOperationSystems),
                 StartInternalOperationSystems.before(FinishedInternalOperationSystems),

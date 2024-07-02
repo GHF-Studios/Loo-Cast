@@ -53,7 +53,7 @@ impl Plugin for ChunkPlugin {
             .add_plugins(IdPlugin)
             .add_plugins(LoaderPlugin)
             .insert_resource(ChunkRegistry::default())
-            .insert_resource(ChunkEventRegistry::default())
+            .insert_resource(ChunkRequestRegistry::default())
             .configure_sets(Update, (
                 StartExternalOperationSystems.before(StartInternalOperationSystems),
                 StartInternalOperationSystems.before(FinishedInternalOperationSystems),

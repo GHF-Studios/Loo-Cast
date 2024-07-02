@@ -36,7 +36,7 @@ impl Plugin for PlayerPlugin {
             .add_plugins(MovementPlugin)
             .add_plugins(TeleportationPlugin)
             .insert_resource(PlayerRegistry::default())
-            .insert_resource(PlayerEventRegistry::default())
+            .insert_resource(PlayerRequestRegistry::default())
             .add_systems(PostStartup, pre_start)
             .add_systems(Update, (
                 start_phase1.before(start_phase2),

@@ -131,11 +131,11 @@ impl PlayerRegistry {
 }
 
 #[derive(Resource, Debug, Default)]
-pub(in crate) struct PlayerEventRegistry {
+pub(in crate) struct PlayerRequestRegistry {
     next_player_request_id: PlayerRequestID,
 }
 
-impl PlayerEventRegistry {
+impl PlayerRequestRegistry {
     pub fn get_unused_player_request_id(&mut self) -> PlayerRequestID {
         let player_request_id = self.next_player_request_id;
         self.next_player_request_id = PlayerRequestID(player_request_id.0 + 1);

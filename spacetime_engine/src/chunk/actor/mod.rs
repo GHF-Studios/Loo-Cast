@@ -44,7 +44,7 @@ impl Plugin for ActorPlugin {
             .add_event::<UpgradedToChunkActorEntityInternal>()
             .add_plugins(IDPlugin)
             .insert_resource(ChunkActorRegistry::default())
-            .insert_resource(ChunkActorEventRegistry::default())
+            .insert_resource(ChunkActorRequestRegistry::default())
             .configure_sets(Update, (
                 StartExternalOperationSystems.before(StartInternalOperationSystems),
                 StartInternalOperationSystems.before(FinishedInternalOperationSystems),

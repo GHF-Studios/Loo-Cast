@@ -8,7 +8,7 @@ use crate::chunk::loader::components::*;
 use crate::chunk::loader::events::*;
 use crate::chunk::functions as chunk_functions;
 use super::functions as chunk_loader_functions;
-use super::ChunkLoaderEventRegistry;
+use super::ChunkLoaderRequestRegistry;
 use crate::entity::resources::EntityRegistry;
 use super::resources::ChunkLoaderRegistry;	
 
@@ -19,9 +19,9 @@ pub(in crate) fn start(
     mut started_chunk_loader_event_writer: EventWriter<StartedChunkLoader>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader), Added<ChunkLoader>>,
     chunk_registry: Res<ChunkRegistry>,
-    mut chunk_event_registry: ResMut<ChunkEventRegistry>,
+    mut chunk_event_registry: ResMut<ChunkRequestRegistry>,
     mut chunk_loader_registry: ResMut<ChunkLoaderRegistry>,
-    mut chunk_loader_event_registry: ResMut<ChunkLoaderEventRegistry>,
+    mut chunk_loader_event_registry: ResMut<ChunkLoaderRequestRegistry>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = match chunk_loader_query.get_single_mut() {
         Ok((chunk_loader_transform, chunk_loader)) => (chunk_loader_transform, chunk_loader),
@@ -62,7 +62,7 @@ pub(in crate) fn update(
     unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
     chunk_registry: Res<ChunkRegistry>,
-    mut chunk_event_registry: ResMut<ChunkEventRegistry>,
+    mut chunk_event_registry: ResMut<ChunkRequestRegistry>,
     chunk_loader_registry: Res<ChunkLoaderRegistry>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = match chunk_loader_query.get_single_mut() {

@@ -19,7 +19,7 @@ pub(in crate) fn update_phase1(
     chunk_actor_query: Query<(&Transform, &ChunkActor), With<Collider>>,
     mut player_query: Query<&mut Player>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
-    mut chunk_actor_event_registry: ResMut<ChunkActorEventRegistry>,
+    mut chunk_actor_event_registry: ResMut<ChunkActorRequestRegistry>,
 ) {
     let window = match window_query.get_single() {
         Ok(window) => window,
