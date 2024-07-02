@@ -209,7 +209,7 @@ pub(in crate) fn start_chunks(
 ) {
     for detected_chunk_id in detected_chunk_ids {
         let chunk_id = *detected_chunk_id;
-        let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
+        let chunk_request_id = chunk_event_registry.get_unused_chunk_request_id();
 
         if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
             continue;
@@ -227,7 +227,7 @@ pub(in crate) fn start_chunks(
             chunk_loader.start_loading_chunk(chunk_id);
 
             load_chunk_event_writer.send(LoadChunkEntity { 
-                chunk_event_id,
+                chunk_request_id,
                 chunk_id
             });
         } else {
@@ -238,7 +238,7 @@ pub(in crate) fn start_chunks(
             chunk_loader.start_creating_chunk(chunk_id);
 
             create_chunk_event_writer.send(CreateChunkEntity { 
-                chunk_event_id,
+                chunk_request_id,
                 chunk_id
             });
         }
@@ -257,7 +257,7 @@ pub(in crate) fn update_chunks(
     new_chunk_ids: Vec<ChunkID>,
 ) {
     for old_chunk_id in old_chunk_ids {
-        let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
+        let chunk_request_id = chunk_event_registry.get_unused_chunk_request_id();
         let chunk_id = old_chunk_id;
 
         if chunk_loader.currently_unloading_chunks().contains(&chunk_id) {
@@ -271,13 +271,13 @@ pub(in crate) fn update_chunks(
         chunk_loader.start_unloading_chunk(chunk_id);
 
         unload_chunk_event_writer.send(UnloadChunkEntity {
-            chunk_event_id,
+            chunk_request_id,
             chunk_id: old_chunk_id
         });
     }
 
     for new_chunk_id in new_chunk_ids.iter() {
-        let chunk_event_id = chunk_event_registry.get_unused_chunk_event_id();
+        let chunk_request_id = chunk_event_registry.get_unused_chunk_request_id();
         let chunk_id = *new_chunk_id;
         
         if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
@@ -296,7 +296,7 @@ pub(in crate) fn update_chunks(
             chunk_loader.start_loading_chunk(chunk_id);
 
             load_chunk_event_writer.send(LoadChunkEntity {
-                chunk_event_id,
+                chunk_request_id,
                 chunk_id
             });
         } else {
@@ -307,7 +307,7 @@ pub(in crate) fn update_chunks(
             chunk_loader.start_creating_chunk(chunk_id);
 
             create_chunk_event_writer.send(CreateChunkEntity {
-                chunk_event_id,
+                chunk_request_id,
                 chunk_id
             });
         }

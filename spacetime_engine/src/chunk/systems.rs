@@ -13,12 +13,12 @@ pub(super) fn handle_create_chunk_entity_events(
     let mut chunk_infos = Vec::new();
     for create_chunk_entity_event in create_chunk_entity_event_reader.read() {
         chunk_infos.push((
-            create_chunk_entity_event.chunk_event_id,
+            create_chunk_entity_event.chunk_request_id,
             create_chunk_entity_event.chunk_id, 
         ));
     }
 
-    for (chunk_event_id, chunk_id) in chunk_infos {
+    for (chunk_request_id, chunk_id) in chunk_infos {
         info!("Trying to create chunk '{:?}' ...", chunk_id);
 
         if chunk_registry.is_creating_chunk(chunk_id) {
@@ -29,7 +29,7 @@ pub(super) fn handle_create_chunk_entity_events(
 
         chunk_registry.start_creating_chunk(chunk_id);
         create_chunk_entity_internal_event_writer.send(CreateChunkEntityInternal {
-            chunk_event_id,
+            chunk_request_id,
             chunk_id
         });
     }
@@ -43,12 +43,12 @@ pub(super) fn handle_destroy_chunk_entity_events(
     let mut chunk_infos = Vec::new();
     for destroy_chunk_entity_event in destroy_chunk_entity_event_reader.read() {
         chunk_infos.push((
-            destroy_chunk_entity_event.chunk_event_id,
+            destroy_chunk_entity_event.chunk_request_id,
             destroy_chunk_entity_event.chunk_id
         ));
     }
 
-    for (chunk_event_id, chunk_id) in chunk_infos {
+    for (chunk_request_id, chunk_id) in chunk_infos {
         info!("Trying to destroy chunk '{:?}' ...", chunk_id);
 
         if chunk_registry.is_destroying_chunk(chunk_id) {
@@ -59,7 +59,7 @@ pub(super) fn handle_destroy_chunk_entity_events(
 
         chunk_registry.start_destroying_chunk(chunk_id);
         destroy_chunk_entity_internal_event_writer.send(DestroyChunkEntityInternal {
-            chunk_event_id,
+            chunk_request_id,
             chunk_id
         });
     }
@@ -73,12 +73,12 @@ pub(super) fn handle_load_chunk_entity_events(
     let mut chunk_infos = Vec::new();
     for load_chunk_entity_event in load_chunk_entity_event_reader.read() {
         chunk_infos.push((
-            load_chunk_entity_event.chunk_event_id,
+            load_chunk_entity_event.chunk_request_id,
             load_chunk_entity_event.chunk_id
         ));
     }
 
-    for (chunk_event_id, chunk_id) in chunk_infos {
+    for (chunk_request_id, chunk_id) in chunk_infos {
         info!("Trying to load chunk '{:?}' ...", chunk_id);
 
         if chunk_registry.is_loading_chunk(chunk_id) {
@@ -89,7 +89,7 @@ pub(super) fn handle_load_chunk_entity_events(
         
         chunk_registry.start_loading_chunk(chunk_id);
         load_chunk_entity_internal_event_writer.send(LoadChunkEntityInternal { 
-            chunk_event_id,
+            chunk_request_id,
             chunk_id
         });
     }
@@ -103,12 +103,12 @@ pub(super) fn handle_unload_chunk_entity_events(
     let mut chunk_infos = Vec::new();
     for unload_chunk_entity_event in unload_chunk_entity_event_reader.read() {
         chunk_infos.push((
-            unload_chunk_entity_event.chunk_event_id,
+            unload_chunk_entity_event.chunk_request_id,
             unload_chunk_entity_event.chunk_id
         ));
     }
 
-    for (chunk_event_id, chunk_id) in chunk_infos {
+    for (chunk_request_id, chunk_id) in chunk_infos {
         info!("Trying to unload chunk '{:?}' ...", chunk_id);
 
         if chunk_registry.is_unloading_chunk(chunk_id) {
@@ -119,7 +119,7 @@ pub(super) fn handle_unload_chunk_entity_events(
 
         chunk_registry.start_unloading_chunk(chunk_id);
         unload_chunk_entity_internal_event_writer.send(UnloadChunkEntityInternal { 
-            chunk_event_id,
+            chunk_request_id,
             chunk_id
         });
     }
@@ -144,7 +144,7 @@ pub(super) fn handle_create_chunk_entity_internal_events(
     }
 
     for create_chunk_entity_event in create_chunk_entity_events {
-        let chunk_event_id = create_chunk_entity_event.chunk_event_id;
+        let chunk_request_id = create_chunk_entity_event.chunk_request_id;
         let chunk_id = create_chunk_entity_event.chunk_id;
 
         let (chunk_registry, _) = registry_parameters.get_mut(world);
@@ -155,7 +155,7 @@ pub(super) fn handle_create_chunk_entity_internal_events(
             
             let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
             created_chunk_entity_event_writer.send(CreatedChunkEntityInternal::Failure { 
-                chunk_event_id, 
+                chunk_request_id, 
                 chunk_id
             });
 
@@ -168,7 +168,7 @@ pub(super) fn handle_create_chunk_entity_internal_events(
 
             let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
             created_chunk_entity_event_writer.send(CreatedChunkEntityInternal::Failure { 
-                chunk_event_id,
+                chunk_request_id,
                 chunk_id
             });
 
@@ -189,7 +189,7 @@ pub(super) fn handle_create_chunk_entity_internal_events(
 
         let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
         created_chunk_entity_event_writer.send(CreatedChunkEntityInternal::Success { 
-            chunk_event_id,
+            chunk_request_id,
             chunk_id
         });
     }
@@ -214,7 +214,7 @@ pub(super) fn handle_destroy_chunk_entity_internal_events(
     }
 
     for destroy_chunk_entity_event in destroy_chunk_entity_events {
-        let chunk_event_id = destroy_chunk_entity_event.chunk_event_id;
+        let chunk_request_id = destroy_chunk_entity_event.chunk_request_id;
         let chunk_id = destroy_chunk_entity_event.chunk_id;
 
         let (mut chunk_registry, mut entity_registry) = registry_parameters.get_mut(world);
@@ -224,7 +224,7 @@ pub(super) fn handle_destroy_chunk_entity_internal_events(
             warn!("Chunk '{:?}' is already unloaded!", chunk_id);
             
             let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-            destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal::Failure { chunk_event_id, chunk_id });
+            destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal::Failure { chunk_request_id, chunk_id });
             
             continue;
         }
@@ -234,7 +234,7 @@ pub(super) fn handle_destroy_chunk_entity_internal_events(
             warn!("Chunk '{:?}' is already unregistered!", chunk_id);
             
             let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-            destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal::Failure { chunk_event_id, chunk_id });
+            destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal::Failure { chunk_request_id, chunk_id });
 
             continue;
         }
@@ -261,7 +261,7 @@ pub(super) fn handle_destroy_chunk_entity_internal_events(
 
         let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
         destroyed_chunk_entity_event_writer.send(DestroyedChunkEntityInternal::Success {
-            chunk_event_id, 
+            chunk_request_id, 
             chunk_id
         });
     }
@@ -285,7 +285,7 @@ pub(super) fn handle_load_chunk_entity_internal_events(
     }
 
     for load_chunk_entity_event in load_chunk_entity_events {
-        let chunk_event_id = load_chunk_entity_event.chunk_event_id;
+        let chunk_request_id = load_chunk_entity_event.chunk_request_id;
         let chunk_id = load_chunk_entity_event.chunk_id;
 
         let chunk_registry = registry_parameter.get_mut(world).0;
@@ -297,7 +297,7 @@ pub(super) fn handle_load_chunk_entity_internal_events(
             warn!("Chunk '{:?}' is not registered!", chunk_id);
 
             let mut loaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-            loaded_chunk_entity_event_writer.send(LoadedChunkEntityInternal::Failure { chunk_event_id, chunk_id });
+            loaded_chunk_entity_event_writer.send(LoadedChunkEntityInternal::Failure { chunk_request_id, chunk_id });
 
             continue;
         }
@@ -306,7 +306,7 @@ pub(super) fn handle_load_chunk_entity_internal_events(
             warn!("Chunk '{:?}' is already loaded!", chunk_id);
 
             let mut loaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-            loaded_chunk_entity_event_writer.send(LoadedChunkEntityInternal::Failure { chunk_event_id, chunk_id });
+            loaded_chunk_entity_event_writer.send(LoadedChunkEntityInternal::Failure { chunk_request_id, chunk_id });
 
             continue;
         }
@@ -326,7 +326,7 @@ pub(super) fn handle_load_chunk_entity_internal_events(
         chunk_registry.stop_loading_chunk(chunk_id);
 
         let mut loaded_chunk_entity_event_writer: EventWriter<LoadedChunkEntityInternal> = event_parameters.get_mut(world).1;
-        loaded_chunk_entity_event_writer.send(LoadedChunkEntityInternal::Success { chunk_event_id, chunk_id });
+        loaded_chunk_entity_event_writer.send(LoadedChunkEntityInternal::Success { chunk_request_id, chunk_id });
     }
 }
 
@@ -348,7 +348,7 @@ pub(super) fn handle_unload_chunk_entity_internal_events(
     }
 
     for unload_chunk_entity_event in unload_chunk_entity_events {
-        let chunk_event_id = unload_chunk_entity_event.chunk_event_id;
+        let chunk_request_id = unload_chunk_entity_event.chunk_request_id;
         let chunk_id = unload_chunk_entity_event.chunk_id;
 
         let chunk_registry = registry_parameter.get_mut(world).0;
@@ -360,7 +360,7 @@ pub(super) fn handle_unload_chunk_entity_internal_events(
             warn!("Chunk '{:?}' is already unloaded!", chunk_id);
 
             let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-            unloaded_chunk_entity_event_writer.send(UnloadedChunkEntityInternal::Failure { chunk_event_id, chunk_id });
+            unloaded_chunk_entity_event_writer.send(UnloadedChunkEntityInternal::Failure { chunk_request_id, chunk_id });
 
             continue;
         }
@@ -369,7 +369,7 @@ pub(super) fn handle_unload_chunk_entity_internal_events(
             warn!("Chunk '{:?}' is already unregistered!", chunk_id);
 
             let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-            unloaded_chunk_entity_event_writer.send(UnloadedChunkEntityInternal::Failure { chunk_event_id, chunk_id });
+            unloaded_chunk_entity_event_writer.send(UnloadedChunkEntityInternal::Failure { chunk_request_id, chunk_id });
 
             continue;
         }
@@ -385,7 +385,7 @@ pub(super) fn handle_unload_chunk_entity_internal_events(
         chunk_registry.stop_unloading_chunk(chunk_id);
 
         let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-        unloaded_chunk_entity_event_writer.send(UnloadedChunkEntityInternal::Success { chunk_event_id, chunk_id });
+        unloaded_chunk_entity_event_writer.send(UnloadedChunkEntityInternal::Success { chunk_request_id, chunk_id });
     }
 }
 
@@ -407,15 +407,15 @@ pub(super) fn handle_created_chunk_entity_internal_events(
         let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
 
         match created_chunk_entity_event {
-            CreatedChunkEntityInternal::Success { chunk_event_id, chunk_id } => {
+            CreatedChunkEntityInternal::Success { chunk_request_id, chunk_id } => {
                 info!("Chunk '{:?}' has been created successfully!", chunk_id);
 
-                created_chunk_entity_event_writer.send(CreatedChunkEntity::Success { chunk_event_id, chunk_id });
+                created_chunk_entity_event_writer.send(CreatedChunkEntity::Success { chunk_request_id, chunk_id });
             },
-            CreatedChunkEntityInternal::Failure { chunk_event_id, chunk_id } => {
+            CreatedChunkEntityInternal::Failure { chunk_request_id, chunk_id } => {
                 error!("Chunk '{:?}' has failed to be created!", chunk_id);
 
-                created_chunk_entity_event_writer.send(CreatedChunkEntity::Failure { chunk_event_id, chunk_id });
+                created_chunk_entity_event_writer.send(CreatedChunkEntity::Failure { chunk_request_id, chunk_id });
             },
         }
     }
@@ -439,15 +439,15 @@ pub(super) fn handle_destroyed_chunk_entity_internal_events(
         let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
 
         match destroyed_chunk_entity_event {
-            DestroyedChunkEntityInternal::Success { chunk_event_id, chunk_id } => {
+            DestroyedChunkEntityInternal::Success { chunk_request_id, chunk_id } => {
                 info!("Chunk '{:?}' has been destroyed successfully!", chunk_id);
 
-                destroyed_chunk_entity_event_writer.send(DestroyedChunkEntity::Success { chunk_event_id, chunk_id });
+                destroyed_chunk_entity_event_writer.send(DestroyedChunkEntity::Success { chunk_request_id, chunk_id });
             },
-            DestroyedChunkEntityInternal::Failure { chunk_event_id, chunk_id } => {
+            DestroyedChunkEntityInternal::Failure { chunk_request_id, chunk_id } => {
                 error!("Chunk '{:?}' has failed to be destroyed!", chunk_id);
 
-                destroyed_chunk_entity_event_writer.send(DestroyedChunkEntity::Failure { chunk_event_id, chunk_id });
+                destroyed_chunk_entity_event_writer.send(DestroyedChunkEntity::Failure { chunk_request_id, chunk_id });
             },
         }
     }
@@ -471,15 +471,15 @@ pub(super) fn handle_loaded_chunk_entity_internal_events(
         let mut loaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
 
         match loaded_chunk_entity_event {
-            LoadedChunkEntityInternal::Success { chunk_event_id, chunk_id } => {
+            LoadedChunkEntityInternal::Success { chunk_request_id, chunk_id } => {
                 info!("Chunk '{:?}' has been loaded successfully!", chunk_id);
 
-                loaded_chunk_entity_event_writer.send(LoadedChunkEntity::Success { chunk_event_id, chunk_id });
+                loaded_chunk_entity_event_writer.send(LoadedChunkEntity::Success { chunk_request_id, chunk_id });
             },
-            LoadedChunkEntityInternal::Failure { chunk_event_id, chunk_id } => {
+            LoadedChunkEntityInternal::Failure { chunk_request_id, chunk_id } => {
                 error!("Chunk '{:?}' has failed to be loaded!", chunk_id);
 
-                loaded_chunk_entity_event_writer.send(LoadedChunkEntity::Failure { chunk_event_id, chunk_id });
+                loaded_chunk_entity_event_writer.send(LoadedChunkEntity::Failure { chunk_request_id, chunk_id });
             },
         }
     }
@@ -503,15 +503,15 @@ pub(super) fn handle_unloaded_chunk_entity_internal_events(
         let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
 
         match unloaded_chunk_entity_event {
-            UnloadedChunkEntityInternal::Success { chunk_event_id, chunk_id } => {
+            UnloadedChunkEntityInternal::Success { chunk_request_id, chunk_id } => {
                 info!("Chunk '{:?}' has been unloaded successfully!", chunk_id);
 
-                unloaded_chunk_entity_event_writer.send(UnloadedChunkEntity::Success { chunk_event_id, chunk_id });
+                unloaded_chunk_entity_event_writer.send(UnloadedChunkEntity::Success { chunk_request_id, chunk_id });
             },
-            UnloadedChunkEntityInternal::Failure { chunk_event_id, chunk_id } => {
+            UnloadedChunkEntityInternal::Failure { chunk_request_id, chunk_id } => {
                 error!("Chunk '{:?}' has failed to be unloaded!", chunk_id);
 
-                unloaded_chunk_entity_event_writer.send(UnloadedChunkEntity::Failure { chunk_event_id, chunk_id });
+                unloaded_chunk_entity_event_writer.send(UnloadedChunkEntity::Failure { chunk_request_id, chunk_id });
             }
         }
     }

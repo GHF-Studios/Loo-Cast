@@ -15,7 +15,7 @@ pub(super) fn new_player_entity(
 ) -> Entity {
     let player_entity = commands
         .spawn(Transform::from_translation(Vec3::new(player_world_position.x, player_world_position.y, PLAYER_Z_INDEX)))
-        .insert(Player { id: player_id, create_chunk_actor_event_ids: Vec::new() })
+        .insert(Player { id: player_id, create_chunk_actor_request_ids: Vec::new() })
         .id();
 
     player_entity
@@ -42,7 +42,7 @@ pub(super) fn upgrade_to_player_entity(
     };
 
     if let Ok(eligible_entity) = eligible_entity_query.get_mut(target_entity_reference) {
-        return Ok(commands.entity(eligible_entity).insert(Player { id: player_id, create_chunk_actor_event_ids: Vec::new() }).id());
+        return Ok(commands.entity(eligible_entity).insert(Player { id: player_id, create_chunk_actor_request_ids: Vec::new() }).id());
     } else {
         error!("Entity does not exist or does not have a Transform component.");
 

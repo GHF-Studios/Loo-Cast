@@ -4,33 +4,33 @@ use super::id::structs::*;
 
 #[derive(Debug, Clone, Event)]
 pub struct CreateChunkActorEntity {
-    pub chunk_actor_event_id: ChunkActorEventID,
+    pub chunk_actor_request_id: ChunkActorRequestID,
     pub world_position: Vec2,
 }
 
 #[derive(Debug, Clone, Event)]
 pub struct DestroyChunkActorEntity {
-    pub chunk_actor_event_id: ChunkActorEventID,
+    pub chunk_actor_request_id: ChunkActorRequestID,
     pub chunk_actor_id: ChunkActorID,
 }
 
 #[derive(Debug, Clone, Event)]
 pub struct UpgradeToChunkActorEntity {
-    pub chunk_actor_event_id: ChunkActorEventID,
+    pub chunk_actor_request_id: ChunkActorRequestID,
     pub target_entity_id: EntityID,
 }
 
 #[derive(Debug, Clone, Event)]
 pub enum StartedChunkActor {
     Success {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
@@ -41,14 +41,14 @@ pub enum StartedChunkActor {
 #[derive(Debug, Clone, Event)]
 pub enum CreatedChunkActorEntity {
     Success {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
@@ -59,14 +59,14 @@ pub enum CreatedChunkActorEntity {
 #[derive(Debug, Clone, Event)]
 pub enum DestroyedChunkActorEntity {
     Success {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
@@ -77,14 +77,14 @@ pub enum DestroyedChunkActorEntity {
 #[derive(Debug, Clone, Event)]
 pub enum UpgradedToChunkActorEntity {
     Success {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         target_entity_id: EntityID,
         chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         target_entity_id: EntityID,
         chunk_id: ChunkID,
@@ -94,7 +94,7 @@ pub enum UpgradedToChunkActorEntity {
 
 #[derive(Debug, Clone, Event)]
 pub struct CreateChunkActorEntityInternal {
-    pub chunk_actor_event_id: ChunkActorEventID,
+    pub chunk_actor_request_id: ChunkActorRequestID,
     pub chunk_actor_id: ChunkActorID,
     pub chunk_actor_entity_id: EntityID,
     pub chunk_id: ChunkID,
@@ -103,7 +103,7 @@ pub struct CreateChunkActorEntityInternal {
 
 #[derive(Debug, Clone, Event)]
 pub struct DestroyChunkActorEntityInternal {
-    pub chunk_actor_event_id: ChunkActorEventID,
+    pub chunk_actor_request_id: ChunkActorRequestID,
     pub chunk_actor_id: ChunkActorID,
     pub chunk_actor_entity_id: EntityID,
     pub chunk_id: ChunkID,
@@ -112,7 +112,7 @@ pub struct DestroyChunkActorEntityInternal {
 
 #[derive(Debug, Clone, Event)]
 pub struct UpgradeToChunkActorEntityInternal {
-    pub chunk_actor_event_id: ChunkActorEventID,
+    pub chunk_actor_request_id: ChunkActorRequestID,
     pub chunk_actor_id: ChunkActorID,
     pub target_entity_id: EntityID,
     pub chunk_id: ChunkID,
@@ -122,14 +122,14 @@ pub struct UpgradeToChunkActorEntityInternal {
 #[derive(Debug, Clone, Event)]
 pub enum CreatedChunkActorEntityInternal {
     Success {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
@@ -140,14 +140,14 @@ pub enum CreatedChunkActorEntityInternal {
 #[derive(Debug, Clone, Event)]
 pub enum DestroyedChunkActorEntityInternal {
     Success {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
@@ -158,14 +158,14 @@ pub enum DestroyedChunkActorEntityInternal {
 #[derive(Debug, Clone, Event)]
 pub enum UpgradedToChunkActorEntityInternal {
     Success {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         chunk_actor_entity_id: EntityID,
         chunk_id: ChunkID,
         world_position: Vec2,
     },
     Failure {
-        chunk_actor_event_id: ChunkActorEventID,
+        chunk_actor_request_id: ChunkActorRequestID,
         chunk_actor_id: ChunkActorID,
         target_entity_id: EntityID,
         chunk_id: ChunkID,

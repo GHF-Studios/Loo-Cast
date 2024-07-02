@@ -75,71 +75,71 @@ impl ops::DivAssign<i16> for ChunkID {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
-pub struct ChunkEventID(pub u64);
+pub struct ChunkRequestID(pub u64);
 
-impl From<u64> for ChunkEventID {
-    fn from(event_id: u64) -> Self {
-        ChunkEventID(event_id)
+impl From<u64> for ChunkRequestID {
+    fn from(request_id: u64) -> Self {
+        ChunkRequestID(request_id)
     }
 }
 
-impl From<ChunkEventID> for u64 {
-    fn from(chunk_event_id: ChunkEventID) -> Self {
-        chunk_event_id.0
+impl From<ChunkRequestID> for u64 {
+    fn from(chunk_request_id: ChunkRequestID) -> Self {
+        chunk_request_id.0
     }
 }
 
-impl ops::Add<u64> for ChunkEventID {
-    type Output = ChunkEventID;
+impl ops::Add<u64> for ChunkRequestID {
+    type Output = ChunkRequestID;
 
     fn add(self, rhs: u64) -> Self::Output {
-        ChunkEventID(self.0 + rhs)
+        ChunkRequestID(self.0 + rhs)
     }
 }
 
-impl ops::AddAssign<u64> for ChunkEventID {
+impl ops::AddAssign<u64> for ChunkRequestID {
     fn add_assign(&mut self, rhs: u64) {
         self.0 += rhs;
     }
 }
 
-impl ops::Sub<u64> for ChunkEventID {
-    type Output = ChunkEventID;
+impl ops::Sub<u64> for ChunkRequestID {
+    type Output = ChunkRequestID;
 
     fn sub(self, rhs: u64) -> Self::Output {
-        ChunkEventID(self.0 - rhs)
+        ChunkRequestID(self.0 - rhs)
     }
 }
 
-impl ops::SubAssign<u64> for ChunkEventID {
+impl ops::SubAssign<u64> for ChunkRequestID {
     fn sub_assign(&mut self, rhs: u64) {
         self.0 -= rhs;
     }
 }
 
-impl ops::Mul<u64> for ChunkEventID {
-    type Output = ChunkEventID;
+impl ops::Mul<u64> for ChunkRequestID {
+    type Output = ChunkRequestID;
 
     fn mul(self, rhs: u64) -> Self::Output {
-        ChunkEventID(self.0 * rhs)
+        ChunkRequestID(self.0 * rhs)
     }
 }
 
-impl ops::MulAssign<u64> for ChunkEventID {
+impl ops::MulAssign<u64> for ChunkRequestID {
     fn mul_assign(&mut self, rhs: u64) {
         self.0 *= rhs;
     }
 }
 
-impl ops::Div<u64> for ChunkEventID {
-    type Output = ChunkEventID;
+impl ops::Div<u64> for ChunkRequestID {
+    type Output = ChunkRequestID;
 
     fn div(self, rhs: u64) -> Self::Output {
-        ChunkEventID(self.0 / rhs)
+        ChunkRequestID(self.0 / rhs)
     }
 }
 
-impl ops::DivAssign<u64> for ChunkEventID {
+impl ops::DivAssign<u64> for ChunkRequestID {
     fn div_assign(&mut self, rhs: u64) {
         self.0 /= rhs;
     }

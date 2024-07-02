@@ -62,12 +62,12 @@ pub(in crate) fn update_phase1(
             }
         };
 
-        let chunk_actor_event_id = chunk_actor_event_registry.get_unused_chunk_actor_event_id();
+        let chunk_actor_request_id = chunk_actor_event_registry.get_unused_chunk_actor_request_id();
 
-        player.create_chunk_actor_event_ids.push(chunk_actor_event_id);
+        player.create_chunk_actor_request_ids.push(chunk_actor_request_id);
 
         create_chunk_actor_entity_event_writer.send(CreateChunkActorEntity {
-            chunk_actor_event_id,
+            chunk_actor_request_id,
             world_position: hit_world_position,
         });
     } else if mouse_button_input.just_pressed(MouseButton::Left) {
@@ -82,10 +82,10 @@ pub(in crate) fn update_phase1(
                 continue;
             }
 
-            let chunk_actor_event_id = chunk_actor_event_registry.get_unused_chunk_actor_event_id();
+            let chunk_actor_request_id = chunk_actor_event_registry.get_unused_chunk_actor_request_id();
 
             destroy_chunk_actor_entity_event_writer.send(DestroyChunkActorEntity {
-                chunk_actor_event_id,
+                chunk_actor_request_id,
                 chunk_actor_id: chunk_actor.id(),
             });
         }
@@ -105,12 +105,12 @@ pub(in crate) fn update_phase2(
     }
 
     for created_chunk_actor_entity_event in created_chunk_actor_entity_events {
-        let (chunk_actor_event_id, chunk_actor_entity_id) = match created_chunk_actor_entity_event {
+        let (chunk_actor_request_id, chunk_actor_entity_id) = match created_chunk_actor_entity_event {
             CreatedChunkActorEntity::Success { 
-                chunk_actor_event_id, 
+                chunk_actor_request_id, 
                 chunk_actor_entity_id, 
                 ..
-            } => (chunk_actor_event_id, chunk_actor_entity_id),
+            } => (chunk_actor_request_id, chunk_actor_entity_id),
             CreatedChunkActorEntity::Failure { .. } => {
                 // TODO: Make this better
                 panic!("Something is wrong, I can feel it");
@@ -124,10 +124,10 @@ pub(in crate) fn update_phase2(
             }
         };
 
-        if !player.create_chunk_actor_event_ids.contains(chunk_actor_event_id) {
+        if !player.create_chunk_actor_request_ids.contains(chunk_actor_request_id) {
             continue;
         } else {
-            player.create_chunk_actor_event_ids.retain(|&id| id != *chunk_actor_event_id);
+            player.create_chunk_actor_request_ids.retain(|&id| id != *chunk_actor_request_id);
         }
 
         let chunk_actor_entity_reference = match entity_registry.get_loaded_entity_reference(chunk_actor_entity_id) {

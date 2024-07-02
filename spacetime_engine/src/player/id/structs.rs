@@ -73,71 +73,71 @@ impl ops::DivAssign<u64> for PlayerID {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
-pub struct PlayerEventID(pub u64);
+pub struct PlayerRequestID(pub u64);
 
-impl From<u64> for PlayerEventID {
+impl From<u64> for PlayerRequestID {
     fn from(id: u64) -> Self {
-        PlayerEventID(id)
+        PlayerRequestID(id)
     }
 }
 
-impl From<PlayerEventID> for u64 {
-    fn from(id: PlayerEventID) -> Self {
+impl From<PlayerRequestID> for u64 {
+    fn from(id: PlayerRequestID) -> Self {
         id.0
     }
 }
 
-impl ops::Add<u64> for PlayerEventID {
-    type Output = PlayerEventID;
+impl ops::Add<u64> for PlayerRequestID {
+    type Output = PlayerRequestID;
 
     fn add(self, rhs: u64) -> Self::Output {
-        PlayerEventID(self.0 + rhs)
+        PlayerRequestID(self.0 + rhs)
     }
 }
 
-impl ops::AddAssign<u64> for PlayerEventID {
+impl ops::AddAssign<u64> for PlayerRequestID {
     fn add_assign(&mut self, rhs: u64) {
         self.0 += rhs;
     }
 }
 
-impl ops::Sub<u64> for PlayerEventID {
-    type Output = PlayerEventID;
+impl ops::Sub<u64> for PlayerRequestID {
+    type Output = PlayerRequestID;
 
     fn sub(self, rhs: u64) -> Self::Output {
-        PlayerEventID(self.0 - rhs)
+        PlayerRequestID(self.0 - rhs)
     }
 }
 
-impl ops::SubAssign<u64> for PlayerEventID {
+impl ops::SubAssign<u64> for PlayerRequestID {
     fn sub_assign(&mut self, rhs: u64) {
         self.0 -= rhs;
     }
 }
 
-impl ops::Mul<u64> for PlayerEventID {
-    type Output = PlayerEventID;
+impl ops::Mul<u64> for PlayerRequestID {
+    type Output = PlayerRequestID;
 
     fn mul(self, rhs: u64) -> Self::Output {
-        PlayerEventID(self.0 * rhs)
+        PlayerRequestID(self.0 * rhs)
     }
 }
 
-impl ops::MulAssign<u64> for PlayerEventID {
+impl ops::MulAssign<u64> for PlayerRequestID {
     fn mul_assign(&mut self, rhs: u64) {
         self.0 *= rhs;
     }
 }
 
-impl ops::Div<u64> for PlayerEventID {
-    type Output = PlayerEventID;
+impl ops::Div<u64> for PlayerRequestID {
+    type Output = PlayerRequestID;
 
     fn div(self, rhs: u64) -> Self::Output {
-        PlayerEventID(self.0 / rhs)
+        PlayerRequestID(self.0 / rhs)
     }
 }
 
-impl ops::DivAssign<u64> for PlayerEventID {
+impl ops::DivAssign<u64> for PlayerRequestID {
     fn div_assign(&mut self, rhs: u64) {
         self.0 /= rhs;
     }

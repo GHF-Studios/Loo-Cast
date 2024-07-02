@@ -290,14 +290,14 @@ impl ChunkRegistry {
 
 #[derive(Resource, Debug, Default)]
 pub(in crate) struct ChunkEventRegistry {
-    next_chunk_event_id: ChunkEventID,
+    next_chunk_request_id: ChunkRequestID,
 }
 
 impl ChunkEventRegistry {
-    pub fn get_unused_chunk_event_id(&mut self) -> ChunkEventID {
-        let chunk_event_id = self.next_chunk_event_id;
-        self.next_chunk_event_id = ChunkEventID(chunk_event_id.0 + 1);
+    pub fn get_unused_chunk_request_id(&mut self) -> ChunkRequestID {
+        let chunk_request_id = self.next_chunk_request_id;
+        self.next_chunk_request_id = ChunkRequestID(chunk_request_id.0 + 1);
 
-        chunk_event_id
+        chunk_request_id
     }
 }

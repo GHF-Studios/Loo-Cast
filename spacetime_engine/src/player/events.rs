@@ -4,30 +4,30 @@ use super::id::structs::*;
 
 #[derive(Debug, Clone, Event)]
 pub struct CreatePlayerEntity {
-    pub player_event_id: PlayerEventID,
+    pub player_request_id: PlayerRequestID,
     pub world_position: Vec2
 }
 
 #[derive(Debug, Clone, Event)]
 pub struct DestroyPlayerEntity {
-    pub player_event_id: PlayerEventID,
+    pub player_request_id: PlayerRequestID,
     pub player_id: PlayerID
 }
 
 #[derive(Debug, Clone, Event)]
 pub struct UpgradeToPlayerEntity {
-    pub player_event_id: PlayerEventID,
+    pub player_request_id: PlayerRequestID,
     pub target_entity_id: EntityID,
 }
 
 #[derive(Debug, Clone, Event)]
 pub enum StartedPlayer {
     Success {
-        player_event_id: PlayerEventID,
+        player_request_id: PlayerRequestID,
         player_id: PlayerID
     },
     Failure {
-        player_event_id: PlayerEventID,
+        player_request_id: PlayerRequestID,
         player_id: PlayerID
     }
 }
@@ -35,13 +35,13 @@ pub enum StartedPlayer {
 #[derive(Debug, Clone, Event)]
 pub enum CreatedPlayerEntity {
     Success {
-        player_event_id: PlayerEventID,
+        player_request_id: PlayerRequestID,
         player_id: PlayerID,
         player_entity_id: EntityID,
         world_position: Vec2
     },
     Failure {
-        player_event_id: PlayerEventID,
+        player_request_id: PlayerRequestID,
         world_position: Vec2
     }
 }
@@ -49,11 +49,11 @@ pub enum CreatedPlayerEntity {
 #[derive(Debug, Clone, Event)]
 pub enum DestroyedPlayerEntity {
     Success {
-        player_event_id: PlayerEventID,
+        player_request_id: PlayerRequestID,
         player_id: PlayerID
     },
     Failure {
-        player_event_id: PlayerEventID,
+        player_request_id: PlayerRequestID,
         player_id: PlayerID
     }
 }
@@ -61,12 +61,12 @@ pub enum DestroyedPlayerEntity {
 #[derive(Debug, Clone, Event)]
 pub enum UpgradedToPlayerEntity {
     Success {
-        player_event_id: PlayerEventID,
+        player_request_id: PlayerRequestID,
         player_id: PlayerID,
         target_entity_id: EntityID,
     },
     Failure {
-        player_event_id: PlayerEventID,
+        player_request_id: PlayerRequestID,
         target_entity_id: EntityID
     }
 }

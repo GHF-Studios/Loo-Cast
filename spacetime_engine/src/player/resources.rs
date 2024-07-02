@@ -132,14 +132,14 @@ impl PlayerRegistry {
 
 #[derive(Resource, Debug, Default)]
 pub(in crate) struct PlayerEventRegistry {
-    next_player_event_id: PlayerEventID,
+    next_player_request_id: PlayerRequestID,
 }
 
 impl PlayerEventRegistry {
-    pub fn get_unused_player_event_id(&mut self) -> PlayerEventID {
-        let player_event_id = self.next_player_event_id;
-        self.next_player_event_id = PlayerEventID(player_event_id.0 + 1);
+    pub fn get_unused_player_request_id(&mut self) -> PlayerRequestID {
+        let player_request_id = self.next_player_request_id;
+        self.next_player_request_id = PlayerRequestID(player_request_id.0 + 1);
 
-        player_event_id
+        player_request_id
     }
 }

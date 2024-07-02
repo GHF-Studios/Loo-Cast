@@ -22,10 +22,10 @@ pub(super) fn pre_start(
     mut create_player_entity_event_writer: EventWriter<CreatePlayerEntity>,
     mut player_event_registry: ResMut<PlayerEventRegistry>,
 ) {
-    let player_event_id = player_event_registry.get_unused_player_event_id();
+    let player_request_id = player_event_registry.get_unused_player_request_id();
 
     create_player_entity_event_writer.send(CreatePlayerEntity {
-        player_event_id,
+        player_request_id,
         world_position: Vec2::new(0.0, 0.0),
     });
 }
@@ -40,7 +40,7 @@ pub(super) fn start_phase1(
     for player_entity_reference in player_query.iter() {
         info!("Starting player [Phase 1] ...");
 
-        let chunk_loader_event_id = chunk_loader_event_registry.get_unused_chunk_loader_event_id();
+        let chunk_loader_request_id = chunk_loader_event_registry.get_unused_chunk_loader_request_id();
         let player_entity_id = match entity_registry.get_loaded_entity_id(&player_entity_reference) {
             Some(player_entity_id) => player_entity_id,
             None => {
@@ -51,7 +51,7 @@ pub(super) fn start_phase1(
 
         info!("Upgrading player '{:?}' to a chunk loader entity ...", player_entity_id);
         upgrade_to_chunk_loader_entity_event_writer.send(UpgradeToChunkLoaderEntity {
-            chunk_loader_event_id,
+            chunk_loader_request_id,
             target_entity_id: player_entity_id,
         });
     }
@@ -74,8 +74,8 @@ pub(super) fn start_phase2(
         info!("Starting player [Phase 2] ...");
 
         let (_, _, target_entity_id) = match upgraded_to_chunk_loader_entity_event {
-            UpgradedToChunkLoaderEntity::Success { chunk_loader_event_id, chunk_loader_id, target_entity_id } => {
-                (chunk_loader_event_id, chunk_loader_id, target_entity_id)
+            UpgradedToChunkLoaderEntity::Success { chunk_loader_request_id, chunk_loader_id, target_entity_id } => {
+                (chunk_loader_request_id, chunk_loader_id, target_entity_id)
             },
             UpgradedToChunkLoaderEntity::Failure { target_entity_id, .. } => {
                 // TODO: Make this better
@@ -104,11 +104,11 @@ pub(super) fn start_phase2(
             let player_chunk_position: ChunkPosition = player_chunk_actor_position.into();
             let player_chunk_id: ChunkID = player_chunk_position.into();
 
-            let chunk_actor_event_id = chunk_actor_event_registry.get_unused_chunk_actor_event_id();
+            let chunk_actor_request_id = chunk_actor_event_registry.get_unused_chunk_actor_request_id();
 
             info!("Upgrading player entity '{:?}' to a chunk actor entity in chunk '{:?}' ...", player_entity_id, player_chunk_id);
             upgrade_to_chunk_actor_entity_event_writer.send(UpgradeToChunkActorEntity {
-                chunk_actor_event_id,
+                chunk_actor_request_id,
                 target_entity_id: player_entity_id,
             });
 
@@ -136,8 +136,8 @@ pub(super) fn start_phase3(
         info!("Starting player [Phase 3] ...");
 
         let (_, _, target_entity_id, _) = match upgraded_to_chunk_actor_entity_event { 
-            UpgradedToChunkActorEntity::Success { chunk_actor_event_id, chunk_actor_id, target_entity_id, chunk_id, world_position: _ } => {
-                (chunk_actor_event_id, chunk_actor_id, target_entity_id, chunk_id)
+            UpgradedToChunkActorEntity::Success { chunk_actor_request_id, chunk_actor_id, target_entity_id, chunk_id, world_position: _ } => {
+                (chunk_actor_request_id, chunk_actor_id, target_entity_id, chunk_id)
             },
             UpgradedToChunkActorEntity::Failure { target_entity_id, .. } => {
                 // TODO: Make this better
@@ -174,12 +174,12 @@ pub(super) fn start_phase3(
                 .insert(ProxyCollider::Circle { radius: 15.0 })
                 .insert(ProxyVelocity::linear(Vec2::new(0.0, 0.0)));
 
-            let player_event_id = player_event_registry.get_unused_player_event_id();
+            let player_request_id = player_event_registry.get_unused_player_request_id();
 
             info!("Successfully started player '{:?}'!", player_entity_id);
 
             started_player_event_writer.send(StartedPlayer::Success {
-                player_event_id,
+                player_request_id,
                 player_id: player.id
             });
 
@@ -218,7 +218,7 @@ pub(super) fn handle_create_player_entity_events(
     }
 
     for create_player_entity_event in create_player_entity_events {
-        let player_event_id = create_player_entity_event.player_event_id;
+        let player_request_id = create_player_entity_event.player_request_id;
         let player_entity_id = entity_registry.register_entity();
         let player_id = player_registry.register_player();
         let world_position = create_player_entity_event.world_position;
@@ -231,7 +231,7 @@ pub(super) fn handle_create_player_entity_events(
         player_registry.load_player(player_id, player_entity_reference);
 
         created_player_entity_event_writer.send(CreatedPlayerEntity::Success {
-            player_event_id,
+            player_request_id,
             player_id,
             player_entity_id,
             world_position
@@ -252,7 +252,7 @@ pub(super) fn handle_destroy_player_entity_events(
     }
 
     for destroy_player_entity_event in destroy_player_entity_events {
-        let player_event_id = destroy_player_entity_event.player_event_id;
+        let player_request_id = destroy_player_entity_event.player_request_id;
         let player_id = destroy_player_entity_event.player_id;
 
         let player_entity_reference = match player_registry.get_loaded_player(player_id) {
@@ -261,7 +261,7 @@ pub(super) fn handle_destroy_player_entity_events(
                 error!("The request for destroying the player entity '{:?}' has been cancelled due to the player not being loaded!", player_id);
 
                 destroyed_player_entity_event_writer.send(DestroyedPlayerEntity::Failure {
-                    player_event_id,
+                    player_request_id,
                     player_id
                 });
 
@@ -275,7 +275,7 @@ pub(super) fn handle_destroy_player_entity_events(
                 error!("The request for destroying the player entity '{:?}' has been cancelled due to the respective player entity id not being found!", player_id);
 
                 destroyed_player_entity_event_writer.send(DestroyedPlayerEntity::Failure {
-                    player_event_id,
+                    player_request_id,
                     player_id
                 });
 
@@ -292,7 +292,7 @@ pub(super) fn handle_destroy_player_entity_events(
         commands.entity(player_entity_reference).despawn();
 
         destroyed_player_entity_event_writer.send(DestroyedPlayerEntity::Success {
-            player_event_id,
+            player_request_id,
             player_id,
         });
     }
@@ -314,7 +314,7 @@ pub(super) fn handle_upgrade_to_player_entity_events(
     }
 
     for upgrade_to_player_entity_event in upgrade_to_player_entity_events {
-        let player_event_id = upgrade_to_player_entity_event.player_event_id;
+        let player_request_id = upgrade_to_player_entity_event.player_request_id;
         let target_entity_id = upgrade_to_player_entity_event.target_entity_id;
         let player_id = player_registry.register_player();
 
@@ -328,7 +328,7 @@ pub(super) fn handle_upgrade_to_player_entity_events(
                 player_registry.unregister_player(player_id);
 
                 upgraded_to_player_entity_event_writer.send(UpgradedToPlayerEntity::Failure {
-                    player_event_id,
+                    player_request_id,
                     target_entity_id,
                 });
 
@@ -351,7 +351,7 @@ pub(super) fn handle_upgrade_to_player_entity_events(
                 player_registry.unregister_player(player_id);
 
                 upgraded_to_player_entity_event_writer.send(UpgradedToPlayerEntity::Failure {
-                    player_event_id,
+                    player_request_id,
                     target_entity_id,
                 });
 
@@ -363,7 +363,7 @@ pub(super) fn handle_upgrade_to_player_entity_events(
         player_registry.load_player(player_id, player_entity_reference);
 
         upgraded_to_player_entity_event_writer.send(UpgradedToPlayerEntity::Success {
-            player_event_id,
+            player_request_id,
             player_id,
             target_entity_id,
         });

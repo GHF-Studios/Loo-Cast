@@ -9,6 +9,6 @@ impl Plugin for IDPlugin {
     fn build(&self, app: &mut App) {
         app
             .register_type::<PlayerID>()
-            .register_type::<PlayerEventID>();
+            .register_type::<PlayerRequestID>();
     }
 }

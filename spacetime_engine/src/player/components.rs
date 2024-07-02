@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::chunk::actor::id::structs::ChunkActorEventID;
+use crate::chunk::actor::id::structs::ChunkActorRequestID;
 
 use super::structs::PlayerID;
 
@@ -7,5 +7,5 @@ use super::structs::PlayerID;
 #[reflect(Component)]
 pub struct Player {
     pub id: PlayerID,
-    pub(super) create_chunk_actor_event_ids: Vec<ChunkActorEventID>
+    pub(super) create_chunk_actor_request_ids: Vec<ChunkActorRequestID>
 }

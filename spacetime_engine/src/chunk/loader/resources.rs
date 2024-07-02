@@ -300,14 +300,14 @@ impl ChunkLoaderRegistry {
 
 #[derive(Resource, Debug, Default)]
 pub(in crate) struct ChunkLoaderEventRegistry {
-    next_chunk_loader_event_id: ChunkLoaderEventID,
+    next_chunk_loader_request_id: ChunkLoaderRequestID,
 }
 
 impl ChunkLoaderEventRegistry {
-    pub fn get_unused_chunk_loader_event_id(&mut self) -> ChunkLoaderEventID {
-        let chunk_loader_event_id = self.next_chunk_loader_event_id;
-        self.next_chunk_loader_event_id = ChunkLoaderEventID(chunk_loader_event_id.0 + 1);
+    pub fn get_unused_chunk_loader_request_id(&mut self) -> ChunkLoaderRequestID {
+        let chunk_loader_request_id = self.next_chunk_loader_request_id;
+        self.next_chunk_loader_request_id = ChunkLoaderRequestID(chunk_loader_request_id.0 + 1);
 
-        chunk_loader_event_id
+        chunk_loader_request_id
     }
 }

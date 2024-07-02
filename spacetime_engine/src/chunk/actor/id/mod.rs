@@ -8,6 +8,6 @@ impl Plugin for IDPlugin {
     fn build(&self, app: &mut App) {
         app
             .register_type::<structs::ChunkActorID>()
-            .register_type::<structs::ChunkActorEventID>();
+            .register_type::<structs::ChunkActorRequestID>();
     }
 }
