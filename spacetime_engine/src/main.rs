@@ -11,8 +11,11 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // TODO: Fix chunk actor systems not checking if the respective chunk is registered and loaded before accessing it
 //       When creating a chunk actor or upgrading and entity to a chunk actor, we need some way to delay the internal creation/loading logic 
 //       until the chunk is registered and loaded one way or another (that being either Chunk Creation or Chunk Loading)
-//       We do that by taking two event readers as parameters: one for chunk creations and one for chunk loadings; we check if the chunk creating/loading failed or succeeded, and we check if any chunk actors are waiting for that chunk to be created/loaded. Then we simply create/load the chunk actor and remove it from the waiting list.
-//       We also need a registry of chunk actors that are waiting for their respective chunks to be either created or loaded.
+//       We do that by taking two event readers as parameters: one for chunk creations and one for chunk loadings; we check if the chunk creating/loading failed or succeeded, and we check if any chunk actors are waiting for that chunk to be created/loaded.
+//       Then we simply create/load the chunk actor and remove it from the waiting list.
+//       We also need a registry of chunk actors that are waiting for their respective chunks to be either created or loaded, or in other words:
+//       Having internal variants of the Create/Destroy/UpgradeTo chunk actor events is useless when we need the internal logic to be delayed until a certain condition is met, that condition being whether the chunk is registered and loaded, or not.
+//       TL;DR: I am stupid and should not have dismissed the chunk actor request structs so quickly. smol brain energy; no sigma energy
 
 // Repeating tasks:
 // TODO: Take a look at all TODOs outside this file
