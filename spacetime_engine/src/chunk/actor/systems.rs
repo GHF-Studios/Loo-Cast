@@ -9,6 +9,8 @@ use crate::chunk::events::LoadedChunkEntity;
 use crate::chunk::id::structs::ChunkID;
 use crate::chunk::position::structs::ChunkPosition;
 use crate::chunk::resources::*;
+use crate::chunk::structs::ChunkActorCreateRequest;
+use crate::chunk::structs::ChunkActorUpgradeRequest;
 use crate::entity::resources::EntityRegistry;
 use super::events::*;
 use super::functions;
@@ -72,7 +74,6 @@ pub(super) fn update(
 
 pub(super) fn handle_create_chunk_actor_entity_events(
     mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
-    mut create_chunk_actor_entity_internal_event_writer: EventWriter<CreateChunkActorEntityInternal>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
     mut entity_registry: ResMut<EntityRegistry>,
 ) {
@@ -97,7 +98,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
 
         info!("Trying to create chunk actor entity '{:?}' at world position '{:?}' in chunk '{:?}' ...", chunk_actor_entity_id, world_position, chunk_id);
 
-        create_chunk_actor_entity_internal_event_writer.send(CreateChunkActorEntityInternal {
+        chunk_actor_registry.start_creating_chunk_actor(ChunkActorCreateRequest {
             chunk_actor_request_id,
             chunk_actor_id,
             chunk_actor_entity_id,
@@ -168,7 +169,6 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
 
 pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
     mut upgrade_to_chunk_actor_entity_event_reader: EventReader<UpgradeToChunkActorEntity>,
-    mut upgrade_to_chunk_actor_entity_internal_event_writer: EventWriter<UpgradeToChunkActorEntityInternal>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
     entity_registry: Res<EntityRegistry>,
     target_entity_query: Query<&Transform, Without<ChunkActor>>,
@@ -207,7 +207,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
 
         info!("Trying to upgrade entity '{:?}' to a chunk actor entity ...", target_entity_id);
 
-        upgrade_to_chunk_actor_entity_internal_event_writer.send(UpgradeToChunkActorEntityInternal {
+        chunk_actor_registry.start_upgrading_to_chunk_actor(ChunkActorUpgradeRequest {
             chunk_actor_request_id,
             chunk_actor_id,
             target_entity_id,
@@ -230,6 +230,13 @@ pub(super) fn handle_create_chunk_actor_entity_internal_events(
         ResMut<EntityRegistry>,
     )>,
 ) {
+    // TODO: Refactor here so the code reacts to Created/Loaded chunks instead of just reading the external chunk actor creation events,
+    //       which are also not being sent anymore; they're replaced by registry-managed and registry-saved create chunk actor requests.
+
+
+
+
+
     let mut create_chunk_actor_entity_event_reader = event_parameters.get_mut(world).0;
 
     let mut create_chunk_actor_entity_events: Vec<CreateChunkActorEntityInternal> = Vec::new();
@@ -277,7 +284,7 @@ pub(super) fn handle_create_chunk_actor_entity_internal_events(
 
         info!("Successfully created chunk actor entity '{:?}' at world position '{:?}'!", chunk_actor_entity_id, world_position);
 
-        let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
+        let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
         created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntityInternal::Success {
             chunk_actor_request_id,
             chunk_actor_id,
@@ -372,6 +379,13 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
         Res<EntityRegistry>,
     )>,
 ) {
+    // TODO: Refactor here so the code reacts to Created/Loaded chunks instead of just reading the external chunk actor upgrade_to events,
+    //       which are also not being sent anymore; they're replaced by registry-managed and registry-saved upgrade_to chunk actor requests.
+
+
+
+
+
     let mut upgrade_to_chunk_actor_entity_event_reader = event_parameters.get_mut(world).0;
 
     let mut upgrade_to_chunk_actor_entity_events: Vec<UpgradeToChunkActorEntityInternal> = Vec::new();
