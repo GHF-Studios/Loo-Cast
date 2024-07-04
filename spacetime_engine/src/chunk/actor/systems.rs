@@ -1,28 +1,37 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use crate::chunk::actor::position::structs::ChunkActorPosition;
-use crate::chunk::actor::components::*;
-use crate::chunk::actor::resources::*;
-use crate::chunk::components::*;
+use crate::chunk::components::Chunk;
 use crate::chunk::events::CreatedChunkEntity;
 use crate::chunk::events::LoadedChunkEntity;
 use crate::chunk::id::structs::ChunkID;
-use crate::chunk::loader;
 use crate::chunk::position::structs::ChunkPosition;
-use crate::chunk::resources::*;
-use crate::chunk::structs::ChunkActorCreateRequest;
-use crate::chunk::structs::ChunkActorUpgradeRequest;
+use crate::chunk::structs::{ChunkActorCreateRequest, ChunkActorUpgradeRequest};
+use crate::chunk::ChunkRegistry;
 use crate::entity::resources::EntityRegistry;
-use super::events::*;
+use super::components::ChunkActor;
 use super::functions;
 use super::id::structs::ChunkActorID;
+use super::ChunkActorRegistry;
+use super::ChunkActorRequestRegistry;
+use super::CreateChunkActorEntity;
+use super::CreatedChunkActorEntity;
+use super::CreatedChunkActorEntityInternal;
+use super::DestroyChunkActorEntity;
+use super::DestroyChunkActorEntityInternal;
+use super::DestroyedChunkActorEntity;
+use super::DestroyedChunkActorEntityInternal;
+use super::StartedChunkActor;
+use super::UpgradeToChunkActorEntity;
+use super::UpgradedToChunkActorEntity;
+use super::UpgradedToChunkActorEntityInternal;
 
 pub(super) fn start(
     mut started_chunk_actor_event_writer: EventWriter<StartedChunkActor>,
     chunk_actor_query: Query<(&ChunkActor, &Transform), Added<ChunkActor>>,
-    mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
+    chunk_actor_registry: Res<ChunkActorRegistry>,
     mut chunk_actor_event_registry: ResMut<ChunkActorRequestRegistry>,
-    mut entity_registry: ResMut<EntityRegistry>,
+    entity_registry: Res<EntityRegistry>,
 ) {
     for (chunk_actor, chunk_actor_transform) in chunk_actor_query.iter() {
         let chunk_actor_request_id = chunk_actor_event_registry.get_unused_chunk_actor_request_id();

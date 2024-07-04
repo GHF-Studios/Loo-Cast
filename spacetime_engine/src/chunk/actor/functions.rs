@@ -1,12 +1,12 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 
-use crate::chunk::components::Chunk;
-use crate::chunk::{actor::components::*, position::structs::ChunkPosition};
-use crate::chunk::id::structs::*;
-use crate::chunk::actor::id::structs::*;
+use crate::chunk::{components::Chunk, id::structs::ChunkID};
+use crate::chunk::position::structs::ChunkPosition;
 use crate::chunk::ChunkRegistry;
-use super::{constants::*, position::structs::ChunkActorPosition, structs::{DespawnChunkActorInfo, UpdateChunkActorInfo}, ChunkActorRegistry};
+use super::components::ChunkActor;
+use super::constants::CHUNK_ACTOR_Z_INDEX;
+use super::{id::structs::ChunkActorID, position::structs::ChunkActorPosition, structs::{DespawnChunkActorInfo, UpdateChunkActorInfo}, ChunkActorRegistry};
 
 pub(super) fn new_chunk_actor_entity(
     world: &mut World,
