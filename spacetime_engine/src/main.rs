@@ -33,6 +33,7 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // TODO: Ensure that destroyed entities always have all component properly unloaded and unregistered;
 //       like have some way to notify the associated systems to downgrade the entity until we are left with a barebones entity that we can safely despawn
 //       instead of just rawdogging it and immediately deleting the entity from existence without notifying any registries and whatnot (which is bad, duh)
+// TODO: Make internal event not fully public but restricted to super
 
 // Fun tasks
 // TODO: Implement inventory + hotbar, so that you can select different types of chunk actors to place. 

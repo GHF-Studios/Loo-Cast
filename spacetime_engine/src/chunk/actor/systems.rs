@@ -7,6 +7,7 @@ use crate::chunk::components::*;
 use crate::chunk::events::CreatedChunkEntity;
 use crate::chunk::events::LoadedChunkEntity;
 use crate::chunk::id::structs::ChunkID;
+use crate::chunk::loader;
 use crate::chunk::position::structs::ChunkPosition;
 use crate::chunk::resources::*;
 use crate::chunk::structs::ChunkActorCreateRequest;
@@ -233,9 +234,115 @@ pub(super) fn handle_create_chunk_actor_entity_internal_events(
     // TODO: Refactor here so the code reacts to Created/Loaded chunks instead of just reading the external chunk actor creation events,
     //       which are also not being sent anymore; they're replaced by registry-managed and registry-saved create chunk actor requests.
 
+    let mut remaining_chunk_actor_create_requests = {
+        let (_, chunk_actor_registry, _) = registry_parameters.get_mut(world);
+
+        chunk_actor_registry.create_chunk_actor_requests().clone()
+    };
+
+    if remaining_chunk_actor_create_requests.is_empty() {
+        return;
+    }
+
+
+    let mut created_chunk_entity_event_reader = event_parameters.get_mut(world).0;
+    let mut created_chunk_entity_events: Vec<CreatedChunkEntity> = Vec::new();
+    for created_chunk_entity_event in created_chunk_entity_event_reader.read() {
+        created_chunk_entity_events.push(created_chunk_entity_event.clone());
+    }
+
+    for created_chunk_entity_event in created_chunk_entity_events {
+        let (chunk_request_id, chunk_id) = match created_chunk_entity_event {
+            CreatedChunkEntity::Success { chunk_request_id, chunk_id } => {
+                (chunk_request_id, chunk_id)
+            },
+            CreatedChunkEntity::Failure { chunk_request_id, chunk_id } => {
+                let requests = remaining_chunk_actor_create_requests.clone();
+                for (chunk_actor_request_id, chunk_actor_create_request) in requests {
+                    if chunk_actor_create_request.chunk_id == chunk_id {
+                        let chunk_actor_request_id = chunk_actor_create_request.chunk_actor_request_id;
+                        let chunk_actor_id = chunk_actor_create_request.chunk_actor_id;
+                        let chunk_actor_entity_id = chunk_actor_create_request.chunk_actor_entity_id;
+                        let world_position = chunk_actor_create_request.world_position;
+
+                        error!("Failed to create chunk actor entity '{:?}' at world position '{:?}' due to a chunk '{:?}' creation failure!", chunk_actor_entity_id, world_position, chunk_id);
+
+                        remaining_chunk_actor_create_requests.retain(|(other, _)| chunk_actor_request_id != **other);
+
+                        let mut chunk_actor_registry = registry_parameters.get_mut(world).1;
+                        chunk_actor_registry.stop_creating_chunk_actor(chunk_actor_id, chunk_actor_request_id);
+
+                        let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
+                        created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntityInternal::Failure {
+                            chunk_actor_request_id,
+                            chunk_actor_id,
+                            chunk_actor_entity_id,
+                            chunk_id,
+                            world_position
+                        });
+                    }
+                }
+
+                continue;
+            }
+        };
+
+        let requests = remaining_chunk_actor_create_requests.clone();
+
+        // Continue here
+    }
+
+
+    let mut loaded_chunk_entity_event_reader = event_parameters.get_mut(world).1;
+    let mut loaded_chunk_entity_events: Vec<LoadedChunkEntity> = Vec::new();
+    for loaded_chunk_entity_event in loaded_chunk_entity_event_reader.read() {
+        loaded_chunk_entity_events.push(loaded_chunk_entity_event.clone());
+    }
+
+    for loaded_chunk_entity_event in loaded_chunk_entity_events {
+        let (chunk_request_id, chunk_id) = match loaded_chunk_entity_event {
+            LoadedChunkEntity::Success { chunk_request_id, chunk_id } => {
+                (chunk_request_id, chunk_id)
+            },
+            LoadedChunkEntity::Failure { chunk_request_id, chunk_id } => {
+                let requests = remaining_chunk_actor_create_requests.clone();
+                for (chunk_actor_request_id, chunk_actor_create_request) in requests {
+                    if chunk_actor_create_request.chunk_id == chunk_id {
+                        let chunk_actor_request_id = chunk_actor_create_request.chunk_actor_request_id;
+                        let chunk_actor_id = chunk_actor_create_request.chunk_actor_id;
+                        let chunk_actor_entity_id = chunk_actor_create_request.chunk_actor_entity_id;
+                        let world_position = chunk_actor_create_request.world_position;
+
+                        error!("Failed to create chunk actor entity '{:?}' at world position '{:?}' due to a chunk '{:?}' loading failure!", chunk_actor_entity_id, world_position, chunk_id);
+
+                        remaining_chunk_actor_create_requests.retain(|(other, _)| chunk_actor_request_id != **other);
+
+                        let mut chunk_actor_registry = registry_parameters.get_mut(world).1;
+                        chunk_actor_registry.stop_creating_chunk_actor(chunk_actor_id, chunk_actor_request_id);
+
+                        let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
+                        created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntityInternal::Failure {
+                            chunk_actor_request_id,
+                            chunk_actor_id,
+                            chunk_actor_entity_id,
+                            chunk_id,
+                            world_position
+                        });
+                    }
+                }
+
+                continue;
+            }
+        };
+
+        let requests = remaining_chunk_actor_create_requests.clone();
+
+        // Continue here
+    }
 
 
 
+    // OLD CODE
 
     let mut create_chunk_actor_entity_event_reader = event_parameters.get_mut(world).0;
 
