@@ -10,10 +10,10 @@ pub(in crate) mod functions;
 pub mod resources;
 pub(in crate) mod systems;
 
-use actor::*;
+use actor::ActorPlugin;
 use position::*;
 use id::*;
-use loader::*;
+use loader::LoaderPlugin;
 use resources::*;
 use systems::*;
 use bevy::prelude::*;

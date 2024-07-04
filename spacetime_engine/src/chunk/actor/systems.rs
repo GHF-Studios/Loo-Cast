@@ -6,7 +6,7 @@ use crate::chunk::events::CreatedChunkEntity;
 use crate::chunk::events::LoadedChunkEntity;
 use crate::chunk::id::structs::ChunkID;
 use crate::chunk::position::structs::ChunkPosition;
-use crate::chunk::structs::{ChunkActorCreateRequest, ChunkActorUpgradeRequest};
+use crate::chunk::actor::structs::{ChunkActorCreateRequest, ChunkActorUpgradeRequest};
 use crate::chunk::ChunkRegistry;
 use crate::entity::resources::EntityRegistry;
 use super::components::ChunkActor;
