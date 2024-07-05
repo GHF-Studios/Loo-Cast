@@ -448,6 +448,60 @@ pub(super) fn handle_create_chunk_actor_entity_internal_events(
             }
         }
     }
+
+    for (chunk_actor_request_id, chunk_actor_create_request) in remaining_chunk_actor_create_requests {
+        let (chunk_registry, _, _) = registry_parameters.get_mut(world);
+
+        if !chunk_registry.is_chunk_loaded(chunk_actor_create_request.chunk_id) {
+            continue;
+        }
+
+        let chunk_actor_request_id = chunk_actor_create_request.chunk_actor_request_id;
+        let chunk_actor_id = chunk_actor_create_request.chunk_actor_id;
+        let chunk_actor_entity_id = chunk_actor_create_request.chunk_actor_entity_id;
+        let chunk_id = chunk_actor_create_request.chunk_id;
+        let world_position = chunk_actor_create_request.world_position;
+
+        let chunk_entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+            Some(chunk_entity_reference) => chunk_entity_reference,
+            None => {
+                panic!("The chunk entity reference for chunk '{:?}' could not be found!", chunk_id);
+            }
+        };
+    
+        let mut chunk = {
+            let mut chunk_query_state = world.query::<&mut Chunk>();
+        
+            match chunk_query_state.get_mut(world, chunk_entity_reference) {
+                Ok(chunk) => chunk,
+                Err(_) => {
+                    panic!("The chunk component for chunk '{:?}' could not be found!", chunk_id);
+                }
+            }
+        };
+
+        chunk.add_chunk_actor(chunk_actor_id);
+
+        let chunk_actor_entity_reference = functions::new_chunk_actor_entity(world, chunk_actor_id, chunk_id, world_position);
+
+        let (_, mut chunk_actor_registry, mut entity_registry) = registry_parameters.get_mut(world);
+
+        entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity_reference);
+        chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
+    
+        chunk_actor_registry.stop_creating_chunk_actor(chunk_actor_id, chunk_actor_request_id);
+    
+        info!("Successfully created chunk actor entity '{:?}' at world position '{:?}'!", chunk_actor_entity_id, world_position);
+    
+        let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
+        created_chunk_actor_entity_event_writer.send(CreatedChunkActorEntityInternal::Success {
+            chunk_actor_request_id,
+            chunk_actor_id,
+            chunk_actor_entity_id,
+            chunk_id,
+            world_position
+        });
+    }
 }
 
 pub(super) fn handle_destroy_chunk_actor_entity_internal_events(
