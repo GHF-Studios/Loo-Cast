@@ -42,7 +42,7 @@ pub(super) fn start(
             match entity_registry.get_loaded_entity_id(&chunk_actor_entity_reference) {
                 Some(chunk_actor_entity_id) => chunk_actor_entity_id,
                 None => {
-                    panic!("The chunk actor entity id for chunk actor '{:?}' could not be found!", chunk_actor_id);
+                    panic!("The chunk actor entity id for chunk actor '{:?}' entity '{:?}' could not be found!", chunk_actor_id, chunk_actor_entity_reference);
                 }
             }
         };
@@ -96,6 +96,7 @@ pub(super) fn handle_create_chunk_actor_entity_events(
         let chunk_actor_request_id = create_chunk_actor_entity_event.chunk_actor_request_id;
         let chunk_actor_entity_id = entity_registry.register_entity();
         let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
+
         let chunk_id = {
             let world_position = create_chunk_actor_entity_event.world_position;
             let chunk_actor_position: ChunkActorPosition = world_position.into();
@@ -189,10 +190,10 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
     }
 
     for upgrade_to_chunk_actor_entity_event in upgrade_to_chunk_actor_entity_events {
-        
         let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
         let chunk_actor_request_id = upgrade_to_chunk_actor_entity_event.chunk_actor_request_id;
         let target_entity_id = upgrade_to_chunk_actor_entity_event.target_entity_id;
+
         let (chunk_id, world_position) = {
             let target_entity_reference = match entity_registry.get_loaded_entity_reference(&upgrade_to_chunk_actor_entity_event.target_entity_id) {
                 Some(target_entity_reference) => target_entity_reference,
@@ -332,7 +333,7 @@ pub(super) fn handle_create_chunk_actor_entity_internal_events(
                 entity_registry.load_entity(chunk_actor_entity_id, chunk_actor_entity_reference);
                 chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
                 
-                info!("Successfully created chunk actor entity '{:?}' at world position '{:?}'!", chunk_actor_entity_id, world_position);
+                info!("Successfully created chunk actor entity '{:?}, {:?}' at world position '{:?}'!", chunk_actor_entity_id, chunk_actor_entity_reference, world_position);
             
                 remaining_chunk_actor_create_requests.retain(|other_request_id, _| chunk_actor_request_id != *other_request_id);
 
@@ -618,14 +619,38 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
             
                 chunk.add_chunk_actor(chunk_actor_id);
 
-                let chunk_actor_entity_reference = functions::new_chunk_actor_entity(world, chunk_actor_id, chunk_id, world_position);
+                let entity_registry = registry_parameters.get_mut(world).2;
+                let target_entity_reference = match entity_registry.get_loaded_entity_reference(&target_entity_id) {
+                    Some(target_entity_reference) => target_entity_reference,
+                    None => {
+                        panic!("The target entity '{:?}' could not ber found!", target_entity_id);
+                    }
+                };
+
+                let mut ineligible_entity_query_0 = world.query_filtered::<Entity, Without<Transform>>();
+                let mut ineligible_entity_query_1 = world.query_filtered::<Entity, With<ChunkActor>>();
+                let mut eligible_entity_query = world.query_filtered::<Entity, (With<Transform>, Without<ChunkActor>)>();
+
+                let chunk_actor_entity_reference = match functions::upgrade_to_chunk_actor_entity(
+                    world, 
+                    chunk_actor_id, 
+                    chunk_id, 
+                    target_entity_reference, 
+                    &mut ineligible_entity_query_0,
+                    &mut ineligible_entity_query_1,
+                    &mut eligible_entity_query
+                ) {
+                    Ok(chunk_actor_entity_reference) => chunk_actor_entity_reference,
+                    Err(_) => {
+                        panic!("Upgrading entity '{:?}' to a chunk actor '{:?}' at world position '{:?}' failed!", target_entity_id, chunk_actor_id, world_position);
+                    }   
+                };
 
                 let (_, mut chunk_actor_registry, mut entity_registry) = registry_parameters.get_mut(world);
 
-                entity_registry.load_entity(target_entity_id, chunk_actor_entity_reference);
                 chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
                 
-                info!("Successfully upgraded entity '{:?}' to a chunk actor '{:?}' at world position '{:?}'!", target_entity_id, chunk_actor_id, world_position);
+                info!("Successfully upgraded entity '{:?}, {:?}' to a chunk actor '{:?}' at world position '{:?}'!", target_entity_id, chunk_actor_entity_reference, chunk_actor_id, world_position);
             
                 remaining_chunk_actor_upgrade_requests.retain(|other_request_id, _| chunk_actor_request_id != *other_request_id);
 
@@ -722,7 +747,6 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
 
                 let (_, mut chunk_actor_registry, mut entity_registry) = registry_parameters.get_mut(world);
 
-                entity_registry.load_entity(target_entity_id, chunk_actor_entity_reference);
                 chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
             
                 chunk_actor_registry.stop_creating_chunk_actor(chunk_actor_id, chunk_actor_request_id);

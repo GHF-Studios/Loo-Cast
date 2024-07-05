@@ -17,6 +17,8 @@ impl EntityRegistry {
         
         self.registered_entities.insert(entity_id);
 
+        warn!("Registered entity with id: '{:?}'", entity_id);
+
         entity_id
     }
 
@@ -35,6 +37,8 @@ impl EntityRegistry {
     pub fn unregister_entity(&mut self, entity_id: EntityID) {
         self.registered_entities.retain(|&other_entity_id| entity_id != other_entity_id);
 
+        warn!("Unregistered entity with id: '{:?}'", entity_id);
+
         self.recycle_entity_id(entity_id);
     }
 
@@ -48,6 +52,8 @@ impl EntityRegistry {
 
     pub fn load_entity(&mut self, entity_id: EntityID, entity_reference: EntityReference) {
         self.loaded_entities.insert(entity_id, entity_reference);
+
+        warn!("Loaded entity reference '{:?}' with id: '{:?}'", entity_reference, entity_id);
     }
 
     pub fn load_entities(&mut self, entities: HashMap<EntityID, EntityReference>) {
@@ -55,7 +61,11 @@ impl EntityRegistry {
     }
 
     pub fn unload_entity(&mut self, entity_id: EntityID) -> Option<EntityReference> {
-        self.loaded_entities.remove(&entity_id)
+        let TEMPORARY = self.loaded_entities.remove(&entity_id);
+
+        warn!("Unloaded entity with id: '{:?}'", entity_id);
+
+        TEMPORARY
     }
 
     pub fn unload_entities(&mut self, entity_ids: HashSet<EntityID>) {

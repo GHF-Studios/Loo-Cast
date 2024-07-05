@@ -7,21 +7,11 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 // NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
-// IMPORTANT TASKS:
-// TODO: Fix chunk actor systems not checking if the respective chunk is registered and loaded before accessing it
-//       When creating a chunk actor or upgrading and entity to a chunk actor, we need some way to delay the internal creation/loading logic 
-//       until the chunk is registered and loaded one way or another (that being either Chunk Creation or Chunk Loading)
-//       We do that by taking two event readers as parameters: one for chunk creations and one for chunk loadings; we check if the chunk creating/loading failed or succeeded, and we check if any chunk actors are waiting for that chunk to be created/loaded.
-//       Then we simply create/load the chunk actor and remove it from the waiting list.
-//       We also need a registry of chunk actors that are waiting for their respective chunks to be either created or loaded, or in other words:
-//       Having internal variants of the Create/Destroy/UpgradeTo chunk actor events is useless when we need the internal logic to be delayed until a certain condition is met, that condition being whether the chunk is registered and loaded, or not.
-//       TL;DR: I am stupid and should not have dismissed the chunk actor request structs so quickly. smol brain energy; no sigma energy
-
 // Repeating tasks:
 // TODO: Take a look at all TODOs outside this file
 
 // Bug fix tasks:
-// TODO: Fix chunk loader/actor upgrading sometimes silently failing due to timing/race conditions as a result of using commands directly without an internal layer directly accessing the ecs world
+// TODO: Sometimes when moving too erratically, the player fails to load some chunks, inevitably causing the player to despawn and constituing a bug.
 
 // "Optional" tasks
 // TODO: Bring the quality of the root 'chunk' module up to the standard of it's sub-modules 'loader' and 'actor'  
@@ -33,6 +23,11 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // TODO: Ensure that destroyed entities always have all component properly unloaded and unregistered;
 //       like have some way to notify the associated systems to downgrade the entity until we are left with a barebones entity that we can safely despawn
 //       instead of just rawdogging it and immediately deleting the entity from existence without notifying any registries and whatnot (which is bad, duh)
+//       This is very apparent when the player despawns (which currently happens when you move about too erratically),
+//       as the chunk loader component of the player never properly disposes of the remaining loaded chunks and makes them be loaded forever
+//       AKA: Make the player destruction (and general entity destruction) more graceful.
+//       Maybe a sort of "destructible" component which works like a tiny registry so you can register
+//       different component types of an entity that need to be taken care of before destruction.
 // TODO: Make internal event not fully public but restricted to super
 
 // Fun tasks

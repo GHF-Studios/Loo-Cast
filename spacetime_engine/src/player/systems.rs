@@ -152,7 +152,7 @@ pub(super) fn start_phase3(
     mut commands: Commands,
     mut upgraded_to_chunk_actor_entity_event_reader: EventReader<UpgradedToChunkActorEntity>,
     mut started_player_event_writer: EventWriter<StartedPlayer>,
-    player_query: Query<(Entity, &Transform, &Player), (With<ChunkLoader>, Without<ChunkActor>)>,
+    player_query: Query<(Entity, &Transform, &Player), (With<ChunkLoader>, With<ChunkActor>)>,
     entity_registry: Res<EntityRegistry>,
     mut player_request_registry: ResMut<PlayerRequestRegistry>,
 ) {
