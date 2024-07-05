@@ -19,9 +19,9 @@ pub(in crate) fn start(
     mut started_chunk_loader_event_writer: EventWriter<StartedChunkLoader>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader), Added<ChunkLoader>>,
     chunk_registry: Res<ChunkRegistry>,
-    mut chunk_event_registry: ResMut<ChunkRequestRegistry>,
+    mut chunk_request_registry: ResMut<ChunkRequestRegistry>,
     mut chunk_loader_registry: ResMut<ChunkLoaderRegistry>,
-    mut chunk_loader_event_registry: ResMut<ChunkLoaderRequestRegistry>,
+    mut chunk_loader_request_registry: ResMut<ChunkLoaderRequestRegistry>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = match chunk_loader_query.get_single_mut() {
         Ok((chunk_loader_transform, chunk_loader)) => (chunk_loader_transform, chunk_loader),
@@ -40,13 +40,13 @@ pub(in crate) fn start(
         load_chunk_event_writer, 
         &mut chunk_loader,
         &chunk_registry, 
-        &mut chunk_event_registry,
+        &mut chunk_request_registry,
         &detected_chunk_ids,
     );
 
     *chunk_loader.current_chunk_ids_mut() = detected_chunk_ids;
 
-    let chunk_loader_request_id = chunk_loader_event_registry.get_unused_chunk_loader_request_id();
+    let chunk_loader_request_id = chunk_loader_request_registry.get_unused_chunk_loader_request_id();
 
     chunk_loader_registry.start_chunk_loader(chunk_loader_id);
 
@@ -62,7 +62,7 @@ pub(in crate) fn update(
     unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
     chunk_registry: Res<ChunkRegistry>,
-    mut chunk_event_registry: ResMut<ChunkRequestRegistry>,
+    mut chunk_request_registry: ResMut<ChunkRequestRegistry>,
     chunk_loader_registry: Res<ChunkLoaderRegistry>,
 ) {
     let (chunk_loader_transform, mut chunk_loader) = match chunk_loader_query.get_single_mut() {
@@ -92,7 +92,7 @@ pub(in crate) fn update(
         unload_chunk_event_writer,
         &mut chunk_loader,
         &chunk_registry, 
-        &mut chunk_event_registry,
+        &mut chunk_request_registry,
         old_chunk_ids, 
         new_chunk_ids.clone(), 
     );

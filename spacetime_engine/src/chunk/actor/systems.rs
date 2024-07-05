@@ -30,11 +30,11 @@ pub(super) fn start(
     mut started_chunk_actor_event_writer: EventWriter<StartedChunkActor>,
     chunk_actor_query: Query<(&ChunkActor, &Transform), Added<ChunkActor>>,
     chunk_actor_registry: Res<ChunkActorRegistry>,
-    mut chunk_actor_event_registry: ResMut<ChunkActorRequestRegistry>,
+    mut chunk_actor_request_registry: ResMut<ChunkActorRequestRegistry>,
     entity_registry: Res<EntityRegistry>,
 ) {
     for (chunk_actor, chunk_actor_transform) in chunk_actor_query.iter() {
-        let chunk_actor_request_id = chunk_actor_event_registry.get_unused_chunk_actor_request_id();
+        let chunk_actor_request_id = chunk_actor_request_registry.get_unused_chunk_actor_request_id();
         let chunk_actor_id: ChunkActorID = chunk_actor.id();
         let chunk_actor_entity_id = {
             let chunk_actor_entity_reference = chunk_actor_registry.loaded_chunk_actor(chunk_actor_id);
@@ -564,15 +564,15 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
                         let target_entity_id = chunk_actor_upgrade_request.target_entity_id;
                         let world_position = chunk_actor_upgrade_request.world_position;
 
-                        error!("Failed to create chunk actor entity '{:?}' at world position '{:?}' due to a chunk '{:?}' creation failure!", target_entity_id, world_position, chunk_id);
+                        error!("Failed to upgrade entity '{:?}' to a chunk actor '{:?}' at world position '{:?}' due to a chunk '{:?}' creation failure!", target_entity_id, chunk_actor_id, world_position, chunk_id);
 
                         remaining_chunk_actor_upgrade_requests.retain(|other_request_id, _| chunk_actor_request_id != *other_request_id);
 
                         let mut chunk_actor_registry = registry_parameters.get_mut(world).1;
-                        chunk_actor_registry.stop_creating_chunk_actor(chunk_actor_id, chunk_actor_request_id);
+                        chunk_actor_registry.stop_upgrading_to_chunk_actor(chunk_actor_id, chunk_actor_request_id);
 
-                        let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
-                        created_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Failure {
+                        let mut upgraded_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
+                        upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Failure {
                             chunk_actor_request_id,
                             chunk_actor_id,
                             target_entity_id,
@@ -625,14 +625,14 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
                 entity_registry.load_entity(target_entity_id, chunk_actor_entity_reference);
                 chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
                 
-                info!("Successfully created chunk actor entity '{:?}' at world position '{:?}'!", target_entity_id, world_position);
+                info!("Successfully upgraded entity '{:?}' to a chunk actor '{:?}' at world position '{:?}'!", target_entity_id, chunk_actor_id, world_position);
             
                 remaining_chunk_actor_upgrade_requests.retain(|other_request_id, _| chunk_actor_request_id != *other_request_id);
 
-                chunk_actor_registry.stop_creating_chunk_actor(chunk_actor_id, chunk_actor_request_id);
+                chunk_actor_registry.stop_upgrading_to_chunk_actor(chunk_actor_id, chunk_actor_request_id);
             
-                let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
-                created_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Success {
+                let mut upgraded_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
+                upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Success {
                     chunk_actor_request_id,
                     chunk_actor_id,
                     chunk_actor_entity_id: target_entity_id,
@@ -664,15 +664,15 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
                         let target_entity_id = chunk_actor_upgrade_request.target_entity_id;
                         let world_position = chunk_actor_upgrade_request.world_position;
 
-                        error!("Failed to create chunk actor '{:?}' entity '{:?}' at world position '{:?}' due to a chunk '{:?}' loading failure!", chunk_actor_id, target_entity_id, world_position, chunk_id);
+                        error!("Failed to upgrade entity '{:?}' to a chunk actor '{:?}' at world position '{:?}' due to a chunk '{:?}' loading failure!", chunk_actor_id, target_entity_id, world_position, chunk_id);
 
                         remaining_chunk_actor_upgrade_requests.retain(|other, _| chunk_actor_request_id != *other);
 
                         let mut chunk_actor_registry = registry_parameters.get_mut(world).1;
-                        chunk_actor_registry.stop_creating_chunk_actor(chunk_actor_id, chunk_actor_request_id);
+                        chunk_actor_registry.stop_upgrading_to_chunk_actor(chunk_actor_id, chunk_actor_request_id);
 
-                        let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
-                        created_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Failure {
+                        let mut upgraded_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
+                        upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Failure {
                             chunk_actor_request_id,
                             chunk_actor_id,
                             target_entity_id,

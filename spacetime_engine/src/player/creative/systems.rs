@@ -19,7 +19,7 @@ pub(in crate) fn update_phase1(
     chunk_actor_query: Query<(&Transform, &ChunkActor), With<Collider>>,
     mut player_query: Query<&mut Player>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
-    mut chunk_actor_event_registry: ResMut<ChunkActorRequestRegistry>,
+    mut chunk_actor_request_registry: ResMut<ChunkActorRequestRegistry>,
 ) {
     let window = match window_query.get_single() {
         Ok(window) => window,
@@ -62,7 +62,7 @@ pub(in crate) fn update_phase1(
             }
         };
 
-        let chunk_actor_request_id = chunk_actor_event_registry.get_unused_chunk_actor_request_id();
+        let chunk_actor_request_id = chunk_actor_request_registry.get_unused_chunk_actor_request_id();
 
         player.create_chunk_actor_request_ids.push(chunk_actor_request_id);
 
@@ -82,7 +82,7 @@ pub(in crate) fn update_phase1(
                 continue;
             }
 
-            let chunk_actor_request_id = chunk_actor_event_registry.get_unused_chunk_actor_request_id();
+            let chunk_actor_request_id = chunk_actor_request_registry.get_unused_chunk_actor_request_id();
 
             destroy_chunk_actor_entity_event_writer.send(DestroyChunkActorEntity {
                 chunk_actor_request_id,

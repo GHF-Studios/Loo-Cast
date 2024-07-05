@@ -204,12 +204,12 @@ pub(in crate) fn start_chunks(
     mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
     chunk_loader: &mut Mut<ChunkLoader>,
     chunk_registry: &Res<ChunkRegistry>,
-    chunk_event_registry: &mut ResMut<ChunkRequestRegistry>,
+    chunk_request_registry: &mut ResMut<ChunkRequestRegistry>,
     detected_chunk_ids: &Vec<ChunkID>,
 ) {
     for detected_chunk_id in detected_chunk_ids {
         let chunk_id = *detected_chunk_id;
-        let chunk_request_id = chunk_event_registry.get_unused_chunk_request_id();
+        let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
 
         if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
             continue;
@@ -252,12 +252,12 @@ pub(in crate) fn update_chunks(
     mut unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
     chunk_loader: &mut Mut<ChunkLoader>,
     chunk_registry: &Res<ChunkRegistry>,
-    chunk_event_registry: &mut ResMut<ChunkRequestRegistry>,
+    chunk_request_registry: &mut ResMut<ChunkRequestRegistry>,
     old_chunk_ids: Vec<ChunkID>,
     new_chunk_ids: Vec<ChunkID>,
 ) {
     for old_chunk_id in old_chunk_ids {
-        let chunk_request_id = chunk_event_registry.get_unused_chunk_request_id();
+        let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
         let chunk_id = old_chunk_id;
 
         if chunk_loader.currently_unloading_chunks().contains(&chunk_id) {
@@ -277,7 +277,7 @@ pub(in crate) fn update_chunks(
     }
 
     for new_chunk_id in new_chunk_ids.iter() {
-        let chunk_request_id = chunk_event_registry.get_unused_chunk_request_id();
+        let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
         let chunk_id = *new_chunk_id;
         
         if chunk_loader.currently_creating_chunks().contains(&chunk_id) {

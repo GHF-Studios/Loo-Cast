@@ -20,9 +20,9 @@ use super::constants::*;
 
 pub(super) fn pre_start(
     mut create_player_entity_event_writer: EventWriter<CreatePlayerEntity>,
-    mut player_event_registry: ResMut<PlayerRequestRegistry>,
+    mut player_request_registry: ResMut<PlayerRequestRegistry>,
 ) {
-    let player_request_id = player_event_registry.get_unused_player_request_id();
+    let player_request_id = player_request_registry.get_unused_player_request_id();
 
     create_player_entity_event_writer.send(CreatePlayerEntity {
         player_request_id,
@@ -32,15 +32,41 @@ pub(super) fn pre_start(
 
 pub(super) fn start_phase1(
     mut commands: Commands,
+    mut created_player_entity_event_reader: EventReader<CreatedPlayerEntity>,
     mut upgrade_to_chunk_loader_entity_event_writer: EventWriter<UpgradeToChunkLoaderEntity>,
     player_query: Query<Entity, Added<Player>>,
-    mut chunk_loader_event_registry: ResMut<ChunkLoaderRequestRegistry>,
+    mut chunk_loader_request_registry: ResMut<ChunkLoaderRequestRegistry>,
     entity_registry: Res<EntityRegistry>,
 ) {
-    for player_entity_reference in player_query.iter() {
+    let mut created_player_entity_events = Vec::new();
+    for created_player_entity_event in created_player_entity_event_reader.read() {
+        created_player_entity_events.push(created_player_entity_event);
+    }
+
+    for created_player_entity_event in created_player_entity_events {
         info!("Starting player [Phase 1] ...");
 
-        let chunk_loader_request_id = chunk_loader_event_registry.get_unused_chunk_loader_request_id();
+        let (player_request_id, player_id, player_entity_id, world_position) = match created_player_entity_event {
+            CreatedPlayerEntity::Success { player_request_id, player_id, player_entity_id, world_position } => {
+                (player_request_id, player_id, player_entity_id, world_position)
+            },
+            CreatedPlayerEntity::Failure { player_request_id, world_position } => {
+                panic!("The request for creating the player entity has been cancelled due to the player entity creation failing!");
+            }
+        };
+
+        let player_entity_reference = match entity_registry.get_loaded_entity_reference(player_entity_id) {
+            Some(player_entity_reference) => player_entity_reference,
+            None => {
+                panic!("The request for upgrading the player entity '{:?}' to a chunk loader entity has been cancelled due to the player entity reference not being found!", player_entity_id);
+            }
+        };
+
+        if entity_registry.get_loaded_entity_id(&player_entity_reference).is_none() {
+            panic!("The request for upgrading the player entity '{:?}' to a chunk loader entity has been cancelled due to the player entity id not being found!", player_entity_reference);
+        }
+
+        let chunk_loader_request_id = chunk_loader_request_registry.get_unused_chunk_loader_request_id();
         let player_entity_id = match entity_registry.get_loaded_entity_id(&player_entity_reference) {
             Some(player_entity_id) => player_entity_id,
             None => {
@@ -55,6 +81,9 @@ pub(super) fn start_phase1(
             target_entity_id: player_entity_id,
         });
     }
+
+    for player_entity_reference in player_query.iter() {
+    }
 }
 
 #[allow(clippy::type_complexity)]
@@ -62,7 +91,7 @@ pub(super) fn start_phase2(
     mut upgraded_to_chunk_loader_entity_event_reader: EventReader<UpgradedToChunkLoaderEntity>,
     mut upgrade_to_chunk_actor_entity_event_writer: EventWriter<UpgradeToChunkActorEntity>,
     player_query: Query<(Entity, &Transform), (With<Player>, With<ChunkLoader>)>,
-    mut chunk_actor_event_registry: ResMut<ChunkActorRequestRegistry>,
+    mut chunk_actor_request_registry: ResMut<ChunkActorRequestRegistry>,
     entity_registry: Res<EntityRegistry>,
 ) {
     let mut upgraded_to_chunk_loader_entity_events = Vec::new();
@@ -104,7 +133,7 @@ pub(super) fn start_phase2(
             let player_chunk_position: ChunkPosition = player_chunk_actor_position.into();
             let player_chunk_id: ChunkID = player_chunk_position.into();
 
-            let chunk_actor_request_id = chunk_actor_event_registry.get_unused_chunk_actor_request_id();
+            let chunk_actor_request_id = chunk_actor_request_registry.get_unused_chunk_actor_request_id();
 
             info!("Upgrading player entity '{:?}' to a chunk actor entity in chunk '{:?}' ...", player_entity_id, player_chunk_id);
             upgrade_to_chunk_actor_entity_event_writer.send(UpgradeToChunkActorEntity {
@@ -123,9 +152,9 @@ pub(super) fn start_phase3(
     mut commands: Commands,
     mut upgraded_to_chunk_actor_entity_event_reader: EventReader<UpgradedToChunkActorEntity>,
     mut started_player_event_writer: EventWriter<StartedPlayer>,
-    player_query: Query<(Entity, &Transform, &Player), (With<ChunkLoader>, With<ChunkActor>)>,
+    player_query: Query<(Entity, &Transform, &Player), (With<ChunkLoader>, Without<ChunkActor>)>,
     entity_registry: Res<EntityRegistry>,
-    mut player_event_registry: ResMut<PlayerRequestRegistry>,
+    mut player_request_registry: ResMut<PlayerRequestRegistry>,
 ) {
     let mut upgraded_to_chunk_actor_entity_events = Vec::new();
     for upgraded_to_chunk_actor_entity_event in upgraded_to_chunk_actor_entity_event_reader.read() {
@@ -150,7 +179,7 @@ pub(super) fn start_phase3(
                 Some(player_entity_id) => player_entity_id,
                 None => { 
                     // TODO: Make this better
-                    panic!("Starting the player has been cancelled due to the player entity id not being found!");
+                    panic!("Starting the player has been cancelled due to the player entity '{:?}' id not being found!", player_entity_reference);
                 }
             };
 
@@ -174,7 +203,7 @@ pub(super) fn start_phase3(
                 .insert(ProxyCollider::Circle { radius: 15.0 })
                 .insert(ProxyVelocity::linear(Vec2::new(0.0, 0.0)));
 
-            let player_request_id = player_event_registry.get_unused_player_request_id();
+            let player_request_id = player_request_registry.get_unused_player_request_id();
 
             info!("Successfully started player '{:?}'!", player_entity_id);
 
@@ -226,6 +255,8 @@ pub(super) fn handle_create_player_entity_events(
         info!("Creating player entity '{:?}' at world position '{:?}'...", player_entity_id, world_position);
 
         let player_entity_reference = functions::new_player_entity(&mut commands, player_id, world_position);
+
+        info!("Successfully created player entity '{:?}' at world position '{:?}'!", player_entity_reference, world_position);
 
         entity_registry.load_entity(player_entity_id, player_entity_reference);
         player_registry.load_player(player_id, player_entity_reference);
