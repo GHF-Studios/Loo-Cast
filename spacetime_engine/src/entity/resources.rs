@@ -17,7 +17,7 @@ impl EntityRegistry {
         
         self.registered_entities.insert(entity_id);
 
-        warn!("Registered entity with id: '{:?}'", entity_id);
+        trace!("Registered entity with id: '{:?}'", entity_id);
 
         entity_id
     }
@@ -31,19 +31,23 @@ impl EntityRegistry {
 
         self.registered_entities.extend(entity_ids.iter());
 
+        trace!("Registered entities with ids: '{:?}'", entity_ids);
+
         entity_ids
     }
 
     pub fn unregister_entity(&mut self, entity_id: EntityID) {
         self.registered_entities.retain(|&other_entity_id| entity_id != other_entity_id);
 
-        warn!("Unregistered entity with id: '{:?}'", entity_id);
+        trace!("Unregistered entity with id: '{:?}'", entity_id);
 
         self.recycle_entity_id(entity_id);
     }
 
     pub fn unregister_entities(&mut self, entity_ids: HashSet<EntityID>) {
         self.registered_entities.retain(|&entity_id| !entity_ids.contains(&entity_id));
+
+        trace!("Unregistered entities with ids: '{:?}'", entity_ids);
 
         for entity_id in entity_ids {
             self.recycle_entity_id(entity_id);
@@ -53,23 +57,29 @@ impl EntityRegistry {
     pub fn load_entity(&mut self, entity_id: EntityID, entity_reference: EntityReference) {
         self.loaded_entities.insert(entity_id, entity_reference);
 
-        warn!("Loaded entity reference '{:?}' with id: '{:?}'", entity_reference, entity_id);
+        trace!("Loaded entity reference '{:?}' with id: '{:?}'", entity_reference, entity_id);
     }
 
     pub fn load_entities(&mut self, entities: HashMap<EntityID, EntityReference>) {
-        self.loaded_entities.extend(entities);
+        self.loaded_entities.extend(entities.clone());
+
+        trace!("Loaded entity references '{:?}' with ids: '{:?}'", entities.values(), entities.keys());
     }
 
     pub fn unload_entity(&mut self, entity_id: EntityID) -> Option<EntityReference> {
-        let TEMPORARY = self.loaded_entities.remove(&entity_id);
+        let removed_entity = self.loaded_entities.remove(&entity_id);
 
-        warn!("Unloaded entity with id: '{:?}'", entity_id);
+        trace!("Unloaded entity with id: '{:?}'", entity_id);
 
-        TEMPORARY
+        removed_entity
     }
 
     pub fn unload_entities(&mut self, entity_ids: HashSet<EntityID>) {
-        self.loaded_entities.retain(|&entity_id, _| !entity_ids.contains(&entity_id));
+        for entity_id in entity_ids.clone() {
+            self.loaded_entities.remove(&entity_id);
+        }
+
+        trace!("Unloaded entities with ids: '{:?}'", entity_ids);
     }
 
     pub fn is_entity_registered(&self, entity_id: EntityID) -> bool {

@@ -11,7 +11,7 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // TODO: Take a look at all TODOs outside this file
 
 // Bug fix tasks:
-// TODO: Sometimes when moving too erratically, the player fails to load some chunks, inevitably causing the player to despawn and constituing a bug.
+// TODO: Sometimes when moving too erratically, the player fails to load some chunks, inevitably causing the player to despawn and constituting a bug.
 
 // "Optional" tasks
 // TODO: Bring the quality of the root 'chunk' module up to the standard of it's sub-modules 'loader' and 'actor'  
