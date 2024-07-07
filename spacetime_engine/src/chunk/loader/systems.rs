@@ -18,7 +18,7 @@ pub(in crate) fn start(
     load_chunk_event_writer: EventWriter<LoadChunkEntity>,
     mut started_chunk_loader_event_writer: EventWriter<StartedChunkLoader>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader), Added<ChunkLoader>>,
-    chunk_registry: Res<ChunkRegistry>,
+    mut chunk_registry: ResMut<ChunkRegistry>,
     mut chunk_request_registry: ResMut<ChunkRequestRegistry>,
     mut chunk_loader_registry: ResMut<ChunkLoaderRegistry>,
     mut chunk_loader_request_registry: ResMut<ChunkLoaderRequestRegistry>,
@@ -39,7 +39,7 @@ pub(in crate) fn start(
         create_chunk_event_writer, 
         load_chunk_event_writer, 
         &mut chunk_loader,
-        &chunk_registry, 
+        &mut chunk_registry, 
         &mut chunk_request_registry,
         &detected_chunk_ids,
     );
@@ -61,7 +61,7 @@ pub(in crate) fn update(
     load_chunk_event_writer: EventWriter<LoadChunkEntity>,
     unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
     mut chunk_loader_query: Query<(&Transform, &mut ChunkLoader)>,
-    chunk_registry: Res<ChunkRegistry>,
+    mut chunk_registry: ResMut<ChunkRegistry>,
     mut chunk_request_registry: ResMut<ChunkRequestRegistry>,
     chunk_loader_registry: Res<ChunkLoaderRegistry>,
 ) {
@@ -84,14 +84,22 @@ pub(in crate) fn update(
         old_chunk_ids, 
         unchanged_chunk_ids, 
         new_chunk_ids
-    ) = chunk_functions::categorize_chunks(&chunk_registry, detected_chunk_ids);
+    ) = chunk_functions::categorize_chunks(&mut chunk_registry, detected_chunk_ids);
+
+    if !old_chunk_ids.is_empty() {
+        warn!("Old chunks: {:?}", old_chunk_ids);
+    }
+
+    if !new_chunk_ids.is_empty() {
+        warn!("New chunks: {:?}", new_chunk_ids);
+    }
 
     chunk_functions::update_chunks(
         create_chunk_event_writer, 
         load_chunk_event_writer, 
         unload_chunk_event_writer,
         &mut chunk_loader,
-        &chunk_registry, 
+        &mut chunk_registry, 
         &mut chunk_request_registry,
         old_chunk_ids, 
         new_chunk_ids.clone(), 

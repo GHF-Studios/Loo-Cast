@@ -21,13 +21,6 @@ pub(super) fn handle_create_chunk_entity_events(
     for (chunk_request_id, chunk_id) in chunk_infos {
         info!("Trying to create chunk '{:?}' ...", chunk_id);
 
-        if chunk_registry.is_creating_chunk(chunk_id) {
-            error!("Chunk '{:?}' is already being created!", chunk_id);
-
-            continue;
-        }
-
-        chunk_registry.start_creating_chunk(chunk_id);
         create_chunk_entity_internal_event_writer.send(CreateChunkEntityInternal {
             chunk_request_id,
             chunk_id
@@ -51,13 +44,6 @@ pub(super) fn handle_destroy_chunk_entity_events(
     for (chunk_request_id, chunk_id) in chunk_infos {
         info!("Trying to destroy chunk '{:?}' ...", chunk_id);
 
-        if chunk_registry.is_destroying_chunk(chunk_id) {
-            error!("Chunk '{:?}' is already being destroyed!", chunk_id);
-
-            continue;
-        }
-
-        chunk_registry.start_destroying_chunk(chunk_id);
         destroy_chunk_entity_internal_event_writer.send(DestroyChunkEntityInternal {
             chunk_request_id,
             chunk_id
@@ -81,13 +67,6 @@ pub(super) fn handle_load_chunk_entity_events(
     for (chunk_request_id, chunk_id) in chunk_infos {
         info!("Trying to load chunk '{:?}' ...", chunk_id);
 
-        if chunk_registry.is_loading_chunk(chunk_id) {
-            error!("Chunk '{:?}' is already being loaded!", chunk_id);
-
-            continue;
-        }
-        
-        chunk_registry.start_loading_chunk(chunk_id);
         load_chunk_entity_internal_event_writer.send(LoadChunkEntityInternal { 
             chunk_request_id,
             chunk_id
@@ -111,13 +90,6 @@ pub(super) fn handle_unload_chunk_entity_events(
     for (chunk_request_id, chunk_id) in chunk_infos {
         info!("Trying to unload chunk '{:?}' ...", chunk_id);
 
-        if chunk_registry.is_unloading_chunk(chunk_id) {
-            error!("Chunk '{:?}' is already being unloaded!", chunk_id);
-
-            continue;
-        }
-
-        chunk_registry.start_unloading_chunk(chunk_id);
         unload_chunk_entity_internal_event_writer.send(UnloadChunkEntityInternal { 
             chunk_request_id,
             chunk_id

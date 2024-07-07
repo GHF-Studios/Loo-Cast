@@ -175,7 +175,7 @@ pub(in crate) fn detect_chunks(
 }
 
 pub(in crate) fn categorize_chunks(
-    chunk_registry: &Res<ChunkRegistry>,
+    chunk_registry: &mut ResMut<ChunkRegistry>,
     detected_chunk_ids: Vec<ChunkID>,
 ) -> (Vec<ChunkID>, Vec<ChunkID>, Vec<ChunkID>) {
     let mut old_chunks: Vec<ChunkID> = Vec::new();
@@ -203,7 +203,7 @@ pub(in crate) fn start_chunks(
     mut create_chunk_event_writer: EventWriter<CreateChunkEntity>,
     mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
     chunk_loader: &mut Mut<ChunkLoader>,
-    chunk_registry: &Res<ChunkRegistry>,
+    chunk_registry: &mut ResMut<ChunkRegistry>,
     chunk_request_registry: &mut ResMut<ChunkRequestRegistry>,
     detected_chunk_ids: &Vec<ChunkID>,
 ) {
@@ -225,6 +225,7 @@ pub(in crate) fn start_chunks(
             }
 
             chunk_loader.start_loading_chunk(chunk_id);
+            chunk_registry.start_loading_chunk(chunk_id);
 
             load_chunk_event_writer.send(LoadChunkEntity { 
                 chunk_request_id,
@@ -236,6 +237,7 @@ pub(in crate) fn start_chunks(
             }
 
             chunk_loader.start_creating_chunk(chunk_id);
+            chunk_registry.start_creating_chunk(chunk_id);
 
             create_chunk_event_writer.send(CreateChunkEntity { 
                 chunk_request_id,
@@ -251,7 +253,7 @@ pub(in crate) fn update_chunks(
     mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
     mut unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
     chunk_loader: &mut Mut<ChunkLoader>,
-    chunk_registry: &Res<ChunkRegistry>,
+    chunk_registry: &mut ResMut<ChunkRegistry>,
     chunk_request_registry: &mut ResMut<ChunkRequestRegistry>,
     old_chunk_ids: Vec<ChunkID>,
     new_chunk_ids: Vec<ChunkID>,
@@ -269,6 +271,7 @@ pub(in crate) fn update_chunks(
         }
 
         chunk_loader.start_unloading_chunk(chunk_id);
+        chunk_registry.start_unloading_chunk(chunk_id);
 
         unload_chunk_event_writer.send(UnloadChunkEntity {
             chunk_request_id,
@@ -294,6 +297,7 @@ pub(in crate) fn update_chunks(
             }
 
             chunk_loader.start_loading_chunk(chunk_id);
+            chunk_registry.start_loading_chunk(chunk_id);
 
             load_chunk_event_writer.send(LoadChunkEntity {
                 chunk_request_id,
@@ -305,6 +309,7 @@ pub(in crate) fn update_chunks(
             }
 
             chunk_loader.start_creating_chunk(chunk_id);
+            chunk_registry.start_creating_chunk(chunk_id);
 
             create_chunk_event_writer.send(CreateChunkEntity {
                 chunk_request_id,
