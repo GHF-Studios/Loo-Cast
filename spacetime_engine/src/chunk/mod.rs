@@ -11,8 +11,8 @@ pub mod resources;
 pub(in crate) mod systems;
 
 use actor::ActorPlugin;
-use position::*;
-use id::*;
+use position::PositionPlugin;
+use id::IdPlugin;
 use loader::LoaderPlugin;
 use resources::*;
 use systems::*;

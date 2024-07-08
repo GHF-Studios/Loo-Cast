@@ -198,6 +198,7 @@ pub(in crate) fn categorize_chunks(
     }
 
     let old_chunks = old_chunks.into_iter().filter(|chunk_id| {
+        !chunk_registry.is_chunk_allocated(*chunk_id) ||
         !chunk_registry.is_destroying_chunk(*chunk_id) || 
         !chunk_registry.is_unloading_chunk(*chunk_id) || 
         !chunk_loader.currently_destroying_chunks().contains(chunk_id) || 
@@ -205,6 +206,7 @@ pub(in crate) fn categorize_chunks(
     }).collect::<Vec<_>>();
 
     let new_chunks = new_chunks.into_iter().filter(|chunk_id| {
+        !chunk_registry.is_chunk_allocated(*chunk_id) ||
         !chunk_registry.is_creating_chunk(*chunk_id) || 
         !chunk_registry.is_loading_chunk(*chunk_id) ||
         !chunk_loader.currently_creating_chunks().contains(chunk_id) ||

@@ -9,6 +9,8 @@ use crate::chunk::resources::*;
 use crate::chunk::loader::components::*;
 use crate::chunk::loader::events::*;
 use crate::chunk::functions as chunk_functions;
+use crate::chunk::position::structs::ChunkPosition;
+use crate::math::structs::I16Vec2;
 use super::functions as chunk_loader_functions;
 use super::ChunkLoaderRequestRegistry;
 use crate::entity::resources::EntityRegistry;
@@ -84,6 +86,7 @@ pub(in crate) fn update(
     mut chunk_request_registry: ResMut<ChunkRequestRegistry>,
     chunk_loader_registry: Res<ChunkLoaderRegistry>,
 ) {
+
     let (chunk_loader_transform, mut chunk_loader) = match chunk_loader_query.get_single_mut() {
         Ok((chunk_loader_transform, chunk_loader)) => (chunk_loader_transform, chunk_loader),
         Err(_) => {
