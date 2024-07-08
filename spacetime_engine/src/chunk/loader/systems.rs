@@ -39,21 +39,22 @@ pub(in crate) fn start(
     
     let start_chunk_ids = chunk_functions::detect_chunks(chunk_loader_transform, chunk_loader_load_radius);
 
-    if !start_chunk_ids.is_empty() {
-        error!("Start chunks: {:?}", start_chunk_ids);
-    }
-
-    let mut failed_allocate = false;
+    let mut failed_allocate_single = false;
+    let mut failed_allocate_multiple = false;
     for start_chunk_id in start_chunk_ids.clone() {
         if !chunk_registry.try_allocate_chunk(start_chunk_id) {
             error!("Failed to allocate start chunk '{:?}'!", start_chunk_id);
 
-            failed_allocate = true;
+            if failed_allocate_single {
+                failed_allocate_multiple = true;
+            } else {
+                failed_allocate_single = true;
+            }
         }
     }
 
-    if failed_allocate {
-        panic!("Failed to allocate start chunks!");
+    if failed_allocate_multiple {
+        panic!("Failed to allocate multiple start chunks!");
     }
 
     chunk_functions::start_chunks(
@@ -106,26 +107,42 @@ pub(in crate) fn update(
         old_chunk_ids, 
         unchanged_chunk_ids, 
         new_chunk_ids
-    ) = chunk_functions::categorize_chunks(&mut chunk_registry, &mut chunk_loader, detected_chunk_ids);
+    ) = chunk_functions::categorize_chunks(&mut chunk_registry, &mut chunk_loader, detected_chunk_ids.clone());
 
-    if !old_chunk_ids.is_empty() {
-        error!("Old chunks: {:?}", old_chunk_ids);
-    }
-
-    if !new_chunk_ids.is_empty() {
-        error!("New chunks: {:?}", new_chunk_ids);
-    }
-
+    let mut failed_allocate_single = false;
+    let mut failed_allocate_multiple = false;
     for chunk_id in old_chunk_ids.iter() {
         if !chunk_registry.try_allocate_chunk(*chunk_id) {
             error!("Failed to allocate old chunk '{:?}'!", chunk_id);
+
+            if failed_allocate_single {
+                failed_allocate_multiple = true;
+            } else {
+                failed_allocate_single = true;
+            }
         }
     }
 
+    if failed_allocate_multiple {
+        panic!("Failed to allocate multiple old chunks!");
+    }
+
+    let mut failed_allocate_single = false;
+    let mut failed_allocate_multiple = false;
     for chunk_id in new_chunk_ids.iter() {
         if !chunk_registry.try_allocate_chunk(*chunk_id) {
             error!("Failed to allocate new chunk '{:?}'!", chunk_id);
+
+            if failed_allocate_single {
+                failed_allocate_multiple = true;
+            } else {
+                failed_allocate_single = true;
+            }
         }
+    }
+
+    if failed_allocate_multiple {
+        panic!("Failed to allocate multiple new chunks!");
     }
 
     chunk_functions::update_chunks(

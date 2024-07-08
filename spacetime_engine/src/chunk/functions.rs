@@ -174,6 +174,7 @@ pub(in crate) fn detect_chunks(
     detected_chunk_ids
 }
 
+// TODO: Fix: This function does not yield any new chunks which have previously been created and unloaded
 pub(in crate) fn categorize_chunks(
     chunk_registry: &mut ResMut<ChunkRegistry>,
     chunk_loader: &mut Mut<ChunkLoader>,
@@ -228,8 +229,8 @@ pub(in crate) fn start_chunks(
     chunk_request_registry: &mut ResMut<ChunkRequestRegistry>,
     start_chunk_ids: &Vec<ChunkID>,
 ) {
-    for detected_chunk_id in start_chunk_ids {
-        let chunk_id = *detected_chunk_id;
+    for start_chunk_id in start_chunk_ids {
+        let chunk_id = *start_chunk_id;
         let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
 
         if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
