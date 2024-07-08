@@ -143,11 +143,17 @@ impl ChunkRegistry {
     }
 
     pub fn try_allocate_chunk(&mut self, chunk_id: ChunkID) -> bool {
+        warn!("Trying to allocate chunk '{:?}'", chunk_id);
+
         if !self.allocated_chunks.contains(&chunk_id) {
             self.allocated_chunks.insert(chunk_id);
 
+            warn!("Chunk '{:?}' allocated", chunk_id);
+
             true
         } else {
+            warn!("Chunk '{:?}' is already allocated", chunk_id);
+
             false
         }
     }
@@ -177,11 +183,17 @@ impl ChunkRegistry {
     }
 
     pub fn try_deallocate_chunk(&mut self, chunk_id: ChunkID) -> bool {
+        warn!("Trying to deallocate chunk '{:?}'", chunk_id);
+
         if self.allocated_chunks.contains(&chunk_id) {
             self.allocated_chunks.remove(&chunk_id);
 
+            warn!("Chunk '{:?}' deallocated", chunk_id);
+
             true
         } else {
+            warn!("Chunk '{:?}' is not allocated", chunk_id);
+
             false
         }
     }

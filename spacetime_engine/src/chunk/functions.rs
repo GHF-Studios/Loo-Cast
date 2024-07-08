@@ -199,23 +199,55 @@ pub(in crate) fn categorize_chunks(
     }
 
     let old_chunks = old_chunks.into_iter().filter(|chunk_id| {
-        !(
-            chunk_registry.is_chunk_allocated(*chunk_id) ||
-            chunk_registry.is_destroying_chunk(*chunk_id) || 
-            chunk_registry.is_unloading_chunk(*chunk_id) || 
-            chunk_loader.currently_destroying_chunks().contains(chunk_id) || 
-            chunk_loader.currently_unloading_chunks().contains(chunk_id)
-        )
+        //if chunk_registry.is_chunk_allocated(*chunk_id) {
+        //    error!("Chunk '{:?}' is allocated!", chunk_id);
+//
+        //    return false;
+        //}
+
+        if chunk_registry.is_destroying_chunk(*chunk_id) {
+            error!("Chunk '{:?}' is destroying!", chunk_id);
+
+            return false;
+        }
+
+        if chunk_registry.is_unloading_chunk(*chunk_id) {
+            error!("Chunk '{:?}' is unloading!", chunk_id);
+
+            return false;
+        }
+
+        if chunk_loader.currently_destroying_chunks().contains(chunk_id) {
+            error!("Chunk '{:?}' is currently destroying!", chunk_id);
+
+            return false;
+        }
+
+        if chunk_loader.currently_unloading_chunks().contains(chunk_id) {
+            error!("Chunk '{:?}' is currently unloading!", chunk_id);
+
+            return false;
+        }
+
+        true
+
+        // !(
+        //     chunk_registry.is_chunk_allocated(*chunk_id) ||
+        //     chunk_registry.is_destroying_chunk(*chunk_id) || 
+        //     chunk_registry.is_unloading_chunk(*chunk_id) || 
+        //     chunk_loader.currently_destroying_chunks().contains(chunk_id) || 
+        //     chunk_loader.currently_unloading_chunks().contains(chunk_id)
+        // )
     }).collect::<Vec<_>>();
 
     let new_chunks = new_chunks.into_iter().filter(|chunk_id| {
-        !(
-            chunk_registry.is_chunk_allocated(*chunk_id) ||
-            chunk_registry.is_creating_chunk(*chunk_id) || 
-            chunk_registry.is_loading_chunk(*chunk_id) ||
-            chunk_loader.currently_creating_chunks().contains(chunk_id) ||
-            chunk_loader.currently_loading_chunks().contains(chunk_id)
-        )
+        // !(
+        //     chunk_registry.is_chunk_allocated(*chunk_id) ||
+        //     chunk_registry.is_creating_chunk(*chunk_id) || 
+        //     chunk_registry.is_loading_chunk(*chunk_id) ||
+        //     chunk_loader.currently_creating_chunks().contains(chunk_id) ||
+        //     chunk_loader.currently_loading_chunks().contains(chunk_id)
+        // )
     }).collect::<Vec<_>>();
 
     (old_chunks, unchanged_chunks, new_chunks)
