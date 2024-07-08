@@ -176,6 +176,7 @@ pub(in crate) fn detect_chunks(
 
 pub(in crate) fn categorize_chunks(
     chunk_registry: &mut ResMut<ChunkRegistry>,
+    chunk_loader: &mut Mut<ChunkLoader>,
     detected_chunk_ids: Vec<ChunkID>,
 ) -> (Vec<ChunkID>, Vec<ChunkID>, Vec<ChunkID>) {
     let mut old_chunks: Vec<ChunkID> = Vec::new();
@@ -196,6 +197,20 @@ pub(in crate) fn categorize_chunks(
         }
     }
 
+    let old_chunks = old_chunks.into_iter().filter(|chunk_id| {
+        !chunk_registry.is_destroying_chunk(*chunk_id) || 
+        !chunk_registry.is_unloading_chunk(*chunk_id) || 
+        !chunk_loader.currently_destroying_chunks().contains(chunk_id) || 
+        !chunk_loader.currently_unloading_chunks().contains(chunk_id)
+    }).collect::<Vec<_>>();
+
+    let new_chunks = new_chunks.into_iter().filter(|chunk_id| {
+        !chunk_registry.is_creating_chunk(*chunk_id) || 
+        !chunk_registry.is_loading_chunk(*chunk_id) ||
+        !chunk_loader.currently_creating_chunks().contains(chunk_id) ||
+        !chunk_loader.currently_loading_chunks().contains(chunk_id)
+    }).collect::<Vec<_>>();
+
     (old_chunks, unchanged_chunks, new_chunks)
 }
 
@@ -205,9 +220,9 @@ pub(in crate) fn start_chunks(
     chunk_loader: &mut Mut<ChunkLoader>,
     chunk_registry: &mut ResMut<ChunkRegistry>,
     chunk_request_registry: &mut ResMut<ChunkRequestRegistry>,
-    detected_chunk_ids: &Vec<ChunkID>,
+    start_chunk_ids: &Vec<ChunkID>,
 ) {
-    for detected_chunk_id in detected_chunk_ids {
+    for detected_chunk_id in start_chunk_ids {
         let chunk_id = *detected_chunk_id;
         let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
 

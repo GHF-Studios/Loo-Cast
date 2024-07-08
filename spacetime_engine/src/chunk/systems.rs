@@ -8,7 +8,6 @@ use crate::entity::resources::*;
 pub(super) fn handle_create_chunk_entity_events(
     mut create_chunk_entity_event_reader: EventReader<CreateChunkEntity>,
     mut create_chunk_entity_internal_event_writer: EventWriter<CreateChunkEntityInternal>,
-    mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let mut chunk_infos = Vec::new();
     for create_chunk_entity_event in create_chunk_entity_event_reader.read() {
@@ -31,7 +30,6 @@ pub(super) fn handle_create_chunk_entity_events(
 pub(super) fn handle_destroy_chunk_entity_events(
     mut destroy_chunk_entity_event_reader: EventReader<DestroyChunkEntity>,
     mut destroy_chunk_entity_internal_event_writer: EventWriter<DestroyChunkEntityInternal>,
-    mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let mut chunk_infos = Vec::new();
     for destroy_chunk_entity_event in destroy_chunk_entity_event_reader.read() {
@@ -54,7 +52,6 @@ pub(super) fn handle_destroy_chunk_entity_events(
 pub(super) fn handle_load_chunk_entity_events(
     mut load_chunk_entity_event_reader: EventReader<LoadChunkEntity>,
     mut load_chunk_entity_internal_event_writer: EventWriter<LoadChunkEntityInternal>,
-    mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let mut chunk_infos = Vec::new();
     for load_chunk_entity_event in load_chunk_entity_event_reader.read() {
@@ -77,7 +74,6 @@ pub(super) fn handle_load_chunk_entity_events(
 pub(super) fn handle_unload_chunk_entity_events(
     mut unload_chunk_entity_event_reader: EventReader<UnloadChunkEntity>,
     mut unload_chunk_entity_internal_event_writer: EventWriter<UnloadChunkEntityInternal>,
-    mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let mut chunk_infos = Vec::new();
     for unload_chunk_entity_event in unload_chunk_entity_event_reader.read() {
@@ -367,6 +363,7 @@ pub(super) fn handle_created_chunk_entity_internal_events(
         EventReader<CreatedChunkEntityInternal>,
         EventWriter<CreatedChunkEntity>,
     )>,
+    registry_parameter: &mut SystemState<ResMut<ChunkRegistry>>,
 ) {
     let mut created_chunk_entity_event_reader = event_parameters.get_mut(world).0;
 
@@ -376,17 +373,27 @@ pub(super) fn handle_created_chunk_entity_internal_events(
     }
 
     for created_chunk_entity_event in created_chunk_entity_events {
-        let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-
         match created_chunk_entity_event {
             CreatedChunkEntityInternal::Success { chunk_request_id, chunk_id } => {
                 info!("Chunk '{:?}' has been created successfully!", chunk_id);
+                
+                let mut chunk_registry = registry_parameter.get_mut(world);
+                if !chunk_registry.try_deallocate_chunk(chunk_id) {
+                    error!("Chunk '{:?}' has failed to be deallocated!", chunk_id);
+                }
 
+                let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
                 created_chunk_entity_event_writer.send(CreatedChunkEntity::Success { chunk_request_id, chunk_id });
             },
             CreatedChunkEntityInternal::Failure { chunk_request_id, chunk_id } => {
                 error!("Chunk '{:?}' has failed to be created!", chunk_id);
+                
+                let mut chunk_registry = registry_parameter.get_mut(world);
+                if !chunk_registry.try_deallocate_chunk(chunk_id) {
+                    error!("Chunk '{:?}' has failed to be deallocated!", chunk_id);
+                }
 
+                let mut created_chunk_entity_event_writer = event_parameters.get_mut(world).1;
                 created_chunk_entity_event_writer.send(CreatedChunkEntity::Failure { chunk_request_id, chunk_id });
             },
         }
@@ -399,6 +406,7 @@ pub(super) fn handle_destroyed_chunk_entity_internal_events(
         EventReader<DestroyedChunkEntityInternal>,
         EventWriter<DestroyedChunkEntity>,
     )>,
+    registry_parameter: &mut SystemState<ResMut<ChunkRegistry>>,
 ) {
     let mut destroyed_chunk_entity_event_reader = event_parameters.get_mut(world).0;
 
@@ -408,17 +416,27 @@ pub(super) fn handle_destroyed_chunk_entity_internal_events(
     }
 
     for destroyed_chunk_entity_event in destroyed_chunk_entity_events {
-        let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-
         match destroyed_chunk_entity_event {
             DestroyedChunkEntityInternal::Success { chunk_request_id, chunk_id } => {
                 info!("Chunk '{:?}' has been destroyed successfully!", chunk_id);
 
+                let mut chunk_registry = registry_parameter.get_mut(world);
+                if !chunk_registry.try_deallocate_chunk(chunk_id) {
+                    error!("Chunk '{:?}' has failed to be deallocated!", chunk_id);
+                }
+
+                let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
                 destroyed_chunk_entity_event_writer.send(DestroyedChunkEntity::Success { chunk_request_id, chunk_id });
             },
             DestroyedChunkEntityInternal::Failure { chunk_request_id, chunk_id } => {
                 error!("Chunk '{:?}' has failed to be destroyed!", chunk_id);
 
+                let mut chunk_registry = registry_parameter.get_mut(world);
+                if !chunk_registry.try_deallocate_chunk(chunk_id) {
+                    error!("Chunk '{:?}' has failed to be deallocated!", chunk_id);
+                }
+
+                let mut destroyed_chunk_entity_event_writer = event_parameters.get_mut(world).1;
                 destroyed_chunk_entity_event_writer.send(DestroyedChunkEntity::Failure { chunk_request_id, chunk_id });
             },
         }
@@ -431,6 +449,7 @@ pub(super) fn handle_loaded_chunk_entity_internal_events(
         EventReader<LoadedChunkEntityInternal>,
         EventWriter<LoadedChunkEntity>,
     )>,
+    registry_parameter: &mut SystemState<ResMut<ChunkRegistry>>,
 ) {
     let mut loaded_chunk_entity_event_reader = event_parameters.get_mut(world).0;
 
@@ -440,17 +459,27 @@ pub(super) fn handle_loaded_chunk_entity_internal_events(
     }
 
     for loaded_chunk_entity_event in loaded_chunk_entity_events {
-        let mut loaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-
         match loaded_chunk_entity_event {
             LoadedChunkEntityInternal::Success { chunk_request_id, chunk_id } => {
                 info!("Chunk '{:?}' has been loaded successfully!", chunk_id);
 
+                let mut chunk_registry = registry_parameter.get_mut(world);
+                if !chunk_registry.try_deallocate_chunk(chunk_id) {
+                    error!("Chunk '{:?}' has failed to be deallocated!", chunk_id);
+                }
+
+                let mut loaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
                 loaded_chunk_entity_event_writer.send(LoadedChunkEntity::Success { chunk_request_id, chunk_id });
             },
             LoadedChunkEntityInternal::Failure { chunk_request_id, chunk_id } => {
                 error!("Chunk '{:?}' has failed to be loaded!", chunk_id);
 
+                let mut chunk_registry = registry_parameter.get_mut(world);
+                if !chunk_registry.try_deallocate_chunk(chunk_id) {
+                    error!("Chunk '{:?}' has failed to be deallocated!", chunk_id);
+                }
+
+                let mut loaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
                 loaded_chunk_entity_event_writer.send(LoadedChunkEntity::Failure { chunk_request_id, chunk_id });
             },
         }
@@ -463,6 +492,7 @@ pub(super) fn handle_unloaded_chunk_entity_internal_events(
         EventReader<UnloadedChunkEntityInternal>,
         EventWriter<UnloadedChunkEntity>,
     )>,
+    registry_parameter: &mut SystemState<ResMut<ChunkRegistry>>,
 ) {
     let mut unloaded_chunk_entity_event_reader = event_parameters.get_mut(world).0;
 
@@ -472,17 +502,27 @@ pub(super) fn handle_unloaded_chunk_entity_internal_events(
     }
 
     for unloaded_chunk_entity_event in unloaded_chunk_entity_events {
-        let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
-
         match unloaded_chunk_entity_event {
             UnloadedChunkEntityInternal::Success { chunk_request_id, chunk_id } => {
                 info!("Chunk '{:?}' has been unloaded successfully!", chunk_id);
 
+                let mut chunk_registry = registry_parameter.get_mut(world);
+                if !chunk_registry.try_deallocate_chunk(chunk_id) {
+                    error!("Chunk '{:?}' has failed to be deallocated!", chunk_id);
+                }
+
+                let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
                 unloaded_chunk_entity_event_writer.send(UnloadedChunkEntity::Success { chunk_request_id, chunk_id });
             },
             UnloadedChunkEntityInternal::Failure { chunk_request_id, chunk_id } => {
                 error!("Chunk '{:?}' has failed to be unloaded!", chunk_id);
 
+                let mut chunk_registry = registry_parameter.get_mut(world);
+                if !chunk_registry.try_deallocate_chunk(chunk_id) {
+                    error!("Chunk '{:?}' has failed to be deallocated!", chunk_id);
+                }
+
+                let mut unloaded_chunk_entity_event_writer = event_parameters.get_mut(world).1;
                 unloaded_chunk_entity_event_writer.send(UnloadedChunkEntity::Failure { chunk_request_id, chunk_id });
             }
         }

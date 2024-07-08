@@ -8,6 +8,7 @@ pub(in crate) struct ChunkRegistry {
     registered_chunks: HashSet<ChunkID>,
     loaded_chunks: HashMap<ChunkID, EntityReference>,
     serialized_chunks: HashMap<ChunkID, String>,
+    allocated_chunks: HashSet<ChunkID>,
     currently_creating_chunks: HashSet<ChunkID>,
     currently_destroying_chunks: HashSet<ChunkID>,
     currently_loading_chunks: HashSet<ChunkID>,
@@ -133,6 +134,74 @@ impl ChunkRegistry {
         self.currently_unloading_chunks.retain(|&chunk_id| !chunk_ids.contains(&chunk_id));
     }
 
+    pub fn allocate_chunk(&mut self, chunk_id: ChunkID) {
+        if !self.allocated_chunks.contains(&chunk_id) {
+            self.allocated_chunks.insert(chunk_id);
+        } else {
+            panic!("Chunk with ID {:?} is already allocated", chunk_id);
+        }
+    }
+
+    pub fn try_allocate_chunk(&mut self, chunk_id: ChunkID) -> bool {
+        if !self.allocated_chunks.contains(&chunk_id) {
+            self.allocated_chunks.insert(chunk_id);
+
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn allocate_chunks(&mut self, chunk_ids: HashSet<ChunkID>) {
+        for chunk_id in chunk_ids {
+            self.allocate_chunk(chunk_id);
+        }
+    }
+
+    pub fn try_allocate_chunks(&mut self, chunk_ids: HashSet<ChunkID>) -> bool {
+        for chunk_id in chunk_ids {
+            if !self.try_allocate_chunk(chunk_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn deallocate_chunk(&mut self, chunk_id: ChunkID) {
+        if self.allocated_chunks.contains(&chunk_id) {
+            self.allocated_chunks.remove(&chunk_id);
+        } else {
+            panic!("Chunk with ID {:?} is not allocated", chunk_id);
+        }
+    }
+
+    pub fn try_deallocate_chunk(&mut self, chunk_id: ChunkID) -> bool {
+        if self.allocated_chunks.contains(&chunk_id) {
+            self.allocated_chunks.remove(&chunk_id);
+
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn deallocate_chunks(&mut self, chunk_ids: HashSet<ChunkID>) {
+        for chunk_id in chunk_ids {
+            self.deallocate_chunk(chunk_id);
+        }
+    }
+
+    pub fn try_deallocate_chunks(&mut self, chunk_ids: HashSet<ChunkID>) -> bool {
+        for chunk_id in chunk_ids {
+            if !self.try_deallocate_chunk(chunk_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn is_chunk_registered(&self, chunk_id: ChunkID) -> bool {
         self.registered_chunks.contains(&chunk_id)
     }
@@ -231,6 +300,20 @@ impl ChunkRegistry {
         true
     }
 
+    pub fn is_chunk_allocated(&self, chunk_id: ChunkID) -> bool {
+        self.allocated_chunks.contains(&chunk_id)
+    }
+
+    pub fn are_chunks_allocated(&self, chunk_ids: HashSet<ChunkID>) -> bool {
+        for chunk_id in chunk_ids {
+            if !self.allocated_chunks.contains(&chunk_id) {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn registered_chunks(&self) -> &HashSet<ChunkID> {
         &self.registered_chunks
     }
@@ -285,6 +368,14 @@ impl ChunkRegistry {
 
     pub fn unloading_chunks(&self) -> &HashSet<ChunkID> {
         &self.currently_unloading_chunks
+    }
+
+    pub fn allocated_chunks(&self) -> &HashSet<ChunkID> {
+        &self.allocated_chunks
+    }
+
+    pub fn allocated_chunks_mut(&mut self) -> &mut HashSet<ChunkID> {
+        &mut self.allocated_chunks
     }
 }
 

@@ -1,8 +1,10 @@
+use std::collections::HashSet;
 use std::panic;
 
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use crate::chunk::events::*;
+use crate::chunk::id::structs::ChunkID;
 use crate::chunk::resources::*;
 use crate::chunk::loader::components::*;
 use crate::chunk::loader::events::*;
@@ -33,7 +35,24 @@ pub(in crate) fn start(
     let chunk_loader_id = chunk_loader.id();
     let chunk_loader_load_radius = chunk_loader.load_radius();
     
-    let detected_chunk_ids = chunk_functions::detect_chunks(chunk_loader_transform, chunk_loader_load_radius);
+    let start_chunk_ids = chunk_functions::detect_chunks(chunk_loader_transform, chunk_loader_load_radius);
+
+    if !start_chunk_ids.is_empty() {
+        error!("Start chunks: {:?}", start_chunk_ids);
+    }
+
+    let mut failed_allocate = false;
+    for start_chunk_id in start_chunk_ids.clone() {
+        if !chunk_registry.try_allocate_chunk(start_chunk_id) {
+            error!("Failed to allocate start chunk '{:?}'!", start_chunk_id);
+
+            failed_allocate = true;
+        }
+    }
+
+    if failed_allocate {
+        panic!("Failed to allocate start chunks!");
+    }
 
     chunk_functions::start_chunks(
         create_chunk_event_writer, 
@@ -41,10 +60,10 @@ pub(in crate) fn start(
         &mut chunk_loader,
         &mut chunk_registry, 
         &mut chunk_request_registry,
-        &detected_chunk_ids,
+        &start_chunk_ids,
     );
 
-    *chunk_loader.current_chunk_ids_mut() = detected_chunk_ids;
+    *chunk_loader.current_chunk_ids_mut() = start_chunk_ids;
 
     let chunk_loader_request_id = chunk_loader_request_registry.get_unused_chunk_loader_request_id();
 
@@ -84,14 +103,26 @@ pub(in crate) fn update(
         old_chunk_ids, 
         unchanged_chunk_ids, 
         new_chunk_ids
-    ) = chunk_functions::categorize_chunks(&mut chunk_registry, detected_chunk_ids);
+    ) = chunk_functions::categorize_chunks(&mut chunk_registry, &mut chunk_loader, detected_chunk_ids);
 
     if !old_chunk_ids.is_empty() {
-        warn!("Old chunks: {:?}", old_chunk_ids);
+        error!("Old chunks: {:?}", old_chunk_ids);
     }
 
     if !new_chunk_ids.is_empty() {
-        warn!("New chunks: {:?}", new_chunk_ids);
+        error!("New chunks: {:?}", new_chunk_ids);
+    }
+
+    for chunk_id in old_chunk_ids.iter() {
+        if !chunk_registry.try_allocate_chunk(*chunk_id) {
+            error!("Failed to allocate old chunk '{:?}'!", chunk_id);
+        }
+    }
+
+    for chunk_id in new_chunk_ids.iter() {
+        if !chunk_registry.try_allocate_chunk(*chunk_id) {
+            error!("Failed to allocate new chunk '{:?}'!", chunk_id);
+        }
     }
 
     chunk_functions::update_chunks(
