@@ -197,6 +197,13 @@ pub(in crate) fn categorize_chunks(
         }
     }
 
+    // TODO: Fix bug and remove debug logging
+    // As long as chunks are logged as categorized AND filtered, the filtering is not working as intended
+
+    if !old_chunks.is_empty() || !new_chunks.is_empty() {
+        warn!("Categorized chunks");
+    }
+
     let old_chunks = old_chunks.into_iter().filter(|chunk_id| {
         !chunk_registry.is_chunk_allocated(*chunk_id) ||
         !chunk_registry.is_destroying_chunk(*chunk_id) || 
@@ -212,6 +219,10 @@ pub(in crate) fn categorize_chunks(
         !chunk_loader.currently_creating_chunks().contains(chunk_id) ||
         !chunk_loader.currently_loading_chunks().contains(chunk_id)
     }).collect::<Vec<_>>();
+
+    if !old_chunks.is_empty() || !new_chunks.is_empty() {
+        warn!("Filtered chunks");
+    }
 
     (old_chunks, unchanged_chunks, new_chunks)
 }
