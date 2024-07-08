@@ -198,12 +198,13 @@ pub(in crate) fn categorize_chunks(
         }
     }
 
+    // TODO: Some of these conditions may be causing the issue
     let old_chunks = old_chunks.into_iter().filter(|chunk_id| {
-        //if chunk_registry.is_chunk_allocated(*chunk_id) {
-        //    error!("Chunk '{:?}' is allocated!", chunk_id);
-//
-        //    return false;
-        //}
+        if chunk_registry.is_chunk_allocated(*chunk_id) {
+            error!("Chunk '{:?}' is allocated!", chunk_id);
+
+            return false;
+        }
 
         if chunk_registry.is_destroying_chunk(*chunk_id) {
             error!("Chunk '{:?}' is destroying!", chunk_id);
@@ -240,7 +241,40 @@ pub(in crate) fn categorize_chunks(
         // )
     }).collect::<Vec<_>>();
 
+    // TODO: Some of these conditions may be causing the issue
     let new_chunks = new_chunks.into_iter().filter(|chunk_id| {
+        if chunk_registry.is_chunk_allocated(*chunk_id) {
+            error!("Chunk '{:?}' is allocated!", chunk_id);
+
+            return false;
+        }
+
+        if chunk_registry.is_creating_chunk(*chunk_id) {
+            error!("Chunk '{:?}' is creating!", chunk_id);
+
+            return false;
+        }
+
+        if chunk_registry.is_loading_chunk(*chunk_id) {
+            error!("Chunk '{:?}' is loading!", chunk_id);
+
+            return false;
+        }
+
+        if chunk_loader.currently_creating_chunks().contains(chunk_id) {
+            error!("Chunk '{:?}' is currently creating!", chunk_id);
+
+            return false;
+        }
+
+        if chunk_loader.currently_loading_chunks().contains(chunk_id) {
+            error!("Chunk '{:?}' is currently loading!", chunk_id);
+
+            return false;
+        }
+
+        true
+
         // !(
         //     chunk_registry.is_chunk_allocated(*chunk_id) ||
         //     chunk_registry.is_creating_chunk(*chunk_id) || 
