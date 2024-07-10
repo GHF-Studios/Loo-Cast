@@ -109,42 +109,6 @@ pub(in crate) fn update(
         new_chunk_ids
     ) = chunk_functions::categorize_chunks(&mut chunk_registry, &mut chunk_loader, detected_chunk_ids.clone());
 
-    let mut failed_allocate_single = false;
-    let mut failed_allocate_multiple = false;
-    for chunk_id in old_chunk_ids.iter() {
-        if !chunk_registry.try_allocate_chunk(*chunk_id) {
-            error!("Failed to allocate old chunk '{:?}'!", chunk_id);
-
-            if failed_allocate_single {
-                failed_allocate_multiple = true;
-            } else {
-                failed_allocate_single = true;
-            }
-        }
-    }
-
-    if failed_allocate_multiple {
-        panic!("Failed to allocate multiple old chunks!");
-    }
-
-    let mut failed_allocate_single = false;
-    let mut failed_allocate_multiple = false;
-    for chunk_id in new_chunk_ids.iter() {
-        if !chunk_registry.try_allocate_chunk(*chunk_id) {
-            error!("Failed to allocate new chunk '{:?}'!", chunk_id);
-
-            if failed_allocate_single {
-                failed_allocate_multiple = true;
-            } else {
-                failed_allocate_single = true;
-            }
-        }
-    }
-
-    if failed_allocate_multiple {
-        panic!("Failed to allocate multiple new chunks!");
-    }
-
     chunk_functions::update_chunks(
         create_chunk_event_writer, 
         load_chunk_event_writer, 
@@ -267,8 +231,6 @@ pub(super) fn handle_create_chunk_loader_entity_internal_events(
 
         chunk_loader_registry.stop_creating_chunk_loader(chunk_loader_id);
 
-        info!("Successfully created chunk loader entity '{:?}' at world position '{:?}'!", chunk_loader_entity_id, world_position);
-
         let mut created_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
         created_chunk_loader_entity_event_writer.send(CreatedChunkLoaderEntityInternal::Success {
             chunk_loader_request_id,
@@ -327,8 +289,6 @@ pub(super) fn handle_destroy_chunk_loader_entity_internal_events(
         chunk_loader_registry.unregister_chunk_loader(chunk_loader_id);
 
         chunk_loader_registry.stop_destroying_chunk_loader(chunk_loader_id);
-
-        info!("Successfully destroyed chunk loader '{:?}' entity '{:?}'!", chunk_loader_id, chunk_loader_entity_id);
 
         let mut destroyed_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
         destroyed_chunk_loader_entity_event_writer.send(DestroyedChunkLoaderEntityInternal::Success {
@@ -401,8 +361,6 @@ pub(super) fn handle_upgrade_to_chunk_loader_entity_internal_events(
         let (mut chunk_loader_registry, _) = registry_parameters.get_mut(world);
 
         chunk_loader_registry.load_chunk_loader(chunk_loader_id, chunk_loader_entity_reference);
-
-        info!("Successfully upgraded entity '{:?}' to a chunk loader '{:?}' entity!", target_entity_id, chunk_loader_id);
 
         let mut upgraded_to_chunk_loader_entity_event_writer = event_parameters.get_mut(world).1;
 

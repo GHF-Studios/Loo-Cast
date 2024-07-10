@@ -200,32 +200,32 @@ pub(in crate) fn categorize_chunks(
 
     // TODO: Some of these conditions may be causing the issue
     let old_chunks = old_chunks.into_iter().filter(|chunk_id| {
-        if chunk_registry.is_chunk_allocated(*chunk_id) {
-            error!("Chunk '{:?}' is allocated!", chunk_id);
+        if !chunk_registry.is_chunk_allocated(*chunk_id) {
+            error!("Old chunk '{:?}' is allocated!", chunk_id);
 
             return false;
         }
 
         if chunk_registry.is_destroying_chunk(*chunk_id) {
-            error!("Chunk '{:?}' is destroying!", chunk_id);
+            error!("Old chunk '{:?}' is destroying!", chunk_id);
 
             return false;
         }
 
         if chunk_registry.is_unloading_chunk(*chunk_id) {
-            error!("Chunk '{:?}' is unloading!", chunk_id);
+            error!("Old chunk '{:?}' is unloading!", chunk_id);
 
             return false;
         }
 
         if chunk_loader.currently_destroying_chunks().contains(chunk_id) {
-            error!("Chunk '{:?}' is currently destroying!", chunk_id);
+            error!("Old chunk '{:?}' is currently destroying!", chunk_id);
 
             return false;
         }
 
         if chunk_loader.currently_unloading_chunks().contains(chunk_id) {
-            error!("Chunk '{:?}' is currently unloading!", chunk_id);
+            error!("Old chunk '{:?}' is currently unloading!", chunk_id);
 
             return false;
         }
@@ -244,31 +244,31 @@ pub(in crate) fn categorize_chunks(
     // TODO: Some of these conditions may be causing the issue
     let new_chunks = new_chunks.into_iter().filter(|chunk_id| {
         if chunk_registry.is_chunk_allocated(*chunk_id) {
-            error!("Chunk '{:?}' is allocated!", chunk_id);
+            error!("New chunk '{:?}' is allocated!", chunk_id);
 
             return false;
         }
 
         if chunk_registry.is_creating_chunk(*chunk_id) {
-            error!("Chunk '{:?}' is creating!", chunk_id);
+            error!("New chunk '{:?}' is creating!", chunk_id);
 
             return false;
         }
 
         if chunk_registry.is_loading_chunk(*chunk_id) {
-            error!("Chunk '{:?}' is loading!", chunk_id);
+            error!("New chunk '{:?}' is loading!", chunk_id);
 
             return false;
         }
 
         if chunk_loader.currently_creating_chunks().contains(chunk_id) {
-            error!("Chunk '{:?}' is currently creating!", chunk_id);
+            error!("New chunk '{:?}' is currently creating!", chunk_id);
 
             return false;
         }
 
         if chunk_loader.currently_loading_chunks().contains(chunk_id) {
-            error!("Chunk '{:?}' is currently loading!", chunk_id);
+            error!("New chunk '{:?}' is currently loading!", chunk_id);
 
             return false;
         }
@@ -296,19 +296,27 @@ pub(in crate) fn start_chunks(
     start_chunk_ids: &Vec<ChunkID>,
 ) {
     for start_chunk_id in start_chunk_ids {
+        debug!("Start chunk '{:?}' detected!", start_chunk_id);
+
         let chunk_id = *start_chunk_id;
         let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
 
-        if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
-            continue;
-        }
-
-        if chunk_loader.currently_loading_chunks().contains(&chunk_id) {
-            continue;
-        }
-
         if chunk_registry.is_chunk_registered(chunk_id) {
+            if chunk_loader.currently_loading_chunks().contains(&chunk_id) {
+                debug!("Start chunk '{:?}' is already loading!", chunk_id);
+    
+                continue;
+            }
+
             if chunk_registry.is_loading_chunk(chunk_id) {
+                debug!("Start chunk '{:?}' is already loading!", chunk_id);
+
+                continue;
+            }
+
+            if !chunk_registry.try_allocate_chunk(chunk_id) {
+                error!("Failed to allocate start chunk '{:?}'!", chunk_id);
+    
                 continue;
             }
 
@@ -320,7 +328,21 @@ pub(in crate) fn start_chunks(
                 chunk_id
             });
         } else {
+            if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
+                debug!("Start chunk '{:?}' is already creating!", chunk_id);
+    
+                continue;
+            }
+
             if chunk_registry.is_creating_chunk(chunk_id) {
+                debug!("Start chunk '{:?}' is already creating!", chunk_id);
+
+                continue;
+            }
+
+            if !chunk_registry.try_allocate_chunk(chunk_id) {
+                error!("Failed to allocate start chunk '{:?}'!", chunk_id);
+    
                 continue;
             }
 
@@ -347,14 +369,26 @@ pub(in crate) fn update_chunks(
     new_chunk_ids: Vec<ChunkID>,
 ) {
     for old_chunk_id in old_chunk_ids {
+        debug!("Old chunk '{:?}' detected!", old_chunk_id);
+
         let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
         let chunk_id = old_chunk_id;
 
         if chunk_loader.currently_unloading_chunks().contains(&chunk_id) {
+            debug!("Old chunk '{:?}' is already unloading!", chunk_id);
+
             continue;
         }
 
         if chunk_registry.is_unloading_chunk(chunk_id) {
+            debug!("Old chunk '{:?}' is already unloading!", chunk_id);
+
+            continue;
+        }
+
+        if !chunk_registry.try_allocate_chunk(chunk_id) {
+            error!("Failed to allocate old chunk '{:?}'!", chunk_id);
+
             continue;
         }
 
@@ -368,19 +402,28 @@ pub(in crate) fn update_chunks(
     }
 
     for new_chunk_id in new_chunk_ids.iter() {
+        debug!("New chunk '{:?}' detected!", new_chunk_id);
         let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
         let chunk_id = *new_chunk_id;
-        
-        if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
-            continue;
-        }
 
-        if chunk_loader.currently_loading_chunks().contains(&chunk_id) {
+        if !chunk_registry.try_allocate_chunk(chunk_id) {
+            error!("Failed to allocate new chunk '{:?}'!", chunk_id);
+
             continue;
         }
 
         if chunk_registry.is_chunk_registered(chunk_id) {
+            debug!("New chunk '{:?}' is registered, thus it will be loaded.", chunk_id);
+
+            if chunk_loader.currently_loading_chunks().contains(&chunk_id) {
+                debug!("New chunk '{:?}' is already loading!", chunk_id);
+    
+                continue;
+            }
+
             if chunk_registry.is_loading_chunk(chunk_id) {
+                debug!("New chunk '{:?}' is already loading!", chunk_id);
+
                 continue;
             }
 
@@ -392,7 +435,17 @@ pub(in crate) fn update_chunks(
                 chunk_id
             });
         } else {
+            debug!("New chunk '{:?}' is not registered, thus it will be created.", chunk_id);
+        
+            if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
+                debug!("New chunk '{:?}' is already creating!", chunk_id);
+    
+                continue;
+            }
+
             if chunk_registry.is_creating_chunk(chunk_id) {
+                debug!("New chunk '{:?}' is already creating!", chunk_id);
+
                 continue;
             }
 

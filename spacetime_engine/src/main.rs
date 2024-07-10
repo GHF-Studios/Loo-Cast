@@ -1,6 +1,6 @@
 extern crate spacetime_engine;
 
-use bevy::prelude::*;
+use bevy::{log::LogPlugin, prelude::*};
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
@@ -55,7 +55,11 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(LogPlugin {
+            filter: "info,spacetime_engine=debug".into(),
+            level: bevy::log::Level::INFO,
+            ..Default::default()
+        }))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(SpacetimeEnginePlugins)
         .add_systems(PreStartup, pre_start)
