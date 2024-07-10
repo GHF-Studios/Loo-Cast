@@ -105,6 +105,28 @@ pub(in crate) fn update(
     *chunk_loader.current_chunk_ids_mut() = [unchanged_chunk_ids, new_chunk_ids].concat();
 }
 
+pub(in crate) fn handle_updated_chunks(
+    created_chunk_internal_event_reader: EventReader<CreatedChunkEntityInternal>,
+    loaded_chunk_internal_event_reader: EventReader<LoadedChunkEntityInternal>,
+    unloaded_chunk_internal_event_reader: EventReader<UnloadedChunkEntityInternal>,
+    mut chunk_loader_query: Query<&mut ChunkLoader>,
+    mut chunk_registry: ResMut<ChunkRegistry>,
+) {
+    let mut chunk_loader = match chunk_loader_query.get_single_mut() {
+        Ok(chunk_loader) => chunk_loader,
+        Err(_) => {
+            return;
+        }
+    };
+
+    chunk_functions::handle_updated_chunks(
+        created_chunk_internal_event_reader, 
+        loaded_chunk_internal_event_reader, 
+        unloaded_chunk_internal_event_reader, 
+        &mut chunk_loader, 
+        &mut chunk_registry)
+}
+
 pub(super) fn handle_create_chunk_loader_entity_events(
     mut create_chunk_loader_entity_event_reader: EventReader<CreateChunkLoaderEntity>,
     mut create_chunk_loader_entity_internal_event_writer: EventWriter<CreateChunkLoaderEntityInternal>,
@@ -454,3 +476,4 @@ pub(super) fn handle_upgraded_to_chunk_loader_entity_internal_events(
         }
     }
 }
+

@@ -50,7 +50,8 @@ impl Plugin for LoaderPlugin {
             ))
             .add_systems(Update, (
                 start.before(update), 
-                update, 
+                update.before(handle_updated_chunks), 
+                handle_updated_chunks
             ))
             .add_systems(Update, (
                 handle_create_chunk_loader_entity_events, 

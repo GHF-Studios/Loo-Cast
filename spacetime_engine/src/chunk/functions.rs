@@ -293,13 +293,13 @@ pub(in crate) fn update_chunks(
         let chunk_id = old_chunk_id;
 
         if chunk_loader.currently_unloading_chunks().contains(&chunk_id) {
-            debug!("Old chunk '{:?}' is already unloading!", chunk_id);
+            debug!("Loader: Old chunk '{:?}' is already unloading!", chunk_id);
 
             continue;
         }
 
         if chunk_registry.is_unloading_chunk(chunk_id) {
-            debug!("Old chunk '{:?}' is already unloading!", chunk_id);
+            debug!("Registry: Old chunk '{:?}' is already unloading!", chunk_id);
 
             continue;
         }
@@ -372,6 +372,75 @@ pub(in crate) fn update_chunks(
                 chunk_request_id,
                 chunk_id
             });
+        }
+    }
+}
+
+pub(in crate) fn handle_updated_chunks(
+    mut created_chunk_internal_event_reader: EventReader<CreatedChunkEntityInternal>,
+    mut loaded_chunk_internal_event_reader: EventReader<LoadedChunkEntityInternal>,
+    mut unloaded_chunk_internal_event_reader: EventReader<UnloadedChunkEntityInternal>,
+    chunk_loader: &mut Mut<ChunkLoader>,
+    chunk_registry: &mut ResMut<ChunkRegistry>,
+) {
+    let mut created_chunk_internal_events = Vec::new();
+    for created_chunk_event in created_chunk_internal_event_reader.read() {
+        created_chunk_internal_events.push(created_chunk_event.clone());
+    }
+
+    let mut loaded_chunk_internal_events = Vec::new();
+    for loaded_chunk_event in loaded_chunk_internal_event_reader.read() {
+        loaded_chunk_internal_events.push(loaded_chunk_event.clone());
+    }
+
+    let mut unloaded_chunk_internal_events = Vec::new();
+    for unloaded_chunk_event in unloaded_chunk_internal_event_reader.read() {
+        unloaded_chunk_internal_events.push(unloaded_chunk_event.clone());
+    }
+
+    for created_chunk_internal_event in created_chunk_internal_events {
+        let chunk_id = match created_chunk_internal_event {
+            CreatedChunkEntityInternal::Success { chunk_id, .. } => chunk_id,
+            CreatedChunkEntityInternal::Failure { chunk_id, .. } => chunk_id,
+        };
+
+        if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
+            chunk_loader.stop_creating_chunk(chunk_id);
+        }
+
+        if chunk_registry.is_creating_chunk(chunk_id) {
+            chunk_registry.stop_creating_chunk(chunk_id);
+        }
+    }
+
+    for loaded_chunk_internal_event in loaded_chunk_internal_events {
+        let chunk_id = match loaded_chunk_internal_event {
+            LoadedChunkEntityInternal::Success { chunk_id, .. } => chunk_id,
+            LoadedChunkEntityInternal::Failure { chunk_id, .. } => chunk_id,
+        };
+
+        if chunk_loader.currently_loading_chunks().contains(&chunk_id) {
+            chunk_loader.stop_loading_chunk(chunk_id);
+        }
+
+        if chunk_registry.is_loading_chunk(chunk_id) {
+            chunk_registry.stop_loading_chunk(chunk_id);
+        }
+    }
+
+    for unloaded_chunk_internal_event in unloaded_chunk_internal_events {
+        let chunk_id = match unloaded_chunk_internal_event {
+            UnloadedChunkEntityInternal::Success { chunk_id, .. } => chunk_id,
+            UnloadedChunkEntityInternal::Failure { chunk_id, .. } => chunk_id,
+        
+        };
+
+        if chunk_loader.currently_unloading_chunks().contains(&chunk_id) {
+            chunk_loader.stop_unloading_chunk(chunk_id);
+        }
+
+        if chunk_registry.is_unloading_chunk(chunk_id) {
+            chunk_registry.stop_unloading_chunk(chunk_id);
         }
     }
 }
