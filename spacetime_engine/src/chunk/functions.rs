@@ -198,91 +198,13 @@ pub(in crate) fn categorize_chunks(
         }
     }
 
-    // TODO: Some of these conditions may be causing the issue
-    let old_chunks = old_chunks.into_iter().filter(|chunk_id| {
-        if !chunk_registry.is_chunk_allocated(*chunk_id) {
-            error!("Old chunk '{:?}' is allocated!", chunk_id);
+    let old_chunks = old_chunks.into_iter().filter(|old_chunk_id| {
+        !chunk_registry.is_chunk_allocated(*old_chunk_id)
+    }).collect::<Vec<ChunkID>>();
 
-            return false;
-        }
-
-        if chunk_registry.is_destroying_chunk(*chunk_id) {
-            error!("Old chunk '{:?}' is destroying!", chunk_id);
-
-            return false;
-        }
-
-        if chunk_registry.is_unloading_chunk(*chunk_id) {
-            error!("Old chunk '{:?}' is unloading!", chunk_id);
-
-            return false;
-        }
-
-        if chunk_loader.currently_destroying_chunks().contains(chunk_id) {
-            error!("Old chunk '{:?}' is currently destroying!", chunk_id);
-
-            return false;
-        }
-
-        if chunk_loader.currently_unloading_chunks().contains(chunk_id) {
-            error!("Old chunk '{:?}' is currently unloading!", chunk_id);
-
-            return false;
-        }
-
-        true
-
-        // !(
-        //     chunk_registry.is_chunk_allocated(*chunk_id) ||
-        //     chunk_registry.is_destroying_chunk(*chunk_id) || 
-        //     chunk_registry.is_unloading_chunk(*chunk_id) || 
-        //     chunk_loader.currently_destroying_chunks().contains(chunk_id) || 
-        //     chunk_loader.currently_unloading_chunks().contains(chunk_id)
-        // )
-    }).collect::<Vec<_>>();
-
-    // TODO: Some of these conditions may be causing the issue
-    let new_chunks = new_chunks.into_iter().filter(|chunk_id| {
-        if chunk_registry.is_chunk_allocated(*chunk_id) {
-            error!("New chunk '{:?}' is allocated!", chunk_id);
-
-            return false;
-        }
-
-        if chunk_registry.is_creating_chunk(*chunk_id) {
-            error!("New chunk '{:?}' is creating!", chunk_id);
-
-            return false;
-        }
-
-        if chunk_registry.is_loading_chunk(*chunk_id) {
-            error!("New chunk '{:?}' is loading!", chunk_id);
-
-            return false;
-        }
-
-        if chunk_loader.currently_creating_chunks().contains(chunk_id) {
-            error!("New chunk '{:?}' is currently creating!", chunk_id);
-
-            return false;
-        }
-
-        if chunk_loader.currently_loading_chunks().contains(chunk_id) {
-            error!("New chunk '{:?}' is currently loading!", chunk_id);
-
-            return false;
-        }
-
-        true
-
-        // !(
-        //     chunk_registry.is_chunk_allocated(*chunk_id) ||
-        //     chunk_registry.is_creating_chunk(*chunk_id) || 
-        //     chunk_registry.is_loading_chunk(*chunk_id) ||
-        //     chunk_loader.currently_creating_chunks().contains(chunk_id) ||
-        //     chunk_loader.currently_loading_chunks().contains(chunk_id)
-        // )
-    }).collect::<Vec<_>>();
+    let new_chunks = new_chunks.into_iter().filter(|new_chunk_id| {
+        !chunk_registry.is_chunk_allocated(*new_chunk_id)
+    }).collect::<Vec<ChunkID>>();
 
     (old_chunks, unchanged_chunks, new_chunks)
 }
@@ -315,9 +237,7 @@ pub(in crate) fn start_chunks(
             }
 
             if !chunk_registry.try_allocate_chunk(chunk_id) {
-                error!("Failed to allocate start chunk '{:?}'!", chunk_id);
-    
-                continue;
+                panic!("Failed to allocate start chunk '{:?}'!", chunk_id);
             }
 
             chunk_loader.start_loading_chunk(chunk_id);
@@ -341,9 +261,7 @@ pub(in crate) fn start_chunks(
             }
 
             if !chunk_registry.try_allocate_chunk(chunk_id) {
-                error!("Failed to allocate start chunk '{:?}'!", chunk_id);
-    
-                continue;
+                panic!("Failed to allocate start chunk '{:?}'!", chunk_id);
             }
 
             chunk_loader.start_creating_chunk(chunk_id);
@@ -387,9 +305,7 @@ pub(in crate) fn update_chunks(
         }
 
         if !chunk_registry.try_allocate_chunk(chunk_id) {
-            error!("Failed to allocate old chunk '{:?}'!", chunk_id);
-
-            continue;
+            panic!("Failed to allocate old chunk '{:?}'!", chunk_id);
         }
 
         chunk_loader.start_unloading_chunk(chunk_id);

@@ -39,24 +39,6 @@ pub(in crate) fn start(
     
     let start_chunk_ids = chunk_functions::detect_chunks(chunk_loader_transform, chunk_loader_load_radius);
 
-    let mut failed_allocate_single = false;
-    let mut failed_allocate_multiple = false;
-    for start_chunk_id in start_chunk_ids.clone() {
-        if !chunk_registry.try_allocate_chunk(start_chunk_id) {
-            error!("Failed to allocate start chunk '{:?}'!", start_chunk_id);
-
-            if failed_allocate_single {
-                failed_allocate_multiple = true;
-            } else {
-                failed_allocate_single = true;
-            }
-        }
-    }
-
-    if failed_allocate_multiple {
-        panic!("Failed to allocate multiple start chunks!");
-    }
-
     chunk_functions::start_chunks(
         create_chunk_event_writer, 
         load_chunk_event_writer, 

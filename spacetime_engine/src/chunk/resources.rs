@@ -1,3 +1,4 @@
+use bevy::log::tracing_subscriber::field::debug;
 use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
 use crate::chunk::id::structs::*;
@@ -137,22 +138,21 @@ impl ChunkRegistry {
     pub fn allocate_chunk(&mut self, chunk_id: ChunkID) {
         if !self.allocated_chunks.contains(&chunk_id) {
             self.allocated_chunks.insert(chunk_id);
+
+            debug!("Allocated chunk '{:?}'", chunk_id);
         } else {
             panic!("Chunk with ID {:?} is already allocated", chunk_id);
         }
     }
 
     pub fn try_allocate_chunk(&mut self, chunk_id: ChunkID) -> bool {
-        warn!("Trying to allocate chunk '{:?}'", chunk_id);
-
         if !self.allocated_chunks.contains(&chunk_id) {
             self.allocated_chunks.insert(chunk_id);
-
-            warn!("Chunk '{:?}' allocated", chunk_id);
+            
+            debug!("Successfully allocated chunk '{:?}'", chunk_id);
 
             true
         } else {
-            warn!("Chunk '{:?}' is already allocated", chunk_id);
 
             false
         }
@@ -177,23 +177,21 @@ impl ChunkRegistry {
     pub fn deallocate_chunk(&mut self, chunk_id: ChunkID) {
         if self.allocated_chunks.contains(&chunk_id) {
             self.allocated_chunks.remove(&chunk_id);
+
+            debug!("Deallocated chunk '{:?}'", chunk_id);
         } else {
             panic!("Chunk with ID {:?} is not allocated", chunk_id);
         }
     }
 
     pub fn try_deallocate_chunk(&mut self, chunk_id: ChunkID) -> bool {
-        warn!("Trying to deallocate chunk '{:?}'", chunk_id);
-
         if self.allocated_chunks.contains(&chunk_id) {
             self.allocated_chunks.remove(&chunk_id);
 
-            warn!("Chunk '{:?}' deallocated", chunk_id);
+            debug!("Successfully deallocated chunk '{:?}'", chunk_id);
 
             true
         } else {
-            warn!("Chunk '{:?}' is not allocated", chunk_id);
-
             false
         }
     }
