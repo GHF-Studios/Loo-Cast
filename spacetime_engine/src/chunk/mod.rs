@@ -8,6 +8,7 @@ pub mod constants;
 pub mod events;
 pub(in crate) mod functions;
 pub mod resources;
+pub mod structs;
 pub(in crate) mod systems;
 
 use actor::ActorPlugin;

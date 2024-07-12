@@ -17,19 +17,52 @@ pub(super) struct DespawnChunkActorInfo {
 }
 
 #[derive(Clone, Debug)]
-pub struct ChunkActorCreateRequest {
+pub(super) struct ChunkActorRequest {
     pub chunk_actor_request_id: ChunkActorRequestID,
-    pub chunk_actor_id: ChunkActorID,
-    pub chunk_actor_entity_id: EntityID,
-    pub chunk_id: ChunkID,
-    pub world_position: Vec2,
+    pub target_entity_id: EntityID,
 }
 
 #[derive(Clone, Debug)]
-pub struct ChunkActorUpgradeRequest {
-    pub chunk_actor_request_id: ChunkActorRequestID,
-    pub chunk_actor_id: ChunkActorID,
-    pub target_entity_id: EntityID,
-    pub chunk_id: ChunkID,
-    pub world_position: Vec2,
+pub(super) struct InternalChunkActorRequest {
+    chunk_actor_request_id: ChunkActorRequestID,
+    chunk_actor_id: ChunkActorID,
+    chunk_actor_entity_id: EntityID,
+    chunk_id: ChunkID,
+    world_position: Vec2,
+}
+
+#[derive(Clone, Debug)]
+pub(super) enum InternalChunkActorResponse {
+    Success {
+        chunk_actor_request_id: ChunkActorRequestID,
+        chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
+    },
+    Failure {
+        chunk_actor_request_id: ChunkActorRequestID,
+        chunk_actor_id: ChunkActorID,
+        target_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub(super) enum ChunkActorResponse {
+    Success {
+        chunk_actor_request_id: ChunkActorRequestID,
+        chunk_actor_id: ChunkActorID,
+        chunk_actor_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
+    },
+    Failure {
+        chunk_actor_request_id: ChunkActorRequestID,
+        chunk_actor_id: ChunkActorID,
+        target_entity_id: EntityID,
+        chunk_id: ChunkID,
+        world_position: Vec2,
+    },
 }

@@ -7,28 +7,25 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 // NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
+// Mandatory tasks
+// TODO: Implement downgrading of chunks, chunk actors, chunk loaders, players, and any other custom components
+    // TODO: Implement downgrading of chunks
+    // TODO: Implement downgrading of chunk actors
+    // TODO: Implement downgrading of chunk loaders
+    // TODO: Implement downgrading of players
+// TODO: Implement general entity creation and destruction capabilities, including consequential events as a means of hooking into these chunk operations taking place
+    // TODO: Implement entity creation
+    // TODO: Implement entity destruction
+// TODO: Completely remove creation and destruction capabilities of chunk actors, chunk loaders, players, chunks, 
+//       and any other component that is in any way dependent on others or needs to be registered or loaded in any capacity
+// TODO: Integrate Entity Creation/Destruction capabilities and Chunk UpgradeTo/DowngradeFrom capabilities to spawn/update/despawn entities. 
+
 // Repeating tasks:
 // TODO: Take a look at all TODOs outside this file
 
 // "Optional" tasks
 // TODO: Bring the quality of the root 'chunk' module up to the standard of it's sub-modules 'loader' and 'actor' and vice versa  
 // TODO: Add good logging everywhere for all events and handlers and shit
-
-
-
-
-
-// Mandatory tasks
-// TODO: Implement downgrading of chunk actors, chunk loaders, players, and any other complex components
-// TODO: Implement general entity creation and destruction capabilities, including consequential events as a means of hooking into these chunk operations taking place
-// TODO: Completely remove creation and destruction capabilities of chunk actors, chunk loaders, players, chunks, 
-//       and any other component that is in any way dependent on others or needs to be registered or loaded in any capacity
-// TODO: Integrate Entity Creation/Destruction capabilities and Chunk UpgradeTo/DowngradeFrom capabilities to spawn/update/despawn entities. 
-
-
-
-
-
 
 // TODO: Implement entity creation/destruction/upgrading/downgrading for all entity "types" like Player, Chunk, etc.
 // TODO: Ensure that destroyed entities always have all component properly unloaded and unregistered;

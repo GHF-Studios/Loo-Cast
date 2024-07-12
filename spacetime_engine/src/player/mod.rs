@@ -8,6 +8,7 @@ pub mod constants;
 pub mod events;
 pub mod functions;
 pub mod resources;
+pub mod structs;
 pub(in crate) mod systems;
 
 use creative::*;
