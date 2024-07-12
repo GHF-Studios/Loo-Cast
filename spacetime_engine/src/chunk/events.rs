@@ -1,146 +1,56 @@
 use bevy::prelude::*;
-use crate::chunk::id::structs::*;
+use super::structs::*;
 
 #[derive(Debug, Clone, Event)]
-pub struct CreateChunkEntity {
-    pub chunk_request_id: ChunkRequestID,
-    pub chunk_id: ChunkID,
-}
+pub struct CreateChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct DestroyChunkEntity {
-    pub chunk_request_id: ChunkRequestID,
-    pub chunk_id: ChunkID,
-}
+pub struct DestroyChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct LoadChunkEntity {
-    pub chunk_request_id: ChunkRequestID,
-    pub chunk_id: ChunkID,
-}
+pub struct LoadChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct UnloadChunkEntity {
-    pub chunk_request_id: ChunkRequestID,
-    pub chunk_id: ChunkID,
-}
+pub struct UnloadChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub enum CreatedChunkEntity {
-    Success {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    },
-    Failure {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    }
-}
+pub(super) struct CreateChunkInternal(pub InternalChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub enum DestroyedChunkEntity {
-    Success {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    },
-    Failure {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    }
-}
+pub(super) struct DestroyChunkInternal(pub InternalChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub enum LoadedChunkEntity {
-    Success {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    },
-    Failure {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    }
-}
+pub(super) struct LoadChunkInternal(pub InternalChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub enum UnloadedChunkEntity {
-    Success {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    },
-    Failure {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    }
-}
+pub(super) struct UnloadChunkInternal(pub InternalChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(in crate) struct CreateChunkEntityInternal {
-    pub chunk_request_id: ChunkRequestID,
-    pub chunk_id: ChunkID,
-}
+pub(crate) struct CreatedChunkInternal(pub InternalChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(in crate) struct DestroyChunkEntityInternal {
-    pub chunk_request_id: ChunkRequestID,
-    pub chunk_id: ChunkID,
-}
+pub(crate) struct DestroyedChunkInternal(pub InternalChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(in crate) struct LoadChunkEntityInternal {
-    pub chunk_request_id: ChunkRequestID,
-    pub chunk_id: ChunkID,
-}
+pub(crate) struct LoadedChunkInternal(pub InternalChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(in crate) struct UnloadChunkEntityInternal {
-    pub chunk_request_id: ChunkRequestID,
-    pub chunk_id: ChunkID,
-}
+pub(crate) struct UnloadedChunkInternal(pub InternalChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(in crate) enum CreatedChunkEntityInternal {
-    Success {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    },
-    Failure {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    }
-}
+pub struct CreatedChunk(pub ChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(in crate) enum DestroyedChunkEntityInternal {
-    Success {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    },
-    Failure {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    }
-}
+pub struct DestroyedChunk(pub ChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(in crate) enum LoadedChunkEntityInternal {
-    Success {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    },
-    Failure {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    }
-}
+pub struct LoadedChunk(pub ChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(in crate) enum UnloadedChunkEntityInternal {
-    Success {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    },
-    Failure {
-        chunk_request_id: ChunkRequestID,
-        chunk_id: ChunkID,
-    }
-}
+pub struct UnloadedChunk(pub ChunkResponse);
+
+#[derive(Debug, Clone, Event)]
+pub struct StartedChunk(pub ChunkResponse);
+
+#[derive(Debug, Clone, Event)]
+pub struct StoppedChunk(pub ChunkResponse);

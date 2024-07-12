@@ -1,132 +1,32 @@
 use bevy::prelude::*;
-use crate::entity::id::structs::EntityID;
-use super::id::structs::*;
+use super::structs::*;
 
 #[derive(Debug, Clone, Event)]
-pub struct CreateChunkLoaderEntity {
-    pub chunk_loader_request_id: ChunkLoaderRequestID,
-    pub world_position: Vec2
-}
+pub struct UpgradeToChunkLoader(pub ChunkLoaderRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct DestroyChunkLoaderEntity {
-    pub chunk_loader_request_id: ChunkLoaderRequestID,
-    pub chunk_loader_id: ChunkLoaderID
-}
+pub struct DowngradeFromChunkLoader(pub ChunkLoaderRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradeToChunkLoaderEntity {
-    pub chunk_loader_request_id: ChunkLoaderRequestID,
-    pub target_entity_id: EntityID,
-}
+pub(super) struct UpgradeToChunkLoaderInternal(pub InternalChunkLoaderRequest);
 
 #[derive(Debug, Clone, Event)]
-pub enum StartedChunkLoader {
-    Success {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID
-    },
-    Failure {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID
-    }
-}
+pub(super) struct DowngradeFromChunkLoaderInternal(pub InternalChunkLoaderRequest);
 
 #[derive(Debug, Clone, Event)]
-pub enum CreatedChunkLoaderEntity {
-    Success {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID,
-        chunk_loader_entity_id: EntityID,
-        world_position: Vec2
-    },
-    Failure {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        world_position: Vec2
-    }
-}
+pub(crate) struct UpgradedToChunkLoaderInternal(pub InternalChunkLoaderResponse);
 
 #[derive(Debug, Clone, Event)]
-pub enum DestroyedChunkLoaderEntity {
-    Success {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID
-    },
-    Failure {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID
-    }
-}
+pub(crate) struct DowngradedFromChunkLoaderInternal(pub InternalChunkLoaderResponse);
 
 #[derive(Debug, Clone, Event)]
-pub enum UpgradedToChunkLoaderEntity {
-    Success {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID,
-        target_entity_id: EntityID,
-    },
-    Failure {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        target_entity_id: EntityID
-    }
-}
+pub struct UpgradedToChunkLoader(pub ChunkLoaderResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct CreateChunkLoaderEntityInternal {
-    pub chunk_loader_request_id: ChunkLoaderRequestID,
-    pub chunk_loader_id: ChunkLoaderID,
-    pub chunk_loader_entity_id: EntityID,
-    pub world_position: Vec2
-}
+pub struct DowngradedFromChunkLoader(pub ChunkLoaderResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct DestroyChunkLoaderEntityInternal {
-    pub chunk_loader_request_id: ChunkLoaderRequestID,
-    pub chunk_loader_id: ChunkLoaderID
-}
+pub struct StartedChunkLoader(pub ChunkLoaderResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradeToChunkLoaderEntityInternal {
-    pub chunk_loader_request_id: ChunkLoaderRequestID,
-    pub chunk_loader_id: ChunkLoaderID,
-    pub target_entity_id: EntityID,
-}
-
-#[derive(Debug, Clone, Event)]
-pub enum CreatedChunkLoaderEntityInternal {
-    Success {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID,
-        chunk_loader_entity_id: EntityID,
-        world_position: Vec2
-    },
-    Failure {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        world_position: Vec2
-    }
-}
-
-#[derive(Debug, Clone, Event)]
-pub enum DestroyedChunkLoaderEntityInternal {
-    Success {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID
-    },
-    Failure {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID
-    }
-}
-
-#[derive(Debug, Clone, Event)]
-pub enum UpgradedToChunkLoaderEntityInternal {
-    Success {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID,
-        target_entity_id: EntityID,
-    },
-    Failure {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        target_entity_id: EntityID
-    }
-}
+pub struct StoppedChunkLoader(pub ChunkLoaderResponse);
