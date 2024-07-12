@@ -10,15 +10,26 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // Repeating tasks:
 // TODO: Take a look at all TODOs outside this file
 
-// Bug fix tasks:
-// TODO: Sometimes when moving too erratically, the player fails to load some chunks, inevitably causing the player to despawn and constituting a bug.
-
 // "Optional" tasks
-// TODO: Bring the quality of the root 'chunk' module up to the standard of it's sub-modules 'loader' and 'actor'  
+// TODO: Bring the quality of the root 'chunk' module up to the standard of it's sub-modules 'loader' and 'actor' and vice versa  
 // TODO: Add good logging everywhere for all events and handlers and shit
 
+
+
+
+
 // Mandatory tasks
-// TODO: Implement downgrading of chunks, chunk actors, chunk loaders, players, etc.
+// TODO: Implement downgrading of chunk actors, chunk loaders, players, and any other complex components
+// TODO: Implement general entity creation and destruction capabilities, including consequential events as a means of hooking into these chunk operations taking place
+// TODO: Completely remove creation and destruction capabilities of chunk actors, chunk loaders, players, chunks, 
+//       and any other component that is in any way dependent on others or needs to be registered or loaded in any capacity
+// TODO: Integrate Entity Creation/Destruction capabilities and Chunk UpgradeTo/DowngradeFrom capabilities to spawn/update/despawn entities. 
+
+
+
+
+
+
 // TODO: Implement entity creation/destruction/upgrading/downgrading for all entity "types" like Player, Chunk, etc.
 // TODO: Ensure that destroyed entities always have all component properly unloaded and unregistered;
 //       like have some way to notify the associated systems to downgrade the entity until we are left with a barebones entity that we can safely despawn

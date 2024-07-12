@@ -102,6 +102,8 @@ pub(in crate) fn serialize_chunk(
     )>,
     chunk_id: ChunkID
 ) -> String {
+    debug!("Serializing chunk '{:?}'...", chunk_id);
+    
     let mut entities = world
             .query::<(Entity, &ChunkActor)>()
             .iter(world)
@@ -174,10 +176,8 @@ pub(in crate) fn detect_chunks(
     detected_chunk_ids
 }
 
-// TODO: Fix: This function does not yield any new chunks which have previously been created and unloaded
 pub(in crate) fn categorize_chunks(
     chunk_registry: &mut ResMut<ChunkRegistry>,
-    chunk_loader: &mut Mut<ChunkLoader>,
     detected_chunk_ids: Vec<ChunkID>,
 ) -> (Vec<ChunkID>, Vec<ChunkID>, Vec<ChunkID>) {
     let mut old_chunks: Vec<ChunkID> = Vec::new();

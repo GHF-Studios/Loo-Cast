@@ -1,16 +1,12 @@
-use std::collections::HashSet;
 use std::panic;
 
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use crate::chunk::events::*;
-use crate::chunk::id::structs::ChunkID;
 use crate::chunk::resources::*;
 use crate::chunk::loader::components::*;
 use crate::chunk::loader::events::*;
 use crate::chunk::functions as chunk_functions;
-use crate::chunk::position::structs::ChunkPosition;
-use crate::math::structs::I16Vec2;
 use super::functions as chunk_loader_functions;
 use super::ChunkLoaderRequestRegistry;
 use crate::entity::resources::EntityRegistry;
@@ -89,7 +85,7 @@ pub(in crate) fn update(
         old_chunk_ids, 
         unchanged_chunk_ids, 
         new_chunk_ids
-    ) = chunk_functions::categorize_chunks(&mut chunk_registry, &mut chunk_loader, detected_chunk_ids.clone());
+    ) = chunk_functions::categorize_chunks(&mut chunk_registry, detected_chunk_ids.clone());
 
     chunk_functions::update_chunks(
         create_chunk_event_writer, 

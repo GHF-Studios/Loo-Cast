@@ -122,9 +122,6 @@ pub(super) fn start_phase2(
             };
 
             if player_entity_id != *target_entity_id {
-                // TODO: Remove this debug message
-                warn!("Skipping player entity '{:?}' because it does not match the target entity id '{:?}' ...", player_entity_id, target_entity_id);
-
                 continue;
             }
 
