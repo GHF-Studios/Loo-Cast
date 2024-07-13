@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::chunk::actor::id::structs::ChunkActorRequestID;
 
-use super::structs::PlayerID;
+use super::id::structs::PlayerID;
 
 #[derive(Component, Debug, Reflect)]
 #[reflect(Component)]

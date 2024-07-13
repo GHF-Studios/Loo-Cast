@@ -13,6 +13,23 @@ use spacetime_engine::SpacetimeEnginePlugins;
     // TODO: Implement downgrading of chunk actors
     // TODO: Implement downgrading of chunk loaders
     // TODO: Implement downgrading of players
+
+    
+
+// Okay so I completely rewrote the events and request/response structs/enums for the chunk, chunk actor, chunk loader, player, and entity modules.
+// Here is todo list
+// First things first:
+    // TODO: Refactor the entity event handler systems (and other related entity systems) to use the new entity events and request/response structs/enums
+    // TODO: Integrate those entity events into the chunk events
+// After that:
+    // TODO: Integrate the entity events into the player events
+    // TODO: Integrate the entity events into the chunk loader events
+    // TODO: Integrate the entity events into the chunk actor events
+// Finally:
+    // TODO: Start the game and see if everything works as expected
+
+
+
 // TODO: Implement general entity creation and destruction capabilities, including consequential events as a means of hooking into these chunk operations taking place
     // TODO: Implement entity creation
     // TODO: Implement entity destruction

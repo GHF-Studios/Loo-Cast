@@ -1,7 +1,10 @@
 pub mod id;
 
+pub mod events;
 pub mod resources;
 pub mod types;
+pub mod structs;
+pub mod systems;
 
 use resources::*;
 use bevy::prelude::*;
