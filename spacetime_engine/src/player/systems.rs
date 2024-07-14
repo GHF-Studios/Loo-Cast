@@ -33,7 +33,7 @@ pub(super) fn pre_start(
 pub(super) fn start_phase1(
     mut commands: Commands,
     mut created_player_entity_event_reader: EventReader<CreatedPlayerEntity>,
-    mut upgrade_to_chunk_loader_entity_event_writer: EventWriter<UpgradeToChunkLoaderEntity>,
+    mut promote__chunk_loader_entity_event_writer: EventWriter<PromoteToChunkLoaderEntity>,
     player_query: Query<Entity, Added<Player>>,
     mut chunk_loader_request_registry: ResMut<ChunkLoaderRequestRegistry>,
     entity_registry: Res<EntityRegistry>,
@@ -76,7 +76,7 @@ pub(super) fn start_phase1(
         };
 
         info!("Upgrading player '{:?}' to a chunk loader entity ...", player_entity_id);
-        upgrade_to_chunk_loader_entity_event_writer.send(UpgradeToChunkLoaderEntity {
+        promote__chunk_loader_entity_event_writer.send(PromoteToChunkLoaderEntity {
             chunk_loader_request_id,
             target_entity_id: player_entity_id,
         });
@@ -88,27 +88,27 @@ pub(super) fn start_phase1(
 
 #[allow(clippy::type_complexity)]
 pub(super) fn start_phase2(
-    mut upgraded_to_chunk_loader_entity_event_reader: EventReader<UpgradedToChunkLoaderEntity>,
-    mut upgrade_to_chunk_actor_entity_event_writer: EventWriter<UpgradeToChunkActorEntity>,
+    mut promoted_to_chunk_loader_entity_event_reader: EventReader<PromotedToChunkLoaderEntity>,
+    mut promote__chunk_actor_entity_event_writer: EventWriter<PromoteToChunkActorEntity>,
     player_query: Query<(Entity, &Transform), (With<Player>, With<ChunkLoader>)>,
     mut chunk_actor_request_registry: ResMut<ChunkActorRequestRegistry>,
     entity_registry: Res<EntityRegistry>,
 ) {
-    let mut upgraded_to_chunk_loader_entity_events = Vec::new();
-    for upgraded_to_chunk_loader_entity_event in upgraded_to_chunk_loader_entity_event_reader.read() {
-        upgraded_to_chunk_loader_entity_events.push(upgraded_to_chunk_loader_entity_event);
+    let mut promoted_to_chunk_loader_entity_events = Vec::new();
+    for promoted_to_chunk_loader_entity_event in promoted_to_chunk_loader_entity_event_reader.read() {
+        promoted_to_chunk_loader_entity_events.push(promoted_to_chunk_loader_entity_event);
     }
 
-    'outer: for upgraded_to_chunk_loader_entity_event in upgraded_to_chunk_loader_entity_events {
+    'outer: for promoted_to_chunk_loader_entity_event in promoted_to_chunk_loader_entity_events {
         info!("Starting player [Phase 2] ...");
 
-        let (_, _, target_entity_id) = match upgraded_to_chunk_loader_entity_event {
-            UpgradedToChunkLoaderEntity::Success { chunk_loader_request_id, chunk_loader_id, target_entity_id } => {
+        let (_, _, target_entity_id) = match promoted_to_chunk_loader_entity_event {
+            PromotedToChunkLoaderEntity::Success { chunk_loader_request_id, chunk_loader_id, target_entity_id } => {
                 (chunk_loader_request_id, chunk_loader_id, target_entity_id)
             },
-            UpgradedToChunkLoaderEntity::Failure { target_entity_id, .. } => {
+            PromotedToChunkLoaderEntity::Failure { target_entity_id, .. } => {
                 // TODO: Make this better
-                panic!("The request for upgrading the player entity '{:?}' to a chunk loader entity has been cancelled due to the upgrade failing!", target_entity_id);
+                panic!("The request for upgrading the player entity '{:?}' to a chunk loader entity has been cancelled due to the promote failing!", target_entity_id);
             }
         };
 
@@ -133,7 +133,7 @@ pub(super) fn start_phase2(
             let chunk_actor_request_id = chunk_actor_request_registry.get_unused_chunk_actor_request_id();
 
             info!("Upgrading player entity '{:?}' to a chunk actor entity in chunk '{:?}' ...", player_entity_id, player_chunk_id);
-            upgrade_to_chunk_actor_entity_event_writer.send(UpgradeToChunkActorEntity {
+            promote__chunk_actor_entity_event_writer.send(PromoteToChunkActorEntity {
                 chunk_actor_request_id,
                 target_entity_id: player_entity_id,
             });
@@ -147,27 +147,27 @@ pub(super) fn start_phase2(
 
 pub(super) fn start_phase3(
     mut commands: Commands,
-    mut upgraded_to_chunk_actor_entity_event_reader: EventReader<UpgradedToChunkActorEntity>,
+    mut promoted_to_chunk_actor_entity_event_reader: EventReader<PromotedToChunkActorEntity>,
     mut started_player_event_writer: EventWriter<StartedPlayer>,
     player_query: Query<(Entity, &Transform, &Player), (With<ChunkLoader>, With<ChunkActor>)>,
     entity_registry: Res<EntityRegistry>,
     mut player_request_registry: ResMut<PlayerRequestRegistry>,
 ) {
-    let mut upgraded_to_chunk_actor_entity_events = Vec::new();
-    for upgraded_to_chunk_actor_entity_event in upgraded_to_chunk_actor_entity_event_reader.read() {
-        upgraded_to_chunk_actor_entity_events.push(upgraded_to_chunk_actor_entity_event);
+    let mut promoted_to_chunk_actor_entity_events = Vec::new();
+    for promoted_to_chunk_actor_entity_event in promoted_to_chunk_actor_entity_event_reader.read() {
+        promoted_to_chunk_actor_entity_events.push(promoted_to_chunk_actor_entity_event);
     }
 
-    'outer: for upgraded_to_chunk_actor_entity_event in upgraded_to_chunk_actor_entity_events {
+    'outer: for promoted_to_chunk_actor_entity_event in promoted_to_chunk_actor_entity_events {
         info!("Starting player [Phase 3] ...");
 
-        let (_, _, target_entity_id, _) = match upgraded_to_chunk_actor_entity_event { 
-            UpgradedToChunkActorEntity::Success { chunk_actor_request_id, chunk_actor_id, target_entity_id, chunk_id, world_position: _ } => {
+        let (_, _, target_entity_id, _) = match promoted_to_chunk_actor_entity_event { 
+            PromotedToChunkActorEntity::Success { chunk_actor_request_id, chunk_actor_id, target_entity_id, chunk_id, world_position: _ } => {
                 (chunk_actor_request_id, chunk_actor_id, target_entity_id, chunk_id)
             },
-            UpgradedToChunkActorEntity::Failure { target_entity_id, .. } => {
+            PromotedToChunkActorEntity::Failure { target_entity_id, .. } => {
                 // TODO: Make this better
-                panic!("The request for upgrading the player entity '{:?}' to a chunk actor entity has been cancelled due to the upgrade failing!", target_entity_id);
+                panic!("The request for upgrading the player entity '{:?}' to a chunk actor entity has been cancelled due to the promote failing!", target_entity_id);
             }
         };
 
@@ -326,24 +326,24 @@ pub(super) fn handle_destroy_player_entity_events(
     }
 }
 
-pub(super) fn handle_upgrade_to_player_entity_events(
+pub(super) fn handle_promote__player_entity_events(
     mut commands: Commands,
-    mut upgrade_to_player_entity_event_reader: EventReader<UpgradeToPlayerEntity>,
-    mut upgraded_to_player_entity_event_writer: EventWriter<UpgradedToPlayerEntity>,
+    mut promote__player_entity_event_reader: EventReader<PromoteToPlayerEntity>,
+    mut promoted_to_player_entity_event_writer: EventWriter<PromotedToPlayerEntity>,
     mut player_registry: ResMut<PlayerRegistry>,
     entity_registry: Res<EntityRegistry>,
     mut ineligible_entity_query_0: Query<Entity, Without<Transform>>,
     mut ineligible_entity_query_1: Query<Entity, With<Player>>,
     mut eligible_entity_query: Query<Entity, (With<Transform>, Without<Player>)>,
 ) {
-    let mut upgrade_to_player_entity_events = Vec::new();
-    for upgrade_to_player_entity_event in upgrade_to_player_entity_event_reader.read() {
-        upgrade_to_player_entity_events.push(upgrade_to_player_entity_event);
+    let mut promote__player_entity_events = Vec::new();
+    for promote__player_entity_event in promote__player_entity_event_reader.read() {
+        promote__player_entity_events.push(promote__player_entity_event);
     }
 
-    for upgrade_to_player_entity_event in upgrade_to_player_entity_events {
-        let player_request_id = upgrade_to_player_entity_event.player_request_id;
-        let target_entity_id = upgrade_to_player_entity_event.target_entity_id;
+    for promote__player_entity_event in promote__player_entity_events {
+        let player_request_id = promote__player_entity_event.player_request_id;
+        let target_entity_id = promote__player_entity_event.target_entity_id;
         let player_id = player_registry.register_player();
 
         info!("Upgrading entity '{:?}' to a player entity '{:?}'...", target_entity_id, player_id);
@@ -355,7 +355,7 @@ pub(super) fn handle_upgrade_to_player_entity_events(
 
                 player_registry.unregister_player(player_id);
 
-                upgraded_to_player_entity_event_writer.send(UpgradedToPlayerEntity::Failure {
+                promoted_to_player_entity_event_writer.send(PromotedToPlayerEntity::Failure {
                     player_request_id,
                     target_entity_id,
                 });
@@ -364,7 +364,7 @@ pub(super) fn handle_upgrade_to_player_entity_events(
             }
         };
 
-        let player_entity_reference = match functions::upgrade_to_player_entity(
+        let player_entity_reference = match functions::promote__player_entity(
             &mut commands, 
             player_id, 
             target_entity_reference,
@@ -374,11 +374,11 @@ pub(super) fn handle_upgrade_to_player_entity_events(
         ) {
             Ok(player_entity_reference) => player_entity_reference,
             Err(_) => {
-                error!("The request for upgrading entity '{:?}' to a player entity has been cancelled due to the upgrade failing!", target_entity_id);
+                error!("The request for upgrading entity '{:?}' to a player entity has been cancelled due to the promote failing!", target_entity_id);
 
                 player_registry.unregister_player(player_id);
 
-                upgraded_to_player_entity_event_writer.send(UpgradedToPlayerEntity::Failure {
+                promoted_to_player_entity_event_writer.send(PromotedToPlayerEntity::Failure {
                     player_request_id,
                     target_entity_id,
                 });
@@ -390,7 +390,7 @@ pub(super) fn handle_upgrade_to_player_entity_events(
 
         player_registry.load_player(player_id, player_entity_reference);
 
-        upgraded_to_player_entity_event_writer.send(UpgradedToPlayerEntity::Success {
+        promoted_to_player_entity_event_writer.send(PromotedToPlayerEntity::Success {
             player_request_id,
             player_id,
             target_entity_id,

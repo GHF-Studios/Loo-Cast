@@ -21,7 +21,7 @@ pub(super) fn new_player_entity(
     player_entity
 }
 
-pub(super) fn upgrade_to_player_entity(
+pub(super) fn promote__player_entity(
     commands: &mut Commands, 
     player_id: PlayerID, 
     target_entity_reference: Entity,

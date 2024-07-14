@@ -48,9 +48,3 @@ pub struct LoadedChunk(pub ChunkResponse);
 
 #[derive(Debug, Clone, Event)]
 pub struct UnloadedChunk(pub ChunkResponse);
-
-#[derive(Debug, Clone, Event)]
-pub struct StartedChunk(pub ChunkResponse);
-
-#[derive(Debug, Clone, Event)]
-pub struct StoppedChunk(pub ChunkResponse);

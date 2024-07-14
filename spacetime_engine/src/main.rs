@@ -35,7 +35,7 @@ use spacetime_engine::SpacetimeEnginePlugins;
     // TODO: Implement entity destruction
 // TODO: Completely remove creation and destruction capabilities of chunk actors, chunk loaders, players, chunks, 
 //       and any other component that is in any way dependent on others or needs to be registered or loaded in any capacity
-// TODO: Integrate Entity Creation/Destruction capabilities and Chunk UpgradeTo/DowngradeFrom capabilities to spawn/update/despawn entities. 
+// TODO: Integrate Entity Creation/Destruction capabilities and Chunk PromoteTo/DemoteFrom capabilities to spawn/update/despawn entities. 
 
 // Repeating tasks:
 // TODO: Take a look at all TODOs outside this file
@@ -46,7 +46,7 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 // TODO: Implement entity creation/destruction/upgrading/downgrading for all entity "types" like Player, Chunk, etc.
 // TODO: Ensure that destroyed entities always have all component properly unloaded and unregistered;
-//       like have some way to notify the associated systems to downgrade the entity until we are left with a barebones entity that we can safely despawn
+//       like have some way to notify the associated systems to demote the entity until we are left with a barebones entity that we can safely despawn
 //       instead of just rawdogging it and immediately deleting the entity from existence without notifying any registries and whatnot (which is bad, duh)
 //       This is very apparent when the player despawns (which currently happens when you move about too erratically),
 //       as the chunk loader component of the player never properly disposes of the remaining loaded chunks and makes them be loaded forever

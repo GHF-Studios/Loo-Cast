@@ -22,9 +22,9 @@ use super::DestroyChunkActorEntityInternal;
 use super::DestroyedChunkActorEntity;
 use super::DestroyedChunkActorEntityInternal;
 use super::StartedChunkActor;
-use super::UpgradeToChunkActorEntity;
-use super::UpgradedToChunkActorEntity;
-use super::UpgradedToChunkActorEntityInternal;
+use super::PromoteToChunkActorEntity;
+use super::PromotedToChunkActorEntity;
+use super::PromotedToChunkActorEntityInternal;
 
 pub(super) fn start(
     mut started_chunk_actor_event_writer: EventWriter<StartedChunkActor>,
@@ -178,33 +178,33 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
     }
 }
 
-pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
-    mut upgrade_to_chunk_actor_entity_event_reader: EventReader<UpgradeToChunkActorEntity>,
+pub(super) fn handle_promote__chunk_actor_entity_events(
+    mut promote__chunk_actor_entity_event_reader: EventReader<PromoteToChunkActorEntity>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
     entity_registry: Res<EntityRegistry>,
     target_entity_query: Query<&Transform, Without<ChunkActor>>,
 ) {
-    let mut upgrade_to_chunk_actor_entity_events = Vec::new();
-    for upgrade_to_chunk_actor_entity_event in upgrade_to_chunk_actor_entity_event_reader.read() {
-        upgrade_to_chunk_actor_entity_events.push(upgrade_to_chunk_actor_entity_event.clone());
+    let mut promote__chunk_actor_entity_events = Vec::new();
+    for promote__chunk_actor_entity_event in promote__chunk_actor_entity_event_reader.read() {
+        promote__chunk_actor_entity_events.push(promote__chunk_actor_entity_event.clone());
     }
 
-    for upgrade_to_chunk_actor_entity_event in upgrade_to_chunk_actor_entity_events {
+    for promote__chunk_actor_entity_event in promote__chunk_actor_entity_events {
         let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
-        let chunk_actor_request_id = upgrade_to_chunk_actor_entity_event.chunk_actor_request_id;
-        let target_entity_id = upgrade_to_chunk_actor_entity_event.target_entity_id;
+        let chunk_actor_request_id = promote__chunk_actor_entity_event.chunk_actor_request_id;
+        let target_entity_id = promote__chunk_actor_entity_event.target_entity_id;
 
         let (chunk_id, world_position) = {
-            let target_entity_reference = match entity_registry.get_loaded_entity_reference(&upgrade_to_chunk_actor_entity_event.target_entity_id) {
+            let target_entity_reference = match entity_registry.get_loaded_entity_reference(&promote__chunk_actor_entity_event.target_entity_id) {
                 Some(target_entity_reference) => target_entity_reference,
                 None => {
-                    panic!("The target entity '{:?}' either does not exist or does not have a transform component!", upgrade_to_chunk_actor_entity_event.target_entity_id);
+                    panic!("The target entity '{:?}' either does not exist or does not have a transform component!", promote__chunk_actor_entity_event.target_entity_id);
                 }
             };
             let target_transform = match target_entity_query.get(target_entity_reference) {
                 Ok(target_transform) => target_transform,
                 Err(_) => {
-                    panic!("The target entity '{:?}' either does not exist or does not have a transform component!", upgrade_to_chunk_actor_entity_event.target_entity_id);
+                    panic!("The target entity '{:?}' either does not exist or does not have a transform component!", promote__chunk_actor_entity_event.target_entity_id);
                 }
             };
 
@@ -216,7 +216,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_events(
             (chunk_id, world_position)
         };
 
-        info!("Trying to upgrade entity '{:?}' to a chunk actor entity ...", target_entity_id);
+        info!("Trying to promote entity '{:?}' to a chunk actor entity ...", target_entity_id);
 
         chunk_actor_registry.start_upgrading_to_chunk_actor(ChunkActorUpgradeRequest {
             chunk_actor_request_id,
@@ -575,12 +575,12 @@ pub(super) fn handle_destroy_chunk_actor_entity_internal_events(
     }
 }
 
-pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
+pub(super) fn handle_promote__chunk_actor_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
         EventReader<CreatedChunkEntity>,
         EventReader<LoadedChunkEntity>,
-        EventWriter<UpgradedToChunkActorEntityInternal>,
+        EventWriter<PromotedToChunkActorEntityInternal>,
     )>,
     registry_parameters: &mut SystemState<(
         Res<ChunkRegistry>,
@@ -588,13 +588,13 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
         ResMut<EntityRegistry>,
     )>,
 ) {
-    let mut remaining_chunk_actor_upgrade_requests = {
+    let mut remaining_chunk_actor_promote_requests = {
         let (_, chunk_actor_registry, _) = registry_parameters.get_mut(world);
 
-        chunk_actor_registry.upgrade_to_chunk_actor_requests().clone()
+        chunk_actor_registry.promote__chunk_actor_requests().clone()
     };
 
-    if remaining_chunk_actor_upgrade_requests.is_empty() {
+    if remaining_chunk_actor_promote_requests.is_empty() {
         return;
     }
 
@@ -611,23 +611,23 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
                 (chunk_request_id, chunk_id)
             },
             CreatedChunkEntity::Failure { chunk_id, .. } => {
-                let requests = remaining_chunk_actor_upgrade_requests.clone();
-                for (_, chunk_actor_upgrade_request) in requests {
-                    if chunk_actor_upgrade_request.chunk_id == chunk_id {
-                        let chunk_actor_request_id = chunk_actor_upgrade_request.chunk_actor_request_id;
-                        let chunk_actor_id = chunk_actor_upgrade_request.chunk_actor_id;
-                        let target_entity_id = chunk_actor_upgrade_request.target_entity_id;
-                        let world_position = chunk_actor_upgrade_request.world_position;
+                let requests = remaining_chunk_actor_promote_requests.clone();
+                for (_, chunk_actor_promote_request) in requests {
+                    if chunk_actor_promote_request.chunk_id == chunk_id {
+                        let chunk_actor_request_id = chunk_actor_promote_request.chunk_actor_request_id;
+                        let chunk_actor_id = chunk_actor_promote_request.chunk_actor_id;
+                        let target_entity_id = chunk_actor_promote_request.target_entity_id;
+                        let world_position = chunk_actor_promote_request.world_position;
 
-                        error!("Failed to upgrade entity '{:?}' to a chunk actor '{:?}' at world position '{:?}' due to a chunk '{:?}' creation failure!", target_entity_id, chunk_actor_id, world_position, chunk_id);
+                        error!("Failed to promote entity '{:?}' to a chunk actor '{:?}' at world position '{:?}' due to a chunk '{:?}' creation failure!", target_entity_id, chunk_actor_id, world_position, chunk_id);
 
-                        remaining_chunk_actor_upgrade_requests.retain(|other_request_id, _| chunk_actor_request_id != *other_request_id);
+                        remaining_chunk_actor_promote_requests.retain(|other_request_id, _| chunk_actor_request_id != *other_request_id);
 
                         let mut chunk_actor_registry = registry_parameters.get_mut(world).1;
                         chunk_actor_registry.stop_upgrading_to_chunk_actor(chunk_actor_id, chunk_actor_request_id);
 
-                        let mut upgraded_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
-                        upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Failure {
+                        let mut promoted_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
+                        promoted_to_chunk_actor_entity_event_writer.send(PromotedToChunkActorEntityInternal::Failure {
                             chunk_actor_request_id,
                             chunk_actor_id,
                             target_entity_id,
@@ -641,15 +641,15 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
             }
         };
 
-        let requests = remaining_chunk_actor_upgrade_requests.clone();
+        let requests = remaining_chunk_actor_promote_requests.clone();
 
-        for (_, chunk_actor_upgrade_request) in requests {
-            if chunk_actor_upgrade_request.chunk_id == chunk_id {
-                let chunk_actor_request_id = chunk_actor_upgrade_request.chunk_actor_request_id;
-                let chunk_actor_id = chunk_actor_upgrade_request.chunk_actor_id;
-                let target_entity_id = chunk_actor_upgrade_request.target_entity_id;
-                let chunk_id = chunk_actor_upgrade_request.chunk_id;
-                let world_position = chunk_actor_upgrade_request.world_position;
+        for (_, chunk_actor_promote_request) in requests {
+            if chunk_actor_promote_request.chunk_id == chunk_id {
+                let chunk_actor_request_id = chunk_actor_promote_request.chunk_actor_request_id;
+                let chunk_actor_id = chunk_actor_promote_request.chunk_actor_id;
+                let target_entity_id = chunk_actor_promote_request.target_entity_id;
+                let chunk_id = chunk_actor_promote_request.chunk_id;
+                let world_position = chunk_actor_promote_request.world_position;
 
                 let (chunk_registry, _, _) = registry_parameters.get_mut(world);
 
@@ -685,7 +685,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
                 let mut ineligible_entity_query_1 = world.query_filtered::<Entity, With<ChunkActor>>();
                 let mut eligible_entity_query = world.query_filtered::<Entity, (With<Transform>, Without<ChunkActor>)>();
 
-                let chunk_actor_entity_reference = match functions::upgrade_to_chunk_actor_entity(
+                let chunk_actor_entity_reference = match functions::promote__chunk_actor_entity(
                     world, 
                     chunk_actor_id, 
                     chunk_id, 
@@ -704,14 +704,14 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
 
                 chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
                 
-                info!("Successfully upgraded entity '{:?}, {:?}' to a chunk actor '{:?}' at world position '{:?}'!", target_entity_id, chunk_actor_entity_reference, chunk_actor_id, world_position);
+                info!("Successfully promoted entity '{:?}, {:?}' to a chunk actor '{:?}' at world position '{:?}'!", target_entity_id, chunk_actor_entity_reference, chunk_actor_id, world_position);
             
-                remaining_chunk_actor_upgrade_requests.retain(|other_request_id, _| chunk_actor_request_id != *other_request_id);
+                remaining_chunk_actor_promote_requests.retain(|other_request_id, _| chunk_actor_request_id != *other_request_id);
 
                 chunk_actor_registry.stop_upgrading_to_chunk_actor(chunk_actor_id, chunk_actor_request_id);
             
-                let mut upgraded_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
-                upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Success {
+                let mut promoted_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
+                promoted_to_chunk_actor_entity_event_writer.send(PromotedToChunkActorEntityInternal::Success {
                     chunk_actor_request_id,
                     chunk_actor_id,
                     chunk_actor_entity_id: target_entity_id,
@@ -735,23 +735,23 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
                 (chunk_request_id, chunk_id)
             },
             LoadedChunkEntity::Failure { chunk_id, .. } => {
-                let requests = remaining_chunk_actor_upgrade_requests.clone();
-                for (_, chunk_actor_upgrade_request) in requests {
-                    if chunk_actor_upgrade_request.chunk_id == chunk_id {
-                        let chunk_actor_request_id = chunk_actor_upgrade_request.chunk_actor_request_id;
-                        let chunk_actor_id = chunk_actor_upgrade_request.chunk_actor_id;
-                        let target_entity_id = chunk_actor_upgrade_request.target_entity_id;
-                        let world_position = chunk_actor_upgrade_request.world_position;
+                let requests = remaining_chunk_actor_promote_requests.clone();
+                for (_, chunk_actor_promote_request) in requests {
+                    if chunk_actor_promote_request.chunk_id == chunk_id {
+                        let chunk_actor_request_id = chunk_actor_promote_request.chunk_actor_request_id;
+                        let chunk_actor_id = chunk_actor_promote_request.chunk_actor_id;
+                        let target_entity_id = chunk_actor_promote_request.target_entity_id;
+                        let world_position = chunk_actor_promote_request.world_position;
 
-                        error!("Failed to upgrade entity '{:?}' to a chunk actor '{:?}' at world position '{:?}' due to a chunk '{:?}' loading failure!", chunk_actor_id, target_entity_id, world_position, chunk_id);
+                        error!("Failed to promote entity '{:?}' to a chunk actor '{:?}' at world position '{:?}' due to a chunk '{:?}' loading failure!", chunk_actor_id, target_entity_id, world_position, chunk_id);
 
-                        remaining_chunk_actor_upgrade_requests.retain(|other, _| chunk_actor_request_id != *other);
+                        remaining_chunk_actor_promote_requests.retain(|other, _| chunk_actor_request_id != *other);
 
                         let mut chunk_actor_registry = registry_parameters.get_mut(world).1;
                         chunk_actor_registry.stop_upgrading_to_chunk_actor(chunk_actor_id, chunk_actor_request_id);
 
-                        let mut upgraded_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
-                        upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Failure {
+                        let mut promoted_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
+                        promoted_to_chunk_actor_entity_event_writer.send(PromotedToChunkActorEntityInternal::Failure {
                             chunk_actor_request_id,
                             chunk_actor_id,
                             target_entity_id,
@@ -765,15 +765,15 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
             }
         };
 
-        let requests = remaining_chunk_actor_upgrade_requests.clone();
+        let requests = remaining_chunk_actor_promote_requests.clone();
 
-        for (_, chunk_actor_upgrade_request) in requests {
-            if chunk_actor_upgrade_request.chunk_id == chunk_id {
-                let chunk_actor_request_id = chunk_actor_upgrade_request.chunk_actor_request_id;
-                let chunk_actor_id = chunk_actor_upgrade_request.chunk_actor_id;
-                let target_entity_id = chunk_actor_upgrade_request.target_entity_id;
-                let chunk_id = chunk_actor_upgrade_request.chunk_id;
-                let world_position = chunk_actor_upgrade_request.world_position;
+        for (_, chunk_actor_promote_request) in requests {
+            if chunk_actor_promote_request.chunk_id == chunk_id {
+                let chunk_actor_request_id = chunk_actor_promote_request.chunk_actor_request_id;
+                let chunk_actor_id = chunk_actor_promote_request.chunk_actor_id;
+                let target_entity_id = chunk_actor_promote_request.target_entity_id;
+                let chunk_id = chunk_actor_promote_request.chunk_id;
+                let world_position = chunk_actor_promote_request.world_position;
 
                 let (chunk_registry, _, _) = registry_parameters.get_mut(world);
 
@@ -808,7 +808,7 @@ pub(super) fn handle_upgrade_to_chunk_actor_entity_internal_events(
                 info!("Successfully created chunk actor entity '{:?}' at world position '{:?}'!", target_entity_id, world_position);
             
                 let mut created_chunk_actor_entity_event_writer = event_parameters.get_mut(world).2;
-                created_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntityInternal::Success {
+                created_chunk_actor_entity_event_writer.send(PromotedToChunkActorEntityInternal::Success {
                     chunk_actor_request_id,
                     chunk_actor_id,
                     chunk_actor_entity_id: target_entity_id,
@@ -932,34 +932,34 @@ pub(super) fn handle_destroyed_chunk_actor_entity_internal_events(
     }
 }
 
-pub(super) fn handle_upgraded_to_chunk_actor_entity_internal_events(
+pub(super) fn handle_promoted_to_chunk_actor_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
-        EventReader<UpgradedToChunkActorEntityInternal>,
-        EventWriter<UpgradedToChunkActorEntity>,
+        EventReader<PromotedToChunkActorEntityInternal>,
+        EventWriter<PromotedToChunkActorEntity>,
     )>,
 ) {
-    let mut upgraded_to_chunk_actor_entity_event_reader = event_parameters.get_mut(world).0;
+    let mut promoted_to_chunk_actor_entity_event_reader = event_parameters.get_mut(world).0;
 
-    let mut upgraded_to_chunk_actor_entity_events: Vec<UpgradedToChunkActorEntityInternal> = Vec::new();
-    for upgraded_to_chunk_actor_entity_event in upgraded_to_chunk_actor_entity_event_reader.read() {
-        upgraded_to_chunk_actor_entity_events.push(upgraded_to_chunk_actor_entity_event.clone());
+    let mut promoted_to_chunk_actor_entity_events: Vec<PromotedToChunkActorEntityInternal> = Vec::new();
+    for promoted_to_chunk_actor_entity_event in promoted_to_chunk_actor_entity_event_reader.read() {
+        promoted_to_chunk_actor_entity_events.push(promoted_to_chunk_actor_entity_event.clone());
     }
 
-    for upgraded_to_chunk_actor_entity_event in upgraded_to_chunk_actor_entity_events {
-        let mut upgraded_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
+    for promoted_to_chunk_actor_entity_event in promoted_to_chunk_actor_entity_events {
+        let mut promoted_to_chunk_actor_entity_event_writer = event_parameters.get_mut(world).1;
 
-        match upgraded_to_chunk_actor_entity_event {
-            UpgradedToChunkActorEntityInternal::Success {
+        match promoted_to_chunk_actor_entity_event {
+            PromotedToChunkActorEntityInternal::Success {
                 chunk_actor_request_id,
                 chunk_actor_id,
                 chunk_actor_entity_id,
                 chunk_id,
                 world_position
             } => {
-                info!("Successfully upgraded entity '{:?}' to a chunk actor entity!", chunk_actor_entity_id);
+                info!("Successfully promoted entity '{:?}' to a chunk actor entity!", chunk_actor_entity_id);
 
-                upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Success {
+                promoted_to_chunk_actor_entity_event_writer.send(PromotedToChunkActorEntity::Success {
                     chunk_actor_request_id,
                     chunk_actor_id,
                     target_entity_id: chunk_actor_entity_id,
@@ -967,16 +967,16 @@ pub(super) fn handle_upgraded_to_chunk_actor_entity_internal_events(
                     world_position
                 });
             },
-            UpgradedToChunkActorEntityInternal::Failure {
+            PromotedToChunkActorEntityInternal::Failure {
                 chunk_actor_request_id,
                 chunk_actor_id,
                 target_entity_id,
                 chunk_id,
                 world_position
             } => {
-                error!("Failed to upgrade entity '{:?}' to a chunk actor entity!", target_entity_id);
+                error!("Failed to promote entity '{:?}' to a chunk actor entity!", target_entity_id);
 
-                upgraded_to_chunk_actor_entity_event_writer.send(UpgradedToChunkActorEntity::Failure {
+                promoted_to_chunk_actor_entity_event_writer.send(PromotedToChunkActorEntity::Failure {
                     chunk_actor_request_id,
                     chunk_actor_id,
                     target_entity_id,

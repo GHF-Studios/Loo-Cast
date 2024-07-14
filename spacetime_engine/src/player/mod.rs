@@ -27,11 +27,11 @@ impl Plugin for PlayerPlugin {
         app
             .add_event::<CreatePlayerEntity>()
             .add_event::<DestroyPlayerEntity>()
-            .add_event::<UpgradeToPlayerEntity>()
+            .add_event::<PromoteToPlayerEntity>()
             .add_event::<StartedPlayer>()
             .add_event::<CreatedPlayerEntity>()
             .add_event::<DestroyedPlayerEntity>()
-            .add_event::<UpgradedToPlayerEntity>()
+            .add_event::<PromotedToPlayerEntity>()
             .add_plugins(CreativePlugin)
             .add_plugins(IDPlugin)
             .add_plugins(MovementPlugin)
@@ -46,7 +46,7 @@ impl Plugin for PlayerPlugin {
                 change_player_chunk_load_radius,
                 handle_create_player_entity_events,
                 handle_destroy_player_entity_events,
-                handle_upgrade_to_player_entity_events,
+                handle_promote__player_entity_events,
             ))
             .register_type::<components::Player>();
     }

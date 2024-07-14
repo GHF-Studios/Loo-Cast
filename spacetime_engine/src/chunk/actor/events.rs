@@ -2,31 +2,25 @@ use bevy::prelude::*;
 use super::structs::*;
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradeToChunkActor(pub ChunkActorRequest);
+pub struct PromoteToChunkActor(pub ChunkActorRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct DowngradeFromChunkActor(pub ChunkActorRequest);
+pub struct DemoteFromChunkActor(pub ChunkActorRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradeToChunkActorInternal(pub InternalChunkActorRequest);
+pub struct PromoteToChunkActorInternal(pub InternalChunkActorRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct DowngradeFromChunkActorInternal(pub InternalChunkActorRequest);
+pub struct DemoteFromChunkActorInternal(pub InternalChunkActorRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradedToChunkActorInternal(pub InternalChunkActorResponse);
+pub struct PromotedToChunkActorInternal(pub InternalChunkActorResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct DowngradedFromChunkActorInternal(pub InternalChunkActorResponse);
+pub struct DemotedFromChunkActorInternal(pub InternalChunkActorResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradedToChunkActor(pub ChunkActorResponse);
+pub struct PromotedToChunkActor(pub ChunkActorResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct DowngradedFromChunkActor(pub ChunkActorResponse);
-
-#[derive(Debug, Clone, Event)]
-pub struct StartedChunkActor(pub ChunkActorResponse);
-
-#[derive(Debug, Clone, Event)]
-pub struct StoppedChunkActor(pub ChunkActorResponse);
+pub struct DemotedFromChunkActor(pub ChunkActorResponse);

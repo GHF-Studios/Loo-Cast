@@ -1,30 +1,37 @@
 use bevy::prelude::*;
 use super::structs::*;
 
+// prom0te and dem0te and prm0ted and dem0ted are not yet found and replaced
+
+// API Operations
+/// API Request to promote an entity to a player
+/// 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradeToPlayer(pub PlayerRequest);
+pub struct PromoteToPlayer(pub PlayerRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct DowngradeFromPlayer(pub PlayerRequest);
+pub struct DemoteFromPlayer(pub PlayerRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(super) struct UpgradeToPlayerInternal(pub InternalPlayerRequest);
+pub(super) struct PromoteToPlayerInternal(pub InternalPlayerRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(super) struct DowngradeFromPlayerInternal(pub InternalPlayerRequest);
+pub(super) struct DemoteFromPlayerInternal(pub InternalPlayerRequest);
+
+// API Responses
+#[derive(Debug, Clone, Event)]
+pub(crate) struct PromotedToPlayerInternal(pub InternalPlayerResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(crate) struct UpgradedToPlayerInternal(pub InternalPlayerResponse);
+pub(crate) struct DemotedFromPlayerInternal(pub InternalPlayerResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(crate) struct DowngradedFromPlayerInternal(pub InternalPlayerResponse);
+pub struct PromotedToPlayer(pub PlayerResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradedToPlayer(pub PlayerResponse);
+pub struct DemotedFromPlayer(pub PlayerResponse);
 
-#[derive(Debug, Clone, Event)]
-pub struct DowngradedFromPlayer(pub PlayerResponse);
-
+// Lifecycle Operations
 #[derive(Debug, Clone, Event)]
 pub struct StartedPlayer(pub PlayerResponse);
 

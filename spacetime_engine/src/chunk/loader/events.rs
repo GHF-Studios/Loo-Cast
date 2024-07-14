@@ -2,31 +2,25 @@ use bevy::prelude::*;
 use super::structs::*;
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradeToChunkLoader(pub ChunkLoaderRequest);
+pub struct PromoteToChunkLoader(pub ChunkLoaderRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct DowngradeFromChunkLoader(pub ChunkLoaderRequest);
+pub struct DemoteFromChunkLoader(pub ChunkLoaderRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(super) struct UpgradeToChunkLoaderInternal(pub InternalChunkLoaderRequest);
+pub(super) struct PromoteToChunkLoaderInternal(pub InternalChunkLoaderRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(super) struct DowngradeFromChunkLoaderInternal(pub InternalChunkLoaderRequest);
+pub(super) struct DemoteFromChunkLoaderInternal(pub InternalChunkLoaderRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(crate) struct UpgradedToChunkLoaderInternal(pub InternalChunkLoaderResponse);
+pub(crate) struct PromotedToChunkLoaderInternal(pub InternalChunkLoaderResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(crate) struct DowngradedFromChunkLoaderInternal(pub InternalChunkLoaderResponse);
+pub(crate) struct DemotedFromChunkLoaderInternal(pub InternalChunkLoaderResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradedToChunkLoader(pub ChunkLoaderResponse);
+pub struct PromotedToChunkLoader(pub ChunkLoaderResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct DowngradedFromChunkLoader(pub ChunkLoaderResponse);
-
-#[derive(Debug, Clone, Event)]
-pub struct StartedChunkLoader(pub ChunkLoaderResponse);
-
-#[derive(Debug, Clone, Event)]
-pub struct StoppedChunkLoader(pub ChunkLoaderResponse);
+pub struct DemotedFromChunkLoader(pub ChunkLoaderResponse);
