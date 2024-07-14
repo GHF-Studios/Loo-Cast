@@ -472,4 +472,3 @@ pub(super) fn handle_promoted_to_chunk_loader_entity_internal_events(
         }
     }
 }
-
