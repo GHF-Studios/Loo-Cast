@@ -46,7 +46,7 @@ impl Plugin for PlayerPlugin {
                 change_player_chunk_load_radius,
                 handle_create_player_entity_events,
                 handle_destroy_player_entity_events,
-                handle_promote__player_entity_events,
+                handle_promote_player_entity_events,
             ))
             .register_type::<components::Player>();
     }

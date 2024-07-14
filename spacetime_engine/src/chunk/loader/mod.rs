@@ -56,12 +56,12 @@ impl Plugin for LoaderPlugin {
             .add_systems(Update, (
                 handle_create_chunk_loader_entity_events, 
                 handle_destroy_chunk_loader_entity_events, 
-                handle_promote__chunk_loader_entity_events,
+                handle_promote_chunk_loader_entity_events,
             ).in_set(StartExternalOperationSystems))
             .add_systems(Update, (
                 handle_create_chunk_loader_entity_internal_events,
                 handle_destroy_chunk_loader_entity_internal_events,
-                handle_promote__chunk_loader_entity_internal_events,
+                handle_promote_chunk_loader_entity_internal_events,
             ).in_set(StartInternalOperationSystems))
             .add_systems(Update, (
                 handle_created_chunk_loader_entity_internal_events,

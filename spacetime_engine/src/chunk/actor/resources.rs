@@ -11,7 +11,7 @@ pub(in crate) struct ChunkActorRegistry {
     currently_destroying_chunk_actors: HashSet<ChunkActorID>,
     currently_upgrading_to_chunk_actors: HashSet<ChunkActorID>,
     create_chunk_actor_requests: HashMap<ChunkActorRequestID, ChunkActorCreateRequest>,
-    promote__chunk_actor_requests: HashMap<ChunkActorRequestID, ChunkActorUpgradeRequest>,
+    promote_chunk_actor_requests: HashMap<ChunkActorRequestID, ChunkActorUpgradeRequest>,
     next_chunk_actor_id: ChunkActorID,
     recycled_chunk_actor_ids: Vec<ChunkActorID>,
 }
@@ -137,18 +137,18 @@ impl ChunkActorRegistry {
 
     pub fn start_upgrading_to_chunk_actor(&mut self, request: ChunkActorUpgradeRequest) {
         self.currently_upgrading_to_chunk_actors.insert(request.chunk_actor_id);
-        self.promote__chunk_actor_requests.insert(request.chunk_actor_request_id, request);
+        self.promote_chunk_actor_requests.insert(request.chunk_actor_request_id, request);
     }
 
     pub fn start_upgrading_to_chunk_actors(&mut self, requests: HashSet<ChunkActorUpgradeRequest>) {
         for request in requests {
             self.currently_upgrading_to_chunk_actors.insert(request.chunk_actor_id);
-            self.promote__chunk_actor_requests.insert(request.chunk_actor_request_id, request.clone());
+            self.promote_chunk_actor_requests.insert(request.chunk_actor_request_id, request.clone());
         }
     }
 
     pub fn stop_upgrading_to_chunk_actor(&mut self, chunk_actor_id: ChunkActorID, request_id: ChunkActorRequestID) {
-        let removed_request = match self.promote__chunk_actor_requests.remove(&request_id) {
+        let removed_request = match self.promote_chunk_actor_requests.remove(&request_id) {
             Some(request) => request,
             None => {
                 panic!("Request '{:?}' could not be found!", request_id);
@@ -170,7 +170,7 @@ impl ChunkActorRegistry {
         let mut remaining_chunk_actor_ids = chunk_actor_ids.clone();
 
         for request_id in request_ids {
-            let removed_request = match self.promote__chunk_actor_requests.remove(&request_id) {
+            let removed_request = match self.promote_chunk_actor_requests.remove(&request_id) {
                 Some(request) => request,
                 None => {
                     panic!("Request '{:?}' could not be found!", request_id);
@@ -321,20 +321,20 @@ impl ChunkActorRegistry {
         &mut self.create_chunk_actor_requests
     }
 
-    pub fn get_promote__chunk_actor_request(&self, request_id: ChunkActorRequestID) -> Option<&ChunkActorUpgradeRequest> {
-        self.promote__chunk_actor_requests.get(&request_id)
+    pub fn get_promote_chunk_actor_request(&self, request_id: ChunkActorRequestID) -> Option<&ChunkActorUpgradeRequest> {
+        self.promote_chunk_actor_requests.get(&request_id)
     }
 
-    pub fn promote__chunk_actor_request(&self, request_id: ChunkActorRequestID) -> &ChunkActorUpgradeRequest {
-        &self.promote__chunk_actor_requests[&request_id]
+    pub fn promote_chunk_actor_request(&self, request_id: ChunkActorRequestID) -> &ChunkActorUpgradeRequest {
+        &self.promote_chunk_actor_requests[&request_id]
     }
 
-    pub fn promote__chunk_actor_requests(&self) -> &HashMap<ChunkActorRequestID, ChunkActorUpgradeRequest> {
-        &self.promote__chunk_actor_requests
+    pub fn promote_chunk_actor_requests(&self) -> &HashMap<ChunkActorRequestID, ChunkActorUpgradeRequest> {
+        &self.promote_chunk_actor_requests
     }
 
-    pub fn promote__chunk_actor_requests_mut(&mut self) -> &mut HashMap<ChunkActorRequestID, ChunkActorUpgradeRequest> {
-        &mut self.promote__chunk_actor_requests
+    pub fn promote_chunk_actor_requests_mut(&mut self) -> &mut HashMap<ChunkActorRequestID, ChunkActorUpgradeRequest> {
+        &mut self.promote_chunk_actor_requests
     }
 
     fn get_unused_chunk_actor_id(&mut self) -> ChunkActorID {

@@ -174,24 +174,24 @@ pub(super) fn handle_destroy_chunk_loader_entity_events(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn handle_promote__chunk_loader_entity_events(
-    mut promote__chunk_loader_entity_event_reader: EventReader<PromoteToChunkLoaderEntity>,
-    mut promote__chunk_loader_entity_internal_event_writer: EventWriter<PromoteToChunkLoaderEntityInternal>,
+pub(super) fn handle_promote_chunk_loader_entity_events(
+    mut promote_chunk_loader_entity_event_reader: EventReader<PromoteToChunkLoaderEntity>,
+    mut promote_chunk_loader_entity_internal_event_writer: EventWriter<PromoteToChunkLoaderEntityInternal>,
     mut chunk_loader_registry: ResMut<ChunkLoaderRegistry>,
 ) {
-    let mut promote__chunk_loader_entity_events = Vec::new();
-    for promote__chunk_loader_entity_event in promote__chunk_loader_entity_event_reader.read() {
-        promote__chunk_loader_entity_events.push(promote__chunk_loader_entity_event);
+    let mut promote_chunk_loader_entity_events = Vec::new();
+    for promote_chunk_loader_entity_event in promote_chunk_loader_entity_event_reader.read() {
+        promote_chunk_loader_entity_events.push(promote_chunk_loader_entity_event);
     }
 
-    for promote__chunk_loader_entity_event in promote__chunk_loader_entity_events {
-        let chunk_loader_request_id = promote__chunk_loader_entity_event.chunk_loader_request_id;
-        let target_entity_id = promote__chunk_loader_entity_event.target_entity_id;
+    for promote_chunk_loader_entity_event in promote_chunk_loader_entity_events {
+        let chunk_loader_request_id = promote_chunk_loader_entity_event.chunk_loader_request_id;
+        let target_entity_id = promote_chunk_loader_entity_event.target_entity_id;
         let chunk_loader_id = chunk_loader_registry.register_chunk_loader();
 
         info!("Trying to promote entity '{:?}' to a chunk loader entity ...", target_entity_id);
 
-        promote__chunk_loader_entity_internal_event_writer.send(PromoteToChunkLoaderEntityInternal {
+        promote_chunk_loader_entity_internal_event_writer.send(PromoteToChunkLoaderEntityInternal {
             chunk_loader_request_id,
             chunk_loader_id,
             target_entity_id,
@@ -298,7 +298,7 @@ pub(super) fn handle_destroy_chunk_loader_entity_internal_events(
     }
 }
 
-pub(super) fn handle_promote__chunk_loader_entity_internal_events(
+pub(super) fn handle_promote_chunk_loader_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
         EventReader<PromoteToChunkLoaderEntityInternal>,
@@ -309,17 +309,17 @@ pub(super) fn handle_promote__chunk_loader_entity_internal_events(
         Res<EntityRegistry>,
     )>,
 ) {
-    let mut promote__chunk_loader_entity_event_reader = event_parameters.get_mut(world).0;
+    let mut promote_chunk_loader_entity_event_reader = event_parameters.get_mut(world).0;
 
-    let mut promote__chunk_loader_entity_events: Vec<PromoteToChunkLoaderEntityInternal> = Vec::new();
-    for promote__chunk_loader_entity_event in promote__chunk_loader_entity_event_reader.read() {
-        promote__chunk_loader_entity_events.push(promote__chunk_loader_entity_event.clone());
+    let mut promote_chunk_loader_entity_events: Vec<PromoteToChunkLoaderEntityInternal> = Vec::new();
+    for promote_chunk_loader_entity_event in promote_chunk_loader_entity_event_reader.read() {
+        promote_chunk_loader_entity_events.push(promote_chunk_loader_entity_event.clone());
     }
 
-    for promote__chunk_loader_entity_event in promote__chunk_loader_entity_events {
-        let chunk_loader_request_id = promote__chunk_loader_entity_event.chunk_loader_request_id;
-        let chunk_loader_id = promote__chunk_loader_entity_event.chunk_loader_id;
-        let target_entity_id = promote__chunk_loader_entity_event.target_entity_id;
+    for promote_chunk_loader_entity_event in promote_chunk_loader_entity_events {
+        let chunk_loader_request_id = promote_chunk_loader_entity_event.chunk_loader_request_id;
+        let chunk_loader_id = promote_chunk_loader_entity_event.chunk_loader_id;
+        let target_entity_id = promote_chunk_loader_entity_event.target_entity_id;
 
         let (_, entity_registry) = registry_parameters.get_mut(world);
 
@@ -338,7 +338,7 @@ pub(super) fn handle_promote__chunk_loader_entity_internal_events(
             }
         };
 
-        let chunk_loader_entity_reference = match chunk_loader_functions::promote__chunk_loader_entity(
+        let chunk_loader_entity_reference = match chunk_loader_functions::promote_chunk_loader_entity(
             world, 
             chunk_loader_id, 
             target_entity_reference

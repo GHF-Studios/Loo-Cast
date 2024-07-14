@@ -24,7 +24,7 @@ pub(super) fn new_chunk_actor_entity(
     new_chunk_actor_entity
 }
 
-pub(super) fn promote__chunk_actor_entity(
+pub(super) fn promote_chunk_actor_entity(
     world: &mut World,
     chunk_actor_id: ChunkActorID,
     chunk_id: ChunkID,

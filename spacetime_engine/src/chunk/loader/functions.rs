@@ -12,7 +12,7 @@ pub(super) fn new_chunk_loader_entity(
     )).id()
 }
 
-pub(super) fn promote__chunk_loader_entity(
+pub(super) fn promote_chunk_loader_entity(
     world: &mut World, 
     chunk_loader_id: ChunkLoaderID, 
     target_entity_reference: Entity,

@@ -4,8 +4,6 @@ use super::structs::*;
 // prom0te and dem0te and prm0ted and dem0ted are not yet found and replaced
 
 // API Operations
-/// API Request to promote an entity to a player
-/// 
 #[derive(Debug, Clone, Event)]
 pub struct PromoteToPlayer(pub PlayerRequest);
 

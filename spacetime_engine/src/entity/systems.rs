@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
-pub(super) fn handle_create_chunk_actor_entity_events(
-    mut create_chunk_actor_entity_event_reader: EventReader<CreateChunkActorEntity>,
+pub(super) fn handle_create_entity_events(
+    mut create_entity_event_reader: EventReader<CreateEntity>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
     mut entity_registry: ResMut<EntityRegistry>,
 ) {

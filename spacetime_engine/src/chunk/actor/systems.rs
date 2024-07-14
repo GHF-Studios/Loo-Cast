@@ -178,33 +178,33 @@ pub(super) fn handle_destroy_chunk_actor_entity_events(
     }
 }
 
-pub(super) fn handle_promote__chunk_actor_entity_events(
-    mut promote__chunk_actor_entity_event_reader: EventReader<PromoteToChunkActorEntity>,
+pub(super) fn handle_promote_chunk_actor_entity_events(
+    mut promote_chunk_actor_entity_event_reader: EventReader<PromoteToChunkActorEntity>,
     mut chunk_actor_registry: ResMut<ChunkActorRegistry>,
     entity_registry: Res<EntityRegistry>,
     target_entity_query: Query<&Transform, Without<ChunkActor>>,
 ) {
-    let mut promote__chunk_actor_entity_events = Vec::new();
-    for promote__chunk_actor_entity_event in promote__chunk_actor_entity_event_reader.read() {
-        promote__chunk_actor_entity_events.push(promote__chunk_actor_entity_event.clone());
+    let mut promote_chunk_actor_entity_events = Vec::new();
+    for promote_chunk_actor_entity_event in promote_chunk_actor_entity_event_reader.read() {
+        promote_chunk_actor_entity_events.push(promote_chunk_actor_entity_event.clone());
     }
 
-    for promote__chunk_actor_entity_event in promote__chunk_actor_entity_events {
+    for promote_chunk_actor_entity_event in promote_chunk_actor_entity_events {
         let chunk_actor_id = chunk_actor_registry.register_chunk_actor();
-        let chunk_actor_request_id = promote__chunk_actor_entity_event.chunk_actor_request_id;
-        let target_entity_id = promote__chunk_actor_entity_event.target_entity_id;
+        let chunk_actor_request_id = promote_chunk_actor_entity_event.chunk_actor_request_id;
+        let target_entity_id = promote_chunk_actor_entity_event.target_entity_id;
 
         let (chunk_id, world_position) = {
-            let target_entity_reference = match entity_registry.get_loaded_entity_reference(&promote__chunk_actor_entity_event.target_entity_id) {
+            let target_entity_reference = match entity_registry.get_loaded_entity_reference(&promote_chunk_actor_entity_event.target_entity_id) {
                 Some(target_entity_reference) => target_entity_reference,
                 None => {
-                    panic!("The target entity '{:?}' either does not exist or does not have a transform component!", promote__chunk_actor_entity_event.target_entity_id);
+                    panic!("The target entity '{:?}' either does not exist or does not have a transform component!", promote_chunk_actor_entity_event.target_entity_id);
                 }
             };
             let target_transform = match target_entity_query.get(target_entity_reference) {
                 Ok(target_transform) => target_transform,
                 Err(_) => {
-                    panic!("The target entity '{:?}' either does not exist or does not have a transform component!", promote__chunk_actor_entity_event.target_entity_id);
+                    panic!("The target entity '{:?}' either does not exist or does not have a transform component!", promote_chunk_actor_entity_event.target_entity_id);
                 }
             };
 
@@ -575,7 +575,7 @@ pub(super) fn handle_destroy_chunk_actor_entity_internal_events(
     }
 }
 
-pub(super) fn handle_promote__chunk_actor_entity_internal_events(
+pub(super) fn handle_promote_chunk_actor_entity_internal_events(
     world: &mut World,
     event_parameters: &mut SystemState<(
         EventReader<CreatedChunkEntity>,
@@ -591,7 +591,7 @@ pub(super) fn handle_promote__chunk_actor_entity_internal_events(
     let mut remaining_chunk_actor_promote_requests = {
         let (_, chunk_actor_registry, _) = registry_parameters.get_mut(world);
 
-        chunk_actor_registry.promote__chunk_actor_requests().clone()
+        chunk_actor_registry.promote_chunk_actor_requests().clone()
     };
 
     if remaining_chunk_actor_promote_requests.is_empty() {
@@ -685,7 +685,7 @@ pub(super) fn handle_promote__chunk_actor_entity_internal_events(
                 let mut ineligible_entity_query_1 = world.query_filtered::<Entity, With<ChunkActor>>();
                 let mut eligible_entity_query = world.query_filtered::<Entity, (With<Transform>, Without<ChunkActor>)>();
 
-                let chunk_actor_entity_reference = match functions::promote__chunk_actor_entity(
+                let chunk_actor_entity_reference = match functions::promote_chunk_actor_entity(
                     world, 
                     chunk_actor_id, 
                     chunk_id, 

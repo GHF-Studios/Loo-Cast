@@ -54,12 +54,12 @@ impl Plugin for ActorPlugin {
             .add_systems(Update, (
                 handle_create_chunk_actor_entity_events, 
                 handle_destroy_chunk_actor_entity_events, 
-                handle_promote__chunk_actor_entity_events,
+                handle_promote_chunk_actor_entity_events,
             ).in_set(StartExternalOperationSystems))
             .add_systems(Update, (
                 handle_create_chunk_actor_entity_internal_events,
                 handle_destroy_chunk_actor_entity_internal_events,
-                handle_promote__chunk_actor_entity_internal_events,
+                handle_promote_chunk_actor_entity_internal_events,
             ).in_set(StartInternalOperationSystems))
             .add_systems(Update, (
                 handle_created_chunk_actor_entity_internal_events,

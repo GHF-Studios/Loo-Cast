@@ -33,7 +33,7 @@ pub(super) fn pre_start(
 pub(super) fn start_phase1(
     mut commands: Commands,
     mut created_player_entity_event_reader: EventReader<CreatedPlayerEntity>,
-    mut promote__chunk_loader_entity_event_writer: EventWriter<PromoteToChunkLoaderEntity>,
+    mut promote_chunk_loader_entity_event_writer: EventWriter<PromoteToChunkLoaderEntity>,
     player_query: Query<Entity, Added<Player>>,
     mut chunk_loader_request_registry: ResMut<ChunkLoaderRequestRegistry>,
     entity_registry: Res<EntityRegistry>,
@@ -76,7 +76,7 @@ pub(super) fn start_phase1(
         };
 
         info!("Upgrading player '{:?}' to a chunk loader entity ...", player_entity_id);
-        promote__chunk_loader_entity_event_writer.send(PromoteToChunkLoaderEntity {
+        promote_chunk_loader_entity_event_writer.send(PromoteToChunkLoaderEntity {
             chunk_loader_request_id,
             target_entity_id: player_entity_id,
         });
@@ -89,7 +89,7 @@ pub(super) fn start_phase1(
 #[allow(clippy::type_complexity)]
 pub(super) fn start_phase2(
     mut promoted_to_chunk_loader_entity_event_reader: EventReader<PromotedToChunkLoaderEntity>,
-    mut promote__chunk_actor_entity_event_writer: EventWriter<PromoteToChunkActorEntity>,
+    mut promote_chunk_actor_entity_event_writer: EventWriter<PromoteToChunkActorEntity>,
     player_query: Query<(Entity, &Transform), (With<Player>, With<ChunkLoader>)>,
     mut chunk_actor_request_registry: ResMut<ChunkActorRequestRegistry>,
     entity_registry: Res<EntityRegistry>,
@@ -133,7 +133,7 @@ pub(super) fn start_phase2(
             let chunk_actor_request_id = chunk_actor_request_registry.get_unused_chunk_actor_request_id();
 
             info!("Upgrading player entity '{:?}' to a chunk actor entity in chunk '{:?}' ...", player_entity_id, player_chunk_id);
-            promote__chunk_actor_entity_event_writer.send(PromoteToChunkActorEntity {
+            promote_chunk_actor_entity_event_writer.send(PromoteToChunkActorEntity {
                 chunk_actor_request_id,
                 target_entity_id: player_entity_id,
             });
@@ -326,9 +326,9 @@ pub(super) fn handle_destroy_player_entity_events(
     }
 }
 
-pub(super) fn handle_promote__player_entity_events(
+pub(super) fn handle_promote_player_entity_events(
     mut commands: Commands,
-    mut promote__player_entity_event_reader: EventReader<PromoteToPlayerEntity>,
+    mut promote_player_entity_event_reader: EventReader<PromoteToPlayerEntity>,
     mut promoted_to_player_entity_event_writer: EventWriter<PromotedToPlayerEntity>,
     mut player_registry: ResMut<PlayerRegistry>,
     entity_registry: Res<EntityRegistry>,
@@ -336,14 +336,14 @@ pub(super) fn handle_promote__player_entity_events(
     mut ineligible_entity_query_1: Query<Entity, With<Player>>,
     mut eligible_entity_query: Query<Entity, (With<Transform>, Without<Player>)>,
 ) {
-    let mut promote__player_entity_events = Vec::new();
-    for promote__player_entity_event in promote__player_entity_event_reader.read() {
-        promote__player_entity_events.push(promote__player_entity_event);
+    let mut promote_player_entity_events = Vec::new();
+    for promote_player_entity_event in promote_player_entity_event_reader.read() {
+        promote_player_entity_events.push(promote_player_entity_event);
     }
 
-    for promote__player_entity_event in promote__player_entity_events {
-        let player_request_id = promote__player_entity_event.player_request_id;
-        let target_entity_id = promote__player_entity_event.target_entity_id;
+    for promote_player_entity_event in promote_player_entity_events {
+        let player_request_id = promote_player_entity_event.player_request_id;
+        let target_entity_id = promote_player_entity_event.target_entity_id;
         let player_id = player_registry.register_player();
 
         info!("Upgrading entity '{:?}' to a player entity '{:?}'...", target_entity_id, player_id);
@@ -364,7 +364,7 @@ pub(super) fn handle_promote__player_entity_events(
             }
         };
 
-        let player_entity_reference = match functions::promote__player_entity(
+        let player_entity_reference = match functions::promote_player_entity(
             &mut commands, 
             player_id, 
             target_entity_reference,
