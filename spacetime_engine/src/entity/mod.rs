@@ -1,6 +1,7 @@
 pub mod id;
 
 pub mod events;
+pub mod functions;
 pub mod resources;
 pub mod types;
 pub mod structs;

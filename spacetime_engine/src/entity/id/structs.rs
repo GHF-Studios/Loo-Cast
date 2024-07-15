@@ -2,7 +2,7 @@ use bevy::reflect::Reflect;
 use std::ops;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
-pub struct EntityID(u64);
+pub struct EntityID(pub u64);
 
 impl From<u64> for EntityID {
     fn from(id: u64) -> Self {
@@ -73,7 +73,7 @@ impl ops::DivAssign<u64> for EntityID {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
-pub struct EntityRequestID(u64);
+pub struct EntityRequestID(pub u64);
 
 impl From<u64> for EntityRequestID {
     fn from(id: u64) -> Self {

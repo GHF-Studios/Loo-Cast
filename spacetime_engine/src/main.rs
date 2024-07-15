@@ -27,6 +27,9 @@ use spacetime_engine::SpacetimeEnginePlugins;
     // TODO: Integrate the entity events into the chunk actor events
 // Finally:
     // TODO: Start the game and see if everything works as expected
+// Also: 
+    // TODO: Make everything as tighly scoped as possible, and expose functionality exclusively via utility functions which just send an event
+    // TODO: Remove internal event layers and just use the events directly
 
 
 

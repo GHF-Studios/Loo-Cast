@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-
+use bevy::ecs::system::SystemState;
 use super::resources::*;
-use super::events::*;
+use super::events::{CreateEntity, DestroyEntity, CreateEntityInternal, DestroyEntityInternal, CreatedEntityInternal, DestroyedEntityInternal, CreatedEntity, DestroyedEntity};
 use super::structs::*;
 
 pub(super) fn handle_create_entity_events(
@@ -60,10 +60,9 @@ pub(super) fn handle_create_entity_internal_events(
         EventReader<CreateEntityInternal>,
         EventWriter<CreatedEntityInternal>,
     )>,
-    registry_parameters: &mut SystemState<(
-        ResMut<ChunkLoaderRegistry>,
+    registry_parameters: &mut SystemState<
         ResMut<EntityRegistry>,
-    )>,
+    >,
 ) {
     let mut create_entity_event_reader = event_parameters.get_mut(world).0;
 
@@ -73,26 +72,27 @@ pub(super) fn handle_create_entity_internal_events(
     }
 
     for create_entity_event in create_entity_events {
-        let chunk_loader_request_id = create_entity_event.chunk_loader_request_id;
-        let chunk_loader_id = create_entity_event.chunk_loader_id;
-        let entity_id = create_entity_event.entity_id;
-        let world_position = create_entity_event.world_position;
+        let create_entity_request = create_entity_event.0;
 
-        let entity_reference = chunk_loader_functions::new_entity(world, chunk_loader_id, world_position);
+        let entity_request_id = create_entity_request.entity_request_id;
+        let entity_id = create_entity_request.entity_id;
+        let world_position = create_entity_request.world_position;
 
-        let (mut chunk_loader_registry, mut entity_registry) = registry_parameters.get_mut(world);
+        let entity_reference = world.spawn(Transform::from_translation(world_position.extend(0.0)))
+            .id();
+
+        let mut entity_registry = registry_parameters.get_mut(world);
+        
         entity_registry.load_entity(entity_id, entity_reference);
-        chunk_loader_registry.load_chunk_loader(chunk_loader_id, entity_reference);
 
-        chunk_loader_registry.stop_creating_chunk_loader(chunk_loader_id);
+        entity_registry.stop_creating_entity(entity_id);
 
         let mut created_entity_event_writer = event_parameters.get_mut(world).1;
-        created_entity_event_writer.send(CreatedEntityInternal::Success {
-            chunk_loader_request_id,
-            chunk_loader_id,
+        created_entity_event_writer.send(CreatedEntityInternal(InternalEntityResponse::Success {
+            entity_request_id,
             entity_id,
             world_position
-        });
+        }));
     }
 }
 
