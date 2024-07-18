@@ -10,16 +10,16 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // Mandatory tasks
 // TODO: Implement downgrading of chunks, chunk actors, chunk loaders, players, and any other custom components
     // TODO: Implement downgrading of chunks
+    // TODO: Implement downgrading of players
     // TODO: Implement downgrading of chunk actors
     // TODO: Implement downgrading of chunk loaders
-    // TODO: Implement downgrading of players
 
     
 
 // Okay so I completely rewrote the events and request/response structs/enums for the chunk, chunk actor, chunk loader, player, and entity modules.
 // Here is todo list
 // First things first:
-    // TODO: Refactor the entity event handler systems (and other related entity systems) to use the new entity events and request/response structs/enums
+    // DONE: Refactor the entity event handler systems (and other related entity systems) to use the new entity events and request/response structs/enums
     // TODO: Integrate those entity events into the chunk events
 // After that:
     // TODO: Integrate the entity events into the player events
