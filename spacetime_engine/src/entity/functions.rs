@@ -27,6 +27,8 @@ pub fn request_create_entity(
         entity_id,
     };
 
+    entity_request_registry.register_entity_request(create_entity_request.clone());
+
     if entity_registry.is_entity_registered(entity_id) {
         warn!("Entity '{:?}' is already registered!", entity_id);
 
@@ -40,6 +42,7 @@ pub fn request_create_entity(
     }
 
     entity_registry.start_creating_entity(create_entity_request.clone());
+    entity_request_registry.load_entity_request(create_entity_request);
     create_entity_event_writer.send(CreateEntity(create_entity_request));
 
     (entity_request_id, entity_id)
@@ -58,6 +61,8 @@ pub fn request_destroy_entity(
         entity_id,
     };
 
+    entity_request_registry.register_entity_request(destroy_entity_request.clone());
+
     if !entity_registry.is_entity_registered(entity_id) {
         warn!("Entity '{:?}' is not registered!", entity_id);
 
@@ -71,6 +76,7 @@ pub fn request_destroy_entity(
     }
 
     entity_registry.start_destroying_entity(destroy_entity_request.clone());
+    entity_request_registry.load_entity_request(destroy_entity_request);
     destroy_entity_event_writer.send(DestroyEntity(destroy_entity_request));
 
     entity_request_id
@@ -104,7 +110,7 @@ fn on_create_entity(
         }
     };
 
-    let entity_request_id =  {
+    let entity_request_id = {
         let entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {
             Some(entity_request_registry) => entity_request_registry,
             None => {
@@ -215,6 +221,7 @@ fn on_destroy_entity(
             }
         };
 
+        entity_registry.unregister_entity(entity_id);
         entity_registry.stop_destroying_entity(entity_id);
     }
 
