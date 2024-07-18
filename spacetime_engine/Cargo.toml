@@ -16,7 +16,7 @@ path = "src/main.rs"
 opt-level = 3
 
 [dependencies]
-bevy = "0.13.2"
+bevy = "0.14"
 bevy_rapier2d = { version = "0.26.0", features = [ "debug-render-2d", "serde-serialize" ] }
 rand = "0.8.5"
 noise = "0.9"

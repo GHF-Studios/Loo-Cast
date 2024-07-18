@@ -78,10 +78,10 @@ pub(super) fn handle_create_entity_internal_events(
         let entity_id = create_entity_request.entity_id;
         let world_position = create_entity_request.world_position;
 
+        let mut entity_registry = registry_parameters.get_mut(world);
+
         let entity_reference = world.spawn(Transform::from_translation(world_position.extend(0.0)))
             .id();
-
-        let mut entity_registry = registry_parameters.get_mut(world);
         
         entity_registry.load_entity(entity_id, entity_reference);
 
@@ -102,10 +102,9 @@ pub(super) fn handle_destroy_entity_internal_events(
         EventReader<DestroyEntityInternal>,
         EventWriter<DestroyedEntityInternal>,
     )>,
-    registry_parameters: &mut SystemState<(
-        ResMut<ChunkLoaderRegistry>,
+    registry_parameters: &mut SystemState<
         ResMut<EntityRegistry>,
-    )>,
+    >,
 ) {
     let mut destroy_entity_event_reader = event_parameters.get_mut(world).0;
 
@@ -115,35 +114,21 @@ pub(super) fn handle_destroy_entity_internal_events(
     }
 
     for destroy_entity_event in destroy_entity_events {
-        let chunk_loader_request_id = destroy_entity_event.chunk_loader_request_id;
-        let chunk_loader_id = destroy_entity_event.chunk_loader_id;
+        let destroy_entity_request = destroy_entity_event.0;
 
-        let (mut chunk_loader_registry, mut entity_registry) = registry_parameters.get_mut(world);
+        let entity_request_id = destroy_entity_request.entity_request_id;
+        let entity_id = destroy_entity_request.entity_id;
+        let world_position = destroy_entity_request.world_position;
 
-        let entity_reference = match chunk_loader_registry.get_loaded_chunk_loader(chunk_loader_id) {
-            Some(entity) => entity,
-            None => {
-                panic!("The chunk loader entity reference for chunk loader '{:?}' could not be found!", chunk_loader_id);
-            }
-        };
+        let mut entity_registry = registry_parameters.get_mut(world);
 
-        let entity_id = match entity_registry.get_loaded_entity_id(&entity_reference) {
-            Some(entity_id) => entity_id,
-            None => {
-                panic!("The chunk loader entity ID for chunk loader '{:?}' could not be found!", chunk_loader_id);
-            }
-        };
-
-        let _ = chunk_loader_registry.unload_chunk_loader(chunk_loader_id);
         let _ = entity_registry.unload_entity(entity_id);
-
+        entity_registry.unregister_entity(entity_id);
+        
+        let entity_reference = entity_registry.entity(entity_id);
         world.despawn(entity_reference);
 
-        let (mut chunk_loader_registry, mut entity_registry) = registry_parameters.get_mut(world);
-        entity_registry.unregister_entity(entity_id);
-        chunk_loader_registry.unregister_chunk_loader(chunk_loader_id);
-
-        chunk_loader_registry.stop_destroying_chunk_loader(chunk_loader_id);
+        entity_registry.stop_destroying_entity(entity_id);
 
         let mut destroyed_entity_event_writer = event_parameters.get_mut(world).1;
         destroyed_entity_event_writer.send(DestroyedEntityInternal::Success {
