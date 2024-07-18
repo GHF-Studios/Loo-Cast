@@ -2,49 +2,25 @@ use bevy::prelude::*;
 use super::structs::*;
 
 #[derive(Debug, Clone, Event)]
-pub struct CreateChunk(pub ChunkRequest);
+pub struct UpgradeToChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct DestroyChunk(pub ChunkRequest);
+pub struct DowngradeFromChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct LoadChunk(pub ChunkRequest);
+pub struct DeserializeChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct UnloadChunk(pub ChunkRequest);
+pub struct SerializeChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(super) struct CreateChunkInternal(pub InternalChunkRequest);
+pub struct UpgradedToChunk(pub ChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(super) struct DestroyChunkInternal(pub InternalChunkRequest);
+pub struct DowngradedFromChunk(pub ChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(super) struct LoadChunkInternal(pub InternalChunkRequest);
+pub struct DeserializedChunk(pub ChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub(super) struct UnloadChunkInternal(pub InternalChunkRequest);
-
-#[derive(Debug, Clone, Event)]
-pub(crate) struct CreatedChunkInternal(pub InternalChunkResponse);
-
-#[derive(Debug, Clone, Event)]
-pub(crate) struct DestroyedChunkInternal(pub InternalChunkResponse);
-
-#[derive(Debug, Clone, Event)]
-pub(crate) struct LoadedChunkInternal(pub InternalChunkResponse);
-
-#[derive(Debug, Clone, Event)]
-pub(crate) struct UnloadedChunkInternal(pub InternalChunkResponse);
-
-#[derive(Debug, Clone, Event)]
-pub struct CreatedChunk(pub ChunkResponse);
-
-#[derive(Debug, Clone, Event)]
-pub struct DestroyedChunk(pub ChunkResponse);
-
-#[derive(Debug, Clone, Event)]
-pub struct LoadedChunk(pub ChunkResponse);
-
-#[derive(Debug, Clone, Event)]
-pub struct UnloadedChunk(pub ChunkResponse);
+pub struct SerializedChunk(pub ChunkResponse);

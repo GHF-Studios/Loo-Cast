@@ -172,68 +172,76 @@ impl EntityRegistry {
 
 #[derive(Resource, Debug, Default)]
 pub(in crate) struct EntityRequestRegistry {
-    register_entity_requests: HashMap<EntityRequestID, EntityRequest>,
-    load_entity_requests: HashMap<EntityRequestID, EntityRequest>,
+    registered_entity_requests: HashSet<EntityRequestID>,
+    loaded_entity_requests: HashMap<EntityRequestID, EntityRequest>,
     next_entity_request_id: EntityRequestID,
 }
 
 impl EntityRequestRegistry {
-    pub(super) fn register_entity_request(&mut self, request: EntityRequest) {
-        self.register_entity_requests.insert(request.entity_request_id, request.clone());
+    pub(super) fn register_entity_request(&mut self, entity_request_id: EntityRequestID) {
+        self.registered_entity_requests.insert(entity_request_id);
 
-        trace!("Registered entity request with id: '{:?}'", request.entity_request_id);
+        trace!("Registered entity request with id: '{:?}'", entity_request_id);
+    }
+
+    pub(super) fn unregister_entity_request(&mut self, entity_request_id: EntityRequestID) {
+        self.registered_entity_requests.remove(&entity_request_id);
+
+        trace!("Unregistered entity request with id: '{:?}'", entity_request_id);
     }
 
     pub(super) fn load_entity_request(&mut self, request: EntityRequest) {
-        self.load_entity_requests.insert(request.entity_request_id, request.clone());
+        self.loaded_entity_requests.insert(request.entity_request_id, request.clone());
 
         trace!("Loaded entity request with id: '{:?}'", request.entity_request_id);
     }
 
-    pub(super) fn unload_entity_request(&mut self, entity_request_id: EntityRequestID) {
-        self.load_entity_requests.remove(&entity_request_id);
+    pub(super) fn unload_entity_request(&mut self, entity_request_id: EntityRequestID) -> Option<EntityRequest> {
+        let removed_entity_request = self.loaded_entity_requests.remove(&entity_request_id);
 
         trace!("Unloaded entity request with id: '{:?}'", entity_request_id);
+
+        removed_entity_request
     }
 
     pub(super) fn is_entity_request_registered(&self, entity_request_id: EntityRequestID) -> bool {
-        self.register_entity_requests.contains_key(&entity_request_id)
+        self.registered_entity_requests.contains(&entity_request_id)
     }
 
     pub(super) fn is_entity_request_loaded(&self, entity_request_id: EntityRequestID) -> bool {
-        self.load_entity_requests.contains_key(&entity_request_id)
+        self.loaded_entity_requests.contains_key(&entity_request_id)
     }
 
-    pub(super) fn register_entity_requests(&self) -> &HashMap<EntityRequestID, EntityRequest> {
-        &self.register_entity_requests
+    pub(super) fn registered_entity_requests(&self) -> &HashSet<EntityRequestID> {
+        &self.registered_entity_requests
     }
 
-    pub(super) fn register_entity_requests_mut(&mut self) -> &mut HashMap<EntityRequestID, EntityRequest> {
-        &mut self.register_entity_requests
+    pub(super) fn registered_entity_requests_mut(&mut self) -> &mut HashSet<EntityRequestID> {
+        &mut self.registered_entity_requests
     }
 
     pub(super) fn get_loaded_entity_request(&self, entity_request_id: EntityRequestID) -> Option<EntityRequest> {
-        self.load_entity_requests.get(&entity_request_id).copied()
+        self.loaded_entity_requests.get(&entity_request_id).copied()
     }
 
     pub(super) fn get_loaded_entity_request_id(&self, entity_request: &EntityRequest) -> Option<EntityRequestID> {
-        self.load_entity_requests.iter().find(|(_, r)| **r == *entity_request).map(|(id, _)| *id)
+        self.loaded_entity_requests.iter().find(|(_, r)| **r == *entity_request).map(|(id, _)| *id)
     }
 
     pub(super) fn loaded_entity_request(&self, entity_request_id: EntityRequestID) -> EntityRequest {
-        self.load_entity_requests[&entity_request_id]
+        self.loaded_entity_requests[&entity_request_id]
     }
 
     pub(super) fn loaded_entity_request_id(&self, entity_request: EntityRequest) -> EntityRequestID {
-        self.load_entity_requests.iter().find(|(_, r)| **r == entity_request).map(|(id, _)| *id).unwrap()
+        self.loaded_entity_requests.iter().find(|(_, r)| **r == entity_request).map(|(id, _)| *id).unwrap()
     }
 
     pub(super) fn loaded_entity_requests(&self) -> &HashMap<EntityRequestID, EntityRequest> {
-        &self.load_entity_requests
+        &self.loaded_entity_requests
     }
 
     pub(super) fn loaded_entity_requests_mut(&mut self) -> &mut HashMap<EntityRequestID, EntityRequest> {
-        &mut self.load_entity_requests
+        &mut self.loaded_entity_requests
     }
 
     pub(super) fn get_unused_entity_request_id(&mut self) -> EntityRequestID {

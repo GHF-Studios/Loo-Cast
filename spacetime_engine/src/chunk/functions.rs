@@ -1,5 +1,7 @@
+use bevy::ecs::component::ComponentId;
 use bevy::ecs::entity::EntityHashMap;
 use bevy::ecs::system::SystemState;
+use bevy::ecs::world::DeferredWorld;
 use bevy::prelude::*;
 use bevy::scene::ron;
 use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
@@ -12,11 +14,61 @@ use crate::chunk::events::*;
 use crate::math::structs::I16Vec2;
 use serde::de::DeserializeSeed;
 use super::actor::components::ChunkActor;
+use super::id::structs::ChunkRequestID;
 use super::loader::components::ChunkLoader;
 use super::{ChunkRequestRegistry, ChunkRegistry};
 
-// TODO: The addition of secondary components as shown below should be done in each location where a new chunk actor is created and needs custom components apart from the basics like a Transform and a ChunkActor component.
-// TODO: Implement and integrate chunk entity upgrading
+
+pub(super) fn setup(world: &mut World) {
+}
+
+pub fn request_upgrade_to_chunk(
+    upgrade_to_chunk_event_writer: &mut EventWriter<UpgradeToChunk>,
+    chunk_registry: &mut ChunkRegistry,
+    chunk_request_registry: &mut ChunkRequestRegistry,
+) -> (ChunkRequestID, ChunkID) {
+}
+
+pub fn request_downgrade_from_chunk(
+    downgrade_from_chunk_event_writer: &mut EventWriter<DowngradeFromChunk>,
+    chunk_registry: &mut ChunkRegistry,
+    chunk_request_registry: &mut ChunkRequestRegistry,
+    chunk_id: ChunkID,
+) -> ChunkRequestID {
+}
+
+pub fn request_load_chunk(
+    deserialize_chunk_event_writer: &mut EventWriter<DeserializeChunk>,
+    chunk_registry: &mut ChunkRegistry,
+    chunk_request_registry: &mut ChunkRequestRegistry,
+    chunk_id: ChunkID,
+) -> ChunkRequestID {
+}
+
+pub fn request_unload_chunk(
+    serialize_chunk_event_writer: &mut EventWriter<SerializeChunk>,
+    chunk_registry: &mut ChunkRegistry,
+    chunk_request_registry: &mut ChunkRequestRegistry,
+    chunk_id: ChunkID,
+) -> ChunkRequestID {
+}
+
+fn on_create_chunk(
+    mut world: DeferredWorld,
+    entity: Entity,
+    _component: ComponentId,
+) {
+}
+
+fn on_destroy_chunk(
+    mut world: DeferredWorld,
+    entity: Entity,
+    _component: ComponentId,
+) {
+}
+
+
+
 pub(in crate) fn new_chunk_entity(world: &mut World, chunk_id: ChunkID) -> Entity {
     let chunk_position: ChunkPosition = chunk_id.into();
     let chunk_chunk_actor_position: ChunkActorPosition = chunk_position.into();
@@ -25,9 +77,9 @@ pub(in crate) fn new_chunk_entity(world: &mut World, chunk_id: ChunkID) -> Entit
     let world_position = Vec3::new(world_position.x, world_position.y, CHUNK_Z_INDEX);
 
     let chunk_color = if (chunk_position.0 + chunk_position.1) % 2 == 0 {
-        Color::rgb(0.25, 0.25, 0.25)
+        Color::srgb(0.25, 0.25, 0.25)
     } else {
-        Color::rgb(0.75, 0.75, 0.75)
+        Color::srgb(0.75, 0.75, 0.75)
     };
 
     let chunk_entity = world.spawn((
