@@ -5,7 +5,8 @@ use crate::chunk::id::structs::{ChunkID, ChunkRequestID};
 #[derive(Debug, Clone, Copy)]
 pub struct ChunkRequest {
     pub chunk_request_id: ChunkRequestID,
-    pub target_entity_id: Entity,
+    pub chunk_id: ChunkID,
+    pub entity_id: EntityID,
 }
 
 impl PartialEq for ChunkRequest {

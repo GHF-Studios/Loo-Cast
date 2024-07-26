@@ -7,12 +7,7 @@ use spacetime_engine::SpacetimeEnginePlugins;
 
 // NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 
-// Mandatory tasks
-// TODO: Implement downgrading of chunks, chunk actors, chunk loaders, players, and any other custom components
-    // TODO: Implement downgrading of chunks
-    // TODO: Implement downgrading of players
-    // TODO: Implement downgrading of chunk actors
-    // TODO: Implement downgrading of chunk loaders
+
 
     
 
@@ -21,6 +16,10 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // First things first:
     // DONE: Refactor the entity event handler systems (and other related entity systems) to use the new entity events and request/response structs/enums
     // TODO: Integrate those entity events into the chunk events
+// Then:
+    // TODO: Implement entity loading/saving internally via the parent chunk loading/saving. 
+    //       Essentially this just is a complicated way to flag entities for loading/saving even though an individual entity cannot be loaded/saved; 
+    //       only chunks can be loaded/saved which in turn load/save their chunk actor entities all at once.
 // After that:
     // TODO: Integrate the entity events into the player events
     // TODO: Integrate the entity events into the chunk loader events

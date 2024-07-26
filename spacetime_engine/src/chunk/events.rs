@@ -8,10 +8,10 @@ pub struct UpgradeToChunk(pub ChunkRequest);
 pub struct DowngradeFromChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct DeserializeChunk(pub ChunkRequest);
+pub struct LoadChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct SerializeChunk(pub ChunkRequest);
+pub struct SaveChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
 pub struct UpgradedToChunk(pub ChunkResponse);
@@ -20,7 +20,7 @@ pub struct UpgradedToChunk(pub ChunkResponse);
 pub struct DowngradedFromChunk(pub ChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct DeserializedChunk(pub ChunkResponse);
+pub struct LoadedChunk(pub ChunkResponse);
 
 #[derive(Debug, Clone, Event)]
-pub struct SerializedChunk(pub ChunkResponse);
+pub struct SavedChunk(pub ChunkResponse);

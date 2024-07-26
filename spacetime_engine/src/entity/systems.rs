@@ -26,14 +26,12 @@ pub(super) fn handle_create_entity(
         let entity_id = create_entity_request.entity_id;
         let world_position = Vec2::new(0.0, 0.0);
 
-        let mut entity = world.spawn(Transform::from_translation(world_position.extend(0.0)));
-        let entity_reference = entity.id();
-        entity.insert(SpacetimeEntity {
-            entity_id,
-        });
-
-        let mut entity_registry = registry_parameters.get_mut(world);
-        entity_registry.load_entity(entity_id, entity_reference);
+        let mut entity = world.spawn((
+            Transform::from_translation(world_position.extend(0.0)),
+            SpacetimeEntity {
+                entity_id,
+            },
+        ));
     }
 }
 
@@ -67,8 +65,5 @@ pub(super) fn handle_destroy_entity(
         };
 
         world.despawn(entity_reference);
-
-        let mut entity_registry = registry_parameters.get_mut(world);
-        entity_registry.unload_entity(entity_id);
     }
 }
