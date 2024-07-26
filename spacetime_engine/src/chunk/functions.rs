@@ -430,10 +430,10 @@ fn on_remove_chunk(
         };
 
         let is_downgrading_from_chunk = chunk_registry.is_downgrading_from_chunk(chunk_id);
-        let is_unloading_chunk = chunk_registry.is_unloading_chunk(chunk_id);
+        let is_saving_chunk = chunk_registry.is_saving_chunk(chunk_id);
 
-        if is_downgrading_from_chunk && is_unloading_chunk {
-            panic!("Chunk '{:?}' is both downgrading and unloading!", chunk_id);
+        if is_downgrading_from_chunk && is_saving_chunk {
+            panic!("Chunk '{:?}' is both downgrading and saving!", chunk_id);
         } else if is_downgrading_from_chunk {
             chunk_registry.stop_downgrading_from_chunk(chunk_id);
 
@@ -445,19 +445,19 @@ fn on_remove_chunk(
                 chunk_entity_id: entity_id,
                 world_position,
             }));
-        } else if is_unloading_chunk {
-            chunk_registry.stop_unloading_chunk(chunk_id);
+        } else if is_saving_chunk {
+            chunk_registry.stop_saving_chunk(chunk_id);
 
             chunk_request_registry.unload_chunk_request(chunk_request_id);
 
-            world.send_event(UnloadedChunk(ChunkResponse::Success {
+            world.send_event(SavedChunk(ChunkResponse::Success {
                 chunk_request_id,
                 chunk_id,
                 chunk_entity_id: entity_id,
                 world_position,
             }));
         } else {
-            panic!("Chunk '{:?}' is neither downgrading nor unloading!", chunk_id);
+            panic!("Chunk '{:?}' is neither downgrading nor saving!", chunk_id);
         }
     }
 }
