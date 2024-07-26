@@ -8,6 +8,12 @@ pub(super) struct CreateEntity(pub EntityRequest);
 pub(super) struct DestroyEntity(pub EntityRequest);
 
 #[derive(Debug, Clone, Event)]
+pub(crate) struct LoadEntity(pub EntityRequest);
+
+#[derive(Debug, Clone, Event)]
+pub(crate) struct SaveEntity(pub EntityRequest);
+
+#[derive(Debug, Clone, Event)]
 pub struct CreatedEntity(pub EntityResponse);
 
 #[derive(Debug, Clone, Event)]

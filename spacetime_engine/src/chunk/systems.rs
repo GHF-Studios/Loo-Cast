@@ -5,6 +5,40 @@ use crate::chunk::resources::*;
 use crate::chunk::functions;
 use crate::entity::resources::*;
 
+pub(super) fn handle_upgrade_to_chunk(
+    world: &mut World,
+    event_parameters: &mut SystemState<
+        EventReader<UpgradeToChunk>,
+    >,
+) {}
+
+pub(super) fn handle_downgrade_from_chunk(
+    world: &mut World,
+    event_parameters: &mut SystemState<
+        EventReader<DowngradeFromChunk>,
+    >,
+    registry_parameters: &mut SystemState<
+        ResMut<EntityRegistry>,
+    >,
+) {}
+
+pub(super) fn handle_load_chunk(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<LoadChunk>,
+    )>,
+) {}
+
+pub(super) fn handle_save_chunk(
+    world: &mut World,
+    event_parameters: &mut SystemState<(
+        EventReader<SaveChunk>,
+    )>,
+    registry_parameters: &mut SystemState<
+        ResMut<EntityRegistry>,
+    >,
+) {}
+
 pub(super) fn handle_create_chunk_entity_events(
     mut create_chunk_entity_event_reader: EventReader<CreateChunkEntity>,
     mut create_chunk_entity_internal_event_writer: EventWriter<CreateChunkEntityInternal>,

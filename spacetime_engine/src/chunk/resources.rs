@@ -11,10 +11,10 @@ pub(in crate) struct ChunkRegistry {
     loaded_chunks: HashMap<ChunkID, EntityReference>,
     serialized_chunks: HashMap<ChunkID, String>,
     allocated_chunks: HashSet<ChunkID>,
-    currently_creating_chunks: HashSet<ChunkID>,
-    currently_destroying_chunks: HashSet<ChunkID>,
+    currently_upgrading_to_chunks: HashSet<ChunkID>,
+    currently_downgrading_from_chunks: HashSet<ChunkID>,
     currently_loading_chunks: HashSet<ChunkID>,
-    currently_unloading_chunks: HashSet<ChunkID>,
+    currently_saving_chunks: HashSet<ChunkID>,
 }
 
 impl ChunkRegistry {
@@ -42,20 +42,20 @@ impl ChunkRegistry {
         self.serialized_chunks.remove(&chunk_id)
     }
 
-    pub(in crate) fn start_creating_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_creating_chunks.insert(chunk_id);
+    pub(in crate) fn start_upgrading_to_chunk(&mut self, chunk_id: ChunkID) {
+        self.currently_upgrading_to_chunks.insert(chunk_id);
     }
 
-    pub(in crate) fn stop_creating_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_creating_chunks.remove(&chunk_id);
+    pub(in crate) fn stop_upgrading_to_chunk(&mut self, chunk_id: ChunkID) {
+        self.currently_upgrading_to_chunks.remove(&chunk_id);
     }
 
-    pub(in crate) fn start_destroying_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_destroying_chunks.insert(chunk_id);
+    pub(in crate) fn start_downgrading_from_chunk(&mut self, chunk_id: ChunkID) {
+        self.currently_downgrading_from_chunks.insert(chunk_id);
     }
 
-    pub(in crate) fn stop_destroying_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_destroying_chunks.remove(&chunk_id);
+    pub(in crate) fn stop_downgrading_from_chunk(&mut self, chunk_id: ChunkID) {
+        self.currently_downgrading_from_chunks.remove(&chunk_id);
     }
 
     pub(in crate) fn start_loading_chunk(&mut self, chunk_id: ChunkID) {
@@ -66,12 +66,12 @@ impl ChunkRegistry {
         self.currently_loading_chunks.remove(&chunk_id);
     }
 
-    pub(in crate) fn start_unloading_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_unloading_chunks.insert(chunk_id);
+    pub(in crate) fn start_saving_chunk(&mut self, chunk_id: ChunkID) {
+        self.currently_saving_chunks.insert(chunk_id);
     }
 
-    pub(in crate) fn stop_unloading_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_unloading_chunks.remove(&chunk_id);
+    pub(in crate) fn stop_saving_chunk(&mut self, chunk_id: ChunkID) {
+        self.currently_saving_chunks.remove(&chunk_id);
     }
 
     pub(in crate) fn allocate_chunk(&mut self, chunk_id: ChunkID) {
@@ -131,20 +131,20 @@ impl ChunkRegistry {
         self.serialized_chunks.contains_key(&chunk_id)
     }
 
-    pub(in crate) fn is_creating_chunk(&self, chunk_id: ChunkID) -> bool {
-        self.currently_creating_chunks.contains(&chunk_id)
+    pub(in crate) fn is_chunk_upgrading_to(&self, chunk_id: ChunkID) -> bool {
+        self.currently_upgrading_to_chunks.contains(&chunk_id)
     }
 
-    pub(in crate) fn is_destroying_chunk(&self, chunk_id: ChunkID) -> bool {
-        self.currently_destroying_chunks.contains(&chunk_id)
+    pub(in crate) fn is_chunk_downgrading_from(&self, chunk_id: ChunkID) -> bool {
+        self.currently_downgrading_from_chunks.contains(&chunk_id)
     }
 
-    pub(in crate) fn is_loading_chunk(&self, chunk_id: ChunkID) -> bool {
+    pub(in crate) fn is_chunk_loading(&self, chunk_id: ChunkID) -> bool {
         self.currently_loading_chunks.contains(&chunk_id)
     }
 
-    pub(in crate) fn is_unloading_chunk(&self, chunk_id: ChunkID) -> bool {
-        self.currently_unloading_chunks.contains(&chunk_id)
+    pub(in crate) fn is_chunk_saving(&self, chunk_id: ChunkID) -> bool {
+        self.currently_saving_chunks.contains(&chunk_id)
     }
 
     pub(in crate) fn is_chunk_allocated(&self, chunk_id: ChunkID) -> bool {
@@ -191,20 +191,20 @@ impl ChunkRegistry {
         &mut self.serialized_chunks
     }
 
-    pub(in crate) fn creating_chunks(&self) -> &HashSet<ChunkID> {
-        &self.currently_creating_chunks
+    pub(in crate) fn upgrading_to_chunks(&self) -> &HashSet<ChunkID> {
+        &self.currently_upgrading_to_chunks
     }
 
-    pub(in crate) fn destroying_chunks(&self) -> &HashSet<ChunkID> {
-        &self.currently_destroying_chunks
+    pub(in crate) fn downgrading_from_chunks(&self) -> &HashSet<ChunkID> {
+        &self.currently_downgrading_from_chunks
     }
 
     pub(in crate) fn loading_chunks(&self) -> &HashSet<ChunkID> {
         &self.currently_loading_chunks
     }
 
-    pub(in crate) fn unloading_chunks(&self) -> &HashSet<ChunkID> {
-        &self.currently_unloading_chunks
+    pub(in crate) fn saving_chunks(&self) -> &HashSet<ChunkID> {
+        &self.currently_saving_chunks
     }
 
     pub(in crate) fn allocated_chunks(&self) -> &HashSet<ChunkID> {

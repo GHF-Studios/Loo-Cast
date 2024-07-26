@@ -150,21 +150,21 @@ fn on_add_entity(
             }
         };
 
-        let mut entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {
-            Some(entity_request_registry) => entity_request_registry,
-            None => {
-                panic!("Failed to get entity request registry!");
-            }
-        };
+        let is_entity_creating = entity_registry.is_entity_creating(entity_id);
+        let is_entity_loading = entity_registry.is_entity_loading(entity_id);
 
-        let is_creating_entity = entity_registry.is_creating_entity(entity_id);
-        let is_loading_entity = entity_registry.is_loading_entity(entity_request_id);
-
-        if is_creating_entity && is_loading_entity {
+        if is_entity_creating && is_entity_loading {
             panic!("Entity '{:?}' is both creating and loading!", entity_id);
-        } else if is_creating_entity {
+        } else if is_entity_creating {
             entity_registry.stop_creating_entity(entity_id);
     
+            let mut entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {
+                Some(entity_request_registry) => entity_request_registry,
+                None => {
+                    panic!("Failed to get entity request registry!");
+                }
+            };
+
             entity_request_registry.unload_entity_request(entity_request_id);
     
             world.send_event(CreatedEntity(EntityResponse::Success {
@@ -173,9 +173,16 @@ fn on_add_entity(
                 world_position,
             }));
 
-        } else if is_loading_entity {
+        } else if is_entity_loading {
             entity_registry.stop_loading_entity(entity_id);
     
+            let mut entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {
+                Some(entity_request_registry) => entity_request_registry,
+                None => {
+                    panic!("Failed to get entity request registry!");
+                }
+            };
+
             entity_request_registry.unload_entity_request(entity_request_id);
     
             world.send_event(LoadedEntity(EntityResponse::Success {
@@ -255,21 +262,21 @@ fn on_remove_entity(
             }
         };
 
-        let mut entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {
-            Some(entity_request_registry) => entity_request_registry,
-            None => {
-                panic!("Failed to get entity request registry!");
-            }
-        };
+        let is_entity_destroying = entity_registry.is_entity_destroying(entity_id);
+        let is_entity_saving = entity_registry.is_entity_saving(entity_id);
 
-        let is_destroying_entity = entity_registry.is_destroying_entity(entity_id);
-        let is_saving_entity = entity_registry.is_saving_entity(entity_request_id);
-
-        if is_destroying_entity && is_saving_entity {
+        if is_entity_destroying && is_entity_saving {
             panic!("Entity '{:?}' is both destroying and saving!", entity_id);
-        } else if is_destroying_entity {
+        } else if is_entity_destroying {
             entity_registry.stop_destroying_entity(entity_id);
-    
+
+            let mut entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {
+                Some(entity_request_registry) => entity_request_registry,
+                None => {
+                    panic!("Failed to get entity request registry!");
+                }
+            };
+            
             entity_request_registry.unload_entity_request(entity_request_id);
     
             world.send_event(DestroyedEntity(EntityResponse::Success {
@@ -277,9 +284,16 @@ fn on_remove_entity(
                 entity_id,
                 world_position,
             }));
-        } else if is_saving_entity {
+        } else if is_entity_saving {
             entity_registry.stop_saving_entity(entity_id);
     
+            let mut entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {
+                Some(entity_request_registry) => entity_request_registry,
+                None => {
+                    panic!("Failed to get entity request registry!");
+                }
+            };
+
             entity_request_registry.unload_entity_request(entity_request_id);
     
             world.send_event(SavedEntity(EntityResponse::Success {

@@ -20,6 +20,8 @@ use spacetime_engine::SpacetimeEnginePlugins;
     // TODO: Implement entity loading/saving internally via the parent chunk loading/saving. 
     //       Essentially this just is a complicated way to flag entities for loading/saving even though an individual entity cannot be loaded/saved; 
     //       only chunks can be loaded/saved which in turn load/save their chunk actor entities all at once.
+    // TODO: Unify the naming for several registries' "[OBJECT].is_[PREDICATE]_[SUBJECT]()" and "[OBJECT].is_[SUBJECT]_being_[PREDICATE]()" methods to "[OBJECT].is_[SUBJECT]_[PREDICATE]()"
+    // TODO: After that, unify the names of all other methods to "[OBJECT].[SUBJECT]_[SOMETHING]_[MORE]_[ETC]()"
 // After that:
     // TODO: Integrate the entity events into the player events
     // TODO: Integrate the entity events into the chunk loader events

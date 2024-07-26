@@ -1,5 +1,6 @@
 pub mod camera;
 pub mod chunk;
+pub mod component;
 pub mod entity;
 pub mod follower;
 pub mod math;

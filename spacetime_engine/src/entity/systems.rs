@@ -9,9 +9,6 @@ pub(super) fn handle_create_entity(
     event_parameters: &mut SystemState<
         EventReader<CreateEntity>,
     >,
-    registry_parameters: &mut SystemState<
-        ResMut<EntityRegistry>,
-    >,
 ) {
     let mut create_entity_event_reader = event_parameters.get_mut(world);
 
@@ -26,7 +23,7 @@ pub(super) fn handle_create_entity(
         let entity_id = create_entity_request.entity_id;
         let world_position = Vec2::new(0.0, 0.0);
 
-        let mut entity = world.spawn((
+        world.spawn((
             Transform::from_translation(world_position.extend(0.0)),
             SpacetimeEntity {
                 entity_id,
@@ -63,6 +60,15 @@ pub(super) fn handle_destroy_entity(
                 panic!("Entity reference associated with entity id '{:?}' not found!", entity_id); 
             },
         };
+
+        // TODO: Panic if the entity still has any components left, except for 'Transform' and 'SpacetimeEntity' 
+        //use crate::component;
+        //
+        //for component_id in component::get_components_ids(world, &entity_reference)
+        //{
+        //    let component_info = component::component_id_to_component_info(world, component_id).unwrap();
+        //    println!("{}", component::extract_component_name(component_info));
+        //}
 
         world.despawn(entity_reference);
     }
