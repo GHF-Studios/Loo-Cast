@@ -354,6 +354,33 @@ fn on_add_chunk(
             panic!("Chunk '{:?}' is neither upgrading nor loading!", chunk_id);
         }
     }
+
+    {
+        let chunk_position: ChunkPosition = chunk_id.into();
+        let chunk_chunk_actor_position: ChunkActorPosition = chunk_position.into();
+        let chunk_position = chunk_position.0;
+        let world_position = chunk_chunk_actor_position.0;
+        let world_position = Vec3::new(world_position.x, world_position.y, CHUNK_Z_INDEX);
+    
+        let chunk_color = if (chunk_position.0 + chunk_position.1) % 2 == 0 {
+            Color::srgb(0.25, 0.25, 0.25)
+        } else {
+            Color::srgb(0.75, 0.75, 0.75)
+        };
+
+        // TODO: Find solution
+        world.entity_mut(entity_reference).insert(
+            SpriteBundle {
+                sprite: Sprite {
+                    color: chunk_color,
+                    custom_size: Some(Vec2::new(CHUNK_SIZE as f32, CHUNK_SIZE as f32)),
+                    ..default()
+                },
+                transform: Transform::from_translation(world_position),
+                ..default()
+            },
+        );
+    }
 }
 
 fn on_remove_chunk(
@@ -480,38 +507,6 @@ fn on_remove_chunk(
 
 
 
-
-
-
-pub(in crate) fn new_chunk_entity(world: &mut World, chunk_id: ChunkID) -> Entity {
-    let chunk_position: ChunkPosition = chunk_id.into();
-    let chunk_chunk_actor_position: ChunkActorPosition = chunk_position.into();
-    let chunk_position = chunk_position.0;
-    let world_position = chunk_chunk_actor_position.0;
-    let world_position = Vec3::new(world_position.x, world_position.y, CHUNK_Z_INDEX);
-
-    let chunk_color = if (chunk_position.0 + chunk_position.1) % 2 == 0 {
-        Color::srgb(0.25, 0.25, 0.25)
-    } else {
-        Color::srgb(0.75, 0.75, 0.75)
-    };
-
-    let chunk_entity = world.spawn((
-        Chunk::new(chunk_id),
-        SpriteBundle {
-            sprite: Sprite {
-                color: chunk_color,
-                custom_size: Some(Vec2::new(CHUNK_SIZE as f32, CHUNK_SIZE as f32)),
-                ..default()
-            },
-            transform: Transform::from_translation(world_position),
-            ..default()
-        },
-    )).id();
-
-    chunk_entity
-}
-
 pub(in crate) fn deserialize_chunk(
     world: &mut World,
     serialized_chunk: String,
@@ -563,9 +558,9 @@ pub(in crate) fn deserialize_chunk(
 
 pub(in crate) fn serialize_chunk(
     world: &mut World,
-    registry_parameter: &mut SystemState<(
+    registry_parameter: &mut SystemState<
         ResMut<ChunkRegistry>,
-    )>,
+    >,
     chunk_id: ChunkID
 ) -> String {
     debug!("Serializing chunk '{:?}'...", chunk_id);
@@ -586,7 +581,7 @@ pub(in crate) fn serialize_chunk(
         }
     }
 
-    let chunk_registry = registry_parameter.get_mut(world).0;
+    let chunk_registry = registry_parameter.get_mut(world);
 
     let chunk_entity = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
         Some(chunk_entity) => chunk_entity,
@@ -683,6 +678,8 @@ pub(in crate) fn categorize_chunks(
 
     (old_chunks, unchanged_chunks, new_chunks)
 }
+
+// Fix these functions
 
 pub(in crate) fn start_chunks(
     mut create_chunk_event_writer: EventWriter<CreateChunkEntity>,
