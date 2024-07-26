@@ -16,12 +16,20 @@ use spacetime_engine::SpacetimeEnginePlugins;
 // First things first:
     // DONE: Refactor the entity event handler systems (and other related entity systems) to use the new entity events and request/response structs/enums
     // TODO: Integrate those entity events into the chunk events
-// Then:
+
+
+
+// //////////////////////////// //TASKS// //////////////////////////// //
     // TODO: Implement entity loading/saving internally via the parent chunk loading/saving. 
     //       Essentially this just is a complicated way to flag entities for loading/saving even though an individual entity cannot be loaded/saved; 
     //       only chunks can be loaded/saved which in turn load/save their chunk actor entities all at once.
+    // TODO: Check allocation (and allocate and deallocate) whenever appropriate in Entity, Chunk, Player, ChunkLoader, and ChunkActor modules
+    // TODO: Ensure deserialized entities and their components are either registered and loaded in the correct order of dependencies, or are not dependent on each other at all
     // TODO: Unify the naming for several registries' "[OBJECT].is_[PREDICATE]_[SUBJECT]()" and "[OBJECT].is_[SUBJECT]_being_[PREDICATE]()" methods to "[OBJECT].is_[SUBJECT]_[PREDICATE]()"
     // TODO: After that, unify the names of all other methods to "[OBJECT].[SUBJECT]_[SOMETHING]_[MORE]_[ETC]()"
+// //////////////////////////// //TASKS// //////////////////////////// //
+
+
 // After that:
     // TODO: Integrate the entity events into the player events
     // TODO: Integrate the entity events into the chunk loader events

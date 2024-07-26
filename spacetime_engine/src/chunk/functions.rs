@@ -610,9 +610,18 @@ pub(in crate) fn serialize_chunk(
 
     let type_registry_arc = &world.resource::<AppTypeRegistry>().0;
 
-    let serializer = SceneSerializer::new(&dyn_scene, type_registry_arc);
+    let type_registry = type_registry_arc.read();
 
-    let serialized_chunk = ron::to_string(&serializer).unwrap();
+    let serializer = SceneSerializer::new(&dyn_scene, &*type_registry);
+
+    let serialized_chunk = match ron::to_string(&serializer) {
+        Ok(serialized_chunk) => serialized_chunk.clone(),
+        Err(error) => {
+            panic!("Failed to serialize chunk '{:?}'! Error: {:?}", chunk_id, error);
+        },
+    };
+
+    drop(type_registry);
 
     for entity in entities.iter() {
         world.entity_mut(*entity).despawn_recursive();
