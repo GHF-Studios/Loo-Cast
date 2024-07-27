@@ -8,10 +8,10 @@ pub struct ChunkLoader {
     id: ChunkLoaderID,
     load_radius: u16,
     current_chunk_ids: Vec<ChunkID>,
-    currently_creating_chunks: Vec<ChunkID>,
-    currently_destroying_chunks: Vec<ChunkID>,
+    currently_upgrading_to_chunks: Vec<ChunkID>,
+    currently_downgrading_chunks: Vec<ChunkID>,
     currently_loading_chunks: Vec<ChunkID>,
-    currently_unloading_chunks: Vec<ChunkID>
+    currently_saving_chunks: Vec<ChunkID>
 }
 
 impl ChunkLoader {
@@ -20,10 +20,10 @@ impl ChunkLoader {
             id,
             load_radius,
             current_chunk_ids: Vec::new(),
-            currently_creating_chunks: Vec::new(),
-            currently_destroying_chunks: Vec::new(),
+            currently_upgrading_to_chunks: Vec::new(),
+            currently_downgrading_chunks: Vec::new(),
             currently_loading_chunks: Vec::new(),
-            currently_unloading_chunks: Vec::new()
+            currently_saving_chunks: Vec::new()
         }
     }
 
@@ -51,20 +51,20 @@ impl ChunkLoader {
         &mut self.current_chunk_ids
     }
 
-    pub fn currently_creating_chunks(&self) -> &Vec<ChunkID> {
-        &self.currently_creating_chunks
+    pub fn currently_upgrading_to_chunks(&self) -> &Vec<ChunkID> {
+        &self.currently_upgrading_to_chunks
     }
 
-    pub(in crate) fn currently_creating_chunks_mut(&mut self) -> &mut Vec<ChunkID> {
-        &mut self.currently_creating_chunks
+    pub(in crate) fn currently_upgrading_to_chunks_mut(&mut self) -> &mut Vec<ChunkID> {
+        &mut self.currently_upgrading_to_chunks
     }
 
-    pub fn currently_destroying_chunks(&self) -> &Vec<ChunkID> {
-        &self.currently_destroying_chunks
+    pub fn currently_downgrading_from_chunks(&self) -> &Vec<ChunkID> {
+        &self.currently_downgrading_chunks
     }
 
-    pub(in crate) fn currently_destroying_chunks_mut(&mut self) -> &mut Vec<ChunkID> {
-        &mut self.currently_destroying_chunks
+    pub(in crate) fn currently_downgrading_from_chunks_mut(&mut self) -> &mut Vec<ChunkID> {
+        &mut self.currently_downgrading_chunks
     }
 
     pub fn currently_loading_chunks(&self) -> &Vec<ChunkID> {
@@ -75,75 +75,103 @@ impl ChunkLoader {
         &mut self.currently_loading_chunks
     }
 
-    pub fn currently_unloading_chunks(&self) -> &Vec<ChunkID> {
-        &self.currently_unloading_chunks
+    pub fn currently_saving_chunks(&self) -> &Vec<ChunkID> {
+        &self.currently_saving_chunks
     }
 
-    pub(in crate) fn currently_unloading_chunks_mut(&mut self) -> &mut Vec<ChunkID> {
-        &mut self.currently_unloading_chunks
+    pub(in crate) fn currently_saving_chunks_mut(&mut self) -> &mut Vec<ChunkID> {
+        &mut self.currently_saving_chunks
     }
 
-    pub(in crate) fn start_creating_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_creating_chunks.push(chunk_id);
+    pub(in crate) fn start_upgrading_to_chunk(&mut self, chunk_id: ChunkID) {
+        if !self.can_upgrade_to_chunk(chunk_id) {
+            return; 
+        }
+
+        self.currently_upgrading_to_chunks.push(chunk_id);
     }
 
-    pub(in crate) fn start_creating_chunks(&mut self, chunk_ids: Vec<ChunkID>) {
-        self.currently_creating_chunks.extend(chunk_ids);
+    pub(in crate) fn stop_upgrading_to_chunk(&mut self, chunk_id: ChunkID) {
+        self.currently_upgrading_to_chunks.retain(|&id| id != chunk_id);
     }
 
-    pub(in crate) fn stop_creating_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_creating_chunks.retain(|&id| id != chunk_id);
+    pub(in crate) fn start_downgrading_from_chunk(&mut self, chunk_id: ChunkID) {
+        if !self.can_downgrade_from_chunk(chunk_id) {
+            return; 
+        }
+
+        self.currently_downgrading_chunks.push(chunk_id);
     }
 
-    pub(in crate) fn stop_creating_chunks(&mut self, chunk_ids: Vec<ChunkID>) {
-        self.currently_creating_chunks.retain(|&id| !chunk_ids.contains(&id));
-    }
-
-    pub(in crate) fn start_destroying_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_destroying_chunks.push(chunk_id);
-    }
-
-    pub(in crate) fn start_destroying_chunks(&mut self, chunk_ids: Vec<ChunkID>) {
-        self.currently_destroying_chunks.extend(chunk_ids);
-    }
-
-    pub(in crate) fn stop_destroying_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_destroying_chunks.retain(|&id| id != chunk_id);
-    }
-
-    pub(in crate) fn stop_destroying_chunks(&mut self, chunk_ids: Vec<ChunkID>) {
-        self.currently_destroying_chunks.retain(|&id| !chunk_ids.contains(&id));
+    pub(in crate) fn stop_downgrading_from_chunk(&mut self, chunk_id: ChunkID) {
+        self.currently_downgrading_chunks.retain(|&id| id != chunk_id);
     }
 
     pub(in crate) fn start_loading_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_loading_chunks.push(chunk_id);
-    }
+        if !self.can_load_chunk(chunk_id) {
+            return; 
+        }
 
-    pub(in crate) fn start_loading_chunks(&mut self, chunk_ids: Vec<ChunkID>) {
-        self.currently_loading_chunks.extend(chunk_ids);
+        self.currently_loading_chunks.push(chunk_id);
     }
 
     pub(in crate) fn stop_loading_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_loading_chunks.retain(|&id| id != chunk_id);
     }
 
-    pub(in crate) fn stop_loading_chunks(&mut self, chunk_ids: Vec<ChunkID>) {
-        self.currently_loading_chunks.retain(|&id| !chunk_ids.contains(&id));
+    pub(in crate) fn start_saving_chunk(&mut self, chunk_id: ChunkID) {
+        if !self.can_save_chunk(chunk_id) {
+            return; 
+        }
+
+        self.currently_saving_chunks.push(chunk_id);
     }
 
-    pub(in crate) fn start_unloading_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_unloading_chunks.push(chunk_id);
+    pub(in crate) fn stop_saving_chunk(&mut self, chunk_id: ChunkID) {
+        self.currently_saving_chunks.retain(|&id| id != chunk_id);
     }
 
-    pub(in crate) fn start_unloading_chunks(&mut self, chunk_ids: Vec<ChunkID>) {
-        self.currently_unloading_chunks.extend(chunk_ids);
+    pub(in crate) fn can_upgrade_to_chunk(&self, chunk_id: ChunkID) -> bool {
+        let mut result = true;
+
+        if self.currently_upgrading_to_chunks.contains(&chunk_id) { result = false };
+        if self.currently_downgrading_chunks.contains(&chunk_id) { result = false };
+        if self.currently_loading_chunks.contains(&chunk_id) { result = false };
+        if self.currently_saving_chunks.contains(&chunk_id) { result = false };
+
+        result
     }
 
-    pub(in crate) fn stop_unloading_chunk(&mut self, chunk_id: ChunkID) {
-        self.currently_unloading_chunks.retain(|&id| id != chunk_id);
+    pub(in crate) fn can_downgrade_from_chunk(&self, chunk_id: ChunkID) -> bool {
+        let mut result = true;
+
+        if self.currently_upgrading_to_chunks.contains(&chunk_id) { result = false };
+        if self.currently_downgrading_chunks.contains(&chunk_id) { result = false };
+        if self.currently_loading_chunks.contains(&chunk_id) { result = false };
+        if self.currently_saving_chunks.contains(&chunk_id) { result = false };
+
+        result
     }
 
-    pub(in crate) fn stop_unloading_chunks(&mut self, chunk_ids: Vec<ChunkID>) {
-        self.currently_unloading_chunks.retain(|&id| !chunk_ids.contains(&id));
+    pub(in crate) fn can_load_chunk(&self, chunk_id: ChunkID) -> bool {
+        let mut result = true;
+
+        if self.currently_upgrading_to_chunks.contains(&chunk_id) { result = false };
+        if self.currently_downgrading_chunks.contains(&chunk_id) { result = false };
+        if self.currently_loading_chunks.contains(&chunk_id) { result = false };
+        if self.currently_saving_chunks.contains(&chunk_id) { result = false };
+
+        result
+    }
+
+    pub(in crate) fn can_save_chunk(&self, chunk_id: ChunkID) -> bool {
+        let mut result = true;
+
+        if self.currently_upgrading_to_chunks.contains(&chunk_id) { result = false };
+        if self.currently_downgrading_chunks.contains(&chunk_id) { result = false };
+        if self.currently_loading_chunks.contains(&chunk_id) { result = false };
+        if self.currently_saving_chunks.contains(&chunk_id) { result = false };
+
+        result
     }
 }

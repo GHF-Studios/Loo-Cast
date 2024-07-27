@@ -30,6 +30,136 @@ pub(super) fn setup(world: &mut World) {
 
 }
 
+pub fn can_request_upgrade_to_chunk(
+    chunk_registry: &mut ChunkRegistry,
+    entity_registry: &mut EntityRegistry,
+    chunk_id: ChunkID,
+    entity_id: EntityID,
+) -> bool {
+    let mut result = true;
+
+    if !entity_registry.is_entity_registered(entity_id) { result = false; }
+    if !entity_registry.is_entity_loaded(entity_id) { result = false; }
+
+    if entity_registry.is_entity_creating(entity_id) { result = false; }
+    if entity_registry.is_entity_destroying(entity_id) { result = false; }
+    if entity_registry.is_entity_loading(entity_id) { result = false; }
+    if entity_registry.is_entity_saving(entity_id) { result = false; }
+
+    if chunk_registry.is_chunk_registered(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_loaded(chunk_id) { result = false; }
+
+    if chunk_registry.is_chunk_upgrading_to(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_downgrading_from(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_loading(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_saving(chunk_id) { result = false; }
+
+    result
+}
+
+pub fn can_request_downgrade_from_chunk(
+    chunk_registry: &mut ChunkRegistry,
+    entity_registry: &mut EntityRegistry,
+    chunk_id: ChunkID,
+) -> bool {
+    let mut result = true;
+
+    let entity_id = {
+        let entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+            Some(chunk_entity) => chunk_entity,
+            None => panic!("Chunk entity '{:?}' is not loaded!", chunk_id)
+        };
+
+        match entity_registry.get_loaded_entity_id(&entity_reference) {
+            Some(entity_id) => entity_id,
+            None => panic!("Entity reference '{:?}' is not loaded!", entity_reference)
+        }
+    };
+
+    if !entity_registry.is_entity_registered(entity_id) { result = false; }
+    if !entity_registry.is_entity_loaded(entity_id) { result = false; }
+
+    if entity_registry.is_entity_creating(entity_id) { result = false; }
+    if entity_registry.is_entity_destroying(entity_id) { result = false; }
+    if entity_registry.is_entity_loading(entity_id) { result = false; }
+    if entity_registry.is_entity_saving(entity_id) { result = false; }
+
+    if !chunk_registry.is_chunk_registered(chunk_id) { result = false; }
+    if !chunk_registry.is_chunk_loaded(chunk_id) { result = false; }
+
+    if chunk_registry.is_chunk_upgrading_to(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_downgrading_from(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_loading(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_saving(chunk_id) { result = false; }
+
+    result
+}
+
+pub fn can_request_load_chunk(
+    chunk_registry: &mut ChunkRegistry,
+    entity_registry: &mut EntityRegistry,
+    chunk_id: ChunkID,
+    entity_id: EntityID,
+) -> bool {
+    let mut result = true;
+
+    if !entity_registry.is_entity_registered(entity_id) { result = false; }
+    if !entity_registry.is_entity_loaded(entity_id) { result = false; }
+
+    if entity_registry.is_entity_creating(entity_id) { result = false; }
+    if entity_registry.is_entity_destroying(entity_id) { result = false; }
+    if entity_registry.is_entity_loading(entity_id) { result = false; }
+    if entity_registry.is_entity_saving(entity_id) { result = false; }
+
+    if chunk_registry.is_chunk_registered(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_loaded(chunk_id) { result = false; }
+
+    if chunk_registry.is_chunk_upgrading_to(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_downgrading_from(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_loading(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_saving(chunk_id) { result = false; }
+
+    result
+}
+
+pub fn can_request_unload_chunk(
+    chunk_registry: &mut ChunkRegistry,
+    entity_registry: &mut EntityRegistry,
+    chunk_id: ChunkID,
+) -> bool {
+    let mut result = true;
+
+    let entity_id = {
+        let entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+            Some(chunk_entity) => chunk_entity,
+            None => panic!("Chunk entity '{:?}' is not loaded!", chunk_id)
+        };
+
+        match entity_registry.get_loaded_entity_id(&entity_reference) {
+            Some(entity_id) => entity_id,
+            None => panic!("Entity reference '{:?}' is not loaded!", entity_reference)
+        }
+    };
+
+    if !entity_registry.is_entity_registered(entity_id) { result = false; }
+    if !entity_registry.is_entity_loaded(entity_id) { result = false; }
+
+    if entity_registry.is_entity_creating(entity_id) { result = false; }
+    if entity_registry.is_entity_destroying(entity_id) { result = false; }
+    if entity_registry.is_entity_loading(entity_id) { result = false; }
+    if entity_registry.is_entity_saving(entity_id) { result = false; }
+
+    if !chunk_registry.is_chunk_registered(chunk_id) { result = false; }
+    if !chunk_registry.is_chunk_loaded(chunk_id) { result = false; }
+
+    if chunk_registry.is_chunk_upgrading_to(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_downgrading_from(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_loading(chunk_id) { result = false; }
+    if chunk_registry.is_chunk_saving(chunk_id) { result = false; }
+
+    result
+}
+
 pub fn request_upgrade_to_chunk(
     upgrade_to_chunk_event_writer: &mut EventWriter<UpgradeToChunk>,
     chunk_registry: &mut ChunkRegistry,
@@ -37,8 +167,12 @@ pub fn request_upgrade_to_chunk(
     entity_registry: &mut EntityRegistry,
     chunk_id: ChunkID,
     entity_id: EntityID,
-) -> ChunkRequestID {
+) -> Option<ChunkRequestID> {
     let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
+
+    if !can_request_upgrade_to_chunk(chunk_registry, entity_registry, chunk_id, entity_id) {
+        return None;
+    }
 
     let upgrade_to_chunk_request = ChunkRequest {
         chunk_request_id,
@@ -46,33 +180,12 @@ pub fn request_upgrade_to_chunk(
         entity_id,
     };
 
-    chunk_request_registry.register_chunk_request(chunk_request_id);
-
-    if !entity_registry.is_entity_registered(entity_id) {
-        panic!("Entity '{:?}' is not registered!", entity_id);
-    }
-
-    if !entity_registry.is_entity_loaded(entity_id) {
-        panic!("Entity '{:?}' is not loaded!", entity_id);
-    }
-
-    if chunk_registry.is_chunk_registered(chunk_id) {
-        warn!("Chunk '{:?}' is already registered!", chunk_id);
-
-        return chunk_request_id;
-    }
-
-    if chunk_registry.is_chunk_loaded(chunk_id) {
-        warn!("Chunk '{:?}' is already loaded!", chunk_id);
-
-        return chunk_request_id;
-    }
-
     chunk_registry.start_upgrading_to_chunk(chunk_id);
+    chunk_request_registry.register_chunk_request(chunk_request_id);
     chunk_request_registry.load_chunk_request(chunk_request_id, upgrade_to_chunk_request);
     upgrade_to_chunk_event_writer.send(UpgradeToChunk(upgrade_to_chunk_request));
 
-    chunk_request_id
+    Some(chunk_request_id)
 }
 
 pub fn request_downgrade_from_chunk(
@@ -81,7 +194,7 @@ pub fn request_downgrade_from_chunk(
     chunk_request_registry: &mut ChunkRequestRegistry,
     entity_registry: &mut EntityRegistry,
     chunk_id: ChunkID,
-) -> ChunkRequestID {
+) -> Option<ChunkRequestID> {
     let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
     let entity_id = {
         let entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
@@ -96,6 +209,10 @@ pub fn request_downgrade_from_chunk(
 
         entity_id
     };
+
+    if !can_request_downgrade_from_chunk(chunk_registry, entity_registry, chunk_id) {
+        return None;
+    }
 
     let downgrade_from_chunk_request = ChunkRequest {
         chunk_request_id,
@@ -103,44 +220,27 @@ pub fn request_downgrade_from_chunk(
         entity_id,
     };
 
-    chunk_request_registry.register_chunk_request(chunk_request_id);
-
-    if !entity_registry.is_entity_registered(entity_id) {
-        panic!("Entity '{:?}' is not registered!", entity_id);
-    }
-
-    if !entity_registry.is_entity_loaded(entity_id) {
-        panic!("Entity '{:?}' is not loaded!", entity_id);
-    }
-
-    if !chunk_registry.is_chunk_registered(chunk_id) {
-        warn!("Chunk '{:?}' is not registered!", chunk_id);
-
-        return chunk_request_id;
-    }
-
-    if !chunk_registry.is_chunk_loaded(chunk_id) {
-        warn!("Chunk '{:?}' is not loaded!", chunk_id);
-
-        return chunk_request_id;
-    }
-
     chunk_registry.start_downgrading_from_chunk(chunk_id);
+    chunk_request_registry.register_chunk_request(chunk_request_id);
     chunk_request_registry.load_chunk_request(chunk_request_id, downgrade_from_chunk_request);
     downgrade_from_chunk_event_writer.send(DowngradeFromChunk(downgrade_from_chunk_request));
 
-    chunk_request_id
+    Some(chunk_request_id)
 }
 
 pub fn request_load_chunk(
-    deserialize_chunk_event_writer: &mut EventWriter<LoadChunk>,
+    load_chunk_event_writer: &mut EventWriter<LoadChunk>,
     chunk_registry: &mut ChunkRegistry,
     chunk_request_registry: &mut ChunkRequestRegistry,
     entity_registry: &mut EntityRegistry,
     chunk_id: ChunkID,
     entity_id: EntityID,
-) -> ChunkRequestID {
+) -> Option<ChunkRequestID> {
     let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
+
+    if !can_request_load_chunk(chunk_registry, entity_registry, chunk_id, entity_id) {
+        return None;
+    }
 
     let load_chunk_request = ChunkRequest {
         chunk_request_id,
@@ -148,42 +248,21 @@ pub fn request_load_chunk(
         entity_id,
     };
 
-    chunk_request_registry.register_chunk_request(chunk_request_id);
-
-    if entity_registry.is_entity_registered(entity_id) {
-        panic!("Entity '{:?}' is already registered!", entity_id);
-    }
-
-    if entity_registry.is_entity_loaded(entity_id) {
-        panic!("Entity '{:?}' is already loaded!", entity_id);
-    }
-
-    if chunk_registry.is_chunk_registered(chunk_id) {
-        warn!("Chunk '{:?}' is already registered!", chunk_id);
-
-        return chunk_request_id;
-    }
-
-    if chunk_registry.is_chunk_loaded(chunk_id) {
-        warn!("Chunk '{:?}' is already loaded!", chunk_id);
-
-        return chunk_request_id;
-    }
-
     chunk_registry.start_loading_chunk(chunk_id);
+    chunk_request_registry.register_chunk_request(chunk_request_id);
     chunk_request_registry.load_chunk_request(chunk_request_id, load_chunk_request);
-    deserialize_chunk_event_writer.send(LoadChunk(load_chunk_request));
+    load_chunk_event_writer.send(LoadChunk(load_chunk_request));
 
-    chunk_request_id
+    Some(chunk_request_id)
 }
 
 pub fn request_unload_chunk(
-    serialize_chunk_event_writer: &mut EventWriter<SaveChunk>,
+    save_chunk_event_writer: &mut EventWriter<SaveChunk>,
     chunk_registry: &mut ChunkRegistry,
     chunk_request_registry: &mut ChunkRequestRegistry,
     entity_registry: &mut EntityRegistry,
     chunk_id: ChunkID,
-) -> ChunkRequestID {
+) -> Option<ChunkRequestID> {
     let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
     let entity_id = {
         let entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
@@ -199,39 +278,22 @@ pub fn request_unload_chunk(
         entity_id
     };
 
+    if !can_request_unload_chunk(chunk_registry, entity_registry, chunk_id) {
+        return None;
+    }
+
     let unload_chunk_request = ChunkRequest {
         chunk_request_id,
         chunk_id,
         entity_id,
     };
 
-    chunk_request_registry.register_chunk_request(chunk_request_id);
-
-    if !entity_registry.is_entity_registered(entity_id) {
-        panic!("Entity '{:?}' is not registered!", entity_id);
-    }
-
-    if !entity_registry.is_entity_loaded(entity_id) {
-        panic!("Entity '{:?}' is not loaded!", entity_id);
-    }
-
-    if !chunk_registry.is_chunk_registered(chunk_id) {
-        warn!("Chunk '{:?}' is not registered!", chunk_id);
-
-        return chunk_request_id;
-    }
-
-    if !chunk_registry.is_chunk_loaded(chunk_id) {
-        warn!("Chunk '{:?}' is not loaded!", chunk_id);
-
-        return chunk_request_id;
-    }
-
     chunk_registry.start_saving_chunk(chunk_id);
+    chunk_request_registry.register_chunk_request(chunk_request_id);
     chunk_request_registry.load_chunk_request(chunk_request_id, unload_chunk_request);
-    serialize_chunk_event_writer.send(SaveChunk(unload_chunk_request));
+    save_chunk_event_writer.send(SaveChunk(unload_chunk_request));
 
-    chunk_request_id
+    Some(chunk_request_id)
 }
 
 fn on_add_chunk(
@@ -368,8 +430,7 @@ fn on_add_chunk(
             Color::srgb(0.75, 0.75, 0.75)
         };
 
-        // TODO: Find solution
-        world.entity_mut(entity_reference).insert(
+        world.commands().entity(entity_reference).insert(
             SpriteBundle {
                 sprite: Sprite {
                     color: chunk_color,
@@ -681,77 +742,68 @@ pub(in crate) fn categorize_chunks(
 
 // Fix these functions
 
+// Lass dich net verarschen Richie, die start_chunks methode is komplett für'n arsch
+
 pub(in crate) fn start_chunks(
-    mut create_chunk_event_writer: EventWriter<CreateChunkEntity>,
-    mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
+    load_chunk_event_writer: &mut EventWriter<LoadChunk>,
+    upgrade_to_chunk_event_writer: &mut EventWriter<UpgradeToChunk>,
     chunk_loader: &mut Mut<ChunkLoader>,
     chunk_registry: &mut ResMut<ChunkRegistry>,
     chunk_request_registry: &mut ResMut<ChunkRequestRegistry>,
+    entity_registry: &mut EntityRegistry,
     start_chunk_ids: &Vec<ChunkID>,
 ) {
     for start_chunk_id in start_chunk_ids {
         debug!("Start chunk '{:?}' detected!", start_chunk_id);
 
         let chunk_id = *start_chunk_id;
-        let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
+
+        let entity_id = {
+            let entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+                Some(chunk_entity) => chunk_entity,
+                None => panic!("Chunk entity '{:?}' is not loaded!", chunk_id)
+            };
+
+            match entity_registry.get_loaded_entity_id(&entity_reference) {
+                Some(entity_id) => entity_id,
+                None => panic!("Entity reference '{:?}' is not loaded!", entity_reference)
+            }
+        };
 
         if chunk_registry.is_chunk_registered(chunk_id) {
-            if chunk_loader.currently_loading_chunks().contains(&chunk_id) {
-                debug!("Start chunk '{:?}' is already loading!", chunk_id);
-    
+            if chunk_loader.can_load_chunk(chunk_id) {
+                chunk_loader.start_loading_chunk(chunk_id);
+            } else {
                 continue;
             }
 
-            if chunk_registry.is_chunk_loading(chunk_id) {
-                debug!("Start chunk '{:?}' is already loading!", chunk_id);
-
+            if can_request_load_chunk(chunk_registry, entity_registry, chunk_id, entity_id) {
+                request_load_chunk(load_chunk_event_writer, chunk_registry, chunk_request_registry, entity_registry, chunk_id, entity_id);
+            } else {
                 continue;
             }
-
-            if !chunk_registry.try_allocate_chunk(chunk_id) {
-                panic!("Failed to allocate start chunk '{:?}'!", chunk_id);
-            }
-
-            chunk_loader.start_loading_chunk(chunk_id);
-            chunk_registry.start_loading_chunk(chunk_id);
-
-            load_chunk_event_writer.send(LoadChunkEntity { 
-                chunk_request_id,
-                chunk_id
-            });
         } else {
-            if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
-                debug!("Start chunk '{:?}' is already creating!", chunk_id);
-    
+            if chunk_loader.can_upgrade_to_chunk(chunk_id) {
+                chunk_loader.start_upgrading_to_chunk(chunk_id);
+            } else {
                 continue;
             }
 
-            if chunk_registry.is_chunk_being_created(chunk_id) {
-                debug!("Start chunk '{:?}' is already creating!", chunk_id);
-
+            if can_request_upgrade_to_chunk(chunk_registry, entity_registry, chunk_id, entity_id) {
+                request_upgrade_to_chunk(upgrade_to_chunk_event_writer, chunk_registry, chunk_request_registry, entity_registry, chunk_id, entity_id);
+            } else {
                 continue;
             }
-
-            if !chunk_registry.try_allocate_chunk(chunk_id) {
-                panic!("Failed to allocate start chunk '{:?}'!", chunk_id);
-            }
-
-            chunk_loader.start_creating_chunk(chunk_id);
-            chunk_registry.start_creating_chunk(chunk_id);
-
-            create_chunk_event_writer.send(CreateChunkEntity { 
-                chunk_request_id,
-                chunk_id
-            });
         }
     }
 }
 
 #[allow(clippy::too_many_arguments)]
 pub(in crate) fn update_chunks(
-    mut create_chunk_event_writer: EventWriter<CreateChunkEntity>,
-    mut load_chunk_event_writer: EventWriter<LoadChunkEntity>,
-    mut unload_chunk_event_writer: EventWriter<UnloadChunkEntity>,
+    mut upgrade_to_chunk_event_writer: EventWriter<UpgradeToChunk>,
+    mut downgrade_from_chunk_event_writer: EventWriter<DowngradeFromChunk>,
+    mut load_chunk_event_writer: EventWriter<LoadChunk>,
+    mut save_chunk_event_writer: EventWriter<SaveChunk>,
     chunk_loader: &mut Mut<ChunkLoader>,
     chunk_registry: &mut ResMut<ChunkRegistry>,
     chunk_request_registry: &mut ResMut<ChunkRequestRegistry>,
@@ -764,7 +816,7 @@ pub(in crate) fn update_chunks(
         let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
         let chunk_id = old_chunk_id;
 
-        if chunk_loader.currently_unloading_chunks().contains(&chunk_id) {
+        if chunk_loader.currently_saving_chunks().contains(&chunk_id) {
             debug!("Loader: Old chunk '{:?}' is already unloading!", chunk_id);
 
             continue;
@@ -776,11 +828,7 @@ pub(in crate) fn update_chunks(
             continue;
         }
 
-        if !chunk_registry.try_allocate_chunk(chunk_id) {
-            panic!("Failed to allocate old chunk '{:?}'!", chunk_id);
-        }
-
-        chunk_loader.start_unloading_chunk(chunk_id);
+        chunk_loader.start_saving_chunk(chunk_id);
         chunk_registry.start_unloading_chunk(chunk_id);
 
         unload_chunk_event_writer.send(UnloadChunkEntity {
@@ -793,12 +841,6 @@ pub(in crate) fn update_chunks(
         debug!("New chunk '{:?}' detected!", new_chunk_id);
         let chunk_request_id = chunk_request_registry.get_unused_chunk_request_id();
         let chunk_id = *new_chunk_id;
-
-        if !chunk_registry.try_allocate_chunk(chunk_id) {
-            error!("Failed to allocate new chunk '{:?}'!", chunk_id);
-
-            continue;
-        }
 
         if chunk_registry.is_chunk_registered(chunk_id) {
             debug!("New chunk '{:?}' is registered, thus it will be loaded.", chunk_id);
@@ -825,7 +867,7 @@ pub(in crate) fn update_chunks(
         } else {
             debug!("New chunk '{:?}' is not registered, thus it will be created.", chunk_id);
         
-            if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
+            if chunk_loader.currently_upgrading_to_chunks().contains(&chunk_id) {
                 debug!("New chunk '{:?}' is already creating!", chunk_id);
     
                 continue;
@@ -837,7 +879,7 @@ pub(in crate) fn update_chunks(
                 continue;
             }
 
-            chunk_loader.start_creating_chunk(chunk_id);
+            chunk_loader.start_upgrading_to_chunk(chunk_id);
             chunk_registry.start_creating_chunk(chunk_id);
 
             create_chunk_event_writer.send(CreateChunkEntity {
@@ -876,8 +918,8 @@ pub(in crate) fn handle_updated_chunks(
             CreatedChunkEntityInternal::Failure { chunk_id, .. } => chunk_id,
         };
 
-        if chunk_loader.currently_creating_chunks().contains(&chunk_id) {
-            chunk_loader.stop_creating_chunk(chunk_id);
+        if chunk_loader.currently_upgrading_to_chunks().contains(&chunk_id) {
+            chunk_loader.stop_upgrading_to_chunk(chunk_id);
         }
 
         if chunk_registry.is_chunk_being_created(chunk_id) {
@@ -907,8 +949,8 @@ pub(in crate) fn handle_updated_chunks(
         
         };
 
-        if chunk_loader.currently_unloading_chunks().contains(&chunk_id) {
-            chunk_loader.stop_unloading_chunk(chunk_id);
+        if chunk_loader.currently_saving_chunks().contains(&chunk_id) {
+            chunk_loader.stop_saving_chunk(chunk_id);
         }
 
         if chunk_registry.is_chunk_saving(chunk_id) {
