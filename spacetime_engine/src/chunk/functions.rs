@@ -729,20 +729,12 @@ pub(in crate) fn categorize_chunks(
         }
     }
 
-    let old_chunks = old_chunks.into_iter().filter(|old_chunk_id| {
-        !chunk_registry.is_chunk_allocated(*old_chunk_id)
-    }).collect::<Vec<ChunkID>>();
-
-    let new_chunks = new_chunks.into_iter().filter(|new_chunk_id| {
-        !chunk_registry.is_chunk_allocated(*new_chunk_id)
-    }).collect::<Vec<ChunkID>>();
-
     (old_chunks, unchanged_chunks, new_chunks)
 }
 
-// Fix these functions
+// TODO: Fix these functions
 
-// Lass dich net verarschen Richie, die start_chunks methode is komplett für'n arsch
+// TODO: Lass dich net verarschen Richie, die start_chunks methode is komplett für'n arsch
 
 pub(in crate) fn start_chunks(
     load_chunk_event_writer: &mut EventWriter<LoadChunk>,
