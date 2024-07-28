@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
-use crate::chunk::id::structs::*;
-use super::id::structs::{ChunkLoaderRequestID, ChunkLoaderID};
+use crate::{chunk::id::structs::*, entity::id::structs::EntityRequestID};
+use super::id::structs::ChunkLoaderID;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
@@ -11,7 +13,8 @@ pub struct ChunkLoader {
     currently_upgrading_to_chunks: Vec<ChunkID>,
     currently_downgrading_chunks: Vec<ChunkID>,
     currently_loading_chunks: Vec<ChunkID>,
-    currently_saving_chunks: Vec<ChunkID>
+    currently_saving_chunks: Vec<ChunkID>,
+    currently_preparing_entities_for_chunk_upgrade: HashMap<ChunkID, EntityRequestID>
 }
 
 impl ChunkLoader {
@@ -23,7 +26,8 @@ impl ChunkLoader {
             currently_upgrading_to_chunks: Vec::new(),
             currently_downgrading_chunks: Vec::new(),
             currently_loading_chunks: Vec::new(),
-            currently_saving_chunks: Vec::new()
+            currently_saving_chunks: Vec::new(),
+            currently_preparing_entities_for_chunk_upgrade: HashMap::new()
         }
     }
 
@@ -55,32 +59,20 @@ impl ChunkLoader {
         &self.currently_upgrading_to_chunks
     }
 
-    pub(in crate) fn currently_upgrading_to_chunks_mut(&mut self) -> &mut Vec<ChunkID> {
-        &mut self.currently_upgrading_to_chunks
-    }
-
     pub fn currently_downgrading_from_chunks(&self) -> &Vec<ChunkID> {
         &self.currently_downgrading_chunks
-    }
-
-    pub(in crate) fn currently_downgrading_from_chunks_mut(&mut self) -> &mut Vec<ChunkID> {
-        &mut self.currently_downgrading_chunks
     }
 
     pub fn currently_loading_chunks(&self) -> &Vec<ChunkID> {
         &self.currently_loading_chunks
     }
 
-    pub(in crate) fn currently_loading_chunks_mut(&mut self) -> &mut Vec<ChunkID> {
-        &mut self.currently_loading_chunks
-    }
-
     pub fn currently_saving_chunks(&self) -> &Vec<ChunkID> {
         &self.currently_saving_chunks
     }
 
-    pub(in crate) fn currently_saving_chunks_mut(&mut self) -> &mut Vec<ChunkID> {
-        &mut self.currently_saving_chunks
+    pub fn currently_preparing_entities_for_chunk_upgrade(&self) -> &HashMap<ChunkID, EntityRequestID> {
+        &self.currently_preparing_entities_for_chunk_upgrade
     }
 
     pub(in crate) fn start_upgrading_to_chunk(&mut self, chunk_id: ChunkID) {
@@ -129,6 +121,14 @@ impl ChunkLoader {
 
     pub(in crate) fn stop_saving_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_saving_chunks.retain(|&id| id != chunk_id);
+    }
+
+    pub(in crate) fn start_preparing_entity_for_chunk_upgrade(&mut self, chunk_id: ChunkID, entity_request_id: EntityRequestID) {
+        self.currently_preparing_entities_for_chunk_upgrade.insert(chunk_id, entity_request_id);
+    }
+
+    pub(in crate) fn stop_preparing_entity_for_chunk_upgrade(&mut self, chunk_id: ChunkID) {
+        self.currently_preparing_entities_for_chunk_upgrade.remove(&chunk_id);
     }
 
     pub(in crate) fn can_upgrade_to_chunk(&self, chunk_id: ChunkID) -> bool {

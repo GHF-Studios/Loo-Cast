@@ -1,17 +1,14 @@
-use bevy::prelude::*;
-use crate::entity::id::structs::EntityID;
 use crate::chunk::id::structs::{ChunkID, ChunkRequestID};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ChunkRequest {
     pub chunk_request_id: ChunkRequestID,
     pub chunk_id: ChunkID,
-    pub entity_id: EntityID,
 }
 
 impl PartialEq for ChunkRequest {
     fn eq(&self, other: &Self) -> bool {
-        self.chunk_request_id == other.chunk_request_id
+        self.chunk_request_id == other.chunk_request_id && self.chunk_id == other.chunk_id
     }
 
 }
@@ -21,14 +18,10 @@ pub enum ChunkResponse {
     Success {
         chunk_request_id: ChunkRequestID,
         chunk_id: ChunkID,
-        chunk_entity_id: EntityID,
-        world_position: Vec2,
     },
     Failure {
         chunk_request_id: ChunkRequestID,
         chunk_id: ChunkID,
-        target_entity_id: EntityID,
-        world_position: Vec2,
     },
 }
 

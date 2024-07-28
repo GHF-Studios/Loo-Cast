@@ -1,4 +1,3 @@
-use bevy::prelude::*;
 use super::id::structs::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -9,7 +8,7 @@ pub struct EntityRequest {
 
 impl PartialEq for EntityRequest {
     fn eq(&self, other: &Self) -> bool {
-        self.entity_request_id == other.entity_request_id
+        self.entity_request_id == other.entity_request_id && self.entity_id == other.entity_id
     }
 }
 
@@ -18,12 +17,10 @@ pub enum EntityResponse {
     Success {
         entity_request_id: EntityRequestID,
         entity_id: EntityID,
-        world_position: Vec2,
     },
     Failure {
         entity_request_id: EntityRequestID,
         entity_id: EntityID,
-        world_position: Vec2,
     },
 }
 

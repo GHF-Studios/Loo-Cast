@@ -35,7 +35,7 @@ pub(in crate) fn start(
     
     let start_chunk_ids = chunk_functions::detect_chunks(chunk_loader_transform, chunk_loader_load_radius);
 
-    chunk_functions::start_chunks(
+    chunk_functions::request_start_chunks(
         create_chunk_event_writer, 
         load_chunk_event_writer, 
         &mut chunk_loader,
@@ -87,7 +87,7 @@ pub(in crate) fn update(
         new_chunk_ids
     ) = chunk_functions::categorize_chunks(&mut chunk_registry, detected_chunk_ids.clone());
 
-    chunk_functions::update_chunks(
+    chunk_functions::request_update_chunks(
         create_chunk_event_writer, 
         load_chunk_event_writer, 
         unload_chunk_event_writer,

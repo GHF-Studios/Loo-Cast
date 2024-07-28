@@ -94,13 +94,6 @@ fn on_add_entity(
 ) {
     let entity_reference = entity;
 
-    let world_position = match world.get::<Transform>(entity_reference) {
-        Some(transform) => transform.translation.truncate(),
-        None => {
-            panic!("Failed to get transform component associated with entity '{:?}'!", entity_reference);
-        }
-    };
-
     let entity_id = {
         let mut entity_registry = match world.get_resource_mut::<EntityRegistry>() {
             Some(entity_registry) => entity_registry,
@@ -175,7 +168,6 @@ fn on_add_entity(
             world.send_event(CreatedEntity(EntityResponse::Success {
                 entity_request_id,
                 entity_id,
-                world_position,
             }));
 
         } else if is_entity_loading {
@@ -193,7 +185,6 @@ fn on_add_entity(
             world.send_event(LoadedEntity(EntityResponse::Success {
                 entity_request_id,
                 entity_id,
-                world_position,
             }));
         } else {
             panic!("Entity '{:?}' is neither creating nor loading!", entity_id);
@@ -207,13 +198,6 @@ fn on_remove_entity(
     _component: ComponentId,
 ) {
     let entity_reference = entity;
-
-    let world_position = match world.get::<Transform>(entity_reference) {
-        Some(transform) => transform.translation.truncate(),
-        None => {
-            panic!("Failed to get world position associated with entity '{:?}'!", entity_reference);
-        }
-    };
 
     let entity_id = {
         let mut entity_registry = match world.get_resource_mut::<EntityRegistry>() {
@@ -287,7 +271,6 @@ fn on_remove_entity(
             world.send_event(DestroyedEntity(EntityResponse::Success {
                 entity_request_id,
                 entity_id,
-                world_position,
             }));
         } else if is_entity_saving {
             entity_registry.stop_saving_entity(entity_id);
@@ -304,7 +287,6 @@ fn on_remove_entity(
             world.send_event(SavedEntity(EntityResponse::Success {
                 entity_request_id,
                 entity_id,
-                world_position,
             }));
         } else {
             panic!("Entity '{:?}' is neither destroying nor saving!", entity_id);

@@ -2,10 +2,10 @@ use bevy::prelude::*;
 use super::structs::*;
 
 #[derive(Debug, Clone, Event)]
-pub(super) struct CreateEntity(pub EntityRequest);
+pub(in crate) struct CreateEntity(pub EntityRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(super) struct DestroyEntity(pub EntityRequest);
+pub(in crate) struct DestroyEntity(pub EntityRequest);
 
 #[derive(Debug, Clone, Event)]
 pub(crate) struct LoadEntity(pub EntityRequest);
