@@ -239,6 +239,7 @@ pub(super) fn handle_created_entity(
 pub(super) fn handle_upgraded_to_chunk(
     mut upgraded_to_chunk_event_reader: EventReader<UpgradedToChunk>,
     mut chunk_loader_query: Query<&mut ChunkLoader>,
+    mut chunk_registry: ResMut<ChunkRegistry>,
 ) {
     let mut chunk_loader = chunk_loader_query.single_mut();
 
@@ -273,7 +274,11 @@ pub(super) fn handle_upgraded_to_chunk(
         };
 
         for chunk_id in upgraded_to_chunks {
+            if !chunk_registry.is_chunk_upgrading_to(chunk_id) { continue; }
+
+            chunk_registry.stop_upgrading_to_chunk(chunk_id);
             chunk_loader.stop_upgrading_to_chunk(chunk_id);
         }
     }
 }
+
