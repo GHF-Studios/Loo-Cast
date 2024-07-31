@@ -121,7 +121,6 @@ pub(super) fn handle_load_chunk(
             }
         };
 
-        // TODO: See to it that the on_add_entity hook correctly assignes the previously serialized entity id(which is saved alongside the serialized chunk) to the entity when the entity is loaded and not simply created
         let chunk_entity_reference = functions::deserialize_chunk(world, serialized_chunk.to_string());
 
         let assigned_chunk_entity_id = {

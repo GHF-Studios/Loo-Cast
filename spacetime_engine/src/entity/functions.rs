@@ -87,6 +87,9 @@ pub fn request_destroy_entity(
     Some(entity_request_id)
 }
 
+// TODO: See to it that the on_add_entity hook correctly assignes the previously serialized entity id(which is saved alongside the serialized chunk) to the entity when the entity is loaded and not simply created
+// After that: Comment out the chunk actor/chunk loader/player/physics modules
+// After that: Setup a small test that loads and unloads, creates, and destroys a few chunks to see whether any errors occur
 fn on_add_entity(
     mut world: DeferredWorld,
     entity: Entity,
