@@ -11,16 +11,12 @@ use crate::chunk::id::structs::ChunkID as ChunkID;
 use crate::chunk::position::structs::ChunkPosition as ChunkPosition;
 use crate::chunk::actor::position::structs::ChunkActorPosition as ChunkActorPosition;
 use crate::chunk::events::*;
-use crate::entity;
-use crate::entity::events::*;
 use crate::entity::id::structs::EntityID;
-use crate::entity::resources::{EntityRegistry, EntityRequestRegistry};
-use crate::entity::structs::EntityResponse;
+use crate::entity::resources::EntityRegistry;
 use crate::math::structs::I16Vec2;
 use serde::de::DeserializeSeed;
 use super::actor::components::ChunkActor;
 use super::id::structs::ChunkRequestID;
-use super::loader::components::ChunkLoader;
 use super::structs::{ChunkRequest, ChunkResponse};
 use super::{ChunkRequestRegistry, ChunkRegistry};
 

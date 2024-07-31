@@ -10,11 +10,11 @@ pub struct ChunkLoader {
     id: ChunkLoaderID,
     load_radius: u16,
     current_chunk_ids: Vec<ChunkID>,
+    currently_preparing_entities_for_chunk_upgrade: HashMap<ChunkID, EntityRequestID>,
     currently_upgrading_to_chunks: Vec<ChunkID>,
     currently_downgrading_chunks: Vec<ChunkID>,
     currently_loading_chunks: Vec<ChunkID>,
     currently_saving_chunks: Vec<ChunkID>,
-    currently_preparing_entities_for_chunk_upgrade: HashMap<ChunkID, EntityRequestID>
 }
 
 impl ChunkLoader {
@@ -23,11 +23,11 @@ impl ChunkLoader {
             id,
             load_radius,
             current_chunk_ids: Vec::new(),
+            currently_preparing_entities_for_chunk_upgrade: HashMap::new(),
             currently_upgrading_to_chunks: Vec::new(),
             currently_downgrading_chunks: Vec::new(),
             currently_loading_chunks: Vec::new(),
             currently_saving_chunks: Vec::new(),
-            currently_preparing_entities_for_chunk_upgrade: HashMap::new()
         }
     }
 
@@ -73,6 +73,14 @@ impl ChunkLoader {
 
     pub fn currently_preparing_entities_for_chunk_upgrade(&self) -> &HashMap<ChunkID, EntityRequestID> {
         &self.currently_preparing_entities_for_chunk_upgrade
+    }
+
+    pub(in crate) fn start_preparing_entity_for_chunk_upgrade(&mut self, chunk_id: ChunkID, entity_request_id: EntityRequestID) {
+        self.currently_preparing_entities_for_chunk_upgrade.insert(chunk_id, entity_request_id);
+    }
+
+    pub(in crate) fn stop_preparing_entity_for_chunk_upgrade(&mut self, chunk_id: ChunkID) {
+        self.currently_preparing_entities_for_chunk_upgrade.remove(&chunk_id);
     }
 
     pub(in crate) fn start_upgrading_to_chunk(&mut self, chunk_id: ChunkID) {
@@ -121,14 +129,6 @@ impl ChunkLoader {
 
     pub(in crate) fn stop_saving_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_saving_chunks.retain(|&id| id != chunk_id);
-    }
-
-    pub(in crate) fn start_preparing_entity_for_chunk_upgrade(&mut self, chunk_id: ChunkID, entity_request_id: EntityRequestID) {
-        self.currently_preparing_entities_for_chunk_upgrade.insert(chunk_id, entity_request_id);
-    }
-
-    pub(in crate) fn stop_preparing_entity_for_chunk_upgrade(&mut self, chunk_id: ChunkID) {
-        self.currently_preparing_entities_for_chunk_upgrade.remove(&chunk_id);
     }
 
     pub(in crate) fn can_upgrade_to_chunk(&self, chunk_id: ChunkID) -> bool {

@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
 use crate::chunk::id::structs::*;
-use crate::entity::id::structs::EntityRequestID;
 use crate::entity::types::*;
 
 use super::structs::ChunkRequest;
