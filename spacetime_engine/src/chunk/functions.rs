@@ -217,6 +217,7 @@ pub fn request_load_chunk(
     let load_chunk_request = ChunkRequest {
         chunk_request_id,
         chunk_id,
+        
     };
 
     chunk_registry.start_loading_chunk(chunk_id);

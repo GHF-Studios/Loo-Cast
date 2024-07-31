@@ -8,7 +8,8 @@ pub struct EntityRequest {
 
 impl PartialEq for EntityRequest {
     fn eq(&self, other: &Self) -> bool {
-        self.entity_request_id == other.entity_request_id && self.entity_id == other.entity_id
+        self.entity_request_id == other.entity_request_id 
+        && self.entity_id == other.entity_id
     }
 }
 
@@ -27,8 +28,32 @@ pub enum EntityResponse {
 impl PartialEq for EntityResponse {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Success { entity_request_id: entity_request_id1, .. }, Self::Success { entity_request_id: entity_request_id2, .. }) => entity_request_id1 == entity_request_id2,
-            (Self::Failure { entity_request_id: entity_request_id1, .. }, Self::Failure { entity_request_id: entity_request_id2, .. }) => entity_request_id1 == entity_request_id2,
+            (
+                Self::Success { 
+                    entity_request_id: entity_request_id1,
+                    entity_id: entity_id1,
+                },
+                Self::Success { 
+                    entity_request_id: entity_request_id2,
+                    entity_id: entity_id2,
+                },
+            ) => {
+                entity_request_id1 == entity_request_id2 
+                && entity_id1 == entity_id2
+            },
+            (
+                Self::Failure { 
+                    entity_request_id: entity_request_id1,
+                    entity_id: entity_id1,
+                },
+                Self::Failure { 
+                    entity_request_id: entity_request_id2,
+                    entity_id: entity_id2,
+                },
+            ) => {
+                entity_request_id1 == entity_request_id2 
+                && entity_id1 == entity_id2
+            },
             _ => false,
         }
     }

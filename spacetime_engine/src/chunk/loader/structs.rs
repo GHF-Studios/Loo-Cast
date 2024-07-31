@@ -1,55 +1,72 @@
-use bevy::prelude::*;
 use crate::entity::id::structs::EntityID;
-use crate::chunk::id::structs::ChunkID;
+
 use super::id::structs::{ChunkLoaderID, ChunkLoaderRequestID};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ChunkLoaderRequest {
-    pub chunk_loader_request_id: ChunkLoaderRequestID,
-    pub target_entity_id: Entity,
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct InternalChunkLoaderRequest {
     pub chunk_loader_request_id: ChunkLoaderRequestID,
     pub chunk_loader_id: ChunkLoaderID,
     pub chunk_loader_entity_id: EntityID,
-    pub chunk_id: ChunkID,
-    pub world_position: Vec2,
 }
 
-#[derive(Debug, Clone)]
-pub(crate) enum InternalChunkLoaderResponse {
-    Success {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID,
-        chunk_loader_entity_id: EntityID,
-        chunk_id: ChunkID,
-        world_position: Vec2,
-    },
-    Failure {
-        chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID,
-        target_entity_id: EntityID,
-        chunk_id: ChunkID,
-        world_position: Vec2,
-    },
+impl PartialEq for ChunkLoaderRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.chunk_loader_request_id == other.chunk_loader_request_id 
+        && self.chunk_loader_id == other.chunk_loader_id 
+        && self.chunk_loader_entity_id == other.chunk_loader_entity_id
+    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ChunkLoaderResponse {
     Success {
         chunk_loader_request_id: ChunkLoaderRequestID,
         chunk_loader_id: ChunkLoaderID,
         chunk_loader_entity_id: EntityID,
-        chunk_id: ChunkID,
-        world_position: Vec2,
     },
     Failure {
         chunk_loader_request_id: ChunkLoaderRequestID,
         chunk_loader_id: ChunkLoaderID,
-        target_entity_id: EntityID,
-        chunk_id: ChunkID,
-        world_position: Vec2,
+        chunk_loader_entity_id: EntityID,
     },
+}
+
+impl PartialEq for ChunkLoaderResponse {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::Success { 
+                    chunk_loader_request_id: chunk_loader_request_id1,
+                    chunk_loader_id: chunk_loader_id1,
+                    chunk_loader_entity_id: chunk_loader_entity_id1,
+                }, 
+                Self::Success { 
+                    chunk_loader_request_id: chunk_loader_request_id2,
+                    chunk_loader_id: chunk_loader_id2,
+                    chunk_loader_entity_id: chunk_loader_entity_id2,
+                }
+            ) => {
+                chunk_loader_request_id1 == chunk_loader_request_id2 
+                && chunk_loader_id1 == chunk_loader_id2 
+                && chunk_loader_entity_id1 == chunk_loader_entity_id2
+            },
+            (
+                Self::Failure { 
+                    chunk_loader_request_id: chunk_loader_request_id1,
+                    chunk_loader_id: chunk_loader_id1,
+                    chunk_loader_entity_id: chunk_loader_entity_id1,
+                }, 
+                Self::Failure { 
+                    chunk_loader_request_id: chunk_loader_request_id2,
+                    chunk_loader_id: chunk_loader_id2,
+                    chunk_loader_entity_id: chunk_loader_entity_id2,
+                }
+            ) => {
+                chunk_loader_request_id1 == chunk_loader_request_id2 
+                && chunk_loader_id1 == chunk_loader_id2 
+                && chunk_loader_entity_id1 == chunk_loader_entity_id2
+            },
+            _ => false,
+        }
+    }
 }

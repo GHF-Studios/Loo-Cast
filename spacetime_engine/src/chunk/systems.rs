@@ -31,8 +31,13 @@ pub(super) fn handle_upgrade_to_chunk(
         let upgrade_chunk_request = upgrade_to_chunk_event.0;
 
         let chunk_id = upgrade_chunk_request.chunk_id;
-        let entity_id = {
-            let (entity_registry, chunk_registry) = registry_parameters.get_mut(world);
+        // TODO: The gathering of this EntityID is plain WRONG!
+        let entity_reference = {
+            let chunk_id = {
+                
+            };
+
+            let chunk_registry = registry_parameters.get_mut(world).1;
 
             let entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
                 Some(chunk_entity_reference) => chunk_entity_reference.clone(),
@@ -41,24 +46,7 @@ pub(super) fn handle_upgrade_to_chunk(
                 }
             };
 
-            let entity_id = match entity_registry.get_loaded_entity_id(&entity_reference) {
-                Some(entity_id) => entity_id.clone(),
-                None => {
-                    panic!("Entity id associated with entity reference '{:?}' not found!", entity_reference);
-                }
-            };
-
-            entity_id
-        };
-
-        let entity_reference = {
-            let entity_registry = registry_parameters.get_mut(world).0;
-            match entity_registry.get_loaded_entity_reference(&entity_id) {
-                Some(entity_reference) => entity_reference.clone(),
-                None => {
-                    panic!("Entity reference associated with entity id '{:?}' not found!", entity_id);
-                }
-            }
+            entity_reference
         };
 
         world.entity_mut(entity_reference).insert(Chunk::new(chunk_id));
@@ -86,8 +74,8 @@ pub(super) fn handle_downgrade_from_chunk(
         let downgrade_chunk_request = downgrade_from_chunk_event.0;
 
         let chunk_id = downgrade_chunk_request.chunk_id;
-        let entity_id = {
-            let (entity_registry, chunk_registry) = registry_parameters.get_mut(world);
+        let entity_reference = {
+            let chunk_registry = registry_parameters.get_mut(world).1;
 
             let entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
                 Some(chunk_entity_reference) => chunk_entity_reference.clone(),
@@ -96,24 +84,7 @@ pub(super) fn handle_downgrade_from_chunk(
                 }
             };
 
-            let entity_id = match entity_registry.get_loaded_entity_id(&entity_reference) {
-                Some(entity_id) => entity_id.clone(),
-                None => {
-                    panic!("Entity id associated with entity reference '{:?}' not found!", entity_reference);
-                }
-            };
-
-            entity_id
-        };
-
-        let entity_reference = {
-            let entity_registry = registry_parameters.get_mut(world).0;
-            match entity_registry.get_loaded_entity_reference(&entity_id) {
-                Some(entity_reference) => entity_reference.clone(),
-                None => {
-                    panic!("Entity reference associated with entity id '{:?}' not found!", entity_id);
-                }
-            }
+            entity_reference
         };
 
         world.entity_mut(entity_reference).remove::<Chunk>();
