@@ -31,18 +31,15 @@ pub(super) fn handle_upgrade_to_chunk(
         let upgrade_chunk_request = upgrade_to_chunk_event.0;
 
         let chunk_id = upgrade_chunk_request.chunk_id;
-        // TODO: The gathering of this EntityID is plain WRONG!
+        let chunk_entity_id = upgrade_chunk_request.chunk_entity_id;
+
         let entity_reference = {
-            let chunk_id = {
-                
-            };
+            let entity_registry = registry_parameters.get_mut(world).0;
 
-            let chunk_registry = registry_parameters.get_mut(world).1;
-
-            let entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
-                Some(chunk_entity_reference) => chunk_entity_reference.clone(),
+            let entity_reference = match entity_registry.get_loaded_entity_reference(&chunk_entity_id) {
+                Some(entity_reference) => entity_reference.clone(),
                 None => {
-                    panic!("Chunk entity reference associated with chunk id '{:?}' not found!", chunk_id);
+                    panic!("Entity reference associated with entity id '{:?}' not found!", chunk_entity_id);
                 }
             };
 
@@ -96,9 +93,10 @@ pub(super) fn handle_load_chunk(
     event_parameters: &mut SystemState<(
         EventReader<LoadChunk>,
     )>,
-    registry_parameters: &mut SystemState<
+    registry_parameters: &mut SystemState<(
         ResMut<ChunkRegistry>,
-    >,
+        ResMut<EntityRegistry>,
+    )>,
 ) {
     let mut load_chunk_event_reader = event_parameters.get_mut(world).0;
 
@@ -112,18 +110,45 @@ pub(super) fn handle_load_chunk(
 
         let chunk_id = load_chunk_request.chunk_id;
 
-        let serialized_chunk = {
-            let mut chunk_registry = registry_parameters.get_mut(world);
+        let (previously_serialized_chunk_entity_id, serialized_chunk) = {
+            let chunk_registry = registry_parameters.get_mut(world).0;
 
-            match chunk_registry.deserialize_chunk(chunk_id) {
-                Some(serialized_chunk) => serialized_chunk,
+            match chunk_registry.serialized_chunks().get(&chunk_id) {
+                Some((chunk_entity_id, serialized_chunk)) => (chunk_entity_id.clone(), serialized_chunk.clone()),
                 None => {
                     panic!("Chunk with id '{:?}' not found!", chunk_id);
                 }
             }
         };
 
-        let _chunk_entity = functions::deserialize_chunk(world, serialized_chunk);
+        // TODO: See to it that the on_add_entity hook correctly assignes the previously serialized entity id(which is saved alongside the serialized chunk) to the entity when the entity is loaded and not simply created
+        let chunk_entity_reference = functions::deserialize_chunk(world, serialized_chunk.to_string());
+
+        let assigned_chunk_entity_id = {
+            let entity_registry = registry_parameters.get_mut(world).1;
+
+            let assigned_entity_id = match entity_registry.get_loaded_entity_id(&chunk_entity_reference) {
+                Some(entity_id) => entity_id.clone(),
+                None => {
+                    panic!("Entity id associated with entity reference '{:?}' not found!", chunk_entity_reference);
+                }
+            };
+
+            assigned_entity_id
+        };
+
+        let mut chunk_registry = registry_parameters.get_mut(world).0;
+
+        match chunk_registry.deserialize_chunk(chunk_id) {
+            Some(_) => {},
+            None => {
+                panic!("Failed to deserialize chunk with id '{:?}'!", chunk_id);
+            }
+        }
+
+        if assigned_chunk_entity_id != previously_serialized_chunk_entity_id {
+            panic!("Assigned entity id '{:?}' does not match the previously serialized entity id '{:?}'!", assigned_chunk_entity_id, previously_serialized_chunk_entity_id);
+        }
     }
 }
 
@@ -132,8 +157,11 @@ pub(super) fn handle_save_chunk(
     event_parameters: &mut SystemState<(
         EventReader<SaveChunk>,
     )>,
-    registry_parameter: &mut SystemState<
+    chunk_registry_parameter: &mut SystemState<
         ResMut<ChunkRegistry>,
+    >,
+    entity_registry_parameter: &mut SystemState<
+        Res<EntityRegistry>,
     >,
 ) {
     let mut save_chunk_event_reader = event_parameters.get_mut(world).0;
@@ -147,12 +175,32 @@ pub(super) fn handle_save_chunk(
         let save_chunk_request = save_chunk_event.0;
 
         let chunk_id = save_chunk_request.chunk_id;
+        let entity_id = {
+            let chunk_registry = chunk_registry_parameter.get_mut(world);
+            let entity_registry = entity_registry_parameter.get(world);
 
-        let serialized_chunk = functions::serialize_chunk(world, registry_parameter, chunk_id);
+            let entity_reference = match chunk_registry.get_loaded_chunk_entity(chunk_id) {
+                Some(chunk_entity_reference) => chunk_entity_reference.clone(),
+                None => {
+                    panic!("Chunk entity reference associated with chunk id '{:?}' not found!", chunk_id);
+                }
+            };
 
-        let mut chunk_registry = registry_parameter.get_mut(world);
+            let entity_id = match entity_registry.get_loaded_entity_id(&entity_reference) {
+                Some(entity_id) => entity_id.clone(),
+                None => {
+                    panic!("Entity id associated with entity reference '{:?}' not found!", entity_reference);
+                }
+            };
 
-        chunk_registry.serialize_chunk(chunk_id, serialized_chunk);
+            entity_id
+        };
+
+        let serialized_chunk = functions::serialize_chunk(world, chunk_registry_parameter, chunk_id);
+
+        let mut chunk_registry = chunk_registry_parameter.get_mut(world);
+
+        chunk_registry.serialize_chunk(chunk_id, serialized_chunk, entity_id);
     }
 }
 

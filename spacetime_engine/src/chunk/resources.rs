@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use std::collections::{HashMap, HashSet};
 use crate::chunk::id::structs::*;
+use crate::entity::id::structs::EntityID;
 use crate::entity::types::*;
 
 use super::structs::ChunkRequest;
@@ -9,7 +10,7 @@ use super::structs::ChunkRequest;
 pub(in crate) struct ChunkRegistry {
     registered_chunks: HashSet<ChunkID>,
     loaded_chunks: HashMap<ChunkID, EntityReference>,
-    serialized_chunks: HashMap<ChunkID, String>,
+    serialized_chunks: HashMap<ChunkID, (EntityID, String)>,
     currently_upgrading_to_chunks: HashSet<ChunkID>,
     currently_downgrading_from_chunks: HashSet<ChunkID>,
     currently_loading_chunks: HashSet<ChunkID>,
@@ -33,11 +34,11 @@ impl ChunkRegistry {
         self.loaded_chunks.remove(&chunk_id)
     }
 
-    pub(in crate) fn serialize_chunk(&mut self, chunk_id: ChunkID, serialized_chunk: String) {
-        self.serialized_chunks.insert(chunk_id, serialized_chunk);
+    pub(in crate) fn serialize_chunk(&mut self, chunk_id: ChunkID, serialized_chunk: String, chunk_entity_id: EntityID) {
+        self.serialized_chunks.insert(chunk_id, (chunk_entity_id, serialized_chunk));
     }
 
-    pub(in crate) fn deserialize_chunk(&mut self, chunk_id: ChunkID) -> Option<String> {
+    pub(in crate) fn deserialize_chunk(&mut self, chunk_id: ChunkID) -> Option<(EntityID, String)> {
         self.serialized_chunks.remove(&chunk_id)
     }
 
@@ -133,11 +134,11 @@ impl ChunkRegistry {
         self.loaded_chunks.values().copied().collect()
     }
 
-    pub(in crate) fn serialized_chunks(&self) -> &HashMap<ChunkID, String> {
+    pub(in crate) fn serialized_chunks(&self) -> &HashMap<ChunkID, (EntityID, String)> {
         &self.serialized_chunks
     }
 
-    pub(in crate) fn serialized_chunks_mut(&mut self) -> &mut HashMap<ChunkID, String> {
+    pub(in crate) fn serialized_chunks_mut(&mut self) -> &mut HashMap<ChunkID, (EntityID, String)> {
         &mut self.serialized_chunks
     }
 
