@@ -23,10 +23,10 @@ impl Plugin for EntityPlugin {
             .add_event::<DestroyedEntity>()
             .add_plugins(id::IDPlugin)
             .insert_resource(EntityRegistry::default())
-            .add_systems(Startup, functions::setup)
+            .add_systems(Startup, functions::main::setup)
             .add_systems(Update, (
-                systems::handle_create_entity, 
-                systems::handle_destroy_entity
+                systems::internal_handlers::handle_create_entity, 
+                systems::internal_handlers::handle_destroy_entity
             ));
     }
 }

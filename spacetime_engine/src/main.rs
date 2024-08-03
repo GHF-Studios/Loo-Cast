@@ -4,6 +4,20 @@ use bevy::{log::LogPlugin, prelude::*};
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
+// TODO: See to it that the on_add_entity hook correctly assignes the previously serialized entity id(which is saved alongside the serialized chunk) to the entity when the entity is loaded and not simply created
+// After that: Comment the physics/chunk.actor/chunk.loader/player modules out
+// After that: Setup a small test that creates, destroys, unloads and loads a few chunks to see whether any errors occur
+// After that: Comment physics/chunk.actor/chunk.loader/player back in
+
+
+
+
+
+
+
+
+
+
 
 // NEW TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 

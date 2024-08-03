@@ -555,7 +555,7 @@ pub(super) fn handle_destroy_chunk_actor_entity_internal_events(
         let (_, mut chunk_actor_registry, mut entity_registry) = registry_parameters.get_mut(world);
 
         chunk_actor_registry.unload_chunk_actor(chunk_actor_id);
-        entity_registry.unload_entity(chunk_actor_entity_id);
+        entity_registry.save_entity(chunk_actor_entity_id);
 
         chunk_actor_registry.unregister_chunk_actor(chunk_actor_id);
         entity_registry.unregister_entity(chunk_actor_entity_id);

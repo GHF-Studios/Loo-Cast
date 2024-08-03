@@ -20,6 +20,8 @@ pub(in crate) struct EntityRegistry {
     recycled_entity_ids: Vec<EntityID>,
 }
 
+// TODO: Implement rudimentary checks within this and all other registries to enforce basic invariants
+// Examples include: Redundant/Overwrite operations, Registration/Loading State Variants, etc.
 impl EntityRegistry {
     pub(in crate) fn register_entity(&mut self) -> EntityID {
         let entity_id = self.get_unused_entity_id();
@@ -45,7 +47,7 @@ impl EntityRegistry {
         trace!("Loaded entity reference '{:?}' with id: '{:?}'", entity_reference, entity_id);
     }
 
-    pub(in crate) fn unload_entity(&mut self, entity_id: EntityID) -> Option<EntityReference> {
+    pub(in crate) fn save_entity(&mut self, entity_id: EntityID) -> Option<EntityReference> {
         let removed_entity = self.loaded_entities.remove(&entity_id);
 
         trace!("Unloaded entity with id: '{:?}'", entity_id);

@@ -280,7 +280,7 @@ pub(super) fn handle_destroy_chunk_loader_entity_internal_events(
         };
 
         let _ = chunk_loader_registry.unload_chunk_loader(chunk_loader_id);
-        let _ = entity_registry.unload_entity(chunk_loader_entity_id);
+        let _ = entity_registry.save_entity(chunk_loader_entity_id);
 
         world.despawn(chunk_loader_entity_reference);
 

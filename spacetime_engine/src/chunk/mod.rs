@@ -9,14 +9,14 @@ pub mod events;
 pub(in crate) mod functions;
 pub mod resources;
 pub mod structs;
-pub(in crate) mod systems;
+mod systems;
 
 use actor::ActorPlugin;
 use position::PositionPlugin;
 use id::IdPlugin;
 use loader::LoaderPlugin;
 use resources::*;
-use systems::*;
+use systems::{internal_handlers, external_handlers};
 use bevy::prelude::*;
 use events::*;
 
@@ -39,13 +39,14 @@ impl Plugin for ChunkPlugin {
             .add_plugins(LoaderPlugin)
             .insert_resource(ChunkRegistry::default())
             .insert_resource(ChunkRequestRegistry::default())
+            .add_systems(Startup, functions::main::setup)
             .add_systems(Update, (
-                handle_upgrade_to_chunk,
-                handle_downgrade_from_chunk,
-                handle_load_chunk,
-                handle_save_chunk,
-                handle_created_entity,
-                handle_upgraded_to_chunk
+                internal_handlers::handle_upgrade_to_chunk,
+                internal_handlers::handle_downgrade_from_chunk,
+                internal_handlers::handle_load_chunk,
+                internal_handlers::handle_save_chunk,
+                external_handlers::handle_created_entity,
+                external_handlers::handle_upgraded_to_chunk
             ))
             .register_type::<components::Chunk>()
             .register_type::<Vec<actor::id::structs::ChunkActorID>>();

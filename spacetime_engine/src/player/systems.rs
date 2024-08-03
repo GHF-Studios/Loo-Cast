@@ -312,7 +312,7 @@ pub(super) fn handle_destroy_player_entity_events(
         };
 
         player_registry.unload_player(player_id);
-        entity_registry.unload_entity(player_entity_id);
+        entity_registry.save_entity(player_entity_id);
 
         player_registry.unregister_player(player_id);
         entity_registry.unregister_entity(player_entity_id);

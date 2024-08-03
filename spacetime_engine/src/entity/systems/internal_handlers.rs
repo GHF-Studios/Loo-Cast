@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
-use super::components::SpacetimeEntity;
-use super::resources::*;
-use super::events::*;
+use crate::entity::components::SpacetimeEntity;
+use crate::entity::resources::*;
+use crate::entity::events::*;
 
-pub(super) fn handle_create_entity(
+pub fn handle_create_entity(
     world: &mut World,
     event_parameters: &mut SystemState<
         EventReader<CreateEntity>,
@@ -26,13 +26,13 @@ pub(super) fn handle_create_entity(
         world.spawn((
             Transform::from_translation(world_position.extend(0.0)),
             SpacetimeEntity {
-                entity_id,
+                id: entity_id,
             },
         ));
     }
 }
 
-pub(super) fn handle_destroy_entity(
+pub fn handle_destroy_entity(
     world: &mut World,
     event_parameters: &mut SystemState<
         EventReader<DestroyEntity>,

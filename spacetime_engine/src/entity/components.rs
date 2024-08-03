@@ -4,5 +4,5 @@ use super::id::structs::EntityID;
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct SpacetimeEntity {
-    pub entity_id: EntityID,
+    pub id: EntityID,
 }

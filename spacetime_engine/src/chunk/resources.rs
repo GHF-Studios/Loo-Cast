@@ -30,7 +30,7 @@ impl ChunkRegistry {
         self.loaded_chunks.insert(chunk_id, chunk_entity_reference);
     }
 
-    pub(in crate) fn unload_chunk(&mut self, chunk_id: ChunkID) -> Option<EntityReference> {
+    pub(in crate) fn save_chunk(&mut self, chunk_id: ChunkID) -> Option<EntityReference> {
         self.loaded_chunks.remove(&chunk_id)
     }
 
