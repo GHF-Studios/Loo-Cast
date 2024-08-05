@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::chunk::events::*;
 use crate::chunk::resources::*;
-use crate::chunk::functions;
+use crate::chunk::functions::requests::*;
 use crate::entity::events::CreatedEntity;
 use crate::entity::resources::*;
 use crate::entity::structs::EntityResponse;
@@ -35,7 +35,7 @@ pub fn handle_created_entity(
                 
                 for (chunk_id, entity_request_id) in preparing_entities.iter() {
                     let is_loader_capable = chunk_loader.can_upgrade_to_chunk(*chunk_id);
-                    let is_registry_capable = functions::can_request_upgrade_to_chunk(&mut chunk_registry, &mut entity_registry, *chunk_id, entity_id);
+                    let is_registry_capable = can_request_upgrade_to_chunk(&mut chunk_registry, &mut entity_registry, *chunk_id, entity_id);
     
                     if is_loader_capable && is_registry_capable {
                         prepared_entities.push((chunk_id, entity_request_id, entity_id))

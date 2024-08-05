@@ -1,8 +1,8 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use crate::chunk::events::*;
+use crate::chunk::functions::main::*;
 use crate::chunk::resources::*;
-use crate::chunk::functions;
 use crate::entity::resources::*;
 use crate::chunk::components::Chunk;
 
@@ -117,7 +117,7 @@ pub fn handle_load_chunk(
             }
         };
 
-        let chunk_entity_reference = functions::deserialize_chunk(world, serialized_chunk.to_string());
+        let chunk_entity_reference = deserialize_chunk(world, serialized_chunk.to_string());
 
         let assigned_chunk_entity_id = {
             let entity_registry = registry_parameters.get_mut(world).1;
@@ -192,7 +192,7 @@ pub fn handle_save_chunk(
             entity_id
         };
 
-        let serialized_chunk = functions::serialize_chunk(world, chunk_registry_parameter, chunk_id);
+        let serialized_chunk = serialize_chunk(world, chunk_registry_parameter, chunk_id);
 
         let mut chunk_registry = chunk_registry_parameter.get_mut(world);
 
