@@ -1,7 +1,7 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 use crate::chunk::events::*;
-use crate::chunk::functions::main::*;
+use crate::chunk::functions::util::*;
 use crate::chunk::resources::*;
 use crate::entity::resources::*;
 use crate::chunk::components::Chunk;

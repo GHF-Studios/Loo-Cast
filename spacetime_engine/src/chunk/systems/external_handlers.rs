@@ -54,7 +54,7 @@ pub fn handle_created_entity(
         for (chunk_id, _, entity_id) in prepared_entities {
             chunk_loader.stop_preparing_entity_for_chunk_upgrade(*chunk_id);
             chunk_loader.start_upgrading_to_chunk(*chunk_id);
-            functions::request_upgrade_to_chunk(&mut upgrade_to_chunk_event_writer, &mut chunk_registry, &mut chunk_request_registry, &mut entity_registry, *chunk_id, entity_id);
+            request_upgrade_to_chunk(&mut upgrade_to_chunk_event_writer, &mut chunk_registry, &mut chunk_request_registry, &mut entity_registry, *chunk_id, entity_id);
         }
     }
 }

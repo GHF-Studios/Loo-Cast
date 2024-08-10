@@ -71,7 +71,6 @@ pub fn on_add_chunk(
             panic!("Chunk '{:?}' is both upgrading and loading!", chunk_id);
         } else if is_upgrading_to_chunk {
             chunk_registry.load_chunk(chunk_id, chunk_entity_reference);
-
             chunk_registry.stop_upgrading_to_chunk(chunk_id);
 
             let mut chunk_request_registry = match world.get_resource_mut::<ChunkRequestRegistry>() {
@@ -90,7 +89,6 @@ pub fn on_add_chunk(
             }));
         } else if is_chunk_loading {
             chunk_registry.load_chunk(chunk_id, chunk_entity_reference);
-
             chunk_registry.stop_loading_chunk(chunk_id);
 
             let mut chunk_request_registry = match world.get_resource_mut::<ChunkRequestRegistry>() {
@@ -201,7 +199,6 @@ pub fn on_remove_chunk(
         } else if is_downgrading_from_chunk {
             chunk_registry.save_chunk(chunk_id);
             chunk_registry.unregister_chunk(chunk_id);
-
             chunk_registry.stop_downgrading_from_chunk(chunk_id);
 
             let mut chunk_request_registry = match world.get_resource_mut::<ChunkRequestRegistry>() {
@@ -220,7 +217,6 @@ pub fn on_remove_chunk(
             }));
         } else if is_saving_chunk {
             chunk_registry.save_chunk(chunk_id);
-
             chunk_registry.stop_saving_chunk(chunk_id);
 
             let mut chunk_request_registry = match world.get_resource_mut::<ChunkRequestRegistry>() {

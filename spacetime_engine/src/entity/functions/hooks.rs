@@ -60,7 +60,6 @@ pub fn on_add_entity(
             panic!("Entity '{:?}' is both creating and loading!", entity_id);
         } else if is_entity_creating {
             entity_registry.load_entity(entity_id, entity_reference);
-
             entity_registry.stop_creating_entity(entity_id);
     
             let mut entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {
@@ -79,7 +78,6 @@ pub fn on_add_entity(
 
         } else if is_entity_loading {
             entity_registry.load_entity(entity_id, entity_reference);
-
             entity_registry.stop_loading_entity(entity_id);
     
             let mut entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {
@@ -156,7 +154,6 @@ pub fn on_remove_entity(
         } else if is_entity_destroying {
             entity_registry.save_entity(entity_id);
             entity_registry.unregister_entity(entity_id);
-
             entity_registry.stop_destroying_entity(entity_id);
 
             let mut entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {
@@ -174,7 +171,6 @@ pub fn on_remove_entity(
             }));
         } else if is_entity_saving {
             entity_registry.save_entity(entity_id);
-
             entity_registry.stop_saving_entity(entity_id);
     
             let mut entity_request_registry = match world.get_resource_mut::<EntityRequestRegistry>() {

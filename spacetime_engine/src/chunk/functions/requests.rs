@@ -174,12 +174,10 @@ pub fn request_downgrade_from_chunk(
             None => panic!("Chunk entity '{:?}' is not loaded!", chunk_id)
         };
 
-        let chunk_entity_id = match entity_registry.get_loaded_entity_id(&chunk_entity) {
+        match entity_registry.get_loaded_entity_id(&chunk_entity) {
             Some(chunk_entity_id) => chunk_entity_id,
             None => panic!("Entity ID associated with chunk entity '{:?}' is not loaded!", chunk_entity)
-        };
-
-        chunk_entity_id
+        }
     };
 
     let downgrade_from_chunk_request = ChunkRequest {

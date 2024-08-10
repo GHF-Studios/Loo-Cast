@@ -1,60 +1,16 @@
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 
-use crate::chunk::{components::Chunk, id::structs::ChunkID};
+use crate::chunk::actor::components::ChunkActor;
+use crate::chunk::actor::position::structs::ChunkActorPosition;
+use crate::chunk::actor::structs::{DespawnChunkActorInfo, UpdateChunkActorInfo};
+use crate::chunk::actor::ChunkActorRegistry;
+use crate::chunk::components::Chunk;
+use crate::chunk::id::structs::ChunkID;
 use crate::chunk::position::structs::ChunkPosition;
 use crate::chunk::ChunkRegistry;
-use super::components::ChunkActor;
-use super::constants::CHUNK_ACTOR_Z_INDEX;
-use super::{id::structs::ChunkActorID, position::structs::ChunkActorPosition, structs::{DespawnChunkActorInfo, UpdateChunkActorInfo}, ChunkActorRegistry};
 
-pub(super) fn new_chunk_actor_entity(
-    world: &mut World,
-    chunk_actor_id: ChunkActorID,
-    chunk_id: ChunkID,
-    world_position: Vec2,
-) -> Entity {
-    let new_chunk_actor_entity = world
-    .spawn((
-        Transform::from_translation(world_position.extend(CHUNK_ACTOR_Z_INDEX)),
-        ChunkActor::new(chunk_actor_id, chunk_id)
-    ))
-    .id();
-
-    new_chunk_actor_entity
-}
-
-pub(super) fn promote_chunk_actor_entity(
-    world: &mut World,
-    chunk_actor_id: ChunkActorID,
-    chunk_id: ChunkID,
-    target_entity_reference: Entity,
-    ineligible_entity_query_0: &mut QueryState<Entity, Without<Transform>>,
-    ineligible_entity_query_1: &mut QueryState<Entity, With<ChunkActor>>,
-    eligible_entity_query: &mut QueryState<Entity, (With<Transform>, Without<ChunkActor>)>,
-) -> Result<Entity, Entity> {
-    if let Ok(_) = ineligible_entity_query_0.get(world, target_entity_reference) {
-        error!("Entity '{:?}' does not have a Transform component!", target_entity_reference);
-
-        return Err(target_entity_reference);
-    };
-
-    if let Ok(_) = ineligible_entity_query_1.get(world, target_entity_reference) {
-        error!("Entity '{:?}' already has a ChunkActor component!", target_entity_reference);
-
-        return Err(target_entity_reference);
-    };
-
-    if let Ok(eligible_entity) = eligible_entity_query.get_mut(world, target_entity_reference) {
-        return Ok(world.entity_mut(eligible_entity).insert(ChunkActor::new(chunk_actor_id, chunk_id)).id());
-    } else {
-        error!("Entity does not exist or does not have a Transform component.");
-
-        return Err(target_entity_reference);
-    };
-}
-
-pub(super) fn collect_chunk_actor_updates(
+pub(crate) fn collect_chunk_actor_updates(
     world: &mut World,
     registry_parameters: &mut SystemState<(
         ResMut<ChunkRegistry>,
@@ -124,7 +80,7 @@ pub(super) fn collect_chunk_actor_updates(
     (updates, despawns)
 }
 
-pub(super) fn apply_chunk_actor_updates(
+pub(crate) fn apply_chunk_actor_updates(
     world: &mut World,
     registry_parameters: &mut SystemState<(
         ResMut<ChunkRegistry>,
