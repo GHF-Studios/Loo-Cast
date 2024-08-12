@@ -20,58 +20,90 @@ pub(in crate) struct ChunkRegistry {
 impl ChunkRegistry {
     pub(in crate) fn register_chunk(&mut self, chunk_id: ChunkID) {
         self.registered_chunks.insert(chunk_id);
+
+        trace!("Registered chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn unregister_chunk(&mut self, chunk_id: ChunkID) {
         self.registered_chunks.remove(&chunk_id);
+
+        trace!("Unregistered chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn load_chunk(&mut self, chunk_id: ChunkID, chunk_entity_reference: EntityReference) {
         self.loaded_chunks.insert(chunk_id, chunk_entity_reference);
+
+        trace!("Loaded chunk '{:?}' | '{:?}'", chunk_id, chunk_entity_reference);
     }
 
     pub(in crate) fn save_chunk(&mut self, chunk_id: ChunkID) -> Option<EntityReference> {
-        self.loaded_chunks.remove(&chunk_id)
+        let chunk_entity_reference = self.loaded_chunks.remove(&chunk_id);
+
+        trace!("Saved chunk '{:?}' | '{:?}'", chunk_id, chunk_entity_reference);
+
+        chunk_entity_reference
     }
 
     pub(in crate) fn serialize_chunk(&mut self, chunk_id: ChunkID, serialized_chunk: String, chunk_entity_id: EntityID) {
         self.serialized_chunks.insert(chunk_id, (chunk_entity_id, serialized_chunk));
+
+        trace!("Serialized chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn deserialize_chunk(&mut self, chunk_id: ChunkID) -> Option<(EntityID, String)> {
-        self.serialized_chunks.remove(&chunk_id)
+        let removed_serialized_chunk = self.serialized_chunks.remove(&chunk_id);
+
+        trace!("Deserialized chunk '{:?}'", chunk_id);
+
+        removed_serialized_chunk
     }
 
     pub(in crate) fn start_upgrading_to_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_upgrading_to_chunks.insert(chunk_id);
+
+        trace!("Started upgrading to chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn stop_upgrading_to_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_upgrading_to_chunks.remove(&chunk_id);
+
+        trace!("Stopped upgrading to chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn start_downgrading_from_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_downgrading_from_chunks.insert(chunk_id);
+
+        trace!("Started downgrading from chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn stop_downgrading_from_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_downgrading_from_chunks.remove(&chunk_id);
+
+        trace!("Stopped downgrading from chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn start_loading_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_loading_chunks.insert(chunk_id);
+
+        trace!("Started loading chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn stop_loading_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_loading_chunks.remove(&chunk_id);
+
+        trace!("Stopped loading chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn start_saving_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_saving_chunks.insert(chunk_id);
+
+        trace!("Started saving chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn stop_saving_chunk(&mut self, chunk_id: ChunkID) {
         self.currently_saving_chunks.remove(&chunk_id);
+
+        trace!("Stopped saving chunk '{:?}'", chunk_id);
     }
 
     pub(in crate) fn is_chunk_registered(&self, chunk_id: ChunkID) -> bool {
@@ -106,40 +138,28 @@ impl ChunkRegistry {
         &self.registered_chunks
     }
 
-    pub(in crate) fn registered_chunks_mut(&mut self) -> &mut HashSet<ChunkID> {
-        &mut self.registered_chunks
-    }
-
     pub(in crate) fn get_loaded_chunk_entity(&self, chunk_id: ChunkID) -> Option<EntityReference> {
         self.loaded_chunks.get(&chunk_id).copied()
+    }
+
+    pub(in crate) fn get_loaded_chunk_id(&self, chunk_entity: EntityReference) -> Option<ChunkID> {
+        self.loaded_chunks.iter().find(|(_, e)| **e == chunk_entity).map(|(id, _)| *id)
     }
 
     pub(in crate) fn loaded_chunk_entity(&self, chunk_id: ChunkID) -> EntityReference {
         self.loaded_chunks[&chunk_id]
     }
 
+    pub(in crate) fn loaded_chunk_id(&self, chunk_entity: EntityReference) -> ChunkID {
+        self.loaded_chunks.iter().find(|(_, e)| **e == chunk_entity).map(|(id, _)| *id).unwrap()
+    }
+
     pub(in crate) fn loaded_chunks(&self) -> &HashMap<ChunkID, EntityReference> {
         &self.loaded_chunks
     }
 
-    pub(in crate) fn loaded_chunks_mut(&mut self) -> &mut HashMap<ChunkID, EntityReference> {
-        &mut self.loaded_chunks
-    }
-
-    pub(in crate) fn loaded_chunk_ids(&self) -> HashSet<ChunkID> {
-        self.loaded_chunks.keys().copied().collect()
-    }
-
-    pub(in crate) fn loaded_chunk_entities(&self) -> HashSet<EntityReference> {
-        self.loaded_chunks.values().copied().collect()
-    }
-
     pub(in crate) fn serialized_chunks(&self) -> &HashMap<ChunkID, (EntityID, String)> {
         &self.serialized_chunks
-    }
-
-    pub(in crate) fn serialized_chunks_mut(&mut self) -> &mut HashMap<ChunkID, (EntityID, String)> {
-        &mut self.serialized_chunks
     }
 
     pub(in crate) fn upgrading_to_chunks(&self) -> &HashSet<ChunkID> {
@@ -205,10 +225,6 @@ impl ChunkRequestRegistry {
         &self.registered_chunk_requests
     }
 
-    pub(in crate) fn registered_chunk_requests_mut(&mut self) -> &mut HashSet<ChunkRequestID> {
-        &mut self.registered_chunk_requests
-    }
-
     pub(in crate) fn get_loaded_chunk_request(&self, chunk_request_id: ChunkRequestID) -> Option<ChunkRequest> {
         self.loaded_chunk_requests.get(&chunk_request_id).copied()
     }
@@ -227,10 +243,6 @@ impl ChunkRequestRegistry {
 
     pub(in crate) fn loaded_chunk_requests(&self) -> &HashMap<ChunkRequestID, ChunkRequest> {
         &self.loaded_chunk_requests
-    }
-
-    pub(in crate) fn loaded_chunk_requests_mut(&mut self) -> &mut HashMap<ChunkRequestID, ChunkRequest> {
-        &mut self.loaded_chunk_requests
     }
 
     pub fn get_unused_chunk_request_id(&mut self) -> ChunkRequestID {

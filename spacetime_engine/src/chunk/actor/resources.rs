@@ -5,15 +5,12 @@ use crate::entity::types::*;
 
 #[derive(Resource, Debug, Default)]
 pub(in crate) struct ChunkActorRegistry {
-    registered_chunk_actors: HashSet<ChunkActorID>,
-    loaded_chunk_actors: HashMap<ChunkActorID, EntityReference>,
-    currently_creating_chunk_actors: HashSet<ChunkActorID>,
-    currently_destroying_chunk_actors: HashSet<ChunkActorID>,
-    currently_upgrading_to_chunk_actors: HashSet<ChunkActorID>,
-    create_chunk_actor_requests: HashMap<ChunkActorRequestID, ChunkActorCreateRequest>,
-    promote_chunk_actor_requests: HashMap<ChunkActorRequestID, ChunkActorUpgradeRequest>,
     next_chunk_actor_id: ChunkActorID,
     recycled_chunk_actor_ids: Vec<ChunkActorID>,
+    registered_chunk_actors: HashSet<ChunkActorID>,
+    loaded_chunk_actors: HashMap<ChunkActorID, EntityReference>,
+    currently_upgrading_to_chunk_actors: HashSet<ChunkActorID>,
+    currently_downgrading_from_chunk_actors: HashSet<ChunkActorID>,
 }
 
 impl ChunkActorRegistry {

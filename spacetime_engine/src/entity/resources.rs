@@ -12,23 +12,17 @@ pub(in crate) struct EntityRegistry {
     currently_destroying_entities: HashSet<EntityID>,
     currently_loading_entities: HashSet<EntityID>,
     currently_saving_entities: HashSet<EntityID>,
-    create_entity_requests: HashMap<EntityRequestID, EntityRequest>,
-    destroy_entity_requests: HashMap<EntityRequestID, EntityRequest>,
-    load_entity_requests: HashMap<EntityRequestID, EntityRequest>,
-    save_entity_requests: HashMap<EntityRequestID, EntityRequest>,
     next_entity_id: EntityID,
     recycled_entity_ids: Vec<EntityID>,
 }
 
-// TODO: Implement rudimentary checks within this and all other registries to enforce basic invariants
-// Examples include: Redundant/Overwrite operations, Registration/Loading State Variants, etc.
 impl EntityRegistry {
     pub(in crate) fn register_entity(&mut self) -> EntityID {
         let entity_id = self.get_unused_entity_id();
         
         self.registered_entities.insert(entity_id);
 
-        trace!("Registered entity with id: '{:?}'", entity_id);
+        trace!("Registered entity '{:?}'", entity_id);
 
         entity_id
     }
@@ -36,7 +30,7 @@ impl EntityRegistry {
     pub(in crate) fn unregister_entity(&mut self, entity_id: EntityID) {
         self.registered_entities.retain(|&other_entity_id| entity_id != other_entity_id);
 
-        trace!("Unregistered entity with id: '{:?}'", entity_id);
+        trace!("Unregistered entity '{:?}'", entity_id);
 
         self.recycle_entity_id(entity_id);
     }
@@ -44,71 +38,63 @@ impl EntityRegistry {
     pub(in crate) fn load_entity(&mut self, entity_id: EntityID, entity_reference: EntityReference) {
         self.loaded_entities.insert(entity_id, entity_reference);
 
-        trace!("Loaded entity reference '{:?}' with id: '{:?}'", entity_reference, entity_id);
+        trace!("Loaded entity '{:?}' | '{:?}'", entity_id, entity_reference);
     }
 
     pub(in crate) fn save_entity(&mut self, entity_id: EntityID) -> Option<EntityReference> {
-        let removed_entity = self.loaded_entities.remove(&entity_id);
+        let entity_reference = self.loaded_entities.remove(&entity_id);
 
-        trace!("Unloaded entity with id: '{:?}'", entity_id);
+        trace!("Saved entity '{:?}' | '{:?}'", entity_id, entity_reference);
 
-        removed_entity
+        entity_reference
     }
 
     pub(in crate) fn start_creating_entity(&mut self, request: EntityRequest) {
-        self.create_entity_requests.insert(request.entity_request_id, request.clone());
         self.currently_creating_entities.insert(request.entity_id);
 
-        trace!("Started creating entity with id: '{:?}'", request.entity_id);
+        trace!("Started creating entity '{:?}'", request.entity_id);
     }
 
     pub(in crate) fn stop_creating_entity(&mut self, entity_id: EntityID) {
-        self.create_entity_requests.retain(|_, request| request.entity_id != entity_id);
         self.currently_creating_entities.remove(&entity_id);
 
-        trace!("Stopped creating entity with id: '{:?}'", entity_id);
+        trace!("Stopped creating entity '{:?}'", entity_id);
     }
 
     pub(in crate) fn start_destroying_entity(&mut self, request: EntityRequest) {
-        self.destroy_entity_requests.insert(request.entity_request_id, request.clone());
         self.currently_destroying_entities.insert(request.entity_id);
 
-        trace!("Started destroying entity with id: '{:?}'", request.entity_id);
+        trace!("Started destroying entity '{:?}'", request.entity_id);
     }
 
     pub(in crate) fn stop_destroying_entity(&mut self, entity_id: EntityID) {
-        self.destroy_entity_requests.retain(|_, request| request.entity_id != entity_id);
         self.currently_destroying_entities.remove(&entity_id);
 
-        trace!("Stopped destroying entity with id: '{:?}'", entity_id);
+        trace!("Stopped destroying entity '{:?}'", entity_id);
     }
 
     pub(in crate) fn start_loading_entity(&mut self, request: EntityRequest) {
-        self.load_entity_requests.insert(request.entity_request_id, request.clone());
         self.currently_loading_entities.insert(request.entity_id);
 
-        trace!("Started loading entity with id: '{:?}'", request.entity_id);
+        trace!("Started loading entity '{:?}'", request.entity_id);
     }
 
     pub(in crate) fn stop_loading_entity(&mut self, entity_id: EntityID) {
-        self.load_entity_requests.retain(|_, request| request.entity_id != entity_id);
         self.currently_loading_entities.remove(&entity_id);
 
-        trace!("Stopped loading entity with id: '{:?}'", entity_id);
+        trace!("Stopped loading entity '{:?}'", entity_id);
     }
 
     pub(in crate) fn start_saving_entity(&mut self, request: EntityRequest) {
-        self.save_entity_requests.insert(request.entity_request_id, request.clone());
         self.currently_saving_entities.insert(request.entity_id);
 
-        trace!("Started saving entity with id: '{:?}'", request.entity_id);
+        trace!("Started saving entity '{:?}'", request.entity_id);
     }
 
     pub(in crate) fn stop_saving_entity(&mut self, entity_id: EntityID) {
-        self.save_entity_requests.retain(|_, request| request.entity_id != entity_id);
         self.currently_saving_entities.remove(&entity_id);
 
-        trace!("Stopped saving entity with id: '{:?}'", entity_id);
+        trace!("Stopped saving entity '{:?}'", entity_id);
     }
 
     pub(in crate) fn is_entity_registered(&self, entity_id: EntityID) -> bool {
@@ -139,10 +125,6 @@ impl EntityRegistry {
         &self.registered_entities
     }
 
-    pub(in crate) fn registered_entities_mut(&mut self) -> &mut HashSet<EntityID> {
-        &mut self.registered_entities
-    }
-
     pub(in crate) fn get_loaded_entity_reference(&self, entity_id: &EntityID) -> Option<EntityReference> {
         self.loaded_entities.get(entity_id).copied()
     }
@@ -163,48 +145,20 @@ impl EntityRegistry {
         &self.loaded_entities
     }
 
-    pub(in crate) fn loaded_entities_mut(&mut self) -> &mut HashMap<EntityID, EntityReference> {
-        &mut self.loaded_entities
+    pub(in crate) fn creating_entities(&self) -> &HashSet<EntityID> {
+        &self.currently_creating_entities
     }
 
-    pub(in crate) fn loaded_entity_ids(&self) -> HashSet<EntityID> {
-        self.loaded_entities.keys().copied().collect()
+    pub(in crate) fn destroying_entities(&self) -> &HashSet<EntityID> {
+        &self.currently_destroying_entities
     }
 
-    pub(in crate) fn loaded_entity_references(&self) -> HashSet<EntityReference> {
-        self.loaded_entities.values().copied().collect()
+    pub(in crate) fn loading_entities(&self) -> &HashSet<EntityID> {
+        &self.currently_loading_entities
     }
 
-    pub(in crate) fn create_entity_requests(&self) -> &HashMap<EntityRequestID, EntityRequest> {
-        &self.create_entity_requests
-    }
-
-    pub(in crate) fn create_entity_requests_mut(&mut self) -> &mut HashMap<EntityRequestID, EntityRequest> {
-        &mut self.create_entity_requests
-    }
-
-    pub(in crate) fn destroy_entity_requests(&self) -> &HashMap<EntityRequestID, EntityRequest> {
-        &self.destroy_entity_requests
-    }
-
-    pub(in crate) fn destroy_entity_requests_mut(&mut self) -> &mut HashMap<EntityRequestID, EntityRequest> {
-        &mut self.destroy_entity_requests
-    }
-
-    pub(in crate) fn load_entity_requests(&self) -> &HashMap<EntityRequestID, EntityRequest> {
-        &self.load_entity_requests
-    }
-
-    pub(in crate) fn load_entity_requests_mut(&mut self) -> &mut HashMap<EntityRequestID, EntityRequest> {
-        &mut self.load_entity_requests
-    }
-
-    pub(in crate) fn save_entity_requests(&self) -> &HashMap<EntityRequestID, EntityRequest> {
-        &self.save_entity_requests
-    }
-
-    pub(in crate) fn save_entity_requests_mut(&mut self) -> &mut HashMap<EntityRequestID, EntityRequest> {
-        &mut self.save_entity_requests
+    pub(in crate) fn saving_entities(&self) -> &HashSet<EntityID> {
+        &self.currently_saving_entities
     }
 
     fn get_unused_entity_id(&mut self) -> EntityID {
@@ -239,25 +193,25 @@ impl EntityRequestRegistry {
     pub(in crate) fn register_entity_request(&mut self, entity_request_id: EntityRequestID) {
         self.registered_entity_requests.insert(entity_request_id);
 
-        trace!("Registered entity request with id: '{:?}'", entity_request_id);
+        trace!("Registered entity request '{:?}'", entity_request_id);
     }
 
     pub(in crate) fn unregister_entity_request(&mut self, entity_request_id: EntityRequestID) {
         self.registered_entity_requests.remove(&entity_request_id);
 
-        trace!("Unregistered entity request with id: '{:?}'", entity_request_id);
+        trace!("Unregistered entity request '{:?}'", entity_request_id);
     }
 
-    pub(in crate) fn load_entity_request(&mut self, request: EntityRequest) {
-        self.loaded_entity_requests.insert(request.entity_request_id, request.clone());
+    pub(in crate) fn load_entity_request(&mut self, entity_request_id: EntityRequestID, entity_request: EntityRequest) {
+        self.loaded_entity_requests.insert(entity_request_id, entity_request);
 
-        trace!("Loaded entity request with id: '{:?}'", request.entity_request_id);
+        trace!("Loaded entity request '{:?}'", entity_request_id);
     }
 
     pub(in crate) fn unload_entity_request(&mut self, entity_request_id: EntityRequestID) -> Option<EntityRequest> {
         let removed_entity_request = self.loaded_entity_requests.remove(&entity_request_id);
 
-        trace!("Unloaded entity request with id: '{:?}'", entity_request_id);
+        trace!("Unloaded entity request '{:?}'", entity_request_id);
 
         removed_entity_request
     }
@@ -302,9 +256,8 @@ impl EntityRequestRegistry {
         &mut self.loaded_entity_requests
     }
 
-    pub(in crate) fn get_unused_entity_request_id(&mut self) -> EntityRequestID {
+    pub fn get_unused_entity_request_id(&mut self) -> EntityRequestID {
         let entity_request_id = self.next_entity_request_id;
-
         self.next_entity_request_id = EntityRequestID(entity_request_id.0 + 1);
 
         entity_request_id

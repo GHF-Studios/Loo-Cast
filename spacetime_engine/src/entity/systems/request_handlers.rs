@@ -61,7 +61,7 @@ pub fn handle_destroy_entity(
             },
         };
 
-        // TODO: Panic if the entity still has any components left, except for 'Transform' and 'SpacetimeEntity' 
+        // TODO: Panic if the entity still has any components left, except for 'Transform' and 'SpacetimeEntity'
         //use crate::component;
         //
         //for component_id in component::get_components_ids(world, &entity_reference)

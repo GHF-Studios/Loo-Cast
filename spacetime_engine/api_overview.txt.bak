@@ -1,0 +1,11 @@
+Spacetime Engine API Overview
+
+
+Registry
+Overview:
+	Each registry can uniquely identify and store a specific type of component.
+	A registry also stores a general type of [COMPONENT]requests and [COMPONENT]responses;
+	specific request and response types within a module do not exist, 
+	as every request and response for some given component type has the exact same data layout, 
+	so additional specialized request and response types would mean a lot of code duplication.
+
