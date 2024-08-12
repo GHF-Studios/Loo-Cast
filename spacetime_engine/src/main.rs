@@ -4,14 +4,37 @@ use bevy::{log::LogPlugin, prelude::*};
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 
-// TODO: See to it that the on_add_entity hook correctly assignes the previously serialized entity id(which is saved alongside the serialized chunk) to the entity when the entity is loaded and not simply created
-// After that: Comment physics/chunk.actor/chunk.loader/player out
-// After that: Setup a small test that creates, destroys, unloads and loads a few chunks to see whether any errors occur
-// After that: Comment physics/chunk.actor/chunk.loader/player back in
 
-
-
-
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
+// TODO: Mashallah so mach chunk so chack güsell so, und dann guck dass entity auch so tschak güsell is, und dann auf actor und loader extrapolieren
 
 
 

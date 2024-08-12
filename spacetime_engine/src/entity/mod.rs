@@ -25,8 +25,8 @@ impl Plugin for EntityPlugin {
             .insert_resource(EntityRegistry::default())
             .add_systems(Startup, functions::main::setup)
             .add_systems(Update, (
-                systems::internal_handlers::handle_create_entity, 
-                systems::internal_handlers::handle_destroy_entity
+                systems::request_handlers::handle_create_entity, 
+                systems::request_handlers::handle_destroy_entity
             ));
     }
 }

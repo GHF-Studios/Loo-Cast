@@ -16,7 +16,7 @@ use position::PositionPlugin;
 use id::IdPlugin;
 use loader::LoaderPlugin;
 use resources::*;
-use systems::{internal_handlers, external_handlers};
+use systems::*;
 use bevy::prelude::*;
 use events::*;
 
@@ -41,12 +41,10 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ChunkRequestRegistry::default())
             .add_systems(Startup, functions::main::setup)
             .add_systems(Update, (
-                internal_handlers::handle_upgrade_to_chunk,
-                internal_handlers::handle_downgrade_from_chunk,
-                internal_handlers::handle_load_chunk,
-                internal_handlers::handle_save_chunk,
-                external_handlers::handle_created_entity,
-                external_handlers::handle_upgraded_to_chunk
+                request_handlers::handle_upgrade_to_chunk,
+                request_handlers::handle_downgrade_from_chunk,
+                request_handlers::handle_load_chunk,
+                request_handlers::handle_save_chunk,
             ))
             .register_type::<components::Chunk>()
             .register_type::<Vec<actor::id::structs::ChunkActorID>>();
