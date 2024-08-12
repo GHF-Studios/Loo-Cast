@@ -2,16 +2,16 @@ use bevy::prelude::*;
 use super::structs::*;
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradeToChunk(pub ChunkRequest);
+pub(crate) struct UpgradeToChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct DowngradeFromChunk(pub ChunkRequest);
+pub(crate) struct DowngradeFromChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct LoadChunk(pub ChunkRequest);
+pub(crate) struct LoadChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct SaveChunk(pub ChunkRequest);
+pub(crate) struct SaveChunk(pub ChunkRequest);
 
 #[derive(Debug, Clone, Event)]
 pub struct UpgradedToChunk(pub ChunkResponse);

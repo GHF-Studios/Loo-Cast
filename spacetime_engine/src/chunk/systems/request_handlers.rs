@@ -4,7 +4,6 @@ use crate::chunk::events::*;
 use crate::chunk::functions::util::*;
 use crate::chunk::resources::*;
 use crate::entity::resources::*;
-use crate::chunk::components::Chunk;
 
 pub fn handle_upgrade_to_chunk(
     world: &mut World,
@@ -42,7 +41,7 @@ pub fn handle_upgrade_to_chunk(
             entity_reference
         };
 
-        world.entity_mut(entity_reference).insert(Chunk::new(chunk_id));
+        upgrade_to_chunk(world, chunk_id, entity_reference);
     }
 }
 
@@ -80,7 +79,7 @@ pub fn handle_downgrade_from_chunk(
             entity_reference
         };
 
-        world.entity_mut(entity_reference).remove::<Chunk>();
+        downgrade_from_chunk(world, entity_reference);
     }
 }
 

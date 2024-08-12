@@ -12,6 +12,21 @@ use serde::de::DeserializeSeed;
 use crate::chunk::actor::components::ChunkActor;
 use crate::chunk::ChunkRegistry;
 
+pub(in crate) fn upgrade_to_chunk(
+    world: &mut World,
+    chunk_id: ChunkID,
+    entity_reference: Entity,
+) {
+    world.entity_mut(entity_reference).insert(Chunk::new(chunk_id));
+}
+
+pub(in crate) fn downgrade_from_chunk(
+    world: &mut World,
+    entity_reference: Entity,
+) {
+    world.entity_mut(entity_reference).remove::<Chunk>();
+}
+
 pub(in crate) fn deserialize_chunk(
     world: &mut World,
     serialized_chunk: String,
@@ -159,9 +174,9 @@ pub(in crate) fn categorize_chunks(
     let mut unchanged_chunks: Vec<ChunkID> = Vec::new();
     let mut new_chunks: Vec<ChunkID> = Vec::new();
 
-    for loaded_chunk_id in chunk_registry.loaded_chunk_ids() {
-        if !detected_chunk_ids.contains(&loaded_chunk_id) {
-            old_chunks.push(loaded_chunk_id);
+    for loaded_chunk_id in chunk_registry.loaded_chunks().keys() {
+        if !detected_chunk_ids.contains(loaded_chunk_id) {
+            old_chunks.push(*loaded_chunk_id);
         }
     }
 

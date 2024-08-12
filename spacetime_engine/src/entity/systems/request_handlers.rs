@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
-use crate::entity::components::SpacetimeEntity;
+use crate::entity::functions::util::*;
 use crate::entity::resources::*;
 use crate::entity::events::*;
 
@@ -23,12 +23,7 @@ pub fn handle_create_entity(
         let entity_id = create_entity_request.entity_id;
         let world_position = Vec2::new(0.0, 0.0);
 
-        world.spawn((
-            Transform::from_translation(world_position.extend(0.0)),
-            SpacetimeEntity {
-                id: entity_id,
-            },
-        ));
+        create_entity(world, entity_id, world_position);
     }
 }
 
@@ -70,6 +65,6 @@ pub fn handle_destroy_entity(
         //    println!("{}", component::extract_component_name(component_info));
         //}
 
-        world.despawn(entity_reference);
+        destroy_entity(world, entity_reference);
     }
 }
