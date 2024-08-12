@@ -2,10 +2,10 @@ use bevy::prelude::*;
 use super::structs::*;
 
 #[derive(Debug, Clone, Event)]
-pub struct UpgradeToChunkLoader(pub ChunkLoaderRequest);
+pub(in crate) struct UpgradeToChunkLoader(pub ChunkLoaderRequest);
 
 #[derive(Debug, Clone, Event)]
-pub struct DowngradeFromChunkLoader(pub ChunkLoaderRequest);
+pub(in crate) struct DowngradeFromChunkLoader(pub ChunkLoaderRequest);
 
 #[derive(Debug, Clone, Event)]
 pub struct UpgradedToChunkLoader(pub ChunkLoaderResponse);

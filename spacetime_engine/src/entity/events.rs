@@ -2,16 +2,16 @@ use bevy::prelude::*;
 use super::structs::*;
 
 #[derive(Debug, Clone, Event)]
-pub(crate) struct CreateEntity(pub EntityRequest);
+pub(in crate) struct CreateEntity(pub EntityRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(crate) struct DestroyEntity(pub EntityRequest);
+pub(in crate) struct DestroyEntity(pub EntityRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(crate) struct LoadEntity(pub EntityRequest);
+pub(in crate) struct LoadEntity(pub EntityRequest);
 
 #[derive(Debug, Clone, Event)]
-pub(crate) struct SaveEntity(pub EntityRequest);
+pub(in crate) struct SaveEntity(pub EntityRequest);
 
 #[derive(Debug, Clone, Event)]
 pub struct CreatedEntity(pub EntityResponse);

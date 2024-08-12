@@ -29,17 +29,10 @@ pub(in crate) struct ActorPlugin;
 impl Plugin for ActorPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<CreateChunkActorEntity>()
-            .add_event::<DestroyChunkActorEntity>()
-            .add_event::<PromoteToChunkActorEntity>()
-            .add_event::<StartedChunkActor>()
-            .add_event::<CreatedChunkActorEntity>()
-            .add_event::<DestroyedChunkActorEntity>()
-            .add_event::<PromotedToChunkActorEntity>()
-            .add_event::<DestroyChunkActorEntityInternal>()
-            .add_event::<CreatedChunkActorEntityInternal>()
-            .add_event::<DestroyedChunkActorEntityInternal>()
-            .add_event::<PromotedToChunkActorEntityInternal>()
+            .add_event::<UpgradeToChunkActor>()
+            .add_event::<DowngradeFromChunkActor>()
+            .add_event::<UpgradedToChunkActor>()
+            .add_event::<DowngradedFromChunkActor>()
             .add_plugins(IDPlugin)
             .insert_resource(ChunkActorRegistry::default())
             .insert_resource(ChunkActorRequestRegistry::default())

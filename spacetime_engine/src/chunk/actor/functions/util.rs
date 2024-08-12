@@ -2,6 +2,7 @@ use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 
 use crate::chunk::actor::components::ChunkActor;
+use crate::chunk::actor::id::structs::ChunkActorID;
 use crate::chunk::actor::position::structs::ChunkActorPosition;
 use crate::chunk::actor::structs::{DespawnChunkActorInfo, UpdateChunkActorInfo};
 use crate::chunk::actor::ChunkActorRegistry;
@@ -10,7 +11,23 @@ use crate::chunk::id::structs::ChunkID;
 use crate::chunk::position::structs::ChunkPosition;
 use crate::chunk::ChunkRegistry;
 
-pub(crate) fn collect_chunk_actor_updates(
+pub(in crate) fn upgrade_to_chunk_actor(
+    world: &mut World,
+    start_chunk_id: ChunkID,
+    chunk_actor_id: ChunkActorID,
+    entity_reference: Entity,
+) {
+    world.entity_mut(entity_reference).insert(ChunkActor::new(chunk_actor_id, start_chunk_id));
+}
+
+pub(in crate) fn downgrade_from_chunk_actor(
+    world: &mut World,
+    entity_reference: Entity,
+) {
+    world.entity_mut(entity_reference).remove::<ChunkActor>();
+}
+
+pub(in crate) fn collect_chunk_actor_updates(
     world: &mut World,
     registry_parameters: &mut SystemState<(
         ResMut<ChunkRegistry>,
@@ -80,7 +97,7 @@ pub(crate) fn collect_chunk_actor_updates(
     (updates, despawns)
 }
 
-pub(crate) fn apply_chunk_actor_updates(
+pub(in crate) fn apply_chunk_actor_updates(
     world: &mut World,
     registry_parameters: &mut SystemState<(
         ResMut<ChunkRegistry>,
@@ -105,8 +122,5 @@ pub(crate) fn apply_chunk_actor_updates(
 
     for despawn in despawns {
         world.despawn(despawn.actor_entity);
-        let (_, mut chunk_actor_registry) = registry_parameters.get_mut(world);
-        chunk_actor_registry.unload_chunk_actor(despawn.actor_id);
-        chunk_actor_registry.unregister_chunk_actor(despawn.actor_id);
     }
 }

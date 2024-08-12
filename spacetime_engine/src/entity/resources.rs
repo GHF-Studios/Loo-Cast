@@ -190,10 +190,14 @@ pub(in crate) struct EntityRequestRegistry {
 }
 
 impl EntityRequestRegistry {
-    pub(in crate) fn register_entity_request(&mut self, entity_request_id: EntityRequestID) {
+    pub(in crate) fn register_entity_request(&mut self) -> EntityRequestID {
+        let entity_request_id = self.get_unused_entity_request_id();
+
         self.registered_entity_requests.insert(entity_request_id);
 
         trace!("Registered entity request '{:?}'", entity_request_id);
+
+        entity_request_id
     }
 
     pub(in crate) fn unregister_entity_request(&mut self, entity_request_id: EntityRequestID) {
@@ -256,9 +260,11 @@ impl EntityRequestRegistry {
         &mut self.loaded_entity_requests
     }
 
-    pub fn get_unused_entity_request_id(&mut self) -> EntityRequestID {
+    fn get_unused_entity_request_id(&mut self) -> EntityRequestID {
         let entity_request_id = self.next_entity_request_id;
         self.next_entity_request_id = EntityRequestID(entity_request_id.0 + 1);
+
+        trace!("Generated new entity request id: '{:?}'", entity_request_id);
 
         entity_request_id
     }

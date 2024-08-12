@@ -67,7 +67,7 @@ pub fn on_add_chunk_actor(
         }
         
         chunk_actor_registry.load_chunk_actor(chunk_actor_id, chunk_actor_entity_reference);
-        chunk_actor_registry.stop_upgrading_to_chunk_actor(chunk_actor_id, chunk_actor_request_id);
+        chunk_actor_registry.stop_upgrading_to_chunk_actor(chunk_actor_id);
 
         let mut chunk_actor_request_registry = match world.get_resource_mut::<ChunkActorRequestRegistry>() {
             Some(chunk_actor_request_registry) => chunk_actor_request_registry,
@@ -145,8 +145,8 @@ pub fn on_remove_chunk_actor(
             panic!("Chunk actor '{:?}' is not downgrading!", chunk_actor_id);
         } 
 
-        chunk_actor_registry.unload_chunk_actor(chunk_actor_id);
-        chunk_actor_registry.stop_downgrading_to_chunk_actor(chunk_actor_id);
+        chunk_actor_registry.save_chunk_actor(chunk_actor_id);
+        chunk_actor_registry.stop_downgrading_from_chunk_actor(chunk_actor_id);
 
         let mut chunk_actor_request_registry = match world.get_resource_mut::<ChunkActorRequestRegistry>() {
             Some(chunk_actor_request_registry) => chunk_actor_request_registry,
