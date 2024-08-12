@@ -187,10 +187,13 @@ pub(in crate) struct ChunkRequestRegistry {
 }
 
 impl ChunkRequestRegistry {
-    pub(in crate) fn register_chunk_request(&mut self, chunk_request_id: ChunkRequestID) {
+    pub(in crate) fn register_chunk_request(&mut self) -> ChunkRequestID {
+        let chunk_request_id = self.get_unused_chunk_request_id();
         self.registered_chunk_requests.insert(chunk_request_id);
 
         trace!("Registered chunk request '{:?}'", chunk_request_id);
+
+        chunk_request_id
     }
 
     pub(in crate) fn unregister_chunk_request(&mut self, chunk_request_id: ChunkRequestID) {
@@ -245,7 +248,7 @@ impl ChunkRequestRegistry {
         &self.loaded_chunk_requests
     }
 
-    pub fn get_unused_chunk_request_id(&mut self) -> ChunkRequestID {
+    fn get_unused_chunk_request_id(&mut self) -> ChunkRequestID {
         let chunk_request_id = self.next_chunk_request_id;
         self.next_chunk_request_id = ChunkRequestID(chunk_request_id.0 + 1);
 

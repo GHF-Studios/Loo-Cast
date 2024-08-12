@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::{chunk::{functions::requests::*, id::structs::ChunkID, loader::components::ChunkLoader, structs::ChunkResponse, ChunkRegistry, ChunkRequestRegistry, LoadChunk, LoadedChunk, SaveChunk, SavedChunk, UpgradedToChunk}, entity::{events::CreateEntity, functions::requests::request_create_entity, resources::{EntityRegistry, EntityRequestRegistry}}};
+use crate::{chunk::{actor::resources::ChunkActorRegistry, components::Chunk, functions::{checks::*, requests::*}, id::structs::ChunkID, loader::components::ChunkLoader, structs::ChunkResponse, ChunkRegistry, ChunkRequestRegistry, LoadChunk, LoadedChunk, SaveChunk, SavedChunk, UpgradedToChunk}, entity::{events::CreateEntity, functions::requests::request_create_entity, resources::{EntityRegistry, EntityRequestRegistry}}};
 
 pub(in crate) fn start_chunks(
     load_chunk_event_writer: &mut EventWriter<LoadChunk>,
@@ -17,11 +17,14 @@ pub(in crate) fn start_chunks(
         let chunk_id = *start_chunk_id;
 
         if !chunk_registry.is_chunk_registered(chunk_id) {
-            let (entity_request_id, _) = request_create_entity(
+            let (entity_request_id, _) = match request_create_entity(
                 create_entity_event_writer, 
                 entity_registry, 
                 entity_request_registry
-            );
+            ) {
+                Some(entity_request_id) => entity_request_id,
+                None => continue
+            };
 
             chunk_loader.start_preparing_entity_for_chunk_upgrade(chunk_id, entity_request_id);
 
@@ -47,8 +50,10 @@ pub(in crate) fn update_chunks(
     chunk_loader: &mut Mut<ChunkLoader>,
     chunk_registry: &mut ResMut<ChunkRegistry>,
     chunk_request_registry: &mut ResMut<ChunkRequestRegistry>,
+    chunk_actor_registry: &mut ChunkActorRegistry,
     entity_registry: &mut EntityRegistry,
     entity_request_registry: &mut EntityRequestRegistry,
+    chunk_query: &Query<&Chunk>,
     old_chunk_ids: Vec<ChunkID>,
     new_chunk_ids: Vec<ChunkID>,
 ) {
@@ -60,12 +65,18 @@ pub(in crate) fn update_chunks(
         if !chunk_registry.is_chunk_registered(*chunk_id) { continue; }
         if !chunk_registry.is_chunk_loaded(*chunk_id) { continue; }
         if !chunk_loader.can_save_chunk(*chunk_id) { continue; }
-        if !can_request_save_chunk(chunk_registry, entity_registry, *chunk_id) { continue; }
 
-        match request_save_chunk(save_chunk_event_writer, chunk_registry, chunk_request_registry, entity_registry, *chunk_id) {
-            Some(_) => chunk_loader.start_saving_chunk(*chunk_id),
-            None => continue
-        }
+        if request_save_chunk(
+            save_chunk_event_writer, 
+            chunk_registry, 
+            chunk_request_registry,
+            chunk_actor_registry,
+            entity_registry, 
+            chunk_query,
+            *chunk_id
+        ).is_none() { continue }
+
+        chunk_loader.start_saving_chunk(*chunk_id)
     }
 
     for new_chunk_id in new_chunk_ids.iter() { 

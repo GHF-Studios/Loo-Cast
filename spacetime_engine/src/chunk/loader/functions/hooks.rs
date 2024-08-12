@@ -146,7 +146,7 @@ pub fn on_remove_chunk_loader(
             panic!("Chunk loader '{:?}' is not downgrading!", chunk_loader_id);
         }
 
-        chunk_loader_registry.unload_chunk_loader(chunk_loader_id);
+        chunk_loader_registry.save_chunk_loader(chunk_loader_id);
         chunk_loader_registry.stop_downgrading_from_chunk_loader(chunk_loader_id);
 
         let mut chunk_loader_request_registry = match world.get_resource_mut::<ChunkLoaderRequestRegistry>() {
