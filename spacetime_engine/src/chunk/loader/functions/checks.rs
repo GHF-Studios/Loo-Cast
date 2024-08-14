@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{chunk::{loader::{components::ChunkLoader, id::structs::ChunkLoaderID, ChunkLoaderRegistry}, ChunkRegistry}, entity::{id::structs::EntityID, resources::EntityRegistry}};
+use crate::{chunk::loader::{components::ChunkLoader, id::structs::ChunkLoaderID, ChunkLoaderRegistry}, entity::{id::structs::EntityID, resources::EntityRegistry}};
 
 pub fn can_request_upgrade_to_chunk_loader(
     chunk_loader_registry: &mut ChunkLoaderRegistry,
@@ -30,7 +30,6 @@ pub fn can_request_upgrade_to_chunk_loader(
 }
 
 pub fn can_request_downgrade_from_chunk_loader(
-    chunk_registry: &mut ChunkRegistry,
     chunk_loader_registry: &mut ChunkLoaderRegistry,
     entity_registry: &mut EntityRegistry,
     chunk_loader_query: &Query<&ChunkLoader>,
@@ -50,16 +49,16 @@ pub fn can_request_downgrade_from_chunk_loader(
         }
     };
 
-    let activated_chunks = {
+    let registered_chunks = {
         let chunk_loader = match chunk_loader_query.get(entity_reference) {
             Ok(chunk_loader) => chunk_loader,
             Err(_) => panic!("Entity '{:?}' has no ChunkLoader!", entity_id)
         };
 
-        chunk_loader.current_chunk_ids()
+        chunk_loader.registered_chunks()
     };
 
-    if activated_chunks.len() > 0 { result = false; }
+    if registered_chunks.len() > 0 { result = false; }
 
     if !entity_registry.is_entity_registered(entity_id) { result = false; }
     if !entity_registry.is_entity_loaded(entity_id) { result = false; }

@@ -4,6 +4,7 @@ pub mod component;
 pub mod entity;
 pub mod follower;
 pub mod math;
+pub mod operations;
 pub mod physics;
 pub mod player;
 
@@ -12,6 +13,7 @@ use chunk::ChunkPlugin;
 use entity::EntityPlugin;
 use follower::FollowerPlugin;
 use math::MathPlugin;
+use operations::OperationsPlugin;
 use physics::PhysicsPlugin;
 use player::PlayerPlugin;
 use bevy::{app::PluginGroupBuilder, prelude::*};
@@ -26,6 +28,7 @@ impl PluginGroup for SpacetimeEnginePlugins {
             .add(EntityPlugin)
             .add(FollowerPlugin)
             .add(MathPlugin)
+            .add(OperationsPlugin)
             .add(PhysicsPlugin)
             .add(PlayerPlugin)
     }

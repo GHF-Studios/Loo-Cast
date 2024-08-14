@@ -54,7 +54,7 @@ pub fn can_request_downgrade_from_chunk(
             Err(_) => panic!("Chunk '{:?}' does not exist!", chunk_id),
         };
 
-        chunk.chunk_actors()
+        chunk.registered_chunk_actors()
     };
 
     for chunk_actor_id in contained_chunk_actor_ids {
@@ -132,7 +132,7 @@ pub fn can_request_save_chunk(
             Err(_) => panic!("Chunk '{:?}' does not exist!", chunk_id),
         };
 
-        chunk.chunk_actors()
+        chunk.registered_chunk_actors()
     };
 
     for chunk_actor_id in contained_chunk_actor_ids {

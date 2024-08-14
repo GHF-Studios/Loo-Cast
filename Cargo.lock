@@ -2017,6 +2017,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bstr"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "built"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3632,6 +3641,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "mlua"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd448d3e7018f2ff38dd732a374045f5b037eb4ee477d9241d9bb8c209528c1c"
+dependencies = [
+ "bstr",
+ "cc",
+ "lazy_static",
+ "num-traits",
+ "pkg-config",
+]
+
+[[package]]
 name = "naga"
 version = "0.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4997,6 +5019,7 @@ dependencies = [
  "image 0.25.1",
  "lazy_static",
  "log",
+ "mlua",
  "noise",
  "num-bigint",
  "num-traits",

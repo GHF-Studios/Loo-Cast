@@ -1,6 +1,22 @@
-use crate::entity::id::structs::EntityID;
+use bevy::reflect::Reflect;
 
+use crate::{chunk::id::structs::ChunkID, entity::id::structs::EntityID};
 use super::id::structs::{ChunkLoaderID, ChunkLoaderRequestID};
+
+#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RegisteredChunkInfo {
+    Unmanaged(ChunkID),
+    Managed(ChunkID),
+}
+
+impl RegisteredChunkInfo {
+    pub fn chunk_id(&self) -> ChunkID {
+        match self {
+            Self::Unmanaged(chunk_id) => *chunk_id,
+            Self::Managed(chunk_id) => *chunk_id,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct ChunkLoaderRequest {

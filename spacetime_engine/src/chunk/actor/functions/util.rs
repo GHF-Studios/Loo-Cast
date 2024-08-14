@@ -112,12 +112,12 @@ pub(in crate) fn apply_chunk_actor_updates(
         let (chunk_registry, _) = registry_parameters.get_mut(world);
         let old_chunk_entity = chunk_registry.get_loaded_chunk_entity(update.old_chunk_id).unwrap();
         let mut old_chunk = chunk_query.get_mut(world, old_chunk_entity).unwrap();
-        old_chunk.remove_chunk_actor(update.actor_id);
+        old_chunk.unregister_chunk_actor(update.actor_id);
 
         let (chunk_registry, _) = registry_parameters.get_mut(world);
         let new_chunk_entity = chunk_registry.get_loaded_chunk_entity(update.new_chunk_id).unwrap();
         let mut new_chunk = chunk_query.get_mut(world, new_chunk_entity).unwrap();
-        new_chunk.add_chunk_actor(update.actor_id);
+        new_chunk.register_chunk_actor(update.actor_id);
     }
 
     for despawn in despawns {
