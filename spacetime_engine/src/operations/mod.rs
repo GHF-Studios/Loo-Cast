@@ -1,40 +1,73 @@
+pub mod requesters;
+pub mod resources;
+
 use bevy::prelude::*;
-use mlua::{Lua, Result, Function, Table};
+use mlua::{FromLuaMulti, Lua, Result, Table, TableExt, ToLuaMulti};
 
 pub(in crate) struct OperationsPlugin;
 
 impl Plugin for OperationsPlugin {
     fn build(&self, app: &mut App) {
+
     }
 }
 
-fn initialize_lua_ops_module(lua: &Lua) -> Result<()> {
-    lua.load(include_str!("ops.lua")).exec()?;
-
+fn define_primitive<'lua, 'callback, A, R, F>(lua: &'lua Lua, primitive_operation_id: &str, primitive_operation_func: F) -> Result<()>
+where
+    'lua: 'callback,
+    A: FromLuaMulti<'callback>,
+    R: ToLuaMulti<'callback>,
+    F: 'static + Send + Fn(&'callback Lua, A) -> Result<R>
+{
     let globals = lua.globals();
     let ops: Table = globals.get("ops")?;
+    let compiled_primitives: Table = ops.get("compiledPrimitives")?;
+    
+    let lua_func = lua.create_function(move |lua, args: A| primitive_operation_func(lua, args))?;
 
-    // Bind Rust functions to Lua primitives
-    let add_integers = lua.create_function(|_, (x, y): (i32, i32)| {
-        Ok(x + y)
-    })?;
-    ops.call_method::<_, ()>("bindPrimitive", ("add_integers", add_integers))?;
-
-    let multiply_integers = lua.create_function(|_, (x, y): (i32, i32)| {
-        Ok(x * y)
-    })?;
-    ops.call_method::<_, ()>("bindPrimitive", ("multiply_integers", multiply_integers))?;
+    compiled_primitives.set(primitive_operation_id, lua_func)?;
 
     Ok(())
 }
 
-fn main() -> Result<()> {
-    let lua = Lua::new();
-    initialize_lua_ops_module(&lua)?;
 
-    let ops: Table = lua.globals().get("ops")?;
-    let result: i32 = ops.call_method("invokeComposite", ("add_and_multiply", 2, 3, 4))?;
-    println!("Result of add_and_multiply: {}", result); // Output: 20
+
+fn setup_lua_env() -> Result<Lua> {
+    let lua = Lua::new();
+
+    lua.load(include_str!("../../scripts/main.lua")).exec()?;
+
+    fn add_integers(a: i32, b: i32) -> i32 {
+        a + b
+    }
+    fn multiply_integers(a: i32, b: i32) -> i32 {
+        a * b
+    }
+
+    fn request_create_entity() -> u64 {
+        0
+    }
+
+    define_primitive(&lua, "math.add_integers", |_, (a, b): (i32, i32)|
+        Ok(add_integers(a, b))
+    )?;
+    define_primitive(&lua, "math.multiply_integers", |_, (a, b): (i32, i32)|
+        Ok(multiply_integers(a, b))
+    )?;
+    define_primitive(&lua, "entity.request_create", |_, ()|
+        Ok(request_create_entity())
+    )?;
+
+    Ok(lua)
+}
+
+fn main() -> Result<()> {
+    let lua = setup_lua_env()?;
+    let globals = lua.globals();
+    let test_ops: Table = globals.get("testOps")?;
+    let test_func = test_ops.get::<_, mlua::Function>("test")?;
+
+    test_func.call(())?;  // Pass any arguments inside the tuple if needed
 
     Ok(())
 }
