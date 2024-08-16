@@ -2,8 +2,6 @@ pub mod requesters;
 pub mod resources;
 
 use bevy::prelude::*;
-use mlua::{FromLuaMulti, Lua, Result, Table, TableExt, ToLuaMulti};
-
 pub(in crate) struct OperationsPlugin;
 
 impl Plugin for OperationsPlugin {
@@ -11,6 +9,20 @@ impl Plugin for OperationsPlugin {
 
     }
 }
+
+// Allows registration of callbacks to be invoked when an operation finishes
+
+
+// Invokes the correct callback with the result of the operation
+
+
+
+
+
+
+// EXPERIMENTAL CODE
+/*
+use mlua::{FromLuaMulti, Lua, Result, Table, TableExt, ToLuaMulti};
 
 fn define_primitive<'lua, 'callback, A, R, F>(lua: &'lua Lua, primitive_operation_id: &str, primitive_operation_func: F) -> Result<()>
 where
@@ -71,3 +83,4 @@ fn main() -> Result<()> {
 
     Ok(())
 }
+*/

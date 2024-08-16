@@ -61,27 +61,10 @@ pub(in crate) fn update_chunks(
         
         let chunk_id = old_chunk_id;
 
-
-
-        // TODO: RICHTIG IMPLEMENTIEREN //
-
-
-
         if !chunk_registry.is_chunk_registered(*chunk_id) { continue; }
         if !chunk_registry.is_chunk_loaded(*chunk_id) { continue; }
-        if !chunk_loader.can_save_chunk(*chunk_id) { continue; }
 
-        if request_save_chunk(
-            save_chunk_event_writer, 
-            chunk_registry, 
-            chunk_request_registry,
-            chunk_actor_registry,
-            entity_registry, 
-            chunk_query,
-            *chunk_id
-        ).is_none() { continue }
-
-        chunk_loader.start_saving_chunk(*chunk_id)
+        // REQUEST SAVE CHUNK
     }
 
     for new_chunk_id in new_chunk_ids.iter() { 
@@ -89,31 +72,14 @@ pub(in crate) fn update_chunks(
 
         let chunk_id = new_chunk_id;
 
+        if chunk_registry.is_chunk_loaded(*chunk_id) { continue; }
 
-
-        // TODO: RICHTIG IMPLEMENTIEREN //
-
-
-
-        if !chunk_registry.is_chunk_registered(*chunk_id) {
-            let (entity_request_id, _) = request_create_entity(
-                create_entity_event_writer, 
-                entity_registry, 
-                entity_request_registry
-            );
-
-            chunk_loader.start_preparing_entity_for_chunk_upgrade(*chunk_id, entity_request_id);
+        if chunk_registry.is_chunk_registered(*chunk_id) {
+            // REQUEST LOAD CHUNK
 
             continue;
-        }
-
-        if chunk_registry.is_chunk_loaded(*chunk_id) { continue; }
-        if !chunk_loader.can_load_chunk(*chunk_id) { continue };
-        if !can_request_load_chunk(chunk_registry, *chunk_id) { continue };
-
-        match request_load_chunk(load_chunk_event_writer, chunk_registry, chunk_request_registry, *chunk_id) {
-            Some(_) => chunk_loader.start_loading_chunk(*chunk_id),
-            None => continue
+        } else {
+            // REQUEST SPAWN(create entity + upgrade to chunk) CHUNK
         }
     }
 }
