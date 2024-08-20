@@ -1,6 +1,9 @@
 pub mod requesters;
 pub mod resources;
 
+use std::any::{Any, TypeId};
+use std::collections::{HashMap, HashSet};
+
 use bevy::prelude::*;
 pub(in crate) struct OperationsPlugin;
 
@@ -10,15 +13,244 @@ impl Plugin for OperationsPlugin {
     }
 }
 
-// Allows registration of callbacks to be invoked when an operation finishes
+pub struct ID<T>(u64, std::marker::PhantomData<T>);
 
+impl<T> ID<T> {
+    pub(in crate) fn new(id: u64) -> Self {
+        Self(id, std::marker::PhantomData)
+    }
 
-// Invokes the correct callback with the result of the operation
+    pub(in crate) fn get(&self) -> u64 {
+        self.0
+    }
+}
 
+impl<T> std::fmt::Debug for ID<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ID({})", self.0)
+    }
+}
 
+impl<T> std::clone::Clone for ID<T> {
+    fn clone(&self) -> Self {
+        Self(self.0, std::marker::PhantomData)
+    }
+}
 
+impl<T> core::marker::Copy for ID<T> {
+}
 
+impl<T> std::cmp::PartialEq for ID<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
 
+impl<T> std::cmp::Eq for ID<T> {
+}
+
+impl<T> std::hash::Hash for ID<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+pub struct Registry<T> {
+    registered: HashSet<ID<T>>,
+    managed: HashMap<ID<T>, T>,
+    next_id: ID<T>,
+    recycled_ids: Vec<ID<T>>,
+}
+
+impl<T> Registry<T> {
+    pub fn new() -> Self {
+        Self {
+            registered: HashSet::new(),
+            managed: HashMap::new(),
+            next_id: ID::new(1),
+            recycled_ids: Vec::new(),
+        }
+    }
+
+    fn get_unused_id(&mut self) -> ID<T> {
+        if let Some(recycled_id) = self.recycled_ids.pop() {
+            trace!("Used recycled id: '{:?}'", recycled_id);
+
+            recycled_id
+        } else {
+            let id = self.next_id;
+            self.next_id = ID::new(self.next_id.get() + 1);
+            id
+        }
+    }
+
+    fn recycle_id(&mut self, id: ID<T>) {
+        if !self.registered.contains(&id) {
+            panic!("ID '{:?}' is not registered in the first place!", id);
+        }
+
+        if self.recycled_ids.contains(&id) {
+            panic!("ID '{:?}' is already recycled!", id);
+        }
+
+        self.recycled_ids.push(id);
+    }
+
+    pub fn register(&mut self) -> ID<T> {
+        let id = self.get_unused_id();
+
+        self.registered.insert(id);
+
+        id
+    }
+
+    pub fn unregister(&mut self, id: ID<T>) {
+        if !self.registered.contains(&id) {
+            panic!("ID '{:?}' is invalid!", id);
+        }
+
+        if self.managed.contains_key(&id) {
+            panic!("ID '{:?}' is still managed!", id);
+        }
+
+        self.registered.retain(|other_id| id != *other_id);
+
+        self.recycle_id(id);
+    }
+
+    pub fn manage(&mut self, id: ID<T>, value: T) {
+        if !self.registered.contains(&id) {
+            panic!("ID '{:?}' is invalid!", id);
+        }
+
+        if self.managed.contains_key(&id) {
+            panic!("ID '{:?}' is already managed!", id);
+        }
+
+        self.managed.insert(id, value);
+    }
+
+    pub fn unmanage(&mut self, id: ID<T>) -> T {
+        if !self.registered.contains(&id) {
+            panic!("ID '{:?}' is invalid!", id);
+        }
+
+        if !self.managed.contains_key(&id) {
+            panic!("ID '{:?}' is already unmanaged!", id);
+        }
+
+        self.managed.remove(&id).unwrap()
+    }
+}
+
+pub struct TypeRegistry {
+    registered: HashSet<TypeId>,
+    managed: HashMap<TypeId, HashMap<TypeId, Box<dyn Any>>>,
+}
+
+impl TypeRegistry {
+    pub fn new() -> Self {
+        Self {
+            registered: HashSet::new(),
+            managed: HashMap::new(),
+        }
+    }
+
+    pub fn register<T: 'static>(&mut self) {
+        let type_id = TypeId::of::<T>();
+
+        if self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is already registered!", type_id);
+        }
+
+        self.registered.insert(type_id);
+    }
+
+    pub fn unregister<T: 'static>(&mut self) {
+        let type_id = TypeId::of::<T>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is still managed!", type_id);
+        }
+
+        self.registered.retain(|other_type_id| type_id != *other_type_id);
+    }
+
+    pub fn manage<T: 'static>(&mut self) {
+        let type_id = TypeId::of::<T>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is already managed!", type_id);
+        }
+
+        self.managed.insert(type_id, HashMap::new());
+    }
+
+    pub fn unmanage<T: 'static>(&mut self) {
+        let type_id = TypeId::of::<T>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if !self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is already unmanaged!", type_id);
+        }
+
+        self.managed.remove(&type_id);
+    }
+
+    pub fn set_data<T: 'static, D: 'static + Clone>(&mut self, data: D) {
+        let type_id = TypeId::of::<T>();
+        let data_type_id = TypeId::of::<D>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if !self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is not managed!", type_id);
+        }
+
+        let type_data_map = self.managed.entry(type_id).or_insert_with(HashMap::new);
+        type_data_map.insert(data_type_id, Box::new(data));
+    }
+
+    pub fn get_data<T: 'static, D: 'static + Clone>(&self) -> Option<D> {
+        let type_id = TypeId::of::<T>();
+        let data_type_id = TypeId::of::<D>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if !self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is not managed!", type_id);
+        }
+
+        let type_data_map = self.managed.get(&type_id).unwrap();
+
+        let data_box = match type_data_map.get(&data_type_id) {
+            Some(data_box) => data_box,
+            None => return None,
+        };
+
+        let data = match data_box.downcast_ref::<D>() {
+            Some(data) => data.clone(),
+            None => unreachable!(),
+        };
+
+        return Some(data.clone());
+    }
+}
 
 // EXPERIMENTAL CODE
 /*
