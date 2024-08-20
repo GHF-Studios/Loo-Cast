@@ -3,6 +3,8 @@ pub mod resources;
 
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
+use lazy_static::lazy_static;
 
 use bevy::prelude::*;
 pub(in crate) struct OperationsPlugin;
@@ -55,6 +57,7 @@ impl<T> std::hash::Hash for ID<T> {
     }
 }
 
+#[derive(Clone)]
 pub struct Registry<T> {
     registered: HashSet<ID<T>>,
     managed: HashMap<ID<T>, T>,
@@ -143,9 +146,10 @@ impl<T> Registry<T> {
     }
 }
 
+#[derive(Clone)]
 pub struct TypeRegistry {
     registered: HashSet<TypeId>,
-    managed: HashMap<TypeId, HashMap<TypeId, Box<dyn Any>>>,
+    managed: HashMap<TypeId, HashMap<TypeId, Arc<Mutex<dyn Any + Send + Sync>>>>,
 }
 
 impl TypeRegistry {
@@ -208,7 +212,7 @@ impl TypeRegistry {
         self.managed.remove(&type_id);
     }
 
-    pub fn set_data<T: 'static, D: 'static + Clone>(&mut self, data: D) {
+    pub fn set_data<T: 'static, D: 'static + Clone + Send + Sync>(&mut self, data: D) {
         let type_id = TypeId::of::<T>();
         let data_type_id = TypeId::of::<D>();
 
@@ -221,10 +225,11 @@ impl TypeRegistry {
         }
 
         let type_data_map = self.managed.entry(type_id).or_insert_with(HashMap::new);
-        type_data_map.insert(data_type_id, Box::new(data));
+        type_data_map.insert(data_type_id, Arc::new(Mutex::new(data)));
     }
 
-    pub fn get_data<T: 'static, D: 'static + Clone>(&self) -> Option<D> {
+    // TODO: Make data be a reference instead of a clone, and also present a mutable reference version 
+    pub fn get_data<T: 'static, D: 'static + Clone + Send + Sync>(&self) -> Option<D> {
         let type_id = TypeId::of::<T>();
         let data_type_id = TypeId::of::<D>();
 
@@ -238,18 +243,27 @@ impl TypeRegistry {
 
         let type_data_map = self.managed.get(&type_id).unwrap();
 
-        let data_box = match type_data_map.get(&data_type_id) {
+        let data_mutex = match type_data_map.get(&data_type_id) {
             Some(data_box) => data_box,
             None => return None,
         };
 
-        let data = match data_box.downcast_ref::<D>() {
+        let data_guard = match data_mutex.lock() {
+            Ok(data_guard) => data_guard,
+            Err(_) => panic!("Data mutex poisoned!"),
+        };
+
+        let data = match data_guard.downcast_ref::<D>() {
             Some(data) => data.clone(),
             None => unreachable!(),
         };
 
-        return Some(data.clone());
+        return Some(data);
     }
+}
+
+lazy_static! {
+    pub static ref TYPE_REGISTRY: Arc<Mutex<TypeRegistry>> = Arc::new(Mutex::new(TypeRegistry::new()));
 }
 
 // EXPERIMENTAL CODE
