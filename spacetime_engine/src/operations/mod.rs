@@ -1,12 +1,17 @@
 pub mod requesters;
 pub mod resources;
 
+use bevy::prelude::*;
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::ops::{Deref, DerefMut};
+use std::hash::Hash;
+use std::fmt::Debug;
 use lazy_static::lazy_static;
+use log::trace;
 
-use bevy::prelude::*;
+// Plugin struct
 pub(in crate) struct OperationsPlugin;
 
 impl Plugin for OperationsPlugin {
@@ -15,141 +20,154 @@ impl Plugin for OperationsPlugin {
     }
 }
 
-pub struct ID<T>(u64, std::marker::PhantomData<T>);
+// ID struct
+pub struct ID<T: 'static + Send + Sync>(u64, std::marker::PhantomData<T>);
 
-impl<T> ID<T> {
-    pub(in crate) fn new(id: u64) -> Self {
-        Self(id, std::marker::PhantomData)
-    }
-
-    pub(in crate) fn get(&self) -> u64 {
-        self.0
-    }
-}
-
-impl<T> std::fmt::Debug for ID<T> {
+impl<T: 'static + Send + Sync> std::fmt::Debug for ID<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ID({})", self.0)
     }
 }
 
-impl<T> std::clone::Clone for ID<T> {
+impl<T: 'static + Send + Sync> std::clone::Clone for ID<T> {
     fn clone(&self) -> Self {
         Self(self.0, std::marker::PhantomData)
     }
 }
 
-impl<T> core::marker::Copy for ID<T> {
+impl<T: 'static + Send + Sync> core::marker::Copy for ID<T> {
 }
 
-impl<T> std::cmp::PartialEq for ID<T> {
+impl<T: 'static + Send + Sync> std::cmp::PartialEq for ID<T> {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
 }
 
-impl<T> std::cmp::Eq for ID<T> {
+impl<T: 'static + Send + Sync> std::cmp::Eq for ID<T> {
 }
 
-impl<T> std::hash::Hash for ID<T> {
+impl<T: 'static + Send + Sync> std::hash::Hash for ID<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.0.hash(state);
     }
 }
 
-#[derive(Clone)]
-pub struct Registry<T> {
-    registered: HashSet<ID<T>>,
-    managed: HashMap<ID<T>, T>,
-    next_id: ID<T>,
-    recycled_ids: Vec<ID<T>>,
+// Traits (incl. impls)
+pub trait RegistryKey: 'static + Clone + Copy + Debug + PartialEq + Eq + Hash + Send + Sync {
+    fn new(id: u64) -> Self;
+    fn get(&self) -> u64;
 }
 
-impl<T> Registry<T> {
+impl<T: 'static + Send + Sync> RegistryKey for ID<T> {
+    fn new(id: u64) -> Self {
+        Self(id, std::marker::PhantomData)
+    }
+
+    fn get(&self) -> u64 {
+        self.0
+    }
+}
+
+pub trait RegistryValue: 'static + Send + Sync {
+}
+
+impl RegistryValue for Entity {
+}
+
+// Registry struct
+pub struct Registry<K: RegistryKey, V: RegistryValue> {
+    registered: HashSet<K>,
+    managed: HashMap<K, V>,
+    next_key: K,
+    recycled_keys: Vec<K>,
+}
+
+impl<K: RegistryKey, V: RegistryValue> Registry<K, V> {
     pub fn new() -> Self {
         Self {
             registered: HashSet::new(),
             managed: HashMap::new(),
-            next_id: ID::new(1),
-            recycled_ids: Vec::new(),
+            next_key: K::new(1),
+            recycled_keys: Vec::new(),
         }
     }
 
-    fn get_unused_id(&mut self) -> ID<T> {
-        if let Some(recycled_id) = self.recycled_ids.pop() {
-            trace!("Used recycled id: '{:?}'", recycled_id);
+    fn get_unused_key(&mut self) -> K {
+        if let Some(recycled_key) = self.recycled_keys.pop() {
+            trace!("Used recycled key: '{:?}'", recycled_key);
 
-            recycled_id
+            recycled_key
         } else {
-            let id = self.next_id;
-            self.next_id = ID::new(self.next_id.get() + 1);
-            id
+            let key = self.next_key;
+            self.next_key = K::new(self.next_key.get() + 1);
+            key
         }
     }
 
-    fn recycle_id(&mut self, id: ID<T>) {
-        if !self.registered.contains(&id) {
-            panic!("ID '{:?}' is not registered in the first place!", id);
+    fn recycle_key(&mut self, key: K) {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is not registered!", key);
         }
 
-        if self.recycled_ids.contains(&id) {
-            panic!("ID '{:?}' is already recycled!", id);
+        if self.recycled_keys.contains(&key) {
+            panic!("Key '{:?}' is already recycled!", key);
         }
 
-        self.recycled_ids.push(id);
+        self.recycled_keys.push(key);
     }
 
-    pub fn register(&mut self) -> ID<T> {
-        let id = self.get_unused_id();
+    pub fn register(&mut self) -> K {
+        let key = self.get_unused_key();
 
-        self.registered.insert(id);
+        self.registered.insert(key);
 
-        id
+        key
     }
 
-    pub fn unregister(&mut self, id: ID<T>) {
-        if !self.registered.contains(&id) {
-            panic!("ID '{:?}' is invalid!", id);
+    pub fn unregister(&mut self, key: K) {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is invalid!", key);
         }
 
-        if self.managed.contains_key(&id) {
-            panic!("ID '{:?}' is still managed!", id);
+        if self.managed.contains_key(&key) {
+            panic!("Entry '{:?}' is still managed!", key);
         }
 
-        self.registered.retain(|other_id| id != *other_id);
+        self.registered.retain(|other_key| key != *other_key);
 
-        self.recycle_id(id);
+        self.recycle_key(key);
     }
 
-    pub fn manage(&mut self, id: ID<T>, value: T) {
-        if !self.registered.contains(&id) {
-            panic!("ID '{:?}' is invalid!", id);
+    pub fn manage(&mut self, key: K, value: V) {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is invalid!", key);
         }
 
-        if self.managed.contains_key(&id) {
-            panic!("ID '{:?}' is already managed!", id);
+        if self.managed.contains_key(&key) {
+            panic!("Entry '{:?}' is already managed!", key);
         }
 
-        self.managed.insert(id, value);
+        self.managed.insert(key, value);
     }
 
-    pub fn unmanage(&mut self, id: ID<T>) -> T {
-        if !self.registered.contains(&id) {
-            panic!("ID '{:?}' is invalid!", id);
+    pub fn unmanage(&mut self, key: K) -> V {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is invalid!", key);
         }
 
-        if !self.managed.contains_key(&id) {
-            panic!("ID '{:?}' is already unmanaged!", id);
+        if !self.managed.contains_key(&key) {
+            panic!("Entry '{:?}' is already unmanaged!", key);
         }
 
-        self.managed.remove(&id).unwrap()
+        self.managed.remove(&key).unwrap()
     }
 }
 
-#[derive(Clone)]
+// TypeRegistry struct
 pub struct TypeRegistry {
     registered: HashSet<TypeId>,
-    managed: HashMap<TypeId, HashMap<TypeId, Arc<Mutex<dyn Any + Send + Sync>>>>,
+    managed: HashMap<TypeId, HashMap<TypeId, Box<dyn Any + Send + Sync>>>,
 }
 
 impl TypeRegistry {
@@ -212,7 +230,7 @@ impl TypeRegistry {
         self.managed.remove(&type_id);
     }
 
-    pub fn set_data<T: 'static, D: 'static + Clone + Send + Sync>(&mut self, data: D) {
+    pub fn set_data<T: 'static, D: 'static + Send + Sync>(&mut self, data: D) {
         let type_id = TypeId::of::<T>();
         let data_type_id = TypeId::of::<D>();
 
@@ -225,11 +243,10 @@ impl TypeRegistry {
         }
 
         let type_data_map = self.managed.entry(type_id).or_insert_with(HashMap::new);
-        type_data_map.insert(data_type_id, Arc::new(Mutex::new(data)));
+        type_data_map.insert(data_type_id, Box::new(data));
     }
 
-    // TODO: Make data be a reference instead of a clone, and also present a mutable reference version 
-    pub fn get_data<T: 'static, D: 'static + Clone + Send + Sync>(&self) -> Option<D> {
+    pub fn get_data<T: 'static, D: 'static + Send + Sync>(&self) -> Option<&D> {
         let type_id = TypeId::of::<T>();
         let data_type_id = TypeId::of::<D>();
 
@@ -243,28 +260,97 @@ impl TypeRegistry {
 
         let type_data_map = self.managed.get(&type_id).unwrap();
 
-        let data_mutex = match type_data_map.get(&data_type_id) {
-            Some(data_box) => data_box,
-            None => return None,
+        let data_box = type_data_map.get(&data_type_id)?;
+
+        let data_ref = match data_box.downcast_ref::<D>() {
+            Some(data_ref) => data_ref,
+            None => panic!("Data type mismatch!"),
         };
 
-        let data_guard = match data_mutex.lock() {
-            Ok(data_guard) => data_guard,
-            Err(_) => panic!("Data mutex poisoned!"),
+        return Some(data_ref);
+    }
+
+    pub fn get_data_mut<T: 'static, D: 'static + Send + Sync>(&mut self) -> Option<&mut D> {
+        let type_id = TypeId::of::<T>();
+        let data_type_id = TypeId::of::<D>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if !self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is not managed!", type_id);
+        }
+
+        let type_data_map = self.managed.get_mut(&type_id).unwrap();
+
+        let data_box = type_data_map.get_mut(&data_type_id)?;
+
+        let data_ref = match data_box.downcast_mut::<D>() {
+            Some(data_ref) => data_ref,
+            None => panic!("Data type mismatch!"),
         };
 
-        let data = match data_guard.downcast_ref::<D>() {
-            Some(data) => data.clone(),
-            None => unreachable!(),
-        };
-
-        return Some(data);
+        return Some(data_ref);
     }
 }
 
+// Main TypeRegistry instance  
 lazy_static! {
-    pub static ref TYPE_REGISTRY: Arc<Mutex<TypeRegistry>> = Arc::new(Mutex::new(TypeRegistry::new()));
+    pub static ref MAIN_TYPE_REGISTRY: Arc<Mutex<TypeRegistry>> = Arc::new(Mutex::new(TypeRegistry::new()));
 }
+
+// Global init
+fn global_init() {
+    let mut type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
+
+    entity_init(&mut *type_registry);
+    chunk_init(&mut *type_registry);
+    chunk_actor_init(&mut *type_registry);
+    chunk_loader_init(&mut *type_registry);
+}
+
+// Entity init
+pub type EntityRegistry = Registry<ID<Entity>, Entity>;
+
+pub fn entity_init(type_registry: &mut TypeRegistry) {
+    type_registry.register::<Entity>();
+    type_registry.manage::<Entity>();
+    type_registry.set_data::<Entity, EntityRegistry>(EntityRegistry::new());
+}
+
+// Chunk init
+use crate::chunk::components::Chunk;
+pub type ChunkRegistry = Registry<ID<Chunk>, Entity>;
+
+pub fn chunk_init(type_registry: &mut TypeRegistry) {
+    type_registry.register::<Chunk>();
+    type_registry.manage::<Chunk>();
+    type_registry.set_data::<Chunk, ChunkRegistry>(ChunkRegistry::new());
+}
+
+// Chunk Actor init
+use crate::chunk::actor::components::ChunkActor;
+pub type ChunkActorRegistry = Registry<ID<ChunkActor>, Entity>;
+
+pub fn chunk_actor_init(type_registry: &mut TypeRegistry) {
+    type_registry.register::<ChunkActor>();
+    type_registry.manage::<ChunkActor>();
+    type_registry.set_data::<ChunkActor, ChunkActorRegistry>(ChunkActorRegistry::new());
+}
+
+// Chunk Loader init
+use crate::chunk::loader::components::ChunkLoader;
+pub type ChunkLoaderRegistry = Registry<ID<ChunkLoader>, Entity>;
+
+pub fn chunk_loader_init(type_registry: &mut TypeRegistry) {
+    type_registry.register::<ChunkLoader>();
+    type_registry.manage::<ChunkLoader>();
+    type_registry.set_data::<ChunkLoader, ChunkLoaderRegistry>(ChunkLoaderRegistry::new());
+}
+
+
+
 
 // EXPERIMENTAL CODE
 /*
