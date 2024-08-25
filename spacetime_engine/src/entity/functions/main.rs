@@ -1,6 +1,5 @@
 use bevy::prelude::*;
-use crate::entity::{components::*, EntityRegistry};
-use crate::operations::{Registry, MAIN_TYPE_REGISTRY};
+use crate::entity::components::*;
 use super::hooks;
 
 pub(in crate) fn setup(world: &mut World) {
