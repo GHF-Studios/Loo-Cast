@@ -19,6 +19,8 @@ impl Plugin for OperationsPlugin {
     }
 }
 
+
+
 // ID struct
 pub struct ID<T: 'static + Send + Sync>(u64, std::marker::PhantomData<T>);
 
@@ -52,6 +54,8 @@ impl<T: 'static + Send + Sync> std::hash::Hash for ID<T> {
     }
 }
 
+
+
 // Traits (incl. impls)
 pub trait RegistryKey: 'static + Clone + Copy + Debug + PartialEq + Eq + Hash + Send + Sync {
     fn new(id: u64) -> Self;
@@ -73,6 +77,17 @@ pub trait RegistryValue: 'static + Send + Sync {
 
 impl RegistryValue for Entity {
 }
+
+pub trait Operation: 'static + Send + Sync {
+    type Args: 'static + Send + Sync;
+
+    fn get_args(&self) -> Self::Args;
+    fn request(&self, main_type_registry: &mut TypeRegistry);
+    fn respond(&self, main_type_registry: &mut TypeRegistry);
+    fn execution_system(&self, main_type_registry: &mut TypeRegistry, world: &mut World);
+}
+
+
 
 // Registry struct
 pub struct Registry<K: RegistryKey, V: RegistryValue> {
@@ -162,6 +177,8 @@ impl<K: RegistryKey, V: RegistryValue> Registry<K, V> {
         self.managed.remove(&key).unwrap()
     }
 }
+
+
 
 // TypeRegistry struct
 pub struct TypeRegistry {
@@ -295,7 +312,8 @@ impl TypeRegistry {
 }
 
 
-// Init
+
+// Main TypeRegistry
 lazy_static! {
     pub static ref MAIN_TYPE_REGISTRY: Arc<Mutex<TypeRegistry>> = Arc::new(Mutex::new(TypeRegistry::new()));
 }
@@ -309,43 +327,101 @@ fn init_main_type_registry() {
     init_chunk_loader_type(&mut *main_type_registry);
 }
 
-// Entity init
+
+
+// Entity
 pub type EntityRegistry = Registry<ID<Entity>, Entity>;
+pub type EntityOperationTypeRegistry = TypeRegistry;
+
+pub struct EntityOperationCreate {
+    response_callback: fn(main_type_registry: &mut TypeRegistry, ID<Entity>),
+}
+
+pub struct EntityOperationDestroy {
+    entity_id: ID<Entity>,
+    response_callback: fn(main_type_registry: &mut TypeRegistry),
+}
+
+impl Operation for EntityOperationCreate {
+    type Args = ();
+
+    fn get_args(&self) -> Self::Args {
+
+    }
+
+    fn request(&self, main_type_registry: &mut TypeRegistry) {
+    }
+
+    fn respond(&self, main_type_registry: &mut TypeRegistry) {
+    }
+
+    fn execution_system(&self, main_type_registry: &mut TypeRegistry, world: &mut World) {
+    }
+}
 
 pub fn init_entity_type(main_type_registry: &mut TypeRegistry) {
     main_type_registry.register::<Entity>();
     main_type_registry.manage::<Entity>();
-    main_type_registry.set_data::<Entity, EntityRegistry>(EntityRegistry::new());
+
+    let entity_registry = EntityRegistry::new();
+    let entity_operation_type_registry = EntityOperationTypeRegistry::new();
+    
+    main_type_registry.set_data::<Entity, EntityRegistry>(entity_registry);
+    main_type_registry.set_data::<Entity, EntityOperationTypeRegistry>(entity_operation_type_registry);
 }
 
-// Chunk init
+
+
+// Chunk
 use crate::chunk::components::Chunk;
 pub type ChunkRegistry = Registry<ID<Chunk>, Entity>;
+pub type ChunkOperationTypeRegistry = TypeRegistry;
 
 pub fn init_chunk_type(main_type_registry: &mut TypeRegistry) {
     main_type_registry.register::<Chunk>();
     main_type_registry.manage::<Chunk>();
-    main_type_registry.set_data::<Chunk, ChunkRegistry>(ChunkRegistry::new());
+
+    let chunk_registry = ChunkRegistry::new();
+    let chunk_operation_type_registry = ChunkOperationTypeRegistry::new();
+
+    main_type_registry.set_data::<Chunk, ChunkRegistry>(chunk_registry);
+    main_type_registry.set_data::<Chunk, ChunkOperationTypeRegistry>(chunk_operation_type_registry);
 }
 
-// Chunk Actor init
+
+
+// Chunk Actor
 use crate::chunk::actor::components::ChunkActor;
 pub type ChunkActorRegistry = Registry<ID<ChunkActor>, Entity>;
+pub type ChunkActorOperationTypeRegistry = TypeRegistry;
 
 pub fn init_chunk_actor_type(main_type_registry: &mut TypeRegistry) {
     main_type_registry.register::<ChunkActor>();
     main_type_registry.manage::<ChunkActor>();
-    main_type_registry.set_data::<ChunkActor, ChunkActorRegistry>(ChunkActorRegistry::new());
+
+    let chunk_actor_registry = ChunkActorRegistry::new();
+    let chunk_actor_operation_type_registry = ChunkActorOperationTypeRegistry::new();
+
+    main_type_registry.set_data::<ChunkActor, ChunkActorRegistry>(chunk_actor_registry);
+    main_type_registry.set_data::<ChunkActor, ChunkActorOperationTypeRegistry>(chunk_actor_operation_type_registry);
 }
 
-// Chunk Loader init
+
+
+// Chunk Loader
 use crate::chunk::loader::components::ChunkLoader;
 pub type ChunkLoaderRegistry = Registry<ID<ChunkLoader>, Entity>;
+pub type ChunkLoaderOperationTypeRegistry = TypeRegistry;
 
 pub fn init_chunk_loader_type(main_type_registry: &mut TypeRegistry) {
     main_type_registry.register::<ChunkLoader>();
     main_type_registry.manage::<ChunkLoader>();
-    main_type_registry.set_data::<ChunkLoader, ChunkLoaderRegistry>(ChunkLoaderRegistry::new());
+
+    let chunk_loader_registry = ChunkLoaderRegistry::new();
+    let chunk_loader_operation_type_registry = ChunkLoaderOperationTypeRegistry::new();
+    
+    main_type_registry.set_data::<ChunkLoader, ChunkLoaderRegistry>(chunk_loader_registry);
+    main_type_registry.set_data::<ChunkLoader, ChunkLoaderOperationTypeRegistry>(chunk_loader_operation_type_registry);
 }
 
 
