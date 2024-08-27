@@ -1,6 +1,7 @@
 pub mod requesters;
 pub mod resources;
 
+use bevy::ecs::world;
 use bevy::prelude::*;
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
@@ -80,11 +81,14 @@ impl RegistryValue for Entity {
 
 pub trait Operation: 'static + Send + Sync {
     type Args: 'static + Send + Sync;
+    type Result: 'static + Send + Sync;
 
+    fn new(args: Self::Args) -> Self;
     fn get_args(&self) -> Self::Args;
+
     fn request(&self, main_type_registry: &mut TypeRegistry);
+    fn execute(&self, main_type_registry: &mut TypeRegistry, world: &mut World);
     fn respond(&self, main_type_registry: &mut TypeRegistry);
-    fn execution_system(&self, main_type_registry: &mut TypeRegistry, world: &mut World);
 }
 
 
@@ -334,7 +338,7 @@ pub type EntityRegistry = Registry<ID<Entity>, Entity>;
 pub type EntityOperationTypeRegistry = TypeRegistry;
 
 pub struct EntityOperationCreate {
-    response_callback: fn(main_type_registry: &mut TypeRegistry, ID<Entity>),
+    args: (),
 }
 
 pub struct EntityOperationDestroy {
@@ -344,18 +348,25 @@ pub struct EntityOperationDestroy {
 
 impl Operation for EntityOperationCreate {
     type Args = ();
+    type Result = ID<Entity>;
+
+    fn new(args: Self::Args) -> Self {
+        Self {
+            args,
+        }
+    }
 
     fn get_args(&self) -> Self::Args {
-
+        ()
     }
 
     fn request(&self, main_type_registry: &mut TypeRegistry) {
     }
 
-    fn respond(&self, main_type_registry: &mut TypeRegistry) {
+    fn execute(&self, main_type_registry: &mut TypeRegistry, world: &mut World) {
     }
 
-    fn execution_system(&self, main_type_registry: &mut TypeRegistry, world: &mut World) {
+    fn respond(&self, main_type_registry: &mut TypeRegistry) {
     }
 }
 
