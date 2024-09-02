@@ -512,6 +512,8 @@ pub fn init_entity_type() {
     // TODO
     // Implement like data and type names so we can request an operation mostly by just specifying the path to that operation,
     // instead of having to manually write the required boilerplate code for each operation request
+    // 
+    // Then we can have multiple pieces of data with the same type but different names
 }
 
 
