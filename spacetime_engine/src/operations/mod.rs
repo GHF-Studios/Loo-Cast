@@ -1,7 +1,6 @@
 pub mod requesters;
 pub mod resources;
 
-use bevy::ecs::world;
 use bevy::prelude::*;
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
@@ -16,40 +15,42 @@ pub(in crate) struct OperationsPlugin;
 
 impl Plugin for OperationsPlugin {
     fn build(&self, app: &mut App) {
-
+        app
+            .add_systems(Startup, start_main_manager)
+            .add_systems(PostUpdate, process_operations);
     }
 }
 
 
 
-// ID struct
-pub struct ID<T: 'static + Send + Sync>(u64, std::marker::PhantomData<T>);
+// InstanceID struct
+pub struct InstanceID<T: 'static + Send + Sync>(u64, std::marker::PhantomData<T>);
 
-impl<T: 'static + Send + Sync> std::fmt::Debug for ID<T> {
+impl<T: 'static + Send + Sync> std::fmt::Debug for InstanceID<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ID({})", self.0)
     }
 }
 
-impl<T: 'static + Send + Sync> std::clone::Clone for ID<T> {
+impl<T: 'static + Send + Sync> std::clone::Clone for InstanceID<T> {
     fn clone(&self) -> Self {
         Self(self.0, std::marker::PhantomData)
     }
 }
 
-impl<T: 'static + Send + Sync> core::marker::Copy for ID<T> {
+impl<T: 'static + Send + Sync> core::marker::Copy for InstanceID<T> {
 }
 
-impl<T: 'static + Send + Sync> std::cmp::PartialEq for ID<T> {
+impl<T: 'static + Send + Sync> std::cmp::PartialEq for InstanceID<T> {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
 }
 
-impl<T: 'static + Send + Sync> std::cmp::Eq for ID<T> {
+impl<T: 'static + Send + Sync> std::cmp::Eq for InstanceID<T> {
 }
 
-impl<T: 'static + Send + Sync> std::hash::Hash for ID<T> {
+impl<T: 'static + Send + Sync> std::hash::Hash for InstanceID<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.0.hash(state);
     }
@@ -57,13 +58,13 @@ impl<T: 'static + Send + Sync> std::hash::Hash for ID<T> {
 
 
 
-// Traits (incl. impls)
-pub trait RegistryKey: 'static + Clone + Copy + Debug + PartialEq + Eq + Hash + Send + Sync {
+// InstanceRegistry traits
+pub trait InstanceRegistryKey: 'static + Clone + Copy + Debug + PartialEq + Eq + Hash + Send + Sync {
     fn new(id: u64) -> Self;
     fn get(&self) -> u64;
 }
 
-impl<T: 'static + Send + Sync> RegistryKey for ID<T> {
+impl<T: 'static + Send + Sync> InstanceRegistryKey for InstanceID<T> {
     fn new(id: u64) -> Self {
         Self(id, std::marker::PhantomData)
     }
@@ -73,35 +74,23 @@ impl<T: 'static + Send + Sync> RegistryKey for ID<T> {
     }
 }
 
-pub trait RegistryValue: 'static + Send + Sync {
+pub trait InstanceRegistryValue: 'static + Send + Sync {
 }
 
-impl RegistryValue for Entity {
-}
-
-pub trait Operation: 'static + Send + Sync {
-    type Args: 'static + Send + Sync;
-    type Result: 'static + Send + Sync;
-
-    fn new(args: Self::Args) -> Self;
-    fn get_args(&self) -> Self::Args;
-
-    fn request(&self, main_type_registry: &mut TypeRegistry);
-    fn execute(&self, main_type_registry: &mut TypeRegistry, world: &mut World);
-    fn respond(&self, main_type_registry: &mut TypeRegistry);
+impl InstanceRegistryValue for Entity {
 }
 
 
 
-// Registry struct
-pub struct Registry<K: RegistryKey, V: RegistryValue> {
+// InstanceRegistry struct
+pub struct InstanceRegistry<K: InstanceRegistryKey, V: InstanceRegistryValue> {
     registered: HashSet<K>,
     managed: HashMap<K, V>,
     next_key: K,
     recycled_keys: Vec<K>,
 }
 
-impl<K: RegistryKey, V: RegistryValue> Registry<K, V> {
+impl<K: InstanceRegistryKey, V: InstanceRegistryValue> InstanceRegistry<K, V> {
     pub fn new() -> Self {
         Self {
             registered: HashSet::new(),
@@ -180,6 +169,22 @@ impl<K: RegistryKey, V: RegistryValue> Registry<K, V> {
 
         self.managed.remove(&key).unwrap()
     }
+
+    pub fn get(&self, key: K) -> Option<&V> {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is invalid!", key);
+        }
+
+        self.managed.get(&key)
+    }
+
+    pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is invalid!", key);
+        }
+
+        self.managed.get_mut(&key)
+    }
 }
 
 
@@ -187,7 +192,8 @@ impl<K: RegistryKey, V: RegistryValue> Registry<K, V> {
 // TypeRegistry struct
 pub struct TypeRegistry {
     registered: HashSet<TypeId>,
-    managed: HashMap<TypeId, HashMap<TypeId, Box<dyn Any + Send + Sync>>>,
+    managed: HashMap<TypeId, (String, HashMap<TypeId, Box<dyn Any + Send + Sync>>)>,
+    operation_queue: OperationQueue,
 }
 
 impl TypeRegistry {
@@ -195,6 +201,7 @@ impl TypeRegistry {
         Self {
             registered: HashSet::new(),
             managed: HashMap::new(),
+            operation_queue: OperationQueue::new(),
         }
     }
 
@@ -222,7 +229,7 @@ impl TypeRegistry {
         self.registered.retain(|other_type_id| type_id != *other_type_id);
     }
 
-    pub fn manage<T: 'static>(&mut self) {
+    pub fn manage<T: 'static>(&mut self, name: &str) {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -233,7 +240,7 @@ impl TypeRegistry {
             panic!("Type '{:?}' is already managed!", type_id);
         }
 
-        self.managed.insert(type_id, HashMap::new());
+        self.managed.insert(type_id, (name.to_string(), HashMap::new()));
     }
 
     pub fn unmanage<T: 'static>(&mut self) {
@@ -250,6 +257,22 @@ impl TypeRegistry {
         self.managed.remove(&type_id);
     }
 
+    pub fn get_name<T: 'static>(&self) -> Option<&String> {
+        let type_id = TypeId::of::<T>();
+
+        if !self.registered.contains(&type_id) {
+            return None;
+        }
+
+        if !self.managed.contains_key(&type_id) {
+            return None;
+        }
+
+        let (name, _) = self.managed.get(&type_id).unwrap();
+
+        Some(name)
+    }
+
     pub fn set_data<T: 'static, D: 'static + Send + Sync>(&mut self, data: D) {
         let type_id = TypeId::of::<T>();
         let data_type_id = TypeId::of::<D>();
@@ -262,8 +285,8 @@ impl TypeRegistry {
             panic!("Type '{:?}' is not managed!", type_id);
         }
 
-        let type_data_map = self.managed.entry(type_id).or_insert_with(HashMap::new);
-        type_data_map.insert(data_type_id, Box::new(data));
+        let data_map = self.managed.entry(type_id).or_insert_with(HashMap::new);
+        data_map.insert(data_type_id, Box::new(data));
     }
 
     pub fn get_data<T: 'static, D: 'static + Send + Sync>(&self) -> Option<&D> {
@@ -278,9 +301,9 @@ impl TypeRegistry {
             panic!("Type '{:?}' is not managed!", type_id);
         }
 
-        let type_data_map = self.managed.get(&type_id).unwrap();
+        let data_map = self.managed.get(&type_id).unwrap();
 
-        let data_box = type_data_map.get(&data_type_id)?;
+        let data_box = data_map.get(&data_type_id)?;
 
         let data_ref = match data_box.downcast_ref::<D>() {
             Some(data_ref) => data_ref,
@@ -302,9 +325,9 @@ impl TypeRegistry {
             panic!("Type '{:?}' is not managed!", type_id);
         }
 
-        let type_data_map = self.managed.get_mut(&type_id).unwrap();
+        let data_map = self.managed.get_mut(&type_id).unwrap();
 
-        let data_box = type_data_map.get_mut(&data_type_id)?;
+        let data_box = data_map.get_mut(&data_type_id)?;
 
         let data_ref = match data_box.downcast_mut::<D>() {
             Some(data_ref) => data_ref,
@@ -317,85 +340,201 @@ impl TypeRegistry {
 
 
 
-// Main TypeRegistry
+// Operation trait
+pub trait Operation: 'static + Send + Sync {
+    fn execute(&self, main_type_registry: &mut TypeRegistry, world: &mut World);
+}
+
+// OperationQueue struct
+pub struct OperationQueue {
+    queue: Vec<Box<dyn Operation>>,
+}
+
+impl OperationQueue {
+    pub fn new() -> Self {
+        Self {
+            queue: Vec::new(),
+        }
+    }
+
+    pub fn add_operation(&mut self, operation: Box<dyn Operation>) {
+        self.queue.push(operation);
+    }
+
+    pub fn execute_operations(&mut self, world: &mut World) {
+        let mut main_manager = MAIN_MANAGER.lock().unwrap();
+        let main_type_registry = main_manager.get_type_registry_mut();
+
+        while let Some(operation_box) = self.queue.pop() {
+            operation_box.execute(main_type_registry, world);
+        }
+    }
+}
+
+
+
+// MainManager struct
+pub struct MainManager {
+    type_registry: TypeRegistry,
+    operation_queue: OperationQueue,
+}
+
+impl MainManager {
+    pub fn new() -> Self {
+        Self {
+            type_registry: TypeRegistry::new(),
+            operation_queue: OperationQueue::new(),
+        }
+    }
+
+    pub fn get_type_registry(&self) -> &TypeRegistry {
+        &self.type_registry
+    }
+
+    pub fn get_type_registry_mut(&mut self) -> &mut TypeRegistry {
+        &mut self.type_registry
+    }
+
+    pub fn get_operation_queue(&self) -> &OperationQueue {
+        &self.operation_queue
+    }
+
+    pub fn get_operation_queue_mut(&mut self) -> &mut OperationQueue {
+        &mut self.operation_queue
+    }
+}
+
+
+
+// Static
 lazy_static! {
-    pub static ref MAIN_TYPE_REGISTRY: Arc<Mutex<TypeRegistry>> = Arc::new(Mutex::new(TypeRegistry::new()));
+    pub static ref MAIN_MANAGER: Arc<Mutex<MainManager>> = Arc::new(Mutex::new(MainManager::new()));
 }
 
-fn init_main_type_registry() {
-    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
-
-    init_entity_type(&mut *main_type_registry);
-    init_chunk_type(&mut *main_type_registry);
-    init_chunk_actor_type(&mut *main_type_registry);
-    init_chunk_loader_type(&mut *main_type_registry);
+// Systems
+fn start_main_manager() {
+    init_entity_type();
+    init_chunk_type();
+    init_chunk_actor_type();
+    init_chunk_loader_type();
 }
+
+fn process_operations(world: &mut World) {
+    let mut main_manager = MAIN_MANAGER.lock().unwrap();
+    let operation_queue = main_manager.get_operation_queue_mut();
+
+    operation_queue.execute_operations(world);
+}
+
+
+
+
+
+
 
 
 
 // Entity
-pub type EntityRegistry = Registry<ID<Entity>, Entity>;
+
+// Aliases
+pub type EntityRegistry = InstanceRegistry<InstanceID<Entity>, Entity>;
 pub type EntityOperationTypeRegistry = TypeRegistry;
 
-pub struct EntityOperationCreate {
+// Operations
+pub struct CreateEntity {
     args: (),
+    callback: fn(InstanceID<Entity>),
 }
 
-pub struct EntityOperationDestroy {
-    entity_id: ID<Entity>,
-    response_callback: fn(main_type_registry: &mut TypeRegistry),
-}
-
-impl Operation for EntityOperationCreate {
-    type Args = ();
-    type Result = ID<Entity>;
-
-    fn new(args: Self::Args) -> Self {
+impl CreateEntity {
+    pub fn new(callback: Option<fn(InstanceID<Entity>)>) -> Self {
         Self {
-            args,
+            args: (),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
+}
 
-    fn get_args(&self) -> Self::Args {
-        ()
-    }
-
-    fn request(&self, main_type_registry: &mut TypeRegistry) {
-    }
-
+impl Operation for CreateEntity {
     fn execute(&self, main_type_registry: &mut TypeRegistry, world: &mut World) {
-    }
-
-    fn respond(&self, main_type_registry: &mut TypeRegistry) {
+        todo!() //TODO
     }
 }
 
-pub fn init_entity_type(main_type_registry: &mut TypeRegistry) {
-    main_type_registry.register::<Entity>();
-    main_type_registry.manage::<Entity>();
+pub struct DestroyEntity {
+    args: InstanceID<Entity>,
+    callback: fn(),
+}
 
-    let entity_registry = EntityRegistry::new();
-    let entity_operation_type_registry = EntityOperationTypeRegistry::new();
-    
-    main_type_registry.set_data::<Entity, EntityRegistry>(entity_registry);
-    main_type_registry.set_data::<Entity, EntityOperationTypeRegistry>(entity_operation_type_registry);
+impl DestroyEntity {
+    pub fn new(args: InstanceID<Entity>, callback: Option<fn()>) -> Self {
+        Self {
+            args,
+            callback: callback.unwrap_or(|| {}),
+        }
+    }
+}
+
+impl Operation for DestroyEntity {
+    fn execute(&self, main_type_registry: &mut TypeRegistry, world: &mut World) {
+        todo!() //TODO
+    }
+}
+
+// Initialization
+pub fn init_entity_type() {
+    let mut main_manager = MAIN_MANAGER.lock().unwrap();
+
+    let main_type_registry = main_manager.get_type_registry_mut();
+    {
+        let entity_instance_registry = EntityRegistry::new();
+        {
+
+        }
+        main_type_registry.set_data::<Entity, EntityRegistry>("instance_registry", entity_instance_registry);
+
+        let mut entity_operation_type_registry = EntityOperationTypeRegistry::new();
+        {
+            entity_operation_type_registry.register::<CreateEntity>();
+            entity_operation_type_registry.manage::<CreateEntity>("create");
+        
+            entity_operation_type_registry.register::<DestroyEntity>();
+            entity_operation_type_registry.manage::<DestroyEntity>("destroy");
+
+        }
+        main_type_registry.set_data::<Entity, EntityOperationTypeRegistry>("operation_type_registry", entity_operation_type_registry);
+    }
+    main_type_registry.register::<Entity>();
+    main_type_registry.manage::<Entity>("entity");
+
+
+
+    // TODO
+    // Implement like data and type names so we can request an operation mostly by just specifying the path to that operation,
+    // instead of having to manually write the required boilerplate code for each operation request
 }
 
 
 
 // Chunk
 use crate::chunk::components::Chunk;
-pub type ChunkRegistry = Registry<ID<Chunk>, Entity>;
+pub type ChunkRegistry = InstanceRegistry<InstanceID<Chunk>, Entity>;
 pub type ChunkOperationTypeRegistry = TypeRegistry;
 
-pub fn init_chunk_type(main_type_registry: &mut TypeRegistry) {
+pub fn init_chunk_type() {
+    let mut main_manager = MAIN_MANAGER.lock().unwrap();
+    let main_type_registry = main_manager.get_type_registry_mut();
+
     main_type_registry.register::<Chunk>();
-    main_type_registry.manage::<Chunk>();
+    main_type_registry.manage::<Chunk>("chunk");
 
     let chunk_registry = ChunkRegistry::new();
-    let chunk_operation_type_registry = ChunkOperationTypeRegistry::new();
+    let mut chunk_operation_type_registry = ChunkOperationTypeRegistry::new();
 
-    main_type_registry.set_data::<Chunk, ChunkRegistry>(chunk_registry);
+    chunk_operation_type_registry.register::<UpgradeToChunk>();
+    chunk_operation_type_registry.manage::<UpgradeToChunk>("upgradeTo");
+
+    main_type_registry.set_data::<Chunk, ChunkRegistry>("registry", chunk_registry);
     main_type_registry.set_data::<Chunk, ChunkOperationTypeRegistry>(chunk_operation_type_registry);
 }
 
@@ -403,10 +542,13 @@ pub fn init_chunk_type(main_type_registry: &mut TypeRegistry) {
 
 // Chunk Actor
 use crate::chunk::actor::components::ChunkActor;
-pub type ChunkActorRegistry = Registry<ID<ChunkActor>, Entity>;
+pub type ChunkActorRegistry = InstanceRegistry<InstanceID<ChunkActor>, Entity>;
 pub type ChunkActorOperationTypeRegistry = TypeRegistry;
 
-pub fn init_chunk_actor_type(main_type_registry: &mut TypeRegistry) {
+pub fn init_chunk_actor_type() {
+    let mut main_manager = MAIN_MANAGER.lock().unwrap();
+    let main_type_registry = main_manager.get_type_registry_mut();
+
     main_type_registry.register::<ChunkActor>();
     main_type_registry.manage::<ChunkActor>();
 
@@ -421,10 +563,13 @@ pub fn init_chunk_actor_type(main_type_registry: &mut TypeRegistry) {
 
 // Chunk Loader
 use crate::chunk::loader::components::ChunkLoader;
-pub type ChunkLoaderRegistry = Registry<ID<ChunkLoader>, Entity>;
+pub type ChunkLoaderRegistry = InstanceRegistry<InstanceID<ChunkLoader>, Entity>;
 pub type ChunkLoaderOperationTypeRegistry = TypeRegistry;
 
-pub fn init_chunk_loader_type(main_type_registry: &mut TypeRegistry) {
+pub fn init_chunk_loader_type() {
+    let mut main_manager = MAIN_MANAGER.lock().unwrap();
+    let main_type_registry = main_manager.get_type_registry_mut();
+
     main_type_registry.register::<ChunkLoader>();
     main_type_registry.manage::<ChunkLoader>();
 
