@@ -445,6 +445,7 @@ fn process_operations(world: &mut World) {
 
 
 // TODO: Create wrappers/containers for XYZOperationArgs and XYZOperationResult
+// TODO: Implement operations for all types
 
 
 
