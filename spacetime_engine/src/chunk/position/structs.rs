@@ -1,12 +1,11 @@
 use bevy::prelude::*;
 use std::ops;
+use crate::entity::position::structs::EntityPosition;
 use crate::math::structs::*;
 use crate::chunk::constants::*;
-use crate::chunk::id::structs::ChunkID;
-use crate::chunk::actor::position::structs::*;
 
 /// This represents a position in chunk space.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
+#[derive(Deref, DerefMut, Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Reflect)]
 pub struct ChunkPosition(pub I16Vec2);
 
 impl From<I16Vec2> for ChunkPosition {
@@ -15,17 +14,11 @@ impl From<I16Vec2> for ChunkPosition {
     }
 }
 
-impl From<ChunkActorPosition> for ChunkPosition {
-    fn from(chunk_actor_position: ChunkActorPosition) -> Self {
-        let x = ((chunk_actor_position.0.x + CHUNK_SIZE as f32 / 2.0) / CHUNK_SIZE as f32).floor() as i16;
-        let y = ((chunk_actor_position.0.y + CHUNK_SIZE as f32 / 2.0) / CHUNK_SIZE as f32).floor() as i16;
+impl From<EntityPosition> for ChunkPosition {
+    fn from(entity_position: EntityPosition) -> Self {
+        let x = ((entity_position.0.x + CHUNK_SIZE as f32 / 2.0) / CHUNK_SIZE as f32).floor() as i16;
+        let y = ((entity_position.0.y + CHUNK_SIZE as f32 / 2.0) / CHUNK_SIZE as f32).floor() as i16;
         ChunkPosition(I16Vec2(x, y))
-    }
-}
-
-impl From<ChunkID> for ChunkPosition {
-    fn from(id: ChunkID) -> Self {
-        id.0
     }
 }
 
