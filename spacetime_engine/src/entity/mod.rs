@@ -25,7 +25,7 @@ impl Plugin for EntityPlugin {
             .add_plugins(id::IDPlugin)
             .add_plugins(position::PositionPlugin)
             .insert_resource(EntityRegistry::default())
-            .add_systems(Startup, functions::main::setup)
+            .add_systems(Startup, functions::main::startup)
             .add_systems(Update, (
                 systems::request_handlers::handle_create_entity, 
                 systems::request_handlers::handle_destroy_entity

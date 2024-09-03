@@ -10,87 +10,70 @@ use std::fmt::Debug;
 use lazy_static::lazy_static;
 use log::trace;
 
-// Plugin struct
 pub(in crate) struct OperationsPlugin;
-
 impl Plugin for OperationsPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, start_main_manager)
-            .add_systems(PostUpdate, process_operations);
+            .add_systems(Startup, startup)
+            .add_systems(PostUpdate, post_update);
     }
 }
 
 
 
+// Operation
+
+// Wrappers
+#[derive(Deref, DerefMut)]
+pub struct MainTypeRegistry(TypeRegistry);
+impl MainTypeRegistry {
+    pub fn new() -> Self {
+        Self(TypeRegistry::new())
+    }
+}
+
+#[derive(Deref, DerefMut)]
+pub struct OperationTypeRegistry(TypeRegistry);
+impl OperationTypeRegistry {
+    pub fn new() -> Self {
+        Self(TypeRegistry::new())
+    }
+}
+
 // InstanceID struct
 #[derive(Reflect)]
 pub struct InstanceID<T: 'static + Send + Sync>(u64, #[reflect(ignore)]std::marker::PhantomData<T>);
-
 impl<T: 'static + Send + Sync> std::fmt::Debug for InstanceID<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ID({})", self.0)
     }
 }
-
 impl<T: 'static + Send + Sync> std::clone::Clone for InstanceID<T> {
     fn clone(&self) -> Self {
         Self(self.0, std::marker::PhantomData)
     }
 }
-
 impl<T: 'static + Send + Sync> core::marker::Copy for InstanceID<T> {
 }
-
 impl<T: 'static + Send + Sync> std::cmp::PartialEq for InstanceID<T> {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
 }
-
 impl<T: 'static + Send + Sync> std::cmp::Eq for InstanceID<T> {
 }
-
 impl<T: 'static + Send + Sync> std::hash::Hash for InstanceID<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.0.hash(state);
     }
 }
 
-
-
-// InstanceRegistry traits
-pub trait InstanceRegistryKey: 'static + Clone + Copy + Debug + PartialEq + Eq + Hash + Send + Sync {
-    fn new(id: u64) -> Self;
-    fn get(&self) -> u64;
-}
-
-impl<T: 'static + Send + Sync> InstanceRegistryKey for InstanceID<T> {
-    fn new(id: u64) -> Self {
-        Self(id, std::marker::PhantomData)
-    }
-
-    fn get(&self) -> u64 {
-        self.0
-    }
-}
-
-pub trait InstanceRegistryValue: 'static + Send + Sync {
-}
-
-impl InstanceRegistryValue for Entity {
-}
-
-
-
-// InstanceRegistry struct
 pub struct InstanceRegistry<K: InstanceRegistryKey, V: InstanceRegistryValue> {
     registered: HashSet<K>,
     managed: HashMap<K, V>,
     next_key: K,
     recycled_keys: Vec<K>,
 }
-
 impl<K: InstanceRegistryKey, V: InstanceRegistryValue> InstanceRegistry<K, V> {
     pub fn new() -> Self {
         Self {
@@ -187,16 +170,11 @@ impl<K: InstanceRegistryKey, V: InstanceRegistryValue> InstanceRegistry<K, V> {
         self.managed.get_mut(&key)
     }
 }
-
-
-
-// TypeRegistry struct
 pub struct TypeRegistry {
     registered: HashSet<TypeId>,
     managed: HashMap<TypeId, HashMap<TypeId, Box<dyn Any + Send + Sync>>>,
     operation_queue: OperationQueue,
 }
-
 impl TypeRegistry {
     pub fn new() -> Self {
         Self {
@@ -323,30 +301,9 @@ impl TypeRegistry {
     }
 }
 
-
-
-// Operation
-
-// Wrappers
-#[derive(Deref, DerefMut)]
-pub struct OperationTypeRegistry(TypeRegistry);
-
-impl OperationTypeRegistry {
-    pub fn new() -> Self {
-        Self(TypeRegistry::new())
-    }
-}
-
-// Trait
-pub trait Operation: 'static + Send + Sync {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue);
-}
-
-// Operation structs
 pub struct OperationQueue {
     queue: Vec<Box<dyn Operation>>,
 }
-
 impl OperationQueue {
     pub fn new() -> Self {
         Self {
@@ -363,61 +320,32 @@ impl OperationQueue {
     }
 }
 
+// Traits
+pub trait InstanceRegistryKey: 'static + Clone + Copy + Debug + PartialEq + Eq + Hash + Send + Sync {
+    fn new(id: u64) -> Self;
+    fn get(&self) -> u64;
+}
+impl<T: 'static + Send + Sync> InstanceRegistryKey for InstanceID<T> {
+    fn new(id: u64) -> Self {
+        Self(id, std::marker::PhantomData)
+    }
 
-
-// MainManager
-
-// Wrappers
-#[derive(Deref, DerefMut)]
-pub struct MainTypeRegistry(TypeRegistry);
-
-impl MainTypeRegistry {
-    pub fn new() -> Self {
-        Self(TypeRegistry::new())
+    fn get(&self) -> u64 {
+        self.0
     }
 }
 
-// MainManager struct
-pub struct MainManager {
-    main_type_registry: MainTypeRegistry,
-    operation_queue: OperationQueue,
+pub trait InstanceRegistryValue: 'static + Send + Sync {
+}
+impl InstanceRegistryValue for Entity {
 }
 
-impl MainManager {
-    pub fn new() -> Self {
-        Self {
-            main_type_registry: MainTypeRegistry(TypeRegistry::new()),
-            operation_queue: OperationQueue::new(),
-        }
-    }
-
-    pub fn get_main_type_registry(&self) -> &MainTypeRegistry {
-        &self.main_type_registry
-    }
-
-    pub fn get_main_type_registry_mut(&mut self) -> &mut MainTypeRegistry {
-        &mut self.main_type_registry
-    }
-
-    pub fn get_operation_queue(&self) -> &OperationQueue {
-        &self.operation_queue
-    }
-
-    pub fn get_operation_queue_mut(&mut self) -> &mut OperationQueue {
-        &mut self.operation_queue
-    }
-}
-
-
-
-// Statics
-lazy_static! {
-    static ref MAIN_TYPE_REGISTRY: Arc<Mutex<MainTypeRegistry>> = Arc::new(Mutex::new(MainTypeRegistry(TypeRegistry::new())));
-    static ref OPERATION_QUEUE: Arc<Mutex<OperationQueue>> = Arc::new(Mutex::new(OperationQueue::new()));
+pub trait Operation: 'static + Send + Sync {
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue);
 }
 
 // Systems
-fn start_main_manager() {
+fn startup() {
     let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
 
     init_entity_type(&mut *main_type_registry);
@@ -426,7 +354,7 @@ fn start_main_manager() {
     init_chunk_loader_type(&mut *main_type_registry);
 }
 
-fn process_operations(world: &mut World) {
+fn post_update(world: &mut World) {
     let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
     let mut operation_queue = OPERATION_QUEUE.lock().unwrap();
 
@@ -435,6 +363,24 @@ fn process_operations(world: &mut World) {
         operation_box.execute(world, &mut *main_type_registry, &mut *operation_queue);
     }
 }
+
+// Private singletons
+lazy_static! {
+    static ref MAIN_TYPE_REGISTRY: Arc<Mutex<MainTypeRegistry>> = Arc::new(Mutex::new(MainTypeRegistry(TypeRegistry::new())));
+    static ref OPERATION_QUEUE: Arc<Mutex<OperationQueue>> = Arc::new(Mutex::new(OperationQueue::new()));
+}
+
+// TODO
+// TODO
+// TODO
+//impl Operation for fn(&mut World, &mut MainTypeRegistry, &mut OperationQueue) {
+//    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+//        self(world, main_type_registry, operation_queue);
+//    }
+//}
+// TODO
+// TODO
+// TODO
 
 
 
@@ -460,7 +406,6 @@ fn process_operations(world: &mut World) {
 // Wrappers
 #[derive(Deref, DerefMut)]
 pub struct EntityInstanceRegistry(InstanceRegistry<InstanceID<Entity>, Entity>);
-
 impl EntityInstanceRegistry {
     pub fn new() -> Self {
         Self(InstanceRegistry::new())
@@ -469,7 +414,6 @@ impl EntityInstanceRegistry {
 
 #[derive(Deref, DerefMut)]
 pub struct EntityOperationTypeRegistry(OperationTypeRegistry);
-
 impl EntityOperationTypeRegistry {
     pub fn new() -> Self {
         Self(OperationTypeRegistry(TypeRegistry::new()))
@@ -481,7 +425,6 @@ pub struct CreateEntity {
     args: EntityPosition,
     callback: fn(&mut OperationQueue, InstanceID<Entity>),
 }
-
 impl CreateEntity {
     pub fn new(args: EntityPosition, callback: Option<fn(&mut OperationQueue, InstanceID<Entity>)>) -> Self {
         Self {
@@ -490,7 +433,6 @@ impl CreateEntity {
         }
     }
 }
-
 impl Operation for CreateEntity {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         let entity_instance_registry = main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>().unwrap();
@@ -514,7 +456,6 @@ pub struct DestroyEntity {
     args: InstanceID<Entity>,
     callback: fn(&mut OperationQueue),
 }
-
 impl DestroyEntity {
     pub fn new(args: InstanceID<Entity>, callback: Option<fn(&mut OperationQueue)>) -> Self {
         Self {
@@ -523,7 +464,6 @@ impl DestroyEntity {
         }
     }
 }
-
 impl Operation for DestroyEntity {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         let entity_instance_registry = main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>().unwrap();
@@ -565,7 +505,6 @@ use crate::chunk::components::Chunk;
 // Wrappers
 #[derive(Deref, DerefMut)]
 pub struct ChunkInstanceRegistry(InstanceRegistry<InstanceID<Chunk>, Entity>);
-
 impl ChunkInstanceRegistry {
     pub fn new() -> Self {
         Self(InstanceRegistry::new())
@@ -574,7 +513,6 @@ impl ChunkInstanceRegistry {
 
 #[derive(Deref, DerefMut)]
 pub struct ChunkOperationTypeRegistry(OperationTypeRegistry);
-
 impl ChunkOperationTypeRegistry {
     pub fn new() -> Self {
         Self(OperationTypeRegistry(TypeRegistry::new()))
@@ -586,7 +524,6 @@ pub struct UpgradeToChunk {
     args: (InstanceID<Entity>, ChunkPosition, Option<InstanceID<ChunkLoader>>),
     callback: fn(&mut OperationQueue, InstanceID<Chunk>),
 }
-
 impl UpgradeToChunk {
     pub fn new(args: (InstanceID<Entity>, ChunkPosition, Option<InstanceID<ChunkLoader>>), callback: Option<fn(&mut OperationQueue, InstanceID<Chunk>)>) -> Self {
         Self {
@@ -595,7 +532,6 @@ impl UpgradeToChunk {
         }
     }
 }
-
 impl Operation for UpgradeToChunk {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         todo!(); // TODO
@@ -606,7 +542,6 @@ pub struct DowngradeFromChunk {
     args: (InstanceID<Entity>, InstanceID<Chunk>),
     callback: fn(&mut OperationQueue),
 }
-
 impl DowngradeFromChunk {
     pub fn new(args: (InstanceID<Entity>, InstanceID<Chunk>), callback: Option<fn(&mut OperationQueue)>) -> Self {
         Self {
@@ -615,7 +550,6 @@ impl DowngradeFromChunk {
         }
     }
 }
-
 impl Operation for DowngradeFromChunk {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         todo!(); // TODO
@@ -626,7 +560,6 @@ pub struct LoadChunk {
     args: InstanceID<Chunk>,
     callback: fn(&mut OperationQueue),
 }
-
 impl LoadChunk {
     pub fn new(args: InstanceID<Chunk>, callback: Option<fn(&mut OperationQueue)>) -> Self {
         Self {
@@ -635,7 +568,6 @@ impl LoadChunk {
         }
     }
 }
-
 impl Operation for LoadChunk {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         todo!(); // TODO
@@ -646,7 +578,6 @@ pub struct SaveChunk {
     args: InstanceID<Chunk>,
     callback: fn(&mut OperationQueue),
 }
-
 impl SaveChunk {
     pub fn new(args: InstanceID<Chunk>, callback: Option<fn(&mut OperationQueue)>) -> Self {
         Self {
@@ -655,7 +586,6 @@ impl SaveChunk {
         }
     }
 }
-
 impl Operation for SaveChunk {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         todo!(); // TODO
@@ -695,7 +625,6 @@ use crate::chunk::actor::components::ChunkActor;
 // Wrappers
 #[derive(Deref, DerefMut)]
 pub struct ChunkActorInstanceRegistry(InstanceRegistry<InstanceID<ChunkActor>, Entity>);
-
 impl ChunkActorInstanceRegistry {
     pub fn new() -> Self {
         Self(InstanceRegistry::new())
@@ -704,7 +633,6 @@ impl ChunkActorInstanceRegistry {
 
 #[derive(Deref, DerefMut)]
 pub struct ChunkActorOperationTypeRegistry(OperationTypeRegistry);
-
 impl ChunkActorOperationTypeRegistry {
     pub fn new() -> Self {
         Self(OperationTypeRegistry(TypeRegistry::new()))
@@ -716,7 +644,6 @@ pub struct UpgradeToChunkActor {
     args: InstanceID<Entity>,
     callback: fn(&mut OperationQueue, InstanceID<ChunkActor>),
 }
-
 impl UpgradeToChunkActor {
     pub fn new(args: InstanceID<Entity>, callback: Option<fn(&mut OperationQueue, InstanceID<ChunkActor>)>) -> Self {
         Self {
@@ -725,7 +652,6 @@ impl UpgradeToChunkActor {
         }
     }
 }
-
 impl Operation for UpgradeToChunkActor {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         todo!(); // TODO
@@ -736,7 +662,6 @@ pub struct DowngradeFromChunkActor {
     args: (InstanceID<Entity>, InstanceID<ChunkActor>),
     callback: fn(&mut OperationQueue),
 }
-
 impl DowngradeFromChunkActor {
     pub fn new(args: (InstanceID<Entity>, InstanceID<ChunkActor>), callback: Option<fn(&mut OperationQueue)>) -> Self {
         Self {
@@ -745,7 +670,6 @@ impl DowngradeFromChunkActor {
         }
     }
 }
-
 impl Operation for DowngradeFromChunkActor {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         todo!(); // TODO
@@ -782,7 +706,6 @@ use crate::entity::position::structs::EntityPosition;
 // Wrappers
 #[derive(Deref, DerefMut)]
 pub struct ChunkLoaderInstanceRegistry(InstanceRegistry<InstanceID<ChunkLoader>, Entity>);
-
 impl ChunkLoaderInstanceRegistry {
     pub fn new() -> Self {
         Self(InstanceRegistry::new())
@@ -791,7 +714,6 @@ impl ChunkLoaderInstanceRegistry {
 
 #[derive(Deref, DerefMut)]
 pub struct ChunkLoaderOperationTypeRegistry(OperationTypeRegistry);
-
 impl ChunkLoaderOperationTypeRegistry {
     pub fn new() -> Self {
         Self(OperationTypeRegistry(TypeRegistry::new()))
@@ -803,7 +725,6 @@ pub struct UpgradeToChunkLoader {
     args: InstanceID<Entity>,
     callback: fn(&mut OperationQueue, InstanceID<ChunkLoader>),
 }
-
 impl UpgradeToChunkLoader {
     pub fn new(args: InstanceID<Entity>, callback: Option<fn(&mut OperationQueue, InstanceID<ChunkLoader>)>) -> Self {
         Self {
@@ -812,7 +733,6 @@ impl UpgradeToChunkLoader {
         }
     }
 }
-
 impl Operation for UpgradeToChunkLoader {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         todo!(); // TODO
@@ -823,7 +743,6 @@ pub struct DowngradeFromChunkLoader {
     args: (InstanceID<Entity>, InstanceID<ChunkLoader>),
     callback: fn(&mut OperationQueue),
 }
-
 impl DowngradeFromChunkLoader {
     pub fn new(args: (InstanceID<Entity>, InstanceID<ChunkLoader>), callback: Option<fn(&mut OperationQueue)>) -> Self {
         Self {
@@ -832,7 +751,6 @@ impl DowngradeFromChunkLoader {
         }
     }
 }
-
 impl Operation for DowngradeFromChunkLoader {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         todo!(); // TODO
