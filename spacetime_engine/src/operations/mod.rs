@@ -444,6 +444,16 @@ fn process_operations(world: &mut World) {
 
 
 
+// TODO: Create wrappers/containers for XYZOperationArgs and XYZOperationResult
+
+
+
+
+
+
+
+
+
 // Entity
 
 // Wrappers
@@ -472,10 +482,10 @@ pub struct CreateEntity {
 }
 
 impl CreateEntity {
-    pub fn new(callback: Option<fn(InstanceID<Entity>)>) -> Self {
+    pub fn new(args: EntityPosition, callback: Option<fn(&mut OperationQueue, InstanceID<Entity>)>) -> Self {
         Self {
-            args: (),
-            callback: callback.unwrap_or(|_| {}),
+            args,
+            callback: callback.unwrap_or(|_, _| {}),
         }
     }
 }
@@ -505,10 +515,10 @@ pub struct DestroyEntity {
 }
 
 impl DestroyEntity {
-    pub fn new(args: InstanceID<Entity>, callback: Option<fn()>) -> Self {
+    pub fn new(args: InstanceID<Entity>, callback: Option<fn(&mut OperationQueue)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
@@ -577,10 +587,10 @@ pub struct UpgradeToChunk {
 }
 
 impl UpgradeToChunk {
-    pub fn new(args: (InstanceID<Entity>, ChunkPosition, Option<InstanceID<ChunkLoader>>), callback: Option<fn(InstanceID<Chunk>)>) -> Self {
+    pub fn new(args: (InstanceID<Entity>, ChunkPosition, Option<InstanceID<ChunkLoader>>), callback: Option<fn(&mut OperationQueue, InstanceID<Chunk>)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_| {}),
+            callback: callback.unwrap_or(|_, _| {}),
         }
     }
 }
@@ -597,15 +607,55 @@ pub struct DowngradeFromChunk {
 }
 
 impl DowngradeFromChunk {
-    pub fn new(args: (InstanceID<Entity>, InstanceID<Chunk>), callback: Option<fn()>) -> Self {
+    pub fn new(args: (InstanceID<Entity>, InstanceID<Chunk>), callback: Option<fn(&mut OperationQueue)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 
 impl Operation for DowngradeFromChunk {
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+        todo!(); // TODO
+    }
+}
+
+pub struct LoadChunk {
+    args: InstanceID<Chunk>,
+    callback: fn(&mut OperationQueue),
+}
+
+impl LoadChunk {
+    pub fn new(args: InstanceID<Chunk>, callback: Option<fn(&mut OperationQueue)>) -> Self {
+        Self {
+            args,
+            callback: callback.unwrap_or(|_| {}),
+        }
+    }
+}
+
+impl Operation for LoadChunk {
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+        todo!(); // TODO
+    }
+}
+
+pub struct SaveChunk {
+    args: InstanceID<Chunk>,
+    callback: fn(&mut OperationQueue),
+}
+
+impl SaveChunk {
+    pub fn new(args: InstanceID<Chunk>, callback: Option<fn(&mut OperationQueue)>) -> Self {
+        Self {
+            args,
+            callback: callback.unwrap_or(|_| {}),
+        }
+    }
+}
+
+impl Operation for SaveChunk {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
         todo!(); // TODO
     }
@@ -626,6 +676,12 @@ pub fn init_chunk_type(main_type_registry: &mut MainTypeRegistry) {
 
     chunk_operation_type_registry.register::<DowngradeFromChunk>();
     chunk_operation_type_registry.manage::<DowngradeFromChunk>();
+
+    chunk_operation_type_registry.register::<LoadChunk>();
+    chunk_operation_type_registry.manage::<LoadChunk>();
+
+    chunk_operation_type_registry.register::<SaveChunk>();
+    chunk_operation_type_registry.manage::<SaveChunk>();
 }
 
 
@@ -655,7 +711,45 @@ impl ChunkActorOperationTypeRegistry {
 }
 
 // Operations
+pub struct UpgradeToChunkActor {
+    args: InstanceID<Entity>,
+    callback: fn(&mut OperationQueue, InstanceID<ChunkActor>),
+}
 
+impl UpgradeToChunkActor {
+    pub fn new(args: InstanceID<Entity>, callback: Option<fn(&mut OperationQueue, InstanceID<ChunkActor>)>) -> Self {
+        Self {
+            args,
+            callback: callback.unwrap_or(|_, _| {}),
+        }
+    }
+}
+
+impl Operation for UpgradeToChunkActor {
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+        todo!(); // TODO
+    }
+}
+
+pub struct DowngradeFromChunkActor {
+    args: (InstanceID<Entity>, InstanceID<ChunkActor>),
+    callback: fn(&mut OperationQueue),
+}
+
+impl DowngradeFromChunkActor {
+    pub fn new(args: (InstanceID<Entity>, InstanceID<ChunkActor>), callback: Option<fn(&mut OperationQueue)>) -> Self {
+        Self {
+            args,
+            callback: callback.unwrap_or(|_| {}),
+        }
+    }
+}
+
+impl Operation for DowngradeFromChunkActor {
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+        todo!(); // TODO
+    }
+}
 
 // Initialization
 pub fn init_chunk_actor_type(main_type_registry: &mut MainTypeRegistry) {
@@ -704,7 +798,45 @@ impl ChunkLoaderOperationTypeRegistry {
 }
 
 // Operations
+pub struct UpgradeToChunkLoader {
+    args: InstanceID<Entity>,
+    callback: fn(&mut OperationQueue, InstanceID<ChunkLoader>),
+}
 
+impl UpgradeToChunkLoader {
+    pub fn new(args: InstanceID<Entity>, callback: Option<fn(&mut OperationQueue, InstanceID<ChunkLoader>)>) -> Self {
+        Self {
+            args,
+            callback: callback.unwrap_or(|_, _| {}),
+        }
+    }
+}
+
+impl Operation for UpgradeToChunkLoader {
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+        todo!(); // TODO
+    }
+}
+
+pub struct DowngradeFromChunkLoader {
+    args: (InstanceID<Entity>, InstanceID<ChunkLoader>),
+    callback: fn(&mut OperationQueue),
+}
+
+impl DowngradeFromChunkLoader {
+    pub fn new(args: (InstanceID<Entity>, InstanceID<ChunkLoader>), callback: Option<fn(&mut OperationQueue)>) -> Self {
+        Self {
+            args,
+            callback: callback.unwrap_or(|_| {}),
+        }
+    }
+}
+
+impl Operation for DowngradeFromChunkLoader {
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+        todo!(); // TODO
+    }
+}
 
 // Initialization
 pub fn init_chunk_loader_type(main_type_registry: &mut MainTypeRegistry) {
@@ -722,6 +854,11 @@ pub fn init_chunk_loader_type(main_type_registry: &mut MainTypeRegistry) {
     chunk_loader_operation_type_registry.register::<DowngradeFromChunkLoader>();
     chunk_loader_operation_type_registry.manage::<DowngradeFromChunkLoader>();
 }
+
+
+
+
+
 
 
 
