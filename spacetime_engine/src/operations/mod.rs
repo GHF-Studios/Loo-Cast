@@ -24,7 +24,8 @@ impl Plugin for OperationsPlugin {
 
 
 // InstanceID struct
-pub struct InstanceID<T: 'static + Send + Sync>(u64, std::marker::PhantomData<T>);
+#[derive(Reflect)]
+pub struct InstanceID<T: 'static + Send + Sync>(u64, #[reflect(ignore)]std::marker::PhantomData<T>);
 
 impl<T: 'static + Send + Sync> std::fmt::Debug for InstanceID<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -192,7 +193,7 @@ impl<K: InstanceRegistryKey, V: InstanceRegistryValue> InstanceRegistry<K, V> {
 // TypeRegistry struct
 pub struct TypeRegistry {
     registered: HashSet<TypeId>,
-    managed: HashMap<TypeId, (String, HashMap<TypeId, Box<dyn Any + Send + Sync>>)>,
+    managed: HashMap<TypeId, HashMap<TypeId, Box<dyn Any + Send + Sync>>>,
     operation_queue: OperationQueue,
 }
 
@@ -229,7 +230,7 @@ impl TypeRegistry {
         self.registered.retain(|other_type_id| type_id != *other_type_id);
     }
 
-    pub fn manage<T: 'static>(&mut self, name: &str) {
+    pub fn manage<T: 'static>(&mut self) {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -240,7 +241,7 @@ impl TypeRegistry {
             panic!("Type '{:?}' is already managed!", type_id);
         }
 
-        self.managed.insert(type_id, (name.to_string(), HashMap::new()));
+        self.managed.insert(type_id, HashMap::new());
     }
 
     pub fn unmanage<T: 'static>(&mut self) {
@@ -255,22 +256,6 @@ impl TypeRegistry {
         }
 
         self.managed.remove(&type_id);
-    }
-
-    pub fn get_name<T: 'static>(&self) -> Option<&String> {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            return None;
-        }
-
-        if !self.managed.contains_key(&type_id) {
-            return None;
-        }
-
-        let (name, _) = self.managed.get(&type_id).unwrap();
-
-        Some(name)
     }
 
     pub fn set_data<T: 'static, D: 'static + Send + Sync>(&mut self, data: D) {
@@ -340,9 +325,21 @@ impl TypeRegistry {
 
 
 
-// Operation trait
+// Operation
+
+// Wrappers
+#[derive(Deref, DerefMut)]
+pub struct OperationTypeRegistry(TypeRegistry);
+
+impl OperationTypeRegistry {
+    pub fn new() -> Self {
+        Self(TypeRegistry::new())
+    }
+}
+
+// Trait
 pub trait Operation: 'static + Send + Sync {
-    fn execute(&self, main_type_registry: &mut TypeRegistry, world: &mut World);
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry);
 }
 
 // OperationQueue struct
@@ -361,38 +358,47 @@ impl OperationQueue {
         self.queue.push(operation);
     }
 
-    pub fn execute_operations(&mut self, world: &mut World) {
-        let mut main_manager = MAIN_MANAGER.lock().unwrap();
-        let main_type_registry = main_manager.get_type_registry_mut();
-
+    pub fn execute_operations(&mut self, world: &mut World, main_type_registry: &mut MainTypeRegistry) {
         while let Some(operation_box) = self.queue.pop() {
-            operation_box.execute(main_type_registry, world);
+            operation_box.execute(world, main_type_registry);
         }
     }
 }
 
 
 
+// MainManager
+
+// Wrappers
+#[derive(Deref, DerefMut)]
+pub struct MainTypeRegistry(TypeRegistry);
+
+impl MainTypeRegistry {
+    pub fn new() -> Self {
+        Self(TypeRegistry::new())
+    }
+}
+
 // MainManager struct
 pub struct MainManager {
-    type_registry: TypeRegistry,
+    main_type_registry: MainTypeRegistry,
     operation_queue: OperationQueue,
 }
 
 impl MainManager {
     pub fn new() -> Self {
         Self {
-            type_registry: TypeRegistry::new(),
+            main_type_registry: MainTypeRegistry(TypeRegistry::new()),
             operation_queue: OperationQueue::new(),
         }
     }
 
-    pub fn get_type_registry(&self) -> &TypeRegistry {
-        &self.type_registry
+    pub fn get_main_type_registry(&self) -> &MainTypeRegistry {
+        &self.main_type_registry
     }
 
-    pub fn get_type_registry_mut(&mut self) -> &mut TypeRegistry {
-        &mut self.type_registry
+    pub fn get_main_type_registry_mut(&mut self) -> &mut MainTypeRegistry {
+        &mut self.main_type_registry
     }
 
     pub fn get_operation_queue(&self) -> &OperationQueue {
@@ -406,24 +412,27 @@ impl MainManager {
 
 
 
-// Static
+// Statics
 lazy_static! {
-    pub static ref MAIN_MANAGER: Arc<Mutex<MainManager>> = Arc::new(Mutex::new(MainManager::new()));
+    pub static ref MAIN_TYPE_REGISTRY: Arc<Mutex<MainTypeRegistry>> = Arc::new(Mutex::new(MainTypeRegistry(TypeRegistry::new())));
+    pub static ref OPERATION_QUEUE: Arc<Mutex<OperationQueue>> = Arc::new(Mutex::new(OperationQueue::new()));
 }
 
 // Systems
 fn start_main_manager() {
-    init_entity_type();
-    init_chunk_type();
-    init_chunk_actor_type();
-    init_chunk_loader_type();
+    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
+
+    init_entity_type(&mut *main_type_registry);
+    init_chunk_type(&mut *main_type_registry);
+    init_chunk_actor_type(&mut *main_type_registry);
+    init_chunk_loader_type(&mut *main_type_registry);
 }
 
 fn process_operations(world: &mut World) {
-    let mut main_manager = MAIN_MANAGER.lock().unwrap();
-    let operation_queue = main_manager.get_operation_queue_mut();
+    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
+    let mut operation_queue = OPERATION_QUEUE.lock().unwrap();
 
-    operation_queue.execute_operations(world);
+    operation_queue.execute_operations(world, &mut *main_type_registry);
 }
 
 
@@ -436,18 +445,33 @@ fn process_operations(world: &mut World) {
 
 // Entity
 
-// Aliases
-pub type EntityRegistry = InstanceRegistry<InstanceID<Entity>, Entity>;
-pub type EntityOperationTypeRegistry = TypeRegistry;
+// Wrappers
+#[derive(Deref, DerefMut)]
+pub struct EntityInstanceRegistry(InstanceRegistry<EntityID, Entity>);
+
+impl EntityInstanceRegistry {
+    pub fn new() -> Self {
+        Self(InstanceRegistry::new())
+    }
+}
+
+#[derive(Deref, DerefMut)]
+pub struct EntityOperationTypeRegistry(OperationTypeRegistry);
+
+impl EntityOperationTypeRegistry {
+    pub fn new() -> Self {
+        Self(OperationTypeRegistry(TypeRegistry::new()))
+    }
+}
 
 // Operations
 pub struct CreateEntity {
     args: (),
-    callback: fn(InstanceID<Entity>),
+    callback: fn(EntityID),
 }
 
 impl CreateEntity {
-    pub fn new(callback: Option<fn(InstanceID<Entity>)>) -> Self {
+    pub fn new(callback: Option<fn(EntityID)>) -> Self {
         Self {
             args: (),
             callback: callback.unwrap_or(|_| {}),
@@ -456,18 +480,31 @@ impl CreateEntity {
 }
 
 impl Operation for CreateEntity {
-    fn execute(&self, main_type_registry: &mut TypeRegistry, world: &mut World) {
-        todo!() //TODO
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry) {
+        let entity_instance_registry = main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>().unwrap();
+
+        let entity_id = entity_instance_registry.register();
+
+        let entity = world.spawn((
+            Transform::from_translation(Vec3::ZERO),
+            SpacetimeEntity {
+                id: entity_id,
+            },
+        )).id();
+
+        entity_instance_registry.manage(entity_id, entity);
+
+        (self.callback)(entity_id);
     }
 }
 
 pub struct DestroyEntity {
-    args: InstanceID<Entity>,
+    args: EntityID,
     callback: fn(),
 }
 
 impl DestroyEntity {
-    pub fn new(args: InstanceID<Entity>, callback: Option<fn()>) -> Self {
+    pub fn new(args: EntityID, callback: Option<fn()>) -> Self {
         Self {
             args,
             callback: callback.unwrap_or(|| {}),
@@ -476,110 +513,200 @@ impl DestroyEntity {
 }
 
 impl Operation for DestroyEntity {
-    fn execute(&self, main_type_registry: &mut TypeRegistry, world: &mut World) {
-        todo!() //TODO
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry) {
+        let entity_instance_registry = main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>().unwrap();
+
+        let entity = entity_instance_registry.unmanage(self.args);
+
+        world.despawn(entity);
+
+        entity_instance_registry.unregister(self.args);
+
+        (self.callback)();
     }
 }
 
 // Initialization
-pub fn init_entity_type() {
-    let mut main_manager = MAIN_MANAGER.lock().unwrap();
-
-    let main_type_registry = main_manager.get_type_registry_mut();
-    {
-        let entity_instance_registry = EntityRegistry::new();
-        {
-
-        }
-        main_type_registry.set_data::<Entity, EntityRegistry>("instance_registry", entity_instance_registry);
-
-        let mut entity_operation_type_registry = EntityOperationTypeRegistry::new();
-        {
-            entity_operation_type_registry.register::<CreateEntity>();
-            entity_operation_type_registry.manage::<CreateEntity>("create");
-        
-            entity_operation_type_registry.register::<DestroyEntity>();
-            entity_operation_type_registry.manage::<DestroyEntity>("destroy");
-
-        }
-        main_type_registry.set_data::<Entity, EntityOperationTypeRegistry>("operation_type_registry", entity_operation_type_registry);
-    }
+pub fn init_entity_type(main_type_registry: &mut MainTypeRegistry) {
     main_type_registry.register::<Entity>();
-    main_type_registry.manage::<Entity>("entity");
+    main_type_registry.manage::<Entity>();
 
+    main_type_registry.set_data::<Entity, _>(EntityInstanceRegistry::new());
+    main_type_registry.set_data::<Entity, _>(EntityOperationTypeRegistry::new());
 
+    let entity_operation_type_registry: &mut EntityOperationTypeRegistry = main_type_registry.get_data_mut::<Entity, _>().unwrap();
 
-    // TODO
-    // Implement like data and type names so we can request an operation mostly by just specifying the path to that operation,
-    // instead of having to manually write the required boilerplate code for each operation request
-    // 
-    // Then we can have multiple pieces of data with the same type but different names
+    entity_operation_type_registry.register::<CreateEntity>();
+    entity_operation_type_registry.manage::<CreateEntity>();
+
+    entity_operation_type_registry.register::<DestroyEntity>();
+    entity_operation_type_registry.manage::<DestroyEntity>();
 }
 
 
 
 // Chunk
+
+// Imports
 use crate::chunk::components::Chunk;
-pub type ChunkRegistry = InstanceRegistry<InstanceID<Chunk>, Entity>;
-pub type ChunkOperationTypeRegistry = TypeRegistry;
 
-pub fn init_chunk_type() {
-    let mut main_manager = MAIN_MANAGER.lock().unwrap();
-    let main_type_registry = main_manager.get_type_registry_mut();
+// Wrappers
+#[derive(Deref, DerefMut)]
+pub struct ChunkInstanceRegistry(InstanceRegistry<ChunkID, Entity>);
 
+impl ChunkInstanceRegistry {
+    pub fn new() -> Self {
+        Self(InstanceRegistry::new())
+    }
+}
+
+#[derive(Deref, DerefMut)]
+pub struct ChunkOperationTypeRegistry(OperationTypeRegistry);
+
+impl ChunkOperationTypeRegistry {
+    pub fn new() -> Self {
+        Self(OperationTypeRegistry(TypeRegistry::new()))
+    }
+}
+
+// Operations
+pub struct UpgradeToChunk {
+    args: (EntityID, ChunkID),
+    callback: fn(ChunkID),
+}
+
+impl UpgradeToChunk {
+    pub fn new(args: EntityID, callback: Option<fn(ChunkID)>) -> Self {
+        Self {
+            args,
+            callback: callback.unwrap_or(|_| {}),
+        }
+    }
+}
+
+impl Operation for UpgradeToChunk {
+    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry) {
+        let entity = {
+            let entity_instance_registry = main_type_registry.get_data::<Entity, EntityInstanceRegistry>().unwrap();
+            entity_instance_registry.get(self.args).unwrap().clone()
+        };
+
+        let chunk_instance_registry = main_type_registry.get_data_mut::<Chunk, ChunkInstanceRegistry>().unwrap();
+
+        let chunk_id = chunk_instance_registry.register();
+        let chunk = entity.clone();
+
+        chunk_instance_registry.manage(chunk_id, chunk);
+
+        (self.callback)(chunk_id);
+    }
+}
+
+// Initialization
+pub fn init_chunk_type(main_type_registry: &mut MainTypeRegistry) {
     main_type_registry.register::<Chunk>();
-    main_type_registry.manage::<Chunk>("chunk");
+    main_type_registry.manage::<Chunk>();
 
-    let chunk_registry = ChunkRegistry::new();
-    let mut chunk_operation_type_registry = ChunkOperationTypeRegistry::new();
+    main_type_registry.set_data::<Chunk, _>(ChunkInstanceRegistry::new());
+    main_type_registry.set_data::<Chunk, _>(ChunkOperationTypeRegistry::new());
+
+    let chunk_operation_type_registry: &mut ChunkOperationTypeRegistry = main_type_registry.get_data_mut::<Chunk, _>().unwrap();
 
     chunk_operation_type_registry.register::<UpgradeToChunk>();
-    chunk_operation_type_registry.manage::<UpgradeToChunk>("upgradeTo");
+    chunk_operation_type_registry.manage::<UpgradeToChunk>();
 
-    main_type_registry.set_data::<Chunk, ChunkRegistry>("registry", chunk_registry);
-    main_type_registry.set_data::<Chunk, ChunkOperationTypeRegistry>(chunk_operation_type_registry);
+    chunk_operation_type_registry.register::<DowngradeFromChunk>();
+    chunk_operation_type_registry.manage::<DowngradeFromChunk>();
 }
 
 
 
 // Chunk Actor
+
+// Imports
 use crate::chunk::actor::components::ChunkActor;
-pub type ChunkActorRegistry = InstanceRegistry<InstanceID<ChunkActor>, Entity>;
-pub type ChunkActorOperationTypeRegistry = TypeRegistry;
 
-pub fn init_chunk_actor_type() {
-    let mut main_manager = MAIN_MANAGER.lock().unwrap();
-    let main_type_registry = main_manager.get_type_registry_mut();
+// Wrappers
+#[derive(Deref, DerefMut)]
+pub struct ChunkActorInstanceRegistry(InstanceRegistry<ChunkActorID, Entity>);
 
+impl ChunkActorInstanceRegistry {
+    pub fn new() -> Self {
+        Self(InstanceRegistry::new())
+    }
+}
+
+#[derive(Deref, DerefMut)]
+pub struct ChunkActorOperationTypeRegistry(OperationTypeRegistry);
+
+impl ChunkActorOperationTypeRegistry {
+    pub fn new() -> Self {
+        Self(OperationTypeRegistry(TypeRegistry::new()))
+    }
+}
+
+// Operations
+
+
+// Initialization
+pub fn init_chunk_actor_type(main_type_registry: &mut MainTypeRegistry) {
     main_type_registry.register::<ChunkActor>();
     main_type_registry.manage::<ChunkActor>();
 
-    let chunk_actor_registry = ChunkActorRegistry::new();
-    let chunk_actor_operation_type_registry = ChunkActorOperationTypeRegistry::new();
+    main_type_registry.set_data::<ChunkActor, _>(ChunkActorInstanceRegistry::new());
+    main_type_registry.set_data::<ChunkActor, _>(ChunkActorOperationTypeRegistry::new());
 
-    main_type_registry.set_data::<ChunkActor, ChunkActorRegistry>(chunk_actor_registry);
-    main_type_registry.set_data::<ChunkActor, ChunkActorOperationTypeRegistry>(chunk_actor_operation_type_registry);
+    let chunk_actor_operation_type_registry: &mut ChunkActorOperationTypeRegistry = main_type_registry.get_data_mut::<ChunkActor, _>().unwrap();
+
+    chunk_actor_operation_type_registry.register::<UpgradeToChunkActor>();
+    chunk_actor_operation_type_registry.manage::<UpgradeToChunkActor>();
+
+    chunk_actor_operation_type_registry.register::<DowngradeFromChunkActor>();
+    chunk_actor_operation_type_registry.manage::<DowngradeFromChunkActor>();
 }
 
 
 
 // Chunk Loader
+
+// Imports
 use crate::chunk::loader::components::ChunkLoader;
-pub type ChunkLoaderRegistry = InstanceRegistry<InstanceID<ChunkLoader>, Entity>;
-pub type ChunkLoaderOperationTypeRegistry = TypeRegistry;
+use crate::entity::components::SpacetimeEntity;
 
-pub fn init_chunk_loader_type() {
-    let mut main_manager = MAIN_MANAGER.lock().unwrap();
-    let main_type_registry = main_manager.get_type_registry_mut();
+// Wrappers
+#[derive(Deref, DerefMut)]
+pub struct ChunkLoaderInstanceRegistry(InstanceRegistry<ChunkLoaderID, Entity>);
 
+impl ChunkLoaderInstanceRegistry {
+    pub fn new() -> Self {
+        Self(InstanceRegistry::new())
+    }
+}
+
+#[derive(Deref, DerefMut)]
+pub struct ChunkLoaderOperationTypeRegistry(OperationTypeRegistry);
+
+impl ChunkLoaderOperationTypeRegistry {
+    pub fn new() -> Self {
+        Self(OperationTypeRegistry(TypeRegistry::new()))
+    }
+}
+
+// Initialization
+pub fn init_chunk_loader_type(main_type_registry: &mut MainTypeRegistry) {
     main_type_registry.register::<ChunkLoader>();
     main_type_registry.manage::<ChunkLoader>();
 
-    let chunk_loader_registry = ChunkLoaderRegistry::new();
-    let chunk_loader_operation_type_registry = ChunkLoaderOperationTypeRegistry::new();
-    
-    main_type_registry.set_data::<ChunkLoader, ChunkLoaderRegistry>(chunk_loader_registry);
-    main_type_registry.set_data::<ChunkLoader, ChunkLoaderOperationTypeRegistry>(chunk_loader_operation_type_registry);
+    main_type_registry.set_data::<ChunkLoader, _>(ChunkLoaderInstanceRegistry::new());
+    main_type_registry.set_data::<ChunkLoader, _>(ChunkLoaderOperationTypeRegistry::new());
+
+    let chunk_loader_operation_type_registry: &mut ChunkLoaderOperationTypeRegistry = main_type_registry.get_data_mut::<ChunkLoader, _>().unwrap();
+
+    chunk_loader_operation_type_registry.register::<UpgradeToChunkLoader>();
+    chunk_loader_operation_type_registry.manage::<UpgradeToChunkLoader>();
+
+    chunk_loader_operation_type_registry.register::<DowngradeFromChunkLoader>();
+    chunk_loader_operation_type_registry.manage::<DowngradeFromChunkLoader>();
 }
 
 
