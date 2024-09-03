@@ -370,17 +370,6 @@ lazy_static! {
     static ref OPERATION_QUEUE: Arc<Mutex<OperationQueue>> = Arc::new(Mutex::new(OperationQueue::new()));
 }
 
-// TODO
-// TODO
-// TODO
-//impl Operation for fn(&mut World, &mut MainTypeRegistry, &mut OperationQueue) {
-//    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
-//        self(world, main_type_registry, operation_queue);
-//    }
-//}
-// TODO
-// TODO
-// TODO
 
 
 
@@ -389,9 +378,8 @@ lazy_static! {
 
 
 
-
-// TODO: Create wrappers/containers for XYZOperationArgs and XYZOperationResult
-// TODO: Implement operations for all types
+// TODO: Implement operations for all types (Optional: Extend to 'Camera', 'Player', 'Follower', and 'Physics', essentially reworking the entire code base; I guess; framework richie go brr)
+// TODO: Integrate and Implement operations module into existing modules, and bundle that operation-related code in an 'operations' sub-module for each existing module
 
 
 
@@ -421,12 +409,21 @@ impl EntityOperationTypeRegistry {
 }
 
 // Operations
+pub struct CreateEntityArgs {
+    pub start_position: EntityPosition,
+}
+pub enum CreateEntityResult {
+    Ok{
+        entity_id: InstanceID<Entity>
+    },
+    Err(()),
+}
 pub struct CreateEntity {
-    args: EntityPosition,
-    callback: fn(&mut OperationQueue, InstanceID<Entity>),
+    args: CreateEntityArgs,
+    callback: fn(&mut OperationQueue, CreateEntityResult),
 }
 impl CreateEntity {
-    pub fn new(args: EntityPosition, callback: Option<fn(&mut OperationQueue, InstanceID<Entity>)>) -> Self {
+    pub fn new(args: CreateEntityArgs, callback: Option<fn(&mut OperationQueue, CreateEntityResult)>) -> Self {
         Self {
             args,
             callback: callback.unwrap_or(|_, _| {}),
@@ -435,12 +432,18 @@ impl CreateEntity {
 }
 impl Operation for CreateEntity {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
-        let entity_instance_registry = main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>().unwrap();
+        let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
+            Some(entity_instance_registry) => entity_instance_registry,
+            None => {
+                (self.callback)(operation_queue, CreateEntityResult::Err(()));
+                return;
+            },
+        };
 
         let entity_id = entity_instance_registry.register();
 
         let entity = world.spawn((
-            Transform::from_translation(self.args.extend(0.0)),
+            Transform::from_translation(self.args.start_position.extend(0.0)),
             SpacetimeEntity {
                 id: entity_id,
             },
@@ -448,33 +451,48 @@ impl Operation for CreateEntity {
 
         entity_instance_registry.manage(entity_id, entity);
 
-        (self.callback)(operation_queue, entity_id);
+        (self.callback)(operation_queue, CreateEntityResult::Ok {
+            entity_id,
+        });
     }
 }
 
+pub struct DestroyEntityArgs {
+    pub entity_id: InstanceID<Entity>,
+}
+pub enum DestroyEntityResult {
+    Ok(()),
+    Err(()),
+}
 pub struct DestroyEntity {
-    args: InstanceID<Entity>,
-    callback: fn(&mut OperationQueue),
+    args: DestroyEntityArgs,
+    callback: fn(&mut OperationQueue, DestroyEntityResult),
 }
 impl DestroyEntity {
-    pub fn new(args: InstanceID<Entity>, callback: Option<fn(&mut OperationQueue)>) -> Self {
+    pub fn new(args: DestroyEntityArgs, callback: Option<fn(&mut OperationQueue, DestroyEntityResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_| {}),
+            callback: callback.unwrap_or(|_, _| {}),
         }
     }
 }
 impl Operation for DestroyEntity {
     fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
-        let entity_instance_registry = main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>().unwrap();
+        let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
+            Some(entity_instance_registry) => entity_instance_registry,
+            None => {
+                (self.callback)(operation_queue, DestroyEntityResult::Err(()));
+                return;
+            },
+        };
 
-        let entity = entity_instance_registry.unmanage(self.args);
+        let entity = entity_instance_registry.unmanage(self.args.entity_id);
 
         world.despawn(entity);
 
-        entity_instance_registry.unregister(self.args);
+        entity_instance_registry.unregister(self.args.entity_id);
 
-        (self.callback)(operation_queue);
+        (self.callback)(operation_queue, DestroyEntityResult::Ok(()));
     }
 }
 
@@ -520,12 +538,23 @@ impl ChunkOperationTypeRegistry {
 }
 
 // Operations
+pub struct UpgradeToChunkArgs {
+    pub entity_id: InstanceID<Entity>,
+    pub position: ChunkPosition,
+    pub owner: Option<InstanceID<ChunkLoader>>,
+}
+pub enum UpgradeToChunkResult {
+    Ok{
+        chunk_id: InstanceID<Chunk>,
+    },
+    Err(()),
+}
 pub struct UpgradeToChunk {
-    args: (InstanceID<Entity>, ChunkPosition, Option<InstanceID<ChunkLoader>>),
-    callback: fn(&mut OperationQueue, InstanceID<Chunk>),
+    args: UpgradeToChunkArgs,
+    callback: fn(&mut OperationQueue, UpgradeToChunkResult),
 }
 impl UpgradeToChunk {
-    pub fn new(args: (InstanceID<Entity>, ChunkPosition, Option<InstanceID<ChunkLoader>>), callback: Option<fn(&mut OperationQueue, InstanceID<Chunk>)>) -> Self {
+    pub fn new(args: UpgradeToChunkArgs, callback: Option<fn(&mut OperationQueue, UpgradeToChunkResult)>) -> Self {
         Self {
             args,
             callback: callback.unwrap_or(|_, _| {}),
@@ -538,15 +567,23 @@ impl Operation for UpgradeToChunk {
     }
 }
 
+pub struct DowngradeFromChunkArgs {
+    pub entity_id: InstanceID<Entity>,
+    pub chunk_id: InstanceID<Chunk>,
+}
+pub enum DowngradeFromChunkResult {
+    Ok(()),
+    Err(()),
+}
 pub struct DowngradeFromChunk {
-    args: (InstanceID<Entity>, InstanceID<Chunk>),
-    callback: fn(&mut OperationQueue),
+    args: DowngradeFromChunkArgs,
+    callback: fn(&mut OperationQueue, DowngradeFromChunkResult),
 }
 impl DowngradeFromChunk {
-    pub fn new(args: (InstanceID<Entity>, InstanceID<Chunk>), callback: Option<fn(&mut OperationQueue)>) -> Self {
+    pub fn new(args: DowngradeFromChunkArgs, callback: Option<fn(&mut OperationQueue, DowngradeFromChunkResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_| {}),
+            callback: callback.unwrap_or(|_, _| {}),
         }
     }
 }
@@ -556,15 +593,22 @@ impl Operation for DowngradeFromChunk {
     }
 }
 
+pub struct LoadChunkArgs {
+    pub chunk_id: InstanceID<Chunk>,
+}
+pub enum LoadChunkResult {
+    Ok(()),
+    Err(()),
+}
 pub struct LoadChunk {
-    args: InstanceID<Chunk>,
-    callback: fn(&mut OperationQueue),
+    args: LoadChunkArgs,
+    callback: fn(&mut OperationQueue, LoadChunkResult),
 }
 impl LoadChunk {
-    pub fn new(args: InstanceID<Chunk>, callback: Option<fn(&mut OperationQueue)>) -> Self {
+    pub fn new(args: LoadChunkArgs, callback: Option<fn(&mut OperationQueue, LoadChunkResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_| {}),
+            callback: callback.unwrap_or(|_, _| {}),
         }
     }
 }
@@ -574,15 +618,22 @@ impl Operation for LoadChunk {
     }
 }
 
+pub struct SaveChunkArgs {
+    pub chunk_id: InstanceID<Chunk>,
+}
+pub enum SaveChunkResult {
+    Ok(()),
+    Err(()),
+}
 pub struct SaveChunk {
-    args: InstanceID<Chunk>,
-    callback: fn(&mut OperationQueue),
+    args: SaveChunkArgs,
+    callback: fn(&mut OperationQueue, SaveChunkResult),
 }
 impl SaveChunk {
-    pub fn new(args: InstanceID<Chunk>, callback: Option<fn(&mut OperationQueue)>) -> Self {
+    pub fn new(args: SaveChunkArgs, callback: Option<fn(&mut OperationQueue, SaveChunkResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_| {}),
+            callback: callback.unwrap_or(|_, _| {}),
         }
     }
 }
@@ -640,12 +691,21 @@ impl ChunkActorOperationTypeRegistry {
 }
 
 // Operations
+pub struct UpgradeToChunkActorArgs {
+    pub entity_id: InstanceID<Entity>,
+}
+pub enum UpgradeToChunkActorResult {
+    Ok{
+        chunk_actor_id: InstanceID<ChunkActor>,
+    },
+    Err(()),
+}
 pub struct UpgradeToChunkActor {
-    args: InstanceID<Entity>,
-    callback: fn(&mut OperationQueue, InstanceID<ChunkActor>),
+    args: UpgradeToChunkActorArgs,
+    callback: fn(&mut OperationQueue, UpgradeToChunkActorResult),
 }
 impl UpgradeToChunkActor {
-    pub fn new(args: InstanceID<Entity>, callback: Option<fn(&mut OperationQueue, InstanceID<ChunkActor>)>) -> Self {
+    pub fn new(args: UpgradeToChunkActorArgs, callback: Option<fn(&mut OperationQueue, UpgradeToChunkActorResult)>) -> Self {
         Self {
             args,
             callback: callback.unwrap_or(|_, _| {}),
@@ -658,15 +718,23 @@ impl Operation for UpgradeToChunkActor {
     }
 }
 
+pub struct DowngradeFromChunkActorArgs {
+    pub entity_id: InstanceID<Entity>,
+    pub chunk_actor_id: InstanceID<ChunkActor>,
+}
+pub enum DowngradeFromChunkActorResult {
+    Ok(()),
+    Err(()),
+}
 pub struct DowngradeFromChunkActor {
-    args: (InstanceID<Entity>, InstanceID<ChunkActor>),
-    callback: fn(&mut OperationQueue),
+    args: DowngradeFromChunkActorArgs,
+    callback: fn(&mut OperationQueue, DowngradeFromChunkActorResult),
 }
 impl DowngradeFromChunkActor {
-    pub fn new(args: (InstanceID<Entity>, InstanceID<ChunkActor>), callback: Option<fn(&mut OperationQueue)>) -> Self {
+    pub fn new(args: DowngradeFromChunkActorArgs, callback: Option<fn(&mut OperationQueue, DowngradeFromChunkActorResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_| {}),
+            callback: callback.unwrap_or(|_, _| {}),
         }
     }
 }
@@ -721,12 +789,21 @@ impl ChunkLoaderOperationTypeRegistry {
 }
 
 // Operations
+pub struct UpgradeToChunkLoaderArgs {
+    pub entity_id: InstanceID<Entity>,
+}
+pub enum UpgradeToChunkLoaderResult {
+    Ok{
+        chunk_loader_id: InstanceID<ChunkLoader>,
+    },
+    Err(()),
+}
 pub struct UpgradeToChunkLoader {
-    args: InstanceID<Entity>,
-    callback: fn(&mut OperationQueue, InstanceID<ChunkLoader>),
+    args: UpgradeToChunkLoaderArgs,
+    callback: fn(&mut OperationQueue, UpgradeToChunkLoaderResult),
 }
 impl UpgradeToChunkLoader {
-    pub fn new(args: InstanceID<Entity>, callback: Option<fn(&mut OperationQueue, InstanceID<ChunkLoader>)>) -> Self {
+    pub fn new(args: UpgradeToChunkLoaderArgs, callback: Option<fn(&mut OperationQueue, UpgradeToChunkLoaderResult)>) -> Self {
         Self {
             args,
             callback: callback.unwrap_or(|_, _| {}),
@@ -739,15 +816,23 @@ impl Operation for UpgradeToChunkLoader {
     }
 }
 
+pub struct DowngradeFromChunkLoaderArgs {
+    pub entity_id: InstanceID<Entity>,
+    pub chunk_loader_id: InstanceID<ChunkLoader>,
+}
+pub enum DowngradeFromChunkLoaderResult {
+    Ok(()),
+    Err(()),
+}
 pub struct DowngradeFromChunkLoader {
-    args: (InstanceID<Entity>, InstanceID<ChunkLoader>),
-    callback: fn(&mut OperationQueue),
+    args: DowngradeFromChunkLoaderArgs,
+    callback: fn(&mut OperationQueue, DowngradeFromChunkLoaderResult),
 }
 impl DowngradeFromChunkLoader {
-    pub fn new(args: (InstanceID<Entity>, InstanceID<ChunkLoader>), callback: Option<fn(&mut OperationQueue)>) -> Self {
+    pub fn new(args: DowngradeFromChunkLoaderArgs, callback: Option<fn(&mut OperationQueue, DowngradeFromChunkLoaderResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_| {}),
+            callback: callback.unwrap_or(|_, _| {}),
         }
     }
 }
