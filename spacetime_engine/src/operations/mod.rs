@@ -379,7 +379,7 @@ lazy_static! {
 
 
 // TODO: Implement operations for all types (Optional: Extend to 'Camera', 'Player', 'Follower', and 'Physics', essentially reworking the entire code base; I guess; framework richie go brr)
-// TODO: Integrate and Implement operations module into existing modules, and bundle that operation-related code in an 'operations' sub-module for each existing module
+// TODO: Integrate and Implement operations module into existing modules, and bundle that operation-related code in an 'operations' sub-module for each existing module, essentially finalizing the code base rework
 
 
 
