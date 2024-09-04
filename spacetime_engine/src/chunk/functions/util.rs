@@ -17,7 +17,7 @@ pub(in crate) fn upgrade_to_chunk(
     chunk_id: ChunkID,
     entity_reference: Entity,
 ) {
-    world.entity_mut(entity_reference).insert(Chunk::new(chunk_id, None));
+    world.entity_mut(entity_reference).insert(Chunk::new(chunk_id, chunk_position, None));
 }
 
 pub(in crate) fn downgrade_from_chunk(

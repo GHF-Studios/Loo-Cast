@@ -1,6 +1,8 @@
 pub mod requesters;
 pub mod resources;
 
+use bevy::ecs::component::ComponentId;
+use bevy::ecs::world::DeferredWorld;
 use bevy::prelude::*;
 use std::any::{Any, TypeId};
 use std::collections::{HashMap, HashSet};
@@ -43,6 +45,11 @@ impl OperationTypeRegistry {
 // InstanceID struct
 #[derive(Reflect)]
 pub struct InstanceID<T: 'static + Send + Sync>(u64, #[reflect(ignore)]std::marker::PhantomData<T>);
+impl<T: 'static + Send + Sync> Default for InstanceID<T> {
+    fn default() -> Self {
+        Self(0, std::marker::PhantomData)
+    }
+}
 impl<T: 'static + Send + Sync> std::fmt::Debug for InstanceID<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ID({})", self.0)
@@ -168,6 +175,16 @@ impl<K: InstanceRegistryKey, V: InstanceRegistryValue> InstanceRegistry<K, V> {
         }
 
         self.managed.get_mut(&key)
+    }
+
+    pub fn get_key(&self, value: &V) -> Option<&K> {
+        self.managed.iter().find_map(|(key, other_value)| {
+            if value == other_value {
+                Some(key)
+            } else {
+                None
+            }
+        })
     }
 }
 pub struct TypeRegistry {
@@ -335,13 +352,13 @@ impl<T: 'static + Send + Sync> InstanceRegistryKey for InstanceID<T> {
     }
 }
 
-pub trait InstanceRegistryValue: 'static + Send + Sync {
+pub trait InstanceRegistryValue: 'static + PartialEq + Send + Sync {
 }
 impl InstanceRegistryValue for Entity {
 }
 
 pub trait Operation: 'static + Send + Sync {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue);
+    fn execute(&self, world: &mut World);
 }
 
 // Systems
@@ -355,12 +372,10 @@ fn startup() {
 }
 
 fn post_update(world: &mut World) {
-    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
-    let mut operation_queue = OPERATION_QUEUE.lock().unwrap();
+    let mut operations = OPERATION_QUEUE.lock().unwrap().remove_operations();
 
-    let mut operations = operation_queue.remove_operations();
     while let Some(operation_box) = operations.pop() {
-        operation_box.execute(world, &mut *main_type_registry, &mut *operation_queue);
+        operation_box.execute(world);
     }
 }
 
@@ -378,7 +393,7 @@ lazy_static! {
 
 
 
-// TODO: Implement operations for all types (Optional: Extend to 'Camera', 'Player', 'Follower', and 'Physics', essentially reworking the entire code base; I guess; framework richie go brr)
+// TODO: Implement operations and hooks for all types (Optional: Extend to 'Camera', 'Player', 'Follower', and 'Physics', essentially reworking the entire code base; I guess; framework richie go brr)
 // TODO: Integrate and Implement operations module into existing modules, and bundle that operation-related code in an 'operations' sub-module for each existing module, essentially finalizing the code base rework
 
 
@@ -408,9 +423,63 @@ impl EntityOperationTypeRegistry {
     }
 }
 
+// Hooks
+fn on_add_entity(
+    _world: DeferredWorld,
+    entity: Entity,
+    _component: ComponentId,
+) {
+    let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+        Ok(main_type_registry) => main_type_registry,
+        Err(_) => {
+            return;
+        },
+    };
+
+    let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
+        Some(entity_instance_registry) => entity_instance_registry,
+        None => {
+            return;
+        },
+    };
+
+    let entity_id = entity_instance_registry.register();
+    entity_instance_registry.manage(entity_id, entity);
+}
+
+fn on_remove_chunk(
+    _world: DeferredWorld,
+    entity: Entity,
+    _component: ComponentId,
+) {
+    let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+        Ok(main_type_registry) => main_type_registry,
+        Err(_) => {
+            return;
+        },
+    };
+
+    let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
+        Some(entity_instance_registry) => entity_instance_registry,
+        None => {
+            return;
+        },
+    };
+
+    let entity_id = match entity_instance_registry.get_key(&entity) {
+        Some(entity_id) => *entity_id,
+        None => {
+            return;
+        },
+    };
+
+    entity_instance_registry.unmanage(entity_id);
+    entity_instance_registry.unregister(entity_id);
+}
+
 // Operations
 pub struct CreateEntityArgs {
-    pub start_position: EntityPosition,
+    pub entity_position: EntityPosition,
 }
 pub enum CreateEntityResult {
     Ok{
@@ -420,39 +489,35 @@ pub enum CreateEntityResult {
 }
 pub struct CreateEntity {
     args: CreateEntityArgs,
-    callback: fn(&mut OperationQueue, CreateEntityResult),
+    callback: fn(CreateEntityResult),
 }
 impl CreateEntity {
-    pub fn new(args: CreateEntityArgs, callback: Option<fn(&mut OperationQueue, CreateEntityResult)>) -> Self {
+    pub fn new(args: CreateEntityArgs, callback: Option<fn(CreateEntityResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_, _| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 impl Operation for CreateEntity {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
-        let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
-            Some(entity_instance_registry) => entity_instance_registry,
+    fn execute(&self, world: &mut World) {
+        let entity = world.spawn((
+            Transform::from_translation(self.args.entity_position.extend(0.0)),
+            SpacetimeEntity {
+                id: InstanceID::default(),
+            },
+        )).id();
+
+        let spacetime_entity_component = match world.get::<SpacetimeEntity>(entity) {
+            Some(spacetime_entity_component) => spacetime_entity_component,
             None => {
-                (self.callback)(operation_queue, CreateEntityResult::Err(()));
+                (self.callback)(CreateEntityResult::Err(()));
                 return;
             },
         };
 
-        let entity_id = entity_instance_registry.register();
-
-        let entity = world.spawn((
-            Transform::from_translation(self.args.start_position.extend(0.0)),
-            SpacetimeEntity {
-                id: entity_id,
-            },
-        )).id();
-
-        entity_instance_registry.manage(entity_id, entity);
-
-        (self.callback)(operation_queue, CreateEntityResult::Ok {
-            entity_id,
+        (self.callback)(CreateEntityResult::Ok {
+            entity_id: spacetime_entity_component.id,
         });
     }
 }
@@ -466,33 +531,50 @@ pub enum DestroyEntityResult {
 }
 pub struct DestroyEntity {
     args: DestroyEntityArgs,
-    callback: fn(&mut OperationQueue, DestroyEntityResult),
+    callback: fn(DestroyEntityResult),
 }
 impl DestroyEntity {
-    pub fn new(args: DestroyEntityArgs, callback: Option<fn(&mut OperationQueue, DestroyEntityResult)>) -> Self {
+    pub fn new(args: DestroyEntityArgs, callback: Option<fn(DestroyEntityResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_, _| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 impl Operation for DestroyEntity {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
-        let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
-            Some(entity_instance_registry) => entity_instance_registry,
-            None => {
-                (self.callback)(operation_queue, DestroyEntityResult::Err(()));
-                return;
-            },
+    fn execute(&self, world: &mut World) {
+        let entity = {
+            let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+                Ok(main_type_registry) => main_type_registry,
+                Err(_) => {
+                    (self.callback)(DestroyEntityResult::Err(()));
+                    return;
+                },
+            };
+
+            let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
+                Some(entity_instance_registry) => entity_instance_registry,
+                None => {
+                    (self.callback)(DestroyEntityResult::Err(()));
+                    return;
+                },
+            };
+
+            match entity_instance_registry.get(self.args.entity_id) {
+                Some(entity) => *entity,
+                None => {
+                    (self.callback)(DestroyEntityResult::Err(()));
+                    return;
+                },
+            }
         };
 
-        let entity = entity_instance_registry.unmanage(self.args.entity_id);
+        if !world.despawn(entity) {
+            (self.callback)(DestroyEntityResult::Err(()));
+            return;
+        }
 
-        world.despawn(entity);
-
-        entity_instance_registry.unregister(self.args.entity_id);
-
-        (self.callback)(operation_queue, DestroyEntityResult::Ok(()));
+        (self.callback)(DestroyEntityResult::Ok(()));
     }
 }
 
@@ -539,9 +621,9 @@ impl ChunkOperationTypeRegistry {
 
 // Operations
 pub struct UpgradeToChunkArgs {
-    pub entity_id: InstanceID<Entity>,
-    pub position: ChunkPosition,
-    pub owner: Option<InstanceID<ChunkLoader>>,
+    pub target_entity_id: InstanceID<Entity>,
+    pub chunk_position: ChunkPosition,
+    pub chunk_owner: Option<InstanceID<ChunkLoader>>,
 }
 pub enum UpgradeToChunkResult {
     Ok{
@@ -551,24 +633,24 @@ pub enum UpgradeToChunkResult {
 }
 pub struct UpgradeToChunk {
     args: UpgradeToChunkArgs,
-    callback: fn(&mut OperationQueue, UpgradeToChunkResult),
+    callback: fn(UpgradeToChunkResult),
 }
 impl UpgradeToChunk {
-    pub fn new(args: UpgradeToChunkArgs, callback: Option<fn(&mut OperationQueue, UpgradeToChunkResult)>) -> Self {
+    pub fn new(args: UpgradeToChunkArgs, callback: Option<fn(UpgradeToChunkResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_, _| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 impl Operation for UpgradeToChunk {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+    fn execute(&self, world: &mut World) {
         todo!(); // TODO
     }
 }
 
 pub struct DowngradeFromChunkArgs {
-    pub entity_id: InstanceID<Entity>,
+    pub chunk_entity_id: InstanceID<Entity>,
     pub chunk_id: InstanceID<Chunk>,
 }
 pub enum DowngradeFromChunkResult {
@@ -577,24 +659,24 @@ pub enum DowngradeFromChunkResult {
 }
 pub struct DowngradeFromChunk {
     args: DowngradeFromChunkArgs,
-    callback: fn(&mut OperationQueue, DowngradeFromChunkResult),
+    callback: fn(DowngradeFromChunkResult),
 }
 impl DowngradeFromChunk {
-    pub fn new(args: DowngradeFromChunkArgs, callback: Option<fn(&mut OperationQueue, DowngradeFromChunkResult)>) -> Self {
+    pub fn new(args: DowngradeFromChunkArgs, callback: Option<fn(DowngradeFromChunkResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_, _| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 impl Operation for DowngradeFromChunk {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+    fn execute(&self, world: &mut World) {
         todo!(); // TODO
     }
 }
 
 pub struct LoadChunkArgs {
-    pub chunk_id: InstanceID<Chunk>,
+    pub chunk_position: ChunkPosition,
 }
 pub enum LoadChunkResult {
     Ok(()),
@@ -602,24 +684,24 @@ pub enum LoadChunkResult {
 }
 pub struct LoadChunk {
     args: LoadChunkArgs,
-    callback: fn(&mut OperationQueue, LoadChunkResult),
+    callback: fn(LoadChunkResult),
 }
 impl LoadChunk {
-    pub fn new(args: LoadChunkArgs, callback: Option<fn(&mut OperationQueue, LoadChunkResult)>) -> Self {
+    pub fn new(args: LoadChunkArgs, callback: Option<fn(LoadChunkResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_, _| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 impl Operation for LoadChunk {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+    fn execute(&self, world: &mut World) {
         todo!(); // TODO
     }
 }
 
 pub struct SaveChunkArgs {
-    pub chunk_id: InstanceID<Chunk>,
+    pub chunk_position: ChunkPosition,
 }
 pub enum SaveChunkResult {
     Ok(()),
@@ -627,18 +709,18 @@ pub enum SaveChunkResult {
 }
 pub struct SaveChunk {
     args: SaveChunkArgs,
-    callback: fn(&mut OperationQueue, SaveChunkResult),
+    callback: fn(SaveChunkResult),
 }
 impl SaveChunk {
-    pub fn new(args: SaveChunkArgs, callback: Option<fn(&mut OperationQueue, SaveChunkResult)>) -> Self {
+    pub fn new(args: SaveChunkArgs, callback: Option<fn(SaveChunkResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_, _| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 impl Operation for SaveChunk {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+    fn execute(&self, world: &mut World) {
         todo!(); // TODO
     }
 }
@@ -692,7 +774,8 @@ impl ChunkActorOperationTypeRegistry {
 
 // Operations
 pub struct UpgradeToChunkActorArgs {
-    pub entity_id: InstanceID<Entity>,
+    pub target_entity_id: InstanceID<Entity>,
+    pub chunk_actor_start_chunk_id: InstanceID<Chunk>,
 }
 pub enum UpgradeToChunkActorResult {
     Ok{
@@ -702,24 +785,24 @@ pub enum UpgradeToChunkActorResult {
 }
 pub struct UpgradeToChunkActor {
     args: UpgradeToChunkActorArgs,
-    callback: fn(&mut OperationQueue, UpgradeToChunkActorResult),
+    callback: fn(UpgradeToChunkActorResult),
 }
 impl UpgradeToChunkActor {
-    pub fn new(args: UpgradeToChunkActorArgs, callback: Option<fn(&mut OperationQueue, UpgradeToChunkActorResult)>) -> Self {
+    pub fn new(args: UpgradeToChunkActorArgs, callback: Option<fn(UpgradeToChunkActorResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_, _| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 impl Operation for UpgradeToChunkActor {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+    fn execute(&self, world: &mut World) {
         todo!(); // TODO
     }
 }
 
 pub struct DowngradeFromChunkActorArgs {
-    pub entity_id: InstanceID<Entity>,
+    pub chunk_actor_entity_id: InstanceID<Entity>,
     pub chunk_actor_id: InstanceID<ChunkActor>,
 }
 pub enum DowngradeFromChunkActorResult {
@@ -728,18 +811,18 @@ pub enum DowngradeFromChunkActorResult {
 }
 pub struct DowngradeFromChunkActor {
     args: DowngradeFromChunkActorArgs,
-    callback: fn(&mut OperationQueue, DowngradeFromChunkActorResult),
+    callback: fn(DowngradeFromChunkActorResult),
 }
 impl DowngradeFromChunkActor {
-    pub fn new(args: DowngradeFromChunkActorArgs, callback: Option<fn(&mut OperationQueue, DowngradeFromChunkActorResult)>) -> Self {
+    pub fn new(args: DowngradeFromChunkActorArgs, callback: Option<fn(DowngradeFromChunkActorResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_, _| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 impl Operation for DowngradeFromChunkActor {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+    fn execute(&self, world: &mut World) {
         todo!(); // TODO
     }
 }
@@ -790,7 +873,8 @@ impl ChunkLoaderOperationTypeRegistry {
 
 // Operations
 pub struct UpgradeToChunkLoaderArgs {
-    pub entity_id: InstanceID<Entity>,
+    pub target_entity_id: InstanceID<Entity>,
+    pub chunk_loader_load_radius: u16
 }
 pub enum UpgradeToChunkLoaderResult {
     Ok{
@@ -800,24 +884,24 @@ pub enum UpgradeToChunkLoaderResult {
 }
 pub struct UpgradeToChunkLoader {
     args: UpgradeToChunkLoaderArgs,
-    callback: fn(&mut OperationQueue, UpgradeToChunkLoaderResult),
+    callback: fn(UpgradeToChunkLoaderResult),
 }
 impl UpgradeToChunkLoader {
-    pub fn new(args: UpgradeToChunkLoaderArgs, callback: Option<fn(&mut OperationQueue, UpgradeToChunkLoaderResult)>) -> Self {
+    pub fn new(args: UpgradeToChunkLoaderArgs, callback: Option<fn(UpgradeToChunkLoaderResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_, _| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 impl Operation for UpgradeToChunkLoader {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+    fn execute(&self, world: &mut World) {
         todo!(); // TODO
     }
 }
 
 pub struct DowngradeFromChunkLoaderArgs {
-    pub entity_id: InstanceID<Entity>,
+    pub chunk_loader_entity_id: InstanceID<Entity>,
     pub chunk_loader_id: InstanceID<ChunkLoader>,
 }
 pub enum DowngradeFromChunkLoaderResult {
@@ -826,18 +910,18 @@ pub enum DowngradeFromChunkLoaderResult {
 }
 pub struct DowngradeFromChunkLoader {
     args: DowngradeFromChunkLoaderArgs,
-    callback: fn(&mut OperationQueue, DowngradeFromChunkLoaderResult),
+    callback: fn(DowngradeFromChunkLoaderResult),
 }
 impl DowngradeFromChunkLoader {
-    pub fn new(args: DowngradeFromChunkLoaderArgs, callback: Option<fn(&mut OperationQueue, DowngradeFromChunkLoaderResult)>) -> Self {
+    pub fn new(args: DowngradeFromChunkLoaderArgs, callback: Option<fn(DowngradeFromChunkLoaderResult)>) -> Self {
         Self {
             args,
-            callback: callback.unwrap_or(|_, _| {}),
+            callback: callback.unwrap_or(|_| {}),
         }
     }
 }
 impl Operation for DowngradeFromChunkLoader {
-    fn execute(&self, world: &mut World, main_type_registry: &mut MainTypeRegistry, operation_queue: &mut OperationQueue) {
+    fn execute(&self, world: &mut World) {
         todo!(); // TODO
     }
 }

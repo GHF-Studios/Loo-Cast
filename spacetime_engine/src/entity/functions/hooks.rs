@@ -13,7 +13,7 @@ pub fn on_add_entity(
 ) {
     let entity_reference = entity;
     
-    let spacetime_entity_component = match world.get::<SpacetimeEntity>(entity) {
+    let spacetime_entity_component = match world.get::<SpacetimeEntity>(entity_reference) {
         Some(spacetime_entity_component) => spacetime_entity_component,
         None => {
             panic!("Failed to get spacetime entity component!");
