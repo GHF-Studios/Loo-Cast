@@ -10,14 +10,14 @@ use super::position::structs::ChunkPosition;
 pub struct Chunk {
     id: InstanceID<Chunk>,
     position: ChunkPosition,
+    owner: Option<InstanceID<ChunkLoader>>,
     registered_chunk_actors: Vec<InstanceID<ChunkActor>>,
-    owner: Option<InstanceID<ChunkLoader>>
 }
 
 impl Chunk {
-    pub fn new(id: InstanceID<Chunk>, position: ChunkPosition, owner: Option<InstanceID<ChunkLoader>>) -> Self {
+    pub fn new(position: ChunkPosition, owner: Option<InstanceID<ChunkLoader>>) -> Self {
         Self {
-            id,
+            id: InstanceID::default(),
             position,
             registered_chunk_actors: Vec::new(),
             owner
@@ -40,12 +40,12 @@ impl Chunk {
         &mut self.id
     }
 
-    pub fn registered_chunk_actors(&self) -> &Vec<InstanceID<ChunkActor>> {
-        &self.registered_chunk_actors
+    pub fn position(&self) -> ChunkPosition {
+        self.position
     }
 
-    pub(in crate) fn registered_chunk_actors_mut(&mut self) -> &mut Vec<InstanceID<ChunkActor>> {
-        &mut self.registered_chunk_actors
+    pub(in crate) fn position_mut(&mut self) -> &mut ChunkPosition {
+        &mut self.position
     }
 
     pub fn owner(&self) -> Option<InstanceID<ChunkLoader>> {
@@ -54,5 +54,13 @@ impl Chunk {
 
     pub(in crate) fn owner_mut(&mut self) -> &mut Option<InstanceID<ChunkLoader>> {
         &mut self.owner
+    }
+
+    pub fn registered_chunk_actors(&self) -> &Vec<InstanceID<ChunkActor>> {
+        &self.registered_chunk_actors
+    }
+
+    pub(in crate) fn registered_chunk_actors_mut(&mut self) -> &mut Vec<InstanceID<ChunkActor>> {
+        &mut self.registered_chunk_actors
     }
 }

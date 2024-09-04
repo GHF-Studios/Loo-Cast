@@ -1,16 +1,17 @@
-use bevy::reflect::Reflect;
+use bevy::{prelude::Entity, reflect::Reflect};
 
-use crate::{chunk::id::structs::ChunkID, entity::id::structs::EntityID};
-use super::id::structs::{ChunkLoaderID, ChunkLoaderRequestID};
+use crate::{chunk::components::Chunk, operations::InstanceID};
+
+use super::{components::ChunkLoader, id::structs::ChunkLoaderRequestID};
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegisteredChunkInfo {
-    Unmanaged(ChunkID),
-    Managed(ChunkID),
+    Unmanaged(InstanceID<Chunk>),
+    Managed(InstanceID<Chunk>),
 }
 
 impl RegisteredChunkInfo {
-    pub fn chunk_id(&self) -> ChunkID {
+    pub fn chunk_id(&self) -> InstanceID<Chunk> {
         match self {
             Self::Unmanaged(chunk_id) => *chunk_id,
             Self::Managed(chunk_id) => *chunk_id,
@@ -21,8 +22,8 @@ impl RegisteredChunkInfo {
 #[derive(Debug, Clone, Copy)]
 pub struct ChunkLoaderRequest {
     pub chunk_loader_request_id: ChunkLoaderRequestID,
-    pub chunk_loader_id: ChunkLoaderID,
-    pub chunk_loader_entity_id: EntityID,
+    pub chunk_loader_id: InstanceID<ChunkLoader>,
+    pub chunk_loader_entity_id: InstanceID<Entity>,
 }
 
 impl PartialEq for ChunkLoaderRequest {
@@ -37,13 +38,13 @@ impl PartialEq for ChunkLoaderRequest {
 pub enum ChunkLoaderResponse {
     Success {
         chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID,
-        chunk_loader_entity_id: EntityID,
+        chunk_loader_id: InstanceID<ChunkLoader>,
+        chunk_loader_entity_id: InstanceID<Entity>,
     },
     Failure {
         chunk_loader_request_id: ChunkLoaderRequestID,
-        chunk_loader_id: ChunkLoaderID,
-        chunk_loader_entity_id: EntityID,
+        chunk_loader_id: InstanceID<ChunkLoader>,
+        chunk_loader_entity_id: InstanceID<Entity>,
     },
 }
 

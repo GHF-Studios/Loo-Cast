@@ -393,8 +393,11 @@ lazy_static! {
 
 
 
-// TODO: Implement operations and hooks for all types (Optional: Extend to 'Camera', 'Player', 'Follower', and 'Physics', essentially reworking the entire code base; I guess; framework richie go brr)
-// TODO: Integrate and Implement operations module into existing modules, and bundle that operation-related code in an 'operations' sub-module for each existing module, essentially finalizing the code base rework
+// TODO: Implement operations and hooks for all types
+    // TODO: Primary: Implement saving/loading operations for chunks, where the serialized chunk and it's contents are stored in memory, instead of on disk (for now)
+    // TODO: Secondary: Implement any additional operations (and potentially hooks) which may be useful (like changing the owner of a chunk, or the owner of a chunk actor, or the load radius of a chunk loader, for example)
+    // TODO: Tertiary: Extend to 'Camera', 'Player', 'Follower', and 'Physics', essentially reworking the entire code base; I guess; framework richie go brr)
+// TODO: Integrate and Implement operations module into existing modules, and bundle that operation-related code in an 'operations' sub-module for each existing module, and like essentially finish up the code base rework
 
 
 
@@ -447,7 +450,7 @@ fn on_add_entity(
     entity_instance_registry.manage(entity_id, entity);
 }
 
-fn on_remove_chunk(
+fn on_remove_entity(
     _world: DeferredWorld,
     entity: Entity,
     _component: ComponentId,
@@ -503,9 +506,7 @@ impl Operation for CreateEntity {
     fn execute(&self, world: &mut World) {
         let entity = world.spawn((
             Transform::from_translation(self.args.entity_position.extend(0.0)),
-            SpacetimeEntity {
-                id: InstanceID::default(),
-            },
+            SpacetimeEntity::new(),
         )).id();
 
         let spacetime_entity_component = match world.get::<SpacetimeEntity>(entity) {
@@ -517,7 +518,7 @@ impl Operation for CreateEntity {
         };
 
         (self.callback)(CreateEntityResult::Ok {
-            entity_id: spacetime_entity_component.id,
+            entity_id: spacetime_entity_component.id(),
         });
     }
 }
@@ -619,6 +620,60 @@ impl ChunkOperationTypeRegistry {
     }
 }
 
+// Hooks
+fn on_add_chunk(
+    _world: DeferredWorld,
+    entity: Entity,
+    _component: ComponentId,
+) {
+    let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+        Ok(main_type_registry) => main_type_registry,
+        Err(_) => {
+            return;
+        },
+    };
+
+    let chunk_instance_registry = match main_type_registry.get_data_mut::<Chunk, ChunkInstanceRegistry>() {
+        Some(chunk_instance_registry) => chunk_instance_registry,
+        None => {
+            return;
+        },
+    };
+
+    let chunk_id = chunk_instance_registry.register();
+    chunk_instance_registry.manage(chunk_id, entity);
+}
+
+fn on_remove_chunk(
+    _world: DeferredWorld,
+    entity: Entity,
+    _component: ComponentId,
+) {
+    let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+        Ok(main_type_registry) => main_type_registry,
+        Err(_) => {
+            return;
+        },
+    };
+
+    let chunk_instance_registry = match main_type_registry.get_data_mut::<Chunk, ChunkInstanceRegistry>() {
+        Some(chunk_instance_registry) => chunk_instance_registry,
+        None => {
+            return;
+        },
+    };
+
+    let chunk_id = match chunk_instance_registry.get_key(&entity) {
+        Some(chunk_id) => *chunk_id,
+        None => {
+            return;
+        },
+    };
+
+    chunk_instance_registry.unmanage(chunk_id);
+    chunk_instance_registry.unregister(chunk_id);
+}
+
 // Operations
 pub struct UpgradeToChunkArgs {
     pub target_entity_id: InstanceID<Entity>,
@@ -645,7 +700,53 @@ impl UpgradeToChunk {
 }
 impl Operation for UpgradeToChunk {
     fn execute(&self, world: &mut World) {
-        todo!(); // TODO
+        if world.query::<&Chunk>().iter(world).any(|chunk| chunk.position() == self.args.chunk_position) {
+            (self.callback)(UpgradeToChunkResult::Err(()));
+            return;
+        }
+
+        // TODO: Return early if the requested chunk position is found in the list of saved/serialized chunks
+
+        let target_entity = {
+            let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+                Ok(main_type_registry) => main_type_registry,
+                Err(_) => {
+                    (self.callback)(UpgradeToChunkResult::Err(()));
+                    return;
+                },
+            };
+
+            let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
+                Some(entity_instance_registry) => entity_instance_registry,
+                None => {
+                    (self.callback)(UpgradeToChunkResult::Err(()));
+                    return;
+                },
+            };
+
+            match entity_instance_registry.get(self.args.target_entity_id) {
+                Some(entity) => *entity,
+                None => {
+                    (self.callback)(UpgradeToChunkResult::Err(()));
+                    return;
+                },
+            }
+        };
+
+        let mut target_entity_raw = match world.get_entity_mut(target_entity) {
+            Some(target_entity_raw) => target_entity_raw,
+            None => {
+                (self.callback)(UpgradeToChunkResult::Err(()));
+                return;
+            },
+        };
+
+        if target_entity_raw.contains::<Chunk>() {
+            (self.callback)(UpgradeToChunkResult::Err(()));
+            return;
+        }
+
+        target_entity_raw.insert(Chunk::new(self.args.chunk_position, self.args.chunk_owner));
     }
 }
 
@@ -671,7 +772,48 @@ impl DowngradeFromChunk {
 }
 impl Operation for DowngradeFromChunk {
     fn execute(&self, world: &mut World) {
-        todo!(); // TODO
+        let chunk = {
+            let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+                Ok(main_type_registry) => main_type_registry,
+                Err(_) => {
+                    (self.callback)(DowngradeFromChunkResult::Err(()));
+                    return;
+                },
+            };
+
+            let chunk_instance_registry = match main_type_registry.get_data_mut::<Chunk, ChunkInstanceRegistry>() {
+                Some(chunk_instance_registry) => chunk_instance_registry,
+                None => {
+                    (self.callback)(DowngradeFromChunkResult::Err(()));
+                    return;
+                },
+            };
+
+            match chunk_instance_registry.get(self.args.chunk_id) {
+                Some(chunk) => *chunk,
+                None => {
+                    (self.callback)(DowngradeFromChunkResult::Err(()));
+                    return;
+                },
+            }
+        };
+
+        let mut chunk_raw = match world.get_entity_mut(chunk) {
+            Some(chunk_raw) => chunk_raw,
+            None => {
+                (self.callback)(DowngradeFromChunkResult::Err(()));
+                return;
+            },
+        };
+
+        if !chunk_raw.contains::<Chunk>() {
+            (self.callback)(DowngradeFromChunkResult::Err(()));
+            return;
+        }
+
+        chunk_raw.remove::<Chunk>();
+
+        (self.callback)(DowngradeFromChunkResult::Ok(()));
     }
 }
 
