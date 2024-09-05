@@ -6,12 +6,9 @@ pub(in crate) mod systems;
 pub mod resources;
 pub mod structs;
 
-pub mod id;
-
 use events::*;
 use resources::*;
 use systems::*;
-use id::*;
 use bevy::prelude::*;
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -41,7 +38,6 @@ impl Plugin for LoaderPlugin {
             .add_event::<CreatedChunkLoaderEntityInternal>()
             .add_event::<DestroyedChunkLoaderEntityInternal>()
             .add_event::<PromotedToChunkLoaderEntityInternal>()
-            .add_plugins(IDPlugin)
             .insert_resource(ChunkLoaderRegistry::default())
             .insert_resource(ChunkLoaderRequestRegistry::default())
             .configure_sets(Update, (

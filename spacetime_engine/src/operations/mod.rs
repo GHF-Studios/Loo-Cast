@@ -362,13 +362,11 @@ pub trait Operation: 'static + Send + Sync {
 }
 
 // Systems
-fn startup() {
-    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
-
-    init_entity_type(&mut *main_type_registry);
-    init_chunk_type(&mut *main_type_registry);
-    init_chunk_actor_type(&mut *main_type_registry);
-    init_chunk_loader_type(&mut *main_type_registry);
+fn startup(world: &mut World) {
+    startup_entity_module(world);
+    startup_chunk_module(world);
+    startup_chunk_actor_module(world);
+    startup_chunk_loader_module(world);
 }
 
 fn post_update(world: &mut World) {
@@ -394,6 +392,7 @@ lazy_static! {
 
 
 // TODO: Implement operations and hooks for all types
+    // TODO: Zeroary: Figure out a way to make a ChunkPosition the Key to the serialized data (see ChatGPT)
     // TODO: Primary: Implement saving/loading operations for chunks, where the serialized chunk and it's contents are stored in memory, instead of on disk (for now)
     // TODO: Secondary: Implement any additional operations (and potentially hooks) which may be useful (like changing the owner of a chunk, or the owner of a chunk actor, or the load radius of a chunk loader, for example)
     // TODO: Tertiary: Extend to 'Camera', 'Player', 'Follower', and 'Physics', essentially reworking the entire code base; I guess; framework richie go brr)
@@ -580,7 +579,9 @@ impl Operation for DestroyEntity {
 }
 
 // Initialization
-pub fn init_entity_type(main_type_registry: &mut MainTypeRegistry) {
+pub fn startup_entity_module(world: &mut World) {
+    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
+
     main_type_registry.register::<Entity>();
     main_type_registry.manage::<Entity>();
 
@@ -594,6 +595,11 @@ pub fn init_entity_type(main_type_registry: &mut MainTypeRegistry) {
 
     entity_operation_type_registry.register::<DestroyEntity>();
     entity_operation_type_registry.manage::<DestroyEntity>();
+
+    world
+        .register_component_hooks::<SpacetimeEntity>()
+        .on_add(on_add_entity)
+        .on_remove(on_remove_entity);
 }
 
 
@@ -868,7 +874,9 @@ impl Operation for SaveChunk {
 }
 
 // Initialization
-pub fn init_chunk_type(main_type_registry: &mut MainTypeRegistry) {
+pub fn startup_chunk_module(world: &mut World) {
+    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
+
     main_type_registry.register::<Chunk>();
     main_type_registry.manage::<Chunk>();
 
@@ -888,6 +896,11 @@ pub fn init_chunk_type(main_type_registry: &mut MainTypeRegistry) {
 
     chunk_operation_type_registry.register::<SaveChunk>();
     chunk_operation_type_registry.manage::<SaveChunk>();
+
+    world
+        .register_component_hooks::<Chunk>()
+        .on_add(on_add_chunk)
+        .on_remove(on_remove_chunk);
 }
 
 
@@ -912,6 +925,60 @@ impl ChunkActorOperationTypeRegistry {
     pub fn new() -> Self {
         Self(OperationTypeRegistry(TypeRegistry::new()))
     }
+}
+
+// Hooks
+fn on_add_chunk_actor(
+    _world: DeferredWorld,
+    entity: Entity,
+    _component: ComponentId,
+) {
+    let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+        Ok(main_type_registry) => main_type_registry,
+        Err(_) => {
+            return;
+        },
+    };
+
+    let chunk_actor_instance_registry = match main_type_registry.get_data_mut::<ChunkActor, ChunkActorInstanceRegistry>() {
+        Some(chunk_actor_instance_registry) => chunk_actor_instance_registry,
+        None => {
+            return;
+        },
+    };
+
+    let chunk_actor_id = chunk_actor_instance_registry.register();
+    chunk_actor_instance_registry.manage(chunk_actor_id, entity);
+}
+
+fn on_remove_chunk_actor(
+    _world: DeferredWorld,
+    entity: Entity,
+    _component: ComponentId,
+) {
+    let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+        Ok(main_type_registry) => main_type_registry,
+        Err(_) => {
+            return;
+        },
+    };
+
+    let chunk_actor_instance_registry = match main_type_registry.get_data_mut::<ChunkActor, ChunkActorInstanceRegistry>() {
+        Some(chunk_actor_instance_registry) => chunk_actor_instance_registry,
+        None => {
+            return;
+        },
+    };
+
+    let chunk_actor_id = match chunk_actor_instance_registry.get_key(&entity) {
+        Some(chunk_actor_id) => *chunk_actor_id,
+        None => {
+            return;
+        },
+    };
+
+    chunk_actor_instance_registry.unmanage(chunk_actor_id);
+    chunk_actor_instance_registry.unregister(chunk_actor_id);
 }
 
 // Operations
@@ -970,7 +1037,9 @@ impl Operation for DowngradeFromChunkActor {
 }
 
 // Initialization
-pub fn init_chunk_actor_type(main_type_registry: &mut MainTypeRegistry) {
+pub fn startup_chunk_actor_module(world: &mut World) {
+    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
+
     main_type_registry.register::<ChunkActor>();
     main_type_registry.manage::<ChunkActor>();
 
@@ -984,6 +1053,11 @@ pub fn init_chunk_actor_type(main_type_registry: &mut MainTypeRegistry) {
 
     chunk_actor_operation_type_registry.register::<DowngradeFromChunkActor>();
     chunk_actor_operation_type_registry.manage::<DowngradeFromChunkActor>();
+
+    world
+        .register_component_hooks::<ChunkActor>()
+        .on_add(on_add_chunk_actor)
+        .on_remove(on_remove_chunk_actor);
 }
 
 
@@ -1011,6 +1085,60 @@ impl ChunkLoaderOperationTypeRegistry {
     pub fn new() -> Self {
         Self(OperationTypeRegistry(TypeRegistry::new()))
     }
+}
+
+// Hooks
+fn on_add_chunk_loader(
+    _world: DeferredWorld,
+    entity: Entity,
+    _component: ComponentId,
+) {
+    let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+        Ok(main_type_registry) => main_type_registry,
+        Err(_) => {
+            return;
+        },
+    };
+
+    let chunk_loader_instance_registry = match main_type_registry.get_data_mut::<ChunkLoader, ChunkLoaderInstanceRegistry>() {
+        Some(chunk_loader_instance_registry) => chunk_loader_instance_registry,
+        None => {
+            return;
+        },
+    };
+
+    let chunk_loader_id = chunk_loader_instance_registry.register();
+    chunk_loader_instance_registry.manage(chunk_loader_id, entity);
+}
+
+fn on_remove_chunk_loader(
+    _world: DeferredWorld,
+    entity: Entity,
+    _component: ComponentId,
+) {
+    let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+        Ok(main_type_registry) => main_type_registry,
+        Err(_) => {
+            return;
+        },
+    };
+
+    let chunk_loader_instance_registry = match main_type_registry.get_data_mut::<ChunkLoader, ChunkLoaderInstanceRegistry>() {
+        Some(chunk_loader_instance_registry) => chunk_loader_instance_registry,
+        None => {
+            return;
+        },
+    };
+
+    let chunk_loader_id = match chunk_loader_instance_registry.get_key(&entity) {
+        Some(chunk_loader_id) => *chunk_loader_id,
+        None => {
+            return;
+        },
+    };
+
+    chunk_loader_instance_registry.unmanage(chunk_loader_id);
+    chunk_loader_instance_registry.unregister(chunk_loader_id);
 }
 
 // Operations
@@ -1069,7 +1197,9 @@ impl Operation for DowngradeFromChunkLoader {
 }
 
 // Initialization
-pub fn init_chunk_loader_type(main_type_registry: &mut MainTypeRegistry) {
+pub fn startup_chunk_loader_module(world: &mut World) {
+    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
+
     main_type_registry.register::<ChunkLoader>();
     main_type_registry.manage::<ChunkLoader>();
 
@@ -1083,6 +1213,11 @@ pub fn init_chunk_loader_type(main_type_registry: &mut MainTypeRegistry) {
 
     chunk_loader_operation_type_registry.register::<DowngradeFromChunkLoader>();
     chunk_loader_operation_type_registry.manage::<DowngradeFromChunkLoader>();
+
+    world
+        .register_component_hooks::<ChunkLoader>()
+        .on_add(on_add_chunk_loader)
+        .on_remove(on_remove_chunk_loader);
 }
 
 

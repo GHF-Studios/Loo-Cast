@@ -1,5 +1,4 @@
 pub mod position;
-pub mod id;
 
 pub mod components;
 pub mod constants;
@@ -9,7 +8,6 @@ pub mod resources;
 pub mod structs;
 pub(in crate) mod systems;
 
-use id::*;
 use events::*;
 use resources::*;
 use systems::main::*;
@@ -25,7 +23,6 @@ impl Plugin for ActorPlugin {
             .add_event::<DowngradeFromChunkActor>()
             .add_event::<UpgradedToChunkActor>()
             .add_event::<DowngradedFromChunkActor>()
-            .add_plugins(IDPlugin)
             .insert_resource(ChunkActorRegistry::default())
             .insert_resource(ChunkActorRequestRegistry::default())
             .add_systems(Startup, (

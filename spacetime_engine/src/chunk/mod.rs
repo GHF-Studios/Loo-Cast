@@ -1,6 +1,5 @@
 pub mod actor;
 pub mod position;
-pub mod id;
 pub mod loader;
 
 pub mod components;
@@ -13,7 +12,6 @@ mod systems;
 
 use actor::ActorPlugin;
 use position::PositionPlugin;
-use id::IdPlugin;
 use loader::LoaderPlugin;
 use resources::*;
 use systems::*;
@@ -35,7 +33,6 @@ impl Plugin for ChunkPlugin {
             .add_event::<SavedChunk>()
             .add_plugins(ActorPlugin)
             .add_plugins(PositionPlugin)
-            .add_plugins(IdPlugin)
             .add_plugins(LoaderPlugin)
             .insert_resource(ChunkRegistry::default())
             .insert_resource(ChunkRequestRegistry::default())

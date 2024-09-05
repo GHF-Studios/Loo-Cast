@@ -1,4 +1,3 @@
-pub mod id;
 pub mod position;
 
 pub mod components;
@@ -22,7 +21,6 @@ impl Plugin for EntityPlugin {
             .add_event::<DestroyEntity>()
             .add_event::<CreatedEntity>()
             .add_event::<DestroyedEntity>()
-            .add_plugins(id::IDPlugin)
             .add_plugins(position::PositionPlugin)
             .insert_resource(EntityRegistry::default())
             .add_systems(Startup, functions::main::startup)
