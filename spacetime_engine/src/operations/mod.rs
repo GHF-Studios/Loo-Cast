@@ -3,7 +3,6 @@ pub mod resources;
 
 use bevy::ecs::component::ComponentId;
 use bevy::ecs::entity::EntityHashMap;
-use bevy::ecs::system::SystemState;
 use bevy::ecs::world::DeferredWorld;
 use bevy::prelude::*;
 use bevy::scene::ron;
@@ -902,7 +901,7 @@ impl Operation for DowngradeFromChunk {
             },
         };
 
-        let mut chunk_entity_raw = match world.get_entity_mut(chunk_entity) {
+        let chunk_entity_raw = match world.get_entity_mut(chunk_entity) {
             Some(chunk_raw) => chunk_raw,
             None => {
                 (self.callback)(DowngradeFromChunkResult::Err(()));
@@ -943,15 +942,66 @@ impl Operation for DowngradeFromChunk {
             return;
         }
 
+        let chunk = chunk_entity_raw.get::<Chunk>().unwrap();
+
+        let chunk_actor_instance_registry = match main_type_registry.get_data_mut::<ChunkActor, ChunkActorInstanceRegistry>() {
+            Some(chunk_actor_instance_registry) => chunk_actor_instance_registry,
+            None => {
+                (self.callback)(DowngradeFromChunkResult::Err(()));
+                return;
+            },
+        };
+
+        for registered_chunk_actor in chunk.registered_chunk_actors().clone() {
+            let chunk_actor_entity = match chunk_actor_instance_registry.get(registered_chunk_actor) {
+                Some(chunk_actor_entity) => *chunk_actor_entity,
+                None => {
+                    (self.callback)(DowngradeFromChunkResult::Err(()));
+                    return;
+                },
+            };
+
+            let mut chunk_actor_entity_raw = match world.get_entity_mut(chunk_actor_entity) {
+                Some(chunk_actor_raw) => chunk_actor_raw,
+                None => {
+                    (self.callback)(DowngradeFromChunkResult::Err(()));
+                    return;
+                },
+            };
+
+            if !chunk_actor_entity_raw.contains::<ChunkActor>() {
+                (self.callback)(DowngradeFromChunkResult::Err(()));
+                return;
+            }
+
+            if chunk_actor_entity_raw.contains::<Serialized>() {
+                (self.callback)(DowngradeFromChunkResult::Err(()));
+                return;
+            }
+
+            if !chunk_actor_instance_registry.is_managed(registered_chunk_actor) {
+                (self.callback)(DowngradeFromChunkResult::Err(()));
+                return;
+            }
+
+            if !chunk_actor_instance_registry.is_registered(registered_chunk_actor) {
+                (self.callback)(DowngradeFromChunkResult::Err(()));
+                return;
+            }
+
+            chunk_actor_entity_raw.remove::<ChunkActor>();
+        }
+
+        let mut chunk_entity_raw = match world.get_entity_mut(chunk_entity) {
+            Some(chunk_raw) => chunk_raw,
+            None => {
+                (self.callback)(DowngradeFromChunkResult::Err(()));
+                return;
+            },
+        };
+
         chunk_entity_raw.remove::<Chunk>();
         (self.callback)(DowngradeFromChunkResult::Ok(()));
-
-        // Step 1: Error if the chunk is not actually a chunk
-        // Step 2: Error if the chunk is marked as serialized
-        // Step 3: Error if the chunk is present in the serialized chunk storage
-        // Step 4: Error if the chunk is not managed
-        // Step 5: Error if the chunk is not registered
-        // Step 6: Remove the chunk component from the chunk entity
     }
 }
 
@@ -1082,7 +1132,7 @@ impl Operation for UnloadChunk {
             return;
         }
 
-        let mut chunk_entity_raw = match world.get_entity_mut(chunk_entity) {
+        let chunk_entity_raw = match world.get_entity(chunk_entity) {
             Some(chunk_raw) => chunk_raw,
             None => {
                 (self.callback)(UnloadChunkResult::Err(()));
@@ -1111,8 +1161,8 @@ impl Operation for UnloadChunk {
             },
         };
 
-        for registered_chunk_actor in chunk.registered_chunk_actors() {
-            let chunk_actor_entity = match chunk_actor_instance_registry.get(*registered_chunk_actor) {
+        for registered_chunk_actor in chunk.registered_chunk_actors().clone() {
+            let chunk_actor_entity = match chunk_actor_instance_registry.get(registered_chunk_actor) {
                 Some(chunk_actor_entity) => *chunk_actor_entity,
                 None => {
                     (self.callback)(UnloadChunkResult::Err(()));
@@ -1120,7 +1170,7 @@ impl Operation for UnloadChunk {
                 },
             };
 
-            let mut chunk_actor_entity_raw = match world.get_entity_mut(chunk_actor_entity) {
+            let chunk_actor_entity_raw = match world.get_entity(chunk_actor_entity) {
                 Some(chunk_actor_raw) => chunk_actor_raw,
                 None => {
                     (self.callback)(UnloadChunkResult::Err(()));
@@ -1169,14 +1219,10 @@ impl SaveChunk {
 impl Operation for SaveChunk {
     fn execute(&self, world: &mut World) {
         // Step 1: Error if the chunk is not present in the world
-        // Step 2: Error if the chunk is already present in the serialized chunk storage
+        // Step 2: Error if force is false and the chunk is already present in the serialized chunk storage
         // Step 3: Add a 'Serialized' marker to the chunk entity and all of it's registered chunk actor entities
         // Step 4: Serialize the chunk and it's contents
-        // Step 4: If force is true, 
-                    // then add the chunk to the serialized chunk storage
-                // else if the chunk is already present in the serialized chunk storage
-                    // then error
-                // else add the chunk to the serialized chunk storage
+        // Step 4: Force-Save the chunk in the serialized chunk storage
     }
 }
 
