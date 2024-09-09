@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-pub(in crate) struct ChunkPlugin;
+pub(in crate) struct ChunkActorPlugin;
 
-impl Plugin for ChunkPlugin {
+impl Plugin for ChunkActorPlugin {
     fn build(&self, app: &mut App) {
         
     }

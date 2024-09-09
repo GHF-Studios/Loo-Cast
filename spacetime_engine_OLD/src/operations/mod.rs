@@ -1,3 +1,6 @@
+pub mod requesters;
+pub mod resources;
+
 use bevy::ecs::component::ComponentId;
 use bevy::ecs::entity::EntityHashMap;
 use bevy::ecs::world::DeferredWorld;
