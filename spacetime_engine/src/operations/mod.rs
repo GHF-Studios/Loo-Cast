@@ -848,10 +848,6 @@ impl Operation for UpgradeToChunk {
         (self.callback)(UpgradeToChunkResult::Ok {
             chunk_id,
         });
-
-        // Step 1: Error if the chunk is present in the world
-        // Step 2: Error if the chunk is present in the serialized chunk storage
-        // Step 3: Insert the chunk component into the target entity
     }
 }
 
@@ -1218,11 +1214,83 @@ impl SaveChunk {
 }
 impl Operation for SaveChunk {
     fn execute(&self, world: &mut World) {
-        // Step 1: Error if the chunk is not present in the world
-        // Step 2: Error if force is false and the chunk is already present in the serialized chunk storage
-        // Step 3: Add a 'Serialized' marker to the chunk entity and all of it's registered chunk actor entities
-        // Step 4: Serialize the chunk and it's contents
-        // Step 4: Force-Save the chunk in the serialized chunk storage
+        let mut serialized_chunk_storage = match SERIALIZED_CHUNK_STORAGE.lock() {
+            Ok(serialized_chunk_storage) => serialized_chunk_storage,
+            Err(_) => {
+                (self.callback)(SaveChunkResult::Err(()));
+                return;
+            },
+        };
+
+        if !self.args.force && serialized_chunk_storage.contains_key(&self.args.chunk_position) {
+            (self.callback)(SaveChunkResult::Err(()));
+            return;
+        }
+
+        match world.query::<(Entity, &Chunk)>().iter(world).find(|(_, chunk)| chunk.position() == self.args.chunk_position) {
+            Some((chunk_entity, chunk)) => {
+                let chunk_id = chunk.id();
+                let registered_chunk_actors = chunk.registered_chunk_actors().clone();
+
+                let mut chunk_entity_raw = match world.get_entity_mut(chunk_entity) {
+                    Some(chunk_raw) => chunk_raw,
+                    None => {
+                        (self.callback)(SaveChunkResult::Err(()));
+                        return;
+                    },
+                };
+
+                if !chunk_entity_raw.contains::<Serialized>() {
+                    chunk_entity_raw.insert(Serialized);
+                }
+
+                let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+                    Ok(main_type_registry) => main_type_registry,
+                    Err(_) => {
+                        (self.callback)(SaveChunkResult::Err(()));
+                        return;
+                    },
+                };
+
+                let chunk_actor_instance_registry = match main_type_registry.get_data_mut::<ChunkActor, ChunkActorInstanceRegistry>() {
+                    Some(chunk_actor_instance_registry) => chunk_actor_instance_registry,
+                    None => {
+                        (self.callback)(SaveChunkResult::Err(()));
+                        return;
+                    },
+                };
+
+                for registered_chunk_actor in registered_chunk_actors {
+                    let chunk_actor_entity = match chunk_actor_instance_registry.get(registered_chunk_actor) {
+                        Some(chunk_actor_entity) => *chunk_actor_entity,
+                        None => {
+                            (self.callback)(SaveChunkResult::Err(()));
+                            return;
+                        },
+                    };
+
+                    let mut chunk_actor_entity_raw = match world.get_entity_mut(chunk_actor_entity) {
+                        Some(chunk_actor_raw) => chunk_actor_raw,
+                        None => {
+                            (self.callback)(SaveChunkResult::Err(()));
+                            return;
+                        },
+                    };
+
+                    if !chunk_actor_entity_raw.contains::<Serialized>() {
+                        chunk_actor_entity_raw.insert(Serialized);
+                    }
+                }
+
+                let serialized_chunk = serialize_chunk(world, chunk_id);
+
+                serialized_chunk_storage.insert(self.args.chunk_position, serialized_chunk);
+            },
+            None => {
+                (self.callback)(SaveChunkResult::Err(()));
+                return;
+            },
+        }
     }
 }
 
@@ -1247,10 +1315,78 @@ impl UnsaveChunk {
 }
 impl Operation for UnsaveChunk {
     fn execute(&self, world: &mut World) {
-        // Step 1: Error if the chunk is not present in the serialized chunk storage
-        // Step 2: If the chunk is present in the world, 
-                // then remove the 'Serialized' marker from the chunk entity and all of it's registered chunk actor entities
-        // Step 3: Remove the chunk from the serialized chunk storage
+        let serialized_chunk_storage = match SERIALIZED_CHUNK_STORAGE.lock() {
+            Ok(serialized_chunk_storage) => serialized_chunk_storage,
+            Err(_) => {
+                (self.callback)(UnsaveChunkResult::Err(()));
+                return;
+            },
+        };
+
+        if !serialized_chunk_storage.contains_key(&self.args.chunk_position) {
+            (self.callback)(UnsaveChunkResult::Err(()));
+            return;
+        }
+        
+        match world.query::<(Entity, &Chunk)>().iter(world).find(|(_, chunk)| chunk.position() == self.args.chunk_position) {
+            Some((chunk_entity, chunk)) => {
+                let registered_chunk_actors = chunk.registered_chunk_actors().clone();
+
+                let mut chunk_entity_raw = match world.get_entity_mut(chunk_entity) {
+                    Some(chunk_raw) => chunk_raw,
+                    None => {
+                        (self.callback)(UnsaveChunkResult::Err(()));
+                        return;
+                    },
+                };
+
+                if chunk_entity_raw.contains::<Serialized>() {
+                    chunk_entity_raw.remove::<Serialized>();
+                }
+
+                let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+                    Ok(main_type_registry) => main_type_registry,
+                    Err(_) => {
+                        (self.callback)(UnsaveChunkResult::Err(()));
+                        return;
+                    },
+                };
+
+                let chunk_actor_instance_registry = match main_type_registry.get_data_mut::<ChunkActor, ChunkActorInstanceRegistry>() {
+                    Some(chunk_actor_instance_registry) => chunk_actor_instance_registry,
+                    None => {
+                        (self.callback)(UnsaveChunkResult::Err(()));
+                        return;
+                    },
+                };
+
+                for registered_chunk_actor in registered_chunk_actors {
+                    let chunk_actor_entity = match chunk_actor_instance_registry.get(registered_chunk_actor) {
+                        Some(chunk_actor_entity) => *chunk_actor_entity,
+                        None => {
+                            (self.callback)(UnsaveChunkResult::Err(()));
+                            return;
+                        },
+                    };
+
+                    let mut chunk_actor_entity_raw = match world.get_entity_mut(chunk_actor_entity) {
+                        Some(chunk_actor_raw) => chunk_actor_raw,
+                        None => {
+                            (self.callback)(UnsaveChunkResult::Err(()));
+                            return;
+                        },
+                    };
+
+                    if chunk_actor_entity_raw.contains::<Serialized>() {
+                        chunk_actor_entity_raw.remove::<Serialized>();
+                    }
+                }
+            },
+            None => {
+                (self.callback)(UnsaveChunkResult::Err(()));
+                return;
+            },
+        };
     }
 }
 
