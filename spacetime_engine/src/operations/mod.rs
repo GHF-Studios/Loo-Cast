@@ -2011,10 +2011,12 @@ fn on_add_chunk_loader(
             return;
         },
     };
+
+    // TODO: Spawn the initial chunks
 }
 
 fn on_remove_chunk_loader(
-    world: DeferredWorld,
+    mut world: DeferredWorld,
     entity: Entity,
     _component: ComponentId,
 ) {
@@ -2042,12 +2044,10 @@ fn on_remove_chunk_loader(
     match world.get::<Serialized>(entity) {
         Some(_) => {
             chunk_loader_instance_registry.unmanage(chunk_loader_id);
-            return;
         },
         None => {
             chunk_loader_instance_registry.unmanage(chunk_loader_id);
             chunk_loader_instance_registry.unregister(chunk_loader_id);
-            return;
         },
     };
 
@@ -2080,9 +2080,7 @@ fn on_remove_chunk_loader(
             },
         };
 
-        if !world.despawn(chunk_entity) {
-            return;
-        }
+        // TODO: Unload the chunk
     }
 }
 
