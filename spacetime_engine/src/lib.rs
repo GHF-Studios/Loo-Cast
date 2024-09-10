@@ -1,18 +1,21 @@
+//pub mod camera;
 pub mod chunk;
-pub mod chunk_actor;
-pub mod chunk_loader;
+pub mod component;
 pub mod entity;
+pub mod follower;
 pub mod math;
 pub mod operations;
-pub mod player;
+//pub mod physics;
+//pub mod player;
 
+//use camera::CameraPlugin;
 use chunk::ChunkPlugin;
-use chunk_actor::ChunkActorPlugin;
-use chunk_loader::ChunkLoaderPlugin;
 use entity::EntityPlugin;
+use follower::FollowerPlugin;
 use math::MathPlugin;
 use operations::OperationsPlugin;
-use player::PlayerPlugin;
+//use physics::PhysicsPlugin;
+//use player::PlayerPlugin;
 use bevy::{app::PluginGroupBuilder, prelude::*};
 
 pub struct SpacetimeEnginePlugins;
@@ -20,12 +23,13 @@ pub struct SpacetimeEnginePlugins;
 impl PluginGroup for SpacetimeEnginePlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
+            //.add(CameraPlugin)
             .add(ChunkPlugin)
-            .add(ChunkActorPlugin)
-            .add(ChunkLoaderPlugin)
             .add(EntityPlugin)
+            .add(FollowerPlugin)
             .add(MathPlugin)
             .add(OperationsPlugin)
-            .add(PlayerPlugin)
+            //.add(PhysicsPlugin)
+            //.add(PlayerPlugin)
     }
 }

@@ -1,3 +1,6 @@
+pub mod requesters;
+pub mod resources;
+
 use bevy::ecs::component::ComponentId;
 use bevy::ecs::entity::EntityHashMap;
 use bevy::ecs::world::DeferredWorld;
@@ -1971,7 +1974,6 @@ impl ChunkLoaderOperationTypeRegistry {
     }
 }
 
-// TODO: Hooks need serious fixing from daddy lindner
 // Hooks
 fn on_add_chunk_loader(
     world: DeferredWorld,
@@ -2010,12 +2012,7 @@ fn on_add_chunk_loader(
         },
     };
 
-    // Step 1: Get all initial chunk positions
-    // Step 2: For each initial chunk position, 
-            // either acquire the initial chunk if it already exists but has no owner,
-            // or ignore the initial chunk position if it already has an owner,
-            // or load the chunk if it does not exist in the world but is serialized,
-            // or create the chunk if it does not exist in the world and is not serialized
+    // TODO: Spawn the initial chunks
 }
 
 fn on_remove_chunk_loader(
@@ -2075,10 +2072,6 @@ fn on_remove_chunk_loader(
         },
     };
 
-    // Step 1: Get all registered chunks and filter out all unmanaged chunks
-    // Step 2: For each chunk:
-            // if the chunk is serialized, unload the chunk
-
     for registered_chunk_info in chunk_loader.registered_chunks().clone() {
         let chunk_entity = match chunk_instance_registry.get(registered_chunk_info.chunk_id()) {
             Some(chunk_entity) => *chunk_entity,
@@ -2086,35 +2079,12 @@ fn on_remove_chunk_loader(
                 return;
             },
         };
+
+        // TODO: Unload the chunk
     }
 }
 
 // Operations
-pub struct GatherCurrentChunkPositionsArgs {
-    pub chunk_loader_entity_id: InstanceID<Entity>,
-}
-pub enum GatherCurrentChunkPositionsResult {
-    Ok(Vec<ChunkPosition>),
-    Err(()),
-}
-pub struct GatherCurrentChunkPositions {
-    args: GatherCurrentChunkPositionsArgs,
-    callback: fn(GatherCurrentChunkPositionsResult),
-}
-impl GatherCurrentChunkPositions {
-    pub fn new(args: GatherCurrentChunkPositionsArgs, callback: Option<fn(GatherCurrentChunkPositionsResult)>) -> Self {
-        Self {
-            args,
-            callback: callback.unwrap_or(|_| {}),
-        }
-    }
-}
-impl Operation for GatherCurrentChunkPositions {
-    fn execute(&self, world: &mut World) {
-        // TODO: Implement
-    }
-}
-
 pub struct UpgradeToChunkLoaderArgs {
     pub target_entity_id: InstanceID<Entity>,
     pub chunk_loader_load_radius: u16
