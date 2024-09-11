@@ -1,23 +1,23 @@
 [package]
-name = "spacetime_engine"
+name = "OLD_spacetime_engine"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "spacetime_engine"
+name = "OLD_spacetime_engine"
 path = "src/lib.rs"
 crate-type = ["rlib", "cdylib"]
 
 [[bin]]
-name = "spacetime_engine"
+name = "OLD_spacetime_engine"
 path = "src/main.rs"
 
 [profile.dev.package."*"]
 opt-level = 3
 
 [dependencies]
-bevy = "0.14.2"
-bevy_rapier2d = { version = "0.27.0", features = [ "debug-render-2d", "serde-serialize" ] }
+bevy = "0.14"
+bevy_rapier2d = { version = "0.26.0", features = [ "debug-render-2d", "serde-serialize" ] }
 mlua = { version = "0.6.1", features = ["vendored", "lua54"] }
 rand = "0.8.5"
 noise = "0.9"

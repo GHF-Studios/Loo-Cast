@@ -1,0 +1,32 @@
+Operations:
+	Data types
+		structs
+		wrappers
+		components
+	Functions
+		systems
+	Miscellaneous
+		singletons
+		traits
+
+Entity:
+	Data types
+		structs
+		wrappers
+		components
+
+Chunk:
+	Data types
+		structs
+		wrappers
+		components
+
+Chunk Actor:
+	Data types
+		wrappers
+		components
+
+Chunk Loader:
+	Data types
+		wrappers
+		components

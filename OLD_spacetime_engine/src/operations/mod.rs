@@ -1,15 +1,5 @@
-// Data types
-pub mod components;
-pub mod structs;
-pub mod wrappers;
-
-// Functions
-pub mod hooks;
-pub mod systems;
-
-// Miscellaneous
-pub mod singletons;
-pub mod traits;
+pub mod requesters;
+pub mod resources;
 
 use bevy::ecs::component::ComponentId;
 use bevy::ecs::entity::EntityHashMap;

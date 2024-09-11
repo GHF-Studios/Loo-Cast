@@ -1,6 +1,5 @@
 // Data types
 pub mod components;
-pub mod structs;
 pub mod wrappers;
 
 // Functions
@@ -12,9 +11,9 @@ pub mod operations;
 
 use bevy::prelude::*;
 
-pub(in crate) struct EntityPlugin;
+pub(in crate) struct ChunkLoaderPlugin;
 
-impl Plugin for EntityPlugin {
+impl Plugin for ChunkLoaderPlugin {
     fn build(&self, app: &mut App) {
     }
 }
