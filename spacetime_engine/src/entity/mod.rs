@@ -16,7 +16,5 @@ pub(in crate) struct EntityPlugin;
 
 impl Plugin for EntityPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Startup, systems::startup);
     }
 }
