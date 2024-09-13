@@ -12,6 +12,7 @@ pub mod utilities;
 pub mod operations;
 
 // Miscellaneous
+pub mod constants;
 pub mod singletons;
 
 use bevy::prelude::*;
