@@ -21,5 +21,8 @@ pub(in crate) struct ChunkPlugin;
 
 impl Plugin for ChunkPlugin {
     fn build(&self, app: &mut App) {
+        app
+            .add_systems(Startup, systems::startup)
+            .register_type::<structs::ChunkPosition>();
     }
 }
