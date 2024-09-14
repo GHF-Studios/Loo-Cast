@@ -10,6 +10,11 @@ impl From<Vec2> for EntityPosition {
         EntityPosition(Vec2::new(vec2.x, vec2.y))
     }
 }
+impl From<Vec3> for EntityPosition {
+    fn from(vec3: Vec3) -> Self {
+        EntityPosition(Vec2::new(vec3.x, vec3.y))
+    }
+}
 impl From<ChunkPosition> for EntityPosition {
     fn from(chunk_position: ChunkPosition) -> Self {
         let x = chunk_position.0.0 as f32 * CHUNK_SIZE as f32;

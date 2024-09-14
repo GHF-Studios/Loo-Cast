@@ -29,11 +29,17 @@ impl CreateEntity {
 }
 impl Operation for CreateEntity {
     fn execute(&self, world: &mut World) {
+        warn!("Creating entity at position: {:?}", self.args.entity_position);
         let entity = world.spawn((
             Transform::from_translation(self.args.entity_position.extend(0.0)),
             SpacetimeEntity::new(),
         )).id();
 
+        // TODO: Read this comment.
+        // Maybe instead of immediately trying to access the hook-modified spacetime entity component,
+        // we should just have some temporary marker/data-transmission component 'OnAdd' which contains the callback, and the callback parameter.
+        // We would just insert the 'AdditionCallback' component here, and the hook would remove it and call the callback with the given parameter.
+        // TODO: Do the same for 'OnRemove'.
         let spacetime_entity_component = match world.get::<SpacetimeEntity>(entity) {
             Some(spacetime_entity_component) => spacetime_entity_component,
             None => {
@@ -42,6 +48,7 @@ impl Operation for CreateEntity {
             },
         };
 
+        warn!("Created entity: {:?}", spacetime_entity_component.id());
         (self.callback)(CreateEntityResult::Ok {
             entity_id: spacetime_entity_component.id(),
         });

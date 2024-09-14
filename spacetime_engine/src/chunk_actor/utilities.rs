@@ -18,20 +18,34 @@ pub(in crate) fn collect_chunk_actor_updates(
     let mut chunk_actor_entities = Vec::new();
     let mut old_chunk_ids = Vec::new();
 
-    for (chunk_actor_entity, chunk_actor_transform, chunk_actor) in chunk_actor_query.iter(world) {
-        
-        let chunk_id: InstanceID<Chunk> = {
-            let entity_position: EntityPosition = chunk_actor_transform.translation.into();
-            let chunk_position: ChunkPosition = entity_position.into();
-            chunk_position.into()
-        };
+    let chunk_actor_query_infos = chunk_actor_query.iter(world).map(|(chunk_actor_entity, chunk_actor_transform, chunk_actor)| {
+        let chunk_actor_entity_position: EntityPosition = chunk_actor_transform.translation.into();
+        let chunk_actor_chunk_position: ChunkPosition = chunk_actor_entity_position.into();
         let chunk_actor_id = chunk_actor.id();
-        let old_chunk_id = chunk_actor.current_chunk();
+        let chunk_actor_current_chunk_id = chunk_actor.current_chunk();
+
+        (chunk_actor_entity, chunk_actor_chunk_position, chunk_actor_id, chunk_actor_current_chunk_id)
+    }).collect::<Vec<_>>();
+
+    for (chunk_actor_entity, chunk_actor_chunk_position, chunk_actor_id, chunk_actor_current_chunk_id) in chunk_actor_query_infos {
+        let chunk_id: InstanceID<Chunk> = {
+            let mut chunks = world.query::<&Chunk>();
+
+            match chunks.iter(world).find(|chunk| chunk.position() == chunk_actor_chunk_position) {
+                Some(chunk) => {
+                    chunk.id()
+                },
+                None => {
+                    error!("Chunk '{:?}' not found!", chunk_actor_chunk_position);
+                    continue;
+                }
+            }
+        };
 
         chunk_ids.push(chunk_id);
         chunk_actor_ids.push(chunk_actor_id);
         chunk_actor_entities.push(chunk_actor_entity);
-        old_chunk_ids.push(old_chunk_id);
+        old_chunk_ids.push(chunk_actor_current_chunk_id);
     }
 
     let mut updates = Vec::new();
@@ -52,13 +66,13 @@ pub(in crate) fn collect_chunk_actor_updates(
             }
         };
         
-        if !chunk_instance_registry.is_chunk_loaded(chunk_id) {
+        if !chunk_instance_registry.is_managed(chunk_id) {
             despawns.push(DespawnChunkActorInfo {
                 actor_entity: chunk_actor_entity,
                 actor_id: chunk_actor_id,
             });
 
-            warn!("Chunk actor '{:?}' despawned because chunk '{:?}' is not managed!", chunk_actor_id, chunk_id);
+            error!("Chunk actor '{:?}' despawned because chunk '{:?}' is not managed!", chunk_actor_id, chunk_id);
             continue;
         }
         
@@ -107,11 +121,11 @@ pub(in crate) fn apply_chunk_actor_updates(
         };
 
         let old_chunk_entity = chunk_instance_registry.get(update.old_chunk_id).unwrap();
-        let mut old_chunk = chunk_query.get_mut(world, old_chunk_entity).unwrap();
+        let mut old_chunk = chunk_query.get_mut(world, *old_chunk_entity).unwrap();
         old_chunk.unregister_chunk_actor(update.actor_id);
 
         let new_chunk_entity = chunk_instance_registry.get(update.new_chunk_id).unwrap();
-        let mut new_chunk = chunk_query.get_mut(world, new_chunk_entity).unwrap();
+        let mut new_chunk = chunk_query.get_mut(world, *new_chunk_entity).unwrap();
         new_chunk.register_chunk_actor(update.actor_id);
     }
 

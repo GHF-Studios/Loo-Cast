@@ -10,7 +10,6 @@ pub struct ChunkLoader {
     load_radius: u16,
     registered_chunks: Vec<RegisteredChunkInfo>,
 }
-
 impl ChunkLoader {
     pub fn new(load_radius: u16) -> Self {
         Self {

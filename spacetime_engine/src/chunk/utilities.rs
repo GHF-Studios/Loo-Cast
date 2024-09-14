@@ -5,6 +5,7 @@ use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
 use serde::de::DeserializeSeed;
 
 use crate::chunk_actor::components::ChunkActor;
+use crate::chunk_loader::components::ChunkLoader;
 use crate::entity::structs::EntityPosition;
 use crate::math::structs::I16Vec2;
 use crate::operations::singletons::MAIN_TYPE_REGISTRY;
@@ -129,53 +130,4 @@ pub(in crate) fn serialize_chunk(
     }
 
     serialized_chunk
-}
-
-
-pub(in crate) fn detect_chunks(
-    chunk_loader_transform: &Transform,
-    chunk_loader_load_radius: u16,
-) -> Vec<InstanceID<Chunk>> {
-    let chunk_loader_entity_position: EntityPosition = chunk_loader_transform.translation.into();
-    let current_chunk_position: ChunkPosition = chunk_loader_entity_position.into();
-    let load_radius = chunk_loader_load_radius as i16;
-    
-    let mut detected_chunk_ids = Vec::new();
-    for x_offset in -load_radius..=load_radius {
-        for y_offset in -load_radius..=load_radius {
-            let chunk_position = current_chunk_position + ChunkPosition(I16Vec2(x_offset, y_offset));
-            let chunk_id: InstanceID<Chunk> = chunk_position.into();
-
-            detected_chunk_ids.push(chunk_id);
-        }
-    }
-
-    detected_chunk_ids
-}
-
-pub(in crate) fn categorize_chunks(
-    detected_chunk_ids: Vec<InstanceID<Chunk>>,
-) -> (Vec<InstanceID<Chunk>>, Vec<InstanceID<Chunk>>, Vec<InstanceID<Chunk>>) {
-    let main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
-    let chunk_registry = main_type_registry.get_data::<Chunk, ChunkInstanceRegistry>().unwrap();
-
-    let mut old_chunks: Vec<InstanceID<Chunk>> = Vec::new();
-    let mut unchanged_chunks: Vec<InstanceID<Chunk>> = Vec::new();
-    let mut new_chunks: Vec<InstanceID<Chunk>> = Vec::new();
-
-    for loaded_chunk_id in chunk_registry.loaded_chunks().keys() {
-        if !detected_chunk_ids.contains(loaded_chunk_id) {
-            old_chunks.push(*loaded_chunk_id);
-        }
-    }
-
-    for detected_chunk_id in detected_chunk_ids {
-        if chunk_registry.is_chunk_loaded(detected_chunk_id) {
-            unchanged_chunks.push(detected_chunk_id);
-        } else {
-            new_chunks.push(detected_chunk_id);
-        }
-    }
-
-    (old_chunks, unchanged_chunks, new_chunks)
 }

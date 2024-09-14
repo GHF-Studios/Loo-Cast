@@ -32,12 +32,12 @@ pub(in super) fn on_add_entity(
                 },
             };
             entity_instance_registry.manage(entity_id, entity);
-            return;
         },
         None => {
             let entity_id = entity_instance_registry.register();
             entity_instance_registry.manage(entity_id, entity);
-            return;
+
+            warn!("Created entity: {:?}!", entity_id);
         },
     };
 }

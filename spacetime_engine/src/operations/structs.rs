@@ -3,7 +3,16 @@ use std::{any::*, collections::{HashMap, HashSet}};
 use bevy::prelude::*;
 
 #[derive(Reflect)]
-pub struct InstanceID<T: 'static + Send + Sync>(pub u64, #[reflect(ignore)]std::marker::PhantomData<T>);
+pub struct InstanceID<T: 'static + Send + Sync>(u64, #[reflect(ignore)]std::marker::PhantomData<T>);
+impl<T: 'static + Send + Sync> InstanceRegistryKey for InstanceID<T> {
+    fn new(id: u64) -> Self {
+        Self(id, std::marker::PhantomData)
+    }
+
+    fn get(&self) -> u64 {
+        self.0
+    }
+}
 impl<T: 'static + Send + Sync> Default for InstanceID<T> {
     fn default() -> Self {
         Self(0, std::marker::PhantomData)
@@ -11,7 +20,9 @@ impl<T: 'static + Send + Sync> Default for InstanceID<T> {
 }
 impl<T: 'static + Send + Sync> std::fmt::Debug for InstanceID<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ID({})", self.0)
+        let type_name = std::any::type_name::<T>();
+        let type_name = type_name.split("::").last().unwrap_or(type_name);
+        write!(f, "{}ID({})", type_name, self.0)
     }
 }
 impl<T: 'static + Send + Sync> std::clone::Clone for InstanceID<T> {
@@ -144,6 +155,14 @@ impl<K: InstanceRegistryKey, V: InstanceRegistryValue> InstanceRegistry<K, V> {
                 None
             }
         })
+    }
+
+    pub fn registered(&self) -> &HashSet<K> {
+        &self.registered
+    }
+
+    pub fn managed(&self) -> &HashMap<K, V> {
+        &self.managed
     }
 
     pub fn is_registered(&self, key: K) -> bool {

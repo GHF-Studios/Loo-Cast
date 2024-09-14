@@ -7,6 +7,7 @@ pub struct SpacetimeEntity {
     id: InstanceID<Entity>,
 }
 impl SpacetimeEntity {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             id: InstanceID::default(),
