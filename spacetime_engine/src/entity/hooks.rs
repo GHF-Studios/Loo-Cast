@@ -37,6 +37,7 @@ pub(in super) fn on_add_entity(
             let entity_id = entity_instance_registry.register();
             entity_instance_registry.manage(entity_id, entity);
 
+            // TODO: Remove
             warn!("Created entity: {:?}!", entity_id);
         },
     };

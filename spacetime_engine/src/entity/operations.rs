@@ -29,7 +29,6 @@ impl CreateEntity {
 }
 impl Operation for CreateEntity {
     fn execute(&self, world: &mut World) {
-        warn!("Creating entity at position: {:?}", self.args.entity_position);
         let entity = world.spawn((
             Transform::from_translation(self.args.entity_position.extend(0.0)),
             SpacetimeEntity::new(),
@@ -48,6 +47,7 @@ impl Operation for CreateEntity {
             },
         };
 
+        // TODO: Remove
         warn!("Created entity: {:?}", spacetime_entity_component.id());
         (self.callback)(CreateEntityResult::Ok {
             entity_id: spacetime_entity_component.id(),

@@ -51,7 +51,6 @@ fn startup() {
     let create_entity_args = CreateEntityArgs { entity_position };
     let create_entity_operation = CreateEntity::new(create_entity_args, Some(|result| {
         if let CreateEntityResult::Ok{ entity_id } = result {
-            warn!("Finished creating entity: {:?}!", entity_id);
             // Create operation AA
             let upgrade_to_chunk_actor_args = UpgradeToChunkActorArgs {
                     target_entity_id: entity_id,
