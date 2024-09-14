@@ -11,7 +11,7 @@ pub mod utilities;
 // Integrations
 pub mod operations;
 
-// Miscellaneous
+// Miscelaneous
 pub mod constants;
 pub mod singletons;
 

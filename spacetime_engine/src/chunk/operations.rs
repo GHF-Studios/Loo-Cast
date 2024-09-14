@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::{entity::wrappers::EntityInstanceRegistry, operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY, structs::InstanceID, traits::Operation}};
+use crate::{chunk_actor::{components::ChunkActor, wrappers::ChunkActorInstanceRegistry}, entity::wrappers::EntityInstanceRegistry, operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY, structs::InstanceID, traits::Operation}};
 use super::{components::Chunk, singletons::SERIALIZED_CHUNK_STORAGE, structs::ChunkPosition, wrappers::ChunkInstanceRegistry};
 
 pub struct UpgradeToChunkArgs {

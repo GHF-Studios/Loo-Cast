@@ -4,6 +4,7 @@ use bevy::scene::ron;
 use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
 use serde::de::DeserializeSeed;
 
+use crate::chunk_actor::components::ChunkActor;
 use crate::entity::structs::EntityPosition;
 use crate::math::structs::I16Vec2;
 use crate::operations::singletons::MAIN_TYPE_REGISTRY;
