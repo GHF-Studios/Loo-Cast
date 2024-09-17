@@ -5,7 +5,7 @@ use crate::operations::components::*;
 use bevy::{ecs::{component::ComponentId, world::DeferredWorld}, prelude::*};
 
 pub(in super) fn on_add_entity(
-    world: DeferredWorld,
+    mut world: DeferredWorld,
     entity: Entity,
     _component: ComponentId,
 ) {
@@ -37,30 +37,16 @@ pub(in super) fn on_add_entity(
             let entity_id = entity_instance_registry.register();
             entity_instance_registry.manage(entity_id, entity);
 
-            // TODO: Remove
-            warn!("Hook: Created entity: {:?}!", entity_id);
+            let mut spacetime_entity = match world.get_mut::<SpacetimeEntity>(entity) {
+                Some(spacetime_entity_component) => spacetime_entity_component,
+                None => {
+                    return;
+                },
+            };
+            
+            *spacetime_entity.id_mut() = entity_id;
         },
     };
-
-    // TODO: NEW COMMENT
-    // Trigger an 'on_add' observer for this entity
-
-    // TODO: DUST ASS OLD ASS COMMENT
-    // If the entity has a 'ReactOnAdd<SpacetimeEntity>' component, remove the component and call the callback.
-
-    let react_on_add_spacetime_entity_component = match world.get::<ReactOnAdd<SpacetimeEntity>>(entity) {
-        Some(react_on_add_spacetime_entity_component) => react_on_add_spacetime_entity_component,
-        None => {
-            return;
-        },
-    };
-
-    let spacetime_entity_component = world.get::<SpacetimeEntity>(entity).unwrap();
-
-    react_on_add_spacetime_entity_component.call(spacetime_entity_component);
-
-    // TODO: This shit ain't work here!!!!!!!! We can't modify the world from a hook, we should use an observer for that!!!!!!!!
-    //world.entity_mut(entity).remove::<ReactOnAdd<SpacetimeEntity>>();
 }
 
 pub(in super) fn on_remove_entity(

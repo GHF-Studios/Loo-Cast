@@ -3,7 +3,7 @@ use crate::operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY};
 use super::{components::Chunk, wrappers::ChunkInstanceRegistry};
 
 pub(in super) fn on_add_chunk(
-    world: DeferredWorld,
+    mut world: DeferredWorld,
     entity: Entity,
     _component: ComponentId,
 ) {
@@ -30,12 +30,19 @@ pub(in super) fn on_add_chunk(
                 },
             };
             chunk_instance_registry.manage(chunk_id, entity);
-            return;
         },
         None => {
             let chunk_id = chunk_instance_registry.register();
             chunk_instance_registry.manage(chunk_id, entity);
-            return;
+
+            let mut chunk = match world.get_mut::<Chunk>(entity) {
+                Some(chunk) => chunk,
+                None => {
+                    return;
+                },
+            };
+
+            *chunk.id_mut() = chunk_id;
         },
     };
 }

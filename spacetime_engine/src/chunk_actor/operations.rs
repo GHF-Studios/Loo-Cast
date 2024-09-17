@@ -26,6 +26,7 @@ impl UpgradeToChunkActor {
 }
 impl Operation for UpgradeToChunkActor {
     fn execute(&self, world: &mut World) {
+        println!("UpgradeToChunkActor::execute");
         let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
             Ok(main_type_registry) => main_type_registry,
             Err(_) => {
@@ -33,6 +34,8 @@ impl Operation for UpgradeToChunkActor {
                 return;
             },
         };
+
+        println!("UpgradeToChunkActor::execute 1");
 
         let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
             Some(entity_instance_registry) => entity_instance_registry,
@@ -42,6 +45,8 @@ impl Operation for UpgradeToChunkActor {
             },
         };
 
+        println!("UpgradeToChunkActor::execute 2");
+
         let target_entity = match entity_instance_registry.get(self.args.target_entity_id) {
             Some(target_entity) => *target_entity,
             None => {
@@ -49,6 +54,10 @@ impl Operation for UpgradeToChunkActor {
                 return;
             },
         };
+
+        drop(main_type_registry);
+
+        print!("UpgradeToChunkActor::execute 3");
 
         let mut target_entity_raw = match world.get_entity_mut(target_entity) {
             Some(target_entity_raw) => target_entity_raw,
@@ -58,12 +67,18 @@ impl Operation for UpgradeToChunkActor {
             },
         };
 
+        println!("UpgradeToChunkActor::execute 4");
+
         if target_entity_raw.contains::<ChunkActor>() {
             (self.callback)(UpgradeToChunkActorResult::Err(()));
             return;
         }
 
+        println!("UpgradeToChunkActor::execute 5");
+
         target_entity_raw.insert(ChunkActor::new(self.args.chunk_actor_start_chunk_id));
+
+        println!("UpgradeToChunkActor::execute 6");
 
         let chunk_actor_id = match target_entity_raw.get::<ChunkActor>() {
             Some(chunk_actor) => chunk_actor.id(),
@@ -73,9 +88,13 @@ impl Operation for UpgradeToChunkActor {
             },
         };
 
+        println!("UpgradeToChunkActor::execute 7");
+
         (self.callback)(UpgradeToChunkActorResult::Ok {
             chunk_actor_id,
         });
+
+        println!("UpgradeToChunkActor::execute 8");
     }
 }
 

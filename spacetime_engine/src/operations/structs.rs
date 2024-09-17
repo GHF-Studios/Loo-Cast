@@ -25,10 +25,13 @@ impl<T: 'static + Send + Sync> std::fmt::Debug for InstanceID<T> {
         write!(f, "{}ID({})", type_name, self.0)
     }
 }
-impl<T: 'static + Send + Sync> std::clone::Clone for InstanceID<T> {
-    fn clone(&self) -> Self {
-        Self(self.0, std::marker::PhantomData)
+impl<T: 'static + Send + Sync> std::fmt::Display for InstanceID<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
     }
+}
+impl<T: 'static + Send + Sync> std::clone::Clone for InstanceID<T> {
+    fn clone(&self) -> Self { *self }
 }
 impl<T: 'static + Send + Sync> core::marker::Copy for InstanceID<T> {
 }

@@ -8,7 +8,7 @@ use super::components::ChunkLoader;
 use super::wrappers::ChunkLoaderInstanceRegistry;
 
 pub(in super) fn on_add_chunk_loader(
-    world: DeferredWorld,
+    mut world: DeferredWorld,
     entity: Entity,
     _component: ComponentId,
 ) {
@@ -35,14 +35,21 @@ pub(in super) fn on_add_chunk_loader(
                 },
             };
             chunk_loader_instance_registry.manage(chunk_loader_id, entity);
-            return;
         },
         None => {
             let chunk_loader_id = chunk_loader_instance_registry.register();
             chunk_loader_instance_registry.manage(chunk_loader_id, entity);
-            return;
+
+            let mut chunk_loader = match world.get_mut::<ChunkLoader>(entity) {
+                Some(chunk_loader) => chunk_loader,
+                None => {
+                    return;
+                },
+            };
+
+            *chunk_loader.id_mut() = chunk_loader_id;
         },
-    };
+    }
 
     // TODO: Spawn the initial chunks
 }
