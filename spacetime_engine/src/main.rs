@@ -60,7 +60,7 @@ fn startup() {
 
             // Queue operation AA
             let mut operation_queue = OPERATION_QUEUE.lock().unwrap();
-            operation_queue.add_operation(Box::new(upgrade_to_chunk_actor_operation));
+            //operation_queue.add_operation(Box::new(upgrade_to_chunk_actor_operation));
             drop(operation_queue);
         };
     }));
