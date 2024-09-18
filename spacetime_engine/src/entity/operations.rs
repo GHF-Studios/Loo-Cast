@@ -10,12 +10,14 @@ use bevy::prelude::*;
 pub struct CreateEntityArgs {
     pub entity_position: EntityPosition,
 }
+impl OpArgs for CreateEntityArgs {}
 pub enum CreateEntityResult {
     Ok{
         entity_id: InstanceID<Entity>
     },
     Err(()),
 }
+impl OpResult for CreateEntityResult {}
 pub struct CreateEntity {
     args: CreateEntityArgs,
     callback: fn(CreateEntityResult),
@@ -29,6 +31,9 @@ impl CreateEntity {
     }
 }
 impl Operation for CreateEntity {
+    type Args = CreateEntityArgs;
+    type Result = CreateEntityResult;
+
     fn execute(&self, world: &mut World) {
         let entity = world.spawn((
             Transform::from_translation(self.args.entity_position.extend(0.0)),
@@ -52,10 +57,12 @@ impl Operation for CreateEntity {
 pub struct DestroyEntityArgs {
     pub entity_id: InstanceID<Entity>,
 }
+impl OpArgs for DestroyEntityArgs {}
 pub enum DestroyEntityResult {
     Ok(()),
     Err(()),
 }
+impl OpResult for DestroyEntityResult {}
 pub struct DestroyEntity {
     args: DestroyEntityArgs,
     callback: fn(DestroyEntityResult),
@@ -69,6 +76,9 @@ impl DestroyEntity {
     }
 }
 impl Operation for DestroyEntity {
+    type Args = DestroyEntityArgs;
+    type Result = DestroyEntityResult;
+
     fn execute(&self, world: &mut World) {
         let entity = {
             let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {

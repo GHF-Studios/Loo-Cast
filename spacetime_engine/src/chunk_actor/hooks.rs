@@ -13,7 +13,6 @@ pub(in super) fn on_add_chunk_actor(
     entity: Entity,
     _component: ComponentId,
 ) {
-    println!("on_add_chunk_actor");
     let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
         Ok(main_type_registry) => main_type_registry,
         Err(_) => {
@@ -21,16 +20,12 @@ pub(in super) fn on_add_chunk_actor(
         },
     };
 
-    println!("on_add_chunk_actor 1");
-
     let chunk_actor_instance_registry = match main_type_registry.get_data_mut::<ChunkActor, ChunkActorInstanceRegistry>() {
         Some(chunk_actor_instance_registry) => chunk_actor_instance_registry,
         None => {
             return;
         },
     };
-
-    println!("on_add_chunk_actor 2");
 
     match world.get::<Serialized>(entity) {
         Some(_) => {
@@ -57,8 +52,6 @@ pub(in super) fn on_add_chunk_actor(
         },
     }
 
-    println!("on_add_chunk_actor 3");
-
     let chunk_actor = match world.get::<ChunkActor>(entity) {
         Some(chunk_actor) => chunk_actor,
         None => {
@@ -66,13 +59,9 @@ pub(in super) fn on_add_chunk_actor(
         },
     };
 
-    println!("on_add_chunk_actor 4");
-
     let chunk_actor_id = chunk_actor.id();
 
     let chunk_id = chunk_actor.current_chunk();
-
-    println!("on_add_chunk_actor 5");
 
     let chunk_instance_registry = match main_type_registry.get_data_mut::<Chunk, ChunkInstanceRegistry>() {
         Some(chunk_instance_registry) => chunk_instance_registry,
@@ -81,16 +70,12 @@ pub(in super) fn on_add_chunk_actor(
         },
     };
 
-    println!("on_add_chunk_actor 6");
-
     let chunk_entity = match chunk_instance_registry.get(chunk_id) {
         Some(chunk_entity) => *chunk_entity,
         None => {
             return;
         },
     };
-
-    println!("on_add_chunk_actor 7");
 
     let mut chunk = match world.get_mut::<Chunk>(chunk_entity) {
         Some(chunk) => chunk,
@@ -99,11 +84,7 @@ pub(in super) fn on_add_chunk_actor(
         },
     };
 
-    println!("on_add_chunk_actor 8");
-
     chunk.register_chunk_actor(chunk_actor_id);
-
-    println!("on_add_chunk_actor 9");
 }
 
 pub(in super) fn on_remove_chunk_actor(

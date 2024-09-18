@@ -1,17 +1,19 @@
 use bevy::prelude::*;
-use crate::{chunk::{components::Chunk, singletons::SERIALIZED_CHUNK_STORAGE, wrappers::ChunkInstanceRegistry}, entity::wrappers::EntityInstanceRegistry, operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY, structs::InstanceID, traits::Operation}};
+use crate::{chunk::{components::Chunk, singletons::SERIALIZED_CHUNK_STORAGE, wrappers::ChunkInstanceRegistry}, entity::wrappers::EntityInstanceRegistry, operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY, structs::InstanceID, traits::*}};
 use super::{components::ChunkActor, wrappers::ChunkActorInstanceRegistry};
 
 pub struct UpgradeToChunkActorArgs {
     pub target_entity_id: InstanceID<Entity>,
     pub chunk_actor_start_chunk_id: InstanceID<Chunk>,
 }
+impl OpArgs for UpgradeToChunkActorArgs {}
 pub enum UpgradeToChunkActorResult {
     Ok{
         chunk_actor_id: InstanceID<ChunkActor>,
     },
     Err(()),
 }
+impl OpResult for UpgradeToChunkActorResult {}
 pub struct UpgradeToChunkActor {
     args: UpgradeToChunkActorArgs,
     callback: fn(UpgradeToChunkActorResult),
@@ -25,8 +27,10 @@ impl UpgradeToChunkActor {
     }
 }
 impl Operation for UpgradeToChunkActor {
+    type Args = UpgradeToChunkActorArgs;
+    type Result = UpgradeToChunkActorResult;
+
     fn execute(&self, world: &mut World) {
-        println!("UpgradeToChunkActor::execute");
         let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
             Ok(main_type_registry) => main_type_registry,
             Err(_) => {
@@ -35,8 +39,6 @@ impl Operation for UpgradeToChunkActor {
             },
         };
 
-        println!("UpgradeToChunkActor::execute 1");
-
         let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
             Some(entity_instance_registry) => entity_instance_registry,
             None => {
@@ -44,8 +46,6 @@ impl Operation for UpgradeToChunkActor {
                 return;
             },
         };
-
-        println!("UpgradeToChunkActor::execute 2");
 
         let target_entity = match entity_instance_registry.get(self.args.target_entity_id) {
             Some(target_entity) => *target_entity,
@@ -57,8 +57,6 @@ impl Operation for UpgradeToChunkActor {
 
         drop(main_type_registry);
 
-        print!("UpgradeToChunkActor::execute 3");
-
         let mut target_entity_raw = match world.get_entity_mut(target_entity) {
             Some(target_entity_raw) => target_entity_raw,
             None => {
@@ -67,18 +65,12 @@ impl Operation for UpgradeToChunkActor {
             },
         };
 
-        println!("UpgradeToChunkActor::execute 4");
-
         if target_entity_raw.contains::<ChunkActor>() {
             (self.callback)(UpgradeToChunkActorResult::Err(()));
             return;
         }
 
-        println!("UpgradeToChunkActor::execute 5");
-
         target_entity_raw.insert(ChunkActor::new(self.args.chunk_actor_start_chunk_id));
-
-        println!("UpgradeToChunkActor::execute 6");
 
         let chunk_actor_id = match target_entity_raw.get::<ChunkActor>() {
             Some(chunk_actor) => chunk_actor.id(),
@@ -88,13 +80,9 @@ impl Operation for UpgradeToChunkActor {
             },
         };
 
-        println!("UpgradeToChunkActor::execute 7");
-
         (self.callback)(UpgradeToChunkActorResult::Ok {
             chunk_actor_id,
         });
-
-        println!("UpgradeToChunkActor::execute 8");
     }
 }
 
@@ -102,10 +90,12 @@ pub struct DowngradeFromChunkActorArgs {
     pub chunk_actor_entity_id: InstanceID<Entity>,
     pub chunk_actor_id: InstanceID<ChunkActor>,
 }
+impl OpArgs for DowngradeFromChunkActorArgs {}
 pub enum DowngradeFromChunkActorResult {
     Ok(()),
     Err(()),
 }
+impl OpResult for DowngradeFromChunkActorResult {}
 pub struct DowngradeFromChunkActor {
     args: DowngradeFromChunkActorArgs,
     callback: fn(DowngradeFromChunkActorResult),
@@ -119,6 +109,9 @@ impl DowngradeFromChunkActor {
     }
 }
 impl Operation for DowngradeFromChunkActor {
+    type Args = DowngradeFromChunkActorArgs;
+    type Result = DowngradeFromChunkActorResult;
+
     fn execute(&self, world: &mut World) {
         let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
             Ok(main_type_registry) => main_type_registry,

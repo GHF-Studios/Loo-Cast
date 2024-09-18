@@ -1,12 +1,15 @@
 extern crate spacetime_engine;
 
+use std::collections::HashMap;
 use std::env;
 
 use bevy::{log::LogPlugin, prelude::*};
 use bevy_rapier2d::prelude::*;
+use spacetime_engine::chunk::structs::ChunkPosition;
 use spacetime_engine::entity::structs::EntityPosition;
-use spacetime_engine::operations::structs::InstanceID;
-use spacetime_engine::operations::traits::InstanceRegistryKey;
+use spacetime_engine::math::structs::I16Vec2;
+use spacetime_engine::operations::structs::{InstanceID, OperationQueue};
+use spacetime_engine::operations::traits::*;
 use spacetime_engine::SpacetimeEnginePlugins;
 use spacetime_engine::operations::singletons::*;
 use spacetime_engine::entity::operations::*;
@@ -31,7 +34,7 @@ use spacetime_engine::chunk_loader::operations::*;
 // TODO: Implement stars via gravity and electromagnetism
 
 fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
+    //env::set_var("RUST_BACKTRACE", "1");
     
     App::new()
         .add_plugins(DefaultPlugins.set(LogPlugin {
@@ -50,56 +53,101 @@ fn pre_startup(mut rapier_configuration: ResMut<RapierConfiguration>) {
     rapier_configuration.gravity = Vec2::new(0.0, 0.0);
 }
 
-fn new_new_startup() {
-
+pub trait Script {
+    fn run(&self, context: &mut ScriptContext);
 }
 
-//fn new_startup() {
-//    // Create operation 'A' and execute it synchronously
-//    let entity_position = EntityPosition(Vec2::new(0.0, 0.0));
-//    let create_entity_args = CreateEntityArgs { entity_position };
-//    let create_entity_operation = CreateEntity::new(create_entity_args);
-//
-//    // Execute operation 'A' synchronously and get the result
-//    let create_entity_result = execute_operation_sync(Box::new(create_entity_operation));
-//
-//    match create_entity_result {
-//        CreateEntityResult::Ok { entity_id } => {
-//            warn!("Successfully created entity '{}'!", entity_id);
-//
-//            // Create operation 'B' using the result from 'A'
-//            let upgrade_to_chunk_actor_args = UpgradeToChunkActorArgs {
-//                target_entity_id: entity_id,
-//                chunk_actor_start_chunk_id: InstanceID::new(1),
-//            };
-//            let upgrade_to_chunk_actor_operation = UpgradeToChunkActor::new(upgrade_to_chunk_actor_args);
-//
-//            // Execute operation 'B' synchronously and get the result
-//            let upgrade_result = execute_operation_sync(Box::new(upgrade_to_chunk_actor_operation));
-//
-//            match upgrade_result {
-//                UpgradeToChunkActorResult::Ok { chunk_actor_id } => {
-//                    warn!("Successfully upgraded to chunk actor '{}'!", chunk_actor_id);
-//                }
-//                _ => {
-//                    warn!("Failed to upgrade entity to chunk actor!");
-//                }
-//            }
-//        }
-//        _ => {
-//            warn!("Failed to create entity!");
-//        }
-//    }
-//}
+pub struct ScriptContext {
+}
+
+impl ScriptContext {
+    pub fn run_op<O, A, R>(&mut self, args: O::Args) -> O::Result
+    where
+        O: Operation<Args = A, Result = R>,
+        A: OpArgs,
+        R: OpResult,
+    {
+        // TODO: Somehow create a mapping to the actual operation queueing and execution, yk?
+        unimplemented!();
+    }
+}
+
+
+fn spawn_chunk_new(context: &mut ScriptContext) {
+    let entity_id = match context.run_op::<CreateEntity, _, _>(CreateEntityArgs { entity_position: EntityPosition(Vec2::new(0.0, 0.0)) }) {
+        CreateEntityResult::Ok{ entity_id } => entity_id,
+        CreateEntityResult::Err(_) => {
+            return;
+        },
+    };
+
+    let _chunk_id = match context.run_op::<UpgradeToChunk, _, _>(UpgradeToChunkArgs { target_entity_id: entity_id, chunk_position: ChunkPosition(I16Vec2(0, 0)), chunk_owner: None }) {
+        UpgradeToChunkResult::Ok{ chunk_id } => chunk_id,
+        UpgradeToChunkResult::Err(_) => {
+            return;
+        },
+    };
+}
 
 fn startup() {
+    spawn_chunk();
+    spawn_chunk_actor();
+}
+
+fn spawn_chunk() {
     // Create operation 'A'
     let entity_position = EntityPosition(Vec2::new(0.0, 0.0));
     let create_entity_args = CreateEntityArgs { entity_position };
     let create_entity_operation = CreateEntity::new(create_entity_args, Some(|result| {
         // Check operation 'A' result
         if let CreateEntityResult::Ok{ entity_id } = result {
-            // TODO: Remove this line
+            warn!("Successfully created entity '{}'!", entity_id);
+
+            // Create operation 'B'
+            let upgrade_to_chunk_args = UpgradeToChunkArgs {
+                target_entity_id: entity_id,
+                chunk_position: ChunkPosition(I16Vec2(0, 0)),
+                chunk_owner: None
+            };
+            let upgrade_to_chunk_operation = UpgradeToChunk::new(upgrade_to_chunk_args, Some(|result| {
+                // Check operation 'B' result
+                if let UpgradeToChunkResult::Ok{ chunk_id } = result {
+                    warn!("Successfully upgraded to chunk '{}'!", chunk_id);
+                } else {
+                    warn!("Failed to upgrade entity to chunk!");
+                }
+            }));
+
+            warn!("Created chunk operation!");
+
+            // Queue operation 'B'
+            let mut operation_queue = OPERATION_QUEUE.lock().unwrap();
+            operation_queue.add_operation(Box::new(upgrade_to_chunk_operation));
+            drop(operation_queue);
+
+            warn!("Queued chunk operation!");
+        } else {
+            warn!("Failed to create entity!");
+        }
+    }));
+
+    warn!("Created entity operation!");
+
+    // Queue operation 'A'
+    let mut operation_queue = OPERATION_QUEUE.lock().unwrap();
+    operation_queue.add_operation(Box::new(create_entity_operation));
+    drop(operation_queue);
+
+    warn!("Queued entity operation!");
+}
+
+fn spawn_chunk_actor() {
+    // Create operation 'A'
+    let entity_position = EntityPosition(Vec2::new(0.0, 0.0));
+    let create_entity_args = CreateEntityArgs { entity_position };
+    let create_entity_operation = CreateEntity::new(create_entity_args, Some(|result| {
+        // Check operation 'A' result
+        if let CreateEntityResult::Ok{ entity_id } = result {
             warn!("Successfully created entity '{}'!", entity_id);
 
             // Create operation 'B'
@@ -110,15 +158,12 @@ fn startup() {
             let upgrade_to_chunk_actor_operation = UpgradeToChunkActor::new(upgrade_to_chunk_actor_args, Some(|result| {
                 // Check operation 'B' result
                 if let UpgradeToChunkActorResult::Ok{ chunk_actor_id } = result {
-                    // TODO: Remove this line
                     warn!("Successfully upgraded to chunk actor '{}'!", chunk_actor_id);
                 } else {
-                    // TODO: Remove this line
                     warn!("Failed to upgrade entity to chunk actor!");
                 }
             }));
 
-            // TODO: Remove this line
             warn!("Created chunk actor operation!");
 
             // Queue operation 'B'
@@ -126,15 +171,12 @@ fn startup() {
             operation_queue.add_operation(Box::new(upgrade_to_chunk_actor_operation));
             drop(operation_queue);
 
-            // TODO: Remove this line
             warn!("Queued chunk actor operation!");
         } else {
-            // TODO: Remove this line
             warn!("Failed to create entity!");
         }
     }));
 
-    // TODO: Remove this line
     warn!("Created entity operation!");
 
     // Queue operation 'A'
@@ -142,6 +184,5 @@ fn startup() {
     operation_queue.add_operation(Box::new(create_entity_operation));
     drop(operation_queue);
 
-    // TODO: Remove this line
     warn!("Queued entity operation!");
 }

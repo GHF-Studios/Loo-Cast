@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::{chunk_actor::{components::ChunkActor, wrappers::ChunkActorInstanceRegistry}, chunk_loader::components::ChunkLoader, entity::wrappers::EntityInstanceRegistry, operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY, structs::InstanceID, traits::Operation}};
+use crate::{chunk_actor::{components::ChunkActor, wrappers::ChunkActorInstanceRegistry}, chunk_loader::components::ChunkLoader, entity::wrappers::EntityInstanceRegistry, operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY, structs::InstanceID, traits::{OpArgs, OpResult, Operation}}};
 use super::{components::Chunk, singletons::SERIALIZED_CHUNK_STORAGE, structs::ChunkPosition, wrappers::ChunkInstanceRegistry};
 
 pub struct UpgradeToChunkArgs {
@@ -7,12 +7,14 @@ pub struct UpgradeToChunkArgs {
     pub chunk_position: ChunkPosition,
     pub chunk_owner: Option<InstanceID<ChunkLoader>>,
 }
+impl OpArgs for UpgradeToChunkArgs {}
 pub enum UpgradeToChunkResult {
     Ok{
         chunk_id: InstanceID<Chunk>,
     },
     Err(()),
 }
+impl OpResult for UpgradeToChunkResult {}
 pub struct UpgradeToChunk {
     args: UpgradeToChunkArgs,
     callback: fn(UpgradeToChunkResult),
@@ -26,6 +28,9 @@ impl UpgradeToChunk {
     }
 }
 impl Operation for UpgradeToChunk {
+    type Args = UpgradeToChunkArgs;
+    type Result = UpgradeToChunkResult;
+
     fn execute(&self, world: &mut World) {
         if world.query::<&Chunk>().iter(world).any(|chunk| chunk.position() == self.args.chunk_position) {
             (self.callback)(UpgradeToChunkResult::Err(()));
@@ -99,10 +104,12 @@ pub struct DowngradeFromChunkArgs {
     pub chunk_entity_id: InstanceID<Entity>,
     pub chunk_id: InstanceID<Chunk>,
 }
+impl OpArgs for DowngradeFromChunkArgs {}
 pub enum DowngradeFromChunkResult {
     Ok(()),
     Err(()),
 }
+impl OpResult for DowngradeFromChunkResult {}
 pub struct DowngradeFromChunk {
     args: DowngradeFromChunkArgs,
     callback: fn(DowngradeFromChunkResult),
@@ -116,6 +123,9 @@ impl DowngradeFromChunk {
     }
 }
 impl Operation for DowngradeFromChunk {
+    type Args = DowngradeFromChunkArgs;
+    type Result = DowngradeFromChunkResult;
+
     fn execute(&self, world: &mut World) {
         let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
             Ok(main_type_registry) => main_type_registry,
@@ -248,10 +258,12 @@ impl Operation for DowngradeFromChunk {
 pub struct LoadChunkArgs {
     pub chunk_position: ChunkPosition,
 }
+impl OpArgs for LoadChunkArgs {}
 pub enum LoadChunkResult {
     Ok(()),
     Err(()),
 }
+impl OpResult for LoadChunkResult {}
 pub struct LoadChunk {
     args: LoadChunkArgs,
     callback: fn(LoadChunkResult),
@@ -265,6 +277,9 @@ impl LoadChunk {
     }
 }
 impl Operation for LoadChunk {
+    type Args = LoadChunkArgs;
+    type Result = LoadChunkResult;
+
     fn execute(&self, world: &mut World) {
         if world.query::<&Chunk>().iter(world).any(|chunk| chunk.position() == self.args.chunk_position) {
             (self.callback)(LoadChunkResult::Err(()));
@@ -333,10 +348,12 @@ impl Operation for LoadChunk {
 pub struct UnloadChunkArgs {
     pub chunk_position: ChunkPosition,
 }
+impl OpArgs for UnloadChunkArgs {}
 pub enum UnloadChunkResult {
     Ok(()),
     Err(()),
 }
+impl OpResult for UnloadChunkResult {}
 pub struct UnloadChunk {
     args: UnloadChunkArgs,
     callback: fn(UnloadChunkResult),
@@ -350,6 +367,9 @@ impl UnloadChunk {
     }
 }
 impl Operation for UnloadChunk {
+    type Args = UnloadChunkArgs;
+    type Result = UnloadChunkResult;
+
     fn execute(&self, world: &mut World) {
         let (chunk_entity, chunk) = match world.query::<(Entity, &Chunk)>().iter(world).find(|(_, chunk)| chunk.position() == self.args.chunk_position) {
             Some((chunk_entity, chunk)) => (chunk_entity, chunk),
@@ -440,10 +460,12 @@ pub struct SaveChunkArgs {
     pub chunk_position: ChunkPosition,
     pub force: bool,
 }
+impl OpArgs for SaveChunkArgs {}
 pub enum SaveChunkResult {
     Ok(()),
     Err(()),
 }
+impl OpResult for SaveChunkResult {}
 pub struct SaveChunk {
     args: SaveChunkArgs,
     callback: fn(SaveChunkResult),
@@ -457,6 +479,9 @@ impl SaveChunk {
     }
 }
 impl Operation for SaveChunk {
+    type Args = SaveChunkArgs;
+    type Result = SaveChunkResult;
+
     fn execute(&self, world: &mut World) {
         let mut serialized_chunk_storage = match SERIALIZED_CHUNK_STORAGE.lock() {
             Ok(serialized_chunk_storage) => serialized_chunk_storage,
@@ -541,10 +566,12 @@ impl Operation for SaveChunk {
 pub struct UnsaveChunkArgs {
     pub chunk_position: ChunkPosition,
 }
+impl OpArgs for UnsaveChunkArgs {}
 pub enum UnsaveChunkResult {
     Ok(()),
     Err(()),
 }
+impl OpResult for UnsaveChunkResult {}
 pub struct UnsaveChunk {
     args: UnsaveChunkArgs,
     callback: fn(UnsaveChunkResult),
@@ -558,6 +585,9 @@ impl UnsaveChunk {
     }
 }
 impl Operation for UnsaveChunk {
+    type Args = UnsaveChunkArgs;
+    type Result = UnsaveChunkResult;
+    
     fn execute(&self, world: &mut World) {
         let serialized_chunk_storage = match SERIALIZED_CHUNK_STORAGE.lock() {
             Ok(serialized_chunk_storage) => serialized_chunk_storage,

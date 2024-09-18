@@ -1,17 +1,19 @@
 use bevy::prelude::*;
-use crate::operations::{structs::InstanceID, traits::Operation};
+use crate::operations::{structs::InstanceID, traits::*};
 use super::components::*;
 
 pub struct UpgradeToChunkLoaderArgs {
     pub target_entity_id: InstanceID<Entity>,
     pub chunk_loader_load_radius: u16
 }
+impl OpArgs for UpgradeToChunkLoaderArgs {}
 pub enum UpgradeToChunkLoaderResult {
     Ok{
         chunk_loader_id: InstanceID<ChunkLoader>,
     },
     Err(()),
 }
+impl OpResult for UpgradeToChunkLoaderResult {}
 pub struct UpgradeToChunkLoader {
     args: UpgradeToChunkLoaderArgs,
     callback: fn(UpgradeToChunkLoaderResult),
@@ -25,6 +27,9 @@ impl UpgradeToChunkLoader {
     }
 }
 impl Operation for UpgradeToChunkLoader {
+    type Args = UpgradeToChunkLoaderArgs;
+    type Result = UpgradeToChunkLoaderResult;
+
     fn execute(&self, world: &mut World) {
         // Step 1: Error if the chunk loader is present in the world
         // Step 2: Error if the chunk loader is present in the serialized chunk storage
@@ -36,10 +41,12 @@ pub struct DowngradeFromChunkLoaderArgs {
     pub chunk_loader_entity_id: InstanceID<Entity>,
     pub chunk_loader_id: InstanceID<ChunkLoader>,
 }
+impl OpArgs for DowngradeFromChunkLoaderArgs {}
 pub enum DowngradeFromChunkLoaderResult {
     Ok(()),
     Err(()),
 }
+impl OpResult for DowngradeFromChunkLoaderResult {}
 pub struct DowngradeFromChunkLoader {
     args: DowngradeFromChunkLoaderArgs,
     callback: fn(DowngradeFromChunkLoaderResult),
@@ -53,6 +60,9 @@ impl DowngradeFromChunkLoader {
     }
 }
 impl Operation for DowngradeFromChunkLoader {
+    type Args = DowngradeFromChunkLoaderArgs;
+    type Result = DowngradeFromChunkLoaderResult;
+
     fn execute(&self, world: &mut World) {
         // Step 1: Error if the chunk loader is not actually a chunk loader
         // Step 2: Error if the chunk loader is marked as serialized
