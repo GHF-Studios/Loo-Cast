@@ -5,7 +5,9 @@ use std::env;
 
 use bevy::{log::LogPlugin, prelude::*};
 use bevy_rapier2d::prelude::*;
+use spacetime_engine::chunk::components::Chunk;
 use spacetime_engine::chunk::structs::ChunkPosition;
+use spacetime_engine::chunk_loader::components::ChunkLoader;
 use spacetime_engine::entity::structs::EntityPosition;
 use spacetime_engine::math::structs::I16Vec2;
 use spacetime_engine::operations::structs::{InstanceID, OperationQueue};
@@ -53,41 +55,45 @@ fn pre_startup(mut rapier_configuration: ResMut<RapierConfiguration>) {
     rapier_configuration.gravity = Vec2::new(0.0, 0.0);
 }
 
-pub trait Script {
-    fn run(&self, context: &mut ScriptContext);
+#[command(
+    crate_name = "spacetime_engine",
+    module_name = "main",
+    command_name = "spawn_chunk",
+    inputs = [entity_position: EntityPosition, chunk_owner: InstanceID<ChunkLoader>], 
+    outputs = [chunk_id: InstanceID<Chunk>]
+)]
+fn spawn_chunk(cmd: CommandBuilder) -> Command { 
+    cmd.start("spacetime_engine/main/spawn_chunk");
+
+    // Inputs
+    let entity_position = cmd.input_data::<EntityPosition>("entity_position");
+    let chunk_owner = cmd.input_data::<InstanceID<ChunkLoader>>("chunk_owner");
+
+    // Create entity
+    let create_entity_args = cmd.convert_data::<CreateEntityArgs>(entity_position);
+    let entity_id = cmd.operate::<CreateEntity>(create_entity_args);
+
+    // Upgrade entity to movement
+    let velocity = cmd.literal_data::<Vec2>((0.0f32, 0.0f32));
+    let upgrade_to_movement_args = cmd.convert_data::<UpgradeToMovementArgs>((entity_id, velocity));
+    let movement_id = cmd.operate::<UpgradeToMovement>(upgrade_to_movement_args);
+    
+    // Upgrade entity to chunk
+    let chunk_position = cmd.convert_data::<ChunkPosition>(entity_position);
+    let upgrade_to_chunk_args = cmd.convert_data::<UpgradeToChunkArgs>((entity_id, chunk_position, chunk_owner));
+    let chunk_id = cmd.operate::<UpgradeToChunk>(upgrade_to_chunk_args);
+
+    // Outputs
+    cmd.output_data("chunk_id", chunk_id);
+
+    cmd.end()
 }
 
-pub struct ScriptContext {
-}
-
-impl ScriptContext {
-    pub fn run_op<O, A, R>(&mut self, args: O::Args) -> O::Result
-    where
-        O: Operation<Args = A, Result = R>,
-        A: OpArgs,
-        R: OpResult,
-    {
-        // TODO: Somehow create a mapping to the actual operation queueing and execution, yk?
-        unimplemented!();
-    }
-}
 
 
-fn spawn_chunk_new(context: &mut ScriptContext) {
-    let entity_id = match context.run_op::<CreateEntity, _, _>(CreateEntityArgs { entity_position: EntityPosition(Vec2::new(0.0, 0.0)) }) {
-        CreateEntityResult::Ok{ entity_id } => entity_id,
-        CreateEntityResult::Err(_) => {
-            return;
-        },
-    };
 
-    let _chunk_id = match context.run_op::<UpgradeToChunk, _, _>(UpgradeToChunkArgs { target_entity_id: entity_id, chunk_position: ChunkPosition(I16Vec2(0, 0)), chunk_owner: None }) {
-        UpgradeToChunkResult::Ok{ chunk_id } => chunk_id,
-        UpgradeToChunkResult::Err(_) => {
-            return;
-        },
-    };
-}
+
+
 
 fn startup() {
     spawn_chunk();
