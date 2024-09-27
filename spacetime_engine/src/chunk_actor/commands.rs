@@ -7,10 +7,9 @@ use crate::entity::operations::*;
 use crate::chunk_actor::operations::*;
 use crate::operations::utilities::*;
 
-pub async fn spawn_chunk_actor() -> Result<InstanceID<ChunkActor>, String> {
+pub async fn spawn_chunk_actor(entity_position: EntityPosition) -> Result<InstanceID<ChunkActor>, String> {
     debug!("Creating entity ...");
 
-    let entity_position = EntityPosition(Vec2::new(0.0, 0.0));
     let create_entity_args = CreateEntityArgs { entity_position };
     let create_entity_result = run_op::<CreateEntity>(create_entity_args).await;
     let entity_id = match create_entity_result {

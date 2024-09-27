@@ -3,8 +3,11 @@ extern crate spacetime_engine;
 use bevy::prelude::*;
 use bevy::log::LogPlugin;
 use bevy_rapier2d::prelude::*;
+use spacetime_engine::chunk::structs::ChunkPosition;
+use spacetime_engine::entity::structs::EntityPosition;
+use spacetime_engine::math::structs::I16Vec2;
 use spacetime_engine::operations::singletons::TOKIO_RUNTIME;
-use spacetime_engine::SpacetimeEnginePlugins;
+use spacetime_engine::{entity, SpacetimeEnginePlugins};
 use spacetime_engine::chunk::commands::*;
 use spacetime_engine::chunk_actor::commands::*;
 
@@ -43,17 +46,26 @@ fn pre_startup(mut rapier_configuration: ResMut<RapierConfiguration>) {
 }
 
 fn startup() {
-    // Access the existing Tokio runtime
     let runtime = TOKIO_RUNTIME.lock().unwrap();
 
-    // Spawn the async task within the Tokio runtime's context
     runtime.spawn(async {
-        if let Err(e) = spawn_chunk().await {
-            eprintln!("Error spawning chunk: {:?}", e);
-        }
+        for x in -1..=1 {
+            for y in -1..=1 {
+                let chunk_position = ChunkPosition(I16Vec2(x, y));
+                let entity_position: EntityPosition = chunk_position.into();
 
-        if let Err(e) = spawn_chunk_actor().await {
-            eprintln!("Error spawning chunk actor: {:?}", e);
+                if let Err(e) = spawn_chunk(chunk_position).await {
+                    error!("Error spawning chunk: {:?}", e);
+                } else {
+                    debug!("Spawned chunk at {:?}", chunk_position);
+                }
+        
+                if let Err(e) = spawn_chunk_actor(entity_position).await {
+                    error!("Error spawning chunk actor: {:?}", e);
+                } else {
+                    debug!("Spawned chunk actor at {:?}", entity_position);
+                }
+            }
         }
     });
 }
