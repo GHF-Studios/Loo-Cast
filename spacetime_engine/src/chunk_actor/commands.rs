@@ -8,6 +8,8 @@ use crate::chunk_actor::operations::*;
 use crate::operations::utilities::*;
 
 pub async fn spawn_chunk_actor() -> Result<InstanceID<ChunkActor>, String> {
+    debug!("Creating entity ...");
+
     let entity_position = EntityPosition(Vec2::new(0.0, 0.0));
     let create_entity_args = CreateEntityArgs { entity_position };
     let create_entity_result = run_op::<CreateEntity>(create_entity_args).await;
@@ -17,6 +19,9 @@ pub async fn spawn_chunk_actor() -> Result<InstanceID<ChunkActor>, String> {
             return Err("Failed to create entity!".to_string());
         }
     };
+
+    debug!("Created entity '{}'", entity_id);
+    debug!("Upgrading entity '{}' to chunk actor ...", entity_id);
 
     let upgrade_to_chunk_actor_args = UpgradeToChunkActorArgs {
         target_entity_id: entity_id,
@@ -29,6 +34,8 @@ pub async fn spawn_chunk_actor() -> Result<InstanceID<ChunkActor>, String> {
             return Err(format!("Failed to upgrade entity '{}' to chunk actor!", entity_id));
         }
     };
+
+    debug!("Upgraded entity '{}' to chunk actor '{}'", entity_id, chunk_actor_id);
 
     Ok(chunk_actor_id)
 }

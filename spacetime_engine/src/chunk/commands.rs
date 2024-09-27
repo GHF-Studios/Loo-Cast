@@ -9,6 +9,8 @@ use crate::chunk::operations::*;
 use crate::operations::utilities::*;
 
 pub async fn spawn_chunk() -> Result<InstanceID<Chunk>, String> {
+    debug!("Creating entity ...");
+
     let entity_position = EntityPosition(Vec2::new(0.0, 0.0));
     let create_entity_args = CreateEntityArgs { entity_position };
     let create_entity_result = run_op::<CreateEntity>(create_entity_args).await;
@@ -18,6 +20,9 @@ pub async fn spawn_chunk() -> Result<InstanceID<Chunk>, String> {
             return Err("Failed to create entity!".to_string());
         }
     };
+
+    debug!("Created entity '{}'", entity_id);
+    debug!("Upgrading entity '{}' to chunk ...", entity_id);
 
     let upgrade_to_chunk_args = UpgradeToChunkArgs {
         target_entity_id: entity_id,
@@ -31,6 +36,8 @@ pub async fn spawn_chunk() -> Result<InstanceID<Chunk>, String> {
             return Err(format!("Failed to upgrade entity '{}' to chunk!", entity_id));
         }
     };
+
+    debug!("Upgraded entity '{}' to chunk '{}'", entity_id, chunk_id);
 
     Ok(chunk_id)
 }
