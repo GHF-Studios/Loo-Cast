@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::chunk_actor::components::ChunkActor;
+use crate::chunk_actor::constants::HALF_CHUNK_ACTOR_SIZE;
 use crate::entity::structs::EntityPosition;
 use crate::operations::structs::InstanceID;
 use crate::operations::traits::*;
@@ -39,8 +40,8 @@ pub async fn spawn_chunk_actor(entity_position: EntityPosition) -> Result<Instan
         sprite: Some(Sprite {
             color: Color::srgba(0.0, 1.0, 0.0, 1.0),
             rect: Some(Rect {
-                min: Vec2::new(-16.0, -16.0),
-                max: Vec2::new(16.0, 16.0),
+                min: Vec2::new(-HALF_CHUNK_ACTOR_SIZE, -HALF_CHUNK_ACTOR_SIZE),
+                max: Vec2::new(HALF_CHUNK_ACTOR_SIZE, HALF_CHUNK_ACTOR_SIZE),
             }),
             ..Default::default()
         }),

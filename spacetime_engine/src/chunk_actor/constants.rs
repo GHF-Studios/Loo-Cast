@@ -1,2 +1,3 @@
-pub const CHUNK_ACTOR_SIZE: f32 = 50.0;
+pub const CHUNK_ACTOR_SIZE: f32 = 32.0;
+pub const HALF_CHUNK_ACTOR_SIZE: f32 = CHUNK_ACTOR_SIZE / 2.0;
 pub const CHUNK_ACTOR_Z_INDEX: f32 = 0.0;
