@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::chunk::components::Chunk;
+use crate::chunk::constants::HALF_CHUNK_SIZE_F32;
 use crate::chunk::structs::ChunkPosition;
 use crate::entity::structs::EntityPosition;
 use crate::operations::structs::InstanceID;
@@ -9,8 +10,6 @@ use crate::operations::commands::*;
 use crate::sprite_bundle::operations::*;
 
 pub async fn spawn_chunk(chunk_position: ChunkPosition) -> Result<InstanceID<Chunk>, String> {
-    debug!("Creating entity ...");
-
     let entity_position: EntityPosition = chunk_position.into();
     let create_entity_args = CreateEntityArgs { entity_position };
     let create_entity_result = run_op::<CreateEntity>(create_entity_args).await;
@@ -22,7 +21,6 @@ pub async fn spawn_chunk(chunk_position: ChunkPosition) -> Result<InstanceID<Chu
     };
 
     debug!("Created entity '{}'", entity_id);
-    debug!("Upgrading entity '{}' to chunk ...", entity_id);
 
     let upgrade_to_chunk_args = UpgradeToChunkArgs {
         target_entity_id: entity_id,
@@ -38,10 +36,23 @@ pub async fn spawn_chunk(chunk_position: ChunkPosition) -> Result<InstanceID<Chu
     };
 
     debug!("Upgraded entity '{}' to chunk '{}'", entity_id, chunk_id);
-    debug!("Upgrading entity '{}' to sprite bundle ...", entity_id);
 
+    let color = if (chunk_position.0.0 + chunk_position.0.1) % 2 == 0 {
+        Color::srgba(0.25, 0.25, 0.25, 0.5)
+    } else {
+        Color::srgba(0.75, 0.75, 0.75, 0.5)
+    };
+    let rect = Some(Rect {
+        min: Vec2::new(-HALF_CHUNK_SIZE_F32, -HALF_CHUNK_SIZE_F32),
+        max: Vec2::new(HALF_CHUNK_SIZE_F32, HALF_CHUNK_SIZE_F32),
+    });
     let upgrade_to_sprite_bundle_args = UpgradeToSpriteBundleArgs {
         target_entity_id: entity_id,
+        sprite: Some(Sprite {
+            color,
+            rect,
+            ..Default::default()
+        }),
         ..Default::default()
     };
     let upgrade_to_sprite_bundle_result = run_op::<UpgradeToSpriteBundle>(upgrade_to_sprite_bundle_args).await;

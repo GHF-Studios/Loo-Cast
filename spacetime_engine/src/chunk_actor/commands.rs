@@ -9,8 +9,6 @@ use crate::operations::commands::*;
 use crate::sprite_bundle::operations::*;
 
 pub async fn spawn_chunk_actor(entity_position: EntityPosition) -> Result<InstanceID<ChunkActor>, String> {
-    debug!("Creating entity ...");
-
     let create_entity_args = CreateEntityArgs { entity_position };
     let create_entity_result = run_op::<CreateEntity>(create_entity_args).await;
     let entity_id = match create_entity_result {
@@ -21,7 +19,6 @@ pub async fn spawn_chunk_actor(entity_position: EntityPosition) -> Result<Instan
     };
 
     debug!("Created entity '{}'", entity_id);
-    debug!("Upgrading entity '{}' to chunk actor ...", entity_id);
 
     let upgrade_to_chunk_actor_args = UpgradeToChunkActorArgs {
         target_entity_id: entity_id,
@@ -36,10 +33,17 @@ pub async fn spawn_chunk_actor(entity_position: EntityPosition) -> Result<Instan
     };
 
     debug!("Upgraded entity '{}' to chunk actor '{}'", entity_id, chunk_actor_id);
-    debug!("Upgrading entity '{}' to sprite bundle ...", entity_id);
 
     let upgrade_to_sprite_bundle_args = UpgradeToSpriteBundleArgs {
         target_entity_id: entity_id,
+        sprite: Some(Sprite {
+            color: Color::srgba(0.0, 1.0, 0.0, 1.0),
+            rect: Some(Rect {
+                min: Vec2::new(-16.0, -16.0),
+                max: Vec2::new(16.0, 16.0),
+            }),
+            ..Default::default()
+        }),
         ..Default::default()
     };
     let upgrade_to_sprite_bundle_result = run_op::<UpgradeToSpriteBundle>(upgrade_to_sprite_bundle_args).await;

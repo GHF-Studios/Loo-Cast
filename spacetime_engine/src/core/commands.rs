@@ -6,13 +6,13 @@ use crate::chunk_actor::commands::*;
 use crate::math::structs::I16Vec2;
 
 pub async fn startup() {
-    spawn_start_chunks().await;
-    spawn_start_chunk_actors().await;
+    spawn_start_chunks(2).await;
+    spawn_start_chunk_actors(2).await;
 }
 
-async fn spawn_start_chunks() {
-    for x in -1..=1 {
-        for y in -1..=1 {
+async fn spawn_start_chunks(range: i16) {
+    for x in -range..=range {
+        for y in -range..=range {
             let chunk_position = ChunkPosition(I16Vec2(x, y));
 
             if let Err(e) = spawn_chunk(chunk_position).await {
@@ -24,9 +24,9 @@ async fn spawn_start_chunks() {
     }
 }
 
-async fn spawn_start_chunk_actors() {
-    for x in -1..=1 {
-        for y in -1..=1 {
+async fn spawn_start_chunk_actors(range: i16) {
+    for x in -range..=range {
+        for y in -range..=range {
             let chunk_position = ChunkPosition(I16Vec2(x, y));
             let entity_position: EntityPosition = chunk_position.into();
 

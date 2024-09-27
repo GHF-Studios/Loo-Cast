@@ -45,10 +45,14 @@ fn pre_startup(mut rapier_configuration: ResMut<RapierConfiguration>) {
     rapier_configuration.gravity = Vec2::new(0.0, 0.0);
 }
 
-fn startup() {
+fn startup(mut commands: Commands) {
     let runtime = TOKIO_RUNTIME.lock().unwrap();
 
     runtime.spawn(async {
         spacetime_engine::core::commands::startup().await;
     });
+
+    // spawn a camera
+    // TODO: Make this more permanent
+    commands.spawn(Camera2dBundle::default());
 }
