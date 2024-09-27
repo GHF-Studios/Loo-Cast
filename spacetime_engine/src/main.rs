@@ -51,8 +51,4 @@ fn startup(mut commands: Commands) {
     runtime.spawn(async {
         spacetime_engine::core::commands::startup().await;
     });
-
-    // spawn a camera
-    // TODO: Make this more permanent
-    commands.spawn(Camera2dBundle::default());
 }
