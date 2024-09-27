@@ -12,10 +12,10 @@ pub trait InstanceRegistryValue: 'static + PartialEq + Send + Sync {
 impl InstanceRegistryValue for Entity {
 }
 
-// TODO: Implement derive-macro
+// TODO: Implement derive-macro, because this is a marker trait
 pub trait OpArgs: 'static + Send + Sync {}
 
-// TODO: Implement derive-macro
+// TODO: Implement derive-macro, because this is a marker trait
 pub trait OpResult: 'static + Send + Sync {}
 
 pub trait OpCallback<R: OpResult>: 'static + Send + Sync {

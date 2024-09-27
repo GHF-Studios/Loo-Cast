@@ -5,7 +5,7 @@ use crate::operations::structs::InstanceID;
 use crate::operations::traits::*;
 use crate::entity::operations::*;
 use crate::chunk_actor::operations::*;
-use crate::operations::utilities::*;
+use crate::operations::commands::*;
 
 pub async fn spawn_chunk_actor(entity_position: EntityPosition) -> Result<InstanceID<ChunkActor>, String> {
     debug!("Creating entity ...");

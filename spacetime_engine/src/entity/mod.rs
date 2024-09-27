@@ -4,11 +4,11 @@ pub mod structs;
 pub mod wrappers;
 
 // Functions
+pub mod commands;
 pub mod hooks;
 pub mod systems;
 
 // Integrations
-pub mod commands;
 pub mod operations;
 
 use bevy::prelude::*;

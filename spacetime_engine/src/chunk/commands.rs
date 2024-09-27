@@ -5,7 +5,7 @@ use crate::entity::structs::EntityPosition;
 use crate::operations::structs::InstanceID;
 use crate::entity::operations::*;
 use crate::chunk::operations::*;
-use crate::operations::utilities::*;
+use crate::operations::commands::*;
 
 pub async fn spawn_chunk(chunk_position: ChunkPosition) -> Result<InstanceID<Chunk>, String> {
     debug!("Creating entity ...");

@@ -49,23 +49,6 @@ fn startup() {
     let runtime = TOKIO_RUNTIME.lock().unwrap();
 
     runtime.spawn(async {
-        for x in -1..=1 {
-            for y in -1..=1 {
-                let chunk_position = ChunkPosition(I16Vec2(x, y));
-                let entity_position: EntityPosition = chunk_position.into();
-
-                if let Err(e) = spawn_chunk(chunk_position).await {
-                    error!("Error spawning chunk: {:?}", e);
-                } else {
-                    debug!("Spawned chunk at {:?}", chunk_position);
-                }
-        
-                if let Err(e) = spawn_chunk_actor(entity_position).await {
-                    error!("Error spawning chunk actor: {:?}", e);
-                } else {
-                    debug!("Spawned chunk actor at {:?}", entity_position);
-                }
-            }
-        }
+        spacetime_engine::core::commands::startup().await;
     });
 }

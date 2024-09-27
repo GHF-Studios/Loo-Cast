@@ -1,3 +1,4 @@
+pub mod core;
 pub mod chunk;
 pub mod chunk_actor;
 pub mod chunk_loader;
@@ -6,6 +7,7 @@ pub mod math;
 pub mod operations;
 pub mod player;
 
+use core::CorePlugin;
 use chunk::ChunkPlugin;
 use chunk_actor::ChunkActorPlugin;
 use chunk_loader::ChunkLoaderPlugin;
@@ -20,6 +22,7 @@ pub struct SpacetimeEnginePlugins;
 impl PluginGroup for SpacetimeEnginePlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
+            .add(CorePlugin)
             .add(ChunkPlugin)
             .add(ChunkActorPlugin)
             .add(ChunkLoaderPlugin)

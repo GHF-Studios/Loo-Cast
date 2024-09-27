@@ -4,9 +4,9 @@ pub mod structs;
 pub mod wrappers;
 
 // Functions
+pub mod commands;
 pub mod hooks;
 pub mod systems;
-pub mod utilities;
 
 // Miscelaneous
 pub mod singletons;

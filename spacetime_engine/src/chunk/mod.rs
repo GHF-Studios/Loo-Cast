@@ -4,12 +4,12 @@ pub mod structs;
 pub mod wrappers;
 
 // Functions
+pub mod commands;
 pub mod hooks;
 pub mod systems;
 pub mod utilities;
 
 // Integrations
-pub mod commands;
 pub mod operations;
 
 // Miscelaneous
