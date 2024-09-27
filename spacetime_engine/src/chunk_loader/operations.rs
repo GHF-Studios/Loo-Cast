@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::operations::{structs::InstanceID, traits::*};
 use super::components::*;
+use tokio::sync::oneshot;
 
 pub struct UpgradeToChunkLoaderArgs {
     pub target_entity_id: InstanceID<Entity>,
@@ -16,21 +17,20 @@ pub enum UpgradeToChunkLoaderResult {
 impl OpResult for UpgradeToChunkLoaderResult {}
 pub struct UpgradeToChunkLoader {
     args: UpgradeToChunkLoaderArgs,
-    callback: fn(UpgradeToChunkLoaderResult),
-}
-impl UpgradeToChunkLoader {
-    pub fn new(args: UpgradeToChunkLoaderArgs, callback: Option<fn(UpgradeToChunkLoaderResult)>) -> Self {
-        Self {
-            args,
-            callback: callback.unwrap_or(|_| {}),
-        }
-    }
+    callback: Option<oneshot::Sender<UpgradeToChunkLoaderResult>>,
 }
 impl Operation for UpgradeToChunkLoader {
     type Args = UpgradeToChunkLoaderArgs;
     type Result = UpgradeToChunkLoaderResult;
 
-    fn execute(&self, world: &mut World) {
+    fn new(args: UpgradeToChunkLoaderArgs, callback: oneshot::Sender<UpgradeToChunkLoaderResult>) -> Self {
+        Self {
+            args,
+            callback: Some(callback),
+        }
+    }
+
+    fn execute(&mut self, world: &mut World) {
         // Step 1: Error if the chunk loader is present in the world
         // Step 2: Error if the chunk loader is present in the serialized chunk storage
         // Step 3: Insert the chunk loader component into the target entity
@@ -49,21 +49,20 @@ pub enum DowngradeFromChunkLoaderResult {
 impl OpResult for DowngradeFromChunkLoaderResult {}
 pub struct DowngradeFromChunkLoader {
     args: DowngradeFromChunkLoaderArgs,
-    callback: fn(DowngradeFromChunkLoaderResult),
-}
-impl DowngradeFromChunkLoader {
-    pub fn new(args: DowngradeFromChunkLoaderArgs, callback: Option<fn(DowngradeFromChunkLoaderResult)>) -> Self {
-        Self {
-            args,
-            callback: callback.unwrap_or(|_| {}),
-        }
-    }
+    callback: Option<oneshot::Sender<DowngradeFromChunkLoaderResult>>,
 }
 impl Operation for DowngradeFromChunkLoader {
     type Args = DowngradeFromChunkLoaderArgs;
     type Result = DowngradeFromChunkLoaderResult;
 
-    fn execute(&self, world: &mut World) {
+    fn new(args: DowngradeFromChunkLoaderArgs, callback: oneshot::Sender<DowngradeFromChunkLoaderResult>) -> Self {
+        Self {
+            args,
+            callback: Some(callback),
+        }
+    }
+
+    fn execute(&mut self, world: &mut World) {
         // Step 1: Error if the chunk loader is not actually a chunk loader
         // Step 2: Error if the chunk loader is marked as serialized
         // Step 3: Error if the chunk loader is present in the serialized chunk storage

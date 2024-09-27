@@ -6,6 +6,7 @@ pub mod wrappers;
 // Functions
 pub mod hooks;
 pub mod systems;
+pub mod utilities;
 
 // Miscelaneous
 pub mod singletons;

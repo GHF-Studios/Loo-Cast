@@ -1,6 +1,7 @@
 use bevy::prelude::*;
-use crate::{chunk_actor::{components::ChunkActor, wrappers::ChunkActorInstanceRegistry}, chunk_loader::components::ChunkLoader, entity::wrappers::EntityInstanceRegistry, operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY, structs::InstanceID, traits::{OpArgs, OpResult, Operation}}};
+use crate::{chunk_actor::{components::ChunkActor, wrappers::ChunkActorInstanceRegistry}, chunk_loader::components::ChunkLoader, entity::wrappers::EntityInstanceRegistry, operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY, structs::InstanceID, traits::{OpArgs, OpCallback, OpResult, Operation}}};
 use super::{components::Chunk, singletons::SERIALIZED_CHUNK_STORAGE, structs::ChunkPosition, wrappers::ChunkInstanceRegistry};
+use tokio::sync::oneshot;
 
 pub struct UpgradeToChunkArgs {
     pub target_entity_id: InstanceID<Entity>,
@@ -17,35 +18,34 @@ pub enum UpgradeToChunkResult {
 impl OpResult for UpgradeToChunkResult {}
 pub struct UpgradeToChunk {
     args: UpgradeToChunkArgs,
-    callback: fn(UpgradeToChunkResult),
-}
-impl UpgradeToChunk {
-    pub fn new(args: UpgradeToChunkArgs, callback: Option<fn(UpgradeToChunkResult)>) -> Self {
-        Self {
-            args,
-            callback: callback.unwrap_or(|_| {}),
-        }
-    }
+    callback: Option<oneshot::Sender<UpgradeToChunkResult>>,
 }
 impl Operation for UpgradeToChunk {
     type Args = UpgradeToChunkArgs;
     type Result = UpgradeToChunkResult;
 
-    fn execute(&self, world: &mut World) {
+    fn new(args: UpgradeToChunkArgs, callback: oneshot::Sender<UpgradeToChunkResult>) -> Self {
+        Self {
+            args,
+            callback: Some(callback),
+        }
+    }
+
+    fn execute(&mut self, world: &mut World) {
         if world.query::<&Chunk>().iter(world).any(|chunk| chunk.position() == self.args.chunk_position) {
-            (self.callback)(UpgradeToChunkResult::Err(()));
+            self.callback.send(UpgradeToChunkResult::Err(()));
             return;
         }
 
         match SERIALIZED_CHUNK_STORAGE.lock() {
             Ok(serialized_chunk_storage) => {
                 if serialized_chunk_storage.contains_key(&self.args.chunk_position) {
-                    (self.callback)(UpgradeToChunkResult::Err(()));
+                    self.callback.send(UpgradeToChunkResult::Err(()));
                     return;
                 }
             },
             Err(_) => {
-                (self.callback)(UpgradeToChunkResult::Err(()));
+                self.callback.send(UpgradeToChunkResult::Err(()));
                 return;
             },
         };
@@ -54,7 +54,7 @@ impl Operation for UpgradeToChunk {
             let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
                 Ok(main_type_registry) => main_type_registry,
                 Err(_) => {
-                    (self.callback)(UpgradeToChunkResult::Err(()));
+                    self.callback.send(UpgradeToChunkResult::Err(()));
                     return;
                 },
             };
@@ -62,7 +62,7 @@ impl Operation for UpgradeToChunk {
             let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
                 Some(entity_instance_registry) => entity_instance_registry,
                 None => {
-                    (self.callback)(UpgradeToChunkResult::Err(()));
+                    self.callback.send(UpgradeToChunkResult::Err(()));
                     return;
                 },
             };
@@ -70,7 +70,7 @@ impl Operation for UpgradeToChunk {
             match entity_instance_registry.get(self.args.target_entity_id) {
                 Some(entity) => *entity,
                 None => {
-                    (self.callback)(UpgradeToChunkResult::Err(()));
+                    self.callback.send(UpgradeToChunkResult::Err(()));
                     return;
                 },
             }
@@ -79,7 +79,7 @@ impl Operation for UpgradeToChunk {
         let mut target_entity_raw = match world.get_entity_mut(target_entity) {
             Some(target_entity_raw) => target_entity_raw,
             None => {
-                (self.callback)(UpgradeToChunkResult::Err(()));
+                self.callback.send(UpgradeToChunkResult::Err(()));
                 return;
             },
         };
@@ -89,14 +89,14 @@ impl Operation for UpgradeToChunk {
         let chunk_id = match target_entity_raw.get::<Chunk>() {
             Some(chunk) => chunk.id(),
             None => {
-                (self.callback)(UpgradeToChunkResult::Err(()));
+                self.callback.send(UpgradeToChunkResult::Err(()));
                 return;
             },
         };
 
-        (self.callback)(UpgradeToChunkResult::Ok {
+        self.callback.send(UpgradeToChunkResult::Ok {
             chunk_id,
-        });
+        })
     }
 }
 
@@ -112,25 +112,24 @@ pub enum DowngradeFromChunkResult {
 impl OpResult for DowngradeFromChunkResult {}
 pub struct DowngradeFromChunk {
     args: DowngradeFromChunkArgs,
-    callback: fn(DowngradeFromChunkResult),
-}
-impl DowngradeFromChunk {
-    pub fn new(args: DowngradeFromChunkArgs, callback: Option<fn(DowngradeFromChunkResult)>) -> Self {
-        Self {
-            args,
-            callback: callback.unwrap_or(|_| {}),
-        }
-    }
+    callback: Option<oneshot::Sender<DowngradeFromChunkResult>>,
 }
 impl Operation for DowngradeFromChunk {
     type Args = DowngradeFromChunkArgs;
     type Result = DowngradeFromChunkResult;
 
-    fn execute(&self, world: &mut World) {
+    fn new(args: DowngradeFromChunkArgs, callback: oneshot::Sender<DowngradeFromChunkResult>) -> Self {
+        Self {
+            args,
+            callback: Some(callback),
+        }
+    }
+
+    fn execute(&mut self, world: &mut World) {
         let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
             Ok(main_type_registry) => main_type_registry,
             Err(_) => {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             },
         };
@@ -138,7 +137,7 @@ impl Operation for DowngradeFromChunk {
         let chunk_instance_registry = match main_type_registry.get_data_mut::<Chunk, ChunkInstanceRegistry>() {
             Some(chunk_instance_registry) => chunk_instance_registry,
             None => {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             },
         };
@@ -146,7 +145,7 @@ impl Operation for DowngradeFromChunk {
         let chunk_entity = match chunk_instance_registry.get(self.args.chunk_id) {
             Some(chunk) => *chunk,
             None => {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             },
         };
@@ -154,41 +153,41 @@ impl Operation for DowngradeFromChunk {
         let chunk_entity_raw = match world.get_entity_mut(chunk_entity) {
             Some(chunk_raw) => chunk_raw,
             None => {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             },
         };
 
         if !chunk_entity_raw.contains::<Chunk>() {
-            (self.callback)(DowngradeFromChunkResult::Err(()));
+            self.callback.send(DowngradeFromChunkResult::Err(()));
             return;
         }
 
         if chunk_entity_raw.contains::<Serialized>() {
-            (self.callback)(DowngradeFromChunkResult::Err(()));
+            self.callback.send(DowngradeFromChunkResult::Err(()));
             return;
         }
 
         match SERIALIZED_CHUNK_STORAGE.lock() {
             Ok(serialized_chunk_storage) => {
                 if serialized_chunk_storage.contains_key(&chunk_entity_raw.get::<Chunk>().unwrap().position()) {
-                    (self.callback)(DowngradeFromChunkResult::Err(()));
+                    self.callback.send(DowngradeFromChunkResult::Err(()));
                     return;
                 }
             },
             Err(_) => {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             },
         };
 
         if !chunk_instance_registry.is_managed(self.args.chunk_id) {
-            (self.callback)(DowngradeFromChunkResult::Err(()));
+            self.callback.send(DowngradeFromChunkResult::Err(()));
             return;
         }
 
         if !chunk_instance_registry.is_registered(self.args.chunk_id) {
-            (self.callback)(DowngradeFromChunkResult::Err(()));
+            self.callback.send(DowngradeFromChunkResult::Err(()));
             return;
         }
 
@@ -197,7 +196,7 @@ impl Operation for DowngradeFromChunk {
         let chunk_actor_instance_registry = match main_type_registry.get_data_mut::<ChunkActor, ChunkActorInstanceRegistry>() {
             Some(chunk_actor_instance_registry) => chunk_actor_instance_registry,
             None => {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             },
         };
@@ -206,7 +205,7 @@ impl Operation for DowngradeFromChunk {
             let chunk_actor_entity = match chunk_actor_instance_registry.get(registered_chunk_actor) {
                 Some(chunk_actor_entity) => *chunk_actor_entity,
                 None => {
-                    (self.callback)(DowngradeFromChunkResult::Err(()));
+                    self.callback.send(DowngradeFromChunkResult::Err(()));
                     return;
                 },
             };
@@ -214,28 +213,28 @@ impl Operation for DowngradeFromChunk {
             let mut chunk_actor_entity_raw = match world.get_entity_mut(chunk_actor_entity) {
                 Some(chunk_actor_raw) => chunk_actor_raw,
                 None => {
-                    (self.callback)(DowngradeFromChunkResult::Err(()));
+                    self.callback.send(DowngradeFromChunkResult::Err(()));
                     return;
                 },
             };
 
             if !chunk_actor_entity_raw.contains::<ChunkActor>() {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             }
 
             if chunk_actor_entity_raw.contains::<Serialized>() {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             }
 
             if !chunk_actor_instance_registry.is_managed(registered_chunk_actor) {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             }
 
             if !chunk_actor_instance_registry.is_registered(registered_chunk_actor) {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             }
 
@@ -245,13 +244,13 @@ impl Operation for DowngradeFromChunk {
         let mut chunk_entity_raw = match world.get_entity_mut(chunk_entity) {
             Some(chunk_raw) => chunk_raw,
             None => {
-                (self.callback)(DowngradeFromChunkResult::Err(()));
+                self.callback.send(DowngradeFromChunkResult::Err(()));
                 return;
             },
         };
 
         chunk_entity_raw.remove::<Chunk>();
-        (self.callback)(DowngradeFromChunkResult::Ok(()));
+        self.callback.send(DowngradeFromChunkResult::Ok(()));
     }
 }
 
@@ -266,43 +265,42 @@ pub enum LoadChunkResult {
 impl OpResult for LoadChunkResult {}
 pub struct LoadChunk {
     args: LoadChunkArgs,
-    callback: fn(LoadChunkResult),
-}
-impl LoadChunk {
-    pub fn new(args: LoadChunkArgs, callback: Option<fn(LoadChunkResult)>) -> Self {
-        Self {
-            args,
-            callback: callback.unwrap_or(|_| {}),
-        }
-    }
+    callback: Option<oneshot::Sender<LoadChunkResult>>,
 }
 impl Operation for LoadChunk {
     type Args = LoadChunkArgs;
     type Result = LoadChunkResult;
 
-    fn execute(&self, world: &mut World) {
+    fn new(args: LoadChunkArgs, callback: oneshot::Sender<LoadChunkResult>) -> Self {
+        Self {
+            args,
+            callback: Some(callback),
+        }
+    }
+
+    fn execute(&mut self, world: &mut World) {
         if world.query::<&Chunk>().iter(world).any(|chunk| chunk.position() == self.args.chunk_position) {
-            (self.callback)(LoadChunkResult::Err(()));
+            self.callback.send(LoadChunkResult::Err(()));
             return;
         }
 
         let serialized_chunk_storage = match SERIALIZED_CHUNK_STORAGE.lock() {
             Ok(serialized_chunk_storage) => serialized_chunk_storage,
             Err(_) => {
-                (self.callback)(LoadChunkResult::Err(()));
+                self.callback.send(LoadChunkResult::Err(()));
                 return;
             },
         };
 
         if !serialized_chunk_storage.contains_key(&self.args.chunk_position) {
-            (self.callback)(LoadChunkResult::Err(()));
+            self.callback.send(LoadChunkResult::Err(()));
             return;
         }
 
         let serialized_chunk = match serialized_chunk_storage.get(&self.args.chunk_position) {
             Some(serialized_chunk) => serialized_chunk.clone(),
             None => {
-                (self.callback)(LoadChunkResult::Err(()));
+                self.callback.send(LoadChunkResult::Err(()));
                 return;
             },
         };
@@ -312,7 +310,7 @@ impl Operation for LoadChunk {
         let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
             Ok(main_type_registry) => main_type_registry,
             Err(_) => {
-                (self.callback)(LoadChunkResult::Err(()));
+                self.callback.send(LoadChunkResult::Err(()));
                 return;
             },
         };
@@ -320,7 +318,7 @@ impl Operation for LoadChunk {
         let chunk_instance_registry = match main_type_registry.get_data_mut::<Chunk, ChunkInstanceRegistry>() {
             Some(chunk_instance_registry) => chunk_instance_registry,
             None => {
-                (self.callback)(LoadChunkResult::Err(()));
+                self.callback.send(LoadChunkResult::Err(()));
                 return;
             },
         };
@@ -328,19 +326,18 @@ impl Operation for LoadChunk {
         let chunk_id = match world.get::<Chunk>(chunk_entity) {
             Some(chunk) => chunk.id(),
             None => {
-                (self.callback)(LoadChunkResult::Err(()));
+                self.callback.send(LoadChunkResult::Err(()));
                 return;
             },
         };
 
         if !chunk_instance_registry.is_registered(chunk_id) {
-            (self.callback)(LoadChunkResult::Err(()));
+            self.callback.send(LoadChunkResult::Err(()));
             return;
         }
 
         if !chunk_instance_registry.is_managed(chunk_id) {
-            (self.callback)(LoadChunkResult::Err(()));
-            return;
+            self.callback.send(LoadChunkResult::Err(()));
         }
     }
 }
@@ -356,25 +353,24 @@ pub enum UnloadChunkResult {
 impl OpResult for UnloadChunkResult {}
 pub struct UnloadChunk {
     args: UnloadChunkArgs,
-    callback: fn(UnloadChunkResult),
-}
-impl UnloadChunk {
-    pub fn new(args: UnloadChunkArgs, callback: Option<fn(UnloadChunkResult)>) -> Self {
-        Self {
-            args,
-            callback: callback.unwrap_or(|_| {}),
-        }
-    }
+    callback: Option<oneshot::Sender<UnloadChunkResult>>,
 }
 impl Operation for UnloadChunk {
     type Args = UnloadChunkArgs;
     type Result = UnloadChunkResult;
 
-    fn execute(&self, world: &mut World) {
+    fn new(args: UnloadChunkArgs, callback: oneshot::Sender<UnloadChunkResult>) -> Self {
+        Self {
+            args,
+            callback: Some(callback),
+        }
+    }
+
+    fn execute(&mut self, world: &mut World) {
         let (chunk_entity, chunk) = match world.query::<(Entity, &Chunk)>().iter(world).find(|(_, chunk)| chunk.position() == self.args.chunk_position) {
             Some((chunk_entity, chunk)) => (chunk_entity, chunk),
             None => {
-                (self.callback)(UnloadChunkResult::Err(()));
+                self.callback.send(UnloadChunkResult::Err(()));
                 return;
             },
         };
@@ -382,33 +378,33 @@ impl Operation for UnloadChunk {
         let serialized_chunk_storage = match SERIALIZED_CHUNK_STORAGE.lock() {
             Ok(serialized_chunk_storage) => serialized_chunk_storage,
             Err(_) => {
-                (self.callback)(UnloadChunkResult::Err(()));
+                self.callback.send(UnloadChunkResult::Err(()));
                 return;
             },
         };
 
         if !serialized_chunk_storage.contains_key(&self.args.chunk_position) {
-            (self.callback)(UnloadChunkResult::Err(()));
+            self.callback.send(UnloadChunkResult::Err(()));
             return;
         }
 
         let chunk_entity_raw = match world.get_entity(chunk_entity) {
             Some(chunk_raw) => chunk_raw,
             None => {
-                (self.callback)(UnloadChunkResult::Err(()));
+                self.callback.send(UnloadChunkResult::Err(()));
                 return;
             },
         };
 
         if !chunk_entity_raw.contains::<Serialized>() {
-            (self.callback)(UnloadChunkResult::Err(()));
+            self.callback.send(UnloadChunkResult::Err(()));
             return;
         }
 
         let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
             Ok(main_type_registry) => main_type_registry,
             Err(_) => {
-                (self.callback)(UnloadChunkResult::Err(()));
+                self.callback.send(UnloadChunkResult::Err(()));
                 return;
             },
         };
@@ -416,7 +412,7 @@ impl Operation for UnloadChunk {
         let chunk_actor_instance_registry = match main_type_registry.get_data_mut::<ChunkActor, ChunkActorInstanceRegistry>() {
             Some(chunk_actor_instance_registry) => chunk_actor_instance_registry,
             None => {
-                (self.callback)(UnloadChunkResult::Err(()));
+                self.callback.send(UnloadChunkResult::Err(()));
                 return;
             },
         };
@@ -425,7 +421,7 @@ impl Operation for UnloadChunk {
             let chunk_actor_entity = match chunk_actor_instance_registry.get(registered_chunk_actor) {
                 Some(chunk_actor_entity) => *chunk_actor_entity,
                 None => {
-                    (self.callback)(UnloadChunkResult::Err(()));
+                    self.callback.send(UnloadChunkResult::Err(()));
                     return;
                 },
             };
@@ -433,25 +429,24 @@ impl Operation for UnloadChunk {
             let chunk_actor_entity_raw = match world.get_entity(chunk_actor_entity) {
                 Some(chunk_actor_raw) => chunk_actor_raw,
                 None => {
-                    (self.callback)(UnloadChunkResult::Err(()));
+                    self.callback.send(UnloadChunkResult::Err(()));
                     return;
                 },
             };
 
             if !chunk_actor_entity_raw.contains::<Serialized>() {
-                (self.callback)(UnloadChunkResult::Err(()));
+                self.callback.send(UnloadChunkResult::Err(()));
                 return;
             }
 
             if !world.despawn(chunk_actor_entity) {
-                (self.callback)(UnloadChunkResult::Err(()));
+                self.callback.send(UnloadChunkResult::Err(()));
                 return;
             }
         }
         
         if !world.despawn(chunk_entity) {
-            (self.callback)(UnloadChunkResult::Ok(()));
-            return;
+            self.callback.send(UnloadChunkResult::Ok(()));
         }
     }
 }
@@ -468,31 +463,30 @@ pub enum SaveChunkResult {
 impl OpResult for SaveChunkResult {}
 pub struct SaveChunk {
     args: SaveChunkArgs,
-    callback: fn(SaveChunkResult),
-}
-impl SaveChunk {
-    pub fn new(args: SaveChunkArgs, callback: Option<fn(SaveChunkResult)>) -> Self {
-        Self {
-            args,
-            callback: callback.unwrap_or(|_| {}),
-        }
-    }
+    callback: Option<oneshot::Sender<SaveChunkResult>>,
 }
 impl Operation for SaveChunk {
     type Args = SaveChunkArgs;
     type Result = SaveChunkResult;
 
-    fn execute(&self, world: &mut World) {
+    fn new(args: SaveChunkArgs, callback: oneshot::Sender<SaveChunkResult>) -> Self {
+        Self {
+            args,
+            callback: Some(callback),
+        }
+    }
+
+    fn execute(&mut self, world: &mut World) {
         let mut serialized_chunk_storage = match SERIALIZED_CHUNK_STORAGE.lock() {
             Ok(serialized_chunk_storage) => serialized_chunk_storage,
             Err(_) => {
-                (self.callback)(SaveChunkResult::Err(()));
+                self.callback.send(SaveChunkResult::Err(()));
                 return;
             },
         };
 
         if !self.args.force && serialized_chunk_storage.contains_key(&self.args.chunk_position) {
-            (self.callback)(SaveChunkResult::Err(()));
+            self.callback.send(SaveChunkResult::Err(()));
             return;
         }
 
@@ -504,7 +498,7 @@ impl Operation for SaveChunk {
                 let mut chunk_entity_raw = match world.get_entity_mut(chunk_entity) {
                     Some(chunk_raw) => chunk_raw,
                     None => {
-                        (self.callback)(SaveChunkResult::Err(()));
+                        self.callback.send(SaveChunkResult::Err(()));
                         return;
                     },
                 };
@@ -516,7 +510,7 @@ impl Operation for SaveChunk {
                 let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
                     Ok(main_type_registry) => main_type_registry,
                     Err(_) => {
-                        (self.callback)(SaveChunkResult::Err(()));
+                        self.callback.send(SaveChunkResult::Err(()));
                         return;
                     },
                 };
@@ -524,7 +518,7 @@ impl Operation for SaveChunk {
                 let chunk_actor_instance_registry = match main_type_registry.get_data_mut::<ChunkActor, ChunkActorInstanceRegistry>() {
                     Some(chunk_actor_instance_registry) => chunk_actor_instance_registry,
                     None => {
-                        (self.callback)(SaveChunkResult::Err(()));
+                        self.callback.send(SaveChunkResult::Err(()));
                         return;
                     },
                 };
@@ -533,7 +527,7 @@ impl Operation for SaveChunk {
                     let chunk_actor_entity = match chunk_actor_instance_registry.get(registered_chunk_actor) {
                         Some(chunk_actor_entity) => *chunk_actor_entity,
                         None => {
-                            (self.callback)(SaveChunkResult::Err(()));
+                            self.callback.send(SaveChunkResult::Err(()));
                             return;
                         },
                     };
@@ -541,7 +535,7 @@ impl Operation for SaveChunk {
                     let mut chunk_actor_entity_raw = match world.get_entity_mut(chunk_actor_entity) {
                         Some(chunk_actor_raw) => chunk_actor_raw,
                         None => {
-                            (self.callback)(SaveChunkResult::Err(()));
+                            self.callback.send(SaveChunkResult::Err(()));
                             return;
                         },
                     };
@@ -556,8 +550,7 @@ impl Operation for SaveChunk {
                 serialized_chunk_storage.insert(self.args.chunk_position, serialized_chunk);
             },
             None => {
-                (self.callback)(SaveChunkResult::Err(()));
-                return;
+                self.callback.send(SaveChunkResult::Err(()));
             },
         }
     }
@@ -574,31 +567,30 @@ pub enum UnsaveChunkResult {
 impl OpResult for UnsaveChunkResult {}
 pub struct UnsaveChunk {
     args: UnsaveChunkArgs,
-    callback: fn(UnsaveChunkResult),
-}
-impl UnsaveChunk {
-    pub fn new(args: UnsaveChunkArgs, callback: Option<fn(UnsaveChunkResult)>) -> Self {
-        Self {
-            args,
-            callback: callback.unwrap_or(|_| {}),
-        }
-    }
+    callback: Option<oneshot::Sender<UnsaveChunkResult>>,
 }
 impl Operation for UnsaveChunk {
     type Args = UnsaveChunkArgs;
     type Result = UnsaveChunkResult;
+
+    fn new(args: UnsaveChunkArgs, callback: oneshot::Sender<UnsaveChunkResult>) -> Self {
+        Self {
+            args,
+            callback: Some(callback),
+        }
+    }
     
-    fn execute(&self, world: &mut World) {
+    fn execute(&mut self, world: &mut World) {
         let serialized_chunk_storage = match SERIALIZED_CHUNK_STORAGE.lock() {
             Ok(serialized_chunk_storage) => serialized_chunk_storage,
             Err(_) => {
-                (self.callback)(UnsaveChunkResult::Err(()));
+                self.callback.send(UnsaveChunkResult::Err(()));
                 return;
             },
         };
 
         if !serialized_chunk_storage.contains_key(&self.args.chunk_position) {
-            (self.callback)(UnsaveChunkResult::Err(()));
+            self.callback.send(UnsaveChunkResult::Err(()));
             return;
         }
         
@@ -609,7 +601,7 @@ impl Operation for UnsaveChunk {
                 let mut chunk_entity_raw = match world.get_entity_mut(chunk_entity) {
                     Some(chunk_raw) => chunk_raw,
                     None => {
-                        (self.callback)(UnsaveChunkResult::Err(()));
+                        self.callback.send(UnsaveChunkResult::Err(()));
                         return;
                     },
                 };
@@ -621,7 +613,7 @@ impl Operation for UnsaveChunk {
                 let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
                     Ok(main_type_registry) => main_type_registry,
                     Err(_) => {
-                        (self.callback)(UnsaveChunkResult::Err(()));
+                        self.callback.send(UnsaveChunkResult::Err(()));
                         return;
                     },
                 };
@@ -629,7 +621,7 @@ impl Operation for UnsaveChunk {
                 let chunk_actor_instance_registry = match main_type_registry.get_data_mut::<ChunkActor, ChunkActorInstanceRegistry>() {
                     Some(chunk_actor_instance_registry) => chunk_actor_instance_registry,
                     None => {
-                        (self.callback)(UnsaveChunkResult::Err(()));
+                        self.callback.send(UnsaveChunkResult::Err(()));
                         return;
                     },
                 };
@@ -638,7 +630,7 @@ impl Operation for UnsaveChunk {
                     let chunk_actor_entity = match chunk_actor_instance_registry.get(registered_chunk_actor) {
                         Some(chunk_actor_entity) => *chunk_actor_entity,
                         None => {
-                            (self.callback)(UnsaveChunkResult::Err(()));
+                            self.callback.send(UnsaveChunkResult::Err(()));
                             return;
                         },
                     };
@@ -646,7 +638,7 @@ impl Operation for UnsaveChunk {
                     let mut chunk_actor_entity_raw = match world.get_entity_mut(chunk_actor_entity) {
                         Some(chunk_actor_raw) => chunk_actor_raw,
                         None => {
-                            (self.callback)(UnsaveChunkResult::Err(()));
+                            self.callback.send(UnsaveChunkResult::Err(()));
                             return;
                         },
                     };
@@ -657,8 +649,7 @@ impl Operation for UnsaveChunk {
                 }
             },
             None => {
-                (self.callback)(UnsaveChunkResult::Err(()));
-                return;
+                self.callback.send(UnsaveChunkResult::Err(()));
             },
         };
     }

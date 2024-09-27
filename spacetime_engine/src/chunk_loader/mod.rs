@@ -9,6 +9,7 @@ pub mod systems;
 pub mod utilities;
 
 // Integrations
+pub mod commands;
 pub mod operations;
 
 // Miscelaneous

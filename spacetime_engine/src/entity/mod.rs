@@ -8,6 +8,7 @@ pub mod hooks;
 pub mod systems;
 
 // Integrations
+pub mod commands;
 pub mod operations;
 
 use bevy::prelude::*;
