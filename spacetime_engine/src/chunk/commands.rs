@@ -6,6 +6,7 @@ use crate::operations::structs::InstanceID;
 use crate::entity::operations::*;
 use crate::chunk::operations::*;
 use crate::operations::commands::*;
+use crate::sprite_bundle::operations::*;
 
 pub async fn spawn_chunk(chunk_position: ChunkPosition) -> Result<InstanceID<Chunk>, String> {
     debug!("Creating entity ...");
@@ -37,6 +38,21 @@ pub async fn spawn_chunk(chunk_position: ChunkPosition) -> Result<InstanceID<Chu
     };
 
     debug!("Upgraded entity '{}' to chunk '{}'", entity_id, chunk_id);
+    debug!("Upgrading entity '{}' to sprite bundle ...", entity_id);
+
+    let upgrade_to_sprite_bundle_args = UpgradeToSpriteBundleArgs {
+        target_entity_id: entity_id,
+        ..Default::default()
+    };
+    let upgrade_to_sprite_bundle_result = run_op::<UpgradeToSpriteBundle>(upgrade_to_sprite_bundle_args).await;
+    match upgrade_to_sprite_bundle_result {
+        UpgradeToSpriteBundleResult::Ok(_) => {},
+        UpgradeToSpriteBundleResult::Err(_) => {
+            return Err(format!("Failed to upgrade entity '{}' to sprite bundle!", entity_id));
+        }
+    };
+
+    debug!("Upgraded entity '{}' to sprite bundle", entity_id);
 
     Ok(chunk_id)
 }

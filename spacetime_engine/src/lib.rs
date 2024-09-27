@@ -6,7 +6,9 @@ pub mod entity;
 pub mod math;
 pub mod operations;
 pub mod player;
+pub mod sprite_bundle;
 
+use bevy::{app::PluginGroupBuilder, prelude::*};
 use core::CorePlugin;
 use chunk::ChunkPlugin;
 use chunk_actor::ChunkActorPlugin;
@@ -15,7 +17,7 @@ use entity::EntityPlugin;
 use math::MathPlugin;
 use operations::OperationsPlugin;
 use player::PlayerPlugin;
-use bevy::{app::PluginGroupBuilder, prelude::*};
+use sprite_bundle::SpriteBundlePlugin;
 
 pub struct SpacetimeEnginePlugins;
 
@@ -30,5 +32,6 @@ impl PluginGroup for SpacetimeEnginePlugins {
             .add(MathPlugin)
             .add(OperationsPlugin)
             .add(PlayerPlugin)
+            .add(SpriteBundlePlugin)
     }
 }

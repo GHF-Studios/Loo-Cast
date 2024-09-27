@@ -25,7 +25,7 @@ pub async fn run_op<T: Operation>(operation_args: T::Args) -> T::Result {
                 Poll::Ready(result)
             },
             Poll::Ready(Err(e)) => {
-                panic!("Failed to receive operation result: {}!", e);
+                panic!("An operation has panicked!");
             },
             Poll::Pending => {
                 Poll::Pending
