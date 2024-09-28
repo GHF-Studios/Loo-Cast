@@ -3,17 +3,11 @@ use bevy::prelude::*;
 use bevy::scene::ron;
 use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
 use serde::de::DeserializeSeed;
-
 use crate::chunk_actor::components::ChunkActor;
-use crate::chunk_loader::components::ChunkLoader;
-use crate::entity::structs::EntityPosition;
-use crate::math::structs::I16Vec2;
 use crate::operations::singletons::MAIN_TYPE_REGISTRY;
 use crate::operations::structs::InstanceID;
 use crate::chunk::wrappers::ChunkInstanceRegistry;
-
 use super::components::Chunk;
-use super::structs::ChunkPosition;
 
 pub(in crate) fn deserialize_chunk(
     world: &mut World,
@@ -70,7 +64,7 @@ pub(in crate) fn serialize_chunk(
 ) -> String {
     debug!("Serializing chunk '{:?}'...", chunk_id);
 
-    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
+    let main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
 
     let chunk_instance_registry = main_type_registry.get_data::<Chunk, ChunkInstanceRegistry>().unwrap();
 
@@ -114,7 +108,7 @@ pub(in crate) fn serialize_chunk(
 
     let bevy_type_registry = bevy_type_registry_arc.read();
 
-    let serializer = SceneSerializer::new(&dyn_scene, &*bevy_type_registry);
+    let serializer = SceneSerializer::new(&dyn_scene, &bevy_type_registry);
 
     let serialized_chunk = match ron::to_string(&serializer) {
         Ok(serialized_chunk) => serialized_chunk.clone(),

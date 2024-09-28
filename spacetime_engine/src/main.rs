@@ -3,16 +3,14 @@ extern crate spacetime_engine;
 use bevy::prelude::*;
 use bevy::log::LogPlugin;
 use bevy_rapier2d::prelude::*;
-use spacetime_engine::chunk::structs::ChunkPosition;
-use spacetime_engine::entity::structs::EntityPosition;
-use spacetime_engine::math::structs::I16Vec2;
 use spacetime_engine::operations::singletons::TOKIO_RUNTIME;
-use spacetime_engine::{entity, SpacetimeEnginePlugins};
-use spacetime_engine::chunk::commands::*;
-use spacetime_engine::chunk_actor::commands::*;
+use spacetime_engine::SpacetimeEnginePlugins;
 
 // Primary tasks
 // TODO: Implement chunk loaders
+
+// Secondary tasks
+// TODO: Implement default for all registries and registry wrappers instead of the new function 
 
 // Fun tasks
 // TODO: Implement inventory + hotbar, so that you can select different types of chunk actors to place. 
@@ -45,7 +43,7 @@ fn pre_startup(mut rapier_configuration: ResMut<RapierConfiguration>) {
     rapier_configuration.gravity = Vec2::new(0.0, 0.0);
 }
 
-fn startup(mut commands: Commands) {
+fn startup() {
     let runtime = TOKIO_RUNTIME.lock().unwrap();
 
     runtime.spawn(async {

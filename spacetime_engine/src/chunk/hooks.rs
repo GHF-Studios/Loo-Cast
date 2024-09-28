@@ -76,12 +76,10 @@ pub(in super) fn on_remove_chunk(
     match world.get::<Serialized>(entity) {
         Some(_) => {
             chunk_instance_registry.unmanage(chunk_id);
-            return;
         },
         None => {
             chunk_instance_registry.unmanage(chunk_id);
             chunk_instance_registry.unregister(chunk_id);
-            return;
         },
     };
 }

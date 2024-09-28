@@ -80,12 +80,10 @@ pub(in super) fn on_remove_entity(
     match world.get::<Serialized>(entity) {
         Some(_) => {
             entity_instance_registry.unmanage(entity_id);
-            return;
         },
         None => {
             entity_instance_registry.unmanage(entity_id);
             entity_instance_registry.unregister(entity_id);
-            return;
         },
     };
 }

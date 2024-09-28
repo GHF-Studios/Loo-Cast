@@ -1,4 +1,3 @@
-use bevy::log::*;
 use futures::TryFuture;
 use tokio::sync::oneshot;
 use futures::future::poll_fn;
