@@ -3,7 +3,7 @@ use crate::chunk::components::Chunk;
 use crate::chunk::constants::HALF_CHUNK_SIZE_F32;
 use crate::chunk::structs::ChunkPosition;
 use crate::entity::structs::EntityPosition;
-use crate::operations::structs::InstanceID;
+use crate::core::structs::InstanceID;
 use crate::entity::operations::*;
 use crate::chunk::operations::*;
 use crate::operations::commands::*;

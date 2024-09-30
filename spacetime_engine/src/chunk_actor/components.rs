@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::chunk::components::Chunk;
-use crate::operations::structs::InstanceID;
+use crate::core::structs::InstanceID;
 
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]

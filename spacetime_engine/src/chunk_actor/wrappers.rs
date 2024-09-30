@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use crate::operations::{structs::{InstanceID, InstanceRegistry}, wrappers::OperationTypeRegistry};
+use crate::operations::wrappers::*;
+use crate::core::structs::*;
 use super::components::ChunkActor;
 
 #[derive(Deref, DerefMut)]

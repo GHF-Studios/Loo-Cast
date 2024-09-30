@@ -1,4 +1,4 @@
-use super::structs::TypeRegistry;
+use crate::core::structs::*;
 use bevy::prelude::*;
 
 #[derive(Deref, DerefMut)]

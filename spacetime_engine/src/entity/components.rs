@@ -1,4 +1,4 @@
-use crate::operations::structs::*;
+use crate::core::structs::*;
 use bevy::prelude::*;
 
 #[derive(Component, Reflect, Debug, Clone)]

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::operations::structs::InstanceID;
+use crate::core::structs::InstanceID;
 
 use crate::chunk::structs::ChunkPosition;
 use crate::chunk_actor::components::ChunkActor;

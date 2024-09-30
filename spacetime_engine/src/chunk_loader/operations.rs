@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use crate::operations::{structs::InstanceID, traits::*};
+use crate::operations::traits::*;
+use crate::core::structs::*;
 use super::components::*;
 use tokio::sync::oneshot;
 

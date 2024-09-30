@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::chunk::components::*;
-use crate::operations::structs::*;
+use crate::core::structs::*;
 use crate::chunk_loader::structs::*;
 
 #[derive(Component, Reflect)]

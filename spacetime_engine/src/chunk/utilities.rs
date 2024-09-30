@@ -5,7 +5,7 @@ use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
 use serde::de::DeserializeSeed;
 use crate::chunk_actor::components::ChunkActor;
 use crate::operations::singletons::MAIN_TYPE_REGISTRY;
-use crate::operations::structs::InstanceID;
+use crate::core::structs::InstanceID;
 use crate::chunk::wrappers::ChunkInstanceRegistry;
 use super::components::Chunk;
 

@@ -6,7 +6,7 @@ use crate::chunk::components::*;
 use crate::chunk::wrappers::ChunkInstanceRegistry;
 use crate::entity::structs::EntityPosition;
 use crate::operations::singletons::MAIN_TYPE_REGISTRY;
-use crate::operations::structs::InstanceID;
+use crate::core::structs::InstanceID;
 
 pub(in crate) fn collect_chunk_actor_updates(
     world: &mut World,

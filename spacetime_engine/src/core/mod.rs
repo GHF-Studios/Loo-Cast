@@ -1,4 +1,5 @@
 // Data types
+pub mod structs;
 
 // Functions
 pub mod commands;
@@ -6,6 +7,7 @@ pub mod commands;
 // Integrations
 
 // Miscelaneous
+pub mod traits;
 
 use bevy::prelude::*;
 

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::operations::structs::*;
+use crate::core::structs::*;
 use crate::operations::wrappers::*;
 
 #[derive(Deref, DerefMut)]

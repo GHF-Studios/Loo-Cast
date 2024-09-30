@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
-use crate::operations::{structs::*, wrappers::*};
+use crate::core::structs::*;
+use crate::operations::wrappers::*;
 use super::components::ChunkLoader;
 
 #[derive(Deref, DerefMut)]

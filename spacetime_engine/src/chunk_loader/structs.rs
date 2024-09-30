@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::{chunk::components::*, operations::structs::*};
+use crate::{chunk::components::*, core::structs::*};
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegisteredChunkInfo {

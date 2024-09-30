@@ -1,4 +1,4 @@
-use crate::operations::structs::InstanceID;
+use crate::core::structs::InstanceID;
 use crate::chunk::components::*;
 use crate::chunk_actor::components::*;
 use bevy::prelude::*;
