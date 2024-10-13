@@ -1,11 +1,9 @@
 // Data types
-pub mod components;
 pub mod structs;
 pub mod wrappers;
 
 // Functions
 pub mod commands;
-pub mod hooks;
 pub mod systems;
 
 // Miscelaneous
@@ -18,7 +16,6 @@ pub(in crate) struct OperationsPlugin;
 impl Plugin for OperationsPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, systems::startup)
             .add_systems(PostUpdate, systems::post_update);
     }
 }

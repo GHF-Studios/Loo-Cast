@@ -3,8 +3,8 @@ extern crate spacetime_engine;
 use bevy::prelude::*;
 use bevy::log::LogPlugin;
 use bevy_rapier2d::prelude::*;
-use spacetime_engine::operations::singletons::TOKIO_RUNTIME;
-use spacetime_engine::SpacetimeEnginePlugins;
+use spacetime_engine::*;
+use spacetime_engine::core::singletons::*;
 
 // Primary tasks
 // TODO: Implement chunk loaders

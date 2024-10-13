@@ -2,7 +2,7 @@ use super::components::*;
 use super::structs::*;
 use super::wrappers::*;
 use crate::operations::traits::*;
-use crate::operations::singletons::*;
+use crate::core::singletons::*;
 use crate::core::structs::*;
 use crate::core::traits::*;
 use bevy::prelude::*;

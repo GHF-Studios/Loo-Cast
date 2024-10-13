@@ -2,7 +2,7 @@ use super::components::*;
 use super::wrappers::*;
 use super::hooks::*;
 use super::operations::*;
-use crate::operations::singletons::*;
+use crate::core::singletons::*;
 use bevy::prelude::*;
 
 pub(in super) fn startup(world: &mut World) {

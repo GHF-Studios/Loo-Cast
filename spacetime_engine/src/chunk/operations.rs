@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::{chunk_actor::{components::ChunkActor, wrappers::ChunkActorInstanceRegistry}, chunk_loader::components::ChunkLoader, entity::wrappers::EntityInstanceRegistry, operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY, traits::*}};
+use crate::{chunk_actor::{components::ChunkActor, wrappers::ChunkActorInstanceRegistry}, chunk_loader::components::ChunkLoader, core::{components::*, singletons::*}, entity::wrappers::EntityInstanceRegistry, operations::traits::*};
 use crate::core::structs::*;
 use super::{components::Chunk, singletons::SERIALIZED_CHUNK_STORAGE, structs::ChunkPosition, wrappers::ChunkInstanceRegistry};
 use tokio::sync::oneshot;

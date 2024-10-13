@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use bevy::ecs::{world::DeferredWorld, component::ComponentId};
 use crate::chunk::components::Chunk;
 use crate::chunk::wrappers::ChunkInstanceRegistry;
-use crate::operations::components::Serialized;
-use crate::operations::singletons::MAIN_TYPE_REGISTRY;
+use crate::core::components::Serialized;
+use crate::core::singletons::MAIN_TYPE_REGISTRY;
 use super::components::ChunkLoader;
 use super::wrappers::ChunkLoaderInstanceRegistry;
 

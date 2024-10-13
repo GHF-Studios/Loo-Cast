@@ -1,7 +1,7 @@
 use super::components::*;
 use super::wrappers::*;
-use crate::operations::singletons::*;
-use crate::operations::components::*;
+use crate::core::singletons::*;
+use crate::core::components::*;
 use bevy::{ecs::{component::ComponentId, world::DeferredWorld}, prelude::*};
 
 pub(in super) fn on_add_entity(

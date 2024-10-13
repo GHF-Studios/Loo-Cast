@@ -5,7 +5,7 @@ use bevy::render::primitives::Frustum;
 use bevy::render::view::VisibleEntities;
 use tokio::sync::oneshot;
 use crate::entity::wrappers::EntityInstanceRegistry;
-use crate::operations::singletons::MAIN_TYPE_REGISTRY;
+use crate::core::singletons::MAIN_TYPE_REGISTRY;
 use crate::core::structs::InstanceID;
 use crate::operations::traits::*;
 

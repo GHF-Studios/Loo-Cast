@@ -1,5 +1,5 @@
 use bevy::{ecs::{component::ComponentId, world::DeferredWorld}, prelude::*};
-use crate::operations::{components::Serialized, singletons::MAIN_TYPE_REGISTRY};
+use crate::core::{components::*, singletons::*};
 use super::{components::Chunk, wrappers::ChunkInstanceRegistry};
 
 pub(in super) fn on_add_chunk(

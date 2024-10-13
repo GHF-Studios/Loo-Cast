@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::operations::singletons::MAIN_TYPE_REGISTRY;
+use crate::core::singletons::MAIN_TYPE_REGISTRY;
 use super::{components::*, wrappers::*, operations::*};
 
 pub(in super) fn startup(world: &mut World) {
