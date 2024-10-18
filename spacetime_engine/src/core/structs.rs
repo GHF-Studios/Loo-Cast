@@ -1,5 +1,6 @@
 use super::traits::*;
 use std::{any::*, collections::{HashMap, HashSet}};
+use std::sync::{Arc, Mutex, RwLock};
 use bevy::prelude::*;
 
 #[derive(Reflect)]
@@ -302,5 +303,177 @@ impl TypeRegistry {
         };
 
         return Some(data_ref);
+    }
+}
+
+pub struct HierarchicalLockingMap<K, V>
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+{
+    map: Arc<Mutex<HashMap<K, Arc<RwLock<V>>>>>,
+    lock_state: Arc<Mutex<HierarchyLockState<K>>>,
+}
+
+#[derive(Debug)]
+enum HierarchyLockState<K>
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+{
+    Unlocked,
+    MapLocked,
+    EntryLocked(HashMap<K, bool>), // Track locked entries
+}
+
+// Instead of giving you the guard directly, we now return an Arc<RwLock>
+pub struct HierarchicalMapHandle<K, V> 
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+{
+    map: Arc<Mutex<HashMap<K, Arc<RwLock<V>>>>>,
+    lock_state: Arc<Mutex<HierarchyLockState<K>>>,
+}
+
+pub struct HierarchicalEntryHandle<K, V> 
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+{
+    entry: Arc<RwLock<V>>,
+    lock_state: Arc<Mutex<HierarchyLockState<K>>>,
+    key: K,
+}
+
+impl<K, V> HierarchicalLockingMap<K, V>
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+{
+    pub fn new() -> Self {
+        HierarchicalLockingMap {
+            map: Arc::new(Mutex::new(HashMap::new())),
+            lock_state: Arc::new(Mutex::new(HierarchyLockState::Unlocked)),
+        }
+    }
+
+    // Full map lock, returns an Arc<Mutex<HashMap>> instead of a guard
+    pub fn lock_map(&self) -> Option<HierarchicalMapHandle<K, V>> {
+        let mut lock_state = self.lock_state.lock().unwrap();
+        println!("    [DEBUG] Current lock state before map lock attempt: {:?}", *lock_state);  // DEBUG
+
+        match *lock_state {
+            HierarchyLockState::Unlocked => {
+                println!("    [DEBUG] Locking the entire map");
+                *lock_state = HierarchyLockState::MapLocked;
+                Some(HierarchicalMapHandle {
+                    map: Arc::clone(&self.map),
+                    lock_state: Arc::clone(&self.lock_state),
+                })
+            }
+            _ => {
+                println!("    [DEBUG] Failed to lock the map because it's already locked");
+                None // Map or entries are already locked
+            }
+        }
+    }
+
+    // Lock individual entry, returns an Arc<RwLock<V>> instead of the guard
+    pub fn lock_entry(&self, key: K) -> Option<HierarchicalEntryHandle<K, V>> {
+        let mut lock_state = self.lock_state.lock().unwrap();
+        println!("    [DEBUG] Current lock state before entry lock attempt: {:?}", *lock_state);  // DEBUG
+
+        match *lock_state {
+            HierarchyLockState::Unlocked | HierarchyLockState::EntryLocked(_) => {
+                let mut locked_entries = match *lock_state {
+                    HierarchyLockState::Unlocked => {
+                        println!("    [DEBUG] No entries locked, proceeding to lock entry");
+                        HashMap::new()
+                    }
+                    HierarchyLockState::EntryLocked(ref entries) => entries.clone(),
+                    _ => unreachable!(),
+                };
+
+                if locked_entries.contains_key(&key) {
+                    println!("    [DEBUG] Entry {:?} is already locked, cannot lock again", key);  // DEBUG
+                    return None; // Entry is already locked
+                }
+
+                let map = self.map.lock().unwrap();
+                if let Some(entry_lock) = map.get(&key) {
+                    println!("    [DEBUG] Locking entry {:?}", key);  // DEBUG
+                    let entry_guard = entry_lock.write().unwrap();
+                    locked_entries.insert(key.clone(), true);
+                    *lock_state = HierarchyLockState::EntryLocked(locked_entries);
+                    Some(HierarchicalEntryHandle {
+                        entry: Arc::clone(entry_lock),
+                        lock_state: Arc::clone(&self.lock_state),
+                        key,
+                    })
+                } else {
+                    println!("    [DEBUG] Entry {:?} not found", key);  // DEBUG
+                    None // Entry not found
+                }
+            }
+            _ => {
+                println!("    [DEBUG] Failed to lock entry {:?} because the map is locked", key);  // DEBUG
+                None // Map is locked
+            }
+        }
+    }
+
+    // Add an entry to the map
+    pub fn insert(&self, key: K, value: V)
+    where
+        K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+    {
+        let mut map = self.map.lock().unwrap();
+        map.insert(key.clone(), Arc::new(RwLock::new(value)));
+        println!("    [DEBUG] Inserted entry with key: {:?}", key);  // DEBUG
+    }
+}
+
+impl<'a, K, V> HierarchicalMapHandle<K, V>
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+{
+    // User will lock the map manually using .lock() on the Mutex
+    pub fn lock(&self) -> std::sync::MutexGuard<'_, HashMap<K, Arc<RwLock<V>>>> {
+        self.map.lock().unwrap()
+    }
+}
+
+impl<'a, K, V> HierarchicalEntryHandle<K, V>
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+{
+    // User will lock the entry manually using .write() on the RwLock
+    pub fn lock(&self) -> std::sync::RwLockWriteGuard<'_, V> {
+        self.entry.write().unwrap()
+    }
+}
+
+// Drop logic to unlock map/entry when the handle goes out of scope
+impl<'a, K, V> Drop for HierarchicalEntryHandle<K, V>
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+{
+    fn drop(&mut self) {
+        let mut lock_state = self.lock_state.lock().unwrap();
+        if let HierarchyLockState::EntryLocked(ref mut entries) = *lock_state {
+            entries.remove(&self.key);
+
+            // If no entries are locked, transition back to `Unlocked`
+            if entries.is_empty() {
+                *lock_state = HierarchyLockState::Unlocked;
+                println!("    [DEBUG] All entries unlocked, transitioning to Unlocked");
+            }
+        }
+    }
+}
+
+impl<'a, K, V> Drop for HierarchicalMapHandle<K, V>
+where
+    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
+{
+    fn drop(&mut self) {
+        let mut lock_state = self.lock_state.lock().unwrap();
+        *lock_state = HierarchyLockState::Unlocked;
     }
 }
