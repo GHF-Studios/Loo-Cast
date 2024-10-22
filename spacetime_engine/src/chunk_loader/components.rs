@@ -6,24 +6,24 @@ use crate::chunk_loader::structs::*;
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 pub struct ChunkLoader {
-    id: InstanceID<ChunkLoader>,
+    id: DynamicKey<ChunkLoader>,
     load_radius: u16,
     registered_chunks: Vec<RegisteredChunkInfo>,
 }
 impl ChunkLoader {
     pub fn new(load_radius: u16) -> Self {
         Self {
-            id: InstanceID::default(),
+            id: DynamicKey::default(),
             load_radius,
             registered_chunks: Vec::new(),
         }
     }
 
-    pub fn id(&self) -> InstanceID<ChunkLoader> {
+    pub fn id(&self) -> DynamicKey<ChunkLoader> {
         self.id
     }
 
-    pub(in crate) fn id_mut(&mut self) -> &mut InstanceID<ChunkLoader> {
+    pub(in crate) fn id_mut(&mut self) -> &mut DynamicKey<ChunkLoader> {
         &mut self.id
     }
 
@@ -43,15 +43,15 @@ impl ChunkLoader {
         &mut self.registered_chunks
     }
 
-    pub fn register_unmanaged_chunk(&mut self, chunk_id: InstanceID<Chunk>) {
+    pub fn register_unmanaged_chunk(&mut self, chunk_id: DynamicKey<Chunk>) {
         self.registered_chunks.push(RegisteredChunkInfo::Unmanaged(chunk_id));
     }
     
-    pub fn register_managed_chunk(&mut self, chunk_id: InstanceID<Chunk>) {
+    pub fn register_managed_chunk(&mut self, chunk_id: DynamicKey<Chunk>) {
         self.registered_chunks.push(RegisteredChunkInfo::Managed(chunk_id));
     }
 
-    pub fn unregister_chunk(&mut self, chunk_id: InstanceID<Chunk>) {
+    pub fn unregister_chunk(&mut self, chunk_id: DynamicKey<Chunk>) {
         self.registered_chunks.retain(|info| {
             match info {
                 RegisteredChunkInfo::Unmanaged(id) => id != &chunk_id,
@@ -60,7 +60,7 @@ impl ChunkLoader {
         });
     }
 
-    pub fn manage_chunk(&mut self, chunk_id: InstanceID<Chunk>) {
+    pub fn manage_chunk(&mut self, chunk_id: DynamicKey<Chunk>) {
         if !self.is_chunk_registered(chunk_id) {
             panic!("Chunk '{:?}' is not registered!", chunk_id);
         }
@@ -72,7 +72,7 @@ impl ChunkLoader {
         self.register_managed_chunk(chunk_id);
     }
 
-    pub fn unmanage_chunk(&mut self, chunk_id: InstanceID<Chunk>) {
+    pub fn unmanage_chunk(&mut self, chunk_id: DynamicKey<Chunk>) {
         if !self.is_chunk_registered(chunk_id) {
             panic!("Chunk '{:?}' is not registered!", chunk_id);
         }
@@ -84,7 +84,7 @@ impl ChunkLoader {
         self.register_unmanaged_chunk(chunk_id);
     }
 
-    pub fn is_chunk_registered(&self, chunk_id: InstanceID<Chunk>) -> bool {
+    pub fn is_chunk_registered(&self, chunk_id: DynamicKey<Chunk>) -> bool {
         self.registered_chunks.iter().any(|info| {
             match info {
                 RegisteredChunkInfo::Unmanaged(id) => id == &chunk_id,
@@ -93,7 +93,7 @@ impl ChunkLoader {
         })
     }
 
-    pub fn is_chunk_managed(&self, chunk_id: InstanceID<Chunk>) -> bool {
+    pub fn is_chunk_managed(&self, chunk_id: DynamicKey<Chunk>) -> bool {
         self.registered_chunks.iter().any(|info| {
             match info {
                 RegisteredChunkInfo::Managed(id) => id == &chunk_id,

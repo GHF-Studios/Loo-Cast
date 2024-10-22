@@ -6,11 +6,11 @@ use bevy::render::view::VisibleEntities;
 use tokio::sync::oneshot;
 use crate::entity::wrappers::EntityInstanceRegistry;
 use crate::core::singletons::MAIN_TYPE_REGISTRY;
-use crate::core::structs::InstanceID;
+use crate::core::structs::DynamicKey;
 use crate::operations::traits::*;
 
 pub struct UpgradeToCamera2dBundleArgs {
-    pub target_entity_id: InstanceID<Entity>,
+    pub target_entity_id: DynamicKey<Entity>,
     pub camera_protection: bool,
     pub camera_render_graph_protection: bool,
     pub projection_protection: bool,
@@ -37,7 +37,7 @@ pub struct UpgradeToCamera2dBundleArgs {
 impl Default for UpgradeToCamera2dBundleArgs {
     fn default() -> Self {
         Self {
-            target_entity_id: InstanceID::default(),
+            target_entity_id: DynamicKey::default(),
             camera_protection: false,
             camera_render_graph_protection: false,
             projection_protection: false,
@@ -206,7 +206,7 @@ impl Operation for UpgradeToCamera2dBundle {
 }
 
 pub struct DowngradeFromCamera2dBundleArgs {
-    pub target_entity_id: InstanceID<Entity>,
+    pub target_entity_id: DynamicKey<Entity>,
     pub camera_protection: bool,
     pub camera_render_graph_protection: bool,
     pub projection_protection: bool,
@@ -222,7 +222,7 @@ pub struct DowngradeFromCamera2dBundleArgs {
 impl Default for DowngradeFromCamera2dBundleArgs {
     fn default() -> Self {
         Self {
-            target_entity_id: InstanceID::default(),
+            target_entity_id: DynamicKey::default(),
             camera_protection: false,
             camera_render_graph_protection: false,
             projection_protection: false,

@@ -4,21 +4,21 @@ use bevy::prelude::*;
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct SpacetimeEntity {
-    id: InstanceID<Entity>,
+    id: DynamicKey<Entity>,
 }
 impl SpacetimeEntity {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
-            id: InstanceID::default(),
+            id: DynamicKey::default(),
         }
     }
 
-    pub fn id(&self) -> InstanceID<Entity> {
+    pub fn id(&self) -> DynamicKey<Entity> {
         self.id
     }
 
-    pub(in crate) fn id_mut(&mut self) -> &mut InstanceID<Entity> {
+    pub(in crate) fn id_mut(&mut self) -> &mut DynamicKey<Entity> {
         &mut self.id
     }
 }

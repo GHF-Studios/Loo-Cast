@@ -4,10 +4,10 @@ use crate::core::structs::*;
 use crate::operations::wrappers::*;
 
 #[derive(Deref, DerefMut)]
-pub struct EntityInstanceRegistry(InstanceRegistry<InstanceID<Entity>, Entity>);
+pub struct EntityInstanceRegistry(DynamicInstanceRegistry<DynamicKey<Entity>, Entity>);
 impl EntityInstanceRegistry {
     pub fn new() -> Self {
-        Self(InstanceRegistry::new())
+        Self(DynamicInstanceRegistry::new())
     }
 }
 

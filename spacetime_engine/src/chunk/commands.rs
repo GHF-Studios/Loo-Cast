@@ -3,13 +3,13 @@ use crate::chunk::components::Chunk;
 use crate::chunk::constants::HALF_CHUNK_SIZE_F32;
 use crate::chunk::structs::ChunkPosition;
 use crate::entity::structs::EntityPosition;
-use crate::core::structs::InstanceID;
+use crate::core::structs::DynamicKey;
 use crate::entity::operations::*;
 use crate::chunk::operations::*;
 use crate::operations::commands::*;
 use crate::sprite_bundle::operations::*;
 
-pub async fn spawn_chunk(chunk_position: ChunkPosition) -> Result<InstanceID<Chunk>, String> {
+pub async fn spawn_chunk(chunk_position: ChunkPosition) -> Result<DynamicKey<Chunk>, String> {
     let entity_position: EntityPosition = chunk_position.into();
     let create_entity_args = CreateEntityArgs { entity_position };
     let create_entity_result = run_op::<CreateEntity>(create_entity_args).await;

@@ -1,61 +1,232 @@
 use super::traits::*;
-use std::{any::*, collections::{HashMap, HashSet}};
-use std::sync::{Arc, Mutex, RwLock};
+use std::{any::*, collections::{HashMap, HashSet}, sync::MutexGuard};
+use std::sync::{Arc, Mutex};
 use bevy::prelude::*;
 
 #[derive(Reflect)]
-pub struct InstanceID<T: 'static + Send + Sync>(u64, #[reflect(ignore)]std::marker::PhantomData<T>);
-impl<T: 'static + Send + Sync> InstanceRegistryKey for InstanceID<T> {
-    fn new(id: u64) -> Self {
-        Self(id, std::marker::PhantomData)
+pub struct StaticKey<T: 'static + Send + Sync> {
+    id: &'static str,
+    #[reflect(ignore)]
+    phantom_data: std::marker::PhantomData<T>,
+}
+impl<T: 'static + Send + Sync> RegistryKey for StaticKey<T> {
+    type ID = &'static str;
+
+    fn new(id: &'static str) -> Self {
+        Self { 
+            id,
+            phantom_data: std::marker::PhantomData,
+        }
     }
 
-    fn get(&self) -> u64 {
-        self.0
+    fn get(&self) -> &'static str {
+        self.id
     }
 }
-impl<T: 'static + Send + Sync> Default for InstanceID<T> {
+impl<T: 'static + Send + Sync> StaticInstanceRegistryKey for StaticKey<T> {}
+impl<T: 'static + Send + Sync> Default for StaticKey<T> {
     fn default() -> Self {
-        Self(0, std::marker::PhantomData)
+        Self {
+            id: "",
+            phantom_data: std::marker::PhantomData
+        }
     }
 }
-impl<T: 'static + Send + Sync> std::fmt::Debug for InstanceID<T> {
+impl<T: 'static + Send + Sync> std::fmt::Debug for StaticKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let type_name = std::any::type_name::<T>();
         let type_name = type_name.split("::").last().unwrap_or(type_name);
-        write!(f, "{}ID({})", type_name, self.0)
+        write!(f, "{}ID({})", type_name, self.id)
     }
 }
-impl<T: 'static + Send + Sync> std::fmt::Display for InstanceID<T> {
+impl<T: 'static + Send + Sync> std::fmt::Display for StaticKey<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-impl<T: 'static + Send + Sync> std::clone::Clone for InstanceID<T> {
+impl<T: 'static + Send + Sync> std::clone::Clone for StaticKey<T> {
     fn clone(&self) -> Self { *self }
 }
-impl<T: 'static + Send + Sync> core::marker::Copy for InstanceID<T> {
+impl<T: 'static + Send + Sync> core::marker::Copy for StaticKey<T> {
 }
-impl<T: 'static + Send + Sync> std::cmp::PartialEq for InstanceID<T> {
+impl<T: 'static + Send + Sync> std::cmp::PartialEq for StaticKey<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
+        self.id == other.id
     }
 }
-impl<T: 'static + Send + Sync> std::cmp::Eq for InstanceID<T> {
+impl<T: 'static + Send + Sync> std::cmp::Eq for StaticKey<T> {
 }
-impl<T: 'static + Send + Sync> std::hash::Hash for InstanceID<T> {
+impl<T: 'static + Send + Sync> std::hash::Hash for StaticKey<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.0.hash(state);
+        self.id.hash(state);
     }
 }
 
-pub struct InstanceRegistry<K: InstanceRegistryKey, V: InstanceRegistryValue> {
+#[derive(Reflect)]
+pub struct DynamicKey<T: 'static + Send + Sync> {
+    id: u64,
+    #[reflect(ignore)]
+    phantom_data: std::marker::PhantomData<T>,
+}
+impl<T: 'static + Send + Sync> RegistryKey for DynamicKey<T> {
+    type ID = u64;
+
+    fn new(id: u64) -> Self {
+        Self {
+            id,
+            phantom_data: std::marker::PhantomData,
+        }
+    }
+
+    fn get(&self) -> u64 {
+        self.id
+    }
+}
+impl<T: 'static + Send + Sync> DynamicInstanceRegistryKey for DynamicKey<T> {}
+impl<T: 'static + Send + Sync> Default for DynamicKey<T> {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            phantom_data: std::marker::PhantomData,
+        }
+    }
+}
+impl<T: 'static + Send + Sync> std::fmt::Debug for DynamicKey<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let type_name = std::any::type_name::<T>();
+        let type_name = type_name.split("::").last().unwrap_or(type_name);
+        write!(f, "{}ID({})", type_name, self.id)
+    }
+}
+impl<T: 'static + Send + Sync> std::fmt::Display for DynamicKey<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+impl<T: 'static + Send + Sync> std::clone::Clone for DynamicKey<T> {
+    fn clone(&self) -> Self { *self }
+}
+impl<T: 'static + Send + Sync> core::marker::Copy for DynamicKey<T> {
+}
+impl<T: 'static + Send + Sync> std::cmp::PartialEq for DynamicKey<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl<T: 'static + Send + Sync> std::cmp::Eq for DynamicKey<T> {
+}
+impl<T: 'static + Send + Sync> std::hash::Hash for DynamicKey<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+pub struct StaticInstanceRegistry<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> {
+    registered: HashSet<K>,
+    managed: HashMap<K, V>,
+}
+impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> StaticInstanceRegistry<K, V> {
+    pub fn new() -> Self {
+        Self {
+            registered: HashSet::new(),
+            managed: HashMap::new(),
+        }
+    }
+
+    pub fn register(&mut self, key: K) {
+        if self.registered.contains(&key) {
+            panic!("Key '{:?}' is already registered!", key);
+        }
+
+        self.registered.insert(key);
+    }
+
+    pub fn unregister(&mut self, key: K) {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is invalid!", key);
+        }
+
+        if self.managed.contains_key(&key) {
+            panic!("Entry '{:?}' is still managed!", key);
+        }
+
+        self.registered.retain(|other_key| key != *other_key);
+    }
+
+    pub fn manage(&mut self, key: K, value: V) {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is invalid!", key);
+        }
+
+        if self.managed.contains_key(&key) {
+            panic!("Entry '{:?}' is already managed!", key);
+        }
+
+        self.managed.insert(key, value);
+    }
+
+    pub fn unmanage(&mut self, key: K) -> V {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is invalid!", key);
+        }
+
+        if !self.managed.contains_key(&key) {
+            panic!("Entry '{:?}' is already unmanaged!", key);
+        }
+
+        self.managed.remove(&key).unwrap()
+    }
+
+    pub fn get(&self, key: K) -> Option<&V> {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is invalid!", key);
+        }
+
+        self.managed.get(&key)
+    }
+
+    pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
+        if !self.registered.contains(&key) {
+            panic!("Key '{:?}' is invalid!", key);
+        }
+
+        self.managed.get_mut(&key)
+    }
+
+    pub fn get_key(&self, value: &V) -> Option<&K> {
+        self.managed.iter().find_map(|(key, other_value)| {
+            if value == other_value {
+                Some(key)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn registered(&self) -> &HashSet<K> {
+        &self.registered
+    }
+
+    pub fn managed(&self) -> &HashMap<K, V> {
+        &self.managed
+    }
+
+    pub fn is_registered(&self, key: K) -> bool {
+        self.registered.contains(&key)
+    }
+
+    pub fn is_managed(&self, key: K) -> bool {
+        self.managed.contains_key(&key)
+    }
+}
+
+pub struct DynamicInstanceRegistry<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> {
     registered: HashSet<K>,
     managed: HashMap<K, V>,
     next_key: K,
     recycled_keys: Vec<K>,
 }
-impl<K: InstanceRegistryKey, V: InstanceRegistryValue> InstanceRegistry<K, V> {
+impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> DynamicInstanceRegistry<K, V> {
     pub fn new() -> Self {
         Self {
             registered: HashSet::new(),
@@ -177,6 +348,7 @@ impl<K: InstanceRegistryKey, V: InstanceRegistryValue> InstanceRegistry<K, V> {
         self.managed.contains_key(&key)
     }
 }
+
 pub struct TypeRegistry {
     registered: HashSet<TypeId>,
     managed: HashMap<TypeId, HashMap<TypeId, Box<dyn Any + Send + Sync>>>,
@@ -306,174 +478,105 @@ impl TypeRegistry {
     }
 }
 
-pub struct HierarchicalLockingMap<K, V>
-where
-    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
-{
-    map: Arc<Mutex<HashMap<K, Arc<RwLock<V>>>>>,
-    lock_state: Arc<Mutex<HierarchyLockState<K>>>,
+pub struct ExampleHierarchy {
+    root: ExampleRoot,
 }
-
-#[derive(Debug)]
-enum HierarchyLockState<K>
-where
-    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
-{
-    Unlocked,
-    MapLocked,
-    EntryLocked(HashMap<K, bool>), // Track locked entries
-}
-
-// Instead of giving you the guard directly, we now return an Arc<RwLock>
-pub struct HierarchicalMapHandle<K, V> 
-where
-    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
-{
-    map: Arc<Mutex<HashMap<K, Arc<RwLock<V>>>>>,
-    lock_state: Arc<Mutex<HierarchyLockState<K>>>,
-}
-
-pub struct HierarchicalEntryHandle<K, V> 
-where
-    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
-{
-    entry: Arc<RwLock<V>>,
-    lock_state: Arc<Mutex<HierarchyLockState<K>>>,
-    key: K,
-}
-
-impl<K, V> HierarchicalLockingMap<K, V>
-where
-    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
-{
-    pub fn new() -> Self {
-        HierarchicalLockingMap {
-            map: Arc::new(Mutex::new(HashMap::new())),
-            lock_state: Arc::new(Mutex::new(HierarchyLockState::Unlocked)),
-        }
+impl LockingHierarchy<ExampleRoot, StaticKey<ExampleRegistry>, ExampleRegistry> for ExampleHierarchy {
+    fn root(&self) -> &ExampleRoot {
+        &self.root
     }
 
-    // Full map lock, returns an Arc<Mutex<HashMap>> instead of a guard
-    pub fn lock_map(&self) -> Option<HierarchicalMapHandle<K, V>> {
-        let mut lock_state = self.lock_state.lock().unwrap();
-        println!("    [DEBUG] Current lock state before map lock attempt: {:?}", *lock_state);  // DEBUG
-
-        match *lock_state {
-            HierarchyLockState::Unlocked => {
-                println!("    [DEBUG] Locking the entire map");
-                *lock_state = HierarchyLockState::MapLocked;
-                Some(HierarchicalMapHandle {
-                    map: Arc::clone(&self.map),
-                    lock_state: Arc::clone(&self.lock_state),
-                })
-            }
-            _ => {
-                println!("    [DEBUG] Failed to lock the map because it's already locked");
-                None // Map or entries are already locked
-            }
-        }
-    }
-
-    // Lock individual entry, returns an Arc<RwLock<V>> instead of the guard
-    pub fn lock_entry(&self, key: K) -> Option<HierarchicalEntryHandle<K, V>> {
-        let mut lock_state = self.lock_state.lock().unwrap();
-        println!("    [DEBUG] Current lock state before entry lock attempt: {:?}", *lock_state);  // DEBUG
-
-        match *lock_state {
-            HierarchyLockState::Unlocked | HierarchyLockState::EntryLocked(_) => {
-                let mut locked_entries = match *lock_state {
-                    HierarchyLockState::Unlocked => {
-                        println!("    [DEBUG] No entries locked, proceeding to lock entry");
-                        HashMap::new()
-                    }
-                    HierarchyLockState::EntryLocked(ref entries) => entries.clone(),
-                    _ => unreachable!(),
-                };
-
-                if locked_entries.contains_key(&key) {
-                    println!("    [DEBUG] Entry {:?} is already locked, cannot lock again", key);  // DEBUG
-                    return None; // Entry is already locked
-                }
-
-                let map = self.map.lock().unwrap();
-                if let Some(entry_lock) = map.get(&key) {
-                    println!("    [DEBUG] Locking entry {:?}", key);  // DEBUG
-                    let entry_guard = entry_lock.write().unwrap();
-                    locked_entries.insert(key.clone(), true);
-                    *lock_state = HierarchyLockState::EntryLocked(locked_entries);
-                    Some(HierarchicalEntryHandle {
-                        entry: Arc::clone(entry_lock),
-                        lock_state: Arc::clone(&self.lock_state),
-                        key,
-                    })
-                } else {
-                    println!("    [DEBUG] Entry {:?} not found", key);  // DEBUG
-                    None // Entry not found
-                }
-            }
-            _ => {
-                println!("    [DEBUG] Failed to lock entry {:?} because the map is locked", key);  // DEBUG
-                None // Map is locked
-            }
-        }
-    }
-
-    // Add an entry to the map
-    pub fn insert(&self, key: K, value: V)
-    where
-        K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
-    {
-        let mut map = self.map.lock().unwrap();
-        map.insert(key.clone(), Arc::new(RwLock::new(value)));
-        println!("    [DEBUG] Inserted entry with key: {:?}", key);  // DEBUG
+    fn root_mut(&mut self) -> &mut ExampleRoot {
+        &mut self.root
     }
 }
 
-impl<'a, K, V> HierarchicalMapHandle<K, V>
-where
-    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
-{
-    // User will lock the map manually using .lock() on the Mutex
-    pub fn lock(&self) -> std::sync::MutexGuard<'_, HashMap<K, Arc<RwLock<V>>>> {
-        self.map.lock().unwrap()
+pub struct ExampleRoot {
+    children: Arc<Mutex<HashMap<StaticKey<ExampleRegistry>, ExampleRegistry>>>,
+}
+impl LockingNodeParent for ExampleRoot {}
+impl LockingRootNode<StaticKey<ExampleRegistry>, ExampleRegistry> for ExampleRoot {
+    fn children(&self) -> MutexGuard<HashMap<StaticKey<ExampleRegistry>, ExampleRegistry>> {
+        self.children.lock().unwrap()
     }
 }
 
-impl<'a, K, V> HierarchicalEntryHandle<K, V>
-where
-    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
-{
-    // User will lock the entry manually using .write() on the RwLock
-    pub fn lock(&self) -> std::sync::RwLockWriteGuard<'_, V> {
-        self.entry.write().unwrap()
+pub struct ExampleRegistry {
+    parent: Arc<Mutex<(StaticKey<ExampleRoot>, ExampleRoot)>>,
+    children: Arc<Mutex<HashMap<StaticKey<ExampleObject>, ExampleObject>>>,
+}
+impl LockingNodeParent for ExampleRegistry {}
+impl LockingNodeChild for ExampleRegistry {}
+impl LockingNodeParentChild for ExampleRegistry {}
+impl LockingBranchNode<StaticKey<ExampleRoot>, ExampleRoot, StaticKey<ExampleObject>, ExampleObject> for ExampleRegistry {
+    fn parent(&self) -> MutexGuard<(StaticKey<ExampleRoot>, ExampleRoot)> {
+        self.parent.lock().unwrap()
+    }
+
+    fn children(&self) -> MutexGuard<HashMap<StaticKey<ExampleObject>, ExampleObject>> {
+        self.children.lock().unwrap()
     }
 }
 
-// Drop logic to unlock map/entry when the handle goes out of scope
-impl<'a, K, V> Drop for HierarchicalEntryHandle<K, V>
-where
-    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
-{
-    fn drop(&mut self) {
-        let mut lock_state = self.lock_state.lock().unwrap();
-        if let HierarchyLockState::EntryLocked(ref mut entries) = *lock_state {
-            entries.remove(&self.key);
-
-            // If no entries are locked, transition back to `Unlocked`
-            if entries.is_empty() {
-                *lock_state = HierarchyLockState::Unlocked;
-                println!("    [DEBUG] All entries unlocked, transitioning to Unlocked");
-            }
-        }
+pub struct ExampleObject {
+    parent: Arc<Mutex<(StaticKey<ExampleRegistry>, ExampleRegistry)>>,
+}
+impl LockingNodeChild for ExampleObject {}
+impl LockingLeafNode<StaticKey<ExampleRegistry>, ExampleRegistry> for ExampleObject {
+    fn parent(&self) -> MutexGuard<(StaticKey<ExampleRegistry>, ExampleRegistry)> {
+        self.parent.lock().unwrap()
     }
 }
 
-impl<'a, K, V> Drop for HierarchicalMapHandle<K, V>
-where
-    K: std::cmp::Eq + std::hash::Hash + Clone + std::fmt::Debug,
-{
-    fn drop(&mut self) {
-        let mut lock_state = self.lock_state.lock().unwrap();
-        *lock_state = HierarchyLockState::Unlocked;
+/*
+pub struct LockingRootNodeHandle(Box<dyn Any>);
+impl LockingRootNodeHandle {
+    pub fn new<T: 'static + LockingNodeParent>(node: T) -> Self {
+        Self(Box::new(node))
+    }
+
+    pub fn get<T: 'static + LockingNodeParent>(&self) -> &T {
+        self.0.downcast_ref::<T>().expect("Failed to downcast internal value")
+    }
+
+    pub fn get_mut<T: 'static + LockingNodeParent>(&mut self) -> &mut T {
+        self.0.downcast_mut::<T>().expect("Failed to downcast internal value")
     }
 }
+
+pub struct LockingBranchNodeHandle(Box<dyn Any>);
+impl LockingBranchNodeHandle {
+    pub fn new<T: 'static + LockingNodeParentChild>(node: T) -> Self {
+        Self(Box::new(node))
+    }
+
+    pub fn get<T: 'static + LockingNodeParentChild>(&self) -> &T {
+        self.0.downcast_ref::<T>().expect("Failed to downcast internal value")
+    }
+
+    pub fn get_mut<T: 'static + LockingNodeParentChild>(&mut self) -> &mut T {
+        self.0.downcast_mut::<T>().expect("Failed to downcast internal value")
+    }
+}
+
+pub struct LockingLeafNodeHandle(Box<dyn Any>);
+impl LockingLeafNodeHandle {
+    pub fn new<T: 'static + LockingNodeChild>(node: T) -> Self {
+        Self(Box::new(node))
+    }
+
+    pub fn get<T: 'static + LockingNodeChild>(&self) -> &T {
+        self.0.downcast_ref::<T>().expect("Failed to downcast internal value")
+    }
+
+    pub fn get_mut<T: 'static + LockingNodeChild>(&mut self) -> &mut T {
+        self.0.downcast_mut::<T>().expect("Failed to downcast internal value")
+    }
+}
+
+pub enum LockingNode {
+    Root(LockingRootNodeHandle),
+    Branch(LockingBranchNodeHandle),
+    Leaf(LockingLeafNodeHandle),
+}
+*/

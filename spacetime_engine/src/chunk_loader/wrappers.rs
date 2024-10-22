@@ -5,10 +5,10 @@ use crate::operations::wrappers::*;
 use super::components::ChunkLoader;
 
 #[derive(Deref, DerefMut)]
-pub struct ChunkLoaderInstanceRegistry(InstanceRegistry<InstanceID<ChunkLoader>, Entity>);
+pub struct ChunkLoaderInstanceRegistry(DynamicInstanceRegistry<DynamicKey<ChunkLoader>, Entity>);
 impl ChunkLoaderInstanceRegistry {
     pub fn new() -> Self {
-        Self(InstanceRegistry::new())
+        Self(DynamicInstanceRegistry::new())
     }
 }
 

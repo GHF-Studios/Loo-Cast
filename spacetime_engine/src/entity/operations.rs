@@ -14,7 +14,7 @@ pub struct CreateEntityArgs {
 impl OpArgs for CreateEntityArgs {}
 pub enum CreateEntityResult {
     Ok{
-        entity_id: InstanceID<Entity>
+        entity_id: DynamicKey<Entity>
     },
     Err(()),
 }
@@ -55,7 +55,7 @@ impl Operation for CreateEntity {
 }
 
 pub struct DestroyEntityArgs {
-    pub entity_id: InstanceID<Entity>,
+    pub entity_id: DynamicKey<Entity>,
 }
 impl OpArgs for DestroyEntityArgs {}
 pub enum DestroyEntityResult {

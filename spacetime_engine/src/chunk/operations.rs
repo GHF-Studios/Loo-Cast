@@ -5,14 +5,14 @@ use super::{components::Chunk, singletons::SERIALIZED_CHUNK_STORAGE, structs::Ch
 use tokio::sync::oneshot;
 
 pub struct UpgradeToChunkArgs {
-    pub target_entity_id: InstanceID<Entity>,
+    pub target_entity_id: DynamicKey<Entity>,
     pub chunk_position: ChunkPosition,
-    pub chunk_owner: Option<InstanceID<ChunkLoader>>,
+    pub chunk_owner: Option<DynamicKey<ChunkLoader>>,
 }
 impl OpArgs for UpgradeToChunkArgs {}
 pub enum UpgradeToChunkResult {
     Ok{
-        chunk_id: InstanceID<Chunk>,
+        chunk_id: DynamicKey<Chunk>,
     },
     Err(()),
 }
@@ -102,8 +102,8 @@ impl Operation for UpgradeToChunk {
 }
 
 pub struct DowngradeFromChunkArgs {
-    pub chunk_entity_id: InstanceID<Entity>,
-    pub chunk_id: InstanceID<Chunk>,
+    pub chunk_entity_id: DynamicKey<Entity>,
+    pub chunk_id: DynamicKey<Chunk>,
 }
 impl OpArgs for DowngradeFromChunkArgs {}
 pub enum DowngradeFromChunkResult {

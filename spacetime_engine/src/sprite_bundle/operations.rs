@@ -2,11 +2,11 @@ use bevy::prelude::*;
 use tokio::sync::oneshot;
 use crate::entity::wrappers::EntityInstanceRegistry;
 use crate::core::singletons::MAIN_TYPE_REGISTRY;
-use crate::core::structs::InstanceID;
+use crate::core::structs::DynamicKey;
 use crate::operations::traits::*;
 
 pub struct UpgradeToSpriteBundleArgs {
-    pub target_entity_id: InstanceID<Entity>,
+    pub target_entity_id: DynamicKey<Entity>,
     pub sprite_protection: bool,
     pub transform_protection: bool,
     pub global_transform_protection: bool,
@@ -26,7 +26,7 @@ impl OpArgs for UpgradeToSpriteBundleArgs {}
 impl Default for UpgradeToSpriteBundleArgs {
     fn default() -> Self {
         Self {
-            target_entity_id: InstanceID::default(),
+            target_entity_id: DynamicKey::default(),
             sprite_protection: false,
             transform_protection: true,
             global_transform_protection: false,
@@ -158,7 +158,7 @@ impl Operation for UpgradeToSpriteBundle {
 }
 
 pub struct DowngradeFromSpriteBundleArgs {
-    pub target_entity_id: InstanceID<Entity>,
+    pub target_entity_id: DynamicKey<Entity>,
     pub sprite_protection: bool,
     pub transform_protection: bool,
     pub global_transform_protection: bool,
@@ -170,7 +170,7 @@ pub struct DowngradeFromSpriteBundleArgs {
 impl Default for DowngradeFromSpriteBundleArgs {
     fn default() -> Self {
         Self {
-            target_entity_id: InstanceID::default(),
+            target_entity_id: DynamicKey::default(),
             sprite_protection: false,
             transform_protection: true,
             global_transform_protection: false,

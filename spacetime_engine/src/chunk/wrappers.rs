@@ -5,10 +5,10 @@ use crate::operations::wrappers::*;
 use super::{components::Chunk, structs::ChunkPosition};
 
 #[derive(Deref, DerefMut)]
-pub struct ChunkInstanceRegistry(InstanceRegistry<InstanceID<Chunk>, Entity>);
+pub struct ChunkInstanceRegistry(DynamicInstanceRegistry<DynamicKey<Chunk>, Entity>);
 impl ChunkInstanceRegistry {
     pub fn new() -> Self {
-        Self(InstanceRegistry::new())
+        Self(DynamicInstanceRegistry::new())
     }
 }
 

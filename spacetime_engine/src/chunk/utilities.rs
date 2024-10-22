@@ -5,7 +5,7 @@ use bevy::scene::serde::{SceneSerializer, SceneDeserializer};
 use serde::de::DeserializeSeed;
 use crate::chunk_actor::components::ChunkActor;
 use crate::core::singletons::*;
-use crate::core::structs::InstanceID;
+use crate::core::structs::DynamicKey;
 use crate::chunk::wrappers::ChunkInstanceRegistry;
 use super::components::Chunk;
 
@@ -60,7 +60,7 @@ pub(in crate) fn deserialize_chunk(
 
 pub(in crate) fn serialize_chunk(
     world: &mut World,
-    chunk_id: InstanceID<Chunk>
+    chunk_id: DynamicKey<Chunk>
 ) -> String {
     debug!("Serializing chunk '{:?}'...", chunk_id);
 
