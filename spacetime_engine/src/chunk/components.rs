@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::core::structs::DynamicKey;
+use crate::core::structs::DynamicID;
 
 use crate::chunk::structs::ChunkPosition;
 use crate::chunk_actor::components::ChunkActor;
@@ -8,33 +8,33 @@ use crate::chunk_loader::components::ChunkLoader;
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct Chunk {
-    id: DynamicKey<Chunk>,
+    id: DynamicID<Chunk>,
     position: ChunkPosition,
-    owner: Option<DynamicKey<ChunkLoader>>,
-    registered_chunk_actors: Vec<DynamicKey<ChunkActor>>,
+    owner: Option<DynamicID<ChunkLoader>>,
+    registered_chunk_actors: Vec<DynamicID<ChunkActor>>,
 }
 
 impl Chunk {
-    pub fn new(position: ChunkPosition, owner: Option<DynamicKey<ChunkLoader>>) -> Self {
+    pub fn new(position: ChunkPosition, owner: Option<DynamicID<ChunkLoader>>) -> Self {
         Self {
-            id: DynamicKey::default(),
+            id: DynamicID::default(),
             position,
             registered_chunk_actors: Vec::new(),
             owner
         }
     }
 
-    pub fn register_chunk_actor(&mut self, chunk_actor_id: DynamicKey<ChunkActor>) {
+    pub fn register_chunk_actor(&mut self, chunk_actor_id: DynamicID<ChunkActor>) {
         self.registered_chunk_actors.push(chunk_actor_id);
     }
-    pub fn unregister_chunk_actor(&mut self, chunk_actor_id: DynamicKey<ChunkActor>) {
+    pub fn unregister_chunk_actor(&mut self, chunk_actor_id: DynamicID<ChunkActor>) {
         self.registered_chunk_actors.retain(|&id| id != chunk_actor_id);
     }
 
-    pub fn id(&self) -> DynamicKey<Chunk> {
+    pub fn id(&self) -> DynamicID<Chunk> {
         self.id
     }
-    pub(in crate) fn id_mut(&mut self) -> &mut DynamicKey<Chunk> {
+    pub(in crate) fn id_mut(&mut self) -> &mut DynamicID<Chunk> {
         &mut self.id
     }
 
@@ -45,17 +45,17 @@ impl Chunk {
         &mut self.position
     }
 
-    pub fn owner(&self) -> Option<DynamicKey<ChunkLoader>> {
+    pub fn owner(&self) -> Option<DynamicID<ChunkLoader>> {
         self.owner
     }
-    pub(in crate) fn owner_mut(&mut self) -> &mut Option<DynamicKey<ChunkLoader>> {
+    pub(in crate) fn owner_mut(&mut self) -> &mut Option<DynamicID<ChunkLoader>> {
         &mut self.owner
     }
 
-    pub fn registered_chunk_actors(&self) -> &Vec<DynamicKey<ChunkActor>> {
+    pub fn registered_chunk_actors(&self) -> &Vec<DynamicID<ChunkActor>> {
         &self.registered_chunk_actors
     }
-    pub(in crate) fn registered_chunk_actors_mut(&mut self) -> &mut Vec<DynamicKey<ChunkActor>> {
+    pub(in crate) fn registered_chunk_actors_mut(&mut self) -> &mut Vec<DynamicID<ChunkActor>> {
         &mut self.registered_chunk_actors
     }
 }

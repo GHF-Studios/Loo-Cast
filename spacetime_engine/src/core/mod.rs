@@ -1,5 +1,7 @@
 // Data types
 pub mod components;
+pub mod enums;
+pub mod errors;
 pub mod structs;
 pub mod wrappers;
 
@@ -11,6 +13,7 @@ pub mod systems;
 // Integrations
 
 // Miscelaneous
+pub mod constants;
 pub mod singletons;
 pub mod traits;
 

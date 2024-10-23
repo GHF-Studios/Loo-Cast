@@ -5,7 +5,7 @@ use crate::operations::wrappers::*;
 use super::components::ChunkLoader;
 
 #[derive(Deref, DerefMut)]
-pub struct ChunkLoaderInstanceRegistry(DynamicInstanceRegistry<DynamicKey<ChunkLoader>, Entity>);
+pub struct ChunkLoaderInstanceRegistry(DynamicInstanceRegistry<DynamicID<ChunkLoader>, Entity>);
 impl ChunkLoaderInstanceRegistry {
     pub fn new() -> Self {
         Self(DynamicInstanceRegistry::new())

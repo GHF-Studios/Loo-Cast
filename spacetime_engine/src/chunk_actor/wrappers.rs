@@ -4,7 +4,7 @@ use crate::core::structs::*;
 use super::components::ChunkActor;
 
 #[derive(Deref, DerefMut)]
-pub struct ChunkActorInstanceRegistry(DynamicInstanceRegistry<DynamicKey<ChunkActor>, Entity>);
+pub struct ChunkActorInstanceRegistry(DynamicInstanceRegistry<DynamicID<ChunkActor>, Entity>);
 impl ChunkActorInstanceRegistry {
     pub fn new() -> Self {
         Self(DynamicInstanceRegistry::new())

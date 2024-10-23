@@ -5,13 +5,13 @@ use super::{components::ChunkActor, wrappers::ChunkActorInstanceRegistry};
 use tokio::sync::oneshot;
 
 pub struct UpgradeToChunkActorArgs {
-    pub target_entity_id: DynamicKey<Entity>,
-    pub chunk_actor_start_chunk_id: DynamicKey<Chunk>,
+    pub target_entity_id: DynamicID<Entity>,
+    pub chunk_actor_start_chunk_id: DynamicID<Chunk>,
 }
 impl OpArgs for UpgradeToChunkActorArgs {}
 pub enum UpgradeToChunkActorResult {
     Ok{
-        chunk_actor_id: DynamicKey<ChunkActor>,
+        chunk_actor_id: DynamicID<ChunkActor>,
     },
     Err(()),
 }
@@ -88,8 +88,8 @@ impl Operation for UpgradeToChunkActor {
 }
 
 pub struct DowngradeFromChunkActorArgs {
-    pub chunk_actor_entity_id: DynamicKey<Entity>,
-    pub chunk_actor_id: DynamicKey<ChunkActor>,
+    pub chunk_actor_entity_id: DynamicID<Entity>,
+    pub chunk_actor_id: DynamicID<ChunkActor>,
 }
 impl OpArgs for DowngradeFromChunkActorArgs {}
 pub enum DowngradeFromChunkActorResult {

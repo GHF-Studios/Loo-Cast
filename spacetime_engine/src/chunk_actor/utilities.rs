@@ -6,7 +6,7 @@ use crate::chunk::components::*;
 use crate::chunk::wrappers::ChunkInstanceRegistry;
 use crate::entity::structs::EntityPosition;
 use crate::core::singletons::MAIN_TYPE_REGISTRY;
-use crate::core::structs::DynamicKey;
+use crate::core::structs::DynamicID;
 
 pub(in crate) fn collect_chunk_actor_updates(
     world: &mut World,
@@ -28,7 +28,7 @@ pub(in crate) fn collect_chunk_actor_updates(
     }).collect::<Vec<_>>();
 
     for (chunk_actor_entity, chunk_actor_chunk_position, chunk_actor_id, chunk_actor_current_chunk_id) in chunk_actor_query_infos {
-        let chunk_id: DynamicKey<Chunk> = {
+        let chunk_id: DynamicID<Chunk> = {
             let mut chunks = world.query::<&Chunk>();
 
             match chunks.iter(world).find(|chunk| chunk.position() == chunk_actor_chunk_position) {

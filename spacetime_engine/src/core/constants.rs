@@ -1,0 +1,1 @@
+pub const RESERVED_STATIC_IDS: [&str; 1] = ["root"];

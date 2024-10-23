@@ -9,7 +9,7 @@ use crate::chunk_actor::operations::*;
 use crate::operations::commands::*;
 use crate::sprite_bundle::operations::*;
 
-pub async fn spawn_chunk_actor(entity_position: EntityPosition) -> Result<DynamicKey<ChunkActor>, String> {
+pub async fn spawn_chunk_actor(entity_position: EntityPosition) -> Result<DynamicID<ChunkActor>, String> {
     let create_entity_args = CreateEntityArgs { entity_position };
     let create_entity_result = run_op::<CreateEntity>(create_entity_args).await;
     let entity_id = match create_entity_result {
@@ -23,7 +23,7 @@ pub async fn spawn_chunk_actor(entity_position: EntityPosition) -> Result<Dynami
 
     let upgrade_to_chunk_actor_args = UpgradeToChunkActorArgs {
         target_entity_id: entity_id,
-        chunk_actor_start_chunk_id: DynamicKey::new(1)
+        chunk_actor_start_chunk_id: DynamicID::new(1)
     };
     let upgrade_to_chunk_actor_result = run_op::<UpgradeToChunkActor>(upgrade_to_chunk_actor_args).await;
     let chunk_actor_id = match upgrade_to_chunk_actor_result {

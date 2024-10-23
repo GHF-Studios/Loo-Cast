@@ -1,18 +1,29 @@
-use super::traits::*;
+use crate::core::enums::LockingNodeInfo;
+
+use super::{enums::*, errors::LockingHierarchyError, traits::*};
 use std::{any::*, collections::{HashMap, HashSet}, sync::MutexGuard};
 use std::sync::{Arc, Mutex};
+use std::fmt::{Debug, Display};
+use std::hash::Hash;
 use bevy::prelude::*;
+use super::constants::*;
 
 #[derive(Reflect)]
-pub struct StaticKey<T: 'static + Send + Sync> {
+pub struct StaticID<T: 'static + Send + Sync + LockingNode> {
     id: &'static str,
     #[reflect(ignore)]
     phantom_data: std::marker::PhantomData<T>,
 }
-impl<T: 'static + Send + Sync> RegistryKey for StaticKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> RegistryKey for StaticID<T> {
     type ID = &'static str;
 
     fn new(id: &'static str) -> Self {
+        for reserved_id in RESERVED_STATIC_IDS.iter() {
+            if id.eq_ignore_ascii_case(reserved_id) {
+                panic!("Cannot use reserved static ID '{}'!", reserved_id);
+            }
+        }
+
         Self { 
             id,
             phantom_data: std::marker::PhantomData,
@@ -23,8 +34,8 @@ impl<T: 'static + Send + Sync> RegistryKey for StaticKey<T> {
         self.id
     }
 }
-impl<T: 'static + Send + Sync> StaticInstanceRegistryKey for StaticKey<T> {}
-impl<T: 'static + Send + Sync> Default for StaticKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> StaticInstanceRegistryKey for StaticID<T> {}
+impl<T: 'static + Send + Sync + LockingNode> Default for StaticID<T> {
     fn default() -> Self {
         Self {
             id: "",
@@ -32,43 +43,43 @@ impl<T: 'static + Send + Sync> Default for StaticKey<T> {
         }
     }
 }
-impl<T: 'static + Send + Sync> std::fmt::Debug for StaticKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::fmt::Debug for StaticID<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let type_name = std::any::type_name::<T>();
         let type_name = type_name.split("::").last().unwrap_or(type_name);
         write!(f, "{}ID({})", type_name, self.id)
     }
 }
-impl<T: 'static + Send + Sync> std::fmt::Display for StaticKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::fmt::Display for StaticID<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-impl<T: 'static + Send + Sync> std::clone::Clone for StaticKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::clone::Clone for StaticID<T> {
     fn clone(&self) -> Self { *self }
 }
-impl<T: 'static + Send + Sync> core::marker::Copy for StaticKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> core::marker::Copy for StaticID<T> {
 }
-impl<T: 'static + Send + Sync> std::cmp::PartialEq for StaticKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::cmp::PartialEq for StaticID<T> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
-impl<T: 'static + Send + Sync> std::cmp::Eq for StaticKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::cmp::Eq for StaticID<T> {
 }
-impl<T: 'static + Send + Sync> std::hash::Hash for StaticKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::hash::Hash for StaticID<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
 }
 
 #[derive(Reflect)]
-pub struct DynamicKey<T: 'static + Send + Sync> {
+pub struct DynamicID<T: 'static + Send + Sync + LockingNode> {
     id: u64,
     #[reflect(ignore)]
     phantom_data: std::marker::PhantomData<T>,
 }
-impl<T: 'static + Send + Sync> RegistryKey for DynamicKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> RegistryKey for DynamicID<T> {
     type ID = u64;
 
     fn new(id: u64) -> Self {
@@ -82,8 +93,8 @@ impl<T: 'static + Send + Sync> RegistryKey for DynamicKey<T> {
         self.id
     }
 }
-impl<T: 'static + Send + Sync> DynamicInstanceRegistryKey for DynamicKey<T> {}
-impl<T: 'static + Send + Sync> Default for DynamicKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> DynamicInstanceRegistryKey for DynamicID<T> {}
+impl<T: 'static + Send + Sync + LockingNode> Default for DynamicID<T> {
     fn default() -> Self {
         Self {
             id: 0,
@@ -91,33 +102,399 @@ impl<T: 'static + Send + Sync> Default for DynamicKey<T> {
         }
     }
 }
-impl<T: 'static + Send + Sync> std::fmt::Debug for DynamicKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::fmt::Debug for DynamicID<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let type_name = std::any::type_name::<T>();
         let type_name = type_name.split("::").last().unwrap_or(type_name);
         write!(f, "{}ID({})", type_name, self.id)
     }
 }
-impl<T: 'static + Send + Sync> std::fmt::Display for DynamicKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::fmt::Display for DynamicID<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-impl<T: 'static + Send + Sync> std::clone::Clone for DynamicKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::clone::Clone for DynamicID<T> {
     fn clone(&self) -> Self { *self }
 }
-impl<T: 'static + Send + Sync> core::marker::Copy for DynamicKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> core::marker::Copy for DynamicID<T> {
 }
-impl<T: 'static + Send + Sync> std::cmp::PartialEq for DynamicKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::cmp::PartialEq for DynamicID<T> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
-impl<T: 'static + Send + Sync> std::cmp::Eq for DynamicKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::cmp::Eq for DynamicID<T> {
 }
-impl<T: 'static + Send + Sync> std::hash::Hash for DynamicKey<T> {
+impl<T: 'static + Send + Sync + LockingNode> std::hash::Hash for DynamicID<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
+    }
+}
+
+#[derive(Reflect)]
+pub struct StaticUniversalID {
+    id: &'static str,
+}
+impl StaticUniversalID {
+    pub fn new<T: 'static + Send + Sync + LockingNode>(id: StaticID<T>) -> Self {
+        Self {
+            id: id.id,
+        }
+    }
+    pub fn get<T: 'static + Send + Sync + LockingNode>(&self) -> StaticID<T> {
+        StaticID::new(self.id)
+    }
+}
+impl Debug for StaticUniversalID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\"{}\"", self.id)
+    }
+}
+impl Display for StaticUniversalID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "\"{}\"", self.id)
+    }
+}
+impl Clone for StaticUniversalID {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id,
+        }
+    }
+}
+impl Copy for StaticUniversalID {}
+impl PartialEq for StaticUniversalID {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for StaticUniversalID {}
+impl Hash for StaticUniversalID {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+#[derive(Reflect)]
+pub struct DynamicUniversalID {
+    id: u64,
+}
+impl DynamicUniversalID {
+    pub fn new<T: 'static + Send + Sync + LockingNode>(id: DynamicID<T>) -> Self {
+        Self {
+            id: id.id,
+        }
+    }
+    pub fn get<T: 'static + Send + Sync + LockingNode>(&self) -> DynamicID<T> {
+        DynamicID::new(self.id)
+    }
+}
+impl Debug for DynamicUniversalID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({})", self.id)
+    }
+}
+impl Display for DynamicUniversalID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({})", self.id)
+    }
+}
+impl Clone for DynamicUniversalID {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id,
+        }
+    }
+}
+impl Copy for DynamicUniversalID {}
+impl PartialEq for DynamicUniversalID {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for DynamicUniversalID {}
+impl Hash for DynamicUniversalID {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+#[derive()]
+pub enum LockingPathSegment {
+    Root,
+    Static(StaticUniversalID),
+    Dynamic(DynamicUniversalID),
+}
+impl Debug for LockingPathSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LockingPathSegment::Root => write!(f, "Root"),
+            LockingPathSegment::Static(id) => write!(f, "{}", id),
+            LockingPathSegment::Dynamic(id) => write!(f, "{}", id),
+        }
+    }
+}
+impl Display for LockingPathSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LockingPathSegment::Root => write!(f, "Root"),
+            LockingPathSegment::Static(id) => write!(f, "{}", id),
+            LockingPathSegment::Dynamic(id) => write!(f, "{}", id),
+        }
+    }
+}
+impl Clone for LockingPathSegment {
+    fn clone(&self) -> Self {
+        match self {
+            LockingPathSegment::Root => LockingPathSegment::Root,
+            LockingPathSegment::Static(id) => LockingPathSegment::Static(id.clone()),
+            LockingPathSegment::Dynamic(id) => LockingPathSegment::Dynamic(id.clone()),
+        }
+    }
+}
+impl Copy for LockingPathSegment {}
+impl PartialEq for LockingPathSegment {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (LockingPathSegment::Static(id), LockingPathSegment::Static(other_id)) => id == other_id,
+            (LockingPathSegment::Dynamic(id), LockingPathSegment::Dynamic(other_id)) => id == other_id,
+            _ => false,
+        }
+    }
+}
+impl Eq for LockingPathSegment {}
+impl Hash for LockingPathSegment {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            LockingPathSegment::Root => "Root".hash(state),
+            LockingPathSegment::Static(id) => id.hash(state),
+            LockingPathSegment::Dynamic(id) => id.hash(state),
+        }
+    }
+}
+
+pub struct RelativeLockingPath {
+    segments: Vec<LockingPathSegment>,
+}
+impl RelativeLockingPath {
+    pub fn new() -> Self {
+        Self {
+            segments: Vec::new(),
+        }
+    }
+}
+impl LockingPath for RelativeLockingPath {
+    fn segments(&self) -> &Vec<LockingPathSegment> {
+        &self.segments
+    }
+    
+    fn segments_mut(&mut self) -> &mut Vec<LockingPathSegment> {
+        &mut self.segments
+    }
+
+    fn push(&mut self, segment: LockingPathSegment) -> Result<(), String> {
+        let last_segment = self.segments.last();
+        
+        match last_segment {
+            Some(LockingPathSegment::Root) => {
+                unreachable!()
+            },
+            Some(LockingPathSegment::Static(_)) => {
+                match segment {
+                    LockingPathSegment::Root => {
+                        return Err("Cannot push root segment after static segment in relative path!".to_string())
+                    },
+                    _ => {
+                        self.segments.push(segment);
+                        Ok(())
+                    },
+                }
+            },
+            Some(LockingPathSegment::Dynamic(_)) => {
+                match segment {
+                    LockingPathSegment::Root => {
+                        return Err("Cannot push root segment after dynamic segment in relative path!".to_string())
+                    },
+                    _ => {
+                        self.segments.push(segment);
+                        Ok(())
+                    },
+                }
+            },
+            None => {
+                match segment {
+                    LockingPathSegment::Root => {
+                        return Err("Cannot push root segment after no segments in relative path!".to_string())
+                    },
+                    _ => {
+                        self.segments.push(segment);
+                        Ok(())
+                    },
+                }
+            },
+        }
+    }
+
+    fn pop(&mut self) -> Result<LockingPathSegment, String> {
+        match self.segments.pop() {
+            Some(segment) => Ok(segment),
+            None => Err("Cannot pop segment from empty relative path!".to_string()),
+        }
+    }
+}
+impl Debug for RelativeLockingPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut path = String::new();
+
+        for segment in &self.segments {
+            path.push_str(&format!("{}/", segment));
+        }
+
+        write!(f, "{}", path)
+    }
+}
+impl Display for RelativeLockingPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut path = String::new();
+
+        for segment in &self.segments {
+            path.push_str(&format!("{}/", segment));
+        }
+
+        write!(f, "{}", path)
+    }
+}
+impl Clone for RelativeLockingPath {
+    fn clone(&self) -> Self {
+        Self {
+            segments: self.segments.clone(),
+        }
+    }
+}
+impl PartialEq for RelativeLockingPath {
+    fn eq(&self, other: &Self) -> bool {
+        self.segments == other.segments
+    }
+}
+impl Eq for RelativeLockingPath {}
+impl Hash for RelativeLockingPath {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.segments.hash(state);
+    }
+}
+
+pub struct AbsoluteLockingPath {
+    segments: Vec<LockingPathSegment>,
+}
+impl AbsoluteLockingPath {
+    pub fn new() -> Self {
+        Self {
+            segments: vec![LockingPathSegment::Root],
+        }
+    }
+}
+impl LockingPath for AbsoluteLockingPath {
+    fn segments(&self) -> &Vec<LockingPathSegment> {
+        &self.segments
+    }
+
+    fn segments_mut(&mut self) -> &mut Vec<LockingPathSegment> {
+        &mut self.segments
+    }
+
+    fn push(&mut self, segment: LockingPathSegment) -> Result<(), String> {
+        let last_segment = self.segments.last();
+
+        match last_segment {
+            Some(LockingPathSegment::Root) => {
+                match segment {
+                    LockingPathSegment::Root => {
+                        return Err("Cannot push root segment after root segment in absolute path!".to_string())
+                    },
+                    _ => {
+                        self.segments.push(segment);
+                        Ok(())
+                    },
+                }
+            },
+            Some(LockingPathSegment::Static(_)) => {
+                match segment {
+                    LockingPathSegment::Root => {
+                        return Err("Cannot push root segment after static segment in absolute path!".to_string())
+                    },
+                    _ => {
+                        self.segments.push(segment);
+                        Ok(())
+                    },
+                }
+            },
+            Some(LockingPathSegment::Dynamic(_)) => {
+                match segment {
+                    LockingPathSegment::Root => {
+                        return Err("Cannot push root segment after dynamic segment in absolute path!".to_string())
+                    },
+                    _ => {
+                        self.segments.push(segment);
+                        Ok(())
+                    },
+                }
+            },
+            None => {
+                unreachable!()
+            }
+        }
+    }
+
+    fn pop(&mut self) -> Result<LockingPathSegment, String> {
+        if self.segments.len() == 1 {
+            return Err("Cannot pop root segment from absolute path!".to_string());
+        }
+
+        match self.segments.pop() {
+            Some(segment) => Ok(segment),
+            None => unreachable!(),
+        }
+    }
+}
+impl Debug for AbsoluteLockingPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut path = String::new();
+
+        for segment in &self.segments {
+            path.push_str(&format!("{}/", segment));
+        }
+
+        write!(f, "{}", path)
+    }
+}
+impl Display for AbsoluteLockingPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut path = String::new();
+
+        for segment in &self.segments {
+            path.push_str(&format!("{}/", segment));
+        }
+
+        write!(f, "{}", path)
+    }
+}
+impl Clone for AbsoluteLockingPath {
+    fn clone(&self) -> Self {
+        Self {
+            segments: self.segments.clone(),
+        }
+    }
+}
+impl PartialEq for AbsoluteLockingPath {
+    fn eq(&self, other: &Self) -> bool {
+        self.segments == other.segments
+    }
+}
+impl Eq for AbsoluteLockingPath {}
+impl Hash for AbsoluteLockingPath {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.segments.hash(state);
     }
 }
 
@@ -478,10 +855,11 @@ impl TypeRegistry {
     }
 }
 
+
 pub struct ExampleHierarchy {
     root: ExampleRoot,
 }
-impl LockingHierarchy<ExampleRoot, StaticKey<ExampleRegistry>, ExampleRegistry> for ExampleHierarchy {
+impl LockingHierarchy<ExampleRoot> for ExampleHierarchy {
     fn root(&self) -> &ExampleRoot {
         &self.root
     }
@@ -489,94 +867,99 @@ impl LockingHierarchy<ExampleRoot, StaticKey<ExampleRegistry>, ExampleRegistry> 
     fn root_mut(&mut self) -> &mut ExampleRoot {
         &mut self.root
     }
+
+    fn insert(&mut self, path: AbsoluteLockingPath, entry: Box<dyn Any>) -> Result<(), LockingHierarchyError> {
+
+    }
+
+    fn remove(&mut self, path: AbsoluteLockingPath) -> Result<Box<dyn Any>, LockingHierarchyError> {
+        
+    }
+
+    fn get(&self, path: AbsoluteLockingPath) -> Result<&Box<dyn Any>, LockingHierarchyError> {
+
+    }
+
+    fn get_mut(
+        &mut self, 
+        path: AbsoluteLockingPath
+    ) -> Result<&mut Box<dyn Any>, LockingHierarchyError> {
+        let mut current_node: LockingNodeInfo = self.root.node_info();
+        let current_segment = path.segments().first().unwrap();
+
+        for i in 0..path.segments().len() {
+
+        }
+
+        let target_node: LockingNodeInfo = current_node;
+        
+        todo!()
+    }
+
+    fn contains(&self, path: AbsoluteLockingPath) -> Result<bool, LockingHierarchyError> {
+        
+    }
+
+    fn lock(&self, path: AbsoluteLockingPath) -> Result<MutexGuard<dyn Any>, LockingHierarchyError> {
+        
+    }
+
+    fn unlock(&self, path: AbsoluteLockingPath, entry_guard: MutexGuard<dyn Any>) -> Result<(), LockingHierarchyError> {
+        
+    }
+
+    fn is_locked(&self, path: AbsoluteLockingPath) -> Result<bool, LockingHierarchyError> {
+        
+    }
 }
 
 pub struct ExampleRoot {
-    children: Arc<Mutex<HashMap<StaticKey<ExampleRegistry>, ExampleRegistry>>>,
+    node_info: LockingRootNodeInfo,
+}
+impl LockingNode for ExampleRoot {
+    fn node_info(&self) -> LockingNodeInfo {
+        LockingNodeInfo::Root(self.node_info.clone())
+    }
 }
 impl LockingNodeParent for ExampleRoot {}
-impl LockingRootNode<StaticKey<ExampleRegistry>, ExampleRegistry> for ExampleRoot {
-    fn children(&self) -> MutexGuard<HashMap<StaticKey<ExampleRegistry>, ExampleRegistry>> {
+impl LockingRootNode<StaticID<ExampleRegistry>, ExampleRegistry> for ExampleRoot {
+    fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<dyn Any>>>> {
         self.children.lock().unwrap()
     }
 }
 
 pub struct ExampleRegistry {
-    parent: Arc<Mutex<(StaticKey<ExampleRoot>, ExampleRoot)>>,
-    children: Arc<Mutex<HashMap<StaticKey<ExampleObject>, ExampleObject>>>,
+    node_info: LockingBranchNodeInfo,
+}
+impl LockingNode for ExampleRegistry {
+    fn node_info(&self) -> LockingNodeInfo {
+        LockingNodeInfo::Branch(self.node_info.clone())
+    }
 }
 impl LockingNodeParent for ExampleRegistry {}
 impl LockingNodeChild for ExampleRegistry {}
 impl LockingNodeParentChild for ExampleRegistry {}
-impl LockingBranchNode<StaticKey<ExampleRoot>, ExampleRoot, StaticKey<ExampleObject>, ExampleObject> for ExampleRegistry {
-    fn parent(&self) -> MutexGuard<(StaticKey<ExampleRoot>, ExampleRoot)> {
+impl LockingBranchNode<StaticID<ExampleRoot>, ExampleRoot, StaticID<ExampleObject>, ExampleObject> for ExampleRegistry {
+    fn parent(&self) -> MutexGuard<(StaticID<ExampleRoot>, ExampleRoot)> {
         self.parent.lock().unwrap()
     }
 
-    fn children(&self) -> MutexGuard<HashMap<StaticKey<ExampleObject>, ExampleObject>> {
+    fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<dyn Any>>>> {
         self.children.lock().unwrap()
     }
 }
 
 pub struct ExampleObject {
-    parent: Arc<Mutex<(StaticKey<ExampleRegistry>, ExampleRegistry)>>,
+    node_info: LockingLeafNodeInfo,
+}
+impl LockingNode for ExampleObject {
+    fn node_info(&self) -> LockingNodeInfo {
+        LockingNodeInfo::Leaf(self.node_info.clone())
+    }
 }
 impl LockingNodeChild for ExampleObject {}
-impl LockingLeafNode<StaticKey<ExampleRegistry>, ExampleRegistry> for ExampleObject {
-    fn parent(&self) -> MutexGuard<(StaticKey<ExampleRegistry>, ExampleRegistry)> {
+impl LockingLeafNode<StaticID<ExampleRegistry>, ExampleRegistry> for ExampleObject {
+    fn parent(&self) -> MutexGuard<(StaticID<ExampleRegistry>, ExampleRegistry)> {
         self.parent.lock().unwrap()
     }
 }
-
-/*
-pub struct LockingRootNodeHandle(Box<dyn Any>);
-impl LockingRootNodeHandle {
-    pub fn new<T: 'static + LockingNodeParent>(node: T) -> Self {
-        Self(Box::new(node))
-    }
-
-    pub fn get<T: 'static + LockingNodeParent>(&self) -> &T {
-        self.0.downcast_ref::<T>().expect("Failed to downcast internal value")
-    }
-
-    pub fn get_mut<T: 'static + LockingNodeParent>(&mut self) -> &mut T {
-        self.0.downcast_mut::<T>().expect("Failed to downcast internal value")
-    }
-}
-
-pub struct LockingBranchNodeHandle(Box<dyn Any>);
-impl LockingBranchNodeHandle {
-    pub fn new<T: 'static + LockingNodeParentChild>(node: T) -> Self {
-        Self(Box::new(node))
-    }
-
-    pub fn get<T: 'static + LockingNodeParentChild>(&self) -> &T {
-        self.0.downcast_ref::<T>().expect("Failed to downcast internal value")
-    }
-
-    pub fn get_mut<T: 'static + LockingNodeParentChild>(&mut self) -> &mut T {
-        self.0.downcast_mut::<T>().expect("Failed to downcast internal value")
-    }
-}
-
-pub struct LockingLeafNodeHandle(Box<dyn Any>);
-impl LockingLeafNodeHandle {
-    pub fn new<T: 'static + LockingNodeChild>(node: T) -> Self {
-        Self(Box::new(node))
-    }
-
-    pub fn get<T: 'static + LockingNodeChild>(&self) -> &T {
-        self.0.downcast_ref::<T>().expect("Failed to downcast internal value")
-    }
-
-    pub fn get_mut<T: 'static + LockingNodeChild>(&mut self) -> &mut T {
-        self.0.downcast_mut::<T>().expect("Failed to downcast internal value")
-    }
-}
-
-pub enum LockingNode {
-    Root(LockingRootNodeHandle),
-    Branch(LockingBranchNodeHandle),
-    Leaf(LockingLeafNodeHandle),
-}
-*/
