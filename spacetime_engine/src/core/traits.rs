@@ -43,8 +43,8 @@ pub trait LockingHierarchy<R: LockingRootNode> {
     fn root_mut(&mut self) -> &mut R;
     fn insert(&mut self, path: AbsoluteLockingPath, entry: Box<dyn Any>) -> Result<(), LockingHierarchyError>;
     fn remove(&mut self, path: AbsoluteLockingPath) -> Result<Box<dyn Any>, LockingHierarchyError>;
-    fn get(&self, path: AbsoluteLockingPath) -> Result<&Box<dyn Any>, LockingHierarchyError>;
-    fn get_mut(&mut self, path: AbsoluteLockingPath) -> Result<&mut Box<dyn Any>, LockingHierarchyError>;
+    fn get(&self, path: AbsoluteLockingPath) -> Result<MutexGuard<dyn Any>, LockingHierarchyError>;
+    fn get_mut(&mut self, path: AbsoluteLockingPath) -> Result<MutexGuard<dyn Any>, LockingHierarchyError>;
     fn contains(&self, path: AbsoluteLockingPath) -> Result<bool, LockingHierarchyError>;
     fn lock(&self, path: AbsoluteLockingPath) -> Result<MutexGuard<dyn Any>, LockingHierarchyError>;
     fn unlock(&self, path: AbsoluteLockingPath, entry_guard: MutexGuard<dyn Any>) -> Result<(), LockingHierarchyError>;

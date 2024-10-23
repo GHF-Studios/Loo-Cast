@@ -857,7 +857,7 @@ impl TypeRegistry {
 
 
 pub struct ExampleHierarchy {
-    root: ExampleRoot,
+    root: Arc<Mutex<ExampleRoot>>,
 }
 impl LockingHierarchy<ExampleRoot> for ExampleHierarchy {
     fn root(&self) -> &ExampleRoot {
@@ -876,22 +876,24 @@ impl LockingHierarchy<ExampleRoot> for ExampleHierarchy {
         
     }
 
-    fn get(&self, path: AbsoluteLockingPath) -> Result<&Box<dyn Any>, LockingHierarchyError> {
+    fn get(&self, path: AbsoluteLockingPath) -> Result<MutexGuard<dyn Any>, LockingHierarchyError> {
 
     }
 
     fn get_mut(
         &mut self, 
         path: AbsoluteLockingPath
-    ) -> Result<&mut Box<dyn Any>, LockingHierarchyError> {
-        let mut current_node: LockingNodeInfo = self.root.node_info();
+    ) -> Result<MutexGuard<dyn Any>, LockingHierarchyError> {
+        let current_node = self.root;
         let current_segment = path.segments().first().unwrap();
 
-        for i in 0..path.segments().len() {
+        for i in 0..path.segments().len()-1 {
 
         }
 
-        let target_node: LockingNodeInfo = current_node;
+        let last_node = current_node;
+        let last_path_segment = path.segments().last().unwrap();
+        let last_node_guard = 
         
         todo!()
     }
