@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use std::any::Any;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use super::structs::*;
@@ -18,6 +19,10 @@ pub trait InstanceRegistryValue: 'static + PartialEq + Send + Sync {
 }
 impl InstanceRegistryValue for Entity {
 }
+
+pub trait Singleton: Any + Send + Sync {}
+impl LockingNodePartialData for Box<dyn Singleton> {}
+impl LockingNodeData for Box<dyn Singleton> {}
 
 pub trait LockingPath: 'static + Send + Sync + Debug + Display + Clone + PartialEq + Eq + Hash {
     fn segments(&self) -> &Vec<LockingPathSegment>;

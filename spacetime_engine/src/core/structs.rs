@@ -5,6 +5,7 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use bevy::prelude::*;
 use super::constants::*;
+use super::traits::*;
 
 #[derive(Reflect)]
 pub struct StaticID<T: 'static + Send + Sync + LockingNode> {
@@ -510,17 +511,12 @@ impl Hash for AbsoluteLockingPath {
 }
 
 pub struct StaticInstanceRegistry<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> {
-    node_info: LockingNodeInfo,
     registered: HashSet<K>,
     managed: HashMap<K, V>,
 }
 impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> StaticInstanceRegistry<K, V> {
-    pub fn new(instance_registry_id: &'static str) -> Self {
+    pub fn new() -> Self {
         Self {
-            node_info: LockingNodeInfo::new(
-                LockingPathSegment::new_static::<StaticInstanceRegistry<K, V>>(instance_registry_id),
-                LockingState::Unlocked
-            ),
             registered: HashSet::new(),
             managed: HashMap::new(),
         }
@@ -614,29 +610,16 @@ impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> StaticInstanceRegis
 }
 impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> LockingNodePartialData for StaticInstanceRegistry<K, V> {}
 impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> LockingNodeData for StaticInstanceRegistry<K, V> {}
-impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> LockingNode for StaticInstanceRegistry<K, V> {
-    fn node_info(&self) -> LockingNodeInfo {
-        self.node_info.clone()
-    }
-}
-impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> LockingNodeParent for StaticInstanceRegistry<K, V> {}
-impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> LockingNodeChild for StaticInstanceRegistry<K, V> {}
-impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> LockingNodeParentChild for StaticInstanceRegistry<K, V> {}
 
 pub struct DynamicInstanceRegistry<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> {
-    node_info: LockingNodeInfo,
     registered: HashSet<K>,
     managed: HashMap<K, V>,
     next_key: K,
     recycled_keys: Vec<K>,
 }
 impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> DynamicInstanceRegistry<K, V> {
-    pub fn new(instance_registry_id: &'static str) -> Self {
+    pub fn new() -> Self {
         Self {
-            node_info: LockingNodeInfo::new(
-                LockingPathSegment::new_static::<DynamicInstanceRegistry<K, V>>(instance_registry_id),
-                LockingState::Unlocked
-            ),
             registered: HashSet::new(),
             managed: HashMap::new(),
             next_key: K::new(1),
@@ -758,33 +741,20 @@ impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> DynamicInstanceReg
 }
 impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> LockingNodePartialData for DynamicInstanceRegistry<K, V> {}
 impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> LockingNodeData for DynamicInstanceRegistry<K, V> {}
-impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> LockingNode for DynamicInstanceRegistry<K, V> {
-    fn node_info(&self) -> LockingNodeInfo {
-        self.node_info.clone()
-    }
-}
-impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> LockingNodeParent for DynamicInstanceRegistry<K, V> {}
-impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> LockingNodeChild for DynamicInstanceRegistry<K, V> {}
-impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> LockingNodeParentChild for DynamicInstanceRegistry<K, V> {}
 
 pub struct TypeRegistry {
-    node_info: LockingNodeInfo,
     registered: HashSet<TypeId>,
-    managed: HashMap<TypeId, HashMap<TypeId, Box<dyn Any + Send + Sync>>>,
+    managed: HashMap<TypeId, Type>,
 }
 impl TypeRegistry {
-    pub fn new(type_registry_id: &'static str) -> Self {
+    pub fn new() -> Self {
         Self {
-            node_info: LockingNodeInfo::new(
-                LockingPathSegment::new_static::<TypeRegistry>(type_registry_id),
-                LockingState::Unlocked
-            ),
             registered: HashSet::new(),
             managed: HashMap::new(),
         }
     }
 
-    pub fn register<T: 'static>(&mut self) {
+    pub fn register<T: 'static + Send + Sync>(&mut self) {
         let type_id = TypeId::of::<T>();
 
         if self.registered.contains(&type_id) {
@@ -794,7 +764,7 @@ impl TypeRegistry {
         self.registered.insert(type_id);
     }
 
-    pub fn unregister<T: 'static>(&mut self) {
+    pub fn unregister<T: 'static + Send + Sync>(&mut self) {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -808,7 +778,7 @@ impl TypeRegistry {
         self.registered.retain(|other_type_id| type_id != *other_type_id);
     }
 
-    pub fn manage<T: 'static>(&mut self) {
+    pub fn manage<T: 'static + Send + Sync>(&mut self) {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -819,10 +789,10 @@ impl TypeRegistry {
             panic!("Type '{:?}' is already managed!", type_id);
         }
 
-        self.managed.insert(type_id, HashMap::new());
+        self.managed.insert(type_id, Type::new::<T>());
     }
 
-    pub fn unmanage<T: 'static>(&mut self) {
+    pub fn unmanage<T: 'static + Send + Sync>(&mut self) {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -836,9 +806,8 @@ impl TypeRegistry {
         self.managed.remove(&type_id);
     }
 
-    pub fn set_data<T: 'static, D: 'static + Send + Sync>(&mut self, data: D) {
+    pub fn get<T: 'static + Send + Sync>(&self) -> Option<&Type> {
         let type_id = TypeId::of::<T>();
-        let data_type_id = TypeId::of::<D>();
 
         if !self.registered.contains(&type_id) {
             panic!("Type '{:?}' is not registered!", type_id);
@@ -848,13 +817,11 @@ impl TypeRegistry {
             panic!("Type '{:?}' is not managed!", type_id);
         }
 
-        let data_map = self.managed.entry(type_id).or_insert_with(HashMap::new);
-        data_map.insert(data_type_id, Box::new(data));
+        self.managed.get(&type_id)
     }
 
-    pub fn get_data<T: 'static, D: 'static + Send + Sync>(&self) -> Option<&D> {
+    pub fn get_mut<T: 'static + Send + Sync>(&mut self) -> Option<&mut Type> {
         let type_id = TypeId::of::<T>();
-        let data_type_id = TypeId::of::<D>();
 
         if !self.registered.contains(&type_id) {
             panic!("Type '{:?}' is not registered!", type_id);
@@ -864,54 +831,136 @@ impl TypeRegistry {
             panic!("Type '{:?}' is not managed!", type_id);
         }
 
-        let data_map = self.managed.get(&type_id).unwrap();
-
-        let data_box = data_map.get(&data_type_id)?;
-
-        let data_ref = match data_box.downcast_ref::<D>() {
-            Some(data_ref) => data_ref,
-            None => panic!("Data type mismatch!"),
-        };
-
-        return Some(data_ref);
+        self.managed.get_mut(&type_id)
     }
 
-    pub fn get_data_mut<T: 'static, D: 'static + Send + Sync>(&mut self) -> Option<&mut D> {
-        let type_id = TypeId::of::<T>();
-        let data_type_id = TypeId::of::<D>();
+    pub fn registered(&self) -> &HashSet<TypeId> {
+        &self.registered
+    }
 
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
+    pub fn managed(&self) -> &HashMap<TypeId, Type> {
+        &self.managed
+    }
 
-        if !self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is not managed!", type_id);
-        }
+    pub fn is_registered<T: 'static + Send + Sync>(&self) -> bool {
+        self.registered.contains(&TypeId::of::<T>())
+    }
 
-        let data_map = self.managed.get_mut(&type_id).unwrap();
-
-        let data_box = data_map.get_mut(&data_type_id)?;
-
-        let data_ref = match data_box.downcast_mut::<D>() {
-            Some(data_ref) => data_ref,
-            None => panic!("Data type mismatch!"),
-        };
-
-        return Some(data_ref);
+    pub fn is_managed<T: 'static + Send + Sync>(&self) -> bool {
+        self.managed.contains_key(&TypeId::of::<T>())
     }
 }
 impl LockingNodePartialData for TypeRegistry {}
 impl LockingNodeData for TypeRegistry {}
-impl LockingNode for TypeRegistry {
-    fn node_info(&self) -> LockingNodeInfo {
-        self.node_info
+
+pub struct SingletonRegistry {
+    registered: HashSet<TypeId>,
+    managed: HashMap<TypeId, Box<dyn Any>>,
+}
+impl SingletonRegistry {
+    pub fn new() -> Self {
+        Self {
+            registered: HashSet::new(),
+            managed: HashMap::new(),
+        }
+    }
+
+    pub fn register<T: 'static + Singleton>(&mut self) {
+        let type_id = TypeId::of::<T>();
+
+        if self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is already registered!", type_id);
+        }
+
+        self.registered.insert(type_id);
+    }
+
+    pub fn unregister<T: 'static + Singleton>(&mut self) {
+        let type_id = TypeId::of::<T>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is still managed!", type_id);
+        }
+
+        self.registered.retain(|other_type_id| type_id != *other_type_id);
+    }
+
+    pub fn manage<T: 'static + Singleton>(&mut self, singleton: T) {
+        let type_id = TypeId::of::<T>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is already managed!", type_id);
+        }
+
+        self.managed.insert(type_id, Box::new(singleton));
+    }
+
+    pub fn unmanage<T: 'static + Singleton>(&mut self) {
+        let type_id = TypeId::of::<T>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if !self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is already unmanaged!", type_id);
+        }
+
+        self.managed.remove(&type_id);
+    }
+
+    pub fn get<T: 'static + Singleton>(&self) -> Option<&T> {
+        let type_id = TypeId::of::<T>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if !self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is not managed!", type_id);
+        }
+
+        self.managed.get(&type_id).and_then(|singleton| singleton.downcast_ref::<T>())
+    }
+
+    pub fn get_mut<T: 'static + Singleton>(&mut self) -> Option<&mut T> {
+        let type_id = TypeId::of::<T>();
+
+        if !self.registered.contains(&type_id) {
+            panic!("Type '{:?}' is not registered!", type_id);
+        }
+
+        if !self.managed.contains_key(&type_id) {
+            panic!("Type '{:?}' is not managed!", type_id);
+        }
+
+        self.managed.get_mut(&type_id).and_then(|singleton| singleton.downcast_mut::<T>())
+    }
+
+    pub fn registered(&self) -> &HashSet<TypeId> {
+        &self.registered
+    }
+
+    pub fn managed(&self) -> &HashMap<TypeId, Box<dyn Any>> {
+        &self.managed
+    }
+
+    pub fn is_registered<T: 'static + Singleton>(&self) -> bool {
+        self.registered.contains(&TypeId::of::<T>())
+    }
+
+    pub fn is_managed<T: 'static + Singleton>(&self) -> bool {
+        self.managed.contains_key(&TypeId::of::<T>())
     }
 }
-impl LockingNodeParent for TypeRegistry {}
-impl LockingNodeChild for TypeRegistry {}
-impl LockingNodeParentChild for TypeRegistry {}
-
-
 
 
 pub struct EntityReference {
@@ -964,66 +1013,67 @@ impl Display for LockingNodeInfo {
 
 
 
-pub struct LockingRootNode<D: LockingNodeData, C: LockingNodeChild> {
+pub struct LockingRootNode<D: LockingNodeData, CD: LockingNodeData> {
     data: D,
-    phantom_data: std::marker::PhantomData<C>,
+    child_phantom_data: std::marker::PhantomData<CD>,
     node_info: LockingNodeInfo,
 }
-impl<D: LockingNodeData, C: LockingNodeChild> LockingRootNode<D, C> {
-    pub fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<C>>>> {
+impl<D: LockingNodeData, CD: LockingNodeData> LockingRootNode<D, CD> {
+    pub fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<CD>>>> {
 
     }
 }
-impl<D: LockingNodeData, C: LockingNodeChild> LockingNode for LockingRootNode<D, C> {
+impl<D: LockingNodeData, CD: LockingNodeData> LockingNode for LockingRootNode<D, CD> {
     fn node_info(&self) -> LockingNodeInfo {
         self.node_info
     }
 }
-impl<D: LockingNodeData, C: LockingNodeChild> LockingNodeParent for LockingRootNode<D, C> {}
+impl<D: LockingNodeData, CD: LockingNodeData> LockingNodeParent for LockingRootNode<D, CD> {}
 
 
 
-pub struct LockingBranchNode<D: LockingNodeData, P: LockingNodeParent, C: LockingNodeChild> {
+pub struct LockingBranchNode<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> {
     data: D,
-    phantom_data: (std::marker::PhantomData<P>, std::marker::PhantomData<C>),
+    parent_phantom_data: std::marker::PhantomData<PD>,
+    child_phantom_data: std::marker::PhantomData<CD>,
     node_info: LockingNodeInfo,
 }
-impl<D: LockingNodeData, P: LockingNodeParent, C: LockingNodeChild> LockingBranchNode<D, P, C> {
-    pub fn parent(&self) -> MutexGuard<(LockingPathSegment, Arc<Mutex<P>>)> {
+impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingBranchNode<D, PD, CD> {
+    pub fn parent(&self) -> MutexGuard<(LockingPathSegment, Arc<Mutex<PD>>)> {
 
     }
 
-    pub fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<dyn Any>>>> {
+    pub fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<CD>>>> {
 
     }
 }
-impl<D: LockingNodeData, P: LockingNodeParent, C: LockingNodeChild> LockingNode for LockingBranchNode<D, P, C> {
+impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingNode for LockingBranchNode<D, PD, CD> {
     fn node_info(&self) -> LockingNodeInfo {
         self.node_info
     }
 }
-impl<D: LockingNodeData, P: LockingNodeParent, C: LockingNodeChild> LockingNodeParent for LockingBranchNode<D, P, C> {}
-impl<D: LockingNodeData, P: LockingNodeParent, C: LockingNodeChild> LockingNodeChild for LockingBranchNode<D, P, C> {}
-impl<D: LockingNodeData, P: LockingNodeParent, C: LockingNodeChild> LockingNodeParentChild for LockingBranchNode<D, P, C> {}
+impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingNodeParent for LockingBranchNode<D, PD, CD> {}
+impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingNodeChild for LockingBranchNode<D, PD, CD> {}
+impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingNodeParentChild for LockingBranchNode<D, PD, CD> {}
 
 
 
-pub struct LockingLeafNode<D: LockingNodePartialData, P: LockingNodeParent> {
+pub struct LockingLeafNode<D: LockingNodePartialData, PD: LockingNodeData> {
     data: D,
-    phantom_data: std::marker::PhantomData<P>,
+    parent_phantom_data: std::marker::PhantomData<PD>,
     node_info: LockingNodeInfo,
 }
-impl<D: LockingNodeData, P: LockingNodeParent> LockingLeafNode<D, P> {
-    pub fn parent(&self) -> MutexGuard<(LockingPathSegment, Arc<Mutex<P>>)> {
+impl<D: LockingNodeData, PD: LockingNodeData> LockingLeafNode<D, PD> {
+    pub fn parent(&self) -> MutexGuard<(LockingPathSegment, Arc<Mutex<PD>>)> {
 
     }
 }
-impl<D: LockingNodeData, P: LockingNodeParent> LockingNode for LockingLeafNode<D, P> {
+impl<D: LockingNodeData, PD: LockingNodeData> LockingNode for LockingLeafNode<D, PD> {
     fn node_info(&self) -> LockingNodeInfo {
         self.node_info
     }
 }
-impl<D: LockingNodeData, P: LockingNodeParent> LockingNodeChild for LockingLeafNode<D, P> {}
+impl<D: LockingNodeData, PD: LockingNodeData> LockingNodeChild for LockingLeafNode<D, PD> {}
 
 
 
@@ -1034,6 +1084,11 @@ pub struct LockingHierarchy {
     root: Arc<Mutex<LockingRootNode<MainTypeRegistry, Type>>>,
 }
 impl LockingHierarchy {
+    pub fn new(root: LockingRootNode<MainTypeRegistry, Type>) -> Self {
+        Self {
+            root: Arc::new(Mutex::new(root)),
+        }
+    }
     pub fn insert(&mut self, path: AbsoluteLockingPath, entry: Box<dyn Any>) -> Result<(), LockingHierarchyError> {
         
     }
