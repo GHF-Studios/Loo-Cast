@@ -12,6 +12,7 @@ pub mod systems;
 pub mod operations;
 
 use bevy::prelude::*;
+use crate::core::traits::*;
 
 pub(in crate) struct EntityPlugin;
 
@@ -21,4 +22,10 @@ impl Plugin for EntityPlugin {
             .register_type::<structs::EntityPosition>()
             .add_systems(Startup, systems::startup);
     }
+}
+
+
+impl InstanceRegistryValue for Entity {
+}
+impl LockingNodePartialData for Entity {
 }

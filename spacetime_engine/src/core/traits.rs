@@ -17,8 +17,6 @@ pub trait DynamicInstanceRegistryKey: RegistryKey<ID = u64> {}
 
 pub trait InstanceRegistryValue: 'static + PartialEq + Send + Sync {
 }
-impl InstanceRegistryValue for Entity {
-}
 
 pub trait Singleton: Any + Send + Sync {}
 impl LockingNodePartialData for Box<dyn Singleton> {}
@@ -27,8 +25,8 @@ impl LockingNodeData for Box<dyn Singleton> {}
 pub trait LockingPath: 'static + Send + Sync + Debug + Display + Clone + PartialEq + Eq + Hash {
     fn segments(&self) -> &Vec<LockingPathSegment>;
     fn segments_mut(&mut self) -> &mut Vec<LockingPathSegment>;
-    fn push(&mut self, segment: LockingPathSegment) -> Result<(), String>;
-    fn pop(&mut self) -> Result<LockingPathSegment, String>;
+    fn push(self, segment: LockingPathSegment) -> Result<Self, String>;
+    fn pop(self) -> Result<(Self, LockingPathSegment), String>;
 }
 
 pub trait LockingNode {

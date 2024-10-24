@@ -1,4 +1,4 @@
-use super::{enums::*, errors::LockingHierarchyError, traits::*, wrappers::{Type, MainTypeRegistry}};
+use super::{enums::*, errors::LockingHierarchyError, traits::*, wrappers::{MainTypeRegistry, Type, TypeData}};
 use std::{any::*, collections::{HashMap, HashSet}, sync::MutexGuard};
 use std::sync::{Arc, Mutex};
 use std::fmt::{Debug, Display};
@@ -219,7 +219,6 @@ impl Hash for DynamicUniversalID {
     }
 }
 
-#[derive()]
 pub enum LockingPathSegment {
     Root,
     Static(StaticUniversalID),
@@ -241,7 +240,7 @@ impl LockingPathSegment {
 impl Debug for LockingPathSegment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LockingPathSegment::Root => write!(f, "Root"),
+            LockingPathSegment::Root => write!(f, "root"),
             LockingPathSegment::Static(id) => write!(f, "{}", id),
             LockingPathSegment::Dynamic(id) => write!(f, "{}", id),
         }
@@ -250,7 +249,7 @@ impl Debug for LockingPathSegment {
 impl Display for LockingPathSegment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LockingPathSegment::Root => write!(f, "Root"),
+            LockingPathSegment::Root => write!(f, "root"),
             LockingPathSegment::Static(id) => write!(f, "{}", id),
             LockingPathSegment::Dynamic(id) => write!(f, "{}", id),
         }
@@ -305,7 +304,7 @@ impl LockingPath for RelativeLockingPath {
         &mut self.segments
     }
 
-    fn push(&mut self, segment: LockingPathSegment) -> Result<(), String> {
+    fn push(mut self, segment: LockingPathSegment) -> Result<RelativeLockingPath, String> {
         let last_segment = self.segments.last();
         
         match last_segment {
@@ -319,7 +318,7 @@ impl LockingPath for RelativeLockingPath {
                     },
                     _ => {
                         self.segments.push(segment);
-                        Ok(())
+                        Ok(self)
                     },
                 }
             },
@@ -330,7 +329,7 @@ impl LockingPath for RelativeLockingPath {
                     },
                     _ => {
                         self.segments.push(segment);
-                        Ok(())
+                        Ok(self)
                     },
                 }
             },
@@ -341,16 +340,16 @@ impl LockingPath for RelativeLockingPath {
                     },
                     _ => {
                         self.segments.push(segment);
-                        Ok(())
+                        Ok(self)
                     },
                 }
             },
         }
     }
 
-    fn pop(&mut self) -> Result<LockingPathSegment, String> {
+    fn pop(mut self) -> Result<(RelativeLockingPath, LockingPathSegment), String> {
         match self.segments.pop() {
-            Some(segment) => Ok(segment),
+            Some(segment) => Ok((self, segment)),
             None => Err("Cannot pop segment from empty relative path!".to_string()),
         }
     }
@@ -415,7 +414,7 @@ impl LockingPath for AbsoluteLockingPath {
         &mut self.segments
     }
 
-    fn push(&mut self, segment: LockingPathSegment) -> Result<(), String> {
+    fn push(mut self, segment: LockingPathSegment) -> Result<AbsoluteLockingPath, String> {
         let last_segment = self.segments.last();
 
         match last_segment {
@@ -426,7 +425,7 @@ impl LockingPath for AbsoluteLockingPath {
                     },
                     _ => {
                         self.segments.push(segment);
-                        Ok(())
+                        Ok(self)
                     },
                 }
             },
@@ -437,7 +436,7 @@ impl LockingPath for AbsoluteLockingPath {
                     },
                     _ => {
                         self.segments.push(segment);
-                        Ok(())
+                        Ok(self)
                     },
                 }
             },
@@ -448,7 +447,7 @@ impl LockingPath for AbsoluteLockingPath {
                     },
                     _ => {
                         self.segments.push(segment);
-                        Ok(())
+                        Ok(self)
                     },
                 }
             },
@@ -458,13 +457,13 @@ impl LockingPath for AbsoluteLockingPath {
         }
     }
 
-    fn pop(&mut self) -> Result<LockingPathSegment, String> {
+    fn pop(mut self) -> Result<(AbsoluteLockingPath, LockingPathSegment), String> {
         if self.segments.len() == 1 {
             return Err("Cannot pop root segment from absolute path!".to_string());
         }
 
         match self.segments.pop() {
-            Some(segment) => Ok(segment),
+            Some(segment) => Ok((self, segment)),
             None => unreachable!(),
         }
     }
@@ -853,11 +852,11 @@ impl TypeRegistry {
 impl LockingNodePartialData for TypeRegistry {}
 impl LockingNodeData for TypeRegistry {}
 
-pub struct SingletonRegistry {
+pub struct SingletonRegistry<T: 'static + Singleton> {
     registered: HashSet<TypeId>,
-    managed: HashMap<TypeId, Box<dyn Any>>,
+    managed: HashMap<TypeId, T>,
 }
-impl SingletonRegistry {
+impl<T: 'static + Singleton> SingletonRegistry<T> {
     pub fn new() -> Self {
         Self {
             registered: HashSet::new(),
@@ -865,7 +864,7 @@ impl SingletonRegistry {
         }
     }
 
-    pub fn register<T: 'static + Singleton>(&mut self) {
+    pub fn register(&mut self) {
         let type_id = TypeId::of::<T>();
 
         if self.registered.contains(&type_id) {
@@ -875,7 +874,7 @@ impl SingletonRegistry {
         self.registered.insert(type_id);
     }
 
-    pub fn unregister<T: 'static + Singleton>(&mut self) {
+    pub fn unregister(&mut self) {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -889,7 +888,7 @@ impl SingletonRegistry {
         self.registered.retain(|other_type_id| type_id != *other_type_id);
     }
 
-    pub fn manage<T: 'static + Singleton>(&mut self, singleton: T) {
+    pub fn manage(&mut self, singleton: T) {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -900,10 +899,10 @@ impl SingletonRegistry {
             panic!("Type '{:?}' is already managed!", type_id);
         }
 
-        self.managed.insert(type_id, Box::new(singleton));
+        self.managed.insert(type_id, singleton);
     }
 
-    pub fn unmanage<T: 'static + Singleton>(&mut self) {
+    pub fn unmanage(&mut self) {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -917,7 +916,7 @@ impl SingletonRegistry {
         self.managed.remove(&type_id);
     }
 
-    pub fn get<T: 'static + Singleton>(&self) -> Option<&T> {
+    pub fn get(&self) -> Option<&T> {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -928,10 +927,10 @@ impl SingletonRegistry {
             panic!("Type '{:?}' is not managed!", type_id);
         }
 
-        self.managed.get(&type_id).and_then(|singleton| singleton.downcast_ref::<T>())
+        self.managed.get(&type_id)
     }
 
-    pub fn get_mut<T: 'static + Singleton>(&mut self) -> Option<&mut T> {
+    pub fn get_mut(&mut self) -> Option<&mut T> {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -942,37 +941,37 @@ impl SingletonRegistry {
             panic!("Type '{:?}' is not managed!", type_id);
         }
 
-        self.managed.get_mut(&type_id).and_then(|singleton| singleton.downcast_mut::<T>())
+        self.managed.get_mut(&type_id)
     }
 
     pub fn registered(&self) -> &HashSet<TypeId> {
         &self.registered
     }
 
-    pub fn managed(&self) -> &HashMap<TypeId, Box<dyn Any>> {
+    pub fn managed(&self) -> &HashMap<TypeId, T> {
         &self.managed
     }
 
-    pub fn is_registered<T: 'static + Singleton>(&self) -> bool {
+    pub fn is_registered(&self) -> bool {
         self.registered.contains(&TypeId::of::<T>())
     }
 
-    pub fn is_managed<T: 'static + Singleton>(&self) -> bool {
+    pub fn is_managed(&self) -> bool {
         self.managed.contains_key(&TypeId::of::<T>())
     }
 }
 
 
-pub struct EntityReference {
+pub struct EntityInstance {
     bevy_entity_reference: Entity,
 }
 
-pub struct ComponentReference<T: Component> {
+pub struct ComponentInstance<T: Component> {
     phantom_data: std::marker::PhantomData<T>,
     bevy_entity_reference: Entity,
 }
 
-pub struct BundleReference<T: Bundle> {
+pub struct BundleInstance<T: Bundle> {
     phantom_data: std::marker::PhantomData<T>,
     bevy_entity_reference: Entity,
 }
@@ -1019,6 +1018,14 @@ pub struct LockingRootNode<D: LockingNodeData, CD: LockingNodeData> {
     node_info: LockingNodeInfo,
 }
 impl<D: LockingNodeData, CD: LockingNodeData> LockingRootNode<D, CD> {
+    pub fn new(data: D) -> Self {
+        Self {
+            data,
+            child_phantom_data: std::marker::PhantomData,
+            node_info: LockingNodeInfo::new(LockingPathSegment::Root, LockingState::Unlocked),
+        }
+    }
+    
     pub fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<CD>>>> {
 
     }
@@ -1032,13 +1039,22 @@ impl<D: LockingNodeData, CD: LockingNodeData> LockingNodeParent for LockingRootN
 
 
 
-pub struct LockingBranchNode<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> {
+pub struct LockingBranchNode<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> {
     data: D,
     parent_phantom_data: std::marker::PhantomData<PD>,
     child_phantom_data: std::marker::PhantomData<CD>,
     node_info: LockingNodeInfo,
 }
-impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingBranchNode<D, PD, CD> {
+impl<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> LockingBranchNode<PD, D, CD> {
+    pub fn new(data: D) -> Self {
+        Self {
+            data,
+            parent_phantom_data: std::marker::PhantomData,
+            child_phantom_data: std::marker::PhantomData,
+            node_info: LockingNodeInfo::new(LockingPathSegment::Root, LockingState::Unlocked),
+        }
+    }
+
     pub fn parent(&self) -> MutexGuard<(LockingPathSegment, Arc<Mutex<PD>>)> {
 
     }
@@ -1047,33 +1063,41 @@ impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingBranch
 
     }
 }
-impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingNode for LockingBranchNode<D, PD, CD> {
+impl<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> LockingNode for LockingBranchNode<PD, D, CD> {
     fn node_info(&self) -> LockingNodeInfo {
         self.node_info
     }
 }
-impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingNodeParent for LockingBranchNode<D, PD, CD> {}
-impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingNodeChild for LockingBranchNode<D, PD, CD> {}
-impl<D: LockingNodeData, PD: LockingNodeData, CD: LockingNodeData> LockingNodeParentChild for LockingBranchNode<D, PD, CD> {}
+impl<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> LockingNodeParent for LockingBranchNode<PD, D, CD> {}
+impl<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> LockingNodeChild for LockingBranchNode<PD, D, CD> {}
+impl<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> LockingNodeParentChild for LockingBranchNode<PD, D, CD> {}
 
 
 
-pub struct LockingLeafNode<D: LockingNodePartialData, PD: LockingNodeData> {
+pub struct LockingLeafNode<PD: LockingNodeData, D: LockingNodePartialData> {
     data: D,
     parent_phantom_data: std::marker::PhantomData<PD>,
     node_info: LockingNodeInfo,
 }
-impl<D: LockingNodeData, PD: LockingNodeData> LockingLeafNode<D, PD> {
+impl<PD: LockingNodeData, D: LockingNodePartialData> LockingLeafNode<PD, D> {
+    pub fn new(data: D) -> Self {
+        Self {
+            data,
+            parent_phantom_data: std::marker::PhantomData,
+            node_info: LockingNodeInfo::new(LockingPathSegment::Root, LockingState::Unlocked),
+        }
+    }
+
     pub fn parent(&self) -> MutexGuard<(LockingPathSegment, Arc<Mutex<PD>>)> {
 
     }
 }
-impl<D: LockingNodeData, PD: LockingNodeData> LockingNode for LockingLeafNode<D, PD> {
+impl<PD: LockingNodeData, D: LockingNodeData> LockingNode for LockingLeafNode<PD, D> {
     fn node_info(&self) -> LockingNodeInfo {
         self.node_info
     }
 }
-impl<D: LockingNodeData, PD: LockingNodeData> LockingNodeChild for LockingLeafNode<D, PD> {}
+impl<PD: LockingNodeData, D: LockingNodeData> LockingNodeChild for LockingLeafNode<PD, D> {}
 
 
 
@@ -1084,16 +1108,23 @@ pub struct LockingHierarchy {
     root: Arc<Mutex<LockingRootNode<MainTypeRegistry, Type>>>,
 }
 impl LockingHierarchy {
-    pub fn new(root: LockingRootNode<MainTypeRegistry, Type>) -> Self {
+    pub fn new() -> Self {
         Self {
-            root: Arc::new(Mutex::new(root)),
+            root: Arc::new(
+                Mutex::new(
+                    LockingRootNode::<MainTypeRegistry, Type>::new(
+                        MainTypeRegistry::new()
+                    )
+                )
+            ),
         }
     }
-    pub fn insert(&mut self, path: AbsoluteLockingPath, entry: Box<dyn Any>) -> Result<(), LockingHierarchyError> {
+    
+    pub fn insert(&mut self, path: AbsoluteLockingPath, entry: Box<dyn LockingNode>) -> Result<(), LockingHierarchyError> {
         
     }
     
-    pub fn remove(&mut self, path: AbsoluteLockingPath) -> Result<Box<dyn Any>, LockingHierarchyError> {
+    pub fn remove(&mut self, path: AbsoluteLockingPath) -> Result<Box<dyn LockingNode>, LockingHierarchyError> {
         
     }
     
