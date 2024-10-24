@@ -1,11 +1,6 @@
 use bevy::prelude::*;
-use std::any::Any;
-use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
-use std::sync::*;
-use super::enums::LockingNodeInfo;
-use super::errors::LockingHierarchyError;
 use super::structs::*;
 
 pub trait RegistryKey: 'static + Send + Sync + Debug + Display + Clone + Copy + PartialEq + Eq + Hash {
@@ -38,26 +33,5 @@ pub trait LockingNodeParent: LockingNode {}
 pub trait LockingNodeChild: LockingNode {}
 pub trait LockingNodeParentChild: LockingNodeParent + LockingNodeChild {}
 
-pub trait LockingHierarchy<R: LockingRootNode> {
-    fn root(&self) -> &R;
-    fn root_mut(&mut self) -> &mut R;
-    fn insert(&mut self, path: AbsoluteLockingPath, entry: Box<dyn Any>) -> Result<(), LockingHierarchyError>;
-    fn remove(&mut self, path: AbsoluteLockingPath) -> Result<Box<dyn Any>, LockingHierarchyError>;
-    fn get(&self, path: AbsoluteLockingPath) -> Result<MutexGuard<dyn Any>, LockingHierarchyError>;
-    fn get_mut(&mut self, path: AbsoluteLockingPath) -> Result<MutexGuard<dyn Any>, LockingHierarchyError>;
-    fn contains(&self, path: AbsoluteLockingPath) -> Result<bool, LockingHierarchyError>;
-    fn lock(&self, path: AbsoluteLockingPath) -> Result<MutexGuard<dyn Any>, LockingHierarchyError>;
-    fn unlock(&self, path: AbsoluteLockingPath, entry_guard: MutexGuard<dyn Any>) -> Result<(), LockingHierarchyError>;
-    fn is_locked(&self, path: AbsoluteLockingPath) -> Result<bool, LockingHierarchyError>;
-}
-
-pub trait LockingRootNode: LockingNodeParent {
-    fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<dyn Any>>>>;
-}
-pub trait LockingBranchNode: LockingNodeParentChild {
-    fn parent(&self) -> MutexGuard<(LockingPathSegment, Arc<Mutex<dyn Any>>)>;
-    fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<dyn Any>>>>;
-}
-pub trait LockingLeafNode: LockingNodeChild {
-    fn parent(&self) -> MutexGuard<(LockingPathSegment, Arc<Mutex<dyn Any>>)>;
-}
+pub trait LockingNodePartialData {}
+pub trait LockingNodeData: LockingNodePartialData {}
