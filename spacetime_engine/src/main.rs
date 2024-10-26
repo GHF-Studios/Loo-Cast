@@ -41,6 +41,12 @@ fn main() {
 
 fn pre_startup(mut rapier_configuration: ResMut<RapierConfiguration>) {
     rapier_configuration.gravity = Vec2::new(0.0, 0.0);
+    
+    let runtime = TOKIO_RUNTIME.lock().unwrap();
+
+    runtime.spawn(async {
+        spacetime_engine::core::commands::pre_startup().await;
+    });
 }
 
 fn startup() {
@@ -48,6 +54,14 @@ fn startup() {
 
     runtime.spawn(async {
         spacetime_engine::core::commands::startup().await;
+    });
+}
+
+fn post_startup() {
+    let runtime = TOKIO_RUNTIME.lock().unwrap();
+
+    runtime.spawn(async {
+        spacetime_engine::core::commands::post_startup().await;
     });
 }
 

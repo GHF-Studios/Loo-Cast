@@ -18,59 +18,73 @@ use super::structs::*;
 use super::traits::*;
 use super::wrappers::*;
 
-pub async fn startup() {
-    init_locking_hierarchy().await;
+pub(in super) async fn pre_startup() {
+    let mut locking_hierarchy = LOCKING_HIERARCHY.lock().unwrap();
+
+    let core_type_path_segment = LockingPathSegment::new_static::<Type>("core");
+    let core_type_path = AbsoluteLockingPath::new().push(core_type_path_segment);
+    let core_type_node = LockingBranchNode::<Type>::new(core_type_path_segment, Type::new::<Core>());
+    locking_hierarchy.insert(core_type_path.unwrap(), Box::new(core_type_node)).unwrap();
+    
+    let operations_type_path_segment = LockingPathSegment::new_static::<LockingBranchNode<Type>>("operation");
+    let operations_type_path = AbsoluteLockingPath::new().push(operations_type_path_segment);
+    let operations_type_node = LockingBranchNode::<Type>::new(operations_type_path_segment, Type::new::<Operation>());
+    locking_hierarchy.insert(operations_type_path.unwrap(), Box::new(operations_type_node)).unwrap();
+    
+    let commands_type_path_segment = LockingPathSegment::new_static::<LockingBranchNode<Type>>("command");
+    let commands_type_path = AbsoluteLockingPath::new().push(commands_type_path_segment);
+    let commands_type_node = LockingBranchNode::<Type>::new(commands_type_path_segment, Type::new::<Command>());
+    locking_hierarchy.insert(commands_type_path.unwrap(), Box::new(commands_type_node)).unwrap();
+
+    let entity_type_path_segment = LockingPathSegment::new_static::<LockingBranchNode<Type>>("entity");
+    let entity_type_path = AbsoluteLockingPath::new().push(entity_type_path_segment);
+    let entity_type_node = LockingBranchNode::<Type>::new(entity_type_path_segment, Type::new::<Entity>());
+    locking_hierarchy.insert(entity_type_path.unwrap(), Box::new(entity_type_node)).unwrap();
+
+    let chunk_type_path_segment = LockingPathSegment::new_static::<LockingBranchNode<Type>>("chunk");
+    let chunk_type_path = AbsoluteLockingPath::new().push(chunk_type_path_segment);
+    let chunk_type_node = LockingBranchNode::<Type>::new(chunk_type_path_segment, Type::new::<Chunk>());
+    locking_hierarchy.insert(chunk_type_path.unwrap(), Box::new(chunk_type_node)).unwrap();
+
+    let chunk_actor_type_path_segment = LockingPathSegment::new_static::<LockingBranchNode<Type>>("chunk_actor");
+    let chunk_actor_type_path = AbsoluteLockingPath::new().push(chunk_actor_type_path_segment);
+    let chunk_actor_type_node = LockingBranchNode::<Type>::new(chunk_actor_type_path_segment, Type::new::<ChunkActor>());
+    locking_hierarchy.insert(chunk_actor_type_path.unwrap(), Box::new(chunk_actor_type_node)).unwrap();
+
+    let chunk_loader_type_path_segment = LockingPathSegment::new_static::<LockingBranchNode<Type>>("chunk_loader");
+    let chunk_loader_type_path = AbsoluteLockingPath::new().push(chunk_loader_type_path_segment);
+    let chunk_loader_type_node = LockingBranchNode::<Type>::new(chunk_loader_type_path_segment, Type::new::<ChunkLoader>());
+    locking_hierarchy.insert(chunk_loader_type_path.unwrap(), Box::new(chunk_loader_type_node)).unwrap();
+
+    let camera_type_path_segment = LockingPathSegment::new_static::<LockingBranchNode<Type>>("camera");
+    let camera_type_path = AbsoluteLockingPath::new().push(camera_type_path_segment);
+    let camera_type_node = LockingBranchNode::<Type>::new(camera_type_path_segment, Type::new::<Camera>());
+    locking_hierarchy.insert(camera_type_path.unwrap(), Box::new(camera_type_node)).unwrap();
+
+    let camera_2d_bundle_type_path_segment = LockingPathSegment::new_static::<LockingBranchNode<Type>>("camera_2d_bundle");
+    let camera_2d_bundle_type_path = AbsoluteLockingPath::new().push(camera_2d_bundle_type_path_segment);
+    let camera_2d_bundle_type_node = LockingBranchNode::<Type>::new(camera_2d_bundle_type_path_segment, Type::new::<Camera2DBundle>());
+    locking_hierarchy.insert(camera_2d_bundle_type_path.unwrap(), Box::new(camera_2d_bundle_type_node)).unwrap();
+
+    let player_type_path_segment = LockingPathSegment::new_static::<LockingBranchNode<Type>>("player");
+    let player_type_path = AbsoluteLockingPath::new().push(player_type_path_segment);
+    let player_type_node = LockingBranchNode::<Type>::new(player_type_path_segment, Type::new::<Player>());
+    locking_hierarchy.insert(player_type_path.unwrap(), Box::new(player_type_node)).unwrap();
+
+    let sprite_bundle_type_path_segment = LockingPathSegment::new_static::<LockingBranchNode<Type>>("sprite_bundle");
+    let sprite_bundle_type_path = AbsoluteLockingPath::new().push(sprite_bundle_type_path_segment);
+    let sprite_bundle_type_node = LockingBranchNode::<Type>::new(sprite_bundle_type_path_segment, Type::new::<SpriteBundle>());
+    locking_hierarchy.insert(sprite_bundle_type_path.unwrap(), Box::new(sprite_bundle_type_node)).unwrap();
+}
+
+pub(in super) async fn startup() {
     spawn_main_camera().await;
     spawn_start_chunks(2).await;
     spawn_start_chunk_actors(2).await;
 }
 
-pub async fn init_locking_hierarchy() {
-    let mut locking_hierarchy = LOCKING_HIERARCHY.lock().unwrap();
+pub(in super) async fn post_startup() {
 
-    let core_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("core"));
-    let core_type_node = LockingBranchNode::<Type>::new(Type::new::<Core>());
-    locking_hierarchy.insert(core_type_path.unwrap(), Box::new(core_type_node)).unwrap();
-    
-    let operations_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("operation"));
-    let operations_type_node = LockingBranchNode::<Type>::new(Type::new::<Operation>());
-    locking_hierarchy.insert(operations_type_path.unwrap(), Box::new(operations_type_node)).unwrap();
-    
-    let commands_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("command"));
-    let commands_type_node = LockingBranchNode::<Type>::new(Type::new::<Command>());
-    locking_hierarchy.insert(commands_type_path.unwrap(), Box::new(commands_type_node)).unwrap();
-
-    let entity_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("entity"));
-    let entity_type_node = LockingBranchNode::<Type>::new(Type::new::<Entity>());
-    locking_hierarchy.insert(entity_type_path.unwrap(), Box::new(entity_type_node)).unwrap();
-
-    let chunk_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("chunk"));
-    let chunk_type_node = LockingBranchNode::<Type>::new(Type::new::<Chunk>());
-    locking_hierarchy.insert(chunk_type_path.unwrap(), Box::new(chunk_type_node)).unwrap();
-
-    let chunk_actor_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("chunk_actor"));
-    let chunk_actor_type_node = LockingBranchNode::<Type>::new(Type::new::<ChunkActor>());
-    locking_hierarchy.insert(chunk_actor_type_path.unwrap(), Box::new(chunk_actor_type_node)).unwrap();
-
-    let chunk_loader_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("chunk_loader"));
-    let chunk_loader_type_node = LockingBranchNode::<Type>::new(Type::new::<ChunkLoader>());
-    locking_hierarchy.insert(chunk_loader_type_path.unwrap(), Box::new(chunk_loader_type_node)).unwrap();
-
-    let camera_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("camera"));
-    let camera_type_node = LockingBranchNode::<Type>::new(Type::new::<Camera>());
-    locking_hierarchy.insert(camera_type_path.unwrap(), Box::new(camera_type_node)).unwrap();
-
-    let camera_2d_bundle_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("camera_2d_bundle"));
-    let camera_2d_bundle_type_node = LockingBranchNode::<Type>::new(Type::new::<Camera2DBundle>());
-    locking_hierarchy.insert(camera_2d_bundle_type_path.unwrap(), Box::new(camera_2d_bundle_type_node)).unwrap();
-
-    let player_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("player"));
-    let player_type_node = LockingBranchNode::<Type>::new(Type::new::<Player>());
-    locking_hierarchy.insert(player_type_path.unwrap(), Box::new(player_type_node)).unwrap();
-
-    let sprite_bundle_type_path = AbsoluteLockingPath::new().push(LockingPathSegment::new_static::<LockingBranchNode<Type>>("sprite_bundle"));
-    let sprite_bundle_type_node = LockingBranchNode::<Type>::new(Type::new::<SpriteBundle>());
-    locking_hierarchy.insert(sprite_bundle_type_path.unwrap(), Box::new(sprite_bundle_type_node)).unwrap();
 }
 
 async fn spawn_main_camera() {
