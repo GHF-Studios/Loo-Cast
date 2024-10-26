@@ -1,10 +1,6 @@
-use std::any::Any;
-use std::collections::HashMap;
 use std::num::NonZero;
 use std::fmt::{Debug, Display};
-use std::sync::*;
 use std::hash::Hash;
-use super::structs::LockingPathSegment;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LockingState {

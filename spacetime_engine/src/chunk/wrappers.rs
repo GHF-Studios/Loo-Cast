@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use bevy::prelude::*;
 use crate::core::structs::*;
-use crate::operations::wrappers::*;
+use crate::operation::wrappers::*;
 use super::{components::Chunk, structs::ChunkPosition};
 
 #[derive(Deref, DerefMut)]

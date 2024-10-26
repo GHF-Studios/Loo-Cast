@@ -1,7 +1,7 @@
 use super::components::*;
 use super::structs::*;
 use super::wrappers::*;
-use crate::operations::traits::*;
+use crate::operation::traits::*;
 use crate::core::singletons::*;
 use crate::core::structs::*;
 use crate::core::traits::*;

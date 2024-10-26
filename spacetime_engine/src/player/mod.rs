@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+pub mod components;
+
 pub(in crate) struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {

@@ -9,9 +9,9 @@ pub mod structs;
 
 use bevy::prelude::*;
 
-pub(in crate) struct CommandsPlugin;
+pub(in crate) struct CommandPlugin;
 
-impl Plugin for CommandsPlugin {
+impl Plugin for CommandPlugin {
     fn build(&self, app: &mut App) {
     }
 }

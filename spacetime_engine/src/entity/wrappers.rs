@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use crate::core::structs::*;
 use crate::core::traits::*;
-use crate::operations::wrappers::*;
+use crate::operation::wrappers::*;
 
 #[derive(Deref, DerefMut)]
 pub struct EntityInstanceRegistry(DynamicInstanceRegistry<DynamicID<Entity>, Entity>);

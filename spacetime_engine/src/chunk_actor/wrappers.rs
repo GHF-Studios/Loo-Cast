@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::operations::wrappers::*;
+use crate::operation::wrappers::*;
 use crate::core::structs::*;
 use super::components::ChunkActor;
 

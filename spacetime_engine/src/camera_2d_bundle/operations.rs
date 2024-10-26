@@ -7,7 +7,7 @@ use tokio::sync::oneshot;
 use crate::entity::wrappers::EntityInstanceRegistry;
 use crate::core::singletons::MAIN_TYPE_REGISTRY;
 use crate::core::structs::DynamicID;
-use crate::operations::traits::*;
+use crate::operation::traits::*;
 
 pub struct UpgradeToCamera2dBundleArgs {
     pub target_entity_id: DynamicID<Entity>,

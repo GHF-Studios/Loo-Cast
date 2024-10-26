@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use crate::camera_2d_bundle::operations::*;
 use crate::entity::structs::EntityPosition;
 use crate::entity::operations::*;
-use crate::operations::commands::*;
+use crate::operation::commands::*;
 
 pub async fn spawn_camera(entity_position: EntityPosition) -> Result<(), String> {
     let create_entity_args = CreateEntityArgs { entity_position };

@@ -7,6 +7,8 @@ use bevy::prelude::*;
 use super::constants::*;
 use super::traits::*;
 
+pub struct Core;
+
 #[derive(Reflect)]
 pub struct StaticID<T: 'static + Send + Sync + LockingNode> {
     id: &'static str,
@@ -1012,92 +1014,88 @@ impl Display for LockingNodeInfo {
 
 
 
-pub struct LockingRootNode<D: LockingNodeData, CD: LockingNodeData> {
-    data: D,
-    child_phantom_data: std::marker::PhantomData<CD>,
+pub(in super) struct LockingRootNode<T: LockingNodeData> {
+    data: T,
     node_info: LockingNodeInfo,
+    children: HashMap<LockingPathSegment, Arc<Mutex<dyn Any + Send + Sync>>>,
 }
-impl<D: LockingNodeData, CD: LockingNodeData> LockingRootNode<D, CD> {
-    pub fn new(data: D) -> Self {
+impl<T: LockingNodeData> LockingRootNode<T> {
+    pub fn new(data: T) -> Self {
         Self {
             data,
-            child_phantom_data: std::marker::PhantomData,
             node_info: LockingNodeInfo::new(LockingPathSegment::Root, LockingState::Unlocked),
+            children: HashMap::new(),
         }
     }
     
-    pub fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<CD>>>> {
+    pub fn children(&self) -> &HashMap<LockingPathSegment, Arc<Mutex<dyn Any + Send + Sync>>> {
+        &self.children
+    }
 
+    pub fn children_mut(&mut self) -> &mut HashMap<LockingPathSegment, Arc<Mutex<dyn Any + Send + Sync>>> {
+        &mut self.children
     }
 }
-impl<D: LockingNodeData, CD: LockingNodeData> LockingNode for LockingRootNode<D, CD> {
+impl<T: LockingNodeData> LockingNode for LockingRootNode<T> {
     fn node_info(&self) -> LockingNodeInfo {
         self.node_info
     }
 }
-impl<D: LockingNodeData, CD: LockingNodeData> LockingNodeParent for LockingRootNode<D, CD> {}
+impl<T: LockingNodeData> LockingNodeParent for LockingRootNode<T> {}
 
 
 
-pub struct LockingBranchNode<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> {
-    data: D,
-    parent_phantom_data: std::marker::PhantomData<PD>,
-    child_phantom_data: std::marker::PhantomData<CD>,
+pub(in super) struct LockingBranchNode<T: LockingNodeData> {
+    data: T,
     node_info: LockingNodeInfo,
+    children: HashMap<LockingPathSegment, Arc<Mutex<dyn Any + Send + Sync>>>,
 }
-impl<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> LockingBranchNode<PD, D, CD> {
-    pub fn new(data: D) -> Self {
+impl<T: LockingNodeData> LockingBranchNode<T> {
+    pub fn new(data: T) -> Self {
         Self {
             data,
-            parent_phantom_data: std::marker::PhantomData,
-            child_phantom_data: std::marker::PhantomData,
             node_info: LockingNodeInfo::new(LockingPathSegment::Root, LockingState::Unlocked),
+            children: HashMap::new(),
         }
     }
 
-    pub fn parent(&self) -> MutexGuard<(LockingPathSegment, Arc<Mutex<PD>>)> {
-
+    pub fn children(&self) -> &HashMap<LockingPathSegment, Arc<Mutex<dyn Any + Send + Sync>>> {
+        &self.children
     }
 
-    pub fn children(&self) -> MutexGuard<HashMap<LockingPathSegment, Arc<Mutex<CD>>>> {
-
+    pub fn children_mut(&mut self) -> &mut HashMap<LockingPathSegment, Arc<Mutex<dyn Any + Send + Sync>>> {
+        &mut self.children
     }
 }
-impl<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> LockingNode for LockingBranchNode<PD, D, CD> {
+impl<T: LockingNodeData> LockingNode for LockingBranchNode<T> {
     fn node_info(&self) -> LockingNodeInfo {
         self.node_info
     }
 }
-impl<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> LockingNodeParent for LockingBranchNode<PD, D, CD> {}
-impl<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> LockingNodeChild for LockingBranchNode<PD, D, CD> {}
-impl<PD: LockingNodeData, D: LockingNodeData, CD: LockingNodeData> LockingNodeParentChild for LockingBranchNode<PD, D, CD> {}
+impl<T: LockingNodeData> LockingNodeParent for LockingBranchNode<T> {}
+impl<T: LockingNodeData> LockingNodeChild for LockingBranchNode<T> {}
+impl<T: LockingNodeData> LockingNodeParentChild for LockingBranchNode<T> {}
 
 
 
-pub struct LockingLeafNode<PD: LockingNodeData, D: LockingNodePartialData> {
-    data: D,
-    parent_phantom_data: std::marker::PhantomData<PD>,
+pub(in super) struct LockingLeafNode<T: LockingNodePartialData> {
+    data: T,
     node_info: LockingNodeInfo,
 }
-impl<PD: LockingNodeData, D: LockingNodePartialData> LockingLeafNode<PD, D> {
-    pub fn new(data: D) -> Self {
+impl<T: LockingNodePartialData> LockingLeafNode<T> {
+    pub fn new(data: T) -> Self {
         Self {
             data,
-            parent_phantom_data: std::marker::PhantomData,
             node_info: LockingNodeInfo::new(LockingPathSegment::Root, LockingState::Unlocked),
         }
     }
-
-    pub fn parent(&self) -> MutexGuard<(LockingPathSegment, Arc<Mutex<PD>>)> {
-
-    }
 }
-impl<PD: LockingNodeData, D: LockingNodeData> LockingNode for LockingLeafNode<PD, D> {
+impl<T: LockingNodeData> LockingNode for LockingLeafNode<T> {
     fn node_info(&self) -> LockingNodeInfo {
         self.node_info
     }
 }
-impl<PD: LockingNodeData, D: LockingNodeData> LockingNodeChild for LockingLeafNode<PD, D> {}
+impl<T: LockingNodeData> LockingNodeChild for LockingLeafNode<T> {}
 
 
 
@@ -1105,18 +1103,16 @@ impl<PD: LockingNodeData, D: LockingNodeData> LockingNodeChild for LockingLeafNo
 
 
 pub struct LockingHierarchy {
-    root: Arc<Mutex<LockingRootNode<MainTypeRegistry, Type>>>,
+    root: Arc<Mutex<LockingRootNode<MainTypeRegistry>>>,
 }
 impl LockingHierarchy {
     pub fn new() -> Self {
+        let main_type_registry = MainTypeRegistry::new();
+        let locking_root_node = LockingRootNode::new(main_type_registry);
+        let root = Arc::new(Mutex::new(locking_root_node));
+
         Self {
-            root: Arc::new(
-                Mutex::new(
-                    LockingRootNode::<MainTypeRegistry, Type>::new(
-                        MainTypeRegistry::new()
-                    )
-                )
-            ),
+            root
         }
     }
     
@@ -1126,6 +1122,17 @@ impl LockingHierarchy {
     
     pub fn remove(&mut self, path: AbsoluteLockingPath) -> Result<Box<dyn LockingNode>, LockingHierarchyError> {
         
+    }
+    
+    pub fn get(&self, path: AbsoluteLockingPath) -> Result<Arc<Mutex<dyn Any>>, LockingHierarchyError> {
+
+    }
+    
+    pub fn get_mut(
+        &mut self, 
+        path: AbsoluteLockingPath
+    ) -> Result<Arc<Mutex<dyn Any>>, LockingHierarchyError> {
+
     }
     
     pub fn contains(&self, path: AbsoluteLockingPath) -> Result<bool, LockingHierarchyError> {
@@ -1142,27 +1149,5 @@ impl LockingHierarchy {
     
     pub fn is_locked(&self, path: AbsoluteLockingPath) -> Result<bool, LockingHierarchyError> {
         
-    }
-    
-    fn get(&self, path: AbsoluteLockingPath) -> Result<MutexGuard<dyn Any>, LockingHierarchyError> {
-
-    }
-    
-    fn get_mut(
-        &mut self, 
-        path: AbsoluteLockingPath
-    ) -> Result<MutexGuard<dyn Any>, LockingHierarchyError> {
-        let current_node = self.root;
-        let current_segment = path.segments().first().unwrap();
-
-        for i in 0..path.segments().len()-1 {
-
-        }
-
-        let last_node = current_node;
-        let last_path_segment = path.segments().last().unwrap();
-        let last_node_guard = 
-        
-        todo!()
     }
 }

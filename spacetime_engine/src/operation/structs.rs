@@ -1,5 +1,7 @@
 use super::traits::*;
 
+pub struct Operation;
+
 pub struct OperationQueue {
     queue: Vec<Box<dyn DynOperation>>,
 }

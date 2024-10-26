@@ -1,0 +1,103 @@
+╔══════════════════════════════════════════════════
+║Locking Hierarchy Structure
+╠══════════════════════════════════════════════════
+║
+╠[MainTypeRegistry]
+╠╦[Core]
+║╚╦[CoreCommandTypeRegistry]
+║ ╠═[Startup]
+║ ╠═[InitLockingHierarchy]
+║ ╠═[SpawnMainCamera]
+║ ╠═[SpawnStartChunks]
+║ ╚═[SpawnStartChunkActors]
+╠╦[Operation]
+║╚╦[OperationCommandTypeRegistry]
+║ ╚═[RunOp]
+╠═[Command]
+╠╦[Entity]
+║╠╦[EntityOperationTypeRegistry]
+║║╚╦[CreateEntity]
+║║ ╚[DestroyEntity]
+║╠═[EntityCommandTypeRegistry]
+║╚╦[EntityInstanceRegistry]
+║ ╠═(1)
+║ ╠═(2)
+║ ╠═(3)
+║ ╚═(4)
+╠╦[Chunk]
+║╠╦[ChunkOperationTypeRegistry]
+║║╚╦[UpgradeToChunk]
+║║ ╠[DowngradeFromChunk]
+║║ ╠[LoadChunk]
+║║ ╠[UnloadChunk]
+║║ ╠[SaveFromChunk]
+║║ ╚[UnsaveFromChunk]
+║╠╦[ChunkCommandTypeRegistry]
+║║╚═[SpawnChunk]
+║╚╦[ChunkInstanceRegistry]
+║ ╠═(1)
+║ ╠═(2)
+║ ╠═(3)
+║ ╚═(4)
+╠╦[ChunkActor]
+║╠╦[ChunkActorOperationTypeRegistry]
+║║╚╦[UpgradeToChunkActor]
+║║ ╚[DowngradeFromChunkActor]
+║╠╦[ChunkActorCommandTypeRegistry]
+║║╚═[SpawnChunkActor]
+║╚╦[ChunkActorInstanceRegistry]
+║ ╠═(1)
+║ ╠═(2)
+║ ╠═(3)
+║ ╚═(4)
+╠╦[ChunkLoader]
+║╠╦[ChunkLoaderOperationTypeRegistry]
+║║╚╦[UpgradeToChunkLoader]
+║║ ╚[DowngradeFromChunkLoader]
+║╠═[ChunkLoaderCommandTypeRegistry]
+║╚╦[ChunkLoaderInstanceRegistry]
+║ ╠═(1)
+║ ╠═(2)
+║ ╠═(3)
+║ ╚═(4)
+╠╦[Camera]
+║╠╦[CameraOperationTypeRegistry]
+║║╚╦[UpgradeToCamera]
+║║ ╚[DowngradeFromCamera]
+║╠╦[CameraCommandTypeRegistry]
+║║╚═[SpawnCamera]
+║╚╦[CameraInstanceRegistry]
+║ ╠═(1)
+║ ╠═(2)
+║ ╠═(3)
+║ ╚═(4)
+╠╦[Camera2DBundle]
+║╠╦[Camera2DBundleOperationTypeRegistry]
+║║╚╦[UpgradeToCamera2DBundle]
+║║ ╚[DowngradeFromCamera2DBundle]
+║╠═[Camera2DBundleCommandTypeRegistry]
+║╚╦[Camera2DBundleInstanceRegistry]
+║ ╠═(1)
+║ ╠═(2)
+║ ╠═(3)
+║ ╚═(4)
+╠╦[Player]
+║╠╦[PlayerOperationTypeRegistry]
+║║╚╦[UpgradeToPlayer]
+║║ ╚[DowngradeFromPlayer]
+║╠═[PlayerCommandTypeRegistry]
+║╚╦[PlayerInstanceRegistry]
+║ ╠═(1)
+║ ╠═(2)
+║ ╠═(3)
+║ ╚═(4)
+╚╦[SpriteBundle]
+ ╠╦[SpriteBundleOperationTypeRegistry]
+ ║╚╦[UpgradeToSpriteBundle]
+ ║ ╚[DowngradeFromSpriteBundle]
+ ╠═[SpriteBundleCommandTypeRegistry]
+ ╚╦[SpriteBundleInstanceRegistry]
+  ╠═(1)
+  ╠═(2)
+  ╠═(3)
+  ╚═(4)

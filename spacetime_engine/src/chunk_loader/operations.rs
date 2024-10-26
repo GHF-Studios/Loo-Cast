@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::operations::traits::*;
+use crate::operation::traits::*;
 use crate::core::structs::*;
 use super::components::*;
 use tokio::sync::oneshot;

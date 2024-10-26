@@ -1,4 +1,5 @@
 // Data types
+pub mod structs;
 
 // Functions
 

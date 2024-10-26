@@ -12,8 +12,8 @@ pub mod traits;
 
 use bevy::prelude::*;
 
-pub(in crate) struct OperationsPlugin;
-impl Plugin for OperationsPlugin {
+pub(in crate) struct OperationPlugin;
+impl Plugin for OperationPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(PostUpdate, systems::post_update);

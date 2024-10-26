@@ -6,7 +6,7 @@ use crate::core::structs::*;
 use crate::core::traits::*;
 use crate::entity::operations::*;
 use crate::chunk_actor::operations::*;
-use crate::operations::commands::*;
+use crate::operation::commands::*;
 use crate::sprite_bundle::operations::*;
 
 pub async fn spawn_chunk_actor(entity_position: EntityPosition) -> Result<DynamicID<ChunkActor>, String> {
