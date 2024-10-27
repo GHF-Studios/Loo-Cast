@@ -4,7 +4,7 @@ use crate::core::traits::*;
 use crate::operation::wrappers::*;
 
 #[derive(Deref, DerefMut)]
-pub struct EntityInstanceRegistry(DynamicInstanceRegistry<DynamicID<Entity>, Entity>);
+pub struct EntityInstanceRegistry(DynamicInstanceRegistry<NumericID<Entity>, Entity>);
 impl EntityInstanceRegistry {
     pub fn new() -> Self {
         Self(DynamicInstanceRegistry::new())

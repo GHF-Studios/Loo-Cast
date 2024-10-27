@@ -5,13 +5,13 @@ use super::components::*;
 use tokio::sync::oneshot;
 
 pub struct UpgradeToChunkLoaderArgs {
-    pub target_entity_id: DynamicID<Entity>,
+    pub target_entity_id: NumericID<Entity>,
     pub chunk_loader_load_radius: u16
 }
 impl OpArgs for UpgradeToChunkLoaderArgs {}
 pub enum UpgradeToChunkLoaderResult {
     Ok{
-        chunk_loader_id: DynamicID<ChunkLoader>,
+        chunk_loader_id: NumericID<ChunkLoader>,
     },
     Err(()),
 }
@@ -39,8 +39,8 @@ impl Operation for UpgradeToChunkLoader {
 }
 
 pub struct DowngradeFromChunkLoaderArgs {
-    pub chunk_loader_entity_id: DynamicID<Entity>,
-    pub chunk_loader_id: DynamicID<ChunkLoader>,
+    pub chunk_loader_entity_id: NumericID<Entity>,
+    pub chunk_loader_id: NumericID<ChunkLoader>,
 }
 impl OpArgs for DowngradeFromChunkLoaderArgs {}
 pub enum DowngradeFromChunkLoaderResult {

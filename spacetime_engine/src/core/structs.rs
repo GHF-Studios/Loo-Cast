@@ -10,24 +10,21 @@ use super::traits::*;
 pub struct Core;
 
 #[derive(Reflect)]
-pub struct StaticID<T: 'static + Send + Sync> {
+pub struct StringID {
     id: &'static str,
-    #[reflect(ignore)]
-    phantom_data: std::marker::PhantomData<T>,
 }
-impl<T: 'static + Send + Sync> RegistryKey for StaticID<T> {
+impl RegistryKey for StringID {
     type ID = &'static str;
 
     fn new(id: &'static str) -> Self {
-        for reserved_id in RESERVED_STATIC_IDS.iter() {
+        for reserved_id in RESERVED_STRING_IDS.iter() {
             if id.eq_ignore_ascii_case(reserved_id) {
-                panic!("Cannot use reserved static ID '{}'!", reserved_id);
+                panic!("Cannot use reserved string ID '{}'!", reserved_id);
             }
         }
 
         Self { 
             id,
-            phantom_data: std::marker::PhantomData,
         }
     }
 
@@ -35,58 +32,58 @@ impl<T: 'static + Send + Sync> RegistryKey for StaticID<T> {
         self.id
     }
 }
-impl<T: 'static + Send + Sync> StaticInstanceRegistryKey for StaticID<T> {}
-impl<T: 'static + Send + Sync> Default for StaticID<T> {
+impl StaticInstanceRegistryKey for StringID {}
+impl Default for StringID {
     fn default() -> Self {
         Self {
             id: "",
-            phantom_data: std::marker::PhantomData
         }
     }
 }
-impl<T: 'static + Send + Sync> std::fmt::Debug for StaticID<T> {
+impl std::fmt::Debug for StringID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let type_name = std::any::type_name::<T>();
-        let type_name = type_name.split("::").last().unwrap_or(type_name);
-        write!(f, "{}ID({})", type_name, self.id)
+        write!(f, "({})", self.id)
     }
 }
-impl<T: 'static + Send + Sync> std::fmt::Display for StaticID<T> {
+impl std::fmt::Display for StringID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "({})", self.id)
     }
 }
-impl<T: 'static + Send + Sync> std::clone::Clone for StaticID<T> {
+impl std::clone::Clone for StringID {
     fn clone(&self) -> Self { *self }
 }
-impl<T: 'static + Send + Sync> core::marker::Copy for StaticID<T> {
+impl core::marker::Copy for StringID {
 }
-impl<T: 'static + Send + Sync> std::cmp::PartialEq for StaticID<T> {
+impl std::cmp::PartialEq for StringID {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
-impl<T: 'static + Send + Sync> std::cmp::Eq for StaticID<T> {
+impl std::cmp::Eq for StringID {
 }
-impl<T: 'static + Send + Sync> std::hash::Hash for StaticID<T> {
+impl std::hash::Hash for StringID {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
 }
 
 #[derive(Reflect)]
-pub struct DynamicID<T: 'static + Send + Sync> {
+pub struct NumericID {
     id: u64,
-    #[reflect(ignore)]
-    phantom_data: std::marker::PhantomData<T>,
 }
-impl<T: 'static + Send + Sync> RegistryKey for DynamicID<T> {
+impl RegistryKey for NumericID {
     type ID = u64;
 
     fn new(id: u64) -> Self {
+        for reserved_id in RESERVED_NUMERIC_IDS.iter() {
+            if id == *reserved_id {
+                panic!("Cannot use reserved numeric ID '{}'!", reserved_id);
+            }
+        }
+
         Self {
             id,
-            phantom_data: std::marker::PhantomData,
         }
     }
 
@@ -94,157 +91,67 @@ impl<T: 'static + Send + Sync> RegistryKey for DynamicID<T> {
         self.id
     }
 }
-impl<T: 'static + Send + Sync> DynamicInstanceRegistryKey for DynamicID<T> {}
-impl<T: 'static + Send + Sync> Default for DynamicID<T> {
+impl DynamicInstanceRegistryKey for NumericID {}
+impl Default for NumericID {
     fn default() -> Self {
         Self {
             id: 0,
-            phantom_data: std::marker::PhantomData,
         }
     }
 }
-impl<T: 'static + Send + Sync> std::fmt::Debug for DynamicID<T> {
+impl std::fmt::Debug for NumericID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let type_name = std::any::type_name::<T>();
-        let type_name = type_name.split("::").last().unwrap_or(type_name);
-        write!(f, "{}ID({})", type_name, self.id)
+        write!(f, "\"{}\"", self.id)
     }
 }
-impl<T: 'static + Send + Sync> std::fmt::Display for DynamicID<T> {
+impl std::fmt::Display for NumericID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "\"{}\"", self.id)
     }
 }
-impl<T: 'static + Send + Sync> std::clone::Clone for DynamicID<T> {
+impl std::clone::Clone for NumericID {
     fn clone(&self) -> Self { *self }
 }
-impl<T: 'static + Send + Sync> core::marker::Copy for DynamicID<T> {
+impl core::marker::Copy for NumericID {
 }
-impl<T: 'static + Send + Sync> std::cmp::PartialEq for DynamicID<T> {
+impl std::cmp::PartialEq for NumericID {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
-impl<T: 'static + Send + Sync> std::cmp::Eq for DynamicID<T> {
+impl std::cmp::Eq for NumericID {
 }
-impl<T: 'static + Send + Sync> std::hash::Hash for DynamicID<T> {
+impl std::hash::Hash for NumericID {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
 }
 
-#[derive(Reflect)]
-pub struct StaticUniversalID {
-    id: &'static str,
-}
-impl StaticUniversalID {
-    pub fn new<T: 'static + Send + Sync>(id: StaticID<T>) -> Self {
-        Self {
-            id: id.id,
-        }
-    }
-    pub fn get<T: 'static + Send + Sync>(&self) -> StaticID<T> {
-        StaticID::new(self.id)
-    }
-}
-impl Debug for StaticUniversalID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\"{}\"", self.id)
-    }
-}
-impl Display for StaticUniversalID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\"{}\"", self.id)
-    }
-}
-impl Clone for StaticUniversalID {
-    fn clone(&self) -> Self {
-        Self {
-            id: self.id,
-        }
-    }
-}
-impl Copy for StaticUniversalID {}
-impl PartialEq for StaticUniversalID {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-impl Eq for StaticUniversalID {}
-impl Hash for StaticUniversalID {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
-}
-
-#[derive(Reflect)]
-pub struct DynamicUniversalID {
-    id: u64,
-}
-impl DynamicUniversalID {
-    pub fn new<T: 'static + Send + Sync>(id: DynamicID<T>) -> Self {
-        Self {
-            id: id.id,
-        }
-    }
-    pub fn get<T: 'static + Send + Sync>(&self) -> DynamicID<T> {
-        DynamicID::new(self.id)
-    }
-}
-impl Debug for DynamicUniversalID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({})", self.id)
-    }
-}
-impl Display for DynamicUniversalID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({})", self.id)
-    }
-}
-impl Clone for DynamicUniversalID {
-    fn clone(&self) -> Self {
-        Self {
-            id: self.id,
-        }
-    }
-}
-impl Copy for DynamicUniversalID {}
-impl PartialEq for DynamicUniversalID {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-impl Eq for DynamicUniversalID {}
-impl Hash for DynamicUniversalID {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
-}
 
 pub enum LockingPathSegment {
     Root,
-    Text(StaticUniversalID),
-    Number(DynamicUniversalID),
+    String(StringID),
+    Numeric(NumericID),
 }
 impl LockingPathSegment {
     pub fn new_root() -> Self {
         LockingPathSegment::Root
     }
 
-    pub fn new_text<T: 'static + Send + Sync>(id: &'static str) -> Self {
-        LockingPathSegment::Text(StaticUniversalID::new(StaticID::<T>::new(id)))
+    pub fn new_string<T: 'static + Send + Sync>(id: &'static str) -> Self {
+        LockingPathSegment::String(StringID::new(id))
     }
 
     pub fn new_number<T: 'static + Send + Sync>(id: u64) -> Self {
-        LockingPathSegment::Number(DynamicUniversalID::new(DynamicID::<T>::new(id)))
+        LockingPathSegment::Numeric(NumericID::new(id))
     }
 }
 impl Debug for LockingPathSegment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LockingPathSegment::Root => write!(f, "root"),
-            LockingPathSegment::Text(id) => write!(f, "{}", id),
-            LockingPathSegment::Number(id) => write!(f, "{}", id),
+            LockingPathSegment::String(id) => write!(f, "{}", id),
+            LockingPathSegment::Numeric(id) => write!(f, "{}", id),
         }
     }
 }
@@ -252,8 +159,8 @@ impl Display for LockingPathSegment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LockingPathSegment::Root => write!(f, "root"),
-            LockingPathSegment::Text(id) => write!(f, "{}", id),
-            LockingPathSegment::Number(id) => write!(f, "{}", id),
+            LockingPathSegment::String(id) => write!(f, "{}", id),
+            LockingPathSegment::Numeric(id) => write!(f, "{}", id),
         }
     }
 }
@@ -261,8 +168,8 @@ impl Clone for LockingPathSegment {
     fn clone(&self) -> Self {
         match self {
             LockingPathSegment::Root => LockingPathSegment::Root,
-            LockingPathSegment::Text(id) => LockingPathSegment::Text(id.clone()),
-            LockingPathSegment::Number(id) => LockingPathSegment::Number(id.clone()),
+            LockingPathSegment::String(id) => LockingPathSegment::String(id.clone()),
+            LockingPathSegment::Numeric(id) => LockingPathSegment::Numeric(id.clone()),
         }
     }
 }
@@ -270,8 +177,8 @@ impl Copy for LockingPathSegment {}
 impl PartialEq for LockingPathSegment {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (LockingPathSegment::Text(id), LockingPathSegment::Text(other_id)) => id == other_id,
-            (LockingPathSegment::Number(id), LockingPathSegment::Number(other_id)) => id == other_id,
+            (LockingPathSegment::String(id), LockingPathSegment::String(other_id)) => id == other_id,
+            (LockingPathSegment::Numeric(id), LockingPathSegment::Numeric(other_id)) => id == other_id,
             _ => false,
         }
     }
@@ -281,8 +188,8 @@ impl Hash for LockingPathSegment {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
             LockingPathSegment::Root => "Root".hash(state),
-            LockingPathSegment::Text(id) => id.hash(state),
-            LockingPathSegment::Number(id) => id.hash(state),
+            LockingPathSegment::String(id) => id.hash(state),
+            LockingPathSegment::Numeric(id) => id.hash(state),
         }
     }
 }
@@ -313,7 +220,7 @@ impl LockingPath for RelativeLockingPath {
             Some(LockingPathSegment::Root) => {
                 unreachable!()
             },
-            Some(LockingPathSegment::Text(_)) => {
+            Some(LockingPathSegment::String(_)) => {
                 match segment {
                     LockingPathSegment::Root => {
                         return Err("Cannot push root segment!".to_string())
@@ -324,7 +231,7 @@ impl LockingPath for RelativeLockingPath {
                     },
                 }
             },
-            Some(LockingPathSegment::Number(_)) => {
+            Some(LockingPathSegment::Numeric(_)) => {
                 match segment {
                     LockingPathSegment::Root => {
                         return Err("Cannot push root segment!".to_string())
@@ -431,7 +338,7 @@ impl LockingPath for AbsoluteLockingPath {
                     },
                 }
             },
-            Some(LockingPathSegment::Text(_)) => {
+            Some(LockingPathSegment::String(_)) => {
                 match segment {
                     LockingPathSegment::Root => {
                         return Err("Cannot push root segment!".to_string())
@@ -442,7 +349,7 @@ impl LockingPath for AbsoluteLockingPath {
                     },
                 }
             },
-            Some(LockingPathSegment::Number(_)) => {
+            Some(LockingPathSegment::Numeric(_)) => {
                 match segment {
                     LockingPathSegment::Root => {
                         return Err("Cannot push root segment!".to_string())
@@ -982,11 +889,13 @@ pub struct BundleInstance<T: Bundle> {
 pub(in super) enum LockingNodeMetadata {
     Root {
         state: LockingState,
+        child_type_id: TypeId,
         children: HashMap<LockingPathSegment, Arc<Mutex<dyn Any + Send + Sync>>>,
     },
     Branch {
         path_segment: LockingPathSegment,
         state: LockingState,
+        child_type_id: TypeId,
         children: HashMap<LockingPathSegment, Arc<Mutex<dyn Any + Send + Sync>>>,
     },
     Leaf {
@@ -1009,6 +918,7 @@ impl LockingHierarchy {
             metadata: LockingNodeMetadata::Root {
                 state: LockingState::Unlocked,
                 children: HashMap::new(),
+                child_type_id: TypeId::of::<Type>(),
             },
             data: Arc::new(Mutex::new(MainTypeRegistry::new())),
         }));
@@ -1018,11 +928,11 @@ impl LockingHierarchy {
         }
     }
     
-    pub fn insert(&mut self, node: LockingNode) -> Result<(), LockingHierarchyError> {
+    pub fn insert<T: LockingNodeData>(&mut self, node: T) -> Result<(), LockingHierarchyError> {
         
     }
     
-    pub fn remove(&mut self, path: AbsoluteLockingPath) -> Result<LockingNode, LockingHierarchyError> {
+    pub fn remove<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<T, LockingHierarchyError> {
         
     }
 

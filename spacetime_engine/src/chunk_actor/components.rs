@@ -1,35 +1,35 @@
 use bevy::prelude::*;
 use crate::chunk::components::Chunk;
-use crate::core::structs::DynamicID;
+use crate::core::structs::NumericID;
 
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct ChunkActor {
-    id: DynamicID<ChunkActor>,
-    current_chunk: DynamicID<Chunk>,
+    id: NumericID<ChunkActor>,
+    current_chunk: NumericID<Chunk>,
 }
 
 impl ChunkActor {
-    pub fn new(start_chunk: DynamicID<Chunk>) -> Self {
+    pub fn new(start_chunk: NumericID<Chunk>) -> Self {
         Self {
-            id: DynamicID::default(),
+            id: NumericID::default(),
             current_chunk: start_chunk,
         }
     }
 
-    pub fn id(&self) -> DynamicID<ChunkActor> {
+    pub fn id(&self) -> NumericID<ChunkActor> {
         self.id
     }
 
-    pub(in crate) fn id_mut(&mut self) -> &mut DynamicID<ChunkActor> {
+    pub(in crate) fn id_mut(&mut self) -> &mut NumericID<ChunkActor> {
         &mut self.id
     }
 
-    pub fn current_chunk(&self) -> DynamicID<Chunk> {
+    pub fn current_chunk(&self) -> NumericID<Chunk> {
         self.current_chunk
     }
 
-    pub(in crate) fn current_chunk_mut(&mut self) -> &mut DynamicID<Chunk> {
+    pub(in crate) fn current_chunk_mut(&mut self) -> &mut NumericID<Chunk> {
         &mut self.current_chunk
     }
 }

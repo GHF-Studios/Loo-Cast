@@ -5,7 +5,7 @@ use crate::operation::wrappers::*;
 use super::{components::Chunk, structs::ChunkPosition};
 
 #[derive(Deref, DerefMut)]
-pub struct ChunkInstanceRegistry(DynamicInstanceRegistry<DynamicID<Chunk>, Entity>);
+pub struct ChunkInstanceRegistry(DynamicInstanceRegistry<NumericID<Chunk>, Entity>);
 impl ChunkInstanceRegistry {
     pub fn new() -> Self {
         Self(DynamicInstanceRegistry::new())
