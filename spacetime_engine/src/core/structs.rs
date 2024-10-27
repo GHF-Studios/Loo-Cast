@@ -1,5 +1,5 @@
-use super::{enums::*, errors::{LockingHierarchyError, LockingNodeError}, traits::*, wrappers::*};
-use std::{any::*, collections::{HashMap, HashSet}, sync::MutexGuard};
+use super::{enums::*, errors::{LockingHierarchyError, LockingNodeError}, singletons::*, traits::*, wrappers::*};
+use std::{any::*, collections::{HashMap, HashSet}, ops::Deref, sync::MutexGuard};
 use std::sync::{Arc, Mutex};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
@@ -965,20 +965,20 @@ impl LockingNodeMetadata {
     }
 }
 
-pub struct LockingNode {
+pub(in super) struct LockingNode {
     metadata: LockingNodeMetadata,
-    data: Arc<Mutex<Box<dyn Any>>>,
+    data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
 }
 
 impl LockingNode {
-    pub(in super) fn new(metadata: LockingNodeMetadata, data: Box<dyn Any>) -> Self {
+    pub fn new(metadata: LockingNodeMetadata, data: Box<dyn Any>) -> Self {
         Self {
             metadata,
             data: Arc::new(Mutex::new(data)),
         }
     }
 
-    pub fn lock(&mut self, hierarchy: MutexGuard<LockingHierarchy>) -> Result<(), LockingNodeError> {
+    pub fn lock(&mut self) -> Result<LockedDataContainer, LockingNodeError> {
         match self.metadata.get_state() {
             LockingState::Unlocked => {},
             LockingState::PartiallyLocked { .. } => {
@@ -1029,18 +1029,90 @@ impl LockingNode {
                 unreachable!();
             },
             LockingState::PartiallyLocked { locked_children } => {
-                if locked_children.contains(&self.metadata.get_path_segment()) {
+                if !locked_children.contains(&self.metadata.get_path_segment()) {
+                    locked_children.push(self.metadata.get_path_segment());
+                } else {
                     unreachable!();
                 }
             },
-            LockingState::Unlocked => {},
+            LockingState::Unlocked => {
+                *parent.metadata.get_state_mut() = LockingState::PartiallyLocked {
+                    locked_children: vec![self.metadata.get_path_segment()],
+                };
+            },
         }
-        
+
+        self.data.clone()
+
         *self.metadata.get_state_mut() = LockingState::FullyLocked;
         return Ok(());
     }
 
-    pub fn unlock(fuck me I have no idea how to do this)
+    pub fn unlock(&mut self) {
+        // TODO: Fett implementieren digga
+    }
+}
+
+pub struct LockedDataContainer {
+    locked_data: Box<dyn Any + 'static>,
+    is_held: bool,
+}
+impl LockedDataContainer {
+    pub(in super) fn new<T: 'static + Send + Sync>(data: LockedData<T>) -> Self {
+        Self {
+            locked_data: Box::new(data),
+            is_held: true,
+        }
+    }
+
+    pub fn get_ref<'a, T: 'static + Send + Sync>(&'a self) -> Option<&'a MutexGuard<T>> {
+        self.locked_data.downcast_ref::<LockedData<T>>().map(|data| data.get_ref())
+    }
+
+    pub fn get_mut<'a, T: 'static + Send + Sync>(&'a mut self) -> Option<&'a mut MutexGuard<T>> {
+        self.locked_data.downcast_mut::<LockedData<T>>().map(|data| data.get_mut())
+    }
+
+    pub fn unlock(self) {
+        self.is_held = false;
+        UNLOCK_QUEUE.lock().unwrap().push(UnlockRequest {
+            node_path: self.locked_data.downcast::<&LockedData>().unwrap().node_path,
+        });
+    }
+}
+impl Drop for LockedDataContainer {
+    fn drop(&mut self) {
+        if self.is_held {
+            panic!("Locked data container was dropped without being unlocked!");
+        }
+    }
+}
+
+pub(in super) struct LockedData<'a, T: 'static + Send + Sync> {
+    pub data_mutex: Arc<Mutex<T>>,
+    pub data: MutexGuard<'a, T>,
+    pub node_path: AbsoluteLockingPath,
+}
+impl<'a, T: 'static + Send + Sync> LockedData<'a, T> {
+    pub fn new(data_mutex: Arc<Mutex<T>>, node_path: AbsoluteLockingPath) -> Self {
+        Self {
+            data_mutex,
+            data: data_mutex.lock().unwrap(),
+            node_path,
+        }
+    }
+
+    pub fn get_ref(&self) -> &MutexGuard<T> {
+        &self.data
+    }
+
+    pub fn get_mut(&mut self) -> &mut MutexGuard<T> {
+        &mut self.data
+    }
+}
+
+pub(in super) struct UnlockRequest {
+    pub node_path: AbsoluteLockingPath,
 }
 
 pub struct LockingHierarchy {
@@ -1072,11 +1144,11 @@ impl LockingHierarchy {
         
     }
 
-    pub fn get(&self, path: AbsoluteLockingPath) -> Result<LockingNode, LockingHierarchyError> {
+    pub fn get(&self, path: AbsoluteLockingPath) -> Result<&LockingNode, LockingHierarchyError> {
         
     }
 
-    pub fn get_mut(&mut self, path: AbsoluteLockingPath) -> Result<LockingNode, LockingHierarchyError> {
+    pub fn get_mut(&mut self, path: AbsoluteLockingPath) -> Result<&mut LockingNode, LockingHierarchyError> {
         
     }
 }
