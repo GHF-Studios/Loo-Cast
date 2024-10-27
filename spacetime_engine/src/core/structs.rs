@@ -1,5 +1,5 @@
-use super::{enums::*, errors::LockingHierarchyError, traits::*, wrappers::*};
-use std::{any::*, collections::{HashMap, HashSet}};
+use super::{enums::*, errors::{LockingHierarchyError, LockingNodeError}, traits::*, wrappers::*};
+use std::{any::*, collections::{HashMap, HashSet}, sync::MutexGuard};
 use std::sync::{Arc, Mutex};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
@@ -890,46 +890,178 @@ pub(in super) enum LockingNodeMetadata {
     Root {
         state: LockingState,
         child_type_id: TypeId,
-        children: HashMap<LockingPathSegment, Arc<Mutex<dyn Any + Send + Sync>>>,
+        children: HashMap<LockingPathSegment, LockingNode>,
     },
     Branch {
         path_segment: LockingPathSegment,
         state: LockingState,
+        parent_type_id: TypeId,
         child_type_id: TypeId,
-        children: HashMap<LockingPathSegment, Arc<Mutex<dyn Any + Send + Sync>>>,
+        parent: Arc<Mutex<LockingNode>>,
+        children: HashMap<LockingPathSegment, LockingNode>,
     },
     Leaf {
         path_segment: LockingPathSegment,
         state: LockingState,
+        parent_type_id: TypeId,
+        parent: Arc<Mutex<LockingNode>>,
     },
 }
+impl LockingNodeMetadata {
+    pub fn get_path_segment(&self) -> LockingPathSegment {
+        match self {
+            LockingNodeMetadata::Root { .. } => LockingPathSegment::Root,
+            LockingNodeMetadata::Branch { path_segment, .. } => path_segment.clone(),
+            LockingNodeMetadata::Leaf { path_segment, .. } => path_segment.clone(),
+        }
+    }
 
-pub(in super) struct LockingNode {
-    pub metadata: LockingNodeMetadata,
-    pub data: Arc<Mutex<dyn LockingNodeData>>,
+    pub fn get_state(&self) -> &LockingState {
+        match self {
+            LockingNodeMetadata::Root { state, .. } => state,
+            LockingNodeMetadata::Branch { state, .. } => state,
+            LockingNodeMetadata::Leaf { state, .. } => state,
+        }
+    }
+
+    pub fn get_state_mut(&mut self) -> &mut LockingState {
+        match self {
+            LockingNodeMetadata::Root { state, .. } => state,
+            LockingNodeMetadata::Branch { state, .. } => state,
+            LockingNodeMetadata::Leaf { state, .. } => state,
+        }
+    }
+
+    pub fn get_parent_type_id(&self) -> Option<TypeId> {
+        match self {
+            LockingNodeMetadata::Root { .. } => None,
+            LockingNodeMetadata::Branch { parent_type_id, .. } => Some(parent_type_id.clone()),
+            LockingNodeMetadata::Leaf { parent_type_id, .. } => Some(parent_type_id.clone()),
+        }
+    }
+
+    pub fn get_child_type_id(&self) -> Option<TypeId> {
+        match self {
+            LockingNodeMetadata::Root { child_type_id, .. } => Some(child_type_id.clone()),
+            LockingNodeMetadata::Branch { child_type_id, .. } => Some(child_type_id.clone()),
+            LockingNodeMetadata::Leaf { .. } => None,
+        }
+    }
+
+    pub fn get_parent(&self) -> Option<LockingNode> {
+        match self {
+            LockingNodeMetadata::Root { .. } => None,
+            LockingNodeMetadata::Branch { parent, .. } => Some(parent.clone()),
+            LockingNodeMetadata::Leaf { parent, .. } => Some(parent.clone()),
+        }
+    }
+
+    pub fn get_children(&self) -> Option<&HashMap<AbsoluteLockingPath, LockingNode>> {
+        match self {
+            LockingNodeMetadata::Root { children, .. } => Some(children),
+            LockingNodeMetadata::Branch { children, .. } => Some(children),
+            LockingNodeMetadata::Leaf { .. } => None,
+        }
+    }
+}
+
+pub struct LockingNode {
+    metadata: LockingNodeMetadata,
+    data: Arc<Mutex<Box<dyn Any>>>,
+}
+
+impl LockingNode {
+    pub(in super) fn new(metadata: LockingNodeMetadata, data: Box<dyn Any>) -> Self {
+        Self {
+            metadata,
+            data: Arc::new(Mutex::new(data)),
+        }
+    }
+
+    pub fn lock(&mut self, hierarchy: MutexGuard<LockingHierarchy>) -> Result<(), LockingNodeError> {
+        match self.metadata.get_state() {
+            LockingState::Unlocked => {},
+            LockingState::PartiallyLocked { .. } => {
+                return Err(LockingNodeError::AlreadyPartiallyLocked);
+            },
+            LockingState::FullyLocked => {
+                return Err(LockingNodeError::AlreadyFullyLocked);
+            },
+        }
+
+        let children = match self.metadata.get_children() {
+            Some(children) => children,
+            None => {
+                *self.metadata.get_state_mut() = LockingState::FullyLocked;
+                return Ok(());
+            },
+        };
+
+        for (child_path, child) in children {
+            if child.metadata.get_state().is_locked() {
+                return Err(LockingNodeError::ChildLocked(child.metadata.get_path_segment()));
+            }
+        }
+
+        let parent_mutex = match self.metadata {
+            LockingNodeMetadata::Root { .. } => {
+                *self.metadata.get_state_mut() = LockingState::FullyLocked;
+                return Ok(());
+            },
+            LockingNodeMetadata::Branch { parent, .. } => parent,
+            LockingNodeMetadata::Leaf { parent, .. } => parent,
+        };
+
+        let parent = match parent_mutex.try_lock() {
+            Ok(parent) => parent,
+            Err(error) => match error {
+                std::sync::TryLockError::Poisoned(_) => {
+                    return Err(LockingNodeError::ParentPoisoned);
+                },
+                std::sync::TryLockError::WouldBlock => {
+                    return Err(LockingNodeError::ParentLocked);
+                },
+            },
+        };
+
+        match parent.metadata.get_state() {
+            LockingState::FullyLocked => {
+                unreachable!();
+            },
+            LockingState::PartiallyLocked { locked_children } => {
+                if locked_children.contains(&self.metadata.get_path_segment()) {
+                    unreachable!();
+                }
+            },
+            LockingState::Unlocked => {},
+        }
+        
+        *self.metadata.get_state_mut() = LockingState::FullyLocked;
+        return Ok(());
+    }
+
+    pub fn unlock(fuck me I have no idea how to do this)
 }
 
 pub struct LockingHierarchy {
-    root: Arc<Mutex<LockingNode>>,
+    root_node: LockingNode
 }
 impl LockingHierarchy {
     pub fn new() -> Self {
-        let root = Arc::new(Mutex::new(LockingNode {
-            metadata: LockingNodeMetadata::Root {
-                state: LockingState::Unlocked,
-                children: HashMap::new(),
-                child_type_id: TypeId::of::<Type>(),
-            },
-            data: Arc::new(Mutex::new(MainTypeRegistry::new())),
-        }));
+        let root_metadata = LockingNodeMetadata::Root {
+            state: LockingState::Unlocked,
+            child_type_id: TypeId::of::<LockingNode>(),
+            children: HashMap::new(),
+        };
+        let root_data = Arc::new(Mutex::new(Box::new(MainTypeRegistry::new())));
 
         Self {
-            root
+            root_node: LockingNode::new(root_metadata, root_data)
         }
     }
     
     pub fn insert<T: LockingNodeData>(&mut self, node: T) -> Result<(), LockingHierarchyError> {
-        
+
     }
     
     pub fn remove<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<T, LockingHierarchyError> {
@@ -945,14 +1077,6 @@ impl LockingHierarchy {
     }
 
     pub fn get_mut(&mut self, path: AbsoluteLockingPath) -> Result<LockingNode, LockingHierarchyError> {
-        
-    }
-
-    pub fn lock(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
-        
-    }
-
-    pub fn unlock(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
         
     }
 }
