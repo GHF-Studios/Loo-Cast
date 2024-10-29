@@ -4,10 +4,8 @@ pub mod wrappers;
 
 // Functions
 pub mod commands;
-pub mod systems;
 
 // Miscelaneous
-pub mod singletons;
 pub mod traits;
 
 use bevy::prelude::*;
@@ -15,8 +13,6 @@ use bevy::prelude::*;
 pub(in crate) struct OperationPlugin;
 impl Plugin for OperationPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(PostUpdate, systems::post_update);
     }
 }
 

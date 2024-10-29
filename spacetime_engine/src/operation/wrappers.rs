@@ -8,5 +8,4 @@ impl OperationTypeRegistry {
         Self(TypeRegistry::new())
     }
 }
-impl LockingNodePartialData for OperationTypeRegistry {}
 impl LockingNodeData for OperationTypeRegistry {}

@@ -16,10 +16,13 @@ pub trait DynamicInstanceRegistryKey: RegistryKey<ID = u64> {}
 
 pub trait InstanceRegistryValue: 'static + PartialEq + Send + Sync {}
 
-pub trait LockingNodeData: Any + Send + Sync {}
+pub trait LockingNodeData: Any + Send + Sync {
+    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy);
+    fn startup(&mut self, hierarchy: &mut LockingHierarchy);
+    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy);
+}
 
 pub trait Singleton: Any + Send + Sync {}
-impl LockingNodeData for Box<dyn Singleton> {}
 
 pub trait LockingPath: 'static + Send + Sync + Debug + Display + Clone + PartialEq + Eq + Hash {
     fn segments(&self) -> &Vec<LockingPathSegment>;

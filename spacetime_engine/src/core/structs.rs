@@ -1,6 +1,8 @@
-use super::{enums::*, errors::{LockingHierarchyError, LockingNodeError}, singletons::*, traits::*, wrappers::*};
-use std::{any::*, collections::{HashMap, HashSet}, ops::Deref, sync::MutexGuard};
-use std::sync::{Arc, Mutex};
+use crate::*;
+use super::{enums::*, errors::{LockingHierarchyError, LockingNodeError}, singletons::*, traits::*};
+use std::collections::{HashMap, HashSet};
+use std::any::*;
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use bevy::prelude::*;
@@ -8,125 +10,6 @@ use super::constants::*;
 use super::traits::*;
 
 pub struct Core;
-
-#[derive(Reflect)]
-pub struct StringID {
-    id: &'static str,
-}
-impl RegistryKey for StringID {
-    type ID = &'static str;
-
-    fn new(id: &'static str) -> Self {
-        for reserved_id in RESERVED_STRING_IDS.iter() {
-            if id.eq_ignore_ascii_case(reserved_id) {
-                panic!("Cannot use reserved string ID '{}'!", reserved_id);
-            }
-        }
-
-        Self { 
-            id,
-        }
-    }
-
-    fn get(&self) -> &'static str {
-        self.id
-    }
-}
-impl StaticInstanceRegistryKey for StringID {}
-impl Default for StringID {
-    fn default() -> Self {
-        Self {
-            id: "",
-        }
-    }
-}
-impl std::fmt::Debug for StringID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({})", self.id)
-    }
-}
-impl std::fmt::Display for StringID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({})", self.id)
-    }
-}
-impl std::clone::Clone for StringID {
-    fn clone(&self) -> Self { *self }
-}
-impl core::marker::Copy for StringID {
-}
-impl std::cmp::PartialEq for StringID {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-impl std::cmp::Eq for StringID {
-}
-impl std::hash::Hash for StringID {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
-}
-
-#[derive(Reflect)]
-pub struct NumericID {
-    id: u64,
-}
-impl RegistryKey for NumericID {
-    type ID = u64;
-
-    fn new(id: u64) -> Self {
-        for reserved_id in RESERVED_NUMERIC_IDS.iter() {
-            if id == *reserved_id {
-                panic!("Cannot use reserved numeric ID '{}'!", reserved_id);
-            }
-        }
-
-        Self {
-            id,
-        }
-    }
-
-    fn get(&self) -> u64 {
-        self.id
-    }
-}
-impl DynamicInstanceRegistryKey for NumericID {}
-impl Default for NumericID {
-    fn default() -> Self {
-        Self {
-            id: 0,
-        }
-    }
-}
-impl std::fmt::Debug for NumericID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\"{}\"", self.id)
-    }
-}
-impl std::fmt::Display for NumericID {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\"{}\"", self.id)
-    }
-}
-impl std::clone::Clone for NumericID {
-    fn clone(&self) -> Self { *self }
-}
-impl core::marker::Copy for NumericID {
-}
-impl std::cmp::PartialEq for NumericID {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-impl std::cmp::Eq for NumericID {
-}
-impl std::hash::Hash for NumericID {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
-}
-
 
 pub enum LockingPathSegment {
     Root,
@@ -138,11 +21,11 @@ impl LockingPathSegment {
         LockingPathSegment::Root
     }
 
-    pub fn new_string<T: 'static + Send + Sync>(id: &'static str) -> Self {
+    pub fn new_string(id: &'static str) -> Self {
         LockingPathSegment::String(StringID::new(id))
     }
 
-    pub fn new_number<T: 'static + Send + Sync>(id: u64) -> Self {
+    pub fn new_number(id: u64) -> Self {
         LockingPathSegment::Numeric(NumericID::new(id))
     }
 }
@@ -310,7 +193,22 @@ pub struct AbsoluteLockingPath {
 impl AbsoluteLockingPath {
     pub fn new() -> Self {
         Self {
-            segments: vec![LockingPathSegment::Root],
+            segments: Vec::new(),
+        }
+    }
+    pub fn new_from_literal(path: &'static str) -> Self {
+        let mut segments = Vec::new();
+
+        for segment in path.split('/') {
+            if let Ok(id) = segment.parse::<u64>() {
+                segments.push(LockingPathSegment::Numeric(NumericID::new(id)));
+            } else {
+                segments.push(LockingPathSegment::String(StringID::new(segment)));
+            }
+        }
+
+        Self {
+            segments,
         }
     }
 }
@@ -418,454 +316,6 @@ impl Hash for AbsoluteLockingPath {
     }
 }
 
-pub struct StaticInstanceRegistry<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> {
-    registered: HashSet<K>,
-    managed: HashMap<K, V>,
-}
-impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> StaticInstanceRegistry<K, V> {
-    pub fn new() -> Self {
-        Self {
-            registered: HashSet::new(),
-            managed: HashMap::new(),
-        }
-    }
-
-    pub fn register(&mut self, key: K) {
-        if self.registered.contains(&key) {
-            panic!("Key '{:?}' is already registered!", key);
-        }
-
-        self.registered.insert(key);
-    }
-
-    pub fn unregister(&mut self, key: K) {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is invalid!", key);
-        }
-
-        if self.managed.contains_key(&key) {
-            panic!("Entry '{:?}' is still managed!", key);
-        }
-
-        self.registered.retain(|other_key| key != *other_key);
-    }
-
-    pub fn manage(&mut self, key: K, value: V) {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is invalid!", key);
-        }
-
-        if self.managed.contains_key(&key) {
-            panic!("Entry '{:?}' is already managed!", key);
-        }
-
-        self.managed.insert(key, value);
-    }
-
-    pub fn unmanage(&mut self, key: K) -> V {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is invalid!", key);
-        }
-
-        if !self.managed.contains_key(&key) {
-            panic!("Entry '{:?}' is already unmanaged!", key);
-        }
-
-        self.managed.remove(&key).unwrap()
-    }
-
-    pub fn get(&self, key: K) -> Option<&V> {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is invalid!", key);
-        }
-
-        self.managed.get(&key)
-    }
-
-    pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is invalid!", key);
-        }
-
-        self.managed.get_mut(&key)
-    }
-
-    pub fn get_key(&self, value: &V) -> Option<&K> {
-        self.managed.iter().find_map(|(key, other_value)| {
-            if value == other_value {
-                Some(key)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn registered(&self) -> &HashSet<K> {
-        &self.registered
-    }
-
-    pub fn managed(&self) -> &HashMap<K, V> {
-        &self.managed
-    }
-
-    pub fn is_registered(&self, key: K) -> bool {
-        self.registered.contains(&key)
-    }
-
-    pub fn is_managed(&self, key: K) -> bool {
-        self.managed.contains_key(&key)
-    }
-}
-impl<K: StaticInstanceRegistryKey, V: InstanceRegistryValue> LockingNodeData for StaticInstanceRegistry<K, V> {}
-
-pub struct DynamicInstanceRegistry<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> {
-    registered: HashSet<K>,
-    managed: HashMap<K, V>,
-    next_key: K,
-    recycled_keys: Vec<K>,
-}
-impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> DynamicInstanceRegistry<K, V> {
-    pub fn new() -> Self {
-        Self {
-            registered: HashSet::new(),
-            managed: HashMap::new(),
-            next_key: K::new(1),
-            recycled_keys: Vec::new(),
-        }
-    }
-
-    fn get_unused_key(&mut self) -> K {
-        if let Some(recycled_key) = self.recycled_keys.pop() {
-            trace!("Used recycled key: '{:?}'", recycled_key);
-
-            recycled_key
-        } else {
-            let key = self.next_key;
-            self.next_key = K::new(self.next_key.get() + 1);
-            key
-        }
-    }
-
-    fn recycle_key(&mut self, key: K) {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is not registered!", key);
-        }
-
-        if self.recycled_keys.contains(&key) {
-            panic!("Key '{:?}' is already recycled!", key);
-        }
-
-        self.recycled_keys.push(key);
-    }
-
-    pub fn register(&mut self) -> K {
-        let key = self.get_unused_key();
-
-        self.registered.insert(key);
-
-        key
-    }
-
-    pub fn unregister(&mut self, key: K) {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is invalid!", key);
-        }
-
-        if self.managed.contains_key(&key) {
-            panic!("Entry '{:?}' is still managed!", key);
-        }
-
-        self.registered.retain(|other_key| key != *other_key);
-
-        self.recycle_key(key);
-    }
-
-    pub fn manage(&mut self, key: K, value: V) {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is invalid!", key);
-        }
-
-        if self.managed.contains_key(&key) {
-            panic!("Entry '{:?}' is already managed!", key);
-        }
-
-        self.managed.insert(key, value);
-    }
-
-    pub fn unmanage(&mut self, key: K) -> V {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is invalid!", key);
-        }
-
-        if !self.managed.contains_key(&key) {
-            panic!("Entry '{:?}' is already unmanaged!", key);
-        }
-
-        self.managed.remove(&key).unwrap()
-    }
-
-    pub fn get(&self, key: K) -> Option<&V> {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is invalid!", key);
-        }
-
-        self.managed.get(&key)
-    }
-
-    pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
-        if !self.registered.contains(&key) {
-            panic!("Key '{:?}' is invalid!", key);
-        }
-
-        self.managed.get_mut(&key)
-    }
-
-    pub fn get_key(&self, value: &V) -> Option<&K> {
-        self.managed.iter().find_map(|(key, other_value)| {
-            if value == other_value {
-                Some(key)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn registered(&self) -> &HashSet<K> {
-        &self.registered
-    }
-
-    pub fn managed(&self) -> &HashMap<K, V> {
-        &self.managed
-    }
-
-    pub fn is_registered(&self, key: K) -> bool {
-        self.registered.contains(&key)
-    }
-
-    pub fn is_managed(&self, key: K) -> bool {
-        self.managed.contains_key(&key)
-    }
-}
-impl<K: DynamicInstanceRegistryKey, V: InstanceRegistryValue> LockingNodeData for DynamicInstanceRegistry<K, V> {}
-
-pub struct TypeRegistry {
-    registered: HashSet<TypeId>,
-    managed: HashMap<TypeId, Type>,
-}
-impl TypeRegistry {
-    pub fn new() -> Self {
-        Self {
-            registered: HashSet::new(),
-            managed: HashMap::new(),
-        }
-    }
-
-    pub fn register<T: 'static + Send + Sync>(&mut self) {
-        let type_id = TypeId::of::<T>();
-
-        if self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is already registered!", type_id);
-        }
-
-        self.registered.insert(type_id);
-    }
-
-    pub fn unregister<T: 'static + Send + Sync>(&mut self) {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
-
-        if self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is still managed!", type_id);
-        }
-
-        self.registered.retain(|other_type_id| type_id != *other_type_id);
-    }
-
-    pub fn manage<T: 'static + Send + Sync>(&mut self) {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
-
-        if self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is already managed!", type_id);
-        }
-
-        self.managed.insert(type_id, Type::new::<T>());
-    }
-
-    pub fn unmanage<T: 'static + Send + Sync>(&mut self) {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
-
-        if !self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is already unmanaged!", type_id);
-        }
-
-        self.managed.remove(&type_id);
-    }
-
-    pub fn get<T: 'static + Send + Sync>(&self) -> Option<&Type> {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
-
-        if !self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is not managed!", type_id);
-        }
-
-        self.managed.get(&type_id)
-    }
-
-    pub fn get_mut<T: 'static + Send + Sync>(&mut self) -> Option<&mut Type> {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
-
-        if !self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is not managed!", type_id);
-        }
-
-        self.managed.get_mut(&type_id)
-    }
-
-    pub fn registered(&self) -> &HashSet<TypeId> {
-        &self.registered
-    }
-
-    pub fn managed(&self) -> &HashMap<TypeId, Type> {
-        &self.managed
-    }
-
-    pub fn is_registered<T: 'static + Send + Sync>(&self) -> bool {
-        self.registered.contains(&TypeId::of::<T>())
-    }
-
-    pub fn is_managed<T: 'static + Send + Sync>(&self) -> bool {
-        self.managed.contains_key(&TypeId::of::<T>())
-    }
-}
-impl LockingNodeData for TypeRegistry {}
-
-pub struct SingletonRegistry<T: 'static + Singleton> {
-    registered: HashSet<TypeId>,
-    managed: HashMap<TypeId, T>,
-}
-impl<T: 'static + Singleton> SingletonRegistry<T> {
-    pub fn new() -> Self {
-        Self {
-            registered: HashSet::new(),
-            managed: HashMap::new(),
-        }
-    }
-
-    pub fn register(&mut self) {
-        let type_id = TypeId::of::<T>();
-
-        if self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is already registered!", type_id);
-        }
-
-        self.registered.insert(type_id);
-    }
-
-    pub fn unregister(&mut self) {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
-
-        if self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is still managed!", type_id);
-        }
-
-        self.registered.retain(|other_type_id| type_id != *other_type_id);
-    }
-
-    pub fn manage(&mut self, singleton: T) {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
-
-        if self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is already managed!", type_id);
-        }
-
-        self.managed.insert(type_id, singleton);
-    }
-
-    pub fn unmanage(&mut self) {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
-
-        if !self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is already unmanaged!", type_id);
-        }
-
-        self.managed.remove(&type_id);
-    }
-
-    pub fn get(&self) -> Option<&T> {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
-
-        if !self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is not managed!", type_id);
-        }
-
-        self.managed.get(&type_id)
-    }
-
-    pub fn get_mut(&mut self) -> Option<&mut T> {
-        let type_id = TypeId::of::<T>();
-
-        if !self.registered.contains(&type_id) {
-            panic!("Type '{:?}' is not registered!", type_id);
-        }
-
-        if !self.managed.contains_key(&type_id) {
-            panic!("Type '{:?}' is not managed!", type_id);
-        }
-
-        self.managed.get_mut(&type_id)
-    }
-
-    pub fn registered(&self) -> &HashSet<TypeId> {
-        &self.registered
-    }
-
-    pub fn managed(&self) -> &HashMap<TypeId, T> {
-        &self.managed
-    }
-
-    pub fn is_registered(&self) -> bool {
-        self.registered.contains(&TypeId::of::<T>())
-    }
-
-    pub fn is_managed(&self) -> bool {
-        self.managed.contains_key(&TypeId::of::<T>())
-    }
-}
 
 
 pub struct EntityInstance {
@@ -890,21 +340,21 @@ pub(in super) enum LockingNodeMetadata {
     Root {
         state: LockingState,
         child_type_id: TypeId,
-        children: HashMap<LockingPathSegment, LockingNode>,
+        children: HashMap<LockingPathSegment, Arc<Mutex<LockingNode>>>,
     },
     Branch {
         path_segment: LockingPathSegment,
         state: LockingState,
         parent_type_id: TypeId,
         child_type_id: TypeId,
-        parent: Arc<Mutex<LockingNode>>,
-        children: HashMap<LockingPathSegment, LockingNode>,
+        parent: (AbsoluteLockingPath, Arc<Mutex<LockingNode>>),
+        children: HashMap<LockingPathSegment, Arc<Mutex<LockingNode>>>,
     },
     Leaf {
         path_segment: LockingPathSegment,
         state: LockingState,
         parent_type_id: TypeId,
-        parent: Arc<Mutex<LockingNode>>,
+        parent: (AbsoluteLockingPath, Arc<Mutex<LockingNode>>),
     },
 }
 impl LockingNodeMetadata {
@@ -948,7 +398,7 @@ impl LockingNodeMetadata {
         }
     }
 
-    pub fn get_parent(&self) -> Option<LockingNode> {
+    pub fn get_parent(&self) -> Option<(AbsoluteLockingPath, Arc<Mutex<LockingNode>>)> {
         match self {
             LockingNodeMetadata::Root { .. } => None,
             LockingNodeMetadata::Branch { parent, .. } => Some(parent.clone()),
@@ -956,11 +406,57 @@ impl LockingNodeMetadata {
         }
     }
 
-    pub fn get_children(&self) -> Option<&HashMap<AbsoluteLockingPath, LockingNode>> {
+    pub fn get_children(&self) -> Option<&HashMap<AbsoluteLockingPath, Arc<Mutex<LockingNode>>>> {
         match self {
             LockingNodeMetadata::Root { children, .. } => Some(children),
             LockingNodeMetadata::Branch { children, .. } => Some(children),
             LockingNodeMetadata::Leaf { .. } => None,
+        }
+    }
+}
+impl Debug for LockingNodeMetadata {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LockingNodeMetadata::Root { state, child_type_id, children } => {
+                let children_string = children.keys().iter().map(|child| {
+                    child.to_string()
+                }).collect::<Vec<String>>().join(", ");
+
+                write!(f, "Root {{ state[ {:?} ], child_type_id[ {:?} ], children[ {:?} ] }}", state, child_type_id, children_string)
+            },
+            LockingNodeMetadata::Branch { path_segment, state, parent_type_id, child_type_id, parent, children } => {
+                let children_string = children.keys().iter().map(|child| {
+                    child.to_string()
+                }).collect::<Vec<String>>().join(", ");
+
+                write!(f, "Branch {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], child_type_id[ {:?} ], parent[ {:?} ], children[ {:?} ] }}", path_segment, state, parent_type_id, child_type_id, parent, children_string)
+            },
+            LockingNodeMetadata::Leaf { path_segment, state, parent_type_id, parent } => {
+                write!(f, "Leaf {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ] }}", path_segment, state, parent_type_id, parent)
+            },
+        }
+    }
+}
+impl Display for LockingNodeMetadata {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LockingNodeMetadata::Root { state, child_type_id, children } => {
+                let children_string = children.keys().iter().map(|child| {
+                    child.to_string()
+                }).collect::<Vec<String>>().join(", ");
+
+                write!(f, "Root {{ state[ {:?} ], child_type_id[ {:?} ], children[ {:?} ] }}", state, child_type_id, children_string)
+            },
+            LockingNodeMetadata::Branch { path_segment, state, parent_type_id, child_type_id, parent, children } => {
+                let children_string = children.keys().iter().map(|child| {
+                    child.to_string()
+                }).collect::<Vec<String>>().join(", ");
+
+                write!(f, "Branch {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], child_type_id[ {:?} ], parent[ {:?} ], children[ {:?} ] }}", path_segment, state, parent_type_id, child_type_id, parent, children_string)
+            },
+            LockingNodeMetadata::Leaf { path_segment, state, parent_type_id, parent } => {
+                write!(f, "Leaf {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ] }}", path_segment, state, parent_type_id, parent)
+            },
         }
     }
 }
@@ -969,12 +465,11 @@ pub(in super) struct LockingNode {
     metadata: LockingNodeMetadata,
     data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
 }
-
 impl LockingNode {
-    pub fn new(metadata: LockingNodeMetadata, data: Box<dyn Any>) -> Self {
+    pub fn new(metadata: LockingNodeMetadata, data: Box<dyn LockingNodeData>) -> Self {
         Self {
             metadata,
-            data: Arc::new(Mutex::new(data)),
+            data: Arc::new(Mutex::new(data as Box<dyn Any + Send + Sync>)),
         }
     }
 
@@ -989,23 +484,37 @@ impl LockingNode {
             },
         }
 
-        let children = match self.metadata.get_children() {
-            Some(children) => children,
-            None => {
-                *self.metadata.get_state_mut() = LockingState::FullyLocked;
-                return Ok(());
-            },
-        };
-
-        for (child_path, child) in children {
-            if child.metadata.get_state().is_locked() {
-                return Err(LockingNodeError::ChildLocked(child.metadata.get_path_segment()));
-            }
-        }
-
-        let parent_mutex = match self.metadata {
+        let (parent_path, parent_mutex) = match self.metadata {
             LockingNodeMetadata::Root { .. } => {
                 *self.metadata.get_state_mut() = LockingState::FullyLocked;
+
+                let locked_children = match self.metadata.get_children() {
+                    Some(children) => children,
+                    None => {
+                        return Ok(());
+                    },
+                };
+                for (child_path, child_mutex) in locked_children {
+                    let child = match child_mutex.try_lock() {
+                        Ok(child) => child,
+                        Err(error) => match error {
+                            std::sync::TryLockError::Poisoned(_) => {
+                                return Err(LockingNodeError::ChildPoisoned);
+                            },
+                            std::sync::TryLockError::WouldBlock => {
+                                return Err(LockingNodeError::ChildFullyLocked);
+                            },
+                        },
+                    };
+                
+                    match child.lock() {
+                        Ok(()) => {},
+                        Err(error) => {
+                            return Err(LockingNodeError::ChildLockError(error));
+                        },
+                    };
+                }
+
                 return Ok(());
             },
             LockingNodeMetadata::Branch { parent, .. } => parent,
@@ -1019,7 +528,7 @@ impl LockingNode {
                     return Err(LockingNodeError::ParentPoisoned);
                 },
                 std::sync::TryLockError::WouldBlock => {
-                    return Err(LockingNodeError::ParentLocked);
+                    return Err(LockingNodeError::ParentFullyLocked);
                 },
             },
         };
@@ -1042,14 +551,159 @@ impl LockingNode {
             },
         }
 
-        self.data.clone()
-
         *self.metadata.get_state_mut() = LockingState::FullyLocked;
+
+        let children = match self.metadata.get_children() {
+            Some(children) => children,
+            None => {
+                return Ok(());
+            },
+        };
+        for (child_path, child_mutex) in children {
+            let child = match child_mutex.try_lock() {
+                Ok(child) => child,
+                Err(error) => match error {
+                    std::sync::TryLockError::Poisoned(_) => {
+                        return Err(LockingNodeError::ChildPoisoned);
+                    },
+                    std::sync::TryLockError::WouldBlock => {
+                        return Err(LockingNodeError::ChildFullyLocked);
+                    },
+                },
+            };
+
+            match child.lock() {
+                Ok(()) => {},
+                Err(error) => {
+                    return Err(LockingNodeError::ChildLockError(error));
+                },
+            };
+        }
+
         return Ok(());
     }
 
-    pub fn unlock(&mut self) {
-        // TODO: Fett implementieren digga
+    pub fn unlock(&mut self) -> Result<(), LockingNodeError> {
+        match self.metadata.get_state() {
+            LockingState::Unlocked => {
+                return Err(LockingNodeError::AlreadyUnlocked);
+            },
+            LockingState::PartiallyLocked { .. } => {
+                return Err(LockingNodeError::CannotUnlockPartiallyLocked);
+            },
+            LockingState::FullyLocked => {},
+        }
+
+        let (parent_path, parent_mutex) = match self.metadata {
+            LockingNodeMetadata::Root { .. } => {
+                *self.metadata.get_state_mut() = LockingState::Unlocked;
+
+                let children = match self.metadata.get_children() {
+                    Some(children) => children,
+                    None => {
+                        return Ok(());
+                    },
+                };
+                for (child_path, child_mutex) in children {
+                    let child = match child_mutex.try_lock() {
+                        Ok(child) => child,
+                        Err(error) => match error {
+                            std::sync::TryLockError::Poisoned(_) => {
+                                return Err(LockingNodeError::ChildPoisoned);
+                            },
+                            std::sync::TryLockError::WouldBlock => {
+                                return Err(LockingNodeError::ChildFullyLocked);
+                            },
+                        },
+                    };
+                
+                    match child.unlock() {
+                        Ok(()) => {},
+                        Err(error) => {
+                            return Err(LockingNodeError::ChildUnlockError(error));
+                        },
+                    };
+                }
+
+                return Ok(());
+            },
+            LockingNodeMetadata::Branch { parent, .. } => parent,
+            LockingNodeMetadata::Leaf { parent, .. } => parent,
+        };
+
+        let parent = match parent_mutex.try_lock() {
+            Ok(parent) => parent,
+            Err(error) => match error {
+                std::sync::TryLockError::Poisoned(_) => {
+                    return Err(LockingNodeError::ParentPoisoned);
+                },
+                std::sync::TryLockError::WouldBlock => {
+                    return Err(LockingNodeError::ParentFullyLocked);
+                },
+            },
+        };
+
+        match parent.metadata.get_state() {
+            LockingState::FullyLocked => {
+                unreachable!();
+            },
+            LockingState::PartiallyLocked { locked_children: locked_siblings } => {
+                *self.metadata.get_state_mut() = LockingState::Unlocked;
+
+                let self_path_segment = self.metadata.get_path_segment();
+                locked_siblings.retain(|segment| segment != &self_path_segment);
+                if locked_siblings.is_empty() {
+                    match parent.unlock() {
+                        Ok(()) => {},
+                        Err(error) => {
+                            return Err(LockingNodeError::UnlockParentError());
+                        },
+                    }
+                }
+
+                let children = match self.metadata.get_children() {
+                    Some(children) => children,
+                    None => {
+                        return Ok(());
+                    },
+                };
+                for (child_path, child_mutex) in children {
+                    let child = match child_mutex.try_lock() {
+                        Ok(child) => child,
+                        Err(error) => match error {
+                            std::sync::TryLockError::Poisoned(_) => {
+                                return Err(LockingNodeError::ChildPoisoned);
+                            },
+                            std::sync::TryLockError::WouldBlock => {
+                                return Err(LockingNodeError::ChildFullyLocked);
+                            },
+                        },
+                    };
+                
+                    match child.unlock() {
+                        Ok(()) => {},
+                        Err(error) => {
+                            return Err(LockingNodeError::ChildUnlockError(error));
+                        },
+                    };
+                }
+
+                return Ok(());
+            },
+            LockingState::Unlocked => {
+                unreachable!();
+            },
+        }
+    }
+}
+impl Debug for LockingNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "LockingNode {{ metadata[ {:?} ] }}", self.metadata)
+    }
+}
+impl Display for LockingNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "LockingNode {{ metadata[ {:?} ] }}", self.metadata)
     }
 }
 
@@ -1116,7 +770,7 @@ pub(in super) struct UnlockRequest {
 }
 
 pub struct LockingHierarchy {
-    root_node: LockingNode
+    root_node: Arc<Mutex<LockingNode>>
 }
 impl LockingHierarchy {
     pub fn new() -> Self {
@@ -1128,27 +782,93 @@ impl LockingHierarchy {
         let root_data = Arc::new(Mutex::new(Box::new(MainTypeRegistry::new())));
 
         Self {
-            root_node: LockingNode::new(root_metadata, root_data)
+            root_node: Arc::new(Mutex::new(LockingNode::new(root_metadata, root_data)))
         }
     }
     
-    pub fn insert<T: LockingNodeData>(&mut self, node: T) -> Result<(), LockingHierarchyError> {
+    pub fn insert_branch<P: LockingNodeData, T: LockingNodeData, C: LockingNodeData>(&mut self, parent_path: AbsoluteLockingPath, parent_mutex: Arc<Mutex<LockingNode>>, path_segment: LockingPathSegment, data: T) -> Result<(), LockingHierarchyError> {
+        todo!();
+    }
 
+    pub fn insert_leaf<P: LockingNodeData, T: LockingNodeData>(&mut self, parent_path: AbsoluteLockingPath, parent_mutex: Arc<Mutex<LockingNode>>, path_segment: LockingPathSegment, data: T) -> Result<(), LockingHierarchyError> {
+        todo!();
     }
     
     pub fn remove<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<T, LockingHierarchyError> {
-        
+        todo!();
+    }
+
+    pub fn pre_startup<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
+        todo!();
+    }
+
+    pub fn startup<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
+        todo!();
+    }
+
+    pub fn post_startup<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
+        todo!();
     }
 
     pub fn contains(&self, path: AbsoluteLockingPath) -> bool {
-        
+        todo!();
     }
 
-    pub fn get(&self, path: AbsoluteLockingPath) -> Result<&LockingNode, LockingHierarchyError> {
-        
+    pub fn is<T: LockingNodeData>(&self, path: AbsoluteLockingPath) -> bool {
+        todo!();
     }
 
-    pub fn get_mut(&mut self, path: AbsoluteLockingPath) -> Result<&mut LockingNode, LockingHierarchyError> {
-        
+    pub fn get<T: LockingNodeData>(&self, path: AbsoluteLockingPath) -> Result<&T, LockingHierarchyError> {
+        todo!();
+    }
+
+    pub fn get_mut<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<&mut T, LockingHierarchyError> {
+        todo!();
+    }
+    
+    pub fn get_node_raw(&self, path: AbsoluteLockingPath) -> Result<Arc<Mutex<LockingNode>>, LockingHierarchyError> {
+        todo!();
+    }
+
+    pub fn get_node(&self, path: AbsoluteLockingPath) -> Result<&LockingNode, LockingHierarchyError> {
+        todo!();
+    }
+
+    pub fn get_node_mut(&mut self, path: AbsoluteLockingPath) -> Result<&mut LockingNode, LockingHierarchyError> {
+        todo!();
+    }
+}
+impl Debug for LockingHierarchy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let root_node = match self.root_node.try_lock() {
+            Ok(root_node) => root_node,
+            Err(error) => match error {
+                std::sync::TryLockError::Poisoned(_) => {
+                    panic!("Root node mutex is poisoned!");
+                },
+                std::sync::TryLockError::WouldBlock => {
+                    panic!("Root node mutex is locked!");
+                },
+            },
+        };
+
+        write!(f, "LockingHierarchy {{ root_node[ {:?} ] }}", root_node)
+    }
+}
+impl Display for LockingHierarchy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let root_node = match self.root_node.try_lock() {
+            Ok(root_node) => root_node,
+            Err(error) => match error {
+                std::sync::TryLockError::Poisoned(_) => {
+                    panic!("Root node mutex is poisoned!");
+                },
+                std::sync::TryLockError::WouldBlock => {
+                    panic!("Root node mutex is locked!");
+                },
+            },
+        };
+
+        write!(f, "LockingHierarchy {{ root_node[ {:?} ] }}", root_node)
     }
 }

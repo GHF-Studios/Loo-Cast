@@ -2,102 +2,102 @@
 ║Locking Hierarchy Structure
 ╠══════════════════════════════════════════════════
 ║
-╠[MainTypeRegistry]
-╠╦[Core]
-║╚╦[CoreCommandTypeRegistry]
-║ ╠═[Startup]
-║ ╠═[InitLockingHierarchy]
-║ ╠═[SpawnMainCamera]
-║ ╠═[SpawnStartChunks]
-║ ╚═[SpawnStartChunkActors]
-╠╦[Operation]
-║╚╦[OperationCommandTypeRegistry]
-║ ╚═[RunOp]
-╠═[Command]
-╠╦[Entity]
-║╠╦[EntityOperationTypeRegistry]
-║║╚╦[CreateEntity]
-║║ ╚[DestroyEntity]
-║╠═[EntityCommandTypeRegistry]
-║╚╦[EntityInstanceRegistry]
-║ ╠═(1)
-║ ╠═(2)
-║ ╠═(3)
-║ ╚═(4)
-╠╦[Chunk]
-║╠╦[ChunkOperationTypeRegistry]
-║║╚╦[UpgradeToChunk]
-║║ ╠[DowngradeFromChunk]
-║║ ╠[LoadChunk]
-║║ ╠[UnloadChunk]
-║║ ╠[SaveFromChunk]
-║║ ╚[UnsaveFromChunk]
-║╠╦[ChunkCommandTypeRegistry]
-║║╚═[SpawnChunk]
-║╚╦[ChunkInstanceRegistry]
-║ ╠═(1)
-║ ╠═(2)
-║ ╠═(3)
-║ ╚═(4)
-╠╦[ChunkActor]
-║╠╦[ChunkActorOperationTypeRegistry]
-║║╚╦[UpgradeToChunkActor]
-║║ ╚[DowngradeFromChunkActor]
-║╠╦[ChunkActorCommandTypeRegistry]
-║║╚═[SpawnChunkActor]
-║╚╦[ChunkActorInstanceRegistry]
-║ ╠═(1)
-║ ╠═(2)
-║ ╠═(3)
-║ ╚═(4)
-╠╦[ChunkLoader]
-║╠╦[ChunkLoaderOperationTypeRegistry]
-║║╚╦[UpgradeToChunkLoader]
-║║ ╚[DowngradeFromChunkLoader]
-║╠═[ChunkLoaderCommandTypeRegistry]
-║╚╦[ChunkLoaderInstanceRegistry]
-║ ╠═(1)
-║ ╠═(2)
-║ ╠═(3)
-║ ╚═(4)
-╠╦[Camera]
-║╠╦[CameraOperationTypeRegistry]
-║║╚╦[UpgradeToCamera]
-║║ ╚[DowngradeFromCamera]
-║╠╦[CameraCommandTypeRegistry]
-║║╚═[SpawnCamera]
-║╚╦[CameraInstanceRegistry]
-║ ╠═(1)
-║ ╠═(2)
-║ ╠═(3)
-║ ╚═(4)
-╠╦[Camera2DBundle]
-║╠╦[Camera2DBundleOperationTypeRegistry]
-║║╚╦[UpgradeToCamera2DBundle]
-║║ ╚[DowngradeFromCamera2DBundle]
-║╠═[Camera2DBundleCommandTypeRegistry]
-║╚╦[Camera2DBundleInstanceRegistry]
-║ ╠═(1)
-║ ╠═(2)
-║ ╠═(3)
-║ ╚═(4)
-╠╦[Player]
-║╠╦[PlayerOperationTypeRegistry]
-║║╚╦[UpgradeToPlayer]
-║║ ╚[DowngradeFromPlayer]
-║╠═[PlayerCommandTypeRegistry]
-║╚╦[PlayerInstanceRegistry]
-║ ╠═(1)
-║ ╠═(2)
-║ ╠═(3)
-║ ╚═(4)
-╚╦[SpriteBundle]
- ╠╦[SpriteBundleOperationTypeRegistry]
- ║╚╦[UpgradeToSpriteBundle]
- ║ ╚[DowngradeFromSpriteBundle]
- ╠═[SpriteBundleCommandTypeRegistry]
- ╚╦[SpriteBundleInstanceRegistry]
-  ╠═(1)
-  ╠═(2)
-  ╠═(3)
-  ╚═(4)
+╠█[MainTypeRegistry]: TypeData, TypeRegistry
+╠╦█[Core]: Type
+║╚╦█[CoreCommandTypeRegistry]: TypeData, TypeRegistry
+║ ╠═█[Startup]: Type, Command, fn
+║ ╠═█[InitLockingHierarchy]: Type, Command, fn
+║ ╠═█[SpawnMainCamera]: Type, Command, fn
+║ ╠═█[SpawnStartChunks]: Type, Command, fn
+║ ╚═█[SpawnStartChunkActors]: Type, Command, fn
+╠╦█[Operation]: Type
+║╚╦█[OperationCommandTypeRegistry]: TypeData, TypeRegistry
+║ ╚═█[RunOp]: Type, Operation, fn
+╠═█[Command]: Type
+╠╦█[Entity]: Type
+║╠╦█[EntityOperationTypeRegistry]: TypeData, TypeRegistry
+║║╚╦█[CreateEntity]: Type
+║║ ╚█[DestroyEntity]: Type
+║╠═█[EntityCommandTypeRegistry]: TypeData, TypeRegistry
+║╚╦█[EntityInstanceRegistry]: TypeData, TypeRegistry
+║ ╠═▌(1)
+║ ╠═▌(2)
+║ ╠═▌(3)
+║ ╚═▌(4)
+╠╦█[Chunk]: Type
+║╠╦█[ChunkOperationTypeRegistry]: TypeData, TypeRegistry
+║║╚╦█[UpgradeToChunk]
+║║ ╠█[DowngradeFromChunk]
+║║ ╠█[LoadChunk]
+║║ ╠█[UnloadChunk]
+║║ ╠█[SaveFromChunk]
+║║ ╚█[UnsaveFromChunk]
+║╠╦█[ChunkCommandTypeRegistry]: TypeData, TypeRegistry
+║║╚═█[SpawnChunk]
+║╚╦█[ChunkInstanceRegistry]: TypeData, TypeRegistry
+║ ╠═▌(1)
+║ ╠═▌(2)
+║ ╠═▌(3)
+║ ╚═▌(4)
+╠╦█[ChunkActor]: Type
+║╠╦█[ChunkActorOperationTypeRegistry]: TypeData, TypeRegistry
+║║╚╦█[UpgradeToChunkActor]
+║║ ╚█[DowngradeFromChunkActor]
+║╠╦█[ChunkActorCommandTypeRegistry]: TypeData, TypeRegistry
+║║╚═█[SpawnChunkActor]
+║╚╦█[ChunkActorInstanceRegistry]: TypeData, TypeRegistry
+║ ╠═▌(1)
+║ ╠═▌(2)
+║ ╠═▌(3)
+║ ╚═▌(4)
+╠╦█[ChunkLoader]: Type
+║╠╦█[ChunkLoaderOperationTypeRegistry]: TypeData, TypeRegistry
+║║╚╦█[UpgradeToChunkLoader]
+║║ ╚█[DowngradeFromChunkLoader]
+║╠═█[ChunkLoaderCommandTypeRegistry]: TypeData, TypeRegistry
+║╚╦█[ChunkLoaderInstanceRegistry]: TypeData, TypeRegistry
+║ ╠═▌(1)
+║ ╠═▌(2)
+║ ╠═▌(3)
+║ ╚═▌(4)
+╠╦█[Camera]: Type
+║╠╦█[CameraOperationTypeRegistry]: TypeData, TypeRegistry
+║║╚╦█[UpgradeToCamera]
+║║ ╚█[DowngradeFromCamera]
+║╠╦█[CameraCommandTypeRegistry]: TypeData, TypeRegistry
+║║╚═█[SpawnCamera]
+║╚╦█[CameraInstanceRegistry]: TypeData, TypeRegistry
+║ ╠═▌(1)
+║ ╠═▌(2)
+║ ╠═▌(3)
+║ ╚═▌(4)
+╠╦█[Camera2DBundle]: Type
+║╠╦█[Camera2DBundleOperationTypeRegistry]: TypeData, TypeRegistry
+║║╚╦█[UpgradeToCamera2DBundle]
+║║ ╚█[DowngradeFromCamera2DBundle]
+║╠═█[Camera2DBundleCommandTypeRegistry]: TypeData, TypeRegistry
+║╚╦█[Camera2DBundleInstanceRegistry]: TypeData, TypeRegistry
+║ ╠═▌(1)
+║ ╠═▌(2)
+║ ╠═▌(3)
+║ ╚═▌(4)
+╠╦█[Player]: Type
+║╠╦█[PlayerOperationTypeRegistry]: TypeData, TypeRegistry
+║║╚╦█[UpgradeToPlayer]
+║║ ╚█[DowngradeFromPlayer]
+║╠═█[PlayerCommandTypeRegistry]: TypeData, TypeRegistry
+║╚╦█[PlayerInstanceRegistry]: TypeData, TypeRegistry
+║ ╠═▌(1)
+║ ╠═▌(2)
+║ ╠═▌(3)
+║ ╚═▌(4)
+╚╦█[SpriteBundle]: Type
+ ╠╦█[SpriteBundleOperationTypeRegistry]: TypeData, TypeRegistry
+ ║╚╦█[UpgradeToSpriteBundle]
+ ║ ╚█[DowngradeFromSpriteBundle]
+ ╠═█[SpriteBundleCommandTypeRegistry]: TypeData, TypeRegistry
+ ╚╦█[SpriteBundleInstanceRegistry]: TypeData, TypeRegistry
+  ╠═▌(1)
+  ╠═▌(2)
+  ╠═▌(3)
+  ╚═▌(4)
