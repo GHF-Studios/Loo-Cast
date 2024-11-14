@@ -22,7 +22,7 @@ pub trait LockingNodeData: Any + Send + Sync {
     fn post_startup(&mut self, hierarchy: &mut LockingHierarchy);
 }
 
-pub trait Singleton: Any + Send + Sync {}
+pub trait LockingTypeDataTrait: Any + Send + Sync {}
 
 pub trait LockingPath: 'static + Send + Sync + Debug + Display + Clone + PartialEq + Eq + Hash {
     fn segments(&self) -> &Vec<LockingPathSegment>;

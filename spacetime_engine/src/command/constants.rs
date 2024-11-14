@@ -1,10 +1,9 @@
 use std::any::TypeId;
 use crate::*;
-use super::wrappers::CoreCommandTypeRegistry;
 
-pub const CORE_TYPE_BINDING: TypeBinding = TypeBinding {
-    type_name: "core",
-    type_id: TypeId::of::<Core>(),
+pub const COMMAND_TYPE_BINDING: TypeBinding = TypeBinding {
+    type_name: "command",
+    type_id: TypeId::of::<Command>(),
     type_pre_setup: |hierarchy| {
         
     },

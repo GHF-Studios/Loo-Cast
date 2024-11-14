@@ -6,6 +6,7 @@ pub mod wrappers;
 pub mod commands;
 
 // Miscelaneous
+pub mod constants;
 pub mod traits;
 
 use bevy::prelude::*;

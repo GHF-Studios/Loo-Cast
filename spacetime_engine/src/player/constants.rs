@@ -1,10 +1,10 @@
 use std::any::TypeId;
+use structs::TypeBinding;
 use crate::*;
-use super::wrappers::CoreCommandTypeRegistry;
 
-pub const CORE_TYPE_BINDING: TypeBinding = TypeBinding {
-    type_name: "core",
-    type_id: TypeId::of::<Core>(),
+pub const PLAYER_TYPE_BINDING: TypeBinding = TypeBinding {
+    type_name: "player",
+    type_id: TypeId::of::<Player>(),
     type_pre_setup: |hierarchy| {
         
     },

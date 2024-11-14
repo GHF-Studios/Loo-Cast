@@ -85,7 +85,10 @@
 ║╠╦█[PlayerOperationTypeRegistry]: TypeData, TypeRegistry
 ║║╚╦█[UpgradeToPlayer]
 ║║ ╚█[DowngradeFromPlayer]
-║╠═█[PlayerCommandTypeRegistry]: TypeData, TypeRegistry
+║╠╦█[PlayerCommandTypeRegistry]: TypeData, TypeRegistry
+║║╚╦█[OnPreStartup]
+║║ ║█[OnStartup]
+║║ ╚█[OnPostStartup]
 ║╚╦█[PlayerInstanceRegistry]: TypeData, TypeRegistry
 ║ ╠═▌(1)
 ║ ╠═▌(2)

@@ -1,11 +1,11 @@
-use crate::{core::{structs::*, traits::*}, TypeRegistry};
+use crate::{core::{structs::*, traits::*}, structs::*};
 use bevy::prelude::*;
 
 #[derive(Deref, DerefMut)]
-pub struct CoreCommandTypeRegistry(TypeRegistry);
+pub struct CoreCommandTypeRegistry(LockingTypeRegistry);
 impl CoreCommandTypeRegistry {
     pub fn new() -> Self {
-        Self(TypeRegistry::new())
+        Self(LockingTypeRegistry::new())
     }
 }
 impl LockingNodeData for CoreCommandTypeRegistry {
