@@ -15,7 +15,8 @@ use super::traits::*;
 pub struct Core;
 impl LockingNodeData for Core {
     fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
-        
+        let core_path = AbsoluteLockingPath::new_from_literal("core");
+        let core_mutex = hierarchy.get_node_raw(core_path.clone()).unwrap();
     }
 
     fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
@@ -26,7 +27,15 @@ impl LockingNodeData for Core {
         
     }
 
+    fn pre_update(&mut self, hierarchy: &mut LockingHierarchy) {
+        
+    }
+
     fn update(&mut self, hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn post_update(&mut self, hierarchy: &mut LockingHierarchy) {
         
     }
 }

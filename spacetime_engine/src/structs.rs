@@ -1,7 +1,6 @@
 use std::any::TypeId;
 use std::marker::PhantomData;
 use bevy::prelude::*;
-use tokio::task::JoinHandle;
 use std::fmt::{Debug, Display};
 use crate::*;
 use crate::wrappers::*;
@@ -43,15 +42,49 @@ impl LockingNodeData for Root {
         hierarchy.pre_startup::<Operation>(operation_path).unwrap();
     }
 
-    fn startup(&mut self, _hierarchy: &mut LockingHierarchy) {
-        
+    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        let root_path = AbsoluteLockingPath::new();
+        let root_mutex = hierarchy.get_node_raw(root_path.clone()).unwrap();
+
+        let core_path_segment = LockingPathSegment::new_string("core");
+        let core_path = root_path.clone().push(core_path_segment).unwrap();
+        hierarchy.startup::<Core>(core_path).unwrap();
+
+        let command_path_segment = LockingPathSegment::new_string("command");
+        let command_path = root_path.clone().push(command_path_segment).unwrap();
+        hierarchy.startup::<Command>(command_path).unwrap();
+
+        let operation_path_segment = LockingPathSegment::new_string("operation");
+        let operation_path = root_path.clone().push(operation_path_segment).unwrap();
+        hierarchy.startup::<Operation>(operation_path).unwrap();
     }
 
-    fn post_startup(&mut self, _hierarchy: &mut LockingHierarchy) {
+    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        let root_path = AbsoluteLockingPath::new();
+        let root_mutex = hierarchy.get_node_raw(root_path.clone()).unwrap();
+
+        let core_path_segment = LockingPathSegment::new_string("core");
+        let core_path = root_path.clone().push(core_path_segment).unwrap();
+        hierarchy.post_startup::<Core>(core_path).unwrap();
+
+        let command_path_segment = LockingPathSegment::new_string("command");
+        let command_path = root_path.clone().push(command_path_segment).unwrap();
+        hierarchy.post_startup::<Command>(command_path).unwrap();
+
+        let operation_path_segment = LockingPathSegment::new_string("operation");
+        let operation_path = root_path.clone().push(operation_path_segment).unwrap();
+        hierarchy.post_startup::<Operation>(operation_path).unwrap();
+    }
+
+    fn pre_update(&mut self, hierarchy: &mut LockingHierarchy) {
         
     }
 
     fn update(&mut self, _hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn post_update(&mut self, hierarchy: &mut LockingHierarchy) {
         
     }
 }

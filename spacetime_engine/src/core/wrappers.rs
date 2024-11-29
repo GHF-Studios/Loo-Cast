@@ -21,7 +21,15 @@ impl LockingNodeData for CoreCommandTypeRegistry {
 
     }
 
+    fn pre_update(&mut self, hierarchy: &mut LockingHierarchy) {
+        
+    }
+
     fn update(&mut self, hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn post_update(&mut self, hierarchy: &mut LockingHierarchy) {
         
     }
 }

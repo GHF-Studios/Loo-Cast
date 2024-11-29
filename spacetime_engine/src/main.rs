@@ -42,6 +42,9 @@ fn main() {
         .add_systems(PreStartup, spacetime_engine::systems::pre_startup)
         .add_systems(Startup, spacetime_engine::systems::startup)
         .add_systems(PostStartup, spacetime_engine::systems::post_startup)
+        .add_systems(PreUpdate, spacetime_engine::systems::pre_update)
+        .add_systems(Update, spacetime_engine::systems::update)
+        .add_systems(PostUpdate, spacetime_engine::systems::post_update)
         .run();
 }
 

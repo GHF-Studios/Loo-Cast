@@ -1,24 +1,38 @@
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::MutexGuard;
 use bevy::prelude::*;
 use bevy_rapier2d::plugin::RapierConfiguration;
-use crate::singletons::LOCKING_HIERARCHY;
-use crate::singletons::TOKIO_RUNTIME;
-use crate::{*, AbsoluteLockingPath};
+use crate::structs::Root;
+use crate::{singletons::LOCKING_HIERARCHY, AbsoluteLockingPath};
 
 fn pre_startup(world: &mut World) {
     let mut rapier_configuration = world.get_resource_mut::<RapierConfiguration>().unwrap();
     rapier_configuration.gravity = Vec2::new(0.0, 0.0);
     drop(rapier_configuration);
 
-    dispatch_cmd_blocking!("commands.pre_startup");
+    let mut hierarchy = LOCKING_HIERARCHY.lock().unwrap();
+    hierarchy.pre_startup::<Root>(AbsoluteLockingPath::new()).unwrap();
 }
 
 fn startup(world: &mut World) {
-    dispatch_cmd_blocking!("commands.startup");
+    let mut hierarchy = LOCKING_HIERARCHY.lock().unwrap();
+    hierarchy.startup::<Root>(AbsoluteLockingPath::new()).unwrap();
 }
 
 fn post_startup(world: &mut World) {
-    dispatch_cmd_blocking!("commands.post_startup");
+    let mut hierarchy = LOCKING_HIERARCHY.lock().unwrap();
+    hierarchy.post_startup::<Root>(AbsoluteLockingPath::new()).unwrap();
+}
+
+fn pre_update(world: &mut World) {
+    let mut hierarchy = LOCKING_HIERARCHY.lock().unwrap();
+    hierarchy.pre_update::<Root>(AbsoluteLockingPath::new()).unwrap();
+}
+
+fn update(world: &mut World) {
+    let mut hierarchy = LOCKING_HIERARCHY.lock().unwrap();
+    hierarchy.update::<Root>(AbsoluteLockingPath::new()).unwrap();
+}
+
+fn post_update(world: &mut World) {
+    let mut hierarchy = LOCKING_HIERARCHY.lock().unwrap();
+    hierarchy.post_update::<Root>(AbsoluteLockingPath::new()).unwrap();
 }
