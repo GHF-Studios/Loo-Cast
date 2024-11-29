@@ -1,6 +1,24 @@
+use crate::{LockingHierarchy, LockingNodeData};
 use super::traits::*;
 
 pub struct Operation;
+impl LockingNodeData for Operation {
+    fn pre_startup(&mut self, _hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn startup(&mut self, _hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn post_startup(&mut self, _hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn update(&mut self, _hierarchy: &mut LockingHierarchy) {
+        
+    }
+}
 
 pub struct OperationQueue {
     queue: Vec<Box<dyn DynOperation>>,

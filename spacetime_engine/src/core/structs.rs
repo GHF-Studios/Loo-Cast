@@ -1,15 +1,35 @@
 use crate::*;
-use super::{enums::*, errors::{LockingHierarchyError, LockingNodeError}, singletons::*, traits::*};
-use std::collections::{HashMap, HashSet};
+use crate::singletons::*;
+use std::collections::HashMap;
 use std::any::*;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use bevy::prelude::*;
-use super::constants::*;
+use structs::{NumericID, StringID};
+use wrappers::RootTypeRegistry;
+use super::enums::*;
+use super::errors::*;
 use super::traits::*;
 
 pub struct Core;
+impl LockingNodeData for Core {
+    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn update(&mut self, hierarchy: &mut LockingHierarchy) {
+        
+    }
+}
 
 pub enum LockingPathSegment {
     Root,
@@ -199,7 +219,7 @@ impl AbsoluteLockingPath {
     pub fn new_from_literal(path: &'static str) -> Self {
         let mut segments = Vec::new();
 
-        for segment in path.split('/') {
+        for segment in path.split('.') {
             if let Ok(id) = segment.parse::<u64>() {
                 segments.push(LockingPathSegment::Numeric(NumericID::new(id)));
             } else {
@@ -765,7 +785,7 @@ impl<'a, T: 'static + Send + Sync> LockedData<'a, T> {
     }
 }
 
-pub(in super) struct UnlockRequest {
+pub struct UnlockRequest {
     pub node_path: AbsoluteLockingPath,
 }
 
@@ -779,7 +799,7 @@ impl LockingHierarchy {
             child_type_id: TypeId::of::<LockingNode>(),
             children: HashMap::new(),
         };
-        let root_data = Arc::new(Mutex::new(Box::new(MainTypeRegistry::new())));
+        let root_data = Arc::new(Mutex::new(Box::new(RootTypeRegistry::new(ROOT_TYPE_BINDING))));
 
         Self {
             root_node: Arc::new(Mutex::new(LockingNode::new(root_metadata, root_data)))

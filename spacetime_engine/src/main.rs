@@ -4,7 +4,8 @@ use bevy::prelude::*;
 use bevy::log::LogPlugin;
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::*;
-use spacetime_engine::core::singletons::*;
+use spacetime_engine::singletons::*;
+use tokio::task::JoinHandle;
 
 // Primary tasks
 // TODO: Implement chunk loaders
@@ -23,9 +24,13 @@ use spacetime_engine::core::singletons::*;
 // TODO: Implement magnets via electromagnetism
 // TODO: Implement stars via gravity and electromagnetism
 
+fn enable_backtrace() {
+    std::env::set_var("RUST_BACKTRACE", "1");
+}
+
 fn main() {
-    //env::set_var("RUST_BACKTRACE", "1");
-    
+    // enable_backtrace();
+
     App::new()
         .add_plugins(DefaultPlugins.set(LogPlugin {
             filter: "info,spacetime_engine=debug".into(),
@@ -34,27 +39,29 @@ fn main() {
         }))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(SpacetimeEnginePlugins)
-        .add_systems(PreStartup, pre_startup)
-        .add_systems(Startup, startup)
-        .add_systems(PostStartup, post_startup)
+        .add_systems(PreStartup, spacetime_engine::systems::pre_startup)
+        .add_systems(Startup, spacetime_engine::systems::startup)
+        .add_systems(PostStartup, spacetime_engine::systems::post_startup)
         .run();
 }
 
-fn pre_startup(world: &mut World) {
-    let mut rapier_configuration = world.get_resource_mut::<RapierConfiguration>().unwrap();
-    rapier_configuration.gravity = Vec2::new(0.0, 0.0);
-    drop(rapier_configuration);
 
-    let mut locking_hierarchy = LOCKING_HIERARCHY.lock().unwrap();
-    locking_hierarchy.pre_startup::<MainTypeRegistry>(AbsoluteLockingPath::new()).unwrap();
-}
 
-fn startup() {
-    let mut locking_hierarchy = LOCKING_HIERARCHY.lock().unwrap();
-    locking_hierarchy.startup::<MainTypeRegistry>(AbsoluteLockingPath::new()).unwrap();
-}
+/*
+Implement Entity Classes, which are kind of just wrappers around bevy archetypes.
+An Entity Class is a collection of components that are used to create an entity.
+Components can both be mandatory and optional.
+Mandatory components are added to an entity class at compile time, into the literal type, hence compile-time.
+Optional components are added to an entity class *instance* at *runtime*, into the literal *value*, hence runtime-time.
+Entity Classes can be used to create entities with a specific set of starting components.
+Entity Classes can be used to interpret entities as a specific set of components, and interact with them as such.
+Entity Classes are like post-procesing passes inside a gpu pipeline, but for Entities, on the CPU, specifically in a multi-threaded fashion.
+The limitation with that is that you can only perform "Class-level" operations, 
+    meaning that the most fundamental pieces of data for that "Class-level" of data would be either a pre-defined primitive struct, or a user-defined class;
+    and that the most fundamental pieces of logic for that "Class-level" of data would be either a pre-defined primitive *function*, or a user-defined *method* on a user-defined class.
+*/
 
-fn post_startup() {
-    let mut locking_hierarchy = LOCKING_HIERARCHY.lock().unwrap();
-    locking_hierarchy.post_startup::<MainTypeRegistry>(AbsoluteLockingPath::new()).unwrap();
-}
+
+
+
+

@@ -20,6 +20,7 @@ pub trait LockingNodeData: Any + Send + Sync {
     fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy);
     fn startup(&mut self, hierarchy: &mut LockingHierarchy);
     fn post_startup(&mut self, hierarchy: &mut LockingHierarchy);
+    fn update(&mut self, hierarchy: &mut LockingHierarchy);
 }
 
 pub trait LockingTypeDataTrait: Any + Send + Sync {}

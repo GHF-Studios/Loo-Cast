@@ -1,14 +1,16 @@
 use bevy::prelude::*;
 use futures::future::join_all;
 use crate::command::wrappers::CommandType;
-use crate::structs::*;
+use crate::singletons::LOCKING_HIERARCHY;
+use crate::singletons::TOKIO_RUNTIME;
 use crate::chunk::structs::ChunkPosition;
 use crate::entity::structs::EntityPosition;
 use crate::chunk::commands::*;
 use crate::chunk_actor::commands::*;
 use crate::camera::commands::*;
 use crate::math::structs::I16Vec2;
-use super::singletons::*;
+use crate::wrappers::RootType;
+use crate::Core;
 use super::structs::AbsoluteLockingPath;
 use super::structs::LockingPathSegment;
 use super::traits::*;
@@ -23,7 +25,7 @@ pub(in crate) async fn pre_startup() {
     let command_type_registry_path_segment = LockingPathSegment::new_string("command_type_registry");
     let command_type_registry_path = core_path.clone().push(command_type_registry_path_segment).unwrap();
     let command_type_registry_data = CoreCommandTypeRegistry::new();
-    locking_hierarchy.insert_branch::<MainType, CoreCommandTypeRegistry, CommandType>(core_path, core_mutex, command_type_registry_path_segment, command_type_registry_data).unwrap();
+    locking_hierarchy.insert_branch::<RootType<Core>, CoreCommandTypeRegistry, CommandType>(core_path, core_mutex, command_type_registry_path_segment, command_type_registry_data).unwrap();
     locking_hierarchy.pre_startup::<CoreCommandTypeRegistry>(command_type_registry_path).unwrap();
 }
 

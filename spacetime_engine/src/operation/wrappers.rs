@@ -1,4 +1,4 @@
-use crate::core::{structs::*, traits::*};
+use crate::{core::{structs::*, traits::*}, structs::TypeRegistry};
 use bevy::prelude::*;
 
 #[derive(Deref, DerefMut)]
@@ -8,4 +8,16 @@ impl OperationTypeRegistry {
         Self(TypeRegistry::new())
     }
 }
-impl LockingNodeData for OperationTypeRegistry {}
+impl LockingNodeData for OperationTypeRegistry {
+    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        todo!()
+    }
+
+    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        todo!()
+    }
+
+    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        todo!()
+    }
+}

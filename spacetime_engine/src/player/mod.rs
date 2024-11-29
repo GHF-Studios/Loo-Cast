@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 // Data types
 pub mod components;
+pub mod wrappers;
 
 // Functions
 pub mod commands;

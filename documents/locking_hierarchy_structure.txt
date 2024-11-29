@@ -2,7 +2,7 @@
 ║Locking Hierarchy Structure
 ╠══════════════════════════════════════════════════
 ║
-╠█[MainTypeRegistry]: TypeData, TypeRegistry
+╠█[RootTypeRegistry]: TypeData, TypeRegistry
 ╠╦█[Core]: Type
 ║╚╦█[CoreCommandTypeRegistry]: TypeData, TypeRegistry
 ║ ╠═█[Startup]: Type, Command, fn

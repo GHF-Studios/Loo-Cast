@@ -1,12 +1,60 @@
 use std::any::TypeId;
 use std::marker::PhantomData;
 use bevy::prelude::*;
+use tokio::task::JoinHandle;
 use std::fmt::{Debug, Display};
-
 use crate::*;
 use crate::wrappers::*;
 
 pub(crate) struct Root;
+impl LockingNodeData for Root {
+    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        let root_path = AbsoluteLockingPath::new();
+        let root_mutex = hierarchy.get_node_raw(root_path.clone()).unwrap();
+    
+        let core_path_segment = LockingPathSegment::new_string("core");
+        let core_path = root_path.clone().push(core_path_segment).unwrap();
+        hierarchy.insert_branch::<RootTypeRegistry, Core, RootTypeData<Core>>(
+            root_path.clone(), 
+            root_mutex.clone(), 
+            core_path_segment, 
+            Core
+        ).unwrap();
+        hierarchy.pre_startup::<Core>(core_path).unwrap();
+    
+        let command_path_segment = LockingPathSegment::new_string("command");
+        let command_path = root_path.clone().push(command_path_segment).unwrap();
+        hierarchy.insert_branch::<RootTypeRegistry, Command, RootTypeData<Command>>(
+            root_path.clone(), 
+            root_mutex.clone(), 
+            command_path_segment, 
+            Command
+        ).unwrap();
+        hierarchy.pre_startup::<Command>(command_path).unwrap();
+    
+        let operation_path_segment = LockingPathSegment::new_string("operation");
+        let operation_path = root_path.clone().push(operation_path_segment).unwrap();
+        hierarchy.insert_branch::<RootTypeRegistry, Operation, RootTypeData<Operation>>(
+            root_path.clone(), 
+            root_mutex.clone(), 
+            operation_path_segment, 
+            Operation
+        ).unwrap();
+        hierarchy.pre_startup::<Operation>(operation_path).unwrap();
+    }
+
+    fn startup(&mut self, _hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn post_startup(&mut self, _hierarchy: &mut LockingHierarchy) {
+        
+    }
+
+    fn update(&mut self, _hierarchy: &mut LockingHierarchy) {
+        
+    }
+}
 
 pub(crate) struct LockingType(TypeBinding, LockingTypeDataRegistry);
 impl LockingType {
@@ -340,19 +388,6 @@ impl<T: 'static + Send + Sync> Type<T> {
         Self(LockingType::new_unchecked(type_binding), PhantomData)
     }
 }
-impl<T: 'static + Send + Sync> LockingNodeData for Type<T> {
-    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
-        (self.0.type_binding().type_pre_setup)(hierarchy)
-    }
-
-    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
-        (self.0.type_binding().type_setup)(hierarchy)
-    }
-
-    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
-        (self.0.type_binding().type_post_setup)(hierarchy)
-    }
-}
 
 #[derive(Deref, DerefMut)]
 pub struct TypeData<T: 'static + Send + Sync + LockingNodeData>(#[deref]LockingTypeData, PhantomData<T>);
@@ -377,12 +412,6 @@ impl TypeDataRegistry {
         Self(LockingTypeDataRegistry::new())
     }
 }
-
-
-
-// Create generic wrappers or sum like that for Type, TypeData, TypeRegistry, and TypeDataRegistry 
-
-
 
 #[derive(Reflect)]
 pub struct StringID {

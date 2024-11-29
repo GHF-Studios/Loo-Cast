@@ -24,6 +24,10 @@ impl<T: 'static + Send + Sync> LockingNodeData for RootType<T> {
     fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
         (self.0.type_post_setup)(hierarchy)
     }
+
+    fn update(&mut self, hierarchy: &mut LockingHierarchy) {
+        
+    }
 }
 
 #[derive(Deref, DerefMut)]
@@ -33,12 +37,29 @@ impl<T: 'static + Send + Sync + LockingNodeData> RootTypeData<T> {
         Self(TypeData::<T>::new(data_type_binding, data))
     }
 }
+impl<T: 'static + Send + Sync + LockingNodeData> LockingNodeData for RootTypeData<T> {
+    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        (self.0.data_pre_setup)(hierarchy)
+    }
+
+    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        (self.0.data_setup)(hierarchy)
+    }
+
+    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+        (self.0.data_post_setup)(hierarchy)
+    }
+
+    fn update(&mut self, hierarchy: &mut LockingHierarchy) {
+        (self.0.data_update)(hierarchy)
+    }
+}
 
 #[derive(Deref, DerefMut)]
 pub struct RootTypeRegistry(#[deref]TypeRegistry, TypeBinding);
 impl RootTypeRegistry {
-    pub fn new(main_type_binding: TypeBinding) -> Self {
-        Self(LockingTypeRegistry::new(), main_type_binding)
+    pub fn new(root_type_binding: TypeBinding) -> Self {
+        Self(LockingTypeRegistry::new(), root_type_binding)
     }
 }
 impl LockingNodeData for RootTypeRegistry {
@@ -52,6 +73,10 @@ impl LockingNodeData for RootTypeRegistry {
 
     fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
         (self.1.type_post_setup)(hierarchy)
+    }
+
+    fn update(&mut self, hierarchy: &mut LockingHierarchy) {
+        
     }
 }
 
