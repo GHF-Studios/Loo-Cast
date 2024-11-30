@@ -9,15 +9,15 @@ impl CommandTypeRegistry {
     }
 }
 impl LockingNodeData for CommandTypeRegistry {
-    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_pre_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         (ROOT_TYPE_BINDING.type_pre_setup)(hierarchy)
     }
 
-    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         (ROOT_TYPE_BINDING.type_pre_setup)(hierarchy)
     }
 
-    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_post_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         (ROOT_TYPE_BINDING.type_pre_setup)(hierarchy)
     }
 }
@@ -30,7 +30,7 @@ impl CommandType {
     }
 }
 impl LockingNodeData for CommandType {
-    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_pre_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         let core_path = AbsoluteLockingPath::new();
         let core_mutex = hierarchy.get_node_raw(core_path).unwrap();
         let type_path_segment = LockingPathSegment::new_string(self.0.1);
@@ -41,7 +41,7 @@ impl LockingNodeData for CommandType {
         (type_binding.type_pre_setup)(hierarchy);
     }
 
-    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         let core_path = AbsoluteLockingPath::new();
         let type_path_segment = LockingPathSegment::new_string(self.1);
         let type_path = AbsoluteLockingPath::new().push(type_path_segment);
@@ -49,7 +49,7 @@ impl LockingNodeData for CommandType {
         (type_binding.type_setup)(hierarchy);
     }
 
-    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_post_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         let core_path = AbsoluteLockingPath::new();
         let type_path_segment = LockingPathSegment::new_string(self.1);
         let type_path = AbsoluteLockingPath::new().push(type_path_segment);

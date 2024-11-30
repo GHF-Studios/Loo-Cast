@@ -15,48 +15,33 @@ use super::traits::*;
 
 pub struct Core;
 impl LockingNodeData for Core {
-    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         let core_path = AbsoluteLockingPath::new_from_literal("core");
         let core_mutex = hierarchy.get_node_raw(core_path.clone()).unwrap();
     
-        let command_type_registry_path_segment = LockingPathSegment::new_string("command_types");
-        let command_type_registry_path = core_path.clone().push(command_type_registry_path_segment).unwrap();
-        hierarchy.insert_branch(core_path.clone(), core_mutex.clone(), command_type_registry_path_segment, CoreCommandTypeRegistry::new()).unwrap();
-        hierarchy.pre_startup(core_path).unwrap();
+        let command_types_path_segment = LockingPathSegment::new_string("command_types");
+        hierarchy.insert(core_path.clone(), core_mutex.clone(), command_types_path_segment, CoreCommandTypeRegistry::new()).unwrap();
+
+        dispatch_cmds!(async, batch, [
+            ("core.command_types.spawn_main_camera"),
+            ("core.command_types.spawn_start_chunks", 2),
+            ("core.command_types.spawn_start_chunk_actors", 2),
+        ]);
     }
 
-    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_remove(&mut self, hierarchy: &mut LockingHierarchy) {
+        dispatch_cmds!(async, sequence, [
+            ("core.command_types.despawn_main_camera"),
+            ("core.command_types.despawn_start_chunks", 2),
+            ("core.command_types.despawn_start_chunk_actors", 2),
+        ]);
+
         let core_path = AbsoluteLockingPath::new_from_literal("core");
         let core_mutex = hierarchy.get_node_raw(core_path.clone()).unwrap();
 
-        let command_type_registry_path_segment = LockingPathSegment::new_string("command_types");
-        let command_type_registry_path = core_path.clone().push(command_type_registry_path_segment).unwrap();
-        hierarchy.startup::<CoreCommandTypeRegistry>(command_type_registry_path).unwrap();
-
-        dispatch_cmd!(sync, "core.command_types.spawn_main_camera");
-        dispatch_cmd!(sync, "core.command_types.spawn_start_chunks", 2);
-        dispatch_cmd!(sync, "core.command_types.spawn_start_chunk_actors", 2);
-    }
-
-    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
-        let core_path = AbsoluteLockingPath::new_from_literal("core");
-        let core_mutex = hierarchy.get_node_raw(core_path.clone()).unwrap();
-
-        let command_type_registry_path_segment = LockingPathSegment::new_string("command_types");
-        let command_type_registry_path = core_path.clone().push(command_type_registry_path_segment).unwrap();
-        hierarchy.post_startup::<CoreCommandTypeRegistry>(command_type_registry_path).unwrap();
-    }
-
-    fn pre_update(&mut self, hierarchy: &mut LockingHierarchy) {
-        
-    }
-
-    fn update(&mut self, hierarchy: &mut LockingHierarchy) {
-        
-    }
-
-    fn post_update(&mut self, hierarchy: &mut LockingHierarchy) {
-        
+        let command_types_path_segment = LockingPathSegment::new_string("command_types");
+        let command_types_path = core_path.clone().push(command_types_path_segment).unwrap();
+        hierarchy.remove(command_types_path);
     }
 }
 
@@ -824,27 +809,11 @@ impl LockingHierarchy {
         }
     }
     
-    pub fn insert_branch<T: LockingNodeData>(&mut self, parent_path: AbsoluteLockingPath, parent_mutex: Arc<Mutex<LockingNode>>, path_segment: LockingPathSegment, data: T) -> Result<(), LockingHierarchyError> {
-        todo!();
-    }
-
-    pub fn insert_leaf<T: LockingNodeData>(&mut self, parent_path: AbsoluteLockingPath, parent_mutex: Arc<Mutex<LockingNode>>, path_segment: LockingPathSegment, data: T) -> Result<(), LockingHierarchyError> {
+    pub fn insert<T: LockingNodeData>(&mut self, parent_path: AbsoluteLockingPath, parent_mutex: Arc<Mutex<LockingNode>>, path_segment: LockingPathSegment, data: T) -> Result<(), LockingHierarchyError> {
         todo!();
     }
     
     pub fn remove<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<T, LockingHierarchyError> {
-        todo!();
-    }
-
-    pub fn pre_startup(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
-        todo!();
-    }
-
-    pub fn startup(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
-        todo!();
-    }
-
-    pub fn post_startup(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
         todo!();
     }
 

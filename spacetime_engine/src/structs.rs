@@ -6,70 +6,35 @@ use crate::*;
 
 pub(crate) struct Root;
 impl LockingNodeData for Root {
-    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         let root_path = AbsoluteLockingPath::new();
         let root_mutex = hierarchy.get_node_raw(root_path.clone()).unwrap();
-    
+
         let core_path_segment = LockingPathSegment::new_string("core");
-        let core_path = root_path.clone().push(core_path_segment).unwrap();
-        hierarchy.insert_branch(root_path.clone(), root_mutex.clone(), core_path_segment, Core).unwrap();
-        hierarchy.pre_startup(core_path).unwrap();
-    
+        hierarchy.insert(root_path, root_mutex, core_path_segment, Core).unwrap();
+
         let command_path_segment = LockingPathSegment::new_string("command");
-        let command_path = root_path.clone().push(command_path_segment).unwrap();
-        hierarchy.insert_branch(root_path.clone(), root_mutex.clone(), command_path_segment, Command).unwrap();
-        hierarchy.pre_startup(command_path).unwrap();
-    
+        hierarchy.insert(root_path, root_mutex, command_path_segment, Command).unwrap();
+
         let operation_path_segment = LockingPathSegment::new_string("operation");
-        let operation_path = root_path.clone().push(operation_path_segment).unwrap();
-        hierarchy.insert_branch(root_path.clone(), root_mutex.clone(), operation_path_segment, Operation).unwrap();
-        hierarchy.pre_startup(operation_path).unwrap();
+        hierarchy.insert(root_path, root_mutex, operation_path_segment, Operation).unwrap();
     }
 
-    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_remove(&mut self, hierarchy: &mut LockingHierarchy) {
         let root_path = AbsoluteLockingPath::new();
         let root_mutex = hierarchy.get_node_raw(root_path.clone()).unwrap();
 
         let core_path_segment = LockingPathSegment::new_string("core");
         let core_path = root_path.clone().push(core_path_segment).unwrap();
-        hierarchy.startup(core_path).unwrap();
+        hierarchy.remove(core_path).unwrap();
 
         let command_path_segment = LockingPathSegment::new_string("command");
         let command_path = root_path.clone().push(command_path_segment).unwrap();
-        hierarchy.startup(command_path).unwrap();
+        hierarchy.remove(command_path).unwrap();
 
         let operation_path_segment = LockingPathSegment::new_string("operation");
         let operation_path = root_path.clone().push(operation_path_segment).unwrap();
-        hierarchy.startup(operation_path).unwrap();
-    }
-
-    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
-        let root_path = AbsoluteLockingPath::new();
-        let root_mutex = hierarchy.get_node_raw(root_path.clone()).unwrap();
-
-        let core_path_segment = LockingPathSegment::new_string("core");
-        let core_path = root_path.clone().push(core_path_segment).unwrap();
-        hierarchy.post_startup(core_path).unwrap();
-
-        let command_path_segment = LockingPathSegment::new_string("command");
-        let command_path = root_path.clone().push(command_path_segment).unwrap();
-        hierarchy.post_startup(command_path).unwrap();
-
-        let operation_path_segment = LockingPathSegment::new_string("operation");
-        let operation_path = root_path.clone().push(operation_path_segment).unwrap();
-        hierarchy.post_startup(operation_path).unwrap();
-    }
-
-    fn pre_update(&mut self, hierarchy: &mut LockingHierarchy) {
-        
-    }
-
-    fn update(&mut self, _hierarchy: &mut LockingHierarchy) {
-        
-    }
-
-    fn post_update(&mut self, hierarchy: &mut LockingHierarchy) {
-        
+        hierarchy.remove(operation_path).unwrap();
     }
 }
 

@@ -9,15 +9,15 @@ impl OperationTypeRegistry {
     }
 }
 impl LockingNodeData for OperationTypeRegistry {
-    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_pre_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         todo!()
     }
 
-    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         todo!()
     }
 
-    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_post_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         todo!()
     }
 }

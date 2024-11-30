@@ -1,28 +1,15 @@
-use crate::{LockingHierarchy, LockingNodeData};
+use crate::{AbsoluteLockingPath, LockingHierarchy, LockingNodeData};
 
 pub struct Command;
 impl LockingNodeData for Command {
-    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_insert(&mut self, hierarchy: &mut LockingHierarchy) {
+        let core_path = AbsoluteLockingPath::new_from_literal("core");
+        let core_mutex = hierarchy.get_node_raw(core_path.clone()).unwrap();
+        
         
     }
 
-    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
-        
-    }
-
-    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
-        
-    }
-
-    fn pre_update(&mut self, hierarchy: &mut LockingHierarchy) {
-        
-    }
-
-    fn update(&mut self, hierarchy: &mut LockingHierarchy) {
-        
-    }
-
-    fn post_update(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_remove(&mut self, hierarchy: &mut LockingHierarchy) {
         
     }
 }

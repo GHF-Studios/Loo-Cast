@@ -17,12 +17,8 @@ pub trait DynamicInstanceRegistryKey: RegistryKey<ID = u64> {}
 pub trait InstanceRegistryValue: 'static + PartialEq + Send + Sync {}
 
 pub trait LockingNodeData: Any + Send + Sync {
-    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy);
-    fn startup(&mut self, hierarchy: &mut LockingHierarchy);
-    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy);
-    fn pre_update(&mut self, hierarchy: &mut LockingHierarchy);
-    fn update(&mut self, hierarchy: &mut LockingHierarchy);
-    fn post_update(&mut self, hierarchy: &mut LockingHierarchy);
+    fn on_insert(&mut self, hierarchy: &mut LockingHierarchy);
+    fn on_remove(&mut self, hierarchy: &mut LockingHierarchy);
 }
 
 pub trait LockingTypeDataTrait: Any + Send + Sync {}

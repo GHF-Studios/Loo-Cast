@@ -9,7 +9,7 @@ impl CoreCommandTypeRegistry {
     }
 }
 impl LockingNodeData for CoreCommandTypeRegistry {
-    fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_pre_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         let command_types_path = AbsoluteLockingPath::new_from_literal("core.command_types");
         let command_types_mutex = hierarchy.get_node_raw(command_types_path.clone()).unwrap();
     
@@ -29,23 +29,11 @@ impl LockingNodeData for CoreCommandTypeRegistry {
         hierarchy.pre_startup(command_types_path).unwrap();
     }
 
-    fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_insert(&mut self, hierarchy: &mut LockingHierarchy) {
 
     }
 
-    fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
+    fn on_post_insert(&mut self, hierarchy: &mut LockingHierarchy) {
 
-    }
-
-    fn pre_update(&mut self, hierarchy: &mut LockingHierarchy) {
-        
-    }
-
-    fn update(&mut self, hierarchy: &mut LockingHierarchy) {
-        
-    }
-
-    fn post_update(&mut self, hierarchy: &mut LockingHierarchy) {
-        
     }
 }
