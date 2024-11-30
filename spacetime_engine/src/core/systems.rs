@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-use crate::core::components::Serialized;
-use super::{hooks::*, singletons::*};
+use crate::{core::components::Serialized, operation::singletons::OPERATION_QUEUE, singletons::{LOCKING_HIERARCHY, UNLOCK_QUEUE}};
+use super::hooks::*;
 
 pub(in super) fn startup(world: &mut World) {
     world

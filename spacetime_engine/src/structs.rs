@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 use bevy::prelude::*;
 use std::fmt::{Debug, Display};
 use crate::*;
-use crate::wrappers::*;
 
 pub(crate) struct Root;
 impl LockingNodeData for Root {
@@ -13,33 +12,18 @@ impl LockingNodeData for Root {
     
         let core_path_segment = LockingPathSegment::new_string("core");
         let core_path = root_path.clone().push(core_path_segment).unwrap();
-        hierarchy.insert_branch::<RootTypeRegistry, Core, RootTypeData<Core>>(
-            root_path.clone(), 
-            root_mutex.clone(), 
-            core_path_segment, 
-            Core
-        ).unwrap();
-        hierarchy.pre_startup::<Core>(core_path).unwrap();
+        hierarchy.insert_branch(root_path.clone(), root_mutex.clone(), core_path_segment, Core).unwrap();
+        hierarchy.pre_startup(core_path).unwrap();
     
         let command_path_segment = LockingPathSegment::new_string("command");
         let command_path = root_path.clone().push(command_path_segment).unwrap();
-        hierarchy.insert_branch::<RootTypeRegistry, Command, RootTypeData<Command>>(
-            root_path.clone(), 
-            root_mutex.clone(), 
-            command_path_segment, 
-            Command
-        ).unwrap();
-        hierarchy.pre_startup::<Command>(command_path).unwrap();
+        hierarchy.insert_branch(root_path.clone(), root_mutex.clone(), command_path_segment, Command).unwrap();
+        hierarchy.pre_startup(command_path).unwrap();
     
         let operation_path_segment = LockingPathSegment::new_string("operation");
         let operation_path = root_path.clone().push(operation_path_segment).unwrap();
-        hierarchy.insert_branch::<RootTypeRegistry, Operation, RootTypeData<Operation>>(
-            root_path.clone(), 
-            root_mutex.clone(), 
-            operation_path_segment, 
-            Operation
-        ).unwrap();
-        hierarchy.pre_startup::<Operation>(operation_path).unwrap();
+        hierarchy.insert_branch(root_path.clone(), root_mutex.clone(), operation_path_segment, Operation).unwrap();
+        hierarchy.pre_startup(operation_path).unwrap();
     }
 
     fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
@@ -48,15 +32,15 @@ impl LockingNodeData for Root {
 
         let core_path_segment = LockingPathSegment::new_string("core");
         let core_path = root_path.clone().push(core_path_segment).unwrap();
-        hierarchy.startup::<Core>(core_path).unwrap();
+        hierarchy.startup(core_path).unwrap();
 
         let command_path_segment = LockingPathSegment::new_string("command");
         let command_path = root_path.clone().push(command_path_segment).unwrap();
-        hierarchy.startup::<Command>(command_path).unwrap();
+        hierarchy.startup(command_path).unwrap();
 
         let operation_path_segment = LockingPathSegment::new_string("operation");
         let operation_path = root_path.clone().push(operation_path_segment).unwrap();
-        hierarchy.startup::<Operation>(operation_path).unwrap();
+        hierarchy.startup(operation_path).unwrap();
     }
 
     fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
@@ -65,15 +49,15 @@ impl LockingNodeData for Root {
 
         let core_path_segment = LockingPathSegment::new_string("core");
         let core_path = root_path.clone().push(core_path_segment).unwrap();
-        hierarchy.post_startup::<Core>(core_path).unwrap();
+        hierarchy.post_startup(core_path).unwrap();
 
         let command_path_segment = LockingPathSegment::new_string("command");
         let command_path = root_path.clone().push(command_path_segment).unwrap();
-        hierarchy.post_startup::<Command>(command_path).unwrap();
+        hierarchy.post_startup(command_path).unwrap();
 
         let operation_path_segment = LockingPathSegment::new_string("operation");
         let operation_path = root_path.clone().push(operation_path_segment).unwrap();
-        hierarchy.post_startup::<Operation>(operation_path).unwrap();
+        hierarchy.post_startup(operation_path).unwrap();
     }
 
     fn pre_update(&mut self, hierarchy: &mut LockingHierarchy) {

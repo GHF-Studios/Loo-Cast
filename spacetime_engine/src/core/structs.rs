@@ -1,5 +1,6 @@
 use crate::*;
 use crate::singletons::*;
+use crate::core::wrappers::CoreCommandTypeRegistry;
 use std::collections::HashMap;
 use std::any::*;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -17,14 +18,33 @@ impl LockingNodeData for Core {
     fn pre_startup(&mut self, hierarchy: &mut LockingHierarchy) {
         let core_path = AbsoluteLockingPath::new_from_literal("core");
         let core_mutex = hierarchy.get_node_raw(core_path.clone()).unwrap();
+    
+        let command_type_registry_path_segment = LockingPathSegment::new_string("command_types");
+        let command_type_registry_path = core_path.clone().push(command_type_registry_path_segment).unwrap();
+        hierarchy.insert_branch(core_path.clone(), core_mutex.clone(), command_type_registry_path_segment, CoreCommandTypeRegistry::new()).unwrap();
+        hierarchy.pre_startup(core_path).unwrap();
     }
 
     fn startup(&mut self, hierarchy: &mut LockingHierarchy) {
-        
+        let core_path = AbsoluteLockingPath::new_from_literal("core");
+        let core_mutex = hierarchy.get_node_raw(core_path.clone()).unwrap();
+
+        let command_type_registry_path_segment = LockingPathSegment::new_string("command_types");
+        let command_type_registry_path = core_path.clone().push(command_type_registry_path_segment).unwrap();
+        hierarchy.startup::<CoreCommandTypeRegistry>(command_type_registry_path).unwrap();
+
+        dispatch_cmd!(sync, "core.command_types.spawn_main_camera");
+        dispatch_cmd!(sync, "core.command_types.spawn_start_chunks", 2);
+        dispatch_cmd!(sync, "core.command_types.spawn_start_chunk_actors", 2);
     }
 
     fn post_startup(&mut self, hierarchy: &mut LockingHierarchy) {
-        
+        let core_path = AbsoluteLockingPath::new_from_literal("core");
+        let core_mutex = hierarchy.get_node_raw(core_path.clone()).unwrap();
+
+        let command_type_registry_path_segment = LockingPathSegment::new_string("command_types");
+        let command_type_registry_path = core_path.clone().push(command_type_registry_path_segment).unwrap();
+        hierarchy.post_startup::<CoreCommandTypeRegistry>(command_type_registry_path).unwrap();
     }
 
     fn pre_update(&mut self, hierarchy: &mut LockingHierarchy) {
@@ -368,14 +388,12 @@ pub struct BundleInstance<T: Bundle> {
 pub(in super) enum LockingNodeMetadata {
     Root {
         state: LockingState,
-        child_type_id: TypeId,
         children: HashMap<LockingPathSegment, Arc<Mutex<LockingNode>>>,
     },
     Branch {
         path_segment: LockingPathSegment,
         state: LockingState,
         parent_type_id: TypeId,
-        child_type_id: TypeId,
         parent: (AbsoluteLockingPath, Arc<Mutex<LockingNode>>),
         children: HashMap<LockingPathSegment, Arc<Mutex<LockingNode>>>,
     },
@@ -419,14 +437,6 @@ impl LockingNodeMetadata {
         }
     }
 
-    pub fn get_child_type_id(&self) -> Option<TypeId> {
-        match self {
-            LockingNodeMetadata::Root { child_type_id, .. } => Some(child_type_id.clone()),
-            LockingNodeMetadata::Branch { child_type_id, .. } => Some(child_type_id.clone()),
-            LockingNodeMetadata::Leaf { .. } => None,
-        }
-    }
-
     pub fn get_parent(&self) -> Option<(AbsoluteLockingPath, Arc<Mutex<LockingNode>>)> {
         match self {
             LockingNodeMetadata::Root { .. } => None,
@@ -446,19 +456,19 @@ impl LockingNodeMetadata {
 impl Debug for LockingNodeMetadata {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LockingNodeMetadata::Root { state, child_type_id, children } => {
+            LockingNodeMetadata::Root { state, children } => {
                 let children_string = children.keys().iter().map(|child| {
                     child.to_string()
                 }).collect::<Vec<String>>().join(", ");
 
-                write!(f, "Root {{ state[ {:?} ], child_type_id[ {:?} ], children[ {:?} ] }}", state, child_type_id, children_string)
+                write!(f, "Root {{ state[ {:?} ], children[ {:?} ] }}", state, children_string)
             },
-            LockingNodeMetadata::Branch { path_segment, state, parent_type_id, child_type_id, parent, children } => {
+            LockingNodeMetadata::Branch { path_segment, state, parent_type_id, parent, children } => {
                 let children_string = children.keys().iter().map(|child| {
                     child.to_string()
                 }).collect::<Vec<String>>().join(", ");
 
-                write!(f, "Branch {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], child_type_id[ {:?} ], parent[ {:?} ], children[ {:?} ] }}", path_segment, state, parent_type_id, child_type_id, parent, children_string)
+                write!(f, "Branch {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ], children[ {:?} ] }}", path_segment, state, parent_type_id, parent, children_string)
             },
             LockingNodeMetadata::Leaf { path_segment, state, parent_type_id, parent } => {
                 write!(f, "Leaf {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ] }}", path_segment, state, parent_type_id, parent)
@@ -469,19 +479,19 @@ impl Debug for LockingNodeMetadata {
 impl Display for LockingNodeMetadata {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LockingNodeMetadata::Root { state, child_type_id, children } => {
+            LockingNodeMetadata::Root { state, children } => {
                 let children_string = children.keys().iter().map(|child| {
                     child.to_string()
                 }).collect::<Vec<String>>().join(", ");
 
-                write!(f, "Root {{ state[ {:?} ], child_type_id[ {:?} ], children[ {:?} ] }}", state, child_type_id, children_string)
+                write!(f, "Root {{ state[ {:?} ], children[ {:?} ] }}", state, children_string)
             },
-            LockingNodeMetadata::Branch { path_segment, state, parent_type_id, child_type_id, parent, children } => {
+            LockingNodeMetadata::Branch { path_segment, state, parent_type_id, parent, children } => {
                 let children_string = children.keys().iter().map(|child| {
                     child.to_string()
                 }).collect::<Vec<String>>().join(", ");
 
-                write!(f, "Branch {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], child_type_id[ {:?} ], parent[ {:?} ], children[ {:?} ] }}", path_segment, state, parent_type_id, child_type_id, parent, children_string)
+                write!(f, "Branch {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ], children[ {:?} ] }}", path_segment, state, parent_type_id, parent, children_string)
             },
             LockingNodeMetadata::Leaf { path_segment, state, parent_type_id, parent } => {
                 write!(f, "Leaf {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ] }}", path_segment, state, parent_type_id, parent)
@@ -805,7 +815,6 @@ impl LockingHierarchy {
     pub fn new() -> Self {
         let root_metadata = LockingNodeMetadata::Root {
             state: LockingState::Unlocked,
-            child_type_id: TypeId::of::<LockingNode>(),
             children: HashMap::new(),
         };
         let root_data = Arc::new(Mutex::new(Box::new(RootTypeRegistry::new(ROOT_TYPE_BINDING))));
@@ -815,11 +824,11 @@ impl LockingHierarchy {
         }
     }
     
-    pub fn insert_branch<P: LockingNodeData, T: LockingNodeData, C: LockingNodeData>(&mut self, parent_path: AbsoluteLockingPath, parent_mutex: Arc<Mutex<LockingNode>>, path_segment: LockingPathSegment, data: T) -> Result<(), LockingHierarchyError> {
+    pub fn insert_branch<T: LockingNodeData>(&mut self, parent_path: AbsoluteLockingPath, parent_mutex: Arc<Mutex<LockingNode>>, path_segment: LockingPathSegment, data: T) -> Result<(), LockingHierarchyError> {
         todo!();
     }
 
-    pub fn insert_leaf<P: LockingNodeData, T: LockingNodeData>(&mut self, parent_path: AbsoluteLockingPath, parent_mutex: Arc<Mutex<LockingNode>>, path_segment: LockingPathSegment, data: T) -> Result<(), LockingHierarchyError> {
+    pub fn insert_leaf<T: LockingNodeData>(&mut self, parent_path: AbsoluteLockingPath, parent_mutex: Arc<Mutex<LockingNode>>, path_segment: LockingPathSegment, data: T) -> Result<(), LockingHierarchyError> {
         todo!();
     }
     
@@ -827,15 +836,15 @@ impl LockingHierarchy {
         todo!();
     }
 
-    pub fn pre_startup<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
+    pub fn pre_startup(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
         todo!();
     }
 
-    pub fn startup<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
+    pub fn startup(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
         todo!();
     }
 
-    pub fn post_startup<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
+    pub fn post_startup(&mut self, path: AbsoluteLockingPath) -> Result<(), LockingHierarchyError> {
         todo!();
     }
 
