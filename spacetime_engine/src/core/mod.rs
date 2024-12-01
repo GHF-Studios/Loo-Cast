@@ -13,7 +13,6 @@ pub mod systems;
 // Integrations
 
 // Miscelaneous
-pub mod constants;
 pub mod traits;
 
 use bevy::prelude::*;

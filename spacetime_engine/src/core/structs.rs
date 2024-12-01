@@ -1,6 +1,6 @@
 use crate::*;
 use crate::singletons::*;
-use crate::core::wrappers::CoreCommandTypeRegistry;
+use crate::core::wrappers::CoreCommandTypes;
 use std::collections::HashMap;
 use std::any::*;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -8,7 +8,6 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use bevy::prelude::*;
 use structs::{NumericID, StringID};
-use wrappers::RootTypeRegistry;
 use super::enums::*;
 use super::errors::*;
 use super::traits::*;
@@ -20,7 +19,7 @@ impl LockingNodeData for Core {
         let core_mutex = hierarchy.get_node_raw(core_path.clone()).unwrap();
     
         let command_types_path_segment = LockingPathSegment::new_string("command_types");
-        hierarchy.insert(core_path.clone(), core_mutex.clone(), command_types_path_segment, CoreCommandTypeRegistry::new()).unwrap();
+        hierarchy.insert(core_path.clone(), core_mutex.clone(), command_types_path_segment, CoreCommandTypes::new()).unwrap();
 
         dispatch_cmds!(async, batch, [
             ("core.command_types.spawn_main_camera"),

@@ -31,6 +31,8 @@ fn enable_backtrace() {
 fn main() {
     // enable_backtrace();
 
+    let _ = LOCKING_HIERARCHY.lock().unwrap();
+
     App::new()
         .add_plugins(DefaultPlugins.set(LogPlugin {
             filter: "info,spacetime_engine=debug".into(),
@@ -40,11 +42,6 @@ fn main() {
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(SpacetimeEnginePlugins)
         .add_systems(PreStartup, spacetime_engine::systems::pre_startup)
-        .add_systems(Startup, spacetime_engine::systems::startup)
-        .add_systems(PostStartup, spacetime_engine::systems::post_startup)
-        .add_systems(PreUpdate, spacetime_engine::systems::pre_update)
-        .add_systems(Update, spacetime_engine::systems::update)
-        .add_systems(PostUpdate, spacetime_engine::systems::post_update)
         .run();
 }
 

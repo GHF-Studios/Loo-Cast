@@ -29,3 +29,5 @@ pub trait LockingPath: 'static + Send + Sync + Debug + Display + Clone + Partial
     fn push(self, segment: LockingPathSegment) -> Result<Self, String>;
     fn pop(self) -> Result<(Self, LockingPathSegment), String>;
 }
+
+pub type Command = Box<dyn Fn(Box<dyn Any>) -> Box<dyn Any> + Send>;

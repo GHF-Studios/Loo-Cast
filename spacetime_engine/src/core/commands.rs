@@ -1,8 +1,12 @@
 use std::any::Any;
-
 use bevy::prelude::*;
 use futures::future::join_all;
-use crate::singletons::LOCKING_HIERARCHY;
+use futures::TryFuture;
+use tokio::sync::oneshot;
+use futures::future::poll_fn;
+use std::task::{Context, Poll};
+use std::pin::Pin;
+use crate::singletons::{LOCKING_HIERARCHY, OPERATION_QUEUE};
 use crate::singletons::TOKIO_RUNTIME;
 use crate::chunk::structs::ChunkPosition;
 use crate::entity::structs::EntityPosition;
@@ -10,43 +14,34 @@ use crate::chunk::commands::*;
 use crate::chunk_actor::commands::*;
 use crate::camera::commands::*;
 use crate::math::structs::I16Vec2;
-use super::structs::AbsoluteLockingPath;
-use super::structs::LockingPathSegment;
+use crate::traits::Operation;
 use super::traits::*;
-use super::wrappers::CoreCommandTypeRegistry;
 
-pub(in crate) async fn pre_startup() {
-    let mut locking_hierarchy = LOCKING_HIERARCHY.lock().unwrap();
-    
-    let core_path = AbsoluteLockingPath::new_from_literal("core");
-    let core_mutex = locking_hierarchy.get_node_raw(core_path.clone()).unwrap();
+pub async fn run_op<T: Operation>(operation_args: T::Args) -> T::Result {
+    let (sender, mut receiver) = oneshot::channel::<T::Result>();
 
-    let command_type_registry_path_segment = LockingPathSegment::new_string("command_types");
-    let command_type_registry_path = core_path.clone().push(command_type_registry_path_segment).unwrap();
-    let command_type_registry_data = CoreCommandTypeRegistry::new();
-    locking_hierarchy.insert_branch(core_path, core_mutex, command_type_registry_path_segment, command_type_registry_data).unwrap();
-    locking_hierarchy.pre_startup(command_type_registry_path).unwrap();
-}
+    let operation = T::new(operation_args, sender);
 
-pub(in crate) async fn startup() {
-    let mut locking_hierarchy = LOCKING_HIERARCHY.lock().unwrap();
+    {
+        let mut operation_queue = OPERATION_QUEUE.lock().unwrap();
+        operation_queue.add_operation(Box::new(operation));
+    }
 
-    let command_type_registry_path = AbsoluteLockingPath::new_from_literal("core.command_types");
-    locking_hierarchy.startup(command_type_registry_path).unwrap();
+    poll_fn(move |cx: &mut Context<'_>| {
+        let pinned_receiver = Pin::new(&mut receiver);
 
-    let runtime = TOKIO_RUNTIME.lock().unwrap();
-    runtime.spawn(async {
-        spawn_main_camera(Box::new(())).await;
-        spawn_start_chunks(Box::new(2)).await;
-        spawn_start_chunk_actors(Box::new(2)).await;
-    });
-}
-
-pub(in crate) async fn post_startup() {
-    let mut locking_hierarchy = LOCKING_HIERARCHY.lock().unwrap();
-
-    let command_type_registry_path = AbsoluteLockingPath::new_from_literal("core.command_types");
-    locking_hierarchy.post_startup(command_type_registry_path).unwrap();
+        match pinned_receiver.try_poll(cx) {
+            Poll::Ready(Ok(result)) => {
+                Poll::Ready(result)
+            },
+            Poll::Ready(Err(e)) => {
+                panic!("An operation has panicked!");
+            },
+            Poll::Pending => {
+                Poll::Pending
+            }
+        }
+    }).await
 }
 
 pub async fn spawn_main_camera(_params: Box<dyn Any>) -> Box<dyn Any> {

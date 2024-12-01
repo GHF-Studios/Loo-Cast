@@ -5,15 +5,9 @@
 ╠█[RootTypeRegistry]: TypeData, TypeRegistry
 ╠╦█[Core]: Type
 ║╚╦█[CoreCommandTypeRegistry]: TypeData, TypeRegistry
-║ ╠═█[Startup]: Type, Command, fn
-║ ╠═█[InitLockingHierarchy]: Type, Command, fn
 ║ ╠═█[SpawnMainCamera]: Type, Command, fn
 ║ ╠═█[SpawnStartChunks]: Type, Command, fn
 ║ ╚═█[SpawnStartChunkActors]: Type, Command, fn
-╠╦█[Operation]: Type
-║╚╦█[OperationCommandTypeRegistry]: TypeData, TypeRegistry
-║ ╚═█[RunOp]: Type, Operation, fn
-╠═█[Command]: Type
 ╠╦█[Entity]: Type
 ║╠╦█[EntityOperationTypeRegistry]: TypeData, TypeRegistry
 ║║╚╦█[CreateEntity]: Type

@@ -1,12 +1,11 @@
 use bevy::prelude::*;
 use tokio::sync::oneshot;
-use crate::entity::wrappers::EntityInstanceRegistry;
-use crate::core::singletons::MAIN_TYPE_REGISTRY;
-use crate::core::structs::NumericID;
-use crate::operation::traits::*;
+use crate::entity::wrappers::*;
+use crate::structs::NumericID;
+use crate::traits::*;
 
 pub struct UpgradeToSpriteBundleArgs {
-    pub target_entity_id: NumericID<Entity>,
+    pub target_entity_id: NumericID,
     pub sprite_protection: bool,
     pub transform_protection: bool,
     pub global_transform_protection: bool,
@@ -66,7 +65,7 @@ impl Operation for UpgradeToSpriteBundle {
 
     fn execute(&mut self, world: &mut World) {
         let target_entity = {
-            let mut main_type_registry = match MAIN_TYPE_REGISTRY.lock() {
+            let mut root_type_registry = match ROOT_TYPE_REGISTRY.lock() {
                 Ok(main_type_registry) => main_type_registry,
                 Err(_) => {
                     self.callback.send(UpgradeToSpriteBundleResult::Err(()));
@@ -74,7 +73,7 @@ impl Operation for UpgradeToSpriteBundle {
                 },
             };
 
-            let entity_instance_registry = match main_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
+            let entity_instance_registry = match root_type_registry.get_data_mut::<Entity, EntityInstanceRegistry>() {
                 Some(entity_instance_registry) => entity_instance_registry,
                 None => {
                     self.callback.send(UpgradeToSpriteBundleResult::Err(()));

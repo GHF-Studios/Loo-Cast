@@ -1,6 +1,7 @@
 use std::any::TypeId;
 use std::marker::PhantomData;
 use bevy::prelude::*;
+use traits::DynOperation;
 use std::fmt::{Debug, Display};
 use crate::*;
 
@@ -12,12 +13,6 @@ impl LockingNodeData for Root {
 
         let core_path_segment = LockingPathSegment::new_string("core");
         hierarchy.insert(root_path, root_mutex, core_path_segment, Core).unwrap();
-
-        let command_path_segment = LockingPathSegment::new_string("command");
-        hierarchy.insert(root_path, root_mutex, command_path_segment, Command).unwrap();
-
-        let operation_path_segment = LockingPathSegment::new_string("operation");
-        hierarchy.insert(root_path, root_mutex, operation_path_segment, Operation).unwrap();
     }
 
     fn on_remove(&mut self, hierarchy: &mut LockingHierarchy) {
@@ -27,14 +22,6 @@ impl LockingNodeData for Root {
         let core_path_segment = LockingPathSegment::new_string("core");
         let core_path = root_path.clone().push(core_path_segment).unwrap();
         hierarchy.remove(core_path).unwrap();
-
-        let command_path_segment = LockingPathSegment::new_string("command");
-        let command_path = root_path.clone().push(command_path_segment).unwrap();
-        hierarchy.remove(command_path).unwrap();
-
-        let operation_path_segment = LockingPathSegment::new_string("operation");
-        let operation_path = root_path.clone().push(operation_path_segment).unwrap();
-        hierarchy.remove(operation_path).unwrap();
     }
 }
 
@@ -392,6 +379,26 @@ pub struct TypeDataRegistry(LockingTypeDataRegistry);
 impl TypeDataRegistry {
     pub fn new() -> Self {
         Self(LockingTypeDataRegistry::new())
+    }
+}
+
+pub struct OperationQueue {
+    queue: Vec<Box<dyn DynOperation>>,
+}
+impl OperationQueue {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self {
+            queue: Vec::new(),
+        }
+    }
+
+    pub fn add_operation(&mut self, operation: Box<dyn DynOperation>) {
+        self.queue.push(operation);
+    }
+
+    pub fn remove_operations(&mut self) -> Vec<Box<dyn DynOperation>> {
+        self.queue.drain(..).collect()
     }
 }
 
