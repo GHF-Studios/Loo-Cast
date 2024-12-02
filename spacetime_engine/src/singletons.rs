@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 use lazy_static::lazy_static;
-use crate::structs::OperationQueue;
-use crate::core::structs::*;
+use crate::structs::*;
 use tokio::runtime::Runtime;
 
 lazy_static! {

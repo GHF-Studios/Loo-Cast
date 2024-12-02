@@ -6,8 +6,7 @@ use tokio::sync::oneshot;
 use futures::future::poll_fn;
 use std::task::{Context, Poll};
 use std::pin::Pin;
-use crate::singletons::{LOCKING_HIERARCHY, OPERATION_QUEUE};
-use crate::singletons::TOKIO_RUNTIME;
+use crate::singletons::*;
 use crate::chunk::structs::ChunkPosition;
 use crate::entity::structs::EntityPosition;
 use crate::chunk::commands::*;
@@ -34,7 +33,7 @@ pub async fn run_op<T: Operation>(operation_args: T::Args) -> T::Result {
             Poll::Ready(Ok(result)) => {
                 Poll::Ready(result)
             },
-            Poll::Ready(Err(e)) => {
+            Poll::Ready(Err(_)) => {
                 panic!("An operation has panicked!");
             },
             Poll::Pending => {

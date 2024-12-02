@@ -1,9 +1,8 @@
 use super::components::*;
 use super::structs::*;
 use super::wrappers::*;
-use crate::operation::traits::*;
-use crate::core::singletons::*;
-use crate::core::structs::*;
+use crate::traits::*;
+use crate::structs::*;
 use crate::core::traits::*;
 use bevy::prelude::*;
 use tokio::sync::oneshot;
@@ -14,7 +13,7 @@ pub struct CreateEntityArgs {
 impl OpArgs for CreateEntityArgs {}
 pub enum CreateEntityResult {
     Ok{
-        entity_id: NumericID<Entity>
+        entity_id: NumericID
     },
     Err(()),
 }
@@ -55,7 +54,7 @@ impl Operation for CreateEntity {
 }
 
 pub struct DestroyEntityArgs {
-    pub entity_id: NumericID<Entity>,
+    pub entity_id: NumericID,
 }
 impl OpArgs for DestroyEntityArgs {}
 pub enum DestroyEntityResult {

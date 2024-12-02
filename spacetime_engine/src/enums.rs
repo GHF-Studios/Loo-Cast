@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
-use super::structs::LockingPathSegment;
+use crate::structs::*;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum LockingState {

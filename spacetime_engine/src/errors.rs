@@ -1,4 +1,4 @@
-use super::structs::AbsoluteLockingPath;
+use crate::structs::*;
 
 #[derive(Debug)]
 pub enum LockingHierarchyError {
