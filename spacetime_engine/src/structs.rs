@@ -1061,7 +1061,7 @@ impl LockingTypeDataRegistry {
         self.registered.retain(|other_type_id| type_id != *other_type_id);
     }
 
-    pub fn manage<T: 'static + LockingTypeDataTrait>(&mut self, singleton: T) {
+    pub fn manage<T: 'static + LockingTypeDataTrait>(&mut self, type_data: T) {
         let type_id = TypeId::of::<T>();
 
         if !self.registered.contains(&type_id) {
@@ -1072,7 +1072,9 @@ impl LockingTypeDataRegistry {
             panic!("Type '{:?}' is already managed!", type_id);
         }
 
-        self.managed.insert(type_id, singleton);
+        let type_data: Box<dyn Any + Send + Sync> = Box::new(type_data) as Box<dyn Any + Send + Sync>;
+
+        self.managed.insert(type_id, type_data);
     }
 
     pub fn unmanage<T: 'static + LockingTypeDataTrait>(&mut self) {
@@ -1100,7 +1102,10 @@ impl LockingTypeDataRegistry {
             panic!("Type '{:?}' is not managed!", type_id);
         }
 
-        self.managed.get(&type_id).unwrap_or_else(|| None).downcast_ref::<T>()
+        match self.managed.get(&type_id) {
+            Some(type_data) => type_data.downcast_ref::<T>(),
+            None => None,
+        }
     }
 
     pub fn get_mut<T: 'static + LockingTypeDataTrait>(&mut self) -> Option<&mut T> {
@@ -1114,14 +1119,17 @@ impl LockingTypeDataRegistry {
             panic!("Type '{:?}' is not managed!", type_id);
         }
 
-        self.managed.get_mut(&type_id)
+        match self.managed.get_mut(&type_id) {
+            Some(type_data) => type_data.downcast_mut::<T>(),
+            None => None,
+        }
     }
 
     pub fn registered(&self) -> &HashSet<TypeId> {
         &self.registered
     }
 
-    pub fn managed<T: 'static + LockingTypeDataTrait>(&self) -> &HashMap<TypeId, T> {
+    pub fn managed(&self) -> &HashMap<TypeId, Box<dyn Any + Send + Sync>> {
         &self.managed
     }
 
@@ -1210,20 +1218,30 @@ pub(in super) enum LockingNodeMetadata {
         children: HashMap<LockingPathSegment, Arc<Mutex<LockingNode>>>,
     },
     Branch {
+        absolute_path: AbsoluteLockingPath,
         path_segment: LockingPathSegment,
         state: LockingState,
         parent_type_id: TypeId,
-        parent: (AbsoluteLockingPath, Arc<Mutex<LockingNode>>),
+        parent: (LockingPathSegment, Arc<Mutex<LockingNode>>),
         children: HashMap<LockingPathSegment, Arc<Mutex<LockingNode>>>,
     },
     Leaf {
+        absolute_path: AbsoluteLockingPath,
         path_segment: LockingPathSegment,
         state: LockingState,
         parent_type_id: TypeId,
-        parent: (AbsoluteLockingPath, Arc<Mutex<LockingNode>>),
+        parent: (LockingPathSegment, Arc<Mutex<LockingNode>>),
     },
 }
 impl LockingNodeMetadata {
+    pub fn get_absolute_path(&self) -> AbsoluteLockingPath {
+        match self {
+            LockingNodeMetadata::Root { .. } => AbsoluteLockingPath::new(),
+            LockingNodeMetadata::Branch { absolute_path, .. } => absolute_path.clone(),
+            LockingNodeMetadata::Leaf { absolute_path, .. } => absolute_path.clone(),
+        }
+    }
+
     pub fn get_path_segment(&self) -> LockingPathSegment {
         match self {
             LockingNodeMetadata::Root { .. } => LockingPathSegment::Root,
@@ -1251,12 +1269,12 @@ impl LockingNodeMetadata {
     pub fn get_parent_type_id(&self) -> Option<TypeId> {
         match self {
             LockingNodeMetadata::Root { .. } => None,
-            LockingNodeMetadata::Branch { parent_type_id, .. } => Some(parent_type_id.clone()),
-            LockingNodeMetadata::Leaf { parent_type_id, .. } => Some(parent_type_id.clone()),
+            LockingNodeMetadata::Branch { parent_type_id, .. } => Some(*parent_type_id),
+            LockingNodeMetadata::Leaf { parent_type_id, .. } => Some(*parent_type_id),
         }
     }
 
-    pub fn get_parent(&self) -> Option<(AbsoluteLockingPath, Arc<Mutex<LockingNode>>)> {
+    pub fn get_parent(&self) -> Option<(LockingPathSegment, Arc<Mutex<LockingNode>>)> {
         match self {
             LockingNodeMetadata::Root { .. } => None,
             LockingNodeMetadata::Branch { parent, .. } => Some(parent.clone()),
@@ -1264,7 +1282,7 @@ impl LockingNodeMetadata {
         }
     }
 
-    pub fn get_children(&self) -> Option<&HashMap<AbsoluteLockingPath, Arc<Mutex<LockingNode>>>> {
+    pub fn get_children(&self) -> Option<&HashMap<LockingPathSegment, Arc<Mutex<LockingNode>>>> {
         match self {
             LockingNodeMetadata::Root { children, .. } => Some(children),
             LockingNodeMetadata::Branch { children, .. } => Some(children),
@@ -1282,15 +1300,15 @@ impl Debug for LockingNodeMetadata {
 
                 write!(f, "Root {{ state[ {:?} ], children[ {:?} ] }}", state, children_string)
             },
-            LockingNodeMetadata::Branch { path_segment, state, parent_type_id, parent, children } => {
+            LockingNodeMetadata::Branch { absolute_path, state, parent_type_id, parent, children, .. } => {
                 let children_string = children.keys().map(|child| {
                     child.to_string()
                 }).collect::<Vec<String>>().join(", ");
 
-                write!(f, "Branch {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ], children[ {:?} ] }}", path_segment, state, parent_type_id, parent, children_string)
+                write!(f, "Branch {{ absolute_path[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ], children[ {:?} ] }}", absolute_path, state, parent_type_id, parent, children_string)
             },
-            LockingNodeMetadata::Leaf { path_segment, state, parent_type_id, parent } => {
-                write!(f, "Leaf {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ] }}", path_segment, state, parent_type_id, parent)
+            LockingNodeMetadata::Leaf { absolute_path, state, parent_type_id, parent, .. } => {
+                write!(f, "Leaf {{ absolute_path[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ] }}", absolute_path, state, parent_type_id, parent)
             },
         }
     }
@@ -1305,29 +1323,78 @@ impl Display for LockingNodeMetadata {
 
                 write!(f, "Root {{ state[ {:?} ], children[ {:?} ] }}", state, children_string)
             },
-            LockingNodeMetadata::Branch { path_segment, state, parent_type_id, parent, children } => {
+            LockingNodeMetadata::Branch { path_segment, state, parent_type_id, parent, children, .. } => {
                 let children_string = children.keys().map(|child| {
                     child.to_string()
                 }).collect::<Vec<String>>().join(", ");
 
                 write!(f, "Branch {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ], children[ {:?} ] }}", path_segment, state, parent_type_id, parent, children_string)
             },
-            LockingNodeMetadata::Leaf { path_segment, state, parent_type_id, parent } => {
+            LockingNodeMetadata::Leaf { path_segment, state, parent_type_id, parent, .. } => {
                 write!(f, "Leaf {{ path_segment[ {:?} ], state[ {:?} ], parent_type_id[ {:?} ], parent[ {:?} ] }}", path_segment, state, parent_type_id, parent)
             },
         }
     }
 }
 
+pub struct TrackedMutex<T> {
+    path: AbsoluteLockingPath,
+    data: Mutex<T>,
+    finalized: Mutex<bool>, // Tracks whether this mutex was finalized
+}
+impl<T> TrackedMutex<T> {
+    pub fn new(path: AbsoluteLockingPath, data: T) -> Self {
+        Self {
+            path,
+            data: Mutex::new(data),
+            finalized: Mutex::new(false),
+        }
+    }
+
+    pub fn path(&self) -> AbsoluteLockingPath {
+        self.path.clone()
+    }
+
+    pub fn lock(&self) -> MutexGuard<'_, T> {
+        self.data.lock().unwrap()
+    }
+
+    pub fn finalize(&self) {
+        let mut finalized = self.finalized.lock().unwrap();
+        *finalized = true; // Mark as finalized
+    }
+}
+impl<T> Drop for TrackedMutex<T> {
+    fn drop(&mut self) {
+        let finalized = match self.finalized.try_lock() {
+            Ok(finalized) => finalized,
+            Err(error) => match error {
+                std::sync::TryLockError::Poisoned(_) => {
+                    panic!("Mutex has been poisoned!")
+                },
+                std::sync::TryLockError::WouldBlock => {
+                    panic!("Mutex is already locked!")
+                },
+            },
+        };
+        
+        if !*finalized {
+            panic!("TrackedMutex {:?} was dropped without being finalized!", self.path);
+        }
+    }
+}
+
 pub(in super) struct LockingNode {
     metadata: LockingNodeMetadata,
-    data: Arc<Mutex<Box<dyn Any + Send + Sync>>>,
+    data: Arc<TrackedMutex<Box<dyn Any + Send + Sync>>>,
 }
 impl LockingNode {
-    pub fn new(metadata: LockingNodeMetadata, data: Box<dyn LockingNodeData>) -> Self {
+    pub fn new(metadata: LockingNodeMetadata, data: Box<dyn Any + Send + Sync>) -> Self {
+        let data = TrackedMutex::new(metadata.get_absolute_path(), data);
+
         Self {
             metadata,
-            data: Arc::new(Mutex::new(data as Box<dyn Any + Send + Sync>)),
+            data: Arc::new(data),
         }
     }
 
@@ -1368,7 +1435,7 @@ impl LockingNode {
                     match child.lock() {
                         Ok(()) => {},
                         Err(error) => {
-                            return Err(LockingNodeError::ChildLockError(error));
+                            return Err(LockingNodeError::LockChildError(Box::new(error)));
                         },
                     };
                 }
@@ -1418,7 +1485,7 @@ impl LockingNode {
             },
         };
         for (child_path, child_mutex) in children {
-            let child = match child_mutex.try_lock() {
+            let mut child = match child_mutex.try_lock() {
                 Ok(child) => child,
                 Err(error) => match error {
                     std::sync::TryLockError::Poisoned(_) => {
@@ -1433,7 +1500,7 @@ impl LockingNode {
             match child.lock() {
                 Ok(()) => {},
                 Err(error) => {
-                    return Err(LockingNodeError::ChildLockError(error));
+                    return Err(LockingNodeError::LockChildError(Box::new(error)));
                 },
             };
         }
@@ -1452,7 +1519,7 @@ impl LockingNode {
             LockingState::FullyLocked => {},
         }
 
-        let (parent_path, parent_mutex) = match self.metadata {
+        let (parent_path, parent_mutex) = match &self.metadata {
             LockingNodeMetadata::Root { .. } => {
                 *self.metadata.get_state_mut() = LockingState::Unlocked;
 
@@ -1463,7 +1530,7 @@ impl LockingNode {
                     },
                 };
                 for (child_path, child_mutex) in children {
-                    let child = match child_mutex.try_lock() {
+                    let mut child = match child_mutex.try_lock() {
                         Ok(child) => child,
                         Err(error) => match error {
                             std::sync::TryLockError::Poisoned(_) => {
@@ -1478,18 +1545,18 @@ impl LockingNode {
                     match child.unlock() {
                         Ok(()) => {},
                         Err(error) => {
-                            return Err(LockingNodeError::ChildUnlockError(error));
+                            return Err(LockingNodeError::UnlockChildError(Box::new(error)));
                         },
                     };
                 }
 
                 return Ok(());
             },
-            LockingNodeMetadata::Branch { parent, .. } => parent,
-            LockingNodeMetadata::Leaf { parent, .. } => parent,
+            LockingNodeMetadata::Branch { parent, .. } => parent.clone(),
+            LockingNodeMetadata::Leaf { parent, .. } => parent.clone(),
         };
 
-        let parent = match parent_mutex.try_lock() {
+        let mut parent = match parent_mutex.try_lock() {
             Ok(parent) => parent,
             Err(error) => match error {
                 std::sync::TryLockError::Poisoned(_) => {
@@ -1501,7 +1568,7 @@ impl LockingNode {
             },
         };
 
-        match parent.metadata.get_state() {
+        match parent.metadata.get_state_mut() {
             LockingState::FullyLocked => {
                 unreachable!();
             },
@@ -1514,7 +1581,7 @@ impl LockingNode {
                     match parent.unlock() {
                         Ok(()) => {},
                         Err(error) => {
-                            return Err(LockingNodeError::UnlockParentError());
+                            return Err(LockingNodeError::UnlockParentError(Box::new(error)));
                         },
                     }
                 }
@@ -1526,7 +1593,7 @@ impl LockingNode {
                     },
                 };
                 for (child_path, child_mutex) in children {
-                    let child = match child_mutex.try_lock() {
+                    let mut child = match child_mutex.try_lock() {
                         Ok(child) => child,
                         Err(error) => match error {
                             std::sync::TryLockError::Poisoned(_) => {
@@ -1541,7 +1608,7 @@ impl LockingNode {
                     match child.unlock() {
                         Ok(()) => {},
                         Err(error) => {
-                            return Err(LockingNodeError::ChildUnlockError(error));
+                            return Err(LockingNodeError::UnlockChildError(Box::new(error)));
                         },
                     };
                 }
@@ -1565,64 +1632,6 @@ impl Display for LockingNode {
     }
 }
 
-pub struct LockedDataContainer {
-    locked_data: Box<dyn Any + 'static>,
-    is_held: bool,
-}
-impl LockedDataContainer {
-    pub(in super) fn new<T: 'static + Send + Sync>(data: LockedData<T>) -> Self {
-        Self {
-            locked_data: Box::new(data),
-            is_held: true,
-        }
-    }
-
-    pub fn get_ref<'a, T: 'static + Send + Sync>(&'a self) -> Option<&'a MutexGuard<T>> {
-        self.locked_data.downcast_ref::<LockedData<T>>().map(|data| data.get_ref())
-    }
-
-    pub fn get_mut<'a, T: 'static + Send + Sync>(&'a mut self) -> Option<&'a mut MutexGuard<T>> {
-        self.locked_data.downcast_mut::<LockedData<T>>().map(|data| data.get_mut())
-    }
-
-    pub fn unlock(self) {
-        self.is_held = false;
-        UNLOCK_QUEUE.lock().unwrap().push(UnlockRequest {
-            node_path: self.locked_data.downcast::<&LockedData>().unwrap().node_path,
-        });
-    }
-}
-impl Drop for LockedDataContainer {
-    fn drop(&mut self) {
-        if self.is_held {
-            panic!("Locked data container was dropped without being unlocked!");
-        }
-    }
-}
-
-pub(in super) struct LockedData<'a, T: 'static + Send + Sync> {
-    pub data_mutex: Arc<Mutex<T>>,
-    pub data: MutexGuard<'a, T>,
-    pub node_path: AbsoluteLockingPath,
-}
-impl<'a, T: 'static + Send + Sync> LockedData<'a, T> {
-    pub fn new(data_mutex: Arc<Mutex<T>>, node_path: AbsoluteLockingPath) -> Self {
-        Self {
-            data_mutex,
-            data: data_mutex.lock().unwrap(),
-            node_path,
-        }
-    }
-
-    pub fn get_ref(&self) -> &MutexGuard<T> {
-        &self.data
-    }
-
-    pub fn get_mut(&mut self) -> &mut MutexGuard<T> {
-        &mut self.data
-    }
-}
-
 pub struct UnlockRequest {
     pub node_path: AbsoluteLockingPath,
 }
@@ -1636,7 +1645,7 @@ impl LockingHierarchy {
             state: LockingState::Unlocked,
             children: HashMap::new(),
         };
-        let root_data = Arc::new(Mutex::new(Box::new(TypeRegistry::new())));
+        let root_data = Box::new(TypeRegistry::new());
 
         Self {
             root_node: Arc::new(Mutex::new(LockingNode::new(root_metadata, root_data)))
@@ -1714,6 +1723,29 @@ impl Display for LockingHierarchy {
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// The real good shit, the lit af new shit bro, this shit is the shit, this shit is fire af, lit af on fireeee bro
 pub struct EntityInstance {
     bevy_entity_reference: Entity,
 }

@@ -8,5 +8,15 @@ pub enum LockingHierarchyError {
 
 #[derive(Debug)]
 pub enum LockingNodeError {
-    DavidJackson
+    CannotUnlockPartiallyLocked,
+    AlreadyPartiallyLocked,
+    AlreadyFullyLocked,
+    AlreadyUnlocked,
+    ParentPoisoned,
+    ParentFullyLocked,
+    ChildPoisoned,
+    ChildFullyLocked,
+    UnlockParentError(Box<LockingNodeError>),
+    LockChildError(Box<LockingNodeError>),
+    UnlockChildError(Box<LockingNodeError>),
 }
