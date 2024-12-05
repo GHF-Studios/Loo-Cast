@@ -1398,7 +1398,7 @@ impl LockingNode {
         }
     }
 
-    pub fn lock(&mut self) -> Result<LockedDataContainer, LockingNodeError> {
+    pub fn lock(&mut self) -> Result<(), LockingNodeError> {
         match self.metadata.get_state() {
             LockingState::Unlocked => {},
             LockingState::PartiallyLocked { .. } => {
@@ -1409,7 +1409,7 @@ impl LockingNode {
             },
         }
 
-        let (parent_path, parent_mutex) = match self.metadata {
+        let (parent_path, parent_mutex) = match &self.metadata {
             LockingNodeMetadata::Root { .. } => {
                 *self.metadata.get_state_mut() = LockingState::FullyLocked;
 
@@ -1420,7 +1420,7 @@ impl LockingNode {
                     },
                 };
                 for (child_path, child_mutex) in locked_children {
-                    let child = match child_mutex.try_lock() {
+                    let mut child = match child_mutex.try_lock() {
                         Ok(child) => child,
                         Err(error) => match error {
                             std::sync::TryLockError::Poisoned(_) => {
@@ -1442,11 +1442,11 @@ impl LockingNode {
 
                 return Ok(());
             },
-            LockingNodeMetadata::Branch { parent, .. } => parent,
-            LockingNodeMetadata::Leaf { parent, .. } => parent,
+            LockingNodeMetadata::Branch { parent, .. } => parent.clone(),
+            LockingNodeMetadata::Leaf { parent, .. } => parent.clone(),
         };
 
-        let parent = match parent_mutex.try_lock() {
+        let mut parent = match parent_mutex.try_lock() {
             Ok(parent) => parent,
             Err(error) => match error {
                 std::sync::TryLockError::Poisoned(_) => {
@@ -1458,7 +1458,7 @@ impl LockingNode {
             },
         };
 
-        match parent.metadata.get_state() {
+        match parent.metadata.get_state_mut() {
             LockingState::FullyLocked => {
                 unreachable!();
             },
