@@ -31,7 +31,7 @@ pub(in super) fn post_update(world: &mut World) {
         let mut locking_hierarchy = LOCKING_HIERARCHY.lock().unwrap();
         
         for unlock_request in unlock_queue.iter() {
-            let node = locking_hierarchy.get_node_mut(unlock_request.node_path.clone()).unwrap();
+            let node = locking_hierarchy.try_get_node_mut(unlock_request.node_path.clone()).unwrap();
             node.unlock();
         }
         unlock_queue.clear();

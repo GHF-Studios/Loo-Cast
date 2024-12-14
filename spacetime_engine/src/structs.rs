@@ -32,7 +32,7 @@ pub(crate) struct Root;
 impl LockingNodeData for Root {
     fn on_insert(&mut self, hierarchy: &mut LockingHierarchy) {
         let root_path = AbsoluteLockingPath::new();
-        let root_mutex = hierarchy.get_node_raw(root_path.clone()).unwrap();
+        let root_mutex = hierarchy.try_get_node_raw(root_path.clone()).unwrap();
 
         let camera_path_segment = LockingPathSegment::new_string("camera");
         hierarchy.insert(root_path, root_mutex, camera_path_segment, CameraPlugin).unwrap();
@@ -76,7 +76,7 @@ impl LockingNodeData for Root {
         ]);
 
         let root_path = AbsoluteLockingPath::new();
-        let root_mutex = hierarchy.get_node_raw(root_path.clone()).unwrap();
+        let root_mutex = hierarchy.try_get_node_raw(root_path.clone()).unwrap();
 
         let camera_path_segment = LockingPathSegment::new_string("camera");
         let camera_path = root_path.clone().push(camera_path_segment).unwrap();
@@ -1337,13 +1337,22 @@ impl Display for LockingNodeMetadata {
     }
 }
 
+
+
+
+
+
+
+
+
+// CLOSELY REINSPECT THIS
 pub struct TrackedMutex<T> {
     path: AbsoluteLockingPath,
     data: Mutex<T>,
-    finalized: Mutex<bool>, // Tracks whether this mutex was finalized
+    finalized: Mutex<bool>,
 }
 impl<T> TrackedMutex<T> {
-    pub fn new(path: AbsoluteLockingPath, data: T) -> Self {
+    pub(in crate) fn new(path: AbsoluteLockingPath, data: T) -> Self {
         Self {
             path,
             data: Mutex::new(data),
@@ -1359,13 +1368,18 @@ impl<T> TrackedMutex<T> {
         self.data.lock().unwrap()
     }
 
-    pub fn finalize(&self) {
+    pub(in crate) fn finalize(&self) {
         let mut finalized = self.finalized.lock().unwrap();
-        *finalized = true; // Mark as finalized
+        *finalized = true;
     }
 }
 impl<T> Drop for TrackedMutex<T> {
     fn drop(&mut self) {
+        // TODO: Maybe instead of a finalization flag, we add an UnlockRequest to the UnlockQueue,
+        //       and in the PostUpdate schedule we process these requests
+
+
+
         let finalized = match self.finalized.try_lock() {
             Ok(finalized) => finalized,
             Err(error) => match error {
@@ -1382,6 +1396,19 @@ impl<T> Drop for TrackedMutex<T> {
             panic!("TrackedMutex {:?} was dropped without being finalized!", self.path);
         }
     }
+}
+
+pub struct TrackedMutexGuard<'a, T>(pub MutexGuard<'a, T>);
+impl<'a, T> TrackedMutex<'a, T> {
+    pub(in crate) fn new(path: AbsoluteLockingPath, data: T) -> Self {
+        Self {
+            path,
+            data: Mutex::new(data),
+            finalized: Mutex::new(false),
+        }
+    }
+
+    pub fn path 
 }
 
 pub(in super) struct LockingNode {
@@ -1660,6 +1687,26 @@ impl LockingHierarchy {
         todo!();
     }
 
+    pub fn open<'a, T: 'a, LockingNodeData>(&'a self, path: AbsoluteLockingPath) -> Result<TrackedMutexGuard<'a, T>, LockingHierarchyError> {
+        todo!();
+    }
+
+    pub fn close<'a, T: 'a, LockingNodeData>(&'a self, handle: TrackedMutexGuard<'a, T>) -> Result<(), LockingHierarchyError> {
+        todo!();
+    }
+
+    pub(in crate) fn try_get_node(&self, path: AbsoluteLockingPath) -> Result<&LockingNode, LockingHierarchyError> {
+        todo!();
+    }
+
+    pub(in crate) fn try_get_node_mut(&mut self, path: AbsoluteLockingPath) -> Result<&mut LockingNode, LockingHierarchyError> {
+        todo!();
+    }
+    
+    fn try_get_node_raw(&self, path: AbsoluteLockingPath) -> Result<Arc<Mutex<LockingNode>>, LockingHierarchyError> {
+        todo!();
+    }
+
     pub fn contains(&self, path: AbsoluteLockingPath) -> bool {
         todo!();
     }
@@ -1668,23 +1715,7 @@ impl LockingHierarchy {
         todo!();
     }
 
-    pub fn get<T: LockingNodeData>(&self, path: AbsoluteLockingPath) -> Result<&T, LockingHierarchyError> {
-        todo!();
-    }
-
-    pub fn get_mut<T: LockingNodeData>(&mut self, path: AbsoluteLockingPath) -> Result<&mut T, LockingHierarchyError> {
-        todo!();
-    }
-    
-    pub fn get_node_raw(&self, path: AbsoluteLockingPath) -> Result<Arc<Mutex<LockingNode>>, LockingHierarchyError> {
-        todo!();
-    }
-
-    pub fn get_node(&self, path: AbsoluteLockingPath) -> Result<&LockingNode, LockingHierarchyError> {
-        todo!();
-    }
-
-    pub fn get_node_mut(&mut self, path: AbsoluteLockingPath) -> Result<&mut LockingNode, LockingHierarchyError> {
+    pub fn is_open<T: LockingNodeData>(&self, path: AbsoluteLockingPath) -> bool {
         todo!();
     }
 }

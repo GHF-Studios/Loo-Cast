@@ -1,0 +1,5 @@
+include("loo_cast/src/core/mod.lua")
+include("loo_cast/src/camera/mod.lua")
+include("loo_cast/src/chunk/mod.lua")
+include("loo_cast/src/chunk_actor/mod.lua")
+include("loo_cast/src/chunk_loader/mod.lua")
