@@ -1,3 +1,9 @@
+define_task("core.debug_entrypoint", function()
+    await_task("core.spawn_main_camera");
+    await_task("core.spawn_start_chunks");
+    await_task("core.spawn_start_chunk_actors");
+end);
+
 define_task("core.spawn_main_camera", function()
     local entity_position = run_op("entity.position.new", 0.0, 0.0);
     local entity_id, camera_id = try(await_task("camera.spawn", entity_position));
