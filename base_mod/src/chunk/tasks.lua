@@ -1,10 +1,10 @@
-define_task("chunk.spawn", function(chunk_position)
+define_task("chunk.spawn", function(chunk_position, chunk_loader)
     -- Create entity
     local entity_position = run_op("core.convert", "chunk.position", "entity.position", chunk_position);
     local entity_id = await_task("entity.create", entity_position);
 
     -- Upgrade to chunk
-    local chunk_id = try(await_task("entity.upgrade", "chunk", entity_id));
+    local chunk_id = try(await_task("entity.upgrade", "chunk", entity_id, chunk_loader));
 
     -- Construct sprite
     local color = 

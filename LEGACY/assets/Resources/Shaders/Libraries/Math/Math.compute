@@ -1,0 +1,14 @@
+float map(float value, float fromMin, float fromMax, float toMin, float toMax)
+{
+    return (value - fromMin) / (fromMax - fromMin) * (toMax - toMin) + toMin;
+}
+
+float inverseLerp(float a, float b, float v)
+{
+    return (v - a) / (b - a);
+}
+
+float hash(float n )
+{
+    return frac(sin(n)*43758.5453);
+}
