@@ -1,21 +1,40 @@
-define_system("chunk_loader.pre_update", "pre_update", "(Query<chunk_loader>)", function(chunk_loaders, chunks) 
+define_system("chunk_loader.pre_update", "pre_update", "(Query<chunk_loader>, Query<chunk>)", function(chunk_loaders, chunks) 
     for chunk_loader in chunk_loaders {
-        local current_chunks = run_op("chunk_loader.get_current_chunks", chunk_loader);
-        local detected_chunks = run_op("chunk_loader.detect_chunks", chunk_loader);
-        local old_chunks, current_chunks, new_chunks = run_op("chunk_loader.filter_chunks", current_chunks, detected_chunks);
-        try(run_op("chunk_loader.set_current_chunks", chunk_loader, current_chunks));
+        local current_chunk_positions = chunk_loader.get_current_chunk_positions()
+        local detected_chunk_positions = chunk_loader.detect_chunk_positions()
+
+        local old_chunk_positions = {}
+        local current_chunk_positions = {}
+        local new_chunk_positions = {}
+
+        for _, pos in ipairs(previous_chunk_positions) do
+            if table_contains(detected_chunk_positions, pos) then
+                table.insert(unchanged_chunk_positions, pos)
+            else
+                table.insert(old_chunk_positions, pos)
+            end
+        end
+
+        for _, pos in ipairs(detected_chunk_positions) do
+            if not table_contains(previous_chunk_positions, pos) then
+                table.insert(new_chunk_positions, pos)
+            end
+        end
+
+        chunk_loader.set_current_chunk_positions(current_chunk_positions)
         
-        for old_chunk in old_chunks {
-            old_chunk = try(await_task("chunk.resolve_from_pos", old_chunk));
-            if old_chunk.owner.id == chunk_loader.id then
-                await_task("entity.despawn", old_chunk.entity);
+        for old_chunk_pos in old_chunk_positions {
+            local old_chunk = chunks.find(function(chunk) return chunk.pos == old_chunk_pos end)
+            if old_chunk and old_chunk.loader.id == chunk_loader.id then
+                await_task("entity.despawn", old_chunk.entity)
             end
         }
 
-        for new_chunk in new_chunks {
-            if run_op("chunk.pos.exists", new_chunk) == false then
-                await_task("chunk.spawn", new_chunk, chunk_loader);
+        for new_chunk_pos in new_chunk_positions {
+            local new_chunk = chunks.find(function(chunk) return chunk.pos == new_chunk_pos end)
+            if not new_chunk then
+                await_task("chunk.spawn", new_chunk_pos, chunk_loader)
             end
         }
     }
-end);
+end)
