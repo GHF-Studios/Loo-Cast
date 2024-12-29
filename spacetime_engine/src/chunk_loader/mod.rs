@@ -1,28 +1,18 @@
-// Data types
 pub mod components;
-pub mod structs;
-pub mod wrappers;
-
-// Functions
-pub mod commands;
+pub mod events;
 pub mod hooks;
+pub mod resources;
 pub mod systems;
-pub mod utilities;
-
-// Integrations
-pub mod operations;
-
-// Miscelaneous
-pub mod constants;
 
 use bevy::prelude::*;
+use systems::update_chunk_loader_system;
+use resources::ChunkOwnership;
 
 pub(in crate) struct ChunkLoaderPlugin;
-
 impl Plugin for ChunkLoaderPlugin {
     fn build(&self, app: &mut App) {
         app
-            .register_type::<structs::RegisteredChunkInfo>()
-            .add_systems(Startup, systems::startup);
+            .insert_resource(ChunkOwnership::default())
+            .add_systems(Update, update_chunk_loader_system);
     }
 }

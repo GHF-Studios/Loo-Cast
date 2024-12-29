@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy::log::LogPlugin;
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::*;
+use spacetime_engine::singletons::*;
 use tokio::task::JoinHandle;
 
 // Primary tasks
@@ -23,8 +24,14 @@ use tokio::task::JoinHandle;
 // TODO: Implement magnets via electromagnetism
 // TODO: Implement stars via gravity and electromagnetism
 
+fn enable_backtrace() {
+    std::env::set_var("RUST_BACKTRACE", "1");
+}
+
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "0");
+    // enable_backtrace();
+
+    let _ = LOCKING_HIERARCHY.lock().unwrap();
 
     App::new()
         .add_plugins(DefaultPlugins.set(LogPlugin {
@@ -34,6 +41,7 @@ fn main() {
         }))
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(SpacetimeEnginePlugins)
+        .add_systems(PreStartup, spacetime_engine::systems::pre_startup)
         .run();
 }
 

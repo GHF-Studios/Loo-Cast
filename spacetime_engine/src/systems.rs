@@ -1,39 +1,30 @@
-use bevy::prelude::*;
-use bevy_rapier2d::plugin::RapierConfiguration;
-use crate::components::Serialized;
-use crate::singletons::*;
-use crate::hooks::*;
+use std::collections::HashMap;
+use bevy::{ecs::system::SystemId, prelude::*};
+use crate::player::bundles::PlayerBundle;
 
-pub(in super) fn pre_startup(world: &mut World) {
-    let mut rapier_configuration = world.get_resource_mut::<RapierConfiguration>().unwrap();
-    rapier_configuration.gravity = Vec2::new(0.0, 0.0);
-    drop(rapier_configuration);
+#[derive(Resource)]
+pub struct MainSystems(pub HashMap<String, SystemId>);
+impl FromWorld for MainSystems {
+    fn from_world(world: &mut World) -> Self {
+        let mut main_systems: MainSystems = MainSystems(HashMap::new());
+
+        main_systems.0.insert(
+            "spawn_main_camera".into(),
+            world.register_system(spawn_main_camera_system)
+        );
+        main_systems.0.insert(
+            "spawn_player".into(),
+            world.register_system(spawn_player_system)
+        );
+
+        main_systems
+    }
 }
 
-pub(in super) fn startup(world: &mut World) {
-    world
-        .register_component_hooks::<Serialized>()
-        .on_add(on_add_serialized)
-        .on_remove(on_remove_serialized);
+fn spawn_player_system(mut commands: Commands) {
+    commands.spawn(PlayerBundle::default());
 }
 
-pub(in super) fn post_update(world: &mut World) {
-    {
-        let mut operations = OPERATION_QUEUE.lock().unwrap().remove_operations();
-
-        while let Some(mut operation_box) = operations.pop() {
-            operation_box.execute(world);
-        }
-    }
-
-    {
-        let mut unlock_queue = UNLOCK_QUEUE.lock().unwrap();
-        let mut locking_hierarchy = LOCKING_HIERARCHY.lock().unwrap();
-        
-        for unlock_request in unlock_queue.iter() {
-            let node = locking_hierarchy.try_get_node_mut(unlock_request.node_path.clone()).unwrap();
-            node.unlock();
-        }
-        unlock_queue.clear();
-    }
+fn spawn_main_camera_system(mut commands: Commands) {
+    commands.spawn(Camera2dBundle::default());
 }

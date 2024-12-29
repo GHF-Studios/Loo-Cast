@@ -1,26 +1,72 @@
+use bevy::ecs::world::DeferredWorld;
 use bevy::prelude::*;
-use crate::core::singletons::MAIN_TYPE_REGISTRY;
-use super::{components::*, operations::*, wrappers::*};
+use bevy::ecs::component::ComponentId;
+use std::collections::HashSet;
 
-pub(in super) fn startup(world: &mut World) {
-    let mut main_type_registry = MAIN_TYPE_REGISTRY.lock().unwrap();
+use crate::chunk::components::ChunkComponent;
+use crate::chunk::functions::calculate_chunks_in_range;
 
-    main_type_registry.register::<ChunkLoader>();
-    main_type_registry.manage::<ChunkLoader>();
+use super::components::ChunkLoaderComponent;
+use super::resources::ChunkOwnership;
 
-    main_type_registry.set_data::<ChunkLoader, _>(ChunkLoaderInstanceRegistry::new());
-    main_type_registry.set_data::<ChunkLoader, _>(ChunkLoaderOperationTypeRegistry::new());
+pub fn update_chunk_loader(
+    mut commands: Commands,
+    query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
+    mut chunk_ownership: ResMut<ChunkOwnership>,
+) {
+    for (loader_entity, transform, chunk_loader) in query.iter() {
+        let position = transform.translation.truncate(); // 2D position
+        let range = chunk_loader.range;
 
-    let chunk_loader_operation_type_registry: &mut ChunkLoaderOperationTypeRegistry = main_type_registry.get_data_mut::<ChunkLoader, _>().unwrap();
+        let target_chunks = calculate_chunks_in_range(position, range)
+            .into_iter()
+            .collect::<HashSet<(i32, i32)>>();
 
-    chunk_loader_operation_type_registry.register::<UpgradeToChunkLoader>();
-    chunk_loader_operation_type_registry.manage::<UpgradeToChunkLoader>();
+        // Track chunks that should be loaded/unloaded
+        let current_chunks: HashSet<(i32, i32)> = chunk_ownership
+            .ownership
+            .iter()
+            .filter_map(|(chunk, &owner)| {
+                if owner == loader_entity {
+                    Some(*chunk)
+                } else {
+                    None
+                }
+            })
+            .collect();
 
-    chunk_loader_operation_type_registry.register::<DowngradeFromChunkLoader>();
-    chunk_loader_operation_type_registry.manage::<DowngradeFromChunkLoader>();
+        let chunks_to_spawn = target_chunks.difference(&current_chunks);
+        let chunks_to_despawn = current_chunks.difference(&target_chunks);
 
-    world
-        .register_component_hooks::<ChunkLoader>()
-        .on_add(super::hooks::on_add_chunk_loader)
-        .on_remove(super::hooks::on_remove_chunk_loader);
+        // Spawn and claim ownership of new chunks
+        for &chunk_coord in chunks_to_spawn {
+            if chunk_ownership.loaded_chunks.contains(&chunk_coord) {
+                // Skip if chunk already exists
+                continue;
+            }
+
+            // Spawn the chunk
+            commands.spawn(ChunkComponent { coordinates: chunk_coord, owner: Some(loader_entity) });
+
+            // Claim ownership
+            chunk_ownership.ownership.insert(chunk_coord, loader_entity);
+            chunk_ownership.loaded_chunks.insert(chunk_coord);
+        }
+
+        // Release ownership of chunks no longer in range
+        for &chunk_coord in chunks_to_despawn {
+            chunk_ownership.ownership.remove(&chunk_coord);
+
+            // Check if another loader can claim ownership
+            if !query.iter().any(|(_, transform, chunk_loader)| {
+                let other_position = transform.translation.truncate();
+                let other_radius = chunk_loader.radius;
+                calculate_chunks_in_range(other_position, other_radius).contains(&chunk_coord)
+            }) {
+                // No other loader can claim this chunk; despawn it
+                chunk_ownership.loaded_chunks.remove(&chunk_coord);
+                commands.entity(loader_entity).despawn_recursive();
+            }
+        }
+    }
 }
