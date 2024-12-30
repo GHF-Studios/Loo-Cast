@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use crate::chunk::bundles::ChunkBundle;
 use crate::chunk::components::ChunkComponent;
 use crate::chunk::constants::HALF_CHUNK_SIZE;
-use crate::chunk::functions::calculate_chunks_in_radius;
+use crate::chunk::functions::{calculate_chunks_in_radius, chunk_pos_to_world, despawn_chunk, spawn_chunk};
 use crate::chunk::statics::{CHUNK_OWNERSHIP, LOADED_CHUNKS, REQUESTED_CHUNK_ADDITIONS, REQUESTED_CHUNK_REMOVALS};
 
 use super::components::ChunkLoaderComponent;
@@ -38,9 +38,6 @@ pub(in crate) fn update_chunk_loader_system(
         let chunks_to_spawn = target_chunks.difference(&current_chunks);
         let chunks_to_despawn = current_chunks.difference(&target_chunks);
 
-        debug!("chunks_to_spawn {:?}", chunks_to_spawn);
-        debug!("chunks_to_despawn {:?}", chunks_to_despawn);
-
         let loaded_chunks = LOADED_CHUNKS.lock().unwrap();
         
         // Spawn and claim ownership of new chunks
@@ -50,28 +47,8 @@ pub(in crate) fn update_chunk_loader_system(
                 continue;
             }
 
-            let mut requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
-            if requested_chunk_additions.contains(&chunk_coord) {
-                // Skip if chunk is already requested
-                continue;
-            }
-
-            // TODO: Request the chunk (encapsulate/automate this somehow, maybe using event)
-            requested_chunk_additions.insert(chunk_coord);
-            // TODO: +
-            commands.spawn(ChunkBundle {
-                chunk: ChunkComponent {
-                    coord: chunk_coord,
-                    owner: Some(loader_entity)
-                },
-                sprite_bundle: SpriteBundle {
-                    sprite: Sprite {
-                        rect: Some(Rect::new(-HALF_CHUNK_SIZE, -HALF_CHUNK_SIZE, HALF_CHUNK_SIZE, HALF_CHUNK_SIZE)),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            });
+            let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
+            spawn_chunk(&mut commands, requested_chunk_additions, chunk_coord, loader_entity);
         }
 
         // Release ownership of chunks no longer in range
@@ -89,12 +66,6 @@ pub(in crate) fn update_chunk_loader_system(
                     continue;
                 }
 
-                let mut requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
-                if requested_chunk_removals.contains(&chunk_coord) {
-                    // Skip if chunk is already requested
-                    continue;
-                }
-
                 // No other loader can claim this chunk; resolve the chunk entity and despawn it
                 let (chunk_entity, _) = chunk_query
                     .iter()
@@ -103,10 +74,8 @@ pub(in crate) fn update_chunk_loader_system(
                     })
                     .expect("The entity of chunk {:?} could not be resolved");
                 
-                // TODO: Request the chunk (encapsulate/automate this somehow, maybe using event)
-                requested_chunk_removals.insert(chunk_coord);
-                // TODO: +
-                commands.entity(chunk_entity).despawn_recursive();
+                let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+                despawn_chunk(&mut commands, requested_chunk_removals, chunk_coord, chunk_entity);
             }
         }
     }

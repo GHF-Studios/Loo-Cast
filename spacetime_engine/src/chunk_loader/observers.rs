@@ -13,8 +13,8 @@ pub(in crate) fn observe_on_add_chunk_loader(
     mut commands: Commands,
     chunk_loader_query: Query<(&Transform, &ChunkLoaderComponent)>,
 ) {
-    let entity = trigger.entity();
-    let (transform, chunk_loader) = chunk_loader_query.get(entity).unwrap();
+    let loader_entity = trigger.entity();
+    let (transform, chunk_loader) = chunk_loader_query.get(loader_entity).unwrap();
     let radius = chunk_loader.radius;
     let position = transform.translation.truncate();
     let chunks_to_load = calculate_chunks_in_radius(position, radius);
@@ -25,27 +25,8 @@ pub(in crate) fn observe_on_add_chunk_loader(
             continue;
         }
 
-        let mut requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
-        if requested_chunk_additions.contains(&chunk_coord) {
-            continue;
-        }
-
-        // TODO: Request the chunk (encapsulate/automate this somehow, maybe using event)
-        requested_chunk_additions.insert(chunk_coord);
-        // TODO: +
-        commands.spawn(ChunkBundle {
-            chunk: ChunkComponent {
-                coord: chunk_coord,
-                owner: Some(entity)
-            },
-            sprite_bundle: SpriteBundle {
-                sprite: Sprite {
-                    rect: Some(Rect::new(-HALF_CHUNK_SIZE, -HALF_CHUNK_SIZE, HALF_CHUNK_SIZE, HALF_CHUNK_SIZE)),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-        });
+        let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
+        spawn_chunk(&mut commands, requested_chunk_additions, chunk_coord, loader_entity);
     }
 }
 
@@ -54,10 +35,11 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     mut commands: Commands,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
 ) {
+    let loader_entity = trigger.entity();
     let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
     let chunks_to_release: Vec<(i32, i32)> = chunk_ownership
         .iter()
-        .filter_map(|(&chunk, &owner)| if owner == trigger.entity() { Some(chunk) } else { None })
+        .filter_map(|(&chunk, &owner)| if owner == loader_entity { Some(chunk) } else { None })
         .collect();
 
     for chunk_coord in chunks_to_release {
@@ -74,14 +56,7 @@ pub(in crate) fn observe_on_remove_chunk_loader(
                 },
                 None => {
                     let mut requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
-                    if requested_chunk_removals.contains(&chunk_coord) {
-                        continue;
-                    }
-
-                    // TODO: Request the chunk (encapsulate/automate this somehow, maybe using event)
-                    requested_chunk_removals.insert(chunk_coord);
-                    // TODO: +
-                    commands.entity(trigger.entity()).despawn_recursive();
+                    despawn_chunk(&mut commands, requested_chunk_removals, chunk_coord, loader_entity);
                 }
             }
     }

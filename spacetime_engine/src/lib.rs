@@ -7,7 +7,8 @@
 // Functions
 //pub mod commands;
 //pub mod hooks;
-pub mod systems;
+pub mod oneshot_systems;
+//pub mod systems;
 
 // Integrations
 
@@ -37,6 +38,7 @@ use bevy::{app::PluginGroupBuilder, ecs::system::SystemId, prelude::*};
 use chunk::ChunkPlugin;
 //use chunk_actor::ChunkActorPlugin;
 use chunk_loader::ChunkLoaderPlugin;
+use oneshot_systems::MainOneshotSystems;
 //use core::CorePlugin;
 //use entity::EntityPlugin;
 //use math::MathPlugin;
@@ -65,7 +67,7 @@ pub(in crate) struct SpacetimeEngineCorePlugin;
 impl Plugin for SpacetimeEngineCorePlugin {
     fn build(&self, app: &mut App) {
         app
-            .init_resource::<systems::MainSystems>()
+            .init_resource::<MainOneshotSystems>()
             .add_systems(PreStartup, pre_startup_system)
             .add_systems(Startup, startup_system);
     }
@@ -73,15 +75,13 @@ impl Plugin for SpacetimeEngineCorePlugin {
 
 fn pre_startup_system(
     mut commands: Commands,
-    systems: Res<systems::MainSystems>
+    oneshot_systems: Res<MainOneshotSystems>
 ) {
-    let id = systems.0["spawn_player"];
+    let id = oneshot_systems.0["spawn_player"];
     commands.run_system(id);
     
-    let id = systems.0["spawn_main_camera"];
+    let id = oneshot_systems.0["spawn_main_camera"];
     commands.run_system(id);
-
-    // Rename all components, systems, etc. the names with the Suffix yk
 }
 
 fn startup_system() {

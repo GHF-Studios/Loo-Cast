@@ -7,7 +7,7 @@ pub struct ChunkLoaderComponent {
 impl Default for ChunkLoaderComponent {
     fn default() -> Self {
         ChunkLoaderComponent {
-            radius: 2
+            radius: 3
         }
     }
 }

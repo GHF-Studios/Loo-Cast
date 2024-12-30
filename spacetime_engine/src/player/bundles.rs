@@ -18,7 +18,12 @@ impl Default for PlayerBundle {
             player: Default::default(),
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
+                    color: Color::srgb(0.0, 1.0, 0.0),
                     rect: Some(Rect::new(-16.0, -16.0, 16.0, 16.0)),
+                    ..Default::default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(0.0, 0.0, 0.0),
                     ..Default::default()
                 },
                 ..Default::default()
