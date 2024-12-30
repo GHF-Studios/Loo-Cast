@@ -39,6 +39,9 @@ pub(in crate) fn update_chunk_loader_system(
         let chunks_to_spawn = target_chunks.difference(&current_chunks);
         let chunks_to_despawn = current_chunks.difference(&target_chunks);
 
+        debug!("chunks_to_spawn {:?}", chunks_to_spawn);
+        debug!("chunks_to_despawn {:?}", chunks_to_despawn);
+
         // Spawn and claim ownership of new chunks
         for &chunk_coord in chunks_to_spawn {
             if chunk_ownership.loaded_chunks.contains(&chunk_coord) {

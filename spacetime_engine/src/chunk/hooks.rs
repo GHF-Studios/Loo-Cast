@@ -26,12 +26,15 @@ pub(in crate) fn hook_on_add_chunk(mut world: DeferredWorld, entity: Entity, _co
         None => return
     };
 
+    debug!("loaded_chunks {:?}", chunk_ownership.loaded_chunks);
+    debug!("ownership {:?}", chunk_ownership.ownership);
+
     if chunk_ownership.loaded_chunks.contains(&chunk_coord) {
         panic!("Attempted to add chunk {:?} duplicate", chunk_coord)
     }
 
     if chunk_ownership.ownership.contains_key(&chunk_coord) {
-        unreachable!("Attempted to add chunk {:?}, but it's ownership has already been illegally claimed", chunk_coord)
+        unreachable!("Attempted to add chunk {:?}, but it's ownership has already been claimed illegally", chunk_coord)
     }
 
     chunk_ownership.loaded_chunks.insert(chunk_coord);
