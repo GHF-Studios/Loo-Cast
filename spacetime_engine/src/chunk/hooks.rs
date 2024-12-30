@@ -2,12 +2,11 @@ use bevy::ecs::component::ComponentId;
 use bevy::prelude::*;
 use bevy::ecs::world::DeferredWorld;
 
-use crate::chunk_loader::resources::ChunkOwnership;
-
 use super::components::ChunkComponent;
 use super::functions::grid_position;
+use super::statics::{CHUNK_OWNERSHIP, LOADED_CHUNKS, REQUESTED_CHUNK_ADDITIONS, REQUESTED_CHUNK_REMOVALS};
 
-pub(in crate) fn hook_on_add_chunk(mut world: DeferredWorld, entity: Entity, _component_id: ComponentId) {
+pub(in crate) fn hook_on_add_chunk(world: DeferredWorld, entity: Entity, _component_id: ComponentId) {
     let chunk_coord = match world.get::<Transform>(entity) {
         Some(transform) => grid_position(transform.translation.truncate()),
         None => return
@@ -21,45 +20,50 @@ pub(in crate) fn hook_on_add_chunk(mut world: DeferredWorld, entity: Entity, _co
         }
     };
 
-    let mut chunk_ownership = match world.get_resource_mut::<ChunkOwnership>() {
-        Some(chunk_ownership) => chunk_ownership,
-        None => return
-    };
+    let mut loaded_chunks = LOADED_CHUNKS.lock().unwrap();
+    let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
+    let mut requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
 
-    debug!("loaded_chunks {:?}", chunk_ownership.loaded_chunks);
-    debug!("ownership {:?}", chunk_ownership.ownership);
-
-    if chunk_ownership.loaded_chunks.contains(&chunk_coord) {
+    if loaded_chunks.contains(&chunk_coord) {
         panic!("Attempted to add chunk {:?} duplicate", chunk_coord)
     }
 
-    if chunk_ownership.ownership.contains_key(&chunk_coord) {
+    if chunk_ownership.contains_key(&chunk_coord) {
         unreachable!("Attempted to add chunk {:?}, but it's ownership has already been claimed illegally", chunk_coord)
     }
 
-    chunk_ownership.loaded_chunks.insert(chunk_coord);
-    chunk_ownership.ownership.insert(chunk_coord, owner);
+    if !requested_chunk_additions.contains(&chunk_coord) {
+        panic!("Attempted to illegally add chunk {:?}, which has not been requested yet", chunk_coord)
+    }
+
+    loaded_chunks.insert(chunk_coord);
+    chunk_ownership.insert(chunk_coord, owner);
+    requested_chunk_additions.remove(&chunk_coord);
 }
 
-pub(in crate) fn hook_on_remove_chunk(mut world: DeferredWorld, entity: Entity, _component_id: ComponentId) {
+pub(in crate) fn hook_on_remove_chunk(world: DeferredWorld, entity: Entity, _component_id: ComponentId) {
     let chunk_coord = match world.get::<Transform>(entity) {
         Some(transform) => grid_position(transform.translation.truncate()),
         None => return
     };
 
-    let mut chunk_ownership = match world.get_resource_mut::<ChunkOwnership>() {
-        Some(chunk_ownership) => chunk_ownership,
-        None => return
-    };
+    let mut loaded_chunks = LOADED_CHUNKS.lock().unwrap();
+    let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
+    let mut requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
 
-    if chunk_ownership.loaded_chunks.contains(&chunk_coord) {
+    if loaded_chunks.contains(&chunk_coord) {
         panic!("Attempted to despawn already-non-existent chunk {:?}", chunk_coord)
     }
 
-    if chunk_ownership.ownership.contains_key(&chunk_coord) {
+    if chunk_ownership.contains_key(&chunk_coord) {
         panic!("Attempted to release ownership of chunk {:?}, which nobody has ownership of to begin with", chunk_coord)
     }
 
-    chunk_ownership.loaded_chunks.remove(&chunk_coord);
-    chunk_ownership.ownership.remove(&chunk_coord);
+    if !requested_chunk_removals.contains(&chunk_coord) {
+        panic!("Attempted to illegally remove chunk {:?}, which has not been requested yet", chunk_coord)
+    }
+
+    loaded_chunks.remove(&chunk_coord);
+    chunk_ownership.remove(&chunk_coord);
+    requested_chunk_removals.remove(&chunk_coord);
 }

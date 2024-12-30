@@ -4,27 +4,35 @@ use crate::chunk::bundles::ChunkBundle;
 use crate::chunk::components::ChunkComponent;
 use crate::chunk::constants::HALF_CHUNK_SIZE;
 use crate::chunk::functions::*;
+use crate::chunk::statics::{CHUNK_OWNERSHIP, LOADED_CHUNKS, REQUESTED_CHUNK_ADDITIONS, REQUESTED_CHUNK_REMOVALS};
 
 use super::components::ChunkLoaderComponent;
-use super::resources::ChunkOwnership;
 
 pub(in crate) fn observe_on_add_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     mut commands: Commands,
     chunk_loader_query: Query<(&Transform, &ChunkLoaderComponent)>,
-    chunk_ownership: ResMut<ChunkOwnership>,
 ) {
     let entity = trigger.entity();
     let (transform, chunk_loader) = chunk_loader_query.get(entity).unwrap();
     let radius = chunk_loader.radius;
-    let position = transform.translation.truncate(); // 2D position
+    let position = transform.translation.truncate();
     let chunks_to_load = calculate_chunks_in_radius(position, radius);
 
     for chunk_coord in chunks_to_load {
-        if chunk_ownership.loaded_chunks.contains(&chunk_coord) {
+        let loaded_chunks = LOADED_CHUNKS.lock().unwrap();
+        if loaded_chunks.contains(&chunk_coord) {
             continue;
         }
 
+        let mut requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
+        if requested_chunk_additions.contains(&chunk_coord) {
+            continue;
+        }
+
+        // TODO: Request the chunk (encapsulate/automate this somehow, maybe using event)
+        requested_chunk_additions.insert(chunk_coord);
+        // TODO: +
         commands.spawn(ChunkBundle {
             chunk: ChunkComponent {
                 coord: chunk_coord,
@@ -45,11 +53,9 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     mut commands: Commands,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
-    mut chunk_ownership: ResMut<ChunkOwnership>,
 ) {
-    
+    let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
     let chunks_to_release: Vec<(i32, i32)> = chunk_ownership
-        .ownership
         .iter()
         .filter_map(|(&chunk, &owner)| if owner == trigger.entity() { Some(chunk) } else { None })
         .collect();
@@ -63,12 +69,18 @@ pub(in crate) fn observe_on_remove_chunk_loader(
                 calculate_chunks_in_radius(other_position, other_radius).contains(&chunk_coord)
             }) {
                 Some((new_owner, _, _)) => {
-                    // A new owner has been found for the chunk. Ownership will be transfered accordingly
-                    chunk_ownership.ownership.remove(&chunk_coord);
-                    chunk_ownership.ownership.insert(chunk_coord, new_owner);
+                    chunk_ownership.remove(&chunk_coord);
+                    chunk_ownership.insert(chunk_coord, new_owner);
                 },
                 None => {
-                    // No new owner could be found. The chunk will despawn immediately
+                    let mut requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+                    if requested_chunk_removals.contains(&chunk_coord) {
+                        continue;
+                    }
+
+                    // TODO: Request the chunk (encapsulate/automate this somehow, maybe using event)
+                    requested_chunk_removals.insert(chunk_coord);
+                    // TODO: +
                     commands.entity(trigger.entity()).despawn_recursive();
                 }
             }

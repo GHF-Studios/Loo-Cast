@@ -34,7 +34,7 @@ use std::collections::HashMap;
 use bevy::{app::PluginGroupBuilder, ecs::system::SystemId, prelude::*};
 //use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
-//use chunk::ChunkPlugin;
+use chunk::ChunkPlugin;
 //use chunk_actor::ChunkActorPlugin;
 use chunk_loader::ChunkLoaderPlugin;
 //use core::CorePlugin;
@@ -50,7 +50,7 @@ impl PluginGroup for SpacetimeEnginePlugins {
             .add(SpacetimeEngineCorePlugin)
             //.add(CameraPlugin)
             //.add(Camera2dBundlePlugin)
-            //.add(ChunkPlugin)
+            .add(ChunkPlugin)
             //.add(ChunkActorPlugin)
             .add(ChunkLoaderPlugin)
             //.add(CorePlugin)
