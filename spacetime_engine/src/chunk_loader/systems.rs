@@ -1,24 +1,25 @@
-use bevy::ecs::world::DeferredWorld;
 use bevy::prelude::*;
-use bevy::ecs::component::ComponentId;
 use std::collections::HashSet;
 
+use crate::chunk::bundles::ChunkBundle;
 use crate::chunk::components::ChunkComponent;
-use crate::chunk::functions::calculate_chunks_in_range;
+use crate::chunk::constants::HALF_CHUNK_SIZE;
+use crate::chunk::functions::calculate_chunks_in_radius;
 
 use super::components::ChunkLoaderComponent;
 use super::resources::ChunkOwnership;
 
-pub fn update_chunk_loader(
+pub(in crate) fn update_chunk_loader_system(
     mut commands: Commands,
-    query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
+    chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
+    chunk_query: Query<(Entity, &ChunkComponent)>,
     mut chunk_ownership: ResMut<ChunkOwnership>,
 ) {
-    for (loader_entity, transform, chunk_loader) in query.iter() {
+    for (loader_entity, transform, chunk_loader) in chunk_loader_query.iter() {
         let position = transform.translation.truncate(); // 2D position
-        let range = chunk_loader.range;
+        let radius = chunk_loader.radius;
 
-        let target_chunks = calculate_chunks_in_range(position, range)
+        let target_chunks = calculate_chunks_in_radius(position, radius)
             .into_iter()
             .collect::<HashSet<(i32, i32)>>();
 
@@ -46,11 +47,19 @@ pub fn update_chunk_loader(
             }
 
             // Spawn the chunk
-            commands.spawn(ChunkComponent { coordinates: chunk_coord, owner: Some(loader_entity) });
-
-            // Claim ownership
-            chunk_ownership.ownership.insert(chunk_coord, loader_entity);
-            chunk_ownership.loaded_chunks.insert(chunk_coord);
+            commands.spawn(ChunkBundle {
+                chunk: ChunkComponent {
+                    coord: chunk_coord,
+                    owner: Some(loader_entity)
+                },
+                sprite_bundle: SpriteBundle {
+                    sprite: Sprite {
+                        rect: Some(Rect::new(-HALF_CHUNK_SIZE, -HALF_CHUNK_SIZE, HALF_CHUNK_SIZE, HALF_CHUNK_SIZE)),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+            });
         }
 
         // Release ownership of chunks no longer in range
@@ -58,14 +67,19 @@ pub fn update_chunk_loader(
             chunk_ownership.ownership.remove(&chunk_coord);
 
             // Check if another loader can claim ownership
-            if !query.iter().any(|(_, transform, chunk_loader)| {
+            if !chunk_loader_query.iter().any(|(_, transform, chunk_loader)| {
                 let other_position = transform.translation.truncate();
                 let other_radius = chunk_loader.radius;
-                calculate_chunks_in_range(other_position, other_radius).contains(&chunk_coord)
+                calculate_chunks_in_radius(other_position, other_radius).contains(&chunk_coord)
             }) {
-                // No other loader can claim this chunk; despawn it
-                chunk_ownership.loaded_chunks.remove(&chunk_coord);
-                commands.entity(loader_entity).despawn_recursive();
+                // No other loader can claim this chunk; resolve the chunk entity and despawn it
+                let (chunk_entity, _) = chunk_query
+                    .iter()
+                    .find(|(_, chunk)| {
+                        chunk.coord == chunk_coord
+                    })
+                    .expect("The entity of chunk {:?} could not be resolved");
+                commands.entity(chunk_entity).despawn_recursive();
             }
         }
     }

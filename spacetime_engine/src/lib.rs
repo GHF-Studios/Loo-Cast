@@ -66,12 +66,12 @@ impl Plugin for SpacetimeEngineCorePlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<systems::MainSystems>()
-            .add_systems(PreStartup, pre_startup)
-            .add_systems(Startup, startup);
+            .add_systems(PreStartup, pre_startup_system)
+            .add_systems(Startup, startup_system);
     }
 }
 
-fn pre_startup(
+fn pre_startup_system(
     mut commands: Commands,
     systems: Res<systems::MainSystems>
 ) {
@@ -84,6 +84,6 @@ fn pre_startup(
     // Rename all components, systems, etc. the names with the Suffix yk
 }
 
-fn startup() {
+fn startup_system() {
     
 }
