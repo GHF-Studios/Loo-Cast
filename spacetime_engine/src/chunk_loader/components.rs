@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use super::constants::DEFAULT_CHUNK_LOADER_RADIUS;
+
 #[derive(Component)]
 pub struct ChunkLoaderComponent {
     pub radius: u32,
@@ -7,7 +9,7 @@ pub struct ChunkLoaderComponent {
 impl Default for ChunkLoaderComponent {
     fn default() -> Self {
         ChunkLoaderComponent {
-            radius: 3
+            radius: DEFAULT_CHUNK_LOADER_RADIUS
         }
     }
 }

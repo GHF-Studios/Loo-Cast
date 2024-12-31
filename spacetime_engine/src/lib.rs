@@ -42,7 +42,7 @@ use oneshot_systems::MainOneshotSystems;
 //use core::CorePlugin;
 //use entity::EntityPlugin;
 //use math::MathPlugin;
-//use player::PlayerPlugin;
+use player::PlayerPlugin;
 //use sprite_bundle::SpriteBundlePlugin;
 
 pub struct SpacetimeEnginePlugins;
@@ -58,7 +58,7 @@ impl PluginGroup for SpacetimeEnginePlugins {
             //.add(CorePlugin)
             //.add(EntityPlugin)
             //.add(MathPlugin)
-            //.add(PlayerPlugin)
+            .add(PlayerPlugin)
             //.add(SpriteBundlePlugin)
     }
 }

@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 use crate::{chunk_actor::components::ChunkActorComponent, chunk_loader::components::ChunkLoaderComponent};
-use super::components::Player;
+use super::components::PlayerComponent;
 
 #[derive(Bundle)]
 pub struct PlayerBundle {
     chunk_actor: ChunkActorComponent,
     chunk_loader: ChunkLoaderComponent,
-    player: Player,
+    player: PlayerComponent,
     sprite_bundle: SpriteBundle,
 }
 

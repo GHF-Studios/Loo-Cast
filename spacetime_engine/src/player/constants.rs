@@ -1,0 +1,1 @@
+pub const PLAYER_MOVEMENT_SPEED: f32 = 10.0; // Units per second

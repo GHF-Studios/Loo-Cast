@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use crate::chunk::{bundles::ChunkBundle, components::ChunkComponent, constants::HALF_CHUNK_SIZE};
 
-use super::constants::CHUNK_SIZE;
+use super::constants::{CHUNK_SIZE, DEFAULT_CHUNK_Z};
 
 pub(in crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i32, i32)> {
     let (center_chunk_x, center_chunk_y) = world_pos_to_chunk(position);
@@ -69,7 +69,7 @@ pub(in crate) fn spawn_chunk(commands: &mut Commands, mut requested_chunk_additi
                 ..Default::default()
             },
             transform: Transform {
-                translation: chunk_pos_to_world(chunk_coord).extend(-10.0),
+                translation: chunk_pos_to_world(chunk_coord).extend(DEFAULT_CHUNK_Z),
                 ..Default::default()
             },
             ..Default::default()
