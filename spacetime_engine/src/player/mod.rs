@@ -1,15 +1,19 @@
 pub mod bundles;
 pub mod components;
 pub mod constants;
+pub mod resources;
 pub mod systems;
 
 use bevy::prelude::*;
-use systems::update_player_system;
+use resources::PlayerActionQueue;
+use systems::{process_player_action_queue, update_player_system};
 
 pub(in crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Update, update_player_system);
+            .insert_resource(PlayerActionQueue::default())
+            .add_systems(Update, update_player_system)
+            .add_systems(Update, process_player_action_queue.after(update_player_system));
     }
 }

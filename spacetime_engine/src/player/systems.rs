@@ -2,29 +2,24 @@ use bevy::prelude::*;
 
 use crate::oneshot_systems::MainOneshotSystems;
 
-use super::{components::PlayerComponent, constants::PLAYER_MOVEMENT_SPEED};
+use super::{components::PlayerComponent, constants::PLAYER_MOVEMENT_SPEED, resources::{PlayerAction, PlayerActionQueue}};
 
 pub(in crate) fn update_player_system(
-    mut commands: Commands,
+    mut queue: ResMut<PlayerActionQueue>,
     mut player_query: Query<(Entity, &mut Transform), With<PlayerComponent>>,
     keys: Res<ButtonInput<KeyCode>>,
-    main_oneshot_systems: Res<MainOneshotSystems>,
     time: Res<Time>,
 ) {
     if player_query.is_empty() {
-        // Create player if no player exists and space has just been pressed
         if keys.just_pressed(KeyCode::Space) {
-            let id = main_oneshot_systems.0["spawn_main_player"];
-            commands.run_system(id);
+            queue.0.push(PlayerAction::Spawn);
         }
         return;
     }
 
     for (player_entity, mut transform) in player_query.iter_mut() {
-        // Initialize a movement direction vector
         let mut direction = Vec3::ZERO;
 
-        // Adjust direction based on key input
         if keys.pressed(KeyCode::KeyW) {
             direction.y += 1.0;
         }
@@ -38,17 +33,32 @@ pub(in crate) fn update_player_system(
             direction.x += 1.0;
         }
 
-        // Normalize direction to prevent diagonal movement speed boost
         if direction.length_squared() > 0.0 {
             direction = direction.normalize();
         }
 
-        // Apply movement based on speed, direction, and delta time
         transform.translation += direction * PLAYER_MOVEMENT_SPEED * time.delta_seconds();
 
-        // Delete player if space has just been pressed
         if keys.just_pressed(KeyCode::Space) {
-            commands.entity(player_entity).despawn_recursive();
+            queue.0.push(PlayerAction::Despawn(player_entity));
+        }
+    }
+}
+
+pub(in crate) fn process_player_action_queue(
+    mut commands: Commands,
+    mut queue: ResMut<PlayerActionQueue>,
+    main_oneshot_systems: Res<MainOneshotSystems>,
+) {
+    for action in queue.0.drain(..) {
+        match action {
+            PlayerAction::Spawn => {
+                let id = main_oneshot_systems.0["spawn_main_player"];
+                commands.run_system(id);
+            }
+            PlayerAction::Despawn(entity) => {
+                commands.entity(entity).despawn_recursive();
+            }
         }
     }
 }

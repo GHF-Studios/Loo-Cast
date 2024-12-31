@@ -24,7 +24,7 @@ use tokio::task::JoinHandle;
 // TODO: Implement stars via gravity and electromagnetism
 
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "0");
+    std::env::set_var("RUST_BACKTRACE", "1");
 
     App::new()
         .add_plugins(DefaultPlugins.set(LogPlugin {

@@ -4,14 +4,13 @@ use bevy::prelude::*;
 
 use crate::chunk::{bundles::ChunkBundle, components::ChunkComponent, constants::HALF_CHUNK_SIZE};
 
-use super::constants::{CHUNK_SIZE, DEFAULT_CHUNK_Z};
+use super::{constants::{CHUNK_SIZE, DEFAULT_CHUNK_Z}, errors::{DespawnError, SpawnError}};
 
 pub(in crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i32, i32)> {
     let (center_chunk_x, center_chunk_y) = world_pos_to_chunk(position);
     let mut chunks = Vec::new();
 
     let radius = radius as i32; // Convert to signed integer
-    let radius_squared = radius * radius;
 
     let mut x = 0;
     let mut y = radius;
@@ -60,15 +59,13 @@ pub(in crate) fn spawn_chunk(
     requested_chunk_removals: MutexGuard<HashSet<(i32, i32)>>, 
     chunk_coord: (i32, i32), 
     chunk_owner: Entity
-) {
+) -> Result<(), SpawnError> {
     if requested_chunk_removals.contains(&chunk_coord) {
-        error!("Cannot spawn chunk {:?}: it is already being despawned", chunk_coord);
-        return;
+        return Err(SpawnError::AlreadyBeingDespawned { chunk_coord });
     }
 
     if requested_chunk_additions.contains(&chunk_coord) {
-        error!("Cannot spawn chunk {:?}: it is already being spawned", chunk_coord);
-        return;
+        return Err(SpawnError::AlreadyBeingSpawned { chunk_coord });
     }
 
     requested_chunk_additions.insert(chunk_coord);
@@ -94,6 +91,8 @@ pub(in crate) fn spawn_chunk(
             ..Default::default()
         },
     });
+
+    Ok(())
 }
 
 pub(in crate) fn despawn_chunk(
@@ -102,17 +101,17 @@ pub(in crate) fn despawn_chunk(
     mut requested_chunk_removals: MutexGuard<HashSet<(i32, i32)>>, 
     chunk_coord: (i32, i32), 
     chunk_entity: Entity
-) {
+) -> Result<(), DespawnError> {
     if requested_chunk_additions.contains(&chunk_coord) {
-        error!("Cannot despawn chunk {:?}: it is still being spawned", chunk_coord);
-        return;
+        return Err(DespawnError::StillBeingSpawned { chunk_coord });
     }
 
     if requested_chunk_removals.contains(&chunk_coord) {
-        error!("Cannot despawn chunk {:?}: it is already being despawned", chunk_coord);
-        return;
+        return Err(DespawnError::AlreadyBeingDespawned { chunk_coord });
     }
 
     requested_chunk_removals.insert(chunk_coord);
     commands.entity(chunk_entity).despawn_recursive();
+
+    Ok(())
 }
