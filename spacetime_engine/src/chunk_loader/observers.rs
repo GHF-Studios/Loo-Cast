@@ -34,6 +34,7 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     mut commands: Commands,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
+    chunk_query: Query<(Entity, &ChunkComponent)>
 ) {
     let loader_entity = trigger.entity();
     let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
@@ -42,25 +43,40 @@ pub(in crate) fn observe_on_remove_chunk_loader(
         .filter_map(|(&chunk, &owner)| if owner == loader_entity { Some(chunk) } else { None })
         .collect();
 
-    debug!("on_remove_chunk_loader Releasing chunks {:?}", chunks_to_release);
+    if !chunks_to_release.is_empty() {
+        debug!("on_remove_chunk_loader releasing chunks {:?}", chunks_to_release);
+    }
 
     for chunk_coord in chunks_to_release {
         match chunk_loader_query
             .iter()
-            .find(|(_, transform, loader)| {
+            .find(|(other_loader_entity, transform, loader)| {
+                if *other_loader_entity == loader_entity {
+                    return false;
+                }
+
                 let other_position = transform.translation.truncate();
                 let other_radius = loader.radius;
                 calculate_chunks_in_radius(other_position, other_radius).contains(&chunk_coord)
             }) {
                 Some((new_owner, _, _)) => {
                     debug!("Found a new owner for chunk {:?}, switching owner", chunk_coord);
+                    
                     chunk_ownership.remove(&chunk_coord);
                     chunk_ownership.insert(chunk_coord, new_owner);
                 },
                 None => {
                     debug!("Found no new owner for chunk {:?}, despawning chunk", chunk_coord);
+
+                    let (chunk_entity, _) = chunk_query
+                        .iter()
+                        .find(|(_, chunk)| {
+                            chunk.coord == chunk_coord
+                        })
+                        .unwrap_or_else(|| { panic!("Failed to find the entity of chunk {:?}", chunk_coord) });
+
                     let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
-                    despawn_chunk(&mut commands, requested_chunk_removals, chunk_coord, loader_entity);
+                    despawn_chunk(&mut commands, requested_chunk_removals, chunk_coord, chunk_entity);
                 }
             }
     }

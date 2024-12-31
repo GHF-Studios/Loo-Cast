@@ -33,8 +33,15 @@ pub(in crate) fn update_chunk_loader_system(
             })
             .collect();
 
-        let chunks_to_spawn = target_chunks.difference(&current_chunks);
-        let chunks_to_despawn = current_chunks.difference(&target_chunks);
+        let chunks_to_spawn: Vec<&(i32, i32)> = target_chunks.difference(&current_chunks).collect();
+        let chunks_to_despawn: Vec<&(i32, i32)> = current_chunks.difference(&target_chunks).collect();
+
+        if !chunks_to_spawn.is_empty() {
+            debug!("update_chunk_loader spawning chunks {:?}", chunks_to_spawn);
+        }
+        if !chunks_to_despawn.is_empty() {
+            debug!("update_chunk_loader despawning chunks {:?}", chunks_to_despawn);
+        }
 
         let loaded_chunks = LOADED_CHUNKS.lock().unwrap();
         
@@ -54,26 +61,41 @@ pub(in crate) fn update_chunk_loader_system(
             chunk_ownership.remove(&chunk_coord);
 
             // Check if another loader can claim ownership
-            if !chunk_loader_query.iter().any(|(_, transform, chunk_loader)| {
-                let other_position = transform.translation.truncate();
-                let other_radius = chunk_loader.radius;
-                calculate_chunks_in_radius(other_position, other_radius).contains(&chunk_coord)
-            }) {
-                if !loaded_chunks.contains(&chunk_coord) {
-                    // Skip if chunk already does not exist
-                    continue;
+            match chunk_loader_query
+            .iter()
+            .find(|(other_loader_entity, transform, loader)| {
+                if *other_loader_entity == loader_entity {
+                    return false;
                 }
 
-                // No other loader can claim this chunk; resolve the chunk entity and despawn it
-                let (chunk_entity, _) = chunk_query
-                    .iter()
-                    .find(|(_, chunk)| {
-                        chunk.coord == chunk_coord
-                    })
-                    .expect("The entity of chunk {:?} could not be resolved");
-                
-                let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
-                despawn_chunk(&mut commands, requested_chunk_removals, chunk_coord, chunk_entity);
+                let other_position = transform.translation.truncate();
+                let other_radius = loader.radius;
+                calculate_chunks_in_radius(other_position, other_radius).contains(&chunk_coord)
+            }) {
+                Some((loader_entity, _, _)) => {
+                    debug!("Found a new owner for chunk {:?}, switching owner", chunk_coord);
+
+                    chunk_ownership.remove(&chunk_coord);
+                    chunk_ownership.insert(chunk_coord, loader_entity);
+                },
+                None => {
+                    debug!("Found no new owner for chunk {:?}, despawning chunk", chunk_coord);
+
+                    if !loaded_chunks.contains(&chunk_coord) {
+                        // Skip if chunk already does not exist
+                        continue;
+                    }
+
+                    let (chunk_entity, _) = chunk_query
+                        .iter()
+                        .find(|(_, chunk)| {
+                            chunk.coord == chunk_coord
+                        })
+                        .unwrap_or_else(|| { panic!("Failed to find the entity of chunk {:?}", chunk_coord) });
+
+                    let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+                    despawn_chunk(&mut commands, requested_chunk_removals, chunk_coord, chunk_entity);
+                }
             }
         }
     }
