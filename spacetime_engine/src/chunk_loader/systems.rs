@@ -21,7 +21,7 @@ pub(in crate) fn update_chunk_loader_system(
             .collect::<HashSet<(i32, i32)>>();
 
         // Track chunks that should be loaded/unloaded
-        let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
+        let chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
         let current_chunks: HashSet<(i32, i32)> = chunk_ownership
             .iter()
             .filter_map(|(chunk, &owner)| {
@@ -32,6 +32,7 @@ pub(in crate) fn update_chunk_loader_system(
                 }
             })
             .collect();
+        drop(chunk_ownership);
 
         let chunks_to_spawn: Vec<&(i32, i32)> = target_chunks.difference(&current_chunks).collect();
         let chunks_to_despawn: Vec<&(i32, i32)> = current_chunks.difference(&target_chunks).collect();
@@ -52,14 +53,15 @@ pub(in crate) fn update_chunk_loader_system(
                 continue;
             }
 
+            debug!("update_chunk_loader spawning chunk {:?}", chunk_coord);
+
             let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
-            spawn_chunk(&mut commands, requested_chunk_additions, chunk_coord, loader_entity);
+            let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+            spawn_chunk(&mut commands, requested_chunk_additions, requested_chunk_removals, chunk_coord, loader_entity);
         }
 
         // Release ownership of chunks no longer in range
         for &chunk_coord in chunks_to_despawn {
-            chunk_ownership.remove(&chunk_coord);
-
             // Check if another loader can claim ownership
             match chunk_loader_query
             .iter()
@@ -75,8 +77,10 @@ pub(in crate) fn update_chunk_loader_system(
                 Some((loader_entity, _, _)) => {
                     debug!("Found a new owner for chunk {:?}, switching owner", chunk_coord);
 
+                    let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
                     chunk_ownership.remove(&chunk_coord);
                     chunk_ownership.insert(chunk_coord, loader_entity);
+                    drop(chunk_ownership);
                 },
                 None => {
                     debug!("Found no new owner for chunk {:?}, despawning chunk", chunk_coord);
@@ -93,8 +97,9 @@ pub(in crate) fn update_chunk_loader_system(
                         })
                         .unwrap_or_else(|| { panic!("Failed to find the entity of chunk {:?}", chunk_coord) });
 
+                    let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
                     let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
-                    despawn_chunk(&mut commands, requested_chunk_removals, chunk_coord, chunk_entity);
+                    despawn_chunk(&mut commands, requested_chunk_additions, requested_chunk_removals, chunk_coord, chunk_entity);
                 }
             }
         }

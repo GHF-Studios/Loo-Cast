@@ -1,8 +1,6 @@
 use bevy::prelude::*;
 
-use crate::chunk::bundles::ChunkBundle;
 use crate::chunk::components::ChunkComponent;
-use crate::chunk::constants::HALF_CHUNK_SIZE;
 use crate::chunk::functions::*;
 use crate::chunk::statics::{CHUNK_OWNERSHIP, LOADED_CHUNKS, REQUESTED_CHUNK_ADDITIONS, REQUESTED_CHUNK_REMOVALS};
 
@@ -25,8 +23,11 @@ pub(in crate) fn observe_on_add_chunk_loader(
             continue;
         }
 
+        debug!("on_remove_chunk_loader spawning chunk {:?}", chunk_coord);
+
         let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
-        spawn_chunk(&mut commands, requested_chunk_additions, chunk_coord, loader_entity);
+        let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+        spawn_chunk(&mut commands, requested_chunk_additions, requested_chunk_removals, chunk_coord, loader_entity);
     }
 }
 
@@ -60,13 +61,13 @@ pub(in crate) fn observe_on_remove_chunk_loader(
                 calculate_chunks_in_radius(other_position, other_radius).contains(&chunk_coord)
             }) {
                 Some((new_owner, _, _)) => {
-                    debug!("Found a new owner for chunk {:?}, switching owner", chunk_coord);
+                    debug!("on_remove_chunk_loader Found a new owner for chunk {:?}, switching owner", chunk_coord);
                     
                     chunk_ownership.remove(&chunk_coord);
                     chunk_ownership.insert(chunk_coord, new_owner);
                 },
                 None => {
-                    debug!("Found no new owner for chunk {:?}, despawning chunk", chunk_coord);
+                    debug!("on_remove_chunk_loader Found no new owner for chunk {:?}, despawning chunk", chunk_coord);
 
                     let (chunk_entity, _) = chunk_query
                         .iter()
@@ -75,8 +76,9 @@ pub(in crate) fn observe_on_remove_chunk_loader(
                         })
                         .unwrap_or_else(|| { panic!("Failed to find the entity of chunk {:?}", chunk_coord) });
 
+                    let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
                     let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
-                    despawn_chunk(&mut commands, requested_chunk_removals, chunk_coord, chunk_entity);
+                    despawn_chunk(&mut commands, requested_chunk_additions, requested_chunk_removals, chunk_coord, chunk_entity);
                 }
             }
     }

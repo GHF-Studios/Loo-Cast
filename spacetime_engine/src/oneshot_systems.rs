@@ -14,15 +14,15 @@ impl FromWorld for MainOneshotSystems {
             world.register_system(spawn_main_camera_oneshot_system)
         );
         main_oneshot_systems.0.insert(
-            "spawn_player".into(),
-            world.register_system(spawn_player_oneshot_system)
+            "spawn_main_player".into(),
+            world.register_system(spawn_main_player_oneshot_system)
         );
 
         main_oneshot_systems
     }
 }
 
-fn spawn_player_oneshot_system(mut commands: Commands) {
+fn spawn_main_player_oneshot_system(mut commands: Commands) {
     commands.spawn(PlayerBundle::default());
 }
 

@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use bevy::ecs::world::DeferredWorld;
 
 use super::components::ChunkComponent;
-use super::functions::world_pos_to_chunk;
 use super::statics::{CHUNK_OWNERSHIP, LOADED_CHUNKS, REQUESTED_CHUNK_ADDITIONS, REQUESTED_CHUNK_REMOVALS};
 
 pub(in crate) fn hook_on_add_chunk(world: DeferredWorld, entity: Entity, _component_id: ComponentId) {
@@ -48,7 +47,7 @@ pub(in crate) fn hook_on_remove_chunk(world: DeferredWorld, entity: Entity, _com
     }
 
     if !chunk_ownership.contains_key(&chunk.coord) {
-        unreachable!("Attempted to release ownership of chunk {:?}, which nobody has ownership of to begin with", chunk.coord);
+        unreachable!("Attempted to release ownership of chunk {:?}, which nobody had ownership of to begin with. chunk_ownership {:?}", chunk.coord, chunk_ownership);
     }
 
     if !requested_chunk_removals.contains(&chunk.coord) {

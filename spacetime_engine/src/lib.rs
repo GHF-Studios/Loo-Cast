@@ -19,7 +19,7 @@ pub mod oneshot_systems;
 //pub mod traits;
 
 // Modules
-//pub mod camera;
+pub mod camera;
 //pub mod camera_2d_bundle;
 pub mod chunk;
 pub mod chunk_actor;
@@ -33,7 +33,7 @@ pub mod player;
 use std::collections::HashMap;
 
 use bevy::{app::PluginGroupBuilder, ecs::system::SystemId, prelude::*};
-//use camera::CameraPlugin;
+use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
 //use chunk_actor::ChunkActorPlugin;
@@ -50,7 +50,7 @@ impl PluginGroup for SpacetimeEnginePlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add(SpacetimeEngineCorePlugin)
-            //.add(CameraPlugin)
+            .add(CameraPlugin)
             //.add(Camera2dBundlePlugin)
             .add(ChunkPlugin)
             //.add(ChunkActorPlugin)
@@ -77,9 +77,6 @@ fn pre_startup_system(
     mut commands: Commands,
     oneshot_systems: Res<MainOneshotSystems>
 ) {
-    let id = oneshot_systems.0["spawn_player"];
-    commands.run_system(id);
-    
     let id = oneshot_systems.0["spawn_main_camera"];
     commands.run_system(id);
 }

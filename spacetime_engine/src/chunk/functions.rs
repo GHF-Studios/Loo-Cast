@@ -8,32 +8,39 @@ use super::constants::{CHUNK_SIZE, DEFAULT_CHUNK_Z};
 
 pub(in crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i32, i32)> {
     let (center_chunk_x, center_chunk_y) = world_pos_to_chunk(position);
-
     let mut chunks = Vec::new();
-    let radius = radius as i32; // Convert radius to signed integer for chunk-space logic
-    let half_chunk = CHUNK_SIZE / 2.0; // Half the chunk size for adjusting the radius check
 
-    for dx in -radius..=radius {
-        for dy in -radius..=radius {
-            // Calculate the world position of the current chunk's center
-            let chunk_center_x = (center_chunk_x + dx) as f32 * CHUNK_SIZE;
-            let chunk_center_y = (center_chunk_y + dy) as f32 * CHUNK_SIZE;
+    let radius = radius as i32; // Convert to signed integer
+    let radius_squared = radius * radius;
 
-            // Adjust the radius comparison to include chunks partially in the range
-            let adjusted_distance_x = chunk_center_x - position.x;
-            let adjusted_distance_y = chunk_center_y - position.y;
+    let mut x = 0;
+    let mut y = radius;
+    let mut d = 1 - radius; // Decision parameter
 
-            // Include chunks partially in range by extending the radius
-            let distance_squared = (adjusted_distance_x).powi(2) + (adjusted_distance_y).powi(2);
-            if distance_squared <= (radius as f32 * CHUNK_SIZE + half_chunk).powi(2) {
-                chunks.push((center_chunk_x + dx, center_chunk_y + dy));
-            }
+    while x <= y {
+        // Add filled lines between symmetrical points
+        for dx in -x..=x {
+            chunks.push((center_chunk_x + dx, center_chunk_y + y));
+            chunks.push((center_chunk_x + dx, center_chunk_y - y));
         }
+        for dx in -y..=y {
+            chunks.push((center_chunk_x + dx, center_chunk_y + x));
+            chunks.push((center_chunk_x + dx, center_chunk_y - x));
+        }
+
+        if d < 0 {
+            // Midpoint is inside the circle
+            d += 2 * x + 3;
+        } else {
+            // Midpoint is outside the circle
+            d += 2 * (x - y) + 5;
+            y -= 1;
+        }
+        x += 1;
     }
 
     chunks
 }
-
 
 pub(in crate) fn world_pos_to_chunk(position: Vec2) -> (i32, i32) {
     let chunk_x = ((position.x + CHUNK_SIZE / 2.0) / CHUNK_SIZE).floor() as i32;
@@ -47,8 +54,20 @@ pub(in crate) fn chunk_pos_to_world(grid_coord: (i32, i32)) -> Vec2 {
     Vec2::new(chunk_x, chunk_y)
 }
 
-pub(in crate) fn spawn_chunk(commands: &mut Commands, mut requested_chunk_additions: MutexGuard<HashSet<(i32, i32)>>, chunk_coord: (i32, i32), chunk_owner: Entity) {
+pub(in crate) fn spawn_chunk(
+    commands: &mut Commands, 
+    mut requested_chunk_additions: MutexGuard<HashSet<(i32, i32)>>, 
+    requested_chunk_removals: MutexGuard<HashSet<(i32, i32)>>, 
+    chunk_coord: (i32, i32), 
+    chunk_owner: Entity
+) {
+    if requested_chunk_removals.contains(&chunk_coord) {
+        error!("Cannot spawn chunk {:?}: it is already being despawned", chunk_coord);
+        return;
+    }
+
     if requested_chunk_additions.contains(&chunk_coord) {
+        error!("Cannot spawn chunk {:?}: it is already being spawned", chunk_coord);
         return;
     }
 
@@ -77,8 +96,20 @@ pub(in crate) fn spawn_chunk(commands: &mut Commands, mut requested_chunk_additi
     });
 }
 
-pub(in crate) fn despawn_chunk(commands: &mut Commands, mut requested_chunk_removals: MutexGuard<HashSet<(i32, i32)>>, chunk_coord: (i32, i32), chunk_entity: Entity) {
+pub(in crate) fn despawn_chunk(
+    commands: &mut Commands, 
+    requested_chunk_additions: MutexGuard<HashSet<(i32, i32)>>, 
+    mut requested_chunk_removals: MutexGuard<HashSet<(i32, i32)>>, 
+    chunk_coord: (i32, i32), 
+    chunk_entity: Entity
+) {
+    if requested_chunk_additions.contains(&chunk_coord) {
+        error!("Cannot despawn chunk {:?}: it is still being spawned", chunk_coord);
+        return;
+    }
+
     if requested_chunk_removals.contains(&chunk_coord) {
+        error!("Cannot despawn chunk {:?}: it is already being despawned", chunk_coord);
         return;
     }
 
