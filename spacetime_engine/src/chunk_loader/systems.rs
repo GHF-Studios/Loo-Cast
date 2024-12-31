@@ -2,8 +2,10 @@ use bevy::prelude::*;
 use std::collections::HashSet;
 
 use crate::chunk::components::ChunkComponent;
+use crate::chunk::enums::ChunkRetryAction;
+use crate::chunk::errors::SpawnError;
 use crate::chunk::functions::{calculate_chunks_in_radius, despawn_chunk, spawn_chunk};
-use crate::chunk::resources::{ChunkRetryAction, ChunkRetryQueue};
+use crate::chunk::resources::ChunkRetryQueue;
 use crate::chunk::statics::{CHUNK_OWNERSHIP, LOADED_CHUNKS, REQUESTED_CHUNK_ADDITIONS, REQUESTED_CHUNK_REMOVALS};
 
 use super::components::ChunkLoaderComponent;
@@ -46,11 +48,18 @@ pub(in crate) fn update_chunk_loader_system(
             );
 
             if let Err(err) = result {
-                warn!("Failed to spawn chunk {:?}: {:?}. Retrying later.", chunk_coord, err);
-                retry_queue.actions.push_back(ChunkRetryAction::Spawn {
-                    chunk_coord,
-                    chunk_owner: loader_entity,
-                });
+                match err {
+                    SpawnError::AlreadyBeingSpawned { .. } => {
+                        panic!("Failed to spawn chunk {:?}: {:?}.", chunk_coord, err);
+                    },
+                    SpawnError::AlreadyBeingDespawned { .. } => {
+                        debug!("Failed to spawn chunk {:?}: {:?}. Retrying later.", chunk_coord, err);
+                        retry_queue.actions.push_back(ChunkRetryAction::Spawn {
+                            chunk_coord,
+                            chunk_owner: loader_entity,
+                        });
+                    }
+                }
             }
         }
 

@@ -2,7 +2,6 @@ use bevy::prelude::*;
 
 use crate::chunk::components::ChunkComponent;
 use crate::chunk::functions::*;
-use crate::chunk::resources::{ChunkRetryAction, ChunkRetryQueue};
 use crate::chunk::statics::{CHUNK_OWNERSHIP, LOADED_CHUNKS, REQUESTED_CHUNK_ADDITIONS, REQUESTED_CHUNK_REMOVALS};
 
 use super::components::ChunkLoaderComponent;
@@ -11,7 +10,6 @@ pub(in crate) fn observe_on_add_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     mut commands: Commands,
     chunk_loader_query: Query<(&Transform, &ChunkLoaderComponent)>,
-    mut retry_queue: ResMut<ChunkRetryQueue>, // Retry resource
 ) {
     let loader_entity = trigger.entity();
     let (transform, chunk_loader) = chunk_loader_query.get(loader_entity).unwrap();
@@ -25,21 +23,11 @@ pub(in crate) fn observe_on_add_chunk_loader(
             continue;
         }
 
-        let result = spawn_chunk(
-            &mut commands,
-            REQUESTED_CHUNK_ADDITIONS.lock().unwrap(),
-            REQUESTED_CHUNK_REMOVALS.lock().unwrap(),
-            chunk_coord,
-            loader_entity,
-        );
+        debug!("on_remove_chunk_loader spawning chunk {:?}", chunk_coord);
 
-        if let Err(err) = result {
-            warn!("Failed to spawn chunk {:?}: {:?}. Retrying later.", chunk_coord, err);
-            retry_queue.actions.push_back(ChunkRetryAction::Spawn {
-                chunk_coord,
-                chunk_owner: loader_entity,
-            });
-        }
+        let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
+        let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+        spawn_chunk(&mut commands, requested_chunk_additions, requested_chunk_removals, chunk_coord, loader_entity);
     }
 }
 
@@ -47,8 +35,7 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     mut commands: Commands,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
-    chunk_query: Query<(Entity, &ChunkComponent)>,
-    mut retry_queue: ResMut<ChunkRetryQueue>, // Retry resource
+    chunk_query: Query<(Entity, &ChunkComponent)>
 ) {
     let loader_entity = trigger.entity();
     let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
@@ -56,6 +43,10 @@ pub(in crate) fn observe_on_remove_chunk_loader(
         .iter()
         .filter_map(|(&chunk, &owner)| if owner == loader_entity { Some(chunk) } else { None })
         .collect();
+
+    if !chunks_to_release.is_empty() {
+        debug!("on_remove_chunk_loader releasing chunks {:?}", chunks_to_release);
+    }
 
     for chunk_coord in chunks_to_release {
         match chunk_loader_query
@@ -69,35 +60,26 @@ pub(in crate) fn observe_on_remove_chunk_loader(
                 let other_radius = loader.radius;
                 calculate_chunks_in_radius(other_position, other_radius).contains(&chunk_coord)
             }) {
-            Some((new_owner, _, _)) => {
-                chunk_ownership.remove(&chunk_coord);
-                chunk_ownership.insert(chunk_coord, new_owner);
-            }
-            None => {
-                if let Some((chunk_entity, _)) = chunk_query
-                    .iter()
-                    .find(|(_, chunk)| chunk.coord == chunk_coord)
-                {
-                    let result = despawn_chunk(
-                        &mut commands,
-                        REQUESTED_CHUNK_ADDITIONS.lock().unwrap(),
-                        REQUESTED_CHUNK_REMOVALS.lock().unwrap(),
-                        chunk_coord,
-                        chunk_entity,
-                    );
+                Some((new_owner, _, _)) => {
+                    debug!("on_remove_chunk_loader Found a new owner for chunk {:?}, switching owner", chunk_coord);
+                    
+                    chunk_ownership.remove(&chunk_coord);
+                    chunk_ownership.insert(chunk_coord, new_owner);
+                },
+                None => {
+                    debug!("on_remove_chunk_loader Found no new owner for chunk {:?}, despawning chunk", chunk_coord);
 
-                    if let Err(err) = result {
-                        warn!(
-                            "Failed to despawn chunk {:?}: {:?}. Retrying later.",
-                            chunk_coord, err
-                        );
-                        retry_queue.actions.push_back(ChunkRetryAction::Despawn {
-                            chunk_coord,
-                            chunk_entity,
-                        });
-                    }
+                    let (chunk_entity, _) = chunk_query
+                        .iter()
+                        .find(|(_, chunk)| {
+                            chunk.coord == chunk_coord
+                        })
+                        .unwrap_or_else(|| { panic!("Failed to find the entity of chunk {:?}", chunk_coord) });
+
+                    let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
+                    let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+                    despawn_chunk(&mut commands, requested_chunk_additions, requested_chunk_removals, chunk_coord, chunk_entity);
                 }
             }
-        }
     }
 }

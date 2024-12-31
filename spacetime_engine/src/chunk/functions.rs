@@ -1,10 +1,9 @@
 use std::{collections::HashSet, sync::MutexGuard};
-
 use bevy::prelude::*;
 
 use crate::chunk::{bundles::ChunkBundle, components::ChunkComponent, constants::HALF_CHUNK_SIZE};
 
-use super::{constants::{CHUNK_SIZE, DEFAULT_CHUNK_Z}, errors::{DespawnError, SpawnError}};
+use super::{constants::{CHUNK_SIZE, DEFAULT_CHUNK_Z}, errors::{DespawnError, SpawnError}, resources::ChunkRetryQueue};
 
 pub(in crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i32, i32)> {
     let (center_chunk_x, center_chunk_y) = world_pos_to_chunk(position);

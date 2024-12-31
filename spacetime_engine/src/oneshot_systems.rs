@@ -50,7 +50,7 @@ fn spawn_main_test_objects_oneshot_system(mut commands: Commands) {
 
     spawn_test_object(
         &mut commands,
-        Vec2::new(-300.0, -300.0),
+        Vec2::new(-300.0, -400.0),
         0.0,
         Vec2::ONE,
         TestObjectMovement::Line {
@@ -61,7 +61,7 @@ fn spawn_main_test_objects_oneshot_system(mut commands: Commands) {
 
     spawn_test_object(
         &mut commands,
-        Vec2::new(-350.0, -350.0),
+        Vec2::new(-350.0, 300.0),
         0.0,
         Vec2::ONE,
         TestObjectMovement::Static,
