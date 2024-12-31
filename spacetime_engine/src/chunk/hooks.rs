@@ -20,8 +20,7 @@ pub(in crate) fn hook_on_add_chunk(world: DeferredWorld, entity: Entity, _compon
     let mut requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
 
     if loaded_chunks.contains(&chunk.coord) {
-        error!("Attempted to add chunk {:?} duplicate", chunk.coord);
-        return;
+        panic!("Attempted to add chunk {:?} duplicate", chunk.coord);
     }
 
     if chunk_ownership.contains_key(&chunk.coord) {
@@ -45,8 +44,7 @@ pub(in crate) fn hook_on_remove_chunk(world: DeferredWorld, entity: Entity, _com
     let mut requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
 
     if !loaded_chunks.contains(&chunk.coord) {
-        error!("Attempted to despawn already-non-existent chunk {:?}", chunk.coord);
-        return;
+        panic!("Attempted to despawn already-non-existent chunk {:?}", chunk.coord);
     }
 
     if !chunk_ownership.contains_key(&chunk.coord) {

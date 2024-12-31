@@ -42,6 +42,8 @@ pub(in crate) fn observe_on_remove_chunk_loader(
         .filter_map(|(&chunk, &owner)| if owner == loader_entity { Some(chunk) } else { None })
         .collect();
 
+    debug!("on_remove_chunk_loader Releasing chunks {:?}", chunks_to_release);
+
     for chunk_coord in chunks_to_release {
         match chunk_loader_query
             .iter()
@@ -51,11 +53,13 @@ pub(in crate) fn observe_on_remove_chunk_loader(
                 calculate_chunks_in_radius(other_position, other_radius).contains(&chunk_coord)
             }) {
                 Some((new_owner, _, _)) => {
+                    debug!("Found a new owner for chunk {:?}, switching owner", chunk_coord);
                     chunk_ownership.remove(&chunk_coord);
                     chunk_ownership.insert(chunk_coord, new_owner);
                 },
                 None => {
-                    let mut requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+                    debug!("Found no new owner for chunk {:?}, despawning chunk", chunk_coord);
+                    let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
                     despawn_chunk(&mut commands, requested_chunk_removals, chunk_coord, loader_entity);
                 }
             }

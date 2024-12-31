@@ -1,10 +1,8 @@
 use bevy::prelude::*;
 use std::collections::HashSet;
 
-use crate::chunk::bundles::ChunkBundle;
 use crate::chunk::components::ChunkComponent;
-use crate::chunk::constants::HALF_CHUNK_SIZE;
-use crate::chunk::functions::{calculate_chunks_in_radius, chunk_pos_to_world, despawn_chunk, spawn_chunk};
+use crate::chunk::functions::{calculate_chunks_in_radius, despawn_chunk, spawn_chunk};
 use crate::chunk::statics::{CHUNK_OWNERSHIP, LOADED_CHUNKS, REQUESTED_CHUNK_ADDITIONS, REQUESTED_CHUNK_REMOVALS};
 
 use super::components::ChunkLoaderComponent;
