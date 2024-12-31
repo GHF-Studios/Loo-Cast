@@ -25,14 +25,13 @@ pub mod chunk;
 pub mod chunk_actor;
 pub mod chunk_loader;
 //pub mod core;
+pub mod debug;
 //pub mod entity;
 //pub mod math;
 pub mod player;
 //pub mod sprite_bundle;
 
-use std::collections::HashMap;
-
-use bevy::{app::PluginGroupBuilder, ecs::system::SystemId, prelude::*};
+use bevy::{app::PluginGroupBuilder, prelude::*};
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
@@ -40,6 +39,7 @@ use chunk::ChunkPlugin;
 use chunk_loader::ChunkLoaderPlugin;
 use oneshot_systems::MainOneshotSystems;
 //use core::CorePlugin;
+use debug::DebugPlugin;
 //use entity::EntityPlugin;
 //use math::MathPlugin;
 use player::PlayerPlugin;
@@ -56,6 +56,7 @@ impl PluginGroup for SpacetimeEnginePlugins {
             //.add(ChunkActorPlugin)
             .add(ChunkLoaderPlugin)
             //.add(CorePlugin)
+            .add(DebugPlugin)
             //.add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)
@@ -78,6 +79,9 @@ fn pre_startup_system(
     oneshot_systems: Res<MainOneshotSystems>
 ) {
     let id = oneshot_systems.0["spawn_main_camera"];
+    commands.run_system(id);
+
+    let id = oneshot_systems.0["spawn_main_test_objects"];
     commands.run_system(id);
 }
 
