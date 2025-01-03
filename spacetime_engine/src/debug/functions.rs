@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{chunk::constants::HALF_CHUNK_SIZE, chunk_actor::components::ChunkActorComponent, chunk_loader::components::ChunkLoaderComponent};
+use crate::{chunk_actor::components::ChunkActorComponent, chunk_loader::components::ChunkLoaderComponent};
 
 use super::components::{TestObjectComponent, TestObjectMovement};
 

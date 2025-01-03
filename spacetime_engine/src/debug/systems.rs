@@ -15,7 +15,7 @@ pub(in crate) fn test_object_movement_system(
             }
             TestObjectMovement::Line { distance, speed } => {
                 let time_factor = time.elapsed_seconds() * speed;
-                let offset = (time_factor.sin() * distance) as f32;
+                let offset = time_factor.sin() * distance;
                 transform.translation.x = offset;
             }
         }

@@ -12,12 +12,6 @@ pub(in crate) enum ChunkRetryAction {
     },
 }
 
-pub(in crate) enum ChunkRequestStatus {
-    Ok,        // Ready to process
-    Wait,      // Already queued, wait in line
-    Cancel,    // Request redundant or unnecessary
-}
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ChunkState {
     Spawning,

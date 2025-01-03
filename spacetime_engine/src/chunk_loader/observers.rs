@@ -27,6 +27,7 @@ pub(in crate) fn observe_on_add_chunk_loader(
 
         let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
         let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+        // TODO: Handle the result
         spawn_chunk(&mut commands, requested_chunk_additions, requested_chunk_removals, chunk_coord, loader_entity);
     }
 }
@@ -78,6 +79,7 @@ pub(in crate) fn observe_on_remove_chunk_loader(
 
                     let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
                     let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+                    // TODO: Handle the result
                     despawn_chunk(&mut commands, requested_chunk_additions, requested_chunk_removals, chunk_coord, chunk_entity);
                 }
             }
