@@ -11,6 +11,9 @@ pub(in crate) fn observe_on_add_chunk_loader(
     mut commands: Commands,
     chunk_loader_query: Query<(&Transform, &ChunkLoaderComponent)>,
 ) {
+    let mut requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
+    let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+    
     let loader_entity = trigger.entity();
     let (transform, chunk_loader) = chunk_loader_query.get(loader_entity).unwrap();
     let radius = chunk_loader.radius;
@@ -25,10 +28,12 @@ pub(in crate) fn observe_on_add_chunk_loader(
 
         debug!("on_remove_chunk_loader spawning chunk {:?}", chunk_coord);
 
-        let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
-        let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
-        // TODO: Handle the result
-        spawn_chunk(&mut commands, requested_chunk_additions, requested_chunk_removals, chunk_coord, loader_entity);
+        match spawn_chunk(&mut commands, &mut requested_chunk_additions, &requested_chunk_removals, chunk_coord, loader_entity) {
+            Ok(_) => {},
+            Err(err) => {
+                panic!("{:?}", err)
+            }
+        }
     }
 }
 
@@ -40,6 +45,9 @@ pub(in crate) fn observe_on_remove_chunk_loader(
 ) {
     let loader_entity = trigger.entity();
     let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
+    let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
+    let mut requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+
     let chunks_to_release: Vec<(i32, i32)> = chunk_ownership
         .iter()
         .filter_map(|(&chunk, &owner)| if owner == loader_entity { Some(chunk) } else { None })
@@ -77,10 +85,12 @@ pub(in crate) fn observe_on_remove_chunk_loader(
                         })
                         .unwrap_or_else(|| { panic!("Failed to find the entity of chunk {:?}", chunk_coord) });
 
-                    let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
-                    let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
-                    // TODO: Handle the result
-                    despawn_chunk(&mut commands, requested_chunk_additions, requested_chunk_removals, chunk_coord, chunk_entity);
+                    match despawn_chunk(&mut commands, &requested_chunk_additions, &mut requested_chunk_removals, chunk_coord, chunk_entity) {
+                        Ok(_) => {},
+                        Err(err) => {
+                            panic!("{:?}", err)
+                        }
+                    }
                 }
             }
     }

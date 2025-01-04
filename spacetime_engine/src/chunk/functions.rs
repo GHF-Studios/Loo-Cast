@@ -54,8 +54,8 @@ pub(in crate) fn chunk_pos_to_world(grid_coord: (i32, i32)) -> Vec2 {
 
 pub(in crate) fn spawn_chunk(
     commands: &mut Commands, 
-    mut requested_chunk_additions: MutexGuard<HashSet<(i32, i32)>>, 
-    requested_chunk_removals: MutexGuard<HashSet<(i32, i32)>>, 
+    requested_chunk_additions: &mut MutexGuard<HashSet<(i32, i32)>>, 
+    requested_chunk_removals: &MutexGuard<HashSet<(i32, i32)>>, 
     chunk_coord: (i32, i32), 
     chunk_owner: Entity
 ) -> Result<(), SpawnError> {
@@ -96,8 +96,8 @@ pub(in crate) fn spawn_chunk(
 
 pub(in crate) fn despawn_chunk(
     commands: &mut Commands, 
-    requested_chunk_additions: MutexGuard<HashSet<(i32, i32)>>, 
-    mut requested_chunk_removals: MutexGuard<HashSet<(i32, i32)>>, 
+    requested_chunk_additions: &MutexGuard<HashSet<(i32, i32)>>, 
+    requested_chunk_removals: &mut MutexGuard<HashSet<(i32, i32)>>, 
     chunk_coord: (i32, i32), 
     chunk_entity: Entity
 ) -> Result<(), DespawnError> {
