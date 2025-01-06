@@ -18,3 +18,9 @@ pub enum ChunkState {
     Loaded,
     Despawning,
 }
+
+#[derive(Debug)]
+pub enum ChunkRequest {
+    Spawn,
+    Despawn
+}

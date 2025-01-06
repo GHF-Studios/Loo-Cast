@@ -14,7 +14,7 @@ pub(in crate) fn update_chunk_loader_system(
     mut commands: Commands,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     chunk_query: Query<(Entity, &ChunkComponent)>,
-    mut retry_queue: ResMut<ChunkRetryQueue>, // Retry resource
+    mut retry_queue: ResMut<ChunkRetryQueue>,
 ) {
     let chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
     let loaded_chunks = LOADED_CHUNKS.lock().unwrap();
@@ -38,10 +38,12 @@ pub(in crate) fn update_chunk_loader_system(
         let chunks_to_despawn: Vec<&(i32, i32)> = current_chunks.difference(&target_chunks).collect();
 
         for &chunk_coord in chunks_to_spawn {
+            // Perform pre-spawn checks
             if loaded_chunks.contains(&chunk_coord) {
                 continue;
             }
 
+            // Spawn the chunk
             let result = spawn_chunk(
                 &mut commands,
                 &mut requested_chunk_additions,
@@ -50,6 +52,7 @@ pub(in crate) fn update_chunk_loader_system(
                 loader_entity,
             );
 
+            // Handle the result
             if let Err(err) = result {
                 match err {
                     SpawnError::AlreadyBeingSpawned { .. } => {
@@ -67,26 +70,35 @@ pub(in crate) fn update_chunk_loader_system(
         }
 
         for &chunk_coord in chunks_to_despawn {
+            // Perform pre-spawn checks
             if !loaded_chunks.contains(&chunk_coord) {
                 continue;
             }
 
-            if let Some((chunk_entity, _)) = chunk_query.iter().find(|(_, chunk)| chunk.coord == chunk_coord) {
-                let result = despawn_chunk(
-                    &mut commands,
-                    &requested_chunk_additions,
-                    &mut requested_chunk_removals,
+            // Find the chunk entity
+            let chunk_entity = match chunk_query.iter().find(|(_, chunk)| chunk.coord == chunk_coord) {
+                Some((chunk_entity, _)) => chunk_entity,
+                None => {
+                    continue;
+                }
+            };
+
+            // Despawn the chunk
+            let result = despawn_chunk(
+                &mut commands,
+                &requested_chunk_additions,
+                &mut requested_chunk_removals,
+                chunk_coord,
+                chunk_entity,
+            );
+
+            // Handle result
+            if let Err(err) = result {
+                warn!("Failed to despawn chunk {:?}: {:?}. Retrying later.", chunk_coord, err);
+                retry_queue.actions.push_back(ChunkRetryAction::Despawn {
                     chunk_coord,
                     chunk_entity,
-                );
-
-                if let Err(err) = result {
-                    warn!("Failed to despawn chunk {:?}: {:?}. Retrying later.", chunk_coord, err);
-                    retry_queue.actions.push_back(ChunkRetryAction::Despawn {
-                        chunk_coord,
-                        chunk_entity,
-                    });
-                }
+                });
             }
         }
     }
@@ -112,7 +124,7 @@ pub(in crate) fn process_chunk_retry_queue_system(
                 );
 
                 if result.is_err() {
-                    retry_queue.actions.push_back(action); // Re-queue failed action
+                    retry_queue.actions.push_back(action);
                 } else {
                     successful_retries.push(action);
                 }
@@ -127,7 +139,7 @@ pub(in crate) fn process_chunk_retry_queue_system(
                 );
 
                 if result.is_err() {
-                    retry_queue.actions.push_back(action); // Re-queue failed action
+                    retry_queue.actions.push_back(action);
                 } else {
                     successful_retries.push(action);
                 }
