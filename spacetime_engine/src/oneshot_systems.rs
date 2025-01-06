@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use bevy::{ecs::system::SystemId, prelude::*};
+use crate::camera::components::MainCameraFollow;
 use crate::debug::components::TestObjectMovement;
 use crate::player::bundles::PlayerBundle;
 use crate::debug::functions::spawn_test_object;
@@ -33,7 +34,13 @@ fn spawn_main_player_oneshot_system(mut commands: Commands) {
 }
 
 fn spawn_main_camera_oneshot_system(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((
+        Camera2dBundle::default(),
+        MainCameraFollow {
+            target: None,
+            speed: 5.0, // Adjust the speed for snappiness
+        },
+    ));
 }
 
 fn spawn_main_test_objects_oneshot_system(mut commands: Commands) {

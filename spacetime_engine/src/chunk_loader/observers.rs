@@ -13,6 +13,7 @@ pub(in crate) fn observe_on_add_chunk_loader(
 ) {
     let mut requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
     let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+    let loaded_chunks = LOADED_CHUNKS.lock().unwrap();
     
     let loader_entity = trigger.entity();
     let (transform, chunk_loader) = chunk_loader_query.get(loader_entity).unwrap();
@@ -21,7 +22,6 @@ pub(in crate) fn observe_on_add_chunk_loader(
     let chunks_to_load = calculate_chunks_in_radius(position, radius);
 
     for chunk_coord in chunks_to_load {
-        let loaded_chunks = LOADED_CHUNKS.lock().unwrap();
         if loaded_chunks.contains(&chunk_coord) {
             continue;
         }
@@ -44,9 +44,9 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     chunk_query: Query<(Entity, &ChunkComponent)>
 ) {
     let loader_entity = trigger.entity();
-    let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
     let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
     let mut requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+    let mut chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
 
     let chunks_to_release: Vec<(i32, i32)> = chunk_ownership
         .iter()

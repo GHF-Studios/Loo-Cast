@@ -16,6 +16,11 @@ pub(in crate) fn update_chunk_loader_system(
     chunk_query: Query<(Entity, &ChunkComponent)>,
     mut retry_queue: ResMut<ChunkRetryQueue>, // Retry resource
 ) {
+    let chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
+    let loaded_chunks = LOADED_CHUNKS.lock().unwrap();
+    let mut requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
+    let mut requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
+
     for (loader_entity, transform, chunk_loader) in chunk_loader_query.iter() {
         let position = transform.translation.truncate();
         let radius = chunk_loader.radius;
@@ -24,19 +29,14 @@ pub(in crate) fn update_chunk_loader_system(
             .into_iter()
             .collect::<HashSet<(i32, i32)>>();
 
-        let chunk_ownership = CHUNK_OWNERSHIP.lock().unwrap();
         let current_chunks: HashSet<(i32, i32)> = chunk_ownership
             .iter()
             .filter_map(|(chunk, &owner)| if owner == loader_entity { Some(*chunk) } else { None })
             .collect();
-        drop(chunk_ownership);
 
         let chunks_to_spawn: Vec<&(i32, i32)> = target_chunks.difference(&current_chunks).collect();
         let chunks_to_despawn: Vec<&(i32, i32)> = current_chunks.difference(&target_chunks).collect();
 
-        let loaded_chunks = LOADED_CHUNKS.lock().unwrap();
-        let mut requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
-        let mut requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
         for &chunk_coord in chunks_to_spawn {
             if loaded_chunks.contains(&chunk_coord) {
                 continue;
