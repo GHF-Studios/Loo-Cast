@@ -3,7 +3,7 @@ use bevy::input::mouse::MouseScrollUnit;
 
 use crate::player::components::PlayerComponent;
 
-use super::components::MainCameraFollow;
+use super::components::MainCameraFollowComponent;
 
 pub(in crate) struct ZoomFactor(pub f32);
 impl Default for ZoomFactor {
@@ -44,8 +44,8 @@ pub(in crate) fn main_camera_zoom_system(
 }
 
 pub(in crate) fn main_camera_follow_system(
-    mut camera_query: Query<(&mut Transform, &mut MainCameraFollow), Without<PlayerComponent>>,
-    target_query: Query<(Entity, &Transform), (With<PlayerComponent>, Without<MainCameraFollow>)>,
+    mut camera_query: Query<(&mut Transform, &mut MainCameraFollowComponent), Without<PlayerComponent>>,
+    target_query: Query<(Entity, &Transform), (With<PlayerComponent>, Without<MainCameraFollowComponent>)>,
     time: Res<Time>,
 ) {
     let (mut camera_transform, mut camera_follow) = match camera_query.get_single_mut() {
