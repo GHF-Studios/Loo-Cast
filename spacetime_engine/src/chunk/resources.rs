@@ -14,7 +14,7 @@ impl ChunkActionBuffer {
     pub fn is_spawning(&self, chunk_coord: &(i32, i32)) -> bool {
         if let Some(action) = self.0.get(chunk_coord) {
             match action {
-                ChunkAction::SpawnChunk { .. } => true,
+                ChunkAction::Spawn { .. } => true,
                 _ => false
             }
         } else {
@@ -25,7 +25,7 @@ impl ChunkActionBuffer {
     pub fn is_despawning(&self, chunk_coord: &(i32, i32)) -> bool {
         if let Some(action) = self.0.get(chunk_coord) {
             match action {
-                ChunkAction::DespawnChunk { .. } => true,
+                ChunkAction::Despawn { .. } => true,
                 _ => false
             }
         } else {
@@ -36,7 +36,7 @@ impl ChunkActionBuffer {
     pub fn is_transfering_ownership(&self, chunk_coord: &(i32, i32)) -> bool {
         if let Some(action) = self.0.get(chunk_coord) {
             match action {
-                ChunkAction::TransferChunkOwnership { .. } => true,
+                ChunkAction::TransferOwnership { .. } => true,
                 _ => false
             }
         } else {

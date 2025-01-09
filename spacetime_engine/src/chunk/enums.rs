@@ -2,13 +2,13 @@ use bevy::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate) enum ChunkAction {
-    SpawnChunk {
+    Spawn {
         coord: (i32, i32)
     },
-    DespawnChunk {
+    Despawn {
         coord: (i32, i32)
     },
-    TransferChunkOwnership {
+    TransferOwnership {
         coord: (i32, i32),
         new_owner: Entity
     }

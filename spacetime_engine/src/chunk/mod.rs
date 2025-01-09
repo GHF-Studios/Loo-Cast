@@ -11,7 +11,7 @@ pub mod systems;
 
 use bevy::prelude::*;
 use resources::{ChunkActionBuffer, ChunkManager};
-use systems::update_chunk_system;
+use systems::{process_chunk_actions, update_chunk_system};
 
 pub(in crate) struct ChunkPlugin;
 impl Plugin for ChunkPlugin {
@@ -19,6 +19,7 @@ impl Plugin for ChunkPlugin {
         app
             .insert_resource(ChunkActionBuffer::default())
             .insert_resource(ChunkManager::default())
-            .add_systems(Update, update_chunk_system);
+            .add_systems(Update, update_chunk_system)
+            .add_systems(Update, process_chunk_actions.after(update_chunk_system));
     }
 }

@@ -41,10 +41,10 @@ pub(in crate) fn update_chunk_loader_system_NEW(
 
             if !loaded {
                 if !spawning && !despawning && !transfering_ownership { 
-                    chunk_action_buffer.0.insert(*chunk_coord, ChunkAction::SpawnChunk { coord: *chunk_coord });
+                    chunk_action_buffer.0.insert(*chunk_coord, ChunkAction::Spawn { coord: *chunk_coord });
                 }
             } else if !owned && !despawning && !transfering_ownership {
-                chunk_action_buffer.0.insert(*chunk_coord, ChunkAction::TransferChunkOwnership { coord: *chunk_coord, new_owner: loader_entity });
+                chunk_action_buffer.0.insert(*chunk_coord, ChunkAction::TransferOwnership { coord: *chunk_coord, new_owner: loader_entity });
             }
         }
 
@@ -53,20 +53,10 @@ pub(in crate) fn update_chunk_loader_system_NEW(
             let despawning = chunk_action_buffer.is_despawning(chunk_coord);
 
             if loaded && !despawning {
-                chunk_action_buffer.0.insert(*chunk_coord, ChunkAction::DespawnChunk { coord: *chunk_coord });
+                chunk_action_buffer.0.insert(*chunk_coord, ChunkAction::Despawn { coord: *chunk_coord });
             }
         }
     }
-}
-
-pub(in crate) fn process_chunk_actions(
-    mut commands: Commands,
-    chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
-    chunk_query: Query<(Entity, &ChunkComponent)>,
-    chunk_manager: Res<ChunkManager>,
-    mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
-) {
-
 }
 
 pub(in crate) fn update_chunk_loader_system(
