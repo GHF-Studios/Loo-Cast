@@ -9,7 +9,7 @@ pub(in crate) fn hook_on_add_chunk(world: DeferredWorld, entity: Entity, _compon
     let owner = match chunk.owner {
         Some(owner) => owner,
         None => {
-            // TODO: Remove this, no owner should be legal
+            // TODO: Remove this; having no owner is a legal edge case
             panic!("Attempted to add chunk, for which no owner was provided")
         }
     };
