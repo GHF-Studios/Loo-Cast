@@ -3,13 +3,13 @@ use bevy::prelude::*;
 use bevy::ecs::world::DeferredWorld;
 
 use super::components::ChunkComponent;
-use super::statics::{CHUNK_OWNERSHIP, LOADED_CHUNKS, REQUESTED_CHUNK_ADDITIONS, REQUESTED_CHUNK_REMOVALS};
 
 pub(in crate) fn hook_on_add_chunk(world: DeferredWorld, entity: Entity, _component_id: ComponentId) {
     let chunk = world.get::<ChunkComponent>(entity).unwrap();
     let owner = match chunk.owner {
         Some(owner) => owner,
         None => {
+            // TODO: Remove this, no owner should be legal
             panic!("Attempted to add chunk, for which no owner was provided")
         }
     };

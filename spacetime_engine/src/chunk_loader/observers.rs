@@ -2,7 +2,6 @@ use bevy::prelude::*;
 
 use crate::chunk::components::ChunkComponent;
 use crate::chunk::functions::*;
-use crate::chunk::statics::{CHUNK_OWNERSHIP, LOADED_CHUNKS, REQUESTED_CHUNK_ADDITIONS, REQUESTED_CHUNK_REMOVALS};
 
 use super::components::ChunkLoaderComponent;
 

@@ -1,15 +1,17 @@
 use bevy::prelude::*;
 
-#[derive(Debug)]
-pub(in crate) enum ChunkRetryAction {
-    Spawn {
-        chunk_coord: (i32, i32),
-        chunk_owner: Entity,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(in crate) enum ChunkAction {
+    SpawnChunk {
+        coord: (i32, i32)
     },
-    Despawn {
-        chunk_coord: (i32, i32),
-        chunk_entity: Entity,
+    DespawnChunk {
+        coord: (i32, i32)
     },
+    TransferChunkOwnership {
+        coord: (i32, i32),
+        new_owner: Entity
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -17,10 +19,4 @@ pub enum ChunkState {
     Spawning,
     Loaded,
     Despawning,
-}
-
-#[derive(Debug)]
-pub enum ChunkRequest {
-    Spawn,
-    Despawn
 }
