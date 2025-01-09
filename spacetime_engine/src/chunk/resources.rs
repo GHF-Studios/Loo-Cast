@@ -43,20 +43,41 @@ impl ChunkActionBuffer {
             false
         }
     }
+
+    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<&ChunkAction> {
+        self.0.get(chunk_coord)
+    }
+
+    pub fn get_action_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool, bool) {
+        match self.get(&chunk_coord) {
+            Some(action) => {
+                match action {
+                    ChunkAction::Spawn { .. } => {
+                        (true, false, false)
+                    },
+                    ChunkAction::Despawn { .. } => {
+                        (false, true, false)
+                    },
+                    ChunkAction::TransferOwnership { .. } => {
+                        (false, false, true)
+                    }
+                }
+            },
+            None => {
+                (false, false, false)
+            }
+        }
+    }
 }
 
 #[derive(Resource, Default, Debug)]
 pub(in crate) struct ChunkManager {
-    loaded_chunks: HashSet<(i32, i32)>,
-    chunk_owners: HashMap<(i32, i32), Entity>,
+    pub loaded_chunks: HashSet<(i32, i32)>,
+    pub owned_chunks: HashMap<(i32, i32), Entity>,
 }
 impl ChunkManager {
-    pub fn get_loaded_chunks(&self) -> &HashSet<(i32, i32)> {
-        &self.loaded_chunks
-    }
-
-    pub fn get_owned_chunks(&self) -> &HashMap<(i32, i32), Entity> {
-        &self.chunk_owners
+    pub fn get_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool) {
+        (self.loaded_chunks.contains(&chunk_coord), self.owned_chunks.contains_key(&chunk_coord))
     }
 
     pub fn is_loaded(&self, chunk_coord: &(i32, i32)) -> bool {
@@ -64,10 +85,6 @@ impl ChunkManager {
     }
 
     pub fn is_owned(&self, chunk_coord: &(i32, i32)) -> bool {
-        if !self.is_loaded(chunk_coord) {
-            return false;
-        }
-        
-        self.chunk_owners.get(chunk_coord).is_some()
+        self.owned_chunks.contains_key(chunk_coord)
     }
 }

@@ -1,9 +1,8 @@
-use std::{collections::HashSet, sync::MutexGuard};
 use bevy::prelude::*;
 
 use crate::chunk::{bundles::ChunkBundle, components::ChunkComponent, constants::HALF_CHUNK_SIZE};
 
-use super::{constants::{CHUNK_SIZE, DEFAULT_CHUNK_Z}, errors::{DespawnError, SpawnError}};
+use super::{constants::{CHUNK_SIZE, DEFAULT_CHUNK_Z}, errors::{DespawnError, SpawnError, TransferOwnershipError}, ChunkActionBuffer, ChunkManager};
 
 pub(in crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i32, i32)> {
     let (center_chunk_x, center_chunk_y) = world_pos_to_chunk(position);
@@ -53,25 +52,32 @@ pub(in crate) fn chunk_pos_to_world(grid_coord: (i32, i32)) -> Vec2 {
 }
 
 pub(in crate) fn spawn_chunk(
-    commands: &mut Commands, 
-    requested_chunk_additions: &mut MutexGuard<HashSet<(i32, i32)>>, 
-    requested_chunk_removals: &MutexGuard<HashSet<(i32, i32)>>, 
-    chunk_coord: (i32, i32), 
-    chunk_owner: Entity
+    commands: &mut Commands,
+    chunk_manager: &mut ChunkManager,
+    chunk_action_buffer: &mut ChunkActionBuffer,
+    chunk_coord: (i32, i32),
+    chunk_owner: Option<Entity>,
 ) -> Result<(), SpawnError> {
-    if requested_chunk_removals.contains(&chunk_coord) {
+    let (is_loaded, _) = chunk_manager.get_states(&chunk_coord);
+    if is_loaded {
+        return Err(SpawnError::AlreadySpawned { chunk_coord });
+    }
+    
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord) ;
+    if !is_spawning {
+        return Err(SpawnError::NotSpawning { chunk_coord });
+    }
+    if is_despawning {
         return Err(SpawnError::AlreadyBeingDespawned { chunk_coord });
     }
-
-    if requested_chunk_additions.contains(&chunk_coord) {
-        return Err(SpawnError::AlreadyBeingSpawned { chunk_coord });
+    if is_transfering_ownership {
+        return Err(SpawnError::AlreadyTransferingOwnership { chunk_coord });
     }
 
-    requested_chunk_additions.insert(chunk_coord);
     commands.spawn(ChunkBundle {
         chunk: ChunkComponent {
             coord: chunk_coord,
-            owner: Some(chunk_owner)
+            owner: chunk_owner
         },
         sprite_bundle: SpriteBundle {
             sprite: Sprite {
@@ -90,27 +96,91 @@ pub(in crate) fn spawn_chunk(
             ..Default::default()
         },
     });
+    
+    chunk_manager.loaded_chunks.insert(chunk_coord);
+    if let Some(chunk_owner) = chunk_owner {
+        chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
+    }
 
+    chunk_action_buffer.0.remove(&chunk_coord);
+    
     Ok(())
 }
 
 pub(in crate) fn despawn_chunk(
-    commands: &mut Commands, 
-    requested_chunk_additions: &MutexGuard<HashSet<(i32, i32)>>, 
-    requested_chunk_removals: &mut MutexGuard<HashSet<(i32, i32)>>, 
-    chunk_coord: (i32, i32), 
-    chunk_entity: Entity
+    commands: &mut Commands,
+    chunk_manager: &mut ChunkManager,
+    chunk_action_buffer: &mut ChunkActionBuffer,
+    chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
+    chunk_coord: (i32, i32),
 ) -> Result<(), DespawnError> {
-    if requested_chunk_additions.contains(&chunk_coord) {
-        return Err(DespawnError::StillBeingSpawned { chunk_coord });
+    let (is_loaded, _) = chunk_manager.get_states(&chunk_coord);
+    if !is_loaded {
+        return Err(DespawnError::AlreadyDespawned { chunk_coord });
     }
 
-    if requested_chunk_removals.contains(&chunk_coord) {
-        return Err(DespawnError::AlreadyBeingDespawned { chunk_coord });
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord) ;
+    if is_spawning {
+        return Err(DespawnError::AlreadyBeingSpawned { chunk_coord });
+    }
+    if !is_despawning {
+        return Err(DespawnError::NotDespawning { chunk_coord });
+    }
+    if is_transfering_ownership {
+        return Err(DespawnError::AlreadyTransferingOwnership { chunk_coord });
     }
 
-    requested_chunk_removals.insert(chunk_coord);
+    let (chunk_entity, chunk) = chunk_query
+        .iter()
+        .find(|(_, chunk)| chunk.coord == chunk_coord)
+        .expect(format!("Failed to despawn chunk {:?}: Chunk Query did not include it", chunk_coord).as_str());
+    
     commands.entity(chunk_entity).despawn_recursive();
+    
+    chunk_manager.loaded_chunks.insert(chunk_coord);
+    if let Some(chunk_owner) = chunk.owner {
+        chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
+    }
+    
+    chunk_action_buffer.0.remove(&chunk_coord);
+    
+    Ok(())
+}
 
+pub(in crate) fn transfer_chunk_ownership(
+    chunk_manager: &mut ChunkManager,
+    chunk_action_buffer: &mut ChunkActionBuffer,
+    chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
+    chunk_coord: (i32, i32),
+    new_chunk_owner: Entity
+) -> Result<(), TransferOwnershipError> {
+    let (is_loaded, _) = chunk_manager.get_states(&chunk_coord);
+    if !is_loaded {
+        return Err(TransferOwnershipError::AlreadyDespawned { chunk_coord });
+    }
+    
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord) ;
+    if is_spawning {
+        return Err(TransferOwnershipError::AlreadyBeingSpawned { chunk_coord });
+    }
+    if is_despawning {
+        return Err(TransferOwnershipError::AlreadyBeingDespawned { chunk_coord });
+    }
+    if !is_transfering_ownership {
+        return Err(TransferOwnershipError::NotTransferingOwnership { chunk_coord });
+    }
+    
+    let (_, mut chunk) = chunk_query
+        .iter_mut()
+        .find(|(_, chunk)| chunk.coord == chunk_coord)
+        .expect(format!("Failed to transfer ownership of chunk {:?}: Chunk Query did not include it", chunk_coord).as_str());
+    
+    chunk.owner = Some(new_chunk_owner);
+    
+    chunk_manager.loaded_chunks.insert(chunk_coord);
+    chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner);
+    
+    chunk_action_buffer.0.remove(&chunk_coord);
+    
     Ok(())
 }

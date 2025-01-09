@@ -4,7 +4,6 @@ pub mod constants;
 pub mod enums;
 pub mod errors;
 pub mod functions;
-pub mod hooks;
 pub mod resources;
 pub mod statics;
 pub mod systems;

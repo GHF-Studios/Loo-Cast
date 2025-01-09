@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use crate::chunk::components::ChunkComponent;
 use crate::chunk::functions::*;
+use crate::chunk::resources::{ChunkActionBuffer, ChunkManager};
 
 use super::components::ChunkLoaderComponent;
 
@@ -9,6 +10,8 @@ pub(in crate) fn observe_on_add_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     mut commands: Commands,
     chunk_loader_query: Query<(&Transform, &ChunkLoaderComponent)>,
+    chunk_manager: Res<ChunkManager>,
+    mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
 ) {
     let mut requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
     let requested_chunk_removals = REQUESTED_CHUNK_REMOVALS.lock().unwrap();
@@ -40,7 +43,9 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     mut commands: Commands,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
-    chunk_query: Query<(Entity, &ChunkComponent)>
+    chunk_query: Query<(Entity, &ChunkComponent)>,
+    chunk_manager: Res<ChunkManager>,
+    mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
 ) {
     let loader_entity = trigger.entity();
     let requested_chunk_additions = REQUESTED_CHUNK_ADDITIONS.lock().unwrap();
