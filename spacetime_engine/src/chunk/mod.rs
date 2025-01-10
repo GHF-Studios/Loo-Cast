@@ -5,7 +5,6 @@ pub mod enums;
 pub mod errors;
 pub mod functions;
 pub mod resources;
-pub mod statics;
 pub mod systems;
 
 use bevy::prelude::*;

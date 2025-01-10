@@ -101,7 +101,6 @@ pub(in crate) fn spawn_chunk(
     if let Some(chunk_owner) = chunk_owner {
         chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
     }
-
     chunk_action_buffer.0.remove(&chunk_coord);
     
     Ok(())
@@ -130,21 +129,24 @@ pub(in crate) fn despawn_chunk(
         return Err(DespawnError::AlreadyTransferingOwnership { chunk_coord });
     }
 
-    let (chunk_entity, chunk) = chunk_query
-        .iter()
-        .find(|(_, chunk)| chunk.coord == chunk_coord)
-        .expect(format!("Failed to despawn chunk {:?}: Chunk Query did not include it", chunk_coord).as_str());
-    
-    commands.entity(chunk_entity).despawn_recursive();
-    
-    chunk_manager.loaded_chunks.insert(chunk_coord);
-    if let Some(chunk_owner) = chunk.owner {
-        chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
+    match chunk_query.iter().find(|(_, chunk)| chunk.coord == chunk_coord) {
+        Some((chunk_entity, _)) => {
+            commands.entity(chunk_entity).despawn_recursive();
+            
+            chunk_manager.loaded_chunks.remove(&chunk_coord);
+            chunk_manager.owned_chunks.remove(&chunk_coord);
+            chunk_action_buffer.0.remove(&chunk_coord);
+
+            Ok(())
+        },
+        None => {
+            chunk_manager.loaded_chunks.remove(&chunk_coord);
+            chunk_manager.owned_chunks.remove(&chunk_coord);
+            chunk_action_buffer.0.remove(&chunk_coord);
+
+            Ok(())
+        }
     }
-    
-    chunk_action_buffer.0.remove(&chunk_coord);
-    
-    Ok(())
 }
 
 pub(in crate) fn transfer_chunk_ownership(
@@ -173,7 +175,7 @@ pub(in crate) fn transfer_chunk_ownership(
     let (_, mut chunk) = chunk_query
         .iter_mut()
         .find(|(_, chunk)| chunk.coord == chunk_coord)
-        .expect(format!("Failed to transfer ownership of chunk {:?}: Chunk Query did not include it", chunk_coord).as_str());
+        .unwrap_or_else(|| unreachable!("Failed to transfer ownership of chunk '{:?}': it is already despawned according to the Chunk Query", chunk_coord));
     
     chunk.owner = Some(new_chunk_owner);
     

@@ -8,8 +8,8 @@ pub(in crate) fn load_chunk(
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>
 ) {
-    let is_loaded = chunk_manager.loaded_chunks.get(&chunk_coord).is_some();
-    let is_owned = chunk_manager.owned_chunks.get(&chunk_coord).is_some();
+    let is_loaded = chunk_manager.loaded_chunks.contains(&chunk_coord);
+    let is_owned = chunk_manager.owned_chunks.contains_key(&chunk_coord);
     let is_spawning = chunk_action_buffer.is_spawning(&chunk_coord);
     let is_despawning = chunk_action_buffer.is_despawning(&chunk_coord);
     let is_transfering_ownership = chunk_action_buffer.is_transfering_ownership(&chunk_coord);

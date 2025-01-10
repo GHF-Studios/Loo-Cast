@@ -1,4 +1,4 @@
-use bevy::{ecs::component::StorageType, prelude::*};
+use bevy::prelude::*;
 
 #[derive(Component, Default)]
 pub struct ChunkComponent {

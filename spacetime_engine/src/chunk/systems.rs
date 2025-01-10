@@ -1,6 +1,10 @@
 use bevy::prelude::*;
 
-use super::{components::ChunkComponent, enums::ChunkAction, functions::{chunk_pos_to_world, despawn_chunk, spawn_chunk, transfer_chunk_ownership, world_pos_to_chunk}, ChunkActionBuffer, ChunkManager};
+use super::components::ChunkComponent;
+use super::enums::ChunkAction;
+use super::functions::{chunk_pos_to_world, despawn_chunk, spawn_chunk, transfer_chunk_ownership, world_pos_to_chunk};
+use super::ChunkActionBuffer;
+use super::ChunkManager;
 
 pub(in crate) fn update_chunk_system(
     chunk_query: Query<(Entity, &Transform, &ChunkComponent)>,
