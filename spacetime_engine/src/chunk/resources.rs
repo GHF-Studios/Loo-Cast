@@ -3,20 +3,12 @@ use bevy::prelude::*;
 
 use super::enums::ChunkAction;
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub(in crate) struct ChunkActionBuffer(pub HashMap<(i32, i32), ChunkAction>);
-impl Default for ChunkActionBuffer {
-    fn default() -> Self {
-        ChunkActionBuffer(HashMap::new())
-    }
-}
 impl ChunkActionBuffer {
     pub fn is_spawning(&self, chunk_coord: &(i32, i32)) -> bool {
         if let Some(action) = self.0.get(chunk_coord) {
-            match action {
-                ChunkAction::Spawn { .. } => true,
-                _ => false
-            }
+            matches!(action, ChunkAction::Spawn { .. })
         } else {
             false
         }
@@ -24,10 +16,7 @@ impl ChunkActionBuffer {
 
     pub fn is_despawning(&self, chunk_coord: &(i32, i32)) -> bool {
         if let Some(action) = self.0.get(chunk_coord) {
-            match action {
-                ChunkAction::Despawn { .. } => true,
-                _ => false
-            }
+            matches!(action, ChunkAction::Despawn { .. })
         } else {
             false
         }
@@ -35,10 +24,7 @@ impl ChunkActionBuffer {
 
     pub fn is_transfering_ownership(&self, chunk_coord: &(i32, i32)) -> bool {
         if let Some(action) = self.0.get(chunk_coord) {
-            match action {
-                ChunkAction::TransferOwnership { .. } => true,
-                _ => false
-            }
+            matches!(action, ChunkAction::TransferOwnership { .. })
         } else {
             false
         }
@@ -49,7 +35,7 @@ impl ChunkActionBuffer {
     }
 
     pub fn get_action_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool, bool) {
-        match self.get(&chunk_coord) {
+        match self.get(chunk_coord) {
             Some(action) => {
                 match action {
                     ChunkAction::Spawn { .. } => {
@@ -77,11 +63,11 @@ pub(in crate) struct ChunkManager {
 }
 impl ChunkManager {
     pub fn get_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool) {
-        (self.loaded_chunks.contains(&chunk_coord), self.owned_chunks.contains_key(&chunk_coord))
+        (self.loaded_chunks.contains(chunk_coord), self.owned_chunks.contains_key(chunk_coord))
     }
 
     pub fn is_loaded(&self, chunk_coord: &(i32, i32)) -> bool {
-        self.loaded_chunks.contains(&chunk_coord)
+        self.loaded_chunks.contains(chunk_coord)
     }
 
     pub fn is_owned(&self, chunk_coord: &(i32, i32)) -> bool {

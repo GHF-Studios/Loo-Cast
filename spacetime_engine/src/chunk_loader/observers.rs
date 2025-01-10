@@ -38,8 +38,8 @@ pub(in crate) fn observe_on_add_chunk_loader(
     
     for chunk_coord in potential_chunks_to_spawn {
         load_chunk(
-            &*chunk_manager, 
-            &mut *chunk_action_buffer, 
+            &chunk_manager, 
+            &mut chunk_action_buffer, 
             *chunk_coord, 
             Some(loader_entity)
         );
@@ -76,8 +76,8 @@ pub(in crate) fn observe_on_remove_chunk_loader(
 
     for chunk_coord in potential_chunks_to_despawn {
         unload_chunk(
-            &*chunk_manager, 
-            &mut *chunk_action_buffer,
+            &chunk_manager, 
+            &mut chunk_action_buffer,
             *chunk_coord
         );
     }

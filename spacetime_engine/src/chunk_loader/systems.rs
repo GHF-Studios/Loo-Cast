@@ -30,8 +30,8 @@ pub(in crate) fn update_chunk_loader_system(
 
         for chunk_coord in potential_chunks_to_spawn {
             load_chunk(
-                &*chunk_manager, 
-                &mut *chunk_action_buffer, 
+                &chunk_manager, 
+                &mut chunk_action_buffer, 
                 *chunk_coord, 
                 Some(loader_entity)
             );
@@ -39,8 +39,8 @@ pub(in crate) fn update_chunk_loader_system(
 
         for chunk_coord in potential_chunks_to_despawn {
             unload_chunk(
-                &*chunk_manager, 
-                &mut *chunk_action_buffer,
+                &chunk_manager, 
+                &mut chunk_action_buffer,
                 *chunk_coord
             );
         }

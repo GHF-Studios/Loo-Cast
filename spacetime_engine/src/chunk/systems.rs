@@ -33,7 +33,7 @@ pub(in crate) fn process_chunk_actions(
     while !chunk_actions.is_empty() {
         match chunk_actions.pop().unwrap() {
             ChunkAction::Spawn { coord, owner, .. } => {
-                match spawn_chunk(&mut commands, &mut *chunk_manager, &mut *chunk_action_buffer, coord, owner) {
+                match spawn_chunk(&mut commands, &mut chunk_manager, &mut chunk_action_buffer, coord, owner) {
                     Ok(_) => {},
                     Err(err) => {
                         panic!("Failed to spawn chunk '{:?}': {:?}", coord, err);
@@ -41,7 +41,7 @@ pub(in crate) fn process_chunk_actions(
                 }
             },
             ChunkAction::Despawn { coord } => {
-                match despawn_chunk(&mut commands, &mut *chunk_manager, &mut *chunk_action_buffer, &mut chunk_query, coord) {
+                match despawn_chunk(&mut commands, &mut chunk_manager, &mut chunk_action_buffer, &mut chunk_query, coord) {
                     Ok(_) => {},
                     Err(err) => {
                         panic!("Failed to despawn chunk '{:?}': {:?}", coord, err);
@@ -49,7 +49,7 @@ pub(in crate) fn process_chunk_actions(
                 }
             },
             ChunkAction::TransferOwnership { coord, new_owner, .. } => {
-                match transfer_chunk_ownership(&mut *chunk_manager, &mut *chunk_action_buffer, &mut chunk_query, coord, new_owner) {
+                match transfer_chunk_ownership(&mut chunk_manager, &mut chunk_action_buffer, &mut chunk_query, coord, new_owner) {
                     Ok(_) => {},
                     Err(err) => {
                         panic!("Failed to transfer ownership of chunk '{:?}': {:?}", coord, err);
