@@ -136,14 +136,14 @@ pub(in crate) fn despawn_chunk(
             chunk_manager.loaded_chunks.remove(&chunk_coord);
             chunk_manager.owned_chunks.remove(&chunk_coord);
             chunk_action_buffer.0.remove(&chunk_coord);
-
+    
             Ok(())
         },
         None => {
             chunk_manager.loaded_chunks.remove(&chunk_coord);
             chunk_manager.owned_chunks.remove(&chunk_coord);
             chunk_action_buffer.0.remove(&chunk_coord);
-
+    
             Ok(())
         }
     }
@@ -177,9 +177,11 @@ pub(in crate) fn transfer_chunk_ownership(
         .find(|(_, chunk)| chunk.coord == chunk_coord)
         .unwrap_or_else(|| unreachable!("Failed to transfer ownership of chunk '{:?}': it is already despawned according to the Chunk Query", chunk_coord));
     
+    if chunk.owner.is_some() {
+        chunk_manager.owned_chunks.remove(&chunk_coord);
+    }
     chunk.owner = Some(new_chunk_owner);
     
-    chunk_manager.loaded_chunks.insert(chunk_coord);
     chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner);
     
     chunk_action_buffer.0.remove(&chunk_coord);

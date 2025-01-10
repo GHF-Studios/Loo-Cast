@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use bevy::prelude::*;
 
+use crate::chunk::components::ChunkComponent;
 use crate::chunk::functions::*;
 use crate::chunk::resources::{ChunkActionBuffer, ChunkManager};
 
@@ -48,6 +49,7 @@ pub(in crate) fn observe_on_add_chunk_loader(
 
 pub(in crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
+    chunk_query: Query<&ChunkComponent>,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     chunk_manager: Res<ChunkManager>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
@@ -78,6 +80,8 @@ pub(in crate) fn observe_on_remove_chunk_loader(
         unload_chunk(
             &chunk_manager, 
             &mut chunk_action_buffer,
+            &chunk_query,
+            &chunk_loader_query,
             *chunk_coord
         );
     }
