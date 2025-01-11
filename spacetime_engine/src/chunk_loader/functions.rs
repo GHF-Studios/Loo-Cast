@@ -28,6 +28,8 @@ pub(in crate) fn load_chunk(
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>
 ) {
+    //debug!("Loading chunk {:?}", chunk_coord);
+
     let is_loaded = chunk_manager.loaded_chunks.contains(&chunk_coord);
     let is_owned = chunk_manager.owned_chunks.contains_key(&chunk_coord);
     let is_spawning = chunk_action_buffer.is_spawning(&chunk_coord);
@@ -50,6 +52,8 @@ pub(in crate) fn unload_chunk(
     chunk_loader_query: &Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     chunk_coord: (i32, i32),
 ) {
+    //debug!("Unloading chunk {:?}", chunk_coord);
+
     let loaded = chunk_manager.is_loaded(&chunk_coord);
     let despawning = chunk_action_buffer.is_despawning(&chunk_coord);
 

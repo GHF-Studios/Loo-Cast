@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 // Data types
 //pub mod components;
 //pub mod enums;
@@ -26,6 +28,7 @@ pub mod chunk_actor;
 pub mod chunk_loader;
 //pub mod core;
 pub mod debug;
+pub mod follower;
 //pub mod entity;
 //pub mod math;
 pub mod player;
@@ -40,6 +43,7 @@ use chunk_loader::ChunkLoaderPlugin;
 use oneshot_systems::MainOneshotSystems;
 //use core::CorePlugin;
 use debug::DebugPlugin;
+use follower::FollowerPlugin;
 //use entity::EntityPlugin;
 //use math::MathPlugin;
 use player::PlayerPlugin;
@@ -57,6 +61,7 @@ impl PluginGroup for SpacetimeEnginePlugins {
             .add(ChunkLoaderPlugin)
             //.add(CorePlugin)
             .add(DebugPlugin)
+            .add(FollowerPlugin)
             //.add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)

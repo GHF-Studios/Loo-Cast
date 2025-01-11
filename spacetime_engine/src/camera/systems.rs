@@ -1,10 +1,6 @@
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy::input::mouse::MouseScrollUnit;
 
-use crate::player::components::PlayerComponent;
-
-use super::components::MainCameraFollowComponent;
-
 pub(in crate) struct ZoomFactor(pub f32);
 impl Default for ZoomFactor {
     fn default() -> Self {
@@ -40,45 +36,5 @@ pub(in crate) fn main_camera_zoom_system(
     // Adjust the camera's FOV based on the zoom factor
     for mut projection in projection_query.iter_mut() {
         projection.scale = zoom_factor.0;
-    }
-}
-
-pub(in crate) fn main_camera_follow_system(
-    mut camera_query: Query<(&mut Transform, &mut MainCameraFollowComponent), Without<PlayerComponent>>,
-    target_query: Query<(Entity, &Transform), (With<PlayerComponent>, Without<MainCameraFollowComponent>)>,
-    time: Res<Time>,
-) {
-    let (mut camera_transform, mut camera_follow) = match camera_query.get_single_mut() {
-        Ok(value) => value,
-        Err(_) => {
-            return;
-        }
-    };
-
-    let follow_target = match camera_follow.target {
-        Some(target) => target,
-        None => {
-            match target_query.get_single() {
-                Ok((target, _)) => {
-                    camera_follow.target = Some(target);
-                    target
-                },
-                Err(_) => {
-                    return;
-                }
-            }
-        }
-    };
-
-    if let Ok((_, target_transform)) = target_query.get(follow_target) {
-        // Interpolate the camera's position towards the target
-        let target_position = target_transform.translation;
-        let current_position = camera_transform.translation;
-
-        // Linear interpolation towards the target position
-        let new_position = current_position.lerp(target_position, camera_follow.speed * time.delta_seconds());
-
-        // Update the camera's position
-        camera_transform.translation = new_position;
     }
 }

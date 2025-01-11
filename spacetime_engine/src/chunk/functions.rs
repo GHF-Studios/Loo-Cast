@@ -102,6 +102,8 @@ pub(in crate) fn spawn_chunk(
         chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
     }
     chunk_action_buffer.0.remove(&chunk_coord);
+
+    //debug!("Spawned chunk {:?}", chunk_coord);
     
     Ok(())
 }
@@ -136,6 +138,8 @@ pub(in crate) fn despawn_chunk(
             chunk_manager.loaded_chunks.remove(&chunk_coord);
             chunk_manager.owned_chunks.remove(&chunk_coord);
             chunk_action_buffer.0.remove(&chunk_coord);
+
+            //debug!("Despawned chunk {:?}", chunk_coord);
     
             Ok(())
         },
@@ -143,6 +147,8 @@ pub(in crate) fn despawn_chunk(
             chunk_manager.loaded_chunks.remove(&chunk_coord);
             chunk_manager.owned_chunks.remove(&chunk_coord);
             chunk_action_buffer.0.remove(&chunk_coord);
+
+            //debug!("Despawned chunk {:?}, however: It was already not present in the Chunk Query", chunk_coord);
     
             Ok(())
         }
@@ -185,6 +191,8 @@ pub(in crate) fn transfer_chunk_ownership(
     chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner);
     
     chunk_action_buffer.0.remove(&chunk_coord);
+
+    //debug!("Transfered ownership of chunk {:?} to {:?}", chunk_coord, new_chunk_owner);
     
     Ok(())
 }
