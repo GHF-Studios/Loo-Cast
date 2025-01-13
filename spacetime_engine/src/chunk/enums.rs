@@ -4,14 +4,17 @@ use bevy::prelude::*;
 pub(in crate) enum ChunkAction {
     Spawn {
         coord: (i32, i32),
-        owner: Option<Entity>
+        owner: Option<Entity>,
+        priority: ChunkActionPriority,
     },
     Despawn {
-        coord: (i32, i32)
+        coord: (i32, i32),
+        priority: ChunkActionPriority,
     },
     TransferOwnership {
         coord: (i32, i32),
-        new_owner: Entity
+        new_owner: Entity,
+        priority: ChunkActionPriority,
     }
 }
 impl ChunkAction {
@@ -29,11 +32,30 @@ impl ChunkAction {
 
     pub fn get_coord(&self) -> (i32, i32) {
         match self {
-            ChunkAction::Spawn { coord, .. } => *coord,
-            ChunkAction::Despawn { coord } => *coord,
-            ChunkAction::TransferOwnership { coord, .. } => *coord
+            ChunkAction::Spawn { coord, .. }
+            | ChunkAction::Despawn { coord, .. }
+            | ChunkAction::TransferOwnership { coord, .. } => *coord
         }
     }
+
+    pub fn get_priority(&self) -> ChunkActionPriority {
+        match self {
+            ChunkAction::Spawn { priority, .. } => *priority,
+            ChunkAction::Despawn { priority, .. } => *priority,
+            ChunkAction::TransferOwnership { priority, .. } => *priority
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ChunkActionPriority {
+    VeryLow,
+    Low,
+    #[default]
+    Medium,
+    High,
+    VeryHigh,
+    Realtime
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

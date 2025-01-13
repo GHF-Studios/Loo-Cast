@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::chunk::{components::ChunkComponent, enums::ChunkAction, functions::world_pos_to_chunk, resources::{ChunkActionBuffer, ChunkManager}};
+use crate::chunk::{components::ChunkComponent, enums::{ChunkAction, ChunkActionPriority}, functions::world_pos_to_chunk, resources::{ChunkActionBuffer, ChunkManager}};
 
 use super::components::ChunkLoaderComponent;
 
@@ -33,10 +33,10 @@ pub(in crate) fn load_chunk(
 
     if !is_loaded {
         if !is_spawning && !is_despawning && !is_transfering_ownership { 
-            chunk_action_buffer.0.insert(chunk_coord, ChunkAction::Spawn { coord: chunk_coord, owner: chunk_owner });
+            chunk_action_buffer.0.insert(chunk_coord, ChunkAction::Spawn { coord: chunk_coord, owner: chunk_owner, priority: ChunkActionPriority::Realtime });
         }
     } else if !is_owned && !is_despawning && !is_transfering_ownership && chunk_owner.is_some() {
-        chunk_action_buffer.0.insert(chunk_coord, ChunkAction::TransferOwnership { coord: chunk_coord, new_owner: chunk_owner.unwrap() });
+        chunk_action_buffer.0.insert(chunk_coord, ChunkAction::TransferOwnership { coord: chunk_coord, new_owner: chunk_owner.unwrap(), priority: ChunkActionPriority::Realtime });
     }
 }
 
@@ -75,10 +75,10 @@ pub(in crate) fn unload_chunk(
                 )
             }) {
             Some((new_owner, _, _)) => {
-                chunk_action_buffer.0.insert(chunk_coord, ChunkAction::TransferOwnership { coord: chunk_coord, new_owner });
+                chunk_action_buffer.0.insert(chunk_coord, ChunkAction::TransferOwnership { coord: chunk_coord, new_owner, priority: ChunkActionPriority::Realtime });
             },
             None => {
-                chunk_action_buffer.0.insert(chunk_coord, ChunkAction::Despawn { coord: chunk_coord });
+                chunk_action_buffer.0.insert(chunk_coord, ChunkAction::Despawn { coord: chunk_coord, priority: ChunkActionPriority::Realtime });
             }
         };
     }
