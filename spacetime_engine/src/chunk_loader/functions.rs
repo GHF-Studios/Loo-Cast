@@ -9,15 +9,12 @@ fn is_chunk_in_loader_range(
     loader_position: Vec2, 
     loader_radius: u32,
 ) -> bool {
-    // Convert the loader's world position to its chunk coordinates
     let (loader_chunk_x, loader_chunk_y) = world_pos_to_chunk(loader_position);
 
-    // Calculate the squared distance between the chunk and the loader's chunk
     let dx = chunk_coord.0 - loader_chunk_x;
     let dy = chunk_coord.1 - loader_chunk_y;
     let distance_squared = dx * dx + dy * dy;
 
-    // Compare squared distance with the squared radius to avoid expensive sqrt
     let radius_squared = (loader_radius as i32) * (loader_radius as i32);
     distance_squared <= radius_squared
 }
@@ -28,8 +25,6 @@ pub(in crate) fn load_chunk(
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>
 ) {
-    //debug!("Loading chunk {:?}", chunk_coord);
-
     let is_loaded = chunk_manager.loaded_chunks.contains(&chunk_coord);
     let is_owned = chunk_manager.owned_chunks.contains_key(&chunk_coord);
     let is_spawning = chunk_action_buffer.is_spawning(&chunk_coord);
@@ -52,8 +47,6 @@ pub(in crate) fn unload_chunk(
     chunk_loader_query: &Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     chunk_coord: (i32, i32),
 ) {
-    //debug!("Unloading chunk {:?}", chunk_coord);
-
     let loaded = chunk_manager.is_loaded(&chunk_coord);
     let despawning = chunk_action_buffer.is_despawning(&chunk_coord);
 
