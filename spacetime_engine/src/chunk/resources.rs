@@ -1,50 +1,80 @@
 use std::collections::{HashMap, HashSet};
 use bevy::prelude::*;
 
-use super::enums::ChunkAction;
+use super::enums::{ChunkAction, ChunkActionPriority};
 
 #[derive(Resource, Default)]
-pub(in crate) struct ChunkActionBuffer(pub HashMap<(i32, i32), ChunkAction>);
+pub(in crate) struct ChunkActionBuffer {
+    pub actions: Vec<(ChunkActionPriority, (i32, i32), ChunkAction)>, // (Priority, Chunk Coord, Action)
+}
 impl ChunkActionBuffer {
+    pub fn add_action(&mut self, action: ChunkAction) {
+        let priority = match &action {
+            ChunkAction::Spawn { priority, .. }
+            | ChunkAction::Despawn { priority, .. }
+            | ChunkAction::TransferOwnership { priority, .. } => *priority,
+        };
+        let coord = match &action {
+            ChunkAction::Spawn { coord, .. } => *coord,
+            ChunkAction::Despawn { coord, .. } => *coord,
+            ChunkAction::TransferOwnership { coord, .. } => *coord,
+        };
+
+        self.actions.push((priority, coord, action));
+    }
+
+    /// Removes actions for a specific chunk coordinate.
+    pub fn cancel_action(&mut self, coord: (i32, i32)) {
+        self.actions.retain(|(_, action_coord, _)| *action_coord != coord);
+    }
+
+    /// Sorts actions by priority, highest to lowest.
+    pub fn sort_by_priority(&mut self) {
+        self.actions.sort_by(|(p1, _, _), (p2, _, _)| p1.cmp(p2));
+    }
+    
     pub fn is_spawning(&self, chunk_coord: &(i32, i32)) -> bool {
-        if let Some(action) = self.0.get(chunk_coord) {
-            matches!(action, ChunkAction::Spawn { .. })
+        if let Some(action) = self.get(chunk_coord) {
+            matches!(action, (_, ChunkAction::Spawn { .. }))
         } else {
             false
         }
     }
 
     pub fn is_despawning(&self, chunk_coord: &(i32, i32)) -> bool {
-        if let Some(action) = self.0.get(chunk_coord) {
-            matches!(action, ChunkAction::Despawn { .. })
+        if let Some(action) = self.get(chunk_coord) {
+            matches!(action, (_, ChunkAction::Despawn { .. }))
         } else {
             false
         }
     }
 
     pub fn is_transfering_ownership(&self, chunk_coord: &(i32, i32)) -> bool {
-        if let Some(action) = self.0.get(chunk_coord) {
-            matches!(action, ChunkAction::TransferOwnership { .. })
+        if let Some(action) = self.get(chunk_coord) {
+            matches!(action, (_, ChunkAction::TransferOwnership { .. }))
         } else {
             false
         }
     }
 
-    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<&ChunkAction> {
-        self.0.get(chunk_coord)
+    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<(&ChunkActionPriority, &ChunkAction)> {
+        self.actions
+            .iter()
+            .find(|(_, coord, _)| chunk_coord == coord )
+            .map(|(priority, _, action)| (priority, action))
     }
 
     pub fn get_action_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool, bool) {
         match self.get(chunk_coord) {
             Some(action) => {
                 match action {
-                    ChunkAction::Spawn { .. } => {
+                    (_, ChunkAction::Spawn { .. }) => {
                         (true, false, false)
                     },
-                    ChunkAction::Despawn { .. } => {
+                    (_, ChunkAction::Despawn { .. }) => {
                         (false, true, false)
                     },
-                    ChunkAction::TransferOwnership { .. } => {
+                    (_, ChunkAction::TransferOwnership { .. }) => {
                         (false, false, true)
                     }
                 }
