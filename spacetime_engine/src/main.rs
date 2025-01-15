@@ -1,6 +1,8 @@
 extern crate spacetime_engine;
 
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
 use bevy::prelude::*;
+use iyes_perf_ui::prelude::*;
 use bevy::log::{Level, LogPlugin};
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::*;
@@ -34,15 +36,20 @@ fn main() {
 
         DefaultPlugins.build()
     } else {
-        DefaultPlugins.set(LogPlugin {
-            filter: LOG_FILTER.into(),
-            level: LOG_LEVEL,
-            ..Default::default()
-        })
+        DefaultPlugins
+            .set(LogPlugin {
+                filter: LOG_FILTER.into(),
+                level: LOG_LEVEL,
+                ..Default::default()
+            })
+            .add(FrameTimeDiagnosticsPlugin)
+            .add(EntityCountDiagnosticsPlugin)
+            .add(SystemInformationDiagnosticsPlugin)
     };
 
     App::new()
         .add_plugins(default_bevy_plugins)
+        .add_plugins(PerfUiPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(SpacetimeEnginePlugins)
         .run();

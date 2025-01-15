@@ -47,15 +47,16 @@ impl ChunkAction {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkActionPriority {
-    VeryLow,
-    Low,
-    #[default]
-    Medium,
-    High,
-    VeryHigh,
     Realtime,
+    Deferred(i64),
+}
+
+impl Default for ChunkActionPriority {
+    fn default() -> Self {
+        ChunkActionPriority::Deferred(0)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

@@ -26,7 +26,7 @@ pub(in crate) fn update_chunk_system(
     }
 }
 
-const MAX_CHUNK_ACTIONS_PER_UPDATE_CYCLE: usize = 100;
+const MAX_CHUNK_ACTIONS_PER_UPDATE_CYCLE: usize = 10;
 
 pub(in crate) fn process_chunk_actions(
     mut commands: Commands,

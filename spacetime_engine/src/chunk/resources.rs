@@ -22,11 +22,30 @@ impl ChunkActionBuffer {
         self.actions.remove(coord);
     }
 
-    // TODO: Rework
-    /// Sorts actions by priority, highest to lowest.
-    //pub fn sort_by_priority(&mut self) {
-    //    self.actions.sort_by(|(p1, _, _), (p2, _, _)| p1.cmp(p2));
-    //}
+    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<&(ChunkActionPriority, ChunkAction)> {
+        self.actions.get(chunk_coord)
+    }
+
+    pub fn get_action_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool, bool) {
+        match self.get(chunk_coord) {
+            Some(action) => {
+                match action {
+                    (_, ChunkAction::Spawn { .. }) => {
+                        (true, false, false)
+                    },
+                    (_, ChunkAction::Despawn { .. }) => {
+                        (false, true, false)
+                    },
+                    (_, ChunkAction::TransferOwnership { .. }) => {
+                        (false, false, true)
+                    }
+                }
+            },
+            None => {
+                (false, false, false)
+            }
+        }
+    }
     
     pub fn is_spawning(&self, chunk_coord: &(i32, i32)) -> bool {
         if let Some(action) = self.get(chunk_coord) {
@@ -52,29 +71,16 @@ impl ChunkActionBuffer {
         }
     }
 
-    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<&(ChunkActionPriority, ChunkAction)> {
-        self.actions.get(chunk_coord)
+    pub fn has_spawns(&self) -> bool {
+        self.actions.iter().any(|(_, (_, action))| action.is_spawn())
     }
 
-    pub fn get_action_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool, bool) {
-        match self.get(chunk_coord) {
-            Some(action) => {
-                match action {
-                    (_, ChunkAction::Spawn { .. }) => {
-                        (true, false, false)
-                    },
-                    (_, ChunkAction::Despawn { .. }) => {
-                        (false, true, false)
-                    },
-                    (_, ChunkAction::TransferOwnership { .. }) => {
-                        (false, false, true)
-                    }
-                }
-            },
-            None => {
-                (false, false, false)
-            }
-        }
+    pub fn has_despawns(&self) -> bool {
+        self.actions.iter().any(|(_, (_, action))| action.is_despawn())
+    }
+
+    pub fn has_ownership_transfers(&self) -> bool {
+        self.actions.iter().any(|(_, (_, action))| action.is_transfer_ownership())
     }
 }
 

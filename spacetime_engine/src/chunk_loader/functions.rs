@@ -9,46 +9,25 @@ use crate::chunk::{
 
 use super::components::ChunkLoaderComponent;
 
-const SPAWN_VERY_HIGH_THRESHOLD: f32 = 0.25;
-const SPAWN_HIGH_THRESHOLD: f32 = 0.5;
-const SPAWN_MEDIUM_THRESHOLD: f32 = 0.75;
-const SPAWN_LOW_THRESHOLD: f32 = 1.0;
+fn calculate_spawn_priority(
+    distance_squared: u32,
+    radius_squared: u32,
+    has_pending_despawn: bool,
+) -> ChunkActionPriority {
+    let normalized_distance = distance_squared as f64 / radius_squared as f64;
 
-const DESPAWN_VERY_LOW_THRESHOLD: f32 = 0.25;
-const DESPAWN_LOW_THRESHOLD: f32 = 0.5;
-const DESPAWN_MEDIUM_THRESHOLD: f32 = 1.0;
-const DESPAWN_HIGH_THRESHOLD: f32 = 2.0;
+    // Lower priority if a despawn is pending
+    let adjustment = if has_pending_despawn { 0.5 } else { 1.0 };
+    let priority_value = (i64::MAX as f64 * (1.0 - normalized_distance) * adjustment) as i64;
 
-fn calculate_spawn_priority(distance_squared: u32, radius_squared: u32) -> ChunkActionPriority {
-    let normalized_distance = distance_squared as f32 / radius_squared as f32;
-
-    if normalized_distance <= SPAWN_VERY_HIGH_THRESHOLD {
-        ChunkActionPriority::VeryHigh
-    } else if normalized_distance <= SPAWN_HIGH_THRESHOLD {
-        ChunkActionPriority::High
-    } else if normalized_distance <= SPAWN_MEDIUM_THRESHOLD {
-        ChunkActionPriority::Medium
-    } else if normalized_distance <= SPAWN_LOW_THRESHOLD {
-        ChunkActionPriority::Low
-    } else {
-        ChunkActionPriority::VeryLow
-    }
+    ChunkActionPriority::Deferred(priority_value)
 }
 
 fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) -> ChunkActionPriority {
-    let normalized_distance = distance_squared as f32 / radius_squared as f32;
+    let normalized_distance = distance_squared as f64 / radius_squared as f64;
+    let priority_value = (normalized_distance * i64::MAX as f64) as i64;
 
-    if normalized_distance <= DESPAWN_VERY_LOW_THRESHOLD {
-        ChunkActionPriority::VeryLow
-    } else if normalized_distance <= DESPAWN_LOW_THRESHOLD {
-        ChunkActionPriority::Low
-    } else if normalized_distance <= DESPAWN_MEDIUM_THRESHOLD {
-        ChunkActionPriority::Medium
-    } else if normalized_distance <= DESPAWN_HIGH_THRESHOLD {
-        ChunkActionPriority::High
-    } else {
-        ChunkActionPriority::VeryHigh
-    }
+    ChunkActionPriority::Deferred(priority_value)
 }
 
 fn is_chunk_in_loader_range(
@@ -69,7 +48,6 @@ fn is_chunk_in_loader_range(
 pub(in crate) fn load_chunk(
     chunk_manager: &ChunkManager,
     chunk_action_buffer: &mut ChunkActionBuffer,
-    chunk_loader_query: &Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>,
     chunk_loader_distance_squared: u32,
@@ -83,10 +61,16 @@ pub(in crate) fn load_chunk(
 
     if !is_loaded {
         if !is_spawning && !is_despawning && !is_transfering_ownership {
+            let has_pending_despawn = chunk_action_buffer.has_despawns();
+
             chunk_action_buffer.add_action(ChunkAction::Spawn {
                 coord: chunk_coord,
                 owner: chunk_owner,
-                priority: calculate_spawn_priority(chunk_loader_distance_squared, chunk_loader_radius_squared),
+                priority: calculate_spawn_priority(
+                    chunk_loader_distance_squared,
+                    chunk_loader_radius_squared,
+                    has_pending_despawn,
+                ),
             });
         }
     } else if !is_owned && !is_despawning && !is_transfering_ownership && chunk_owner.is_some() {
@@ -132,7 +116,7 @@ pub(in crate) fn unload_chunk(
                 loader.radius,
             )
         }) {
-            Some((new_owner, new_owner_transform, new_owner_chunk_loader)) => {
+            Some((new_owner, _, _)) => {
                 chunk_action_buffer.add_action(ChunkAction::TransferOwnership {
                     coord: chunk_coord,
                     new_owner,
