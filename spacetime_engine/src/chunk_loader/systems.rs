@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use std::collections::HashSet;
 
 use crate::chunk::components::ChunkComponent;
+use crate::chunk::enums::ChunkAction;
 use crate::chunk::functions::{calculate_chunk_distance_from_owner, calculate_chunks_in_radius, world_pos_to_chunk};
 use crate::chunk::resources::{ChunkActionBuffer, ChunkManager};
 
@@ -14,6 +15,44 @@ pub(in crate) fn update_chunk_loader_system(
     chunk_manager: Res<ChunkManager>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
 ) {
+    // Phase 1: Validate chunk actions
+    for (_, transform, chunk_loader) in chunk_loader_query.iter() {
+        let position = transform.translation.truncate();
+        let radius = chunk_loader.radius;
+        let loader_range = calculate_chunks_in_radius(position, radius)
+            .into_iter()
+            .collect::<HashSet<(i32, i32)>>();
+
+        // Create a list of invalid actions to remove
+        let mut invalid_actions = vec![];
+
+        for (&chunk_coord, (_, action)) in &chunk_action_buffer.actions {
+            match action {
+                ChunkAction::Spawn { .. } => {
+                    // Spawns outside the range are invalid
+                    if !loader_range.contains(&chunk_coord) {
+                        invalid_actions.push(chunk_coord);
+                    }
+                }
+                ChunkAction::Despawn { .. } => {
+                    // Despawns inside the range are invalid
+                    if loader_range.contains(&chunk_coord) {
+                        invalid_actions.push(chunk_coord);
+                    }
+                }
+                ChunkAction::TransferOwnership { .. } => {
+                    // Ignore ownership transfers for now (can be handled if needed)
+                }
+            }
+        }
+
+        // Remove invalid actions from the buffer
+        for chunk_coord in invalid_actions {
+            chunk_action_buffer.remove_action(&chunk_coord);
+        }
+    }
+
+    // Phase 2: Perform existing chunk loading/unloading logic
     for (loader_entity, transform, chunk_loader) in chunk_loader_query.iter() {
         let position = transform.translation.truncate();
         let radius = chunk_loader.radius;
@@ -60,3 +99,4 @@ pub(in crate) fn update_chunk_loader_system(
         }
     }
 }
+
