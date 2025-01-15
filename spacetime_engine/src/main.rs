@@ -2,6 +2,7 @@ extern crate spacetime_engine;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
 use bevy::prelude::*;
+use config::statics::CACHED_CONFIGS;
 use iyes_perf_ui::prelude::*;
 use bevy::log::{Level, LogPlugin};
 use bevy_rapier2d::prelude::*;
@@ -22,6 +23,9 @@ fn main() {
         "RUST_BACKTRACE", 
         if ENABLE_BACKTRACE { "1" } else { "0" }
     );
+
+    let max_chunk_actions: usize = CACHED_CONFIGS.get("chunk.max_actions_per_update");
+    println!("Max chunk actions per update cycle: {}", max_chunk_actions);
 
     let default_bevy_plugins = if REROUTE_LOGS_TO_FILE {
         // Redirect logs to a file

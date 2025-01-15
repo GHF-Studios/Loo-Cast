@@ -1,0 +1,3 @@
+max_actions_per_update = 100
+chunk_size = 8.0
+default_chunk_z = -10.0

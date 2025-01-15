@@ -26,6 +26,7 @@ pub mod camera;
 pub mod chunk;
 pub mod chunk_actor;
 pub mod chunk_loader;
+pub mod config;
 //pub mod core;
 pub mod debug;
 pub mod follower;

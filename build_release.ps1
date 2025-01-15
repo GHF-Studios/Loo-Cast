@@ -1,76 +1,53 @@
 ########## DEFINE PATHS ##########
 
-# Loo cast paths
-$looCastBuildSourceDir = ".\target\release"
+# Source and build paths
+$looCastBuildSourceDir = ".\target\debug"
 
 # Engine paths
 $engineProjectDir = ".\spacetime_engine"
-$engineBuildTargetDir = ".\build\release"
+$engineBuildTargetDir = ".\build\debug"
 
-$engineBuildModsSourceDir = "$engineProjectDir\mods"
-$engineBuildModsTargetDir = "$engineBuildTargetDir\mods"
-
-
-
+# General application data folder
+$engineDataSourceDir = "$engineProjectDir\data"
+$engineDataTargetDir = "$engineBuildTargetDir\data"
 
 ########## PRE-PROCESS SOURCE AND TARGET DIRECTORIES ##########
 
+# Clear and recreate the build target directory
 if (Test-Path $engineBuildTargetDir) {
     Remove-Item -Path $engineBuildTargetDir -Recurse -Force
 }
 New-Item -Path $engineBuildTargetDir -ItemType Directory -Force
 
-
-
-
 ########## BUILD LOO CAST ##########
 
 cargo build --release
 
-
-
-
 ########## COPY SPACETIME ENGINE FROM SOURCE TO TARGET ##########
 
-# Copy static rust library from build source to build target
+# Copy static Rust library
 $engineLibFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "libspacetime_engine.rlib" -Recurse
 Copy-Item -Path $engineLibFile.FullName -Destination $engineBuildTargetDir -Force
 
-# Copy C-compatible shared library from build source to build target
+# Copy C-compatible shared library
 $engineDllFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "spacetime_engine.dll" -Recurse
 Copy-Item -Path $engineDllFile.FullName -Destination $engineBuildTargetDir -Force
 
-# Copy executable from build source to build target
+# Copy executable
 $engineExeFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "spacetime_engine.exe" -Recurse
 Copy-Item -Path $engineExeFile.FullName -Destination $engineBuildTargetDir -Force
 
-# Copy program debug database from build source to build target
+# Copy program debug database
 $enginePdbFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "spacetime_engine.pdb" -Recurse
 Copy-Item -Path $enginePdbFile.FullName -Destination $engineBuildTargetDir -Force
 
+########## COPY APPLICATION DATA FROM SOURCE TO TARGET ##########
 
-
-
-########## COPY OTHER PRE-INCLUDED MODS FROM SOURCE TO TARGET ##########
-
-# Ensure the mods source directory exists
-if (Test-Path $engineBuildModsSourceDir) {
-    # Get all mod directories in the source directory
-    $modDirectories = Get-ChildItem -Path $engineBuildModsSourceDir -Directory
-
-    # Iterate over each mod directory
-    foreach ($modDir in $modDirectories) {
-        # Define the target directory path for each mod
-        $targetModDir = Join-Path -Path $engineBuildModsTargetDir -ChildPath $modDir.Name
-
-        # Check for duplicate mod directories
-        if (Test-Path $targetModDir) {
-            Write-Host "Attempted to load mod '$($modDir.Name)' multiple times."
-        } else {
-            # Copy the entire mod directory to the target directory
-            Copy-Item -Path $modDir.FullName -Destination $targetModDir -Recurse -Force
-        }
-    }
+# Ensure the data source directory exists
+if (Test-Path $engineDataSourceDir) {
+    # Copy the entire data directory to the target
+    Copy-Item -Path $engineDataSourceDir -Destination $engineDataTargetDir -Recurse -Force
+    Write-Host "Application data copied successfully."
 } else {
-    Write-Host "Source mods directory does not exist: $engineBuildModsSourceDir"
+    Write-Host "Source data directory does not exist: $engineDataSourceDir"
 }
