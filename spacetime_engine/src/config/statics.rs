@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 
-use super::structs::CachedConfigs;
+use super::structs::Config;
 
 lazy_static!{
-    pub static ref CACHED_CONFIGS: CachedConfigs = CachedConfigs::load_from_dir("data/config").expect("Failed to load configs");
+    pub static ref CONFIG: Config = Config::from_file("data/config/config.toml").expect("Failed to load config");
 }

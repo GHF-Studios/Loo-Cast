@@ -1,6 +1,8 @@
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy::input::mouse::MouseScrollUnit;
 
+use crate::config::statics::CONFIG;
+
 pub(in crate) struct ZoomFactor(pub f32);
 impl Default for ZoomFactor {
     fn default() -> Self {
@@ -15,9 +17,9 @@ pub(in crate) fn main_camera_zoom_system(
     time: Res<Time>,
     mut zoom_factor: Local<ZoomFactor>,
 ) {
-    let min_zoom = 0.03125;
-    let max_zoom = 32.0;
-    let base_zoom_speed = 1.0;
+    let min_zoom = CONFIG.get::<f32>("camera/min_zoom");
+    let max_zoom = CONFIG.get::<f32>("camera/max_zoom");
+    let base_zoom_speed = CONFIG.get::<f32>("camera/base_zoom_speed");
 
     for event in scroll_event_reader.read() {
         let scroll_delta = match event.unit {

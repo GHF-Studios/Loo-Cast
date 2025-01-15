@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::chunk::enums::ChunkActionPriority;
+use crate::config::statics::CONFIG;
 
 use super::components::ChunkComponent;
 use super::enums::ChunkAction;
@@ -26,14 +27,14 @@ pub(in crate) fn update_chunk_system(
     }
 }
 
-const MAX_CHUNK_ACTIONS_PER_UPDATE_CYCLE: usize = 100;
-
 pub(in crate) fn process_chunk_actions(
     mut commands: Commands,
     mut chunk_query: Query<(Entity, &mut ChunkComponent)>,
     mut chunk_manager: ResMut<ChunkManager>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
 ) {
+    let max_actions = CONFIG.get::<u32>("chunk/max_actions_per_update") as usize;
+
     let mut chunk_actions: Vec<((i32, i32), (ChunkActionPriority, ChunkAction))> = chunk_action_buffer
         .actions
         .iter()
@@ -48,8 +49,8 @@ pub(in crate) fn process_chunk_actions(
     chunk_actions.sort_by(|a, b| b.1.0.cmp(&a.1.0));
 
     for (total_actions_processed, (chunk_coord, (chunk_action_priority, chunk_action))) in chunk_actions.into_iter().enumerate() {
-        if chunk_action_priority != ChunkActionPriority::Realtime && total_actions_processed >= MAX_CHUNK_ACTIONS_PER_UPDATE_CYCLE {
-            warn!("Reached max actions ({:?}) per update cycle. Deferring remaining actions.", MAX_CHUNK_ACTIONS_PER_UPDATE_CYCLE);
+        if chunk_action_priority != ChunkActionPriority::Realtime && total_actions_processed >= max_actions {
+            warn!("Reached max actions ({:?}) per update cycle. Deferring remaining actions.", max_actions);
             break;
         }
 

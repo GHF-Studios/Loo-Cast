@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use super::constants::DEFAULT_CHUNK_LOADER_RADIUS;
+use crate::config::statics::CONFIG;
 
 #[derive(Component)]
 pub struct ChunkLoaderComponent {
@@ -9,7 +9,7 @@ pub struct ChunkLoaderComponent {
 impl Default for ChunkLoaderComponent {
     fn default() -> Self {
         ChunkLoaderComponent {
-            radius: DEFAULT_CHUNK_LOADER_RADIUS
+            radius: CONFIG.get::<u32>("chunk_loader/default_radius")
         }
     }
 }

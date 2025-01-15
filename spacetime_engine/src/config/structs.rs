@@ -1,53 +1,101 @@
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
-use toml::Value;
+use std::sync::RwLock;
+
+use super::enums::ConfigValue;
 
 #[derive(Debug)]
-pub struct CachedConfigs {
-    configs: HashMap<String, Value>,
+pub struct Config {
+    pub data: HashMap<String, ConfigValue>,
+    cache: RwLock<HashMap<String, HashMap<TypeId, Box<dyn Any + Send + Sync>>>>,
 }
 
-impl CachedConfigs {
-    pub(in super) fn load_from_dir<P: AsRef<Path>>(dir: P) -> Result<Self, Box<dyn std::error::Error>> {
-        let mut configs = HashMap::new();
-        let dir = dir.as_ref();
+impl Config {
+    /// Load configuration from a file
+    pub fn from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let toml_str = fs::read_to_string(path)?;
+        let raw_data: toml::Value = toml::from_str(&toml_str)?;
 
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path();
+        let mut data = HashMap::new();
+        Self::flatten("", &raw_data, &mut data)?;
 
-            if path.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("toml") {
-                let file_name = path.file_stem().unwrap().to_string_lossy();
-                let content = fs::read_to_string(&path)?;
-                let parsed: Value = toml::from_str(&content)?;
-
-                // Flatten TOML structure into dot-separated keys
-                Self::flatten_toml(&parsed, &file_name, &mut configs);
-            }
-        }
-
-        Ok(Self { configs })
+        Ok(Self { 
+            data,
+            cache: RwLock::new(HashMap::new()),
+        })
     }
 
-    pub fn get<T: std::str::FromStr>(&self, key: &str) -> T {
-        match self.configs.get(key).and_then(|value| value.as_str()?.parse::<T>().ok()) {
-            Some(config) => config,
-            None => panic!("Missing config: {:?}", key)
-        }
-    }
-
-    fn flatten_toml(value: &Value, prefix: &str, map: &mut HashMap<String, Value>) {
+    /// Flatten nested TOML tables
+    fn flatten(
+        prefix: &str,
+        value: &toml::Value,
+        data: &mut HashMap<String, ConfigValue>,
+    ) -> Result<(), String> {
         match value {
-            Value::Table(table) => {
+            toml::Value::Table(table) => {
                 for (key, val) in table {
-                    let new_prefix = format!("{}.{}", prefix, key);
-                    Self::flatten_toml(val, &new_prefix, map);
+                    let new_prefix = if prefix.is_empty() {
+                        key.clone()
+                    } else {
+                        format!("{}/{}", prefix, key)
+                    };
+                    Self::flatten(&new_prefix, val, data)?;
                 }
             }
+            toml::Value::Integer(i) => {
+                data.insert(prefix.to_string(), ConfigValue::Integer(*i));
+            }
+            toml::Value::Float(f) => {
+                data.insert(prefix.to_string(), ConfigValue::Float(*f));
+            }
+            toml::Value::Boolean(b) => {
+                data.insert(prefix.to_string(), ConfigValue::Boolean(*b));
+            }
+            toml::Value::String(s) => {
+                data.insert(prefix.to_string(), ConfigValue::String(s.clone()));
+            }
             _ => {
-                map.insert(prefix.to_string(), value.clone());
+                return Err(format!("Unsupported value at key: {}", prefix));
             }
         }
+        Ok(())
+    }
+
+    /// Generic getter with caching
+    pub fn get<T>(&self, path: &str) -> T
+    where
+        T: TryFrom<ConfigValue, Error = String> + Clone + Send + Sync + 'static,
+    {
+        // Attempt to retrieve from cache
+        {
+            let cache = self.cache.read().unwrap();
+            if let Some(type_map) = cache.get(path) {
+                if let Some(cached_value) = type_map.get(&TypeId::of::<T>()) {
+                    return cached_value.downcast_ref::<T>()
+                        .expect("Cached value type mismatch")
+                        .clone();
+                }
+            }
+        }
+
+        // Compute the value if not cached
+        let value = self
+            .data
+            .get(path)
+            .unwrap_or_else(|| panic!("Config key not found: {}", path))
+            .clone();
+
+        let typed_value: T = T::try_from(value)
+            .unwrap_or_else(|err| panic!("Type conversion error: {}", err));
+
+        // Cache the computed value
+        {
+            let mut cache = self.cache.write().unwrap();
+            let type_map = cache.entry(path.to_string()).or_default();
+            type_map.insert(TypeId::of::<T>(), Box::new(typed_value.clone()));
+        }
+
+        typed_value
     }
 }

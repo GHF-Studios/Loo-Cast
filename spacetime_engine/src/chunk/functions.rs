@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
-use crate::chunk::{bundles::ChunkBundle, components::ChunkComponent, constants::HALF_CHUNK_SIZE};
+use crate::{chunk::{bundles::ChunkBundle, components::ChunkComponent}, config::statics::CONFIG};
 
-use super::{constants::{CHUNK_SIZE, DEFAULT_CHUNK_Z}, errors::{DespawnError, SpawnError, TransferOwnershipError}, ChunkActionBuffer, ChunkManager};
+use super::{errors::{DespawnError, SpawnError, TransferOwnershipError}, ChunkActionBuffer, ChunkManager};
 
 pub(in crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i32, i32)> {
     let (center_chunk_x, center_chunk_y) = world_pos_to_chunk(position);
@@ -46,14 +46,16 @@ pub(in crate) fn calculate_chunk_distance_from_owner(coord1: &(i32, i32), coord2
 }
 
 pub(in crate) fn world_pos_to_chunk(position: Vec2) -> (i32, i32) {
-    let chunk_x = ((position.x + CHUNK_SIZE / 2.0) / CHUNK_SIZE).floor() as i32;
-    let chunk_y = ((position.y + CHUNK_SIZE / 2.0) / CHUNK_SIZE).floor() as i32;
+    let chunk_size = CONFIG.get::<f32>("chunk/size");
+    let chunk_x = ((position.x + chunk_size / 2.0) / chunk_size).floor() as i32;
+    let chunk_y = ((position.y + chunk_size / 2.0) / chunk_size).floor() as i32;
     (chunk_x, chunk_y)
 }
 
 pub(in crate) fn chunk_pos_to_world(grid_coord: (i32, i32)) -> Vec2 {
-    let chunk_x = grid_coord.0 as f32 * CHUNK_SIZE;
-    let chunk_y = grid_coord.1 as f32 * CHUNK_SIZE;
+    let chunk_size = CONFIG.get::<f32>("chunk/size");
+    let chunk_x = grid_coord.0 as f32 * chunk_size;
+    let chunk_y = grid_coord.1 as f32 * chunk_size;
     Vec2::new(chunk_x, chunk_y)
 }
 
@@ -80,6 +82,9 @@ pub(in crate) fn spawn_chunk(
         return Err(SpawnError::AlreadyTransferingOwnership { chunk_coord });
     }
 
+    let half_chunk_size = CONFIG.get::<f32>("chunk/size") / 2.0;
+    let default_chunk_z = CONFIG.get::<f32>("chunk/default_z") / 2.0;
+
     commands.spawn(ChunkBundle {
         chunk: ChunkComponent {
             coord: chunk_coord,
@@ -92,11 +97,11 @@ pub(in crate) fn spawn_chunk(
                 } else {
                     Color::srgb(0.25, 0.25, 0.25)
                 },
-                rect: Some(Rect::new(-HALF_CHUNK_SIZE, -HALF_CHUNK_SIZE, HALF_CHUNK_SIZE, HALF_CHUNK_SIZE)),
+                rect: Some(Rect::new(-half_chunk_size, -half_chunk_size, half_chunk_size, half_chunk_size)),
                 ..Default::default()
             },
             transform: Transform {
-                translation: chunk_pos_to_world(chunk_coord).extend(DEFAULT_CHUNK_Z),
+                translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),
                 ..Default::default()
             },
             ..Default::default()
