@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use std::collections::HashSet;
 
 use crate::chunk::components::ChunkComponent;
-use crate::chunk::functions::calculate_chunks_in_radius;
+use crate::chunk::functions::{calculate_chunk_distance_from_owner, calculate_chunks_in_radius, world_pos_to_chunk};
 use crate::chunk::resources::{ChunkActionBuffer, ChunkManager};
 
 use super::components::ChunkLoaderComponent;
@@ -31,21 +31,32 @@ pub(in crate) fn update_chunk_loader_system(
         let potential_chunks_to_despawn: Vec<&(i32, i32)> = current_chunks.difference(&target_chunks).collect();
 
         for chunk_coord in potential_chunks_to_spawn {
+            let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
+            let chunk_loader_radius_squared = radius * radius;
+
             load_chunk(
                 &chunk_manager, 
                 &mut chunk_action_buffer, 
+                &chunk_loader_query,
                 *chunk_coord, 
-                Some(loader_entity)
+                Some(loader_entity),
+                chunk_loader_distance_squared,
+                chunk_loader_radius_squared,
             );
         }
 
         for chunk_coord in potential_chunks_to_despawn {
+            let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
+            let chunk_loader_radius_squared = radius * radius;
+
             unload_chunk(
                 &chunk_manager, 
                 &mut chunk_action_buffer,
                 &chunk_query,
                 &chunk_loader_query,
-                *chunk_coord
+                *chunk_coord,
+                chunk_loader_distance_squared,
+                chunk_loader_radius_squared,
             );
         }
     }

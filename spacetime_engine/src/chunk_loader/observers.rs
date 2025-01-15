@@ -38,11 +38,17 @@ pub(in crate) fn observe_on_add_chunk_loader(
     let potential_chunks_to_spawn: Vec<&(i32, i32)> = target_chunks.difference(&current_chunks).collect();
     
     for chunk_coord in potential_chunks_to_spawn {
+        let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
+        let chunk_loader_radius_squared = radius * radius;
+
         load_chunk(
             &chunk_manager, 
             &mut chunk_action_buffer, 
+            &chunk_loader_query,
             *chunk_coord, 
-            Some(loader_entity)
+            Some(loader_entity),
+            chunk_loader_distance_squared,
+            chunk_loader_radius_squared,
         );
     }
 }
@@ -55,12 +61,15 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
 ) {
     let loader_entity = trigger.entity();
-    let (loader_entity, _, _) = match chunk_loader_query.get(loader_entity) {
+    let (loader_entity, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
         Ok(value) => value,
         Err(_) => {
             panic!("Failed to add chunk loader {:?}: Chunk Loader Query did not include it", loader_entity);
         }
     };
+    
+    let position = loader_transform.translation.truncate();
+    let radius = loader.radius;
 
     let potential_chunks_to_despawn: Vec<&(i32, i32)> = chunk_manager.owned_chunks
         .iter()
@@ -68,12 +77,17 @@ pub(in crate) fn observe_on_remove_chunk_loader(
         .collect();
 
     for chunk_coord in potential_chunks_to_despawn {
+        let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(chunk_coord, &world_pos_to_chunk(position));
+        let chunk_loader_radius_squared = radius * radius;
+
         unload_chunk(
             &chunk_manager, 
             &mut chunk_action_buffer,
             &chunk_query,
             &chunk_loader_query,
-            *chunk_coord
+            *chunk_coord,
+            chunk_loader_distance_squared,
+            chunk_loader_radius_squared,
         );
     }
 

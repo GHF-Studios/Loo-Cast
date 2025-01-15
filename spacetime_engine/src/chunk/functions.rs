@@ -39,6 +39,12 @@ pub(in crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<
     chunks
 }
 
+pub(in crate) fn calculate_chunk_distance_from_owner(coord1: &(i32, i32), coord2: &(i32, i32)) -> u32 {
+    let dx = coord1.0 - coord2.0;
+    let dy = coord1.1 - coord2.1;
+    (dx * dx + dy * dy).try_into().unwrap()
+}
+
 pub(in crate) fn world_pos_to_chunk(position: Vec2) -> (i32, i32) {
     let chunk_x = ((position.x + CHUNK_SIZE / 2.0) / CHUNK_SIZE).floor() as i32;
     let chunk_y = ((position.y + CHUNK_SIZE / 2.0) / CHUNK_SIZE).floor() as i32;
@@ -101,7 +107,7 @@ pub(in crate) fn spawn_chunk(
     if let Some(chunk_owner) = chunk_owner {
         chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
     }
-    chunk_action_buffer.0.remove(&chunk_coord);
+    chunk_action_buffer.remove_action(&chunk_coord);
 
     Ok(())
 }
@@ -135,14 +141,14 @@ pub(in crate) fn despawn_chunk(
             
             chunk_manager.loaded_chunks.remove(&chunk_coord);
             chunk_manager.owned_chunks.remove(&chunk_coord);
-            chunk_action_buffer.0.remove(&chunk_coord);
+            chunk_action_buffer.remove_action(&chunk_coord);
 
             Ok(())
         },
         None => {
             chunk_manager.loaded_chunks.remove(&chunk_coord);
             chunk_manager.owned_chunks.remove(&chunk_coord);
-            chunk_action_buffer.0.remove(&chunk_coord);
+            chunk_action_buffer.remove_action(&chunk_coord);
 
             Ok(())
         }
@@ -184,7 +190,7 @@ pub(in crate) fn transfer_chunk_ownership(
     
     chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner);
     
-    chunk_action_buffer.0.remove(&chunk_coord);
+    chunk_action_buffer.remove_action(&chunk_coord);
 
     Ok(())
 }

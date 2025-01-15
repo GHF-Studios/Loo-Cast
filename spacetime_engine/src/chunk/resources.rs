@@ -5,33 +5,28 @@ use super::enums::{ChunkAction, ChunkActionPriority};
 
 #[derive(Resource, Default)]
 pub(in crate) struct ChunkActionBuffer {
-    pub actions: Vec<(ChunkActionPriority, (i32, i32), ChunkAction)>, // (Priority, Chunk Coord, Action)
+    pub actions: HashMap<(i32, i32), (ChunkActionPriority, ChunkAction)>,
 }
 impl ChunkActionBuffer {
     pub fn add_action(&mut self, action: ChunkAction) {
-        let priority = match &action {
-            ChunkAction::Spawn { priority, .. }
-            | ChunkAction::Despawn { priority, .. }
-            | ChunkAction::TransferOwnership { priority, .. } => *priority,
-        };
-        let coord = match &action {
-            ChunkAction::Spawn { coord, .. } => *coord,
-            ChunkAction::Despawn { coord, .. } => *coord,
-            ChunkAction::TransferOwnership { coord, .. } => *coord,
+        let (coord, priority) = match &action {
+            ChunkAction::Spawn { coord, priority, .. }
+            | ChunkAction::Despawn { coord, priority, .. }
+            | ChunkAction::TransferOwnership { coord, priority, .. } => (*coord, *priority),
         };
 
-        self.actions.push((priority, coord, action));
+        self.actions.insert(coord, (priority, action));
     }
 
-    /// Removes actions for a specific chunk coordinate.
-    pub fn cancel_action(&mut self, coord: (i32, i32)) {
-        self.actions.retain(|(_, action_coord, _)| *action_coord != coord);
+    pub fn remove_action(&mut self, coord: &(i32, i32)) {
+        self.actions.remove(coord);
     }
 
+    // TODO: Rework
     /// Sorts actions by priority, highest to lowest.
-    pub fn sort_by_priority(&mut self) {
-        self.actions.sort_by(|(p1, _, _), (p2, _, _)| p1.cmp(p2));
-    }
+    //pub fn sort_by_priority(&mut self) {
+    //    self.actions.sort_by(|(p1, _, _), (p2, _, _)| p1.cmp(p2));
+    //}
     
     pub fn is_spawning(&self, chunk_coord: &(i32, i32)) -> bool {
         if let Some(action) = self.get(chunk_coord) {
@@ -57,11 +52,8 @@ impl ChunkActionBuffer {
         }
     }
 
-    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<(&ChunkActionPriority, &ChunkAction)> {
-        self.actions
-            .iter()
-            .find(|(_, coord, _)| chunk_coord == coord )
-            .map(|(priority, _, action)| (priority, action))
+    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<&(ChunkActionPriority, ChunkAction)> {
+        self.actions.get(chunk_coord)
     }
 
     pub fn get_action_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool, bool) {

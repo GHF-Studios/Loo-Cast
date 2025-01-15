@@ -49,13 +49,13 @@ impl ChunkAction {
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkActionPriority {
-    Realtime,
-    VeryHigh,
-    High,
+    VeryLow,
+    Low,
     #[default]
     Medium,
-    Low,
-    VeryLow,
+    High,
+    VeryHigh,
+    Realtime,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
