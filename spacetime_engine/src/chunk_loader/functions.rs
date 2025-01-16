@@ -83,7 +83,7 @@ pub(in crate) fn load_chunk(
 pub(in crate) fn unload_chunk(
     chunk_manager: &ChunkManager,
     chunk_action_buffer: &mut ChunkActionBuffer,
-    chunk_query: &Query<&ChunkComponent>,
+    chunk_query: &Query<(Entity, &ChunkComponent)>,
     chunk_loader_query: &Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     chunk_coord: (i32, i32),
     chunk_loader_distance_squared: u32,
@@ -93,8 +93,8 @@ pub(in crate) fn unload_chunk(
     let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord);
 
     if is_loaded && !is_spawning && !is_despawning && !is_transfering_ownership {
-        let chunk = match chunk_query.iter().find(|chunk| chunk.coord == chunk_coord) {
-            Some(chunk) => chunk,
+        let chunk = match chunk_query.iter().find(|(_, chunk)| chunk.coord == chunk_coord) {
+            Some((_, chunk)) => chunk,
             None => {
                 error!(
                     "Skipping unload for chunk '{:?}': it is already despawned",

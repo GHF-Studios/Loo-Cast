@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use bevy::{ecs::system::SystemId, prelude::*};
+use crate::config::statics::CONFIG;
 use crate::debug::components::TestObjectMovement;
 use crate::follower::components::{FollowerComponent, FollowerTargetComponent};
 use crate::player::bundles::PlayerBundle;
@@ -44,7 +45,7 @@ fn spawn_main_camera_oneshot_system(mut commands: Commands) {
         FollowerComponent::new(
             "player_camera".to_string(), 
             Vec2::ZERO, 
-            0.1
+            CONFIG.get::<f32>("camera/follow_smoothness")
         )
     ));
 }
@@ -57,7 +58,7 @@ fn spawn_main_test_objects_oneshot_system(mut commands: Commands) {
         Vec2::ONE,
         TestObjectMovement::Circle {
             radius: 200.0,
-            speed: 0.15,
+            speed: 1.5,
         },
     );
 
@@ -68,13 +69,13 @@ fn spawn_main_test_objects_oneshot_system(mut commands: Commands) {
         Vec2::ONE,
         TestObjectMovement::Line {
             distance: 500.0,
-            speed: 0.15,
+            speed: 1.5,
         },
     );
 
     spawn_test_object(
         &mut commands,
-        Vec2::new(-350.0, 300.0),
+        Vec2::new(-350.0, 400.0),
         0.0,
         Vec2::ONE,
         TestObjectMovement::Static,

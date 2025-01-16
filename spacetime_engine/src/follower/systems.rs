@@ -107,7 +107,7 @@ fn update_follower_position(
     let interpolation_factor = if follower.smoothness == 0.0 {
         1.0
     } else {
-        time.delta_seconds() / (follower.smoothness + 1.0)
+        1.0 - (-time.delta_seconds() / follower.smoothness).exp()
     };
 
     let target_position_2d = target_position + follower.offset;

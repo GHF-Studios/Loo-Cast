@@ -61,7 +61,7 @@ pub(in crate) fn observe_on_add_chunk_loader(
 // TODO: Re-Validate chunk actions before the chunk unloading logic
 pub(in crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
-    chunk_query: Query<&ChunkComponent>,
+    chunk_query: Query<(Entity, &ChunkComponent)>,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     chunk_manager: Res<ChunkManager>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
@@ -69,7 +69,8 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     let loader_entity = trigger.entity();
 
     // Phase 1: Re-Validate chunk actions
-
+    // Cancel any buffered spawn actions for chunks which are outside of the current range and which are owned by us,
+    // and replace that action with a despawn or an ownership transfer, aka an unload
 
     // Phase 2: Perform chunk unloading logic
     let (_, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {

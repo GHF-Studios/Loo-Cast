@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
-use crate::oneshot_systems::MainOneshotSystems;
+use crate::{config::statics::CONFIG, oneshot_systems::MainOneshotSystems};
 
-use super::{components::PlayerComponent, constants::PLAYER_MOVEMENT_SPEED, resources::{PlayerAction, PlayerActionQueue}};
+use super::{components::PlayerComponent, resources::{PlayerAction, PlayerActionQueue}};
 
 pub(in crate) fn update_player_system(
     mut queue: ResMut<PlayerActionQueue>,
@@ -37,7 +37,7 @@ pub(in crate) fn update_player_system(
             direction = direction.normalize();
         }
 
-        transform.translation += direction * PLAYER_MOVEMENT_SPEED * time.delta_seconds();
+        transform.translation += direction * CONFIG.get::<f32>("player/movement_speed") * time.delta_seconds();
 
         if keys.just_pressed(KeyCode::Space) {
             queue.0.push(PlayerAction::Despawn(player_entity));

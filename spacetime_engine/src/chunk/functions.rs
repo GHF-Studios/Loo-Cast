@@ -61,10 +61,54 @@ pub(in crate) fn chunk_pos_to_world(grid_coord: (i32, i32)) -> Vec2 {
     Vec2::new(chunk_x, chunk_y)
 }
 
+pub(in crate) fn process_chunk_action(
+    action: ChunkAction,
+    commands: &mut Commands,
+    chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
+    chunk_manager: &mut ChunkManager,
+    chunk_action_buffer: &mut ChunkActionBuffer,
+    chunk_render_handles: &ChunkRenderHandles,
+) {
+    match action {
+        ChunkAction::Spawn { coord, owner, .. } => {
+            let quad_handle = chunk_render_handles.quad_handle.clone();
+            let material_handle = if (coord.0 + coord.1) % 2 == 0 {
+                chunk_render_handles.light_material_handle.clone()
+            } else {
+                chunk_render_handles.dark_material_handle.clone()
+            };
+
+            if let Err(err) = spawn_chunk(
+                commands,
+                chunk_manager,
+                chunk_action_buffer,
+                coord,
+                owner,
+                quad_handle,
+                material_handle,
+            ) {
+                panic!("Failed to spawn chunk '{:?}': {:?}", coord, err);
+            }
+        }
+        ChunkAction::Despawn { coord, .. } => {
+            if let Err(err) = despawn_chunk(commands, chunk_manager, chunk_action_buffer, chunk_query, coord) {
+                panic!("Failed to despawn chunk '{:?}': {:?}", coord, err);
+            }
+        }
+        ChunkAction::TransferOwnership { coord, new_owner, .. } => {
+            if let Err(err) = transfer_chunk_ownership(chunk_manager, chunk_action_buffer, chunk_query, coord, new_owner)
+            {
+                panic!("Failed to transfer ownership of chunk '{:?}': {:?}", coord, err);
+            }
+        }
+    }
+}
+
 pub(in crate) fn spawn_chunk(
     commands: &mut Commands,
     chunk_manager: &mut ChunkManager,
     chunk_action_buffer: &mut ChunkActionBuffer,
+
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>,
     quad_handle: Handle<Mesh>,
@@ -89,14 +133,12 @@ pub(in crate) fn spawn_chunk(
     let half_chunk_size = CONFIG.get::<f32>("chunk/size") / 2.0;
     let default_chunk_z = CONFIG.get::<f32>("chunk/default_z") / 2.0;
 
-    // Precompute chunk transform
     let chunk_transform = Transform {
         translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),
-        scale: Vec3::new(half_chunk_size * 2.0, half_chunk_size * 2.0, 1.0), // Scale quad to match chunk size
+        scale: Vec3::new(half_chunk_size * 2.0, half_chunk_size * 2.0, 1.0),
         ..Default::default()
     };
 
-    // Spawn the chunk entity with instancing
     commands.spawn((
         MaterialMesh2dBundle {
             mesh: quad_handle.clone().into(),
@@ -110,7 +152,6 @@ pub(in crate) fn spawn_chunk(
         },
     ));
 
-    // Update the chunk manager and action buffer
     chunk_manager.loaded_chunks.insert(chunk_coord);
     if let Some(chunk_owner) = chunk_owner {
         chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
@@ -201,47 +242,4 @@ pub(in crate) fn transfer_chunk_ownership(
     chunk_action_buffer.remove_action(&chunk_coord);
 
     Ok(())
-}
-
-pub(in crate) fn process_chunk_action(
-    action: ChunkAction,
-    commands: &mut Commands,
-    chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
-    chunk_manager: &mut ChunkManager,
-    chunk_action_buffer: &mut ChunkActionBuffer,
-    chunk_render_handles: &ChunkRenderHandles,
-) {
-    match action {
-        ChunkAction::Spawn { coord, owner, .. } => {
-            let quad_handle = chunk_render_handles.quad_handle.clone();
-            let material_handle = if (coord.0 + coord.1) % 2 == 0 {
-                chunk_render_handles.light_material_handle.clone()
-            } else {
-                chunk_render_handles.dark_material_handle.clone()
-            };
-
-            if let Err(err) = spawn_chunk(
-                commands,
-                chunk_manager,
-                chunk_action_buffer,
-                coord,
-                owner,
-                quad_handle,
-                material_handle,
-            ) {
-                panic!("Failed to spawn chunk '{:?}': {:?}", coord, err);
-            }
-        }
-        ChunkAction::Despawn { coord, .. } => {
-            if let Err(err) = despawn_chunk(commands, chunk_manager, chunk_action_buffer, chunk_query, coord) {
-                panic!("Failed to despawn chunk '{:?}': {:?}", coord, err);
-            }
-        }
-        ChunkAction::TransferOwnership { coord, new_owner, .. } => {
-            if let Err(err) = transfer_chunk_ownership(chunk_manager, chunk_action_buffer, chunk_query, coord, new_owner)
-            {
-                panic!("Failed to transfer ownership of chunk '{:?}': {:?}", coord, err);
-            }
-        }
-    }
 }

@@ -6,11 +6,10 @@ use crate::config::statics::CONFIG;
 pub(in crate) struct ZoomFactor(pub f32);
 impl Default for ZoomFactor {
     fn default() -> Self {
-        Self(1.0)
+        Self(CONFIG.get::<f32>("camera/default_zoom"))
     }
 }
 
-/// Updates the camera's FOV based on mouse wheel scroll.
 pub(in crate) fn main_camera_zoom_system(
     mut projection_query: Query<&mut OrthographicProjection, With<Camera>>,
     mut scroll_event_reader: EventReader<MouseWheel>,
@@ -23,11 +22,10 @@ pub(in crate) fn main_camera_zoom_system(
 
     for event in scroll_event_reader.read() {
         let scroll_delta = match event.unit {
-            MouseScrollUnit::Line => event.y * -1.0, // Adjust sensitivity for lines
-            MouseScrollUnit::Pixel => event.y * -0.01, // Adjust sensitivity for pixels
+            MouseScrollUnit::Line => event.y * -1.0,
+            MouseScrollUnit::Pixel => event.y * -0.01,
         };
 
-        // Proportional zoom speed based on current zoom factor
         let zoom_speed = base_zoom_speed * zoom_factor.0;
 
         // Calculate the new zoom factor

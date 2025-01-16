@@ -1,12 +1,16 @@
 [camera]
+default_zoom = 1.0
 min_zoom = 0.03125
 max_zoom = 32.0
 base_zoom_speed = 1.0
+follow_smoothness = 0.15
 
 [chunk]
-max_actions_per_update = 10000
 size = 8.0
 default_z = -10.0
 
 [chunk_loader]
-default_radius = 64
+default_radius = 32
+
+[player]
+movement_speed = 250.0

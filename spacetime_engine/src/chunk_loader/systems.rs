@@ -10,7 +10,7 @@ use super::components::ChunkLoaderComponent;
 use super::functions::{load_chunk, unload_chunk};
 
 pub(in crate) fn update_chunk_loader_system(
-    chunk_query: Query<&ChunkComponent>,
+    chunk_query: Query<(Entity, &ChunkComponent)>,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     chunk_manager: Res<ChunkManager>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
