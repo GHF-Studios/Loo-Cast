@@ -5,7 +5,24 @@ use crate::config::statics::CONFIG;
 use super::components::ChunkComponent;
 use super::enums::ChunkAction;
 use super::functions::{chunk_pos_to_world, despawn_chunk, spawn_chunk, transfer_chunk_ownership, world_pos_to_chunk};
+use super::resources::ChunkRenderHandles;
 use super::{ChunkActionBuffer, ChunkManager};
+
+pub(in crate) fn startup_chunk_system(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let quad_handle = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
+    let light_material_handle = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
+    let dark_material_handle = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
+
+    commands.insert_resource(ChunkRenderHandles {
+        quad_handle,
+        light_material_handle,
+        dark_material_handle
+    });
+}
 
 pub(in crate) fn update_chunk_system(
     chunk_query: Query<(Entity, &Transform, &ChunkComponent)>,
@@ -32,6 +49,7 @@ pub(in crate) fn process_chunk_actions(
     mut chunk_query: Query<(Entity, &mut ChunkComponent)>,
     mut chunk_manager: ResMut<ChunkManager>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
+    chunk_render_handles: Res<ChunkRenderHandles>,
 ) {
     let max_actions = CONFIG.get::<u32>("chunk/max_actions_per_update") as usize;
 
@@ -46,6 +64,7 @@ pub(in crate) fn process_chunk_actions(
         return;
     }
 
+    // TODO: Replace this sorting with an automatically sorted data structure
     chunk_actions.sort_by(|a, b| b.1.0.cmp(&a.1.0));
 
     for (total_actions_processed, (chunk_coord, (chunk_action_priority, chunk_action))) in chunk_actions.into_iter().enumerate() {
@@ -56,8 +75,23 @@ pub(in crate) fn process_chunk_actions(
 
         match chunk_action {
             ChunkAction::Spawn { coord, owner, .. } => {
+                let quad_handle = chunk_render_handles.quad_handle.clone();
+                let material_handle = if (coord.0 + coord.1) % 2 == 0 {
+                    chunk_render_handles.light_material_handle.clone()
+                } else {
+                    chunk_render_handles.dark_material_handle.clone()
+                };
+
                 if let Err(err) =
-                    spawn_chunk(&mut commands, &mut chunk_manager, &mut chunk_action_buffer, coord, owner)
+                    spawn_chunk(
+                        &mut commands, 
+                        &mut chunk_manager, 
+                        &mut chunk_action_buffer, 
+                        coord, 
+                        owner,
+                        quad_handle,
+                        material_handle
+                    )
                 {
                     panic!("Failed to spawn chunk '{:?}': {:?}", coord, err);
                 }

@@ -1,6 +1,6 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 
-use crate::{chunk::{bundles::ChunkBundle, components::ChunkComponent}, config::statics::CONFIG};
+use crate::{chunk::components::ChunkComponent, config::statics::CONFIG};
 
 use super::{errors::{DespawnError, SpawnError, TransferOwnershipError}, ChunkActionBuffer, ChunkManager};
 
@@ -65,13 +65,15 @@ pub(in crate) fn spawn_chunk(
     chunk_action_buffer: &mut ChunkActionBuffer,
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>,
+    quad_handle: Handle<Mesh>,
+    material_handle: Handle<ColorMaterial>,
 ) -> Result<(), SpawnError> {
     let (is_loaded, _) = chunk_manager.get_states(&chunk_coord);
     if is_loaded {
         return Err(SpawnError::AlreadySpawned { chunk_coord });
     }
     
-    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord) ;
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord);
     if !is_spawning {
         return Err(SpawnError::NotSpawning { chunk_coord });
     }
@@ -85,29 +87,28 @@ pub(in crate) fn spawn_chunk(
     let half_chunk_size = CONFIG.get::<f32>("chunk/size") / 2.0;
     let default_chunk_z = CONFIG.get::<f32>("chunk/default_z") / 2.0;
 
-    commands.spawn(ChunkBundle {
-        chunk: ChunkComponent {
-            coord: chunk_coord,
-            owner: chunk_owner
-        },
-        sprite_bundle: SpriteBundle {
-            sprite: Sprite {
-                color: if (chunk_coord.0 + chunk_coord.1) % 2 == 0 {
-                    Color::srgb(0.75, 0.75, 0.75)
-                } else {
-                    Color::srgb(0.25, 0.25, 0.25)
-                },
-                rect: Some(Rect::new(-half_chunk_size, -half_chunk_size, half_chunk_size, half_chunk_size)),
-                ..Default::default()
-            },
-            transform: Transform {
-                translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),
-                ..Default::default()
-            },
+    // Precompute chunk transform
+    let chunk_transform = Transform {
+        translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),
+        scale: Vec3::new(half_chunk_size * 2.0, half_chunk_size * 2.0, 1.0), // Scale quad to match chunk size
+        ..Default::default()
+    };
+
+    // Spawn the chunk entity with instancing
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: quad_handle.clone().into(),
+            material: material_handle.clone(),
+            transform: chunk_transform,
             ..Default::default()
         },
-    });
-    
+        ChunkComponent {
+            coord: chunk_coord,
+            owner: chunk_owner,
+        },
+    ));
+
+    // Update the chunk manager and action buffer
     chunk_manager.loaded_chunks.insert(chunk_coord);
     if let Some(chunk_owner) = chunk_owner {
         chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);

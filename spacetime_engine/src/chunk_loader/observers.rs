@@ -85,6 +85,7 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     let position = loader_transform.translation.truncate();
     let radius = loader.radius;
 
+    // TODO: Is this even okay? A chunk should not be owned before being spawned, thus the invalid action should have never been sent in the first place.
     let chunks_to_despawn: Vec<&(i32, i32)> = chunk_manager
         .owned_chunks
         .iter()

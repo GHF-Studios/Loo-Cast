@@ -102,3 +102,10 @@ impl ChunkManager {
         self.owned_chunks.contains_key(chunk_coord)
     }
 }
+
+#[derive(Resource)]
+pub(in crate) struct ChunkRenderHandles {
+    pub quad_handle: Handle<Mesh>,
+    pub light_material_handle: Handle<ColorMaterial>,
+    pub dark_material_handle: Handle<ColorMaterial>,
+}

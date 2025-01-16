@@ -2,6 +2,7 @@ extern crate spacetime_engine;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
 use bevy::prelude::*;
+use bevy::window::PresentMode;
 use iyes_perf_ui::prelude::*;
 use bevy::log::{Level, LogPlugin};
 use bevy_rapier2d::prelude::*;
@@ -41,6 +42,14 @@ fn main() {
                 filter: LOG_FILTER.into(),
                 level: LOG_LEVEL,
                 ..Default::default()
+            })
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    present_mode: PresentMode::AutoNoVsync,
+                    title: "Loo Cast".to_string(),
+                    ..default()
+                }),
+                ..default()
             })
             .add(FrameTimeDiagnosticsPlugin)
             .add(EntityCountDiagnosticsPlugin)

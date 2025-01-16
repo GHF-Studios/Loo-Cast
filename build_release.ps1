@@ -1,11 +1,11 @@
 ########## DEFINE PATHS ##########
 
 # Source and build paths
-$looCastBuildSourceDir = ".\target\debug"
+$looCastBuildSourceDir = ".\target\release"
 
 # Engine paths
 $engineProjectDir = ".\spacetime_engine"
-$engineBuildTargetDir = ".\build\debug"
+$engineBuildTargetDir = ".\build\release"
 
 # General application data folder
 $engineDataSourceDir = "$engineProjectDir\data"
