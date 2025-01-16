@@ -24,16 +24,16 @@ pub(in crate) fn update_chunk_loader_system(
             .collect::<HashSet<(i32, i32)>>();
 
         let mut invalid_actions = vec![];
-        for (&chunk_coord, (_, action)) in &chunk_action_buffer.actions {
+        for (chunk_coord, action) in chunk_action_buffer.iter() {
             match action {
                 ChunkAction::Spawn { .. } => {
-                    if !loader_range.contains(&chunk_coord) {
-                        invalid_actions.push(chunk_coord);
+                    if !loader_range.contains(chunk_coord) {
+                        invalid_actions.push(*chunk_coord);
                     }
                 }
                 ChunkAction::Despawn { .. } => {
-                    if loader_range.contains(&chunk_coord) {
-                        invalid_actions.push(chunk_coord);
+                    if loader_range.contains(chunk_coord) {
+                        invalid_actions.push(*chunk_coord);
                     }
                 }
                 ChunkAction::TransferOwnership { .. } => {}

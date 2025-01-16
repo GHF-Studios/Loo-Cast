@@ -1,86 +1,86 @@
-use std::collections::{HashMap, HashSet};
+use std::{cmp::Reverse, collections::{BTreeMap, HashMap, HashSet}};
 use bevy::prelude::*;
 
 use super::enums::{ChunkAction, ChunkActionPriority};
 
 #[derive(Resource, Default)]
 pub(in crate) struct ChunkActionBuffer {
-    pub actions: HashMap<(i32, i32), (ChunkActionPriority, ChunkAction)>,
+    actions: HashMap<(i32, i32), ChunkAction>,
+    priority_buckets: BTreeMap<Reverse<ChunkActionPriority>, HashSet<(i32, i32)>>,
 }
+
 impl ChunkActionBuffer {
     pub fn add_action(&mut self, action: ChunkAction) {
-        let (coord, priority) = match &action {
-            ChunkAction::Spawn { coord, priority, .. }
-            | ChunkAction::Despawn { coord, priority, .. }
-            | ChunkAction::TransferOwnership { coord, priority, .. } => (*coord, *priority),
-        };
+        let coord = action.get_coord();
+        let priority = Reverse(action.get_priority());
 
-        self.actions.insert(coord, (priority, action));
+        self.actions.insert(coord, action);
+
+        self.priority_buckets
+            .entry(priority)
+            .or_default()
+            .insert(coord);
     }
 
     pub fn remove_action(&mut self, coord: &(i32, i32)) {
-        self.actions.remove(coord);
+        if let Some(action) = self.actions.remove(coord) {
+            let priority = Reverse(action.get_priority());
+
+            if let Some(bucket) = self.priority_buckets.get_mut(&priority) {
+                bucket.remove(coord);
+                if bucket.is_empty() {
+                    self.priority_buckets.remove(&priority);
+                }
+            }
+        }
     }
 
-    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<&(ChunkActionPriority, ChunkAction)> {
+    pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<&ChunkAction> {
         self.actions.get(chunk_coord)
     }
 
     pub fn get_action_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool, bool) {
         match self.get(chunk_coord) {
-            Some(action) => {
-                match action {
-                    (_, ChunkAction::Spawn { .. }) => {
-                        (true, false, false)
-                    },
-                    (_, ChunkAction::Despawn { .. }) => {
-                        (false, true, false)
-                    },
-                    (_, ChunkAction::TransferOwnership { .. }) => {
-                        (false, false, true)
-                    }
-                }
+            Some(action) => match action {
+                ChunkAction::Spawn { .. } => (true, false, false),
+                ChunkAction::Despawn { .. } => (false, true, false),
+                ChunkAction::TransferOwnership { .. } => (false, false, true),
             },
-            None => {
-                (false, false, false)
-            }
+            None => (false, false, false),
         }
     }
-    
+
     pub fn is_spawning(&self, chunk_coord: &(i32, i32)) -> bool {
-        if let Some(action) = self.get(chunk_coord) {
-            matches!(action, (_, ChunkAction::Spawn { .. }))
-        } else {
-            false
-        }
+        matches!(self.get(chunk_coord), Some(ChunkAction::Spawn { .. }))
     }
 
     pub fn is_despawning(&self, chunk_coord: &(i32, i32)) -> bool {
-        if let Some(action) = self.get(chunk_coord) {
-            matches!(action, (_, ChunkAction::Despawn { .. }))
-        } else {
-            false
-        }
+        matches!(self.get(chunk_coord), Some(ChunkAction::Despawn { .. }))
     }
 
     pub fn is_transfering_ownership(&self, chunk_coord: &(i32, i32)) -> bool {
-        if let Some(action) = self.get(chunk_coord) {
-            matches!(action, (_, ChunkAction::TransferOwnership { .. }))
-        } else {
-            false
-        }
+        matches!(self.get(chunk_coord), Some(ChunkAction::TransferOwnership { .. }))
     }
 
     pub fn has_spawns(&self) -> bool {
-        self.actions.iter().any(|(_, (_, action))| action.is_spawn())
+        self.actions.values().any(|action| action.is_spawn())
     }
 
     pub fn has_despawns(&self) -> bool {
-        self.actions.iter().any(|(_, (_, action))| action.is_despawn())
+        self.actions.values().any(|action| action.is_despawn())
     }
 
     pub fn has_ownership_transfers(&self) -> bool {
-        self.actions.iter().any(|(_, (_, action))| action.is_transfer_ownership())
+        self.actions
+            .values()
+            .any(|action| action.is_transfer_ownership())
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&(i32, i32), &ChunkAction)> {
+        self.priority_buckets
+            .iter()
+            .flat_map(|(_, coords)| coords.iter())
+            .filter_map(|coord| self.actions.get_key_value(coord))
     }
 }
 

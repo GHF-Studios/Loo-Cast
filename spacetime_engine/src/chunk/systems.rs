@@ -53,23 +53,18 @@ pub(in crate) fn process_chunk_actions(
 ) {
     let max_actions = CONFIG.get::<u32>("chunk/max_actions_per_update") as usize;
 
-    let mut chunk_actions: Vec<((i32, i32), (ChunkActionPriority, ChunkAction))> = chunk_action_buffer
-        .actions
+    let chunk_actions = chunk_action_buffer
         .iter()
         .map(|(key, action)| (*key, action.clone()))
-        .collect();
+        .collect::<Vec<_>>();
     let total_actions = chunk_actions.len();
 
     if total_actions == 0 {
         return;
     }
 
-    // TODO: Replace this sorting with an automatically sorted data structure
-    chunk_actions.sort_by(|a, b| b.1.0.cmp(&a.1.0));
-
-    for (total_actions_processed, (chunk_coord, (chunk_action_priority, chunk_action))) in chunk_actions.into_iter().enumerate() {
-        if chunk_action_priority != ChunkActionPriority::Realtime && total_actions_processed >= max_actions {
-            warn!("Reached max actions ({:?}) per update cycle. Deferring remaining actions.", max_actions);
+    for (total_actions_processed, (chunk_coord, chunk_action)) in chunk_actions.into_iter().enumerate() {
+        if chunk_action.get_priority() != ChunkActionPriority::Realtime && total_actions_processed >= max_actions {
             break;
         }
 
