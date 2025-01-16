@@ -10,7 +10,7 @@ size = 8.0
 default_z = -10.0
 
 [chunk_loader]
-default_radius = 32
+default_radius = 64
 
 [player]
 movement_speed = 250.0

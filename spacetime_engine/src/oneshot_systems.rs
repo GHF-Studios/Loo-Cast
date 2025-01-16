@@ -58,7 +58,7 @@ fn spawn_main_test_objects_oneshot_system(mut commands: Commands) {
         Vec2::ONE,
         TestObjectMovement::Circle {
             radius: 200.0,
-            speed: 1.5,
+            speed: 0.15,
         },
     );
 
@@ -69,7 +69,7 @@ fn spawn_main_test_objects_oneshot_system(mut commands: Commands) {
         Vec2::ONE,
         TestObjectMovement::Line {
             distance: 500.0,
-            speed: 1.5,
+            speed: 0.15,
         },
     );
 

@@ -108,7 +108,6 @@ pub(in crate) fn spawn_chunk(
     commands: &mut Commands,
     chunk_manager: &mut ChunkManager,
     chunk_action_buffer: &mut ChunkActionBuffer,
-
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>,
     quad_handle: Handle<Mesh>,
@@ -236,9 +235,7 @@ pub(in crate) fn transfer_chunk_ownership(
         chunk_manager.owned_chunks.remove(&chunk_coord);
     }
     chunk.owner = Some(new_chunk_owner);
-    
     chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner);
-    
     chunk_action_buffer.remove_action(&chunk_coord);
 
     Ok(())
