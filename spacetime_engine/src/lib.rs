@@ -36,7 +36,7 @@ pub mod player;
 //pub mod sprite_bundle;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
-use iyes_perf_ui::{entries::{PerfUiFixedTimeEntries, PerfUiFramerateEntries, PerfUiSystemEntries, PerfUiWindowEntries}, prelude::PerfUiRoot};
+use iyes_perf_ui::{entries::{PerfUiFixedTimeEntries, PerfUiFramerateEntries, PerfUiSystemEntries, PerfUiWindowEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
@@ -90,14 +90,9 @@ fn pre_startup_system(
 
     commands.spawn((
         PerfUiRoot::default(),
-        // Contains everything related to FPS and frame time
         PerfUiFramerateEntries::default(),
-        // Contains everything related to the window and cursor
-        PerfUiWindowEntries::default(),
-        // Contains everything related to system diagnostics (CPU, RAM)
         PerfUiSystemEntries::default(),
-        // Contains everything related to fixed timestep
-        PerfUiFixedTimeEntries::default(),
+        PerfUiEntryEntityCount::default(),
         // ...
     ));
 

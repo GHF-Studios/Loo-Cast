@@ -47,10 +47,30 @@ impl ChunkAction {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChunkActionPriority {
-    Realtime,
     Deferred(i64),
+    Realtime,
+}
+
+impl PartialOrd for ChunkActionPriority {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ChunkActionPriority {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (self, other) {
+            // Realtime is always "larger"
+            (ChunkActionPriority::Realtime, ChunkActionPriority::Realtime) => std::cmp::Ordering::Equal,
+            (ChunkActionPriority::Realtime, _) => std::cmp::Ordering::Greater,
+            (_, ChunkActionPriority::Realtime) => std::cmp::Ordering::Less,
+
+            // Compare Deferred values, reversing the i64 order
+            (ChunkActionPriority::Deferred(a), ChunkActionPriority::Deferred(b)) => b.cmp(a),
+        }
+    }
 }
 
 impl Default for ChunkActionPriority {
