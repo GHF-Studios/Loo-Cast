@@ -55,9 +55,7 @@ pub(in crate) fn load_chunk(
 ) {
     let is_loaded = chunk_manager.loaded_chunks.contains(&chunk_coord);
     let is_owned = chunk_manager.owned_chunks.contains_key(&chunk_coord);
-    let is_spawning = chunk_action_buffer.is_spawning(&chunk_coord);
-    let is_despawning = chunk_action_buffer.is_despawning(&chunk_coord);
-    let is_transfering_ownership = chunk_action_buffer.is_transfering_ownership(&chunk_coord);
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord);
 
     if !is_loaded {
         if !is_spawning && !is_despawning && !is_transfering_ownership {
@@ -91,17 +89,18 @@ pub(in crate) fn unload_chunk(
     chunk_loader_distance_squared: u32,
     chunk_loader_radius_squared: u32,
 ) {
-    let loaded = chunk_manager.is_loaded(&chunk_coord);
-    let despawning = chunk_action_buffer.is_despawning(&chunk_coord);
+    let is_loaded = chunk_manager.is_loaded(&chunk_coord);
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord);
 
-    if loaded && !despawning {
+    if is_loaded && !is_spawning && !is_despawning && !is_transfering_ownership {
         let chunk = match chunk_query.iter().find(|chunk| chunk.coord == chunk_coord) {
             Some(chunk) => chunk,
             None => {
-                unreachable!(
-                    "Failed to unload chunk '{:?}': it is already despawned according to the Chunk Query",
+                error!(
+                    "Skipping unload for chunk '{:?}': it is already despawned",
                     chunk_coord
                 );
+                return;
             }
         };
 

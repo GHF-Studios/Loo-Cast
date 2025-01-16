@@ -9,6 +9,7 @@ use crate::chunk::resources::{ChunkActionBuffer, ChunkManager};
 use super::components::ChunkLoaderComponent;
 use super::functions::{load_chunk, unload_chunk};
 
+// TODO: Re-Validate chunk actions before the chunk unloading logic
 pub(in crate) fn observe_on_add_chunk_loader(
     trigger: Trigger<OnAdd, ChunkLoaderComponent>,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
@@ -16,6 +17,11 @@ pub(in crate) fn observe_on_add_chunk_loader(
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
 ) {
     let loader_entity = trigger.entity();
+
+    // Phase 1: Re-Validate chunk actions
+
+
+    // Phase 2: Perform chunk loading logic
     let (loader_entity, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
         Ok(value) => value,
         Err(_) => {
@@ -52,6 +58,7 @@ pub(in crate) fn observe_on_add_chunk_loader(
     }
 }
 
+// TODO: Re-Validate chunk actions before the chunk unloading logic
 pub(in crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     chunk_query: Query<&ChunkComponent>,
@@ -61,7 +68,10 @@ pub(in crate) fn observe_on_remove_chunk_loader(
 ) {
     let loader_entity = trigger.entity();
 
-    // Ensure we can fetch details about the removed loader
+    // Phase 1: Re-Validate chunk actions
+
+
+    // Phase 2: Perform chunk unloading logic
     let (_, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
         Ok(value) => value,
         Err(_) => {
@@ -75,7 +85,6 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     let position = loader_transform.translation.truncate();
     let radius = loader.radius;
 
-    // Identify the chunks that belong to the removed loader
     let chunks_to_despawn: Vec<&(i32, i32)> = chunk_manager
         .owned_chunks
         .iter()
@@ -90,7 +99,6 @@ pub(in crate) fn observe_on_remove_chunk_loader(
         })
         .collect();
 
-    // Process unloading of these chunks
     for &chunk_coord in chunks_to_despawn {
         let chunk_loader_distance_squared = calculate_chunk_distance_from_owner(
             &chunk_coord,

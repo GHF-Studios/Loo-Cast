@@ -2,8 +2,6 @@ extern crate spacetime_engine;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin, SystemInformationDiagnosticsPlugin};
 use bevy::prelude::*;
-use config::enums::ConfigValue;
-use config::statics::CONFIG;
 use iyes_perf_ui::prelude::*;
 use bevy::log::{Level, LogPlugin};
 use bevy_rapier2d::prelude::*;

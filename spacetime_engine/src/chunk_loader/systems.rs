@@ -15,7 +15,7 @@ pub(in crate) fn update_chunk_loader_system(
     chunk_manager: Res<ChunkManager>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
 ) {
-    // Phase 1: Validate chunk actions
+    // Phase 1: Re-Validate chunk actions
     for (_, transform, chunk_loader) in chunk_loader_query.iter() {
         let position = transform.translation.truncate();
         let radius = chunk_loader.radius;
@@ -23,36 +23,29 @@ pub(in crate) fn update_chunk_loader_system(
             .into_iter()
             .collect::<HashSet<(i32, i32)>>();
 
-        // Create a list of invalid actions to remove
         let mut invalid_actions = vec![];
-
         for (&chunk_coord, (_, action)) in &chunk_action_buffer.actions {
             match action {
                 ChunkAction::Spawn { .. } => {
-                    // Spawns outside the range are invalid
                     if !loader_range.contains(&chunk_coord) {
                         invalid_actions.push(chunk_coord);
                     }
                 }
                 ChunkAction::Despawn { .. } => {
-                    // Despawns inside the range are invalid
                     if loader_range.contains(&chunk_coord) {
                         invalid_actions.push(chunk_coord);
                     }
                 }
-                ChunkAction::TransferOwnership { .. } => {
-                    // Ignore ownership transfers for now (can be handled if needed)
-                }
+                ChunkAction::TransferOwnership { .. } => {}
             }
         }
 
-        // Remove invalid actions from the buffer
         for chunk_coord in invalid_actions {
             chunk_action_buffer.remove_action(&chunk_coord);
         }
     }
 
-    // Phase 2: Perform existing chunk loading/unloading logic
+    // Phase 2: Perform chunk loading/unloading logic
     for (loader_entity, transform, chunk_loader) in chunk_loader_query.iter() {
         let position = transform.translation.truncate();
         let radius = chunk_loader.radius;
