@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::chunk_loader::components::ChunkLoaderComponent;
+
 use super::components::ChunkComponent;
 use super::functions::{chunk_pos_to_world, process_chunk_action, world_pos_to_chunk};
 use super::resources::ChunkRenderHandles;
@@ -44,6 +46,7 @@ pub(in crate) fn update_chunk_system(
 pub(in crate) fn process_chunk_actions(
     mut commands: Commands,
     mut chunk_query: Query<(Entity, &mut ChunkComponent)>,
+    chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>,
     mut chunk_manager: ResMut<ChunkManager>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
     chunk_render_handles: Res<ChunkRenderHandles>,
@@ -67,6 +70,7 @@ pub(in crate) fn process_chunk_actions(
             action,
             &mut commands,
             &mut chunk_query,
+            &chunk_loader_query,
             &mut chunk_manager,
             &mut chunk_action_buffer,
             &chunk_render_handles,

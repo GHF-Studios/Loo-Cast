@@ -18,6 +18,6 @@ impl Plugin for ChunkPlugin {
             .insert_resource(ChunkManager::default())
             .add_systems(Startup, startup_chunk_system)
             .add_systems(Update, update_chunk_system)
-            .add_systems(Update, process_chunk_actions.after(update_chunk_system));
+            .add_systems(PostUpdate, process_chunk_actions);
     }
 }

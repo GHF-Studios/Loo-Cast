@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, collections::{BTreeMap, HashMap, HashSet}};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use bevy::prelude::*;
 
 use super::enums::{ChunkAction, ChunkActionPriority};

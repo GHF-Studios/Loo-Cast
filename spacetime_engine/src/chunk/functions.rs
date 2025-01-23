@@ -1,8 +1,6 @@
-use std::time::Instant;
-
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 
-use crate::{chunk::components::ChunkComponent, config::statics::CONFIG};
+use crate::{chunk::components::ChunkComponent, chunk_loader::components::ChunkLoaderComponent, config::statics::CONFIG};
 
 use super::{enums::ChunkAction, errors::{DespawnError, SpawnError, TransferOwnershipError}, resources::ChunkRenderHandles, ChunkActionBuffer, ChunkManager};
 
@@ -65,18 +63,25 @@ pub(in crate) fn process_chunk_action(
     action: ChunkAction,
     commands: &mut Commands,
     chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
+    chunk_loader_query: &Query<Entity, With<ChunkLoaderComponent>>,
     chunk_manager: &mut ChunkManager,
     chunk_action_buffer: &mut ChunkActionBuffer,
     chunk_render_handles: &ChunkRenderHandles,
 ) {
     match action {
-        ChunkAction::Spawn { coord, owner, .. } => {
+        ChunkAction::Spawn { coord, new_owner: owner, .. } => {
             let quad_handle = chunk_render_handles.quad_handle.clone();
             let material_handle = if (coord.0 + coord.1) % 2 == 0 {
                 chunk_render_handles.light_material_handle.clone()
             } else {
                 chunk_render_handles.dark_material_handle.clone()
             };
+
+            if let Some(owner) = owner {
+                if !chunk_loader_query.contains(owner) {
+                    return;
+                }
+            }
 
             if let Err(err) = spawn_chunk(
                 commands,

@@ -69,6 +69,7 @@ pub(in crate) fn update_chunk_loader_system(
             load_chunk(
                 &chunk_manager, 
                 &mut chunk_action_buffer, 
+                chunk_loader.id,
                 *chunk_coord, 
                 Some(loader_entity),
                 chunk_loader_distance_squared,
@@ -85,6 +86,7 @@ pub(in crate) fn update_chunk_loader_system(
                 &mut chunk_action_buffer,
                 &chunk_query,
                 &chunk_loader_query,
+                chunk_loader.id,
                 *chunk_coord,
                 chunk_loader_distance_squared,
                 chunk_loader_radius_squared,

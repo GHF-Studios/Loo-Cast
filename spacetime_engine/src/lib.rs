@@ -1,4 +1,5 @@
 #![allow(clippy::type_complexity)]
+#![allow(clippy::too_many_arguments)]
 
 // Data types
 //pub mod components;
@@ -36,7 +37,7 @@ pub mod player;
 //pub mod sprite_bundle;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
-use iyes_perf_ui::{entries::{PerfUiFixedTimeEntries, PerfUiFramerateEntries, PerfUiSystemEntries, PerfUiWindowEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
+use iyes_perf_ui::{entries::{PerfUiFramerateEntries, PerfUiSystemEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;

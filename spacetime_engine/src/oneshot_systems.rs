@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use bevy::{ecs::system::SystemId, prelude::*};
+use crate::camera::components::MainCamera;
 use crate::config::statics::CONFIG;
 use crate::debug::components::TestObjectMovement;
 use crate::follower::components::{FollowerComponent, FollowerTargetComponent};
@@ -42,6 +43,7 @@ fn spawn_main_player_oneshot_system(mut commands: Commands) {
 fn spawn_main_camera_oneshot_system(mut commands: Commands) {
     commands.spawn((
         Camera2dBundle::default(),
+        MainCamera,
         FollowerComponent::new(
             "player_camera".to_string(), 
             Vec2::ZERO, 

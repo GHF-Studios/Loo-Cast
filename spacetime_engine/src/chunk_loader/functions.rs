@@ -48,6 +48,7 @@ fn is_chunk_in_loader_range(
 pub(in crate) fn load_chunk(
     chunk_manager: &ChunkManager,
     chunk_action_buffer: &mut ChunkActionBuffer,
+    requester_id: u32,
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>,
     chunk_loader_distance_squared: u32,
@@ -62,8 +63,9 @@ pub(in crate) fn load_chunk(
             let has_pending_despawn = chunk_action_buffer.has_despawns();
 
             chunk_action_buffer.add_action(ChunkAction::Spawn {
+                requester_id,
                 coord: chunk_coord,
-                owner: chunk_owner,
+                new_owner: chunk_owner,
                 priority: calculate_spawn_priority(
                     chunk_loader_distance_squared,
                     chunk_loader_radius_squared,
@@ -73,6 +75,7 @@ pub(in crate) fn load_chunk(
         }
     } else if !is_owned && !is_despawning && !is_transfering_ownership && chunk_owner.is_some() {
         chunk_action_buffer.add_action(ChunkAction::TransferOwnership {
+            requester_id,
             coord: chunk_coord,
             new_owner: chunk_owner.unwrap(),
             priority: ChunkActionPriority::Realtime,
@@ -85,6 +88,7 @@ pub(in crate) fn unload_chunk(
     chunk_action_buffer: &mut ChunkActionBuffer,
     chunk_query: &Query<(Entity, &ChunkComponent)>,
     chunk_loader_query: &Query<(Entity, &Transform, &ChunkLoaderComponent)>,
+    requester_id: u32,
     chunk_coord: (i32, i32),
     chunk_loader_distance_squared: u32,
     chunk_loader_radius_squared: u32,
@@ -117,6 +121,7 @@ pub(in crate) fn unload_chunk(
         }) {
             Some((new_owner, _, _)) => {
                 chunk_action_buffer.add_action(ChunkAction::TransferOwnership {
+                    requester_id,
                     coord: chunk_coord,
                     new_owner,
                     priority: ChunkActionPriority::Realtime,
@@ -124,6 +129,7 @@ pub(in crate) fn unload_chunk(
             }
             None => {
                 chunk_action_buffer.add_action(ChunkAction::Despawn {
+                    requester_id,
                     coord: chunk_coord,
                     priority: calculate_despawn_priority(chunk_loader_distance_squared, chunk_loader_radius_squared),
                 });

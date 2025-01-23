@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use bevy::prelude::*;
 
 use crate::chunk::components::ChunkComponent;
+use crate::chunk::enums::ChunkAction;
 use crate::chunk::functions::*;
 use crate::chunk::resources::{ChunkActionBuffer, ChunkManager};
 
@@ -12,7 +13,7 @@ use super::functions::{load_chunk, unload_chunk};
 // TODO: Re-Validate chunk actions before the chunk unloading logic
 pub(in crate) fn observe_on_add_chunk_loader(
     trigger: Trigger<OnAdd, ChunkLoaderComponent>,
-    chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
+    chunk_loader_query: Query<(Entity, &Transform, &mut ChunkLoaderComponent)>,
     chunk_manager: Res<ChunkManager>,
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
 ) {
@@ -50,6 +51,7 @@ pub(in crate) fn observe_on_add_chunk_loader(
         load_chunk(
             &chunk_manager, 
             &mut chunk_action_buffer, 
+            loader.id,
             *chunk_coord, 
             Some(loader_entity),
             chunk_loader_distance_squared,
@@ -67,12 +69,7 @@ pub(in crate) fn observe_on_remove_chunk_loader(
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
 ) {
     let loader_entity = trigger.entity();
-
-    // Phase 1: Re-Validate chunk actions
-    // Cancel any buffered spawn actions for chunks which are outside of the current range and which are owned by us,
-    // and replace that action with a despawn or an ownership transfer, aka an unload
-
-    // Phase 2: Perform chunk unloading logic
+    debug!("Handling removed chunk loader {}", loader_entity);
     let (_, loader_transform, loader) = match chunk_loader_query.get(loader_entity) {
         Ok(value) => value,
         Err(_) => {
@@ -83,10 +80,28 @@ pub(in crate) fn observe_on_remove_chunk_loader(
         }
     };
 
+    // Phase 1: Re-Validate chunk actions
+
+    let mut invalid_actions = vec![];
+    for (chunk_coord, action) in chunk_action_buffer.iter().filter(|(_, action)| action.get_requester_id() == loader.id) {
+        match action {
+            ChunkAction::Spawn { .. } => {
+                invalid_actions.push(*chunk_coord);
+            }
+            ChunkAction::Despawn { .. } => {}
+            ChunkAction::TransferOwnership { .. } => {}
+        }
+    }
+
+    for chunk_coord in invalid_actions {
+        chunk_action_buffer.remove_action(&chunk_coord);
+    }
+
+    // Phase 2: Perform chunk unloading logic
+
     let position = loader_transform.translation.truncate();
     let radius = loader.radius;
 
-    // TODO: Is this even okay? A chunk should not be owned before being spawned, thus the invalid action should have never been sent in the first place.
     let chunks_to_despawn: Vec<&(i32, i32)> = chunk_manager
         .owned_chunks
         .iter()
@@ -113,6 +128,7 @@ pub(in crate) fn observe_on_remove_chunk_loader(
             &mut chunk_action_buffer,
             &chunk_query,
             &chunk_loader_query,
+            loader.id,
             chunk_coord,
             chunk_loader_distance_squared,
             chunk_loader_radius_squared,
