@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use crate::{action::{resources::ActionTargetTypeRegistry, stage_io::*, structs::*}, config::statics::CONFIG};
 
-use super::{components::ChunkComponent, functions::chunk_pos_to_world};
+use super::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager};
 
 pub mod spawn {
     use bevy::prelude::*;
@@ -23,14 +23,25 @@ pub mod spawn {
 }
 
 pub mod despawn {
-    use bevy::prelude::*;
-
     pub struct FindAndDespawnEntityInput {
         pub chunk_coord: (i32, i32),
     }
 
     pub struct Output(pub Result<(), String>);
 }
+
+pub mod transfer_ownership {
+    use bevy::prelude::*;
+
+    pub struct FindChunkAndTransferOwnershipInput {
+        pub chunk_coord: (i32, i32),
+        pub new_chunk_owner: Entity
+    }
+}
+
+// TODO: 1. Send completion "events" via crossbeam channel for async action stages to a dedicated relay system which translates these into actual bevy events
+// TODO: 2. Send actual bevy completion events for ecs action stages
+// TODO: 3. Process the events and emit public action completion events
 
 fn register(
     action_target_type_registry: &mut ResMut<ActionTargetTypeRegistry>,
@@ -90,6 +101,12 @@ fn register(
                                     },
                                 ));
 
+                                let chunk_manager = world.resource_mut::<ChunkManager>();
+                                chunk_manager.loaded_chunks.insert(chunk_coord);
+                                if let Some(chunk_owner) = chunk_owner {
+                                    chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
+                                }
+
                                 io.set_output(spawn::Output(Ok(())))
                             }),
                         }),
@@ -104,19 +121,47 @@ fn register(
                                 let (input, io) = io.get_input::<despawn::FindAndDespawnEntityInput>();
                                 let chunk_coord = input.chunk_coord;
 
-                                let entity = world
+                                let chunk_manager = world.resource_mut::<ChunkManager>();
+                                chunk_manager.loaded_chunks.remove(&chunk_coord);
+                                chunk_manager.owned_chunks.remove(&chunk_coord);
+
+                                if let Some((entity, chunk)) = world
                                     .query::<(Entity, &ChunkComponent)>()
                                     .iter(world)
-                                    .find(|(_, chunk)| chunk.coord == chunk_coord)
-                                    .map(|(entity, _)| entity);
-
-                                if let Some(entity) = entity {
+                                    .find(|(_, chunk)| chunk.coord == chunk_coord) {
                                     world.entity_mut(entity).despawn_recursive();
                                     io.set_output(spawn::Output(Ok(())))
                                 } else {
                                     io.set_output(spawn::Output(Err("Could not find chunk entity.".to_owned())))
                                 }
-                            
+                            })
+                        })
+                    ],
+                },
+                ActionType {
+                    name: "TransferOwnership".to_owned(),
+                    stages: vec![
+                        ActionStage::Ecs(ActionStageEcs {
+                            name: "FindChunkAndTransferOwnership".to_owned(),
+                            function: Box::new(|io: ActionStageIO<InputState>, world: &mut World| -> ActionStageIO<OutputState> {
+                                let (input, io) = io.get_input::<transfer_ownership::FindChunkAndTransferOwnershipInput>();
+                                let chunk_coord = input.chunk_coord;
+                                let new_chunk_owner = input.new_chunk_owner;
+
+                                let chunk = world
+                                    .query::<&ChunkComponent>()
+                                    .iter(world)
+                                    .find(|chunk| chunk.coord == chunk_coord)
+                                    .expect(format!("Failed to transfer ownership of chunk '{:?}': it is already despawned according to the Chunk Query", chunk_coord).as_str());
+
+                                let chunk_manager = world.resource_mut::<ChunkManager>();
+                                if chunk.owner.is_some() {
+                                    chunk_manager.owned_chunks.remove(&chunk_coord);
+                                }
+                                chunk.owner = Some(new_chunk_owner);
+                                chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner);
+
+                                io.set_output(spawn::Output(Ok(())))
                             })
                         })
                     ],
