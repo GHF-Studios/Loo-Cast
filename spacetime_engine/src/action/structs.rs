@@ -1,4 +1,6 @@
-use std::any::{Any, TypeId};
+use std::any::TypeId;
+use std::pin::Pin;
+use futures::future::BoxFuture;
 
 use bevy::prelude::*;
 
@@ -7,18 +9,22 @@ use super::stage_io::{ActionStageIO, InputState, OutputState};
 pub struct ActionTargetType {
     pub name: String,
     pub type_id: TypeId,
-    pub actions_types: Vec<ActionType>
+    pub ecs_action_types: Vec<ActionType>
 }
 
 pub enum ActionStage {
-    Ecs {
-        name: String,
-        function: Box<dyn FnMut(ActionStageIO<InputState>, &mut Commands) -> ActionStageIO<OutputState>>
-    },
-    NonEcs {
-        name: String,
-        function: Box<dyn FnMut(ActionStageIO<InputState>) -> ActionStageIO<OutputState>>
-    },
+    Ecs(ActionStageEcs),
+    Async(ActionStageAsync),
+}
+
+pub struct ActionStageEcs {
+    pub name: String,
+    pub function: Box<dyn FnMut(ActionStageIO<InputState>, &mut World) -> ActionStageIO<OutputState>>
+}
+
+pub struct ActionStageAsync {
+    pub name: String,
+    pub function: Pin<Box<dyn FnOnce(ActionStageIO<InputState>) -> BoxFuture<'static, ActionStageIO<OutputState>> + Send + Sync>>,
 }
 
 pub struct ActionType {

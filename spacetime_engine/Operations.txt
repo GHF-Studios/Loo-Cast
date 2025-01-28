@@ -59,7 +59,7 @@
 		API Binding:
 			Rust provides an API to Lua, allowing it to
 			request operations and register callbacks.
-			This API facilitates interaction between Lua and Rust.
+			This API facilitates interactions between Lua and Rust.
 		No Dependency Management:
 			The operations manager does not manage dependencies or sequencing—
 			it's role is purely executional, triggering Lua callbacks upon operation completion.

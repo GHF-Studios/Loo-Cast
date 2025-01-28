@@ -5,7 +5,7 @@ use super::enums::{ChunkAction, ChunkActionPriority};
 
 #[derive(Resource, Default)]
 pub(in crate) struct ChunkActionBuffer {
-    pub actions: HashMap<(i32, i32), ChunkAction>,
+    pub ecs_actions: HashMap<(i32, i32), ChunkAction>,
     pub priority_buckets: BTreeMap<ChunkActionPriority, HashSet<(i32, i32)>>,
 }
 
@@ -14,7 +14,7 @@ impl ChunkActionBuffer {
         let coord = action.get_coord();
         let priority = action.get_priority();
 
-        self.actions.insert(coord, action);
+        self.ecs_actions.insert(coord, action);
 
         self.priority_buckets
             .entry(priority)
@@ -22,16 +22,16 @@ impl ChunkActionBuffer {
             .insert(coord);
     }
 
-    pub fn add_actions<I>(&mut self, actions: I)
+    pub fn add_ecs_actions<I>(&mut self, ecs_actions: I)
     where
         I: IntoIterator<Item = ChunkAction>,
     {
-        for action in actions {
+        for action in ecs_actions {
             let coord = action.get_coord();
             let priority = action.get_priority();
 
-            // Add to the actions map
-            self.actions.insert(coord, action);
+            // Add to the ecs_actions map
+            self.ecs_actions.insert(coord, action);
 
             // Add to the priority bucket
             self.priority_buckets
@@ -42,7 +42,7 @@ impl ChunkActionBuffer {
     }
 
     pub fn remove_action(&mut self, coord: &(i32, i32)) {
-        if let Some(action) = self.actions.remove(coord) {
+        if let Some(action) = self.ecs_actions.remove(coord) {
             let priority = action.get_priority();
 
             if let Some(bucket) = self.priority_buckets.get_mut(&priority) {
@@ -54,13 +54,13 @@ impl ChunkActionBuffer {
         }
     }
 
-    pub fn remove_actions<I>(&mut self, coords: I)
+    pub fn remove_ecs_actions<I>(&mut self, coords: I)
     where
         I: IntoIterator<Item = (i32, i32)>,
     {
         for coord in coords {
-            // Remove from the actions map
-            if let Some(action) = self.actions.remove(&coord) {
+            // Remove from the ecs_actions map
+            if let Some(action) = self.ecs_actions.remove(&coord) {
                 let priority = action.get_priority();
 
                 // Remove from the priority bucket
@@ -77,7 +77,7 @@ impl ChunkActionBuffer {
     }
 
     pub fn get(&self, chunk_coord: &(i32, i32)) -> Option<&ChunkAction> {
-        self.actions.get(chunk_coord)
+        self.ecs_actions.get(chunk_coord)
     }
 
     pub fn get_action_states(&self, chunk_coord: &(i32, i32)) -> (bool, bool, bool) {
@@ -104,15 +104,15 @@ impl ChunkActionBuffer {
     }
 
     pub fn has_spawns(&self) -> bool {
-        self.actions.values().any(|action| action.is_spawn())
+        self.ecs_actions.values().any(|action| action.is_spawn())
     }
 
     pub fn has_despawns(&self) -> bool {
-        self.actions.values().any(|action| action.is_despawn())
+        self.ecs_actions.values().any(|action| action.is_despawn())
     }
 
     pub fn has_ownership_transfers(&self) -> bool {
-        self.actions
+        self.ecs_actions
             .values()
             .any(|action| action.is_transfer_ownership())
     }
@@ -121,7 +121,7 @@ impl ChunkActionBuffer {
         self.priority_buckets
             .iter()
             .flat_map(|(_, coords)| coords.iter())
-            .filter_map(|coord| self.actions.get_key_value(coord))
+            .filter_map(|coord| self.ecs_actions.get_key_value(coord))
     }
 }
 
