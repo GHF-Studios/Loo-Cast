@@ -135,7 +135,7 @@ pub(in crate) fn spawn_chunk(
     }
 
     let half_chunk_size = CONFIG.get::<f32>("chunk/size") / 2.0;
-    let default_chunk_z = CONFIG.get::<f32>("chunk/default_z") / 2.0;
+    let default_chunk_z = CONFIG.get::<f32>("chunk/default_z");
 
     let chunk_transform = Transform {
         translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),
