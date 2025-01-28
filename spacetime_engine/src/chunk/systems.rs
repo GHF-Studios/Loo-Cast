@@ -43,7 +43,7 @@ pub(in crate) fn update_chunk_system(
     }
 }
 
-pub(in crate) fn process_chunk_ecs_actions(
+pub(in crate) fn process_chunk_actions(
     mut commands: Commands,
     mut chunk_query: Query<(Entity, &mut ChunkComponent)>,
     chunk_loader_query: Query<Entity, With<ChunkLoaderComponent>>,
@@ -51,16 +51,16 @@ pub(in crate) fn process_chunk_ecs_actions(
     mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
     chunk_render_handles: Res<ChunkRenderHandles>,
 ) {
-    let mut processed_ecs_actions = vec![];
+    let mut processed_actions = vec![];
     let mut to_be_processed = vec![];
 
     let bucket_iter = chunk_action_buffer.priority_buckets.iter();
 
     for (_, coords) in bucket_iter {
         for coord in coords.iter().copied() {
-            if let Some(action) = chunk_action_buffer.ecs_actions.get(&coord).cloned() {
+            if let Some(action) = chunk_action_buffer.actions.get(&coord).cloned() {
                 to_be_processed.push(action);
-                processed_ecs_actions.push(coord);
+                processed_actions.push(coord);
             }
         }
     }
@@ -77,5 +77,5 @@ pub(in crate) fn process_chunk_ecs_actions(
         );
     }
 
-    chunk_action_buffer.remove_ecs_actions(processed_ecs_actions);
+    chunk_action_buffer.remove_actions(processed_actions);
 }

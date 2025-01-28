@@ -9,7 +9,7 @@ use super::stage_io::{ActionStageIO, InputState, OutputState};
 pub struct ActionTargetType {
     pub name: String,
     pub type_id: TypeId,
-    pub ecs_action_types: Vec<ActionType>
+    pub action_types: Vec<ActionType>
 }
 
 pub enum ActionStage {
@@ -19,7 +19,7 @@ pub enum ActionStage {
 
 pub struct ActionStageEcs {
     pub name: String,
-    pub function: Box<dyn FnMut(ActionStageIO<InputState>, &mut World) -> ActionStageIO<OutputState>>
+    pub function: Box<dyn FnMut(ActionStageIO<InputState>, &mut World) -> ActionStageIO<OutputState> + Send + Sync>
 }
 
 pub struct ActionStageAsync {

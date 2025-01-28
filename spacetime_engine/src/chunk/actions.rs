@@ -50,7 +50,7 @@ fn register(
         ActionTargetType {
             name: "Chunk".to_owned(),
             type_id: TypeId::of::<ChunkComponent>(),
-            ecs_action_types: vec![
+            action_types: vec![
                 ActionType {
                     name: "Spawn".to_owned(),
                     stages: vec![
