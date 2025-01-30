@@ -37,6 +37,8 @@ pub mod transfer_ownership {
         pub chunk_coord: (i32, i32),
         pub new_chunk_owner: Entity
     }
+
+    pub struct Output(pub Result<(), String>);
 }
 
 // TODO: 1. Send completion "events" via crossbeam channel for async action stages to a dedicated relay system which translates these into actual bevy events
