@@ -55,6 +55,15 @@ fn register(
             action_types: vec![
                 ActionType {
                     name: "Spawn".to_owned(),
+                    validation: Box::new(|target_raw| {
+                        let target = target_raw.downcast_ref::<Option<ChunkComponent>>().unwrap();
+
+                        if target.is_some() {
+                            return Err("Spawn action validation error: Cannot spawn an already loaded chunk.".to_owned());
+                        }
+        
+                        Ok(())
+                    }),
                     stages: vec![
                         ActionStage::Async(ActionStageAsync {
                             name: "GenerateMetricMaps".to_owned(),
@@ -116,6 +125,15 @@ fn register(
                 },
                 ActionType {
                     name: "Despawn".to_owned(),
+                    validation: Box::new(|target_raw| {
+                        let target = target_raw.downcast_ref::<Option<ChunkComponent>>().unwrap();
+
+                        if target.is_none() {
+                            return Err("Despawn action validation error: Cannot despawn an already unloaded chunk.".to_owned());
+                        }
+        
+                        Ok(())
+                    }),
                     stages: vec![
                         ActionStage::Ecs(ActionStageEcs {
                             name: "FindAndDespawnEntity".to_owned(),
@@ -142,6 +160,15 @@ fn register(
                 },
                 ActionType {
                     name: "TransferOwnership".to_owned(),
+                    validation: Box::new(|target_raw| -> Result<(), String> {
+                        let target = target_raw.downcast_ref::<Option<ChunkComponent>>().unwrap();
+
+                        if target.is_none() {
+                            return Err("TransferOwnership action validation error: Cannot transfer ownership of an unloaded chunk.".to_owned());
+                        }
+        
+                        Ok(())
+                    }),
                     stages: vec![
                         ActionStage::Ecs(ActionStageEcs {
                             name: "FindChunkAndTransferOwnership".to_owned(),

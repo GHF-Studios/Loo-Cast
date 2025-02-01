@@ -3,7 +3,7 @@ use std::any::Any;
 use std::any::TypeId;
 
 #[derive(Event)]
-pub struct StageProcessed {
+pub(in super) struct StageProcessed {
     pub target_type: TypeId,
     pub target_entity: Entity,
     pub action_name: String,
@@ -12,7 +12,7 @@ pub struct StageProcessed {
 }
 
 #[derive(Event)]
-pub struct ActionProcessed {
+pub(in super) struct ActionProcessed {
     pub target_type: TypeId,
     pub target_entity: Entity,
     pub action_name: String,

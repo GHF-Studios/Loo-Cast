@@ -15,5 +15,8 @@ use systems::*;
 pub(in crate) struct ActionPlugin;
 impl Plugin for ActionPlugin {
     fn build(&self, app: &mut App) {
+        app
+            .add_systems(PreUpdate, async_stage_event_relay_system)
+            .add_systems(PreUpdate, pre_update_action_system.after(async_stage_event_relay_system));
     }
 }

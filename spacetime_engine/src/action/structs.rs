@@ -1,4 +1,5 @@
-use std::any::TypeId;
+use std::any::Any;
+use std::{any::TypeId, error::Error};
 use std::pin::Pin;
 use futures::future::BoxFuture;
 
@@ -29,6 +30,7 @@ pub struct ActionStageAsync {
 
 pub struct ActionType {
     pub name: String,
+    pub validation: Box<dyn Fn(&dyn Any) -> Result<(), String> + Send + Sync>,
     pub stages: Vec<ActionStage>
 }
 
