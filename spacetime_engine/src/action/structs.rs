@@ -13,6 +13,22 @@ pub struct ActionTargetType {
     pub action_types: Vec<ActionType>
 }
 
+pub struct ActionTargetRef<'a>(Option<&'a dyn Any>);
+impl<'a> ActionTargetRef<'a> {
+    pub fn new(value: Option<&'a dyn Any>) -> Self {
+        Self(value)
+    }
+
+    pub fn resolve<T: Any>(&self) -> &T {
+        self.0.expect("ActionTargetRef: Can not resolve 'None' reference").downcast_ref::<T>().unwrap_or_else(|| {
+            unreachable!(
+                "ActionTargetRef: Expected `{}`, but found something else.",
+                std::any::type_name::<T>()
+            )
+        })
+    }
+}
+
 pub enum ActionStage {
     Ecs(ActionStageEcs),
     Async(ActionStageAsync),
@@ -30,15 +46,13 @@ pub struct ActionStageAsync {
 
 pub struct ActionType {
     pub name: String,
-    pub validation: Box<dyn Fn(&dyn Any) -> Result<(), String> + Send + Sync>,
+    pub validation: Box<dyn Fn(ActionTargetRef) -> Result<(), String> + Send + Sync>,
     pub stages: Vec<ActionStage>
 }
 
 pub enum ActionState {
     Queued,
     Processing,
-    Completed,
-    Failed
 }
 
 pub enum ActionTargetState {

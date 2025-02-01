@@ -55,8 +55,8 @@ fn register(
             action_types: vec![
                 ActionType {
                     name: "Spawn".to_owned(),
-                    validation: Box::new(|target_raw| {
-                        let target = target_raw.downcast_ref::<Option<ChunkComponent>>().unwrap();
+                    validation: Box::new(|target_ref| {
+                        let target = target_ref.resolve::<Option<ChunkComponent>>();
 
                         if target.is_some() {
                             return Err("Spawn action validation error: Cannot spawn an already loaded chunk.".to_owned());
@@ -125,8 +125,8 @@ fn register(
                 },
                 ActionType {
                     name: "Despawn".to_owned(),
-                    validation: Box::new(|target_raw| {
-                        let target = target_raw.downcast_ref::<Option<ChunkComponent>>().unwrap();
+                    validation: Box::new(|target_ref| {
+                        let target = target_ref.resolve::<Option<ChunkComponent>>();
 
                         if target.is_none() {
                             return Err("Despawn action validation error: Cannot despawn an already unloaded chunk.".to_owned());
@@ -160,8 +160,8 @@ fn register(
                 },
                 ActionType {
                     name: "TransferOwnership".to_owned(),
-                    validation: Box::new(|target_raw| -> Result<(), String> {
-                        let target = target_raw.downcast_ref::<Option<ChunkComponent>>().unwrap();
+                    validation: Box::new(|target_ref| -> Result<(), String> {
+                        let target = target_ref.resolve::<Option<ChunkComponent>>();
 
                         if target.is_none() {
                             return Err("TransferOwnership action validation error: Cannot transfer ownership of an unloaded chunk.".to_owned());

@@ -1,5 +1,6 @@
 pub mod errors;
 pub mod events;
+pub mod functions;
 pub mod resources;
 pub mod structs;
 pub mod systems;
