@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use super::{resources::{ActionMap, ActionTargetTypeRegistry}, target::ActionTargetRef, types::{ActionInstance, ActionState}};
 
-/// Attempts to start an action on an entity, ensuring it is valid.
+/// Attempts to start an action on an entity, ensuring it is valid
 pub fn request_action<T: Any + Component>(
     entity: Entity,
     target_type: &str,
