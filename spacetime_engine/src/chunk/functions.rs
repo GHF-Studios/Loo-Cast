@@ -70,11 +70,11 @@ pub(in crate) fn process_chunk_action(
 ) {
     match action {
         ChunkAction::Spawn { coord, new_owner: owner, .. } => {
-            let quad_handle = chunk_render_handles.quad_handle.clone();
+            let quad_handle = chunk_render_handles.quad.clone();
             let material_handle = if (coord.0 + coord.1) % 2 == 0 {
-                chunk_render_handles.light_material_handle.clone()
+                chunk_render_handles.light_material.clone()
             } else {
-                chunk_render_handles.dark_material_handle.clone()
+                chunk_render_handles.dark_material.clone()
             };
 
             if let Some(owner) = owner {

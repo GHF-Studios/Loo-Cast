@@ -12,14 +12,14 @@ pub(in crate) fn startup_chunk_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let quad_handle = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
-    let light_material_handle = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
-    let dark_material_handle = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
+    let quad = meshes.add(Mesh::from(Rectangle::new(1.0, 1.0)));
+    let light_material = materials.add(ColorMaterial::from_color(Color::srgb(0.75, 0.75, 0.75)));
+    let dark_material = materials.add(ColorMaterial::from_color(Color::srgb(0.25, 0.25, 0.25)));
 
     commands.insert_resource(ChunkRenderHandles {
-        quad_handle,
-        light_material_handle,
-        dark_material_handle
+        quad,
+        light_material,
+        dark_material
     });
 }
 

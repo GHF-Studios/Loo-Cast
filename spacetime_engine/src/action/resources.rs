@@ -1,12 +1,12 @@
 use std::{any::{Any, TypeId}, collections::HashMap};
-
 use bevy::prelude::*;
+use crossbeam_channel::{Receiver, Sender};
 
-use super::structs::{ActionTargetType, ActionType};
+use super::{events::ActionStageProcessed, target::ActionTargetType, types::{ActionInstance, ActionState, ActionType}};
 
 #[derive(Resource, Default)]
 pub struct ActionTargetTypeRegistry {
-    registry: HashMap<String, HashMap<String, ActionType>>, // Maps target type -> (action name -> ActionType)
+    registry: HashMap<String, HashMap<String, ActionType>>,
 }
 
 impl ActionTargetTypeRegistry {
@@ -42,17 +42,13 @@ impl ActionTargetTypeRegistry {
     }
 }
 
-pub struct ActionInstance {
-    pub target_entity: Entity,
-    pub action_name: String,
-    pub current_stage: usize,
-    pub callback: Option<Box<dyn FnOnce(&mut World) + Send + Sync>>,
+#[derive(Resource, Default)]
+pub struct ActionRequestBuffer {
+    pub requests: Vec<ActionInstance>,
 }
-impl std::fmt::Debug for ActionInstance{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ActionInstance(target_entity: {:?}, action_name: {:?}, current_stage: {:?})", self.target_entity, self.action_name, self.current_stage)
-    }
-}
+
+#[derive(Resource)]
+pub(in super) struct StageReceiver(pub Receiver<ActionStageProcessed>);
 
 #[derive(Resource, Default, Debug)]
 pub struct ActionMap {
@@ -60,90 +56,87 @@ pub struct ActionMap {
 }
 
 impl ActionMap {
-    pub fn insert_action(
-        &mut self,
-        target_type: &str,
-        target_entity: Entity,
-        action_name: impl Into<String>,
-        callback: Option<Box<dyn FnOnce(&mut World) + Send + Sync>>,
-    ) {
-        let entry = self.map.entry(target_type.to_owned()).or_insert_with(|| (Vec::new(), HashMap::new()));
+    pub fn insert_action(&mut self, mut action_instance: ActionInstance) {
+        let action_entity = &action_instance.entity;
+        let action_target_type = &action_instance.target_type;
+        let action_state = &mut action_instance.state;
 
+        if !action_state.is_requested() {
+            unreachable!(
+                "Action insertion error: Action has an invalid state. Expected state 'ActionState::Requested', found '{}'.",
+                action_instance.state
+            );
+        }
+
+        *action_state = ActionState::Processing { current_stage: 0 };
+
+        let entry = self.map.entry(action_target_type.to_owned()).or_insert_with(|| (Vec::new(), HashMap::new()));
         let (instances, entity_index) = entry;
 
-        if entity_index.contains_key(&target_entity) {
-            panic!(
+        if entity_index.contains_key(action_entity) {
+            unreachable!(
                 "Action insertion error: Entity {:?} already has an active action for target type '{}'.",
-                target_entity, target_type
+                action_entity, action_target_type
             );
         }
 
         let index = instances.len();
-        instances.push(ActionInstance {
-            target_entity,
-            action_name: action_name.into(),
-            current_stage: 0,
-            callback,
-        });
-
-        entity_index.insert(target_entity, index);
+        entity_index.insert(*action_entity, index);
+        instances.push(action_instance);
     }
 
-    pub fn advance_stage(&mut self, target_type: &str, target_entity: Entity) {
+    pub fn advance_stage(&mut self, entity: Entity, target_type: &str) {
         if let Some((instances, entity_index)) = self.map.get_mut(target_type) {
-            if let Some(&index) = entity_index.get(&target_entity) {
-                instances[index].current_stage += 1;
+            if let Some(&index) = entity_index.get(&entity) {
+                match &mut instances[index].state {
+                    ActionState::Processing { current_stage } => *current_stage += 1,
+                    _ => unreachable!()
+                }
             } else {
-                panic!(
+                unreachable!(
                     "Action stage advancement error: No active action found for entity {:?} under target type '{}'.",
-                    target_entity, target_type
+                    entity, target_type
                 );
             }
         } else {
-            panic!(
+            unreachable!(
                 "Action stage advancement error: No actions exist for target type '{}'.",
                 target_type
             );
         }
     }
 
-    pub fn finalize_action(&mut self, target_type: &str, target_entity: Entity, world: &mut World) {
-        if let Some((instances, entity_index)) = self.map.get_mut(target_type) {
-            if let Some(index) = entity_index.remove(&target_entity) {
+    pub fn finalize_action(&mut self, entity: Entity, target_type: &str, world: &mut World) {
+        if let Some((mut instances, mut entity_index)) = self.map.remove(target_type) {
+            if let Some(index) = entity_index.remove(&entity) {
                 let action = instances.swap_remove(index);
 
                 if let Some(callback) = action.callback {
-                    callback(world);
+                    callback(world, action.params_buffer);
                 }
 
                 if index < instances.len() {
-                    let swapped_entity = instances[index].target_entity;
+                    let swapped_entity = instances[index].entity;
                     entity_index.insert(swapped_entity, index);
                 }
             } else {
-                panic!(
+                unreachable!(
                     "Action finalization error: No active action found for entity {:?} under target type '{}'.",
-                    target_entity, target_type
+                    entity, target_type
                 );
             }
         } else {
-            panic!(
+            unreachable!(
                 "Action finalization error: No actions exist for target type '{}'.",
                 target_type
             );
         }
     }
 
-    pub fn has_action(&self, target_type: &str, entity: Entity) -> bool {
+    pub fn has_action(&self, entity: Entity, target_type: &str) -> bool {
         self.map
             .get(target_type)
             .and_then(|(_, entity_index)| entity_index.get(&entity))
             .is_some()
-    }
-}
-
-pub struct ActionManager {}
-impl ActionManager {
-    pub fn request(&mut self, target_type: String, action_type: String, params: Box<dyn Any + Send + Sync>) {
     }
 }

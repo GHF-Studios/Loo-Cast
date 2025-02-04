@@ -146,7 +146,7 @@ impl ChunkManager {
 
 #[derive(Resource)]
 pub(in crate) struct ChunkRenderHandles {
-    pub quad_handle: Handle<Mesh>,
-    pub light_material_handle: Handle<ColorMaterial>,
-    pub dark_material_handle: Handle<ColorMaterial>,
+    pub quad: Handle<Mesh>,
+    pub light_material: Handle<ColorMaterial>,
+    pub dark_material: Handle<ColorMaterial>,
 }

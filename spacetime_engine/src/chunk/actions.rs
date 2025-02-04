@@ -1,7 +1,7 @@
 use std::any::TypeId;
 use bevy::prelude::*;
 
-use crate::{action::{resources::ActionTargetTypeRegistry, stage_io::*, structs::*}, config::statics::CONFIG};
+use crate::{action::{resources::ActionTargetTypeRegistry, stage::{ActionStage, ActionStageAsync, ActionStageEcs}, stage_io::*, target::ActionTargetType, types::*}, config::statics::CONFIG};
 
 use super::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager};
 
@@ -55,7 +55,7 @@ fn register(
             action_types: vec![
                 ActionType {
                     name: "Spawn".to_owned(),
-                    validation: Box::new(|target_ref| {
+                    validation: Box::new(|target_ref| -> Result<(), String> {
                         let target = target_ref.resolve::<Option<ChunkComponent>>();
 
                         if target.is_some() {
@@ -125,7 +125,7 @@ fn register(
                 },
                 ActionType {
                     name: "Despawn".to_owned(),
-                    validation: Box::new(|target_ref| {
+                    validation: Box::new(|target_ref| -> Result<(), String> {
                         let target = target_ref.resolve::<Option<ChunkComponent>>();
 
                         if target.is_none() {
