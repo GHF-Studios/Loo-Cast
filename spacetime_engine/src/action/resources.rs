@@ -2,7 +2,7 @@ use std::{any::{Any, TypeId}, collections::HashMap};
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 
-use super::{events::ActionStageProcessed, target::ActionTargetType, types::{ActionInstance, ActionState, ActionType}};
+use super::{events::ActionStageProcessedEvent, target::ActionTargetType, types::{ActionInstance, ActionState, ActionType}};
 
 #[derive(Resource, Default)]
 pub struct ActionTargetTypeRegistry {
@@ -48,11 +48,14 @@ pub struct ActionRequestBuffer {
 }
 
 #[derive(Resource)]
-pub(in super) struct StageReceiver(pub Receiver<ActionStageProcessed>);
+pub(in super) struct ActionStageProcessedMessageSender(pub Sender<ActionStageProcessedEvent>);
+
+#[derive(Resource)]
+pub(in super) struct ActionStageProcessedMessageReceiver(pub Receiver<ActionStageProcessedEvent>);
 
 #[derive(Resource, Default, Debug)]
-pub struct ActionMap {
-    map: HashMap<String, (Vec<ActionInstance>, HashMap<Entity, usize>)>,
+pub(in super) struct ActionMap {
+    pub map: HashMap<String, (Vec<ActionInstance>, HashMap<Entity, usize>)>,
 }
 
 impl ActionMap {
@@ -101,33 +104,6 @@ impl ActionMap {
         } else {
             unreachable!(
                 "Action stage advancement error: No actions exist for target type '{}'.",
-                target_type
-            );
-        }
-    }
-
-    pub fn finalize_action(&mut self, entity: Entity, target_type: &str, world: &mut World) {
-        if let Some((mut instances, mut entity_index)) = self.map.remove(target_type) {
-            if let Some(index) = entity_index.remove(&entity) {
-                let action = instances.swap_remove(index);
-
-                if let Some(callback) = action.callback {
-                    callback(world, action.params_buffer);
-                }
-
-                if index < instances.len() {
-                    let swapped_entity = instances[index].entity;
-                    entity_index.insert(swapped_entity, index);
-                }
-            } else {
-                unreachable!(
-                    "Action finalization error: No active action found for entity {:?} under target type '{}'.",
-                    entity, target_type
-                );
-            }
-        } else {
-            unreachable!(
-                "Action finalization error: No actions exist for target type '{}'.",
                 target_type
             );
         }

@@ -6,19 +6,15 @@ use super::{stage::ActionStage, target::ActionTargetRef};
 #[derive(Debug)]
 pub enum ActionState {
     Requested,
-    Queued,
     Processing {
         current_stage: usize
     },
-    Completed
 }
 impl std::fmt::Display for ActionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Requested => write!(f, "ActionState::Requested"),
-            Self::Queued => write!(f, "ActionState::Queued"),
             Self::Processing { current_stage } => write!(f, "ActionState::Processing(current_stage: {})", current_stage),
-            Self::Completed => write!(f, "ActionState::Completed"),
         }
     }
 }
@@ -48,6 +44,8 @@ pub(in super) struct ActionInstance {
     pub state: ActionState,
     pub params_buffer: Box<dyn Any + Send + Sync>,
     pub callback: Option<Box<dyn FnOnce(&mut World, Box<dyn Any + Send + Sync>) + Send + Sync>>,
+    pub num_stages: usize,
+    pub timeout_frames: usize,
 }
 impl std::fmt::Debug for ActionInstance{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -62,15 +60,20 @@ impl ActionInstance {
         target_type: String, 
         action_name: String, 
         input_params: Box<dyn Any + Send + Sync>, 
-        output_callback: Option<Box<dyn FnOnce(&mut World, Box<dyn Any + Send + Sync>) + Send + Sync>>
+        output_callback: Option<Box<dyn FnOnce(&mut World, Box<dyn Any + Send + Sync>) + Send + Sync>>,
+        num_stages: usize,
     ) -> Self {
+        let timeout_frames = num_stages * 30;
+
         Self {
             entity,
             target_type,
             action_name,
             state: ActionState::Requested,
             params_buffer: input_params,
-            callback: output_callback
+            callback: output_callback,
+            num_stages,
+            timeout_frames
         }
     }
 }

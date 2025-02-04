@@ -40,7 +40,8 @@ pub fn request_action<T: Any + Component>(
         target_type.to_owned(),
         action_name.to_owned(),
         params,
-        callback
+        callback,
+        action_type.stages.len(),
     ));
 
     Ok(())
