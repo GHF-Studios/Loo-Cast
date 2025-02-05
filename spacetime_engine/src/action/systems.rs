@@ -97,68 +97,99 @@ pub(in super) fn action_tick_system(world: &mut World) {
 }
 
 pub(in super) fn action_execution_system(world: &mut World) {
+    // Phase 1: Data Collection
     let mut system_state: SystemState<(
-        ResMut<ActionMap>,
         ResMut<ActionTargetTypeRegistry>,
         EventWriter<ActionStageProcessedEvent>,
         Res<ActionStageProcessedMessageSender>,
     )> = SystemState::new(world);
 
     let (
-        mut action_map, 
         mut target_type_registry, 
         mut stage_event_writer, 
         async_sender
     ) = system_state.get_mut(world);
 
+    let mut system_state_read: SystemState<Res<ActionMap>> = SystemState::new(world);
+    let action_map = system_state_read.get(world);
+
+    let mut actions_to_process: Vec<(Entity, String, String, usize, ActionStage, Box<&(dyn Any + Send + Sync)>)> = Vec::new();
+
     for (target_type, (instances, _)) in action_map.map.iter_mut() {
-        for instance in instances.iter_mut() {
-            let action_type = target_type_registry
-                .get_mut(target_type, &instance.action_name)
-                .expect("David");
-
+        for instance in instances.iter() {
             if let ActionState::Processing { current_stage } = &instance.state {
-                let stage = &mut action_type.stages[*current_stage];
+                let action_type = target_type_registry
+                    .get(target_type, &instance.action_name)
+                    .expect("David");
 
-                match stage {
-                    ActionStage::Ecs(ref mut ecs_stage) => {
-                        let io = ActionStageIO::new(std::mem::replace(&mut instance.data_buffer, Box::new(())));
-                        let function = &mut ecs_stage.function;
-                        let output = (function)(io, world).consume();
+                // TODO: Somehow temporarily acquire the stage and give it back after we are done with processing
+                let stage = &action_type.stages[*current_stage];
 
-                        let mut system_state: SystemState<(EventWriter<ActionStageProcessedEvent>)> = SystemState::new(world);
-                        let mut stage_event_writer = system_state.get_mut(world);
-                        stage_event_writer.send(ActionStageProcessedEvent {
-                            target_entity: instance.entity,
-                            target_type: target_type.clone(),
-                            action_name: instance.action_name.clone(),
-                            stage_index: *current_stage,
-                            stage_output: output,
-                        });
-                    }
-                    ActionStage::Async(ref mut async_stage) => {
-                        let entity = instance.entity;
-                        let target_type = target_type.clone();
-                        let action_name = instance.action_name.clone();
-
-                        let io = ActionStageIO::new(std::mem::replace(&mut instance.data_buffer, Box::new(())));
-                        let function = &mut async_stage.function;
-                        let future = (function)(io);
-
-                        let sender = async_sender.0.clone();
-                        tokio::spawn(async move {
-                            let output = future.await.consume();
-                            sender.send(ActionStageProcessedEvent {
-                                target_entity: entity,
-                                target_type,
-                                action_name,
-                                stage_index: *current_stage,
-                                stage_output: output,
-                            }).unwrap();
-                        });
-                    }
-                }
+                actions_to_process.push((
+                    instance.entity,
+                    target_type.clone(),
+                    instance.action_name.clone(),
+                    *current_stage,
+                    stage.clone(),
+                    Box::new(instance.data_buffer.as_ref().clone()),
+                ));
             }
         }
+    }
+
+    drop(system_state_read); // Explicitly drop to release immutable borrow on action_map
+
+    // Phase 2: Processing
+    let mut stage_outputs = Vec::new();
+
+    for (entity, target_type, action_name, current_stage, ref mut stage, ref mut data_buffer) in actions_to_process.iter_mut() {
+        match stage {
+            ActionStage::Ecs(ref mut ecs_stage) => {
+                let io = ActionStageIO::new(Box::new(data_buffer));
+                let function = &mut ecs_stage.function;
+                let output = (function)(io, world).consume();
+
+                stage_outputs.push((
+                    entity,
+                    target_type,
+                    action_name,
+                    current_stage,
+                    output,
+                ));
+            }
+            ActionStage::Async(ref mut async_stage) => {
+                let io = ActionStageIO::new(Box::new(data_buffer));
+                let function = &mut async_stage.function;
+                let future = (function)(io);
+
+                let sender = async_sender.0.clone();
+                tokio::spawn(async move {
+                    let output = future.await.consume();
+                    sender
+                        .send(ActionStageProcessedEvent {
+                            target_entity: *entity,
+                            target_type: target_type.to_string(),
+                            action_name: action_name.to_string(),
+                            stage_index: *current_stage,
+                            stage_output: output,
+                        })
+                        .unwrap();
+                });
+            }
+        }
+    }
+
+    // Phase 3: Applying Changes
+    let mut system_state_write: SystemState<ResMut<ActionMap>> = SystemState::new(world);
+    let mut action_map = system_state_write.get_mut(world);
+
+    for (entity, target_type, action_name, stage_index, stage_output) in stage_outputs {
+        stage_event_writer.send(ActionStageProcessedEvent {
+            target_entity: *entity,
+            target_type: target_type.to_string(),
+            action_name: action_name.to_string(),
+            stage_index: *stage_index,
+            stage_output,
+        });
     }
 }

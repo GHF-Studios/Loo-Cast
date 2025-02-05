@@ -15,10 +15,10 @@ pub struct ActionStageIO<T> {
 }
 
 impl ActionStageIO<InputState> {
-    pub(in super) fn new<I: Any + Send + Sync>(input: I) -> Self {
+    pub(in super) fn new<I: Any + Send + Sync>(input: Box<I>) -> Self {
         Self {
             state: InputState {
-                input: Box::new(input),
+                input,
             },
         }
     }
