@@ -122,7 +122,9 @@ pub(in super) fn action_execution_system(world: &mut World) {
                     .get(target_type, &instance.action_name)
                     .expect("David");
 
-                // TODO: Somehow temporarily acquire the stage and give it back after we are done with processing
+                /* TODO: Somehow temporarily acquire the stage and give it back after we are done with processing,
+                *        so we don't have to clone or keep a reference, but just move it (temporarily)
+                */
                 let stage = &action_type.stages[*current_stage];
 
                 actions_to_process.push((
