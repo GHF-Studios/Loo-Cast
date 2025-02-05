@@ -1,4 +1,4 @@
-use std::{any::{Any, TypeId}, collections::HashMap};
+use std::{any::TypeId, collections::HashMap};
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 
@@ -13,7 +13,7 @@ impl ActionTargetTypeRegistry {
     pub fn register<T: Component>(&mut self, mut action_target_type: ActionTargetType) {
         let component_type_id = TypeId::of::<T>();
         let action_target_type_name = action_target_type.name.clone();
-        let action_target_type_id = action_target_type.type_id.clone();
+        let action_target_type_id = action_target_type.type_id;
 
         if component_type_id != action_target_type_id {
             unreachable!("Attempted to register the type '{:?}' as an action target type, but the provided type id '{:?}' did not match the given type.", action_target_type_id, component_type_id)
@@ -29,7 +29,7 @@ impl ActionTargetTypeRegistry {
         while let Some(action_type) = action_target_type.action_types.pop() {
             let action_type_name = action_type.name.clone();
 
-            if let Some(_) = registered_actions.insert(action_type.name.clone(), action_type) {
+            if registered_actions.insert(action_type.name.clone(), action_type).is_some() {
                 unreachable!("Attempted to register action type with name '{}' that is already in use.", action_type_name)
             }
         }
@@ -58,7 +58,7 @@ pub(in super) struct ActionStageProcessedMessageSender(pub Sender<ActionStagePro
 pub(in super) struct ActionStageProcessedMessageReceiver(pub Receiver<ActionStageProcessedEvent>);
 
 #[derive(Resource, Default, Debug)]
-pub(in super) struct ActionMap {
+pub struct ActionMap {
     pub map: HashMap<String, (Vec<ActionInstance>, HashMap<Entity, usize>)>,
 }
 

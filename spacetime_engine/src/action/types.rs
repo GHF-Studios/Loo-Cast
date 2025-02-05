@@ -20,10 +20,7 @@ impl std::fmt::Display for ActionState {
 }
 impl ActionState {
     pub fn is_requested(&self) -> bool {
-        match self {
-            Self::Requested => true,
-            _ => false,
-        }
+        matches!(self, Self::Requested)
     }
 }
 
@@ -37,7 +34,7 @@ pub struct Action {
     pub action_type: ActionType,
 }
 
-pub(in super) struct ActionInstance {
+pub struct ActionInstance {
     pub entity: Entity,
     pub target_type: String,
     pub action_name: String,

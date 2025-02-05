@@ -21,8 +21,6 @@ pub(in super) fn async_stage_event_relay_system(
     }
 }
 
-// --- ACTION TICK SYSTEM ---
-
 pub(in super) fn action_tick_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<ActionMap>, 
@@ -107,8 +105,6 @@ fn finalize_completed_actions(
     }
 }
 
-// --- ACTION EXECUTION SYSTEM ---
-
 pub(in super) fn action_execution_system(world: &mut World) {
     let (actions_to_process, async_sender) = collect_action_data(world);
     process_actions(world, actions_to_process, async_sender);
@@ -125,10 +121,8 @@ fn collect_action_data(world: &mut World) -> (Vec<(Entity, String, String, usize
             if let ActionState::Processing { current_stage } = &instance.state {
                 let action_type = target_type_registry
                     .get_mut(target_type, &instance.action_name)
-                    .expect(&format!(
-                        "Action type `{}` not found in registry for `{}`",
-                        instance.action_name, target_type
-                    ));
+                    .unwrap_or_else(|| panic!("Action type `{}` not found in registry for `{}`",
+                        instance.action_name, target_type));
 
                 let stage = std::mem::replace(
                     &mut action_type.stages[*current_stage],
