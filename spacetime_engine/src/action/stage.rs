@@ -1,4 +1,4 @@
-use std::{any::Any, pin::Pin};
+use std::any::Any;
 use bevy::prelude::*;
 use futures::future::BoxFuture;
 
@@ -26,7 +26,7 @@ pub struct ActionStageEcs {
 */
 pub struct ActionStageAsync {
     pub name: String,
-    pub function: Pin<Box<dyn FnMut(ActionStageIO<InputState>) -> BoxFuture<'static, ActionStageIO<OutputState>> + Send + Sync>>,
+    pub function: Box<dyn FnMut(ActionStageIO<InputState>) -> BoxFuture<'static, ActionStageIO<OutputState>> + Send + Sync>,
 }
 
 pub struct ActionStageOutput {

@@ -45,9 +45,7 @@ pub mod transfer_ownership {
 // TODO: 2. Send actual bevy completion events for ecs action stages
 // TODO: 3. Process the events and emit public action completion events
 
-fn register(
-    action_target_type_registry: &mut ResMut<ActionTargetTypeRegistry>,
-) {
+fn register(action_target_type_registry: &mut ResMut<ActionTargetTypeRegistry>) {
     action_target_type_registry.register::<ChunkComponent>(
         ActionTargetType {
             name: "Chunk".to_owned(),
@@ -67,7 +65,7 @@ fn register(
                     stages: vec![
                         ActionStage::Async(ActionStageAsync {
                             name: "GenerateMetricMaps".to_owned(),
-                            function: Box::pin(|io: ActionStageIO<InputState>| Box::pin(async move {
+                            function: Box::new(|io: ActionStageIO<InputState>| Box::pin(async move {
                                 let (input, io) = io.get_input::<spawn::GenerateMetricMapsInput>();
                                 let chunk_coord = input.chunk_coord;
                                 let chunk_owner = input.chunk_owner;
