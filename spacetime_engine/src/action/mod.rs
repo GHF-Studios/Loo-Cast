@@ -23,7 +23,6 @@ impl Plugin for ActionPlugin {
 
         app
             .add_event::<ActionStageProcessedEvent>()
-            .add_event::<ActionProcessedEvent>()
             .insert_resource(sender)
             .insert_resource(receiver)
             .add_systems(PreUpdate, async_stage_event_relay_system)
