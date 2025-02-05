@@ -42,7 +42,7 @@ pub(in super) struct ActionInstance {
     pub target_type: String,
     pub action_name: String,
     pub state: ActionState,
-    pub params_buffer: Box<dyn Any + Send + Sync>,
+    pub data_buffer: Box<dyn Any + Send + Sync>,
     pub callback: Option<Box<dyn FnOnce(&mut World, Box<dyn Any + Send + Sync>) + Send + Sync>>,
     pub num_stages: usize,
     pub timeout_frames: usize,
@@ -70,7 +70,7 @@ impl ActionInstance {
             target_type,
             action_name,
             state: ActionState::Requested,
-            params_buffer: input_params,
+            data_buffer: input_params,
             callback: output_callback,
             num_stages,
             timeout_frames

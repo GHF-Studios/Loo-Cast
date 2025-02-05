@@ -22,7 +22,7 @@ pub fn request_action<T: Any + Component>(
     }
 
     let action_type = action_registry
-        .get_action(target_type, action_name)
+        .get(target_type, action_name)
         .ok_or_else(|| format!(
             "Action request error: Action '{}' is not registered for target type '{}'.",
             action_name, target_type

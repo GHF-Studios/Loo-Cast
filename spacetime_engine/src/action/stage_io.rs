@@ -49,16 +49,7 @@ impl ActionStageIO<OutputStateBuilder> {
     }
 }
 impl ActionStageIO<OutputState> {
-    fn consume<O: Any + Send + Sync>(self) -> O {
-        self.state
-            .output
-            .downcast::<O>()
-            .map(|boxed| *boxed)
-            .unwrap_or_else(|_| {
-                unreachable!(
-                    "Failed to consume Output: expected type `{}`, but got something else.",
-                    std::any::type_name::<O>()
-                )
-            })
+    pub(in super) fn consume(self) -> Box<dyn Any + Send + Sync> {
+        self.state.output
     }
 }

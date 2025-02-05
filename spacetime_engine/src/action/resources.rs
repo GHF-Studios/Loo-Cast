@@ -37,8 +37,12 @@ impl ActionTargetTypeRegistry {
         self.registry.insert(action_target_type_name.clone(), registered_actions);
     }
 
-    pub fn get_action(&self, target_type: &str, action_name: &str) -> Option<&ActionType> {
+    pub fn get(&self, target_type: &str, action_name: &str) -> Option<&ActionType> {
         self.registry.get(target_type)?.get(action_name)
+    }
+
+    pub fn get_mut(&mut self, target_type: &str, action_name: &str) -> Option<&mut ActionType> {
+        self.registry.get_mut(target_type)?.get_mut(action_name)
     }
 }
 

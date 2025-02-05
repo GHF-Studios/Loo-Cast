@@ -2,8 +2,8 @@ pub mod errors;
 pub mod events;
 pub mod functions;
 pub mod resources;
-pub mod types;
 pub mod systems;
+pub mod types;
 
 pub mod stage_io;
 pub mod stage;
