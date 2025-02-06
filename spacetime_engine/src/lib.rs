@@ -32,6 +32,7 @@ pub mod config;
 //pub mod core;
 pub mod debug;
 pub mod follower;
+pub mod gpu;
 //pub mod entity;
 //pub mod math;
 pub mod player;
@@ -100,7 +101,10 @@ fn pre_startup_system(
         // ...
     ));
 
-    let id = oneshot_systems.0["spawn_main_test_objects"];
+    //let id = oneshot_systems.0["spawn_main_test_objects"];
+    //commands.run_system(id);
+
+    let id = oneshot_systems.0["test_action_framework"];
     commands.run_system(id);
 }
 

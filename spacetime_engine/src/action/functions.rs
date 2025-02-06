@@ -1,45 +1,45 @@
-use std::any::Any;
 use bevy::prelude::*;
+use bevy::ecs::system::SystemState;
 
-use super::{resources::{ActionMap, ActionTargetTypeRegistry}, target::ActionTargetRef, types::ActionInstance};
+use super::{resources::{ActionMap, ActionTypeModuleRegistry}, stage_io::{ActionIO, InputState, OutputState}, types::ActionInstance};
 
 /// Attempts to start an action on an entity, ensuring it is valid
-pub fn request_action<T: Any + Component>(
-    entity: Entity,
-    target_type: &str,
-    action_name: &str,
+// TODO: Basically the entire function body ass dogshit, rewrite!!!!
+pub fn request_action(
     world: &mut World,
-    action_registry: &ActionTargetTypeRegistry,
-    action_map: &mut ActionMap,
-    params: Box<dyn Any + Send + Sync>,
-    callback: Option<Box<dyn FnOnce(&mut World, Box<dyn Any + Send + Sync>) + Send + Sync>>,
+    module_name: &str,
+    action_name: &str,
+    params: ActionIO<InputState>,
+    callback: Option<Box<dyn FnOnce(&mut World, ActionIO<OutputState>) + Send + Sync>>,
 ) -> Result<(), String> {
-    if action_map.has_action(entity, target_type) {
+    let mut system_state: SystemState<(
+        Res<ActionTypeModuleRegistry>,
+        ResMut<ActionMap>
+    )> = SystemState::new(world);
+    let (action_type_module_registry , mut action_map) = system_state.get_mut(world);
+
+    if action_map.has_action(entity, module_name) {
         return Err(format!(
             "Action request error: Entity {:?} is already executing an action for '{}'.",
-            entity, target_type
+            entity, module_name
         ));
     }
 
     let action_type = action_registry
-        .get(target_type, action_name)
+        .get_action_type(module_name, action_name)
         .ok_or_else(|| format!(
             "Action request error: Action '{}' is not registered for target type '{}'.",
-            action_name, target_type
+            action_name, module_name
         ))?;
 
-    let target_component = world
-        .get_entity(entity)
-        .and_then(|e| e.get::<T>())
-        .map(|t| t as &dyn Any);
-
-    (action_type.validation)(ActionTargetRef::new(target_component))?;
+    let io = ActionIO::new(Box::new(params));
+    let io = (action_type.validation)(io, world)?;
 
     action_map.insert_action(ActionInstance::new_request(
         entity,
-        target_type.to_owned(),
+        module_name.to_owned(),
         action_name.to_owned(),
-        params,
+        io.consume(),
         callback,
         action_type.stages.len(),
     ));

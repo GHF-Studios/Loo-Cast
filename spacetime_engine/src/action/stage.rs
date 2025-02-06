@@ -11,17 +11,17 @@ pub enum ActionStage {
 
 pub struct ActionStageEcs {
     pub name: String,
-    pub function: Box<dyn FnMut(ActionStageIO<InputState>, &mut World) -> ActionStageIO<OutputState> + Send + Sync>
+    pub function: Box<dyn FnMut(ActionIO<InputState>, &mut World) -> ActionIO<OutputState> + Send + Sync>
 }
 
 pub struct ActionStageAsync {
     pub name: String,
-    pub function: Box<dyn FnMut(ActionStageIO<InputState>) -> BoxFuture<'static, ActionStageIO<OutputState>> + Send + Sync>,
+    pub function: Box<dyn FnMut(ActionIO<InputState>) -> BoxFuture<'static, ActionIO<OutputState>> + Send + Sync>,
 }
 
 pub struct ActionStageOutput {
     pub entity: Entity,
-    pub target_type: String,
+    pub module_type: String,
     pub action_name: String,
     pub output: Box<dyn Any + Send + Sync>,
 }

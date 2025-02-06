@@ -1,4 +1,4 @@
-use std::any::Any;
+use std::any::{Any, TypeId};
 
 pub struct InputState {
     input: Box<dyn Any + Send + Sync>,
@@ -10,12 +10,12 @@ pub struct OutputState {
 
 pub struct OutputStateBuilder;
 
-pub struct ActionStageIO<T> {
+pub struct ActionIO<T> {
     state: T,
 }
 
-impl ActionStageIO<InputState> {
-    pub(in super) fn new<I: Any + Send + Sync>(input: Box<I>) -> Self {
+impl ActionIO<InputState> {
+    pub fn new<I: Any + Send + Sync>(input: Box<I>) -> Self {
         Self {
             state: InputState {
                 input,
@@ -23,7 +23,7 @@ impl ActionStageIO<InputState> {
         }
     }
 
-    pub fn get_input<I: Any + Send + Sync>(self) -> (I, ActionStageIO<OutputStateBuilder>) {
+    pub fn get_input<I: Any + Send + Sync>(self) -> (I, ActionIO<OutputStateBuilder>) {
         let input = self
             .state
             .input
@@ -31,25 +31,29 @@ impl ActionStageIO<InputState> {
             .map(|boxed| *boxed)
             .unwrap_or_else(|_| {
                 unreachable!(
-                    "Failed to get Input: expected type `{}`, but got something else.",
+                    "Failed to get Input: Expected type `{}`, but got something else.",
                     std::any::type_name::<I>()
                 )
             });
 
-        (input, ActionStageIO { state: OutputStateBuilder {} })
+        (input, ActionIO { state: OutputStateBuilder {} })
     }
 }
-impl ActionStageIO<OutputStateBuilder> {
-    pub fn set_output<O: Any + Send + Sync>(self, output: O) -> ActionStageIO<OutputState> {
-        ActionStageIO {
+impl ActionIO<OutputStateBuilder> {
+    pub fn set_output<O: Any + Send + Sync>(self, output: O) -> ActionIO<OutputState> {
+        ActionIO {
             state: OutputState {
                 output: Box::new(output),
             },
         }
     }
 }
-impl ActionStageIO<OutputState> {
-    pub(in super) fn consume(self) -> Box<dyn Any + Send + Sync> {
+impl ActionIO<OutputState> {
+    pub fn consume(self) -> Box<dyn Any + Send + Sync> {
         self.state.output
+    }
+
+    pub fn consume_cast<T: Any + Send + Sync>(self) -> Box<T> {
+        self.state.output.downcast().expect(&format!("Failed to consume and cast output: Type '{:?}' is not the correct type.", TypeId::of::<T>()))
     }
 }
