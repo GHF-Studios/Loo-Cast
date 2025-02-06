@@ -4,7 +4,7 @@ use bevy::ecs::system::SystemState;
 use super::{resources::{ActionMap, ActionTypeModuleRegistry}, stage_io::{ActionIO, InputState, OutputState}, types::ActionInstance};
 
 /// Attempts to start an action on an entity, ensuring it is valid
-// TODO: Basically the entire function body ass dogshit, rewrite!!!!
+// TODO: Basically the entire function body(and the documentation above this line) is ass dogshit, rewrite!!!!
 pub fn request_action(
     world: &mut World,
     module_name: &str,
