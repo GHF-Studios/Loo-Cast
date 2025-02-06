@@ -7,7 +7,7 @@ use super::stage_io::*;
 pub enum ActionStage {
     Ecs(ActionStageEcs),
     Async(ActionStageAsync),
-    WhileEcs(ActionStageWhileEcs),
+    EcsWhile(ActionStageEcsWhile),
 }
 
 pub struct ActionStageEcs {
@@ -20,7 +20,7 @@ pub struct ActionStageAsync {
     pub function: Box<dyn FnMut(ActionIO<InputState>) -> BoxFuture<'static, ActionIO<OutputState>> + Send + Sync>,
 }
 
-pub struct ActionStageWhileEcs {
+pub struct ActionStageEcsWhile {
     pub name: String,
     pub function: Box<dyn FnMut(ActionIO<InputState>, &mut World) -> Result<ActionIO<InputState>, ActionIO<OutputState>> + Send + Sync>,
 }
