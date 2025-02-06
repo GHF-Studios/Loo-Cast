@@ -23,6 +23,21 @@ impl ActionIO<InputState> {
         }
     }
 
+    pub fn get_input_ref<I: Any + Send + Sync>(&self) -> &I {
+        let input = self
+            .state
+            .input
+            .downcast_ref::<I>()
+            .unwrap_or_else(|| {
+                unreachable!(
+                    "Failed to get Input: Expected type `{}`, but got something else.",
+                    std::any::type_name::<I>()
+                )
+            });
+
+        input
+    }
+
     pub fn get_input<I: Any + Send + Sync>(self) -> (I, ActionIO<OutputStateBuilder>) {
         let input = self
             .state

@@ -23,12 +23,7 @@ pub mod spawn {
 
     use crate::{action::{stage::{ActionStage, ActionStageAsync, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::ActionType}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
 
-    pub struct Input(pub GenerateMetricMapsInput);
-
-    pub struct GenerateMetricMapsInput {
-        pub chunk_coord: (i32, i32),
-        pub chunk_owner: Option<Entity>,
-    }
+    pub struct Input(pub SetupAndSpawnEntityInput);
 
     pub struct SetupAndSpawnEntityInput {
         pub chunk_coord: (i32, i32),
@@ -53,24 +48,6 @@ pub mod spawn {
                 Ok(io.set_output(action_input.0))
             }),
             stages: vec![
-                ActionStage::Async(ActionStageAsync {
-                    name: "GenerateMetricMaps".to_owned(),
-                    function: Box::new(|io: ActionIO<InputState>| Box::pin(async move {
-                        let (input, io) = io.get_input::<GenerateMetricMapsInput>();
-                        let chunk_coord = input.chunk_coord;
-                        let chunk_owner = input.chunk_owner;
-
-                        // TODO: Simulate an async compute shader call
-                        // let metric_texture = async_compute_metric_texture(chunk_coord).await;
-                        let metric_texture = None.unwrap();
-
-                        io.set_output(SetupAndSpawnEntityInput {
-                            chunk_coord,
-                            chunk_owner,
-                            metric_texture,
-                        })
-                    })),
-                }),
                 ActionStage::Ecs(ActionStageEcs {
                     name: "SetupAndSpawnEntity".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
