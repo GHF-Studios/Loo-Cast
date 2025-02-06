@@ -25,6 +25,9 @@ impl Plugin for ActionPlugin {
             .add_event::<ActionStageProcessedEvent>()
             .insert_resource(sender)
             .insert_resource(receiver)
+            .insert_resource(ActionTargetTypeRegistry::default())
+            .insert_resource(ActionRequestBuffer::default())
+            .insert_resource(ActionMap::default())
             .add_systems(PreUpdate, async_stage_event_relay_system)
             .add_systems(PostUpdate, action_tick_system.after(async_stage_event_relay_system))
             .add_systems(PostUpdate, action_execution_system.after(action_tick_system));
