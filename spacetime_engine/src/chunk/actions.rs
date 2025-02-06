@@ -6,6 +6,9 @@ use crate::{action::{resources::ActionTargetTypeRegistry, stage::{ActionStage, A
 
 use super::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager};
 
+// TODO: Create macro to define actions and their types in a more streamlined and natural way
+// TODO: Instead of an Action Target Type, we should register an Action Module Type, and integrate that change everywhere that's related
+
 pub mod spawn {
     use bevy::prelude::*;
 
@@ -67,8 +70,9 @@ pub fn register(action_target_type_registry: &mut ResMut<ActionTargetTypeRegistr
                                 let chunk_coord = input.chunk_coord;
                                 let chunk_owner = input.chunk_owner;
 
-                                // Simulate an async compute shader call
-                                let metric_texture = todo!("async_compute_metric_texture(chunk_coord).await");
+                                // TODO: Simulate an async compute shader call
+                                // let metric_texture = async_compute_metric_texture(chunk_coord).await;
+                                let metric_texture = None.unwrap();
 
                                 io.set_output(spawn::SetupAndSpawnEntityInput {
                                     chunk_coord,
