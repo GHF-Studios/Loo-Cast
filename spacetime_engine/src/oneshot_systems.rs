@@ -66,9 +66,9 @@ fn test_action_framework_oneshot_system(world: &mut World) {
                     debug!("Spawned Chunk");
                     let _output = io.consume();
                 }))
-            );
+            ).unwrap();
         }))
-    )
+    ).unwrap();
 }
 
 fn spawn_main_player_oneshot_system(mut commands: Commands) {
