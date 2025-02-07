@@ -54,64 +54,51 @@ pub(in super) struct ActionStageProcessedMessageReceiver(pub Receiver<ActionStag
 
 #[derive(Resource, Default, Debug)]
 pub struct ActionMap {
-    pub map: HashMap<String, (Vec<ActionInstance>, HashMap<Entity, usize>)>,
+    pub map: HashMap<String, HashMap<String, Option<ActionInstance>>>,
 }
 
 impl ActionMap {
-    pub fn insert_action(&mut self, mut action_instance: ActionInstance) {
-        let action_entity = &action_instance.entity;
-        let action_type_module = &action_instance.module_type;
-        let action_state = &mut action_instance.state;
+    pub fn insert_action(&mut self, action_instance: ActionInstance) {
+        let module_name = action_instance.module_name.clone();
+        let action_name = action_instance.action_name.clone();
 
-        if !action_state.is_requested() {
+        let module_entry = self.map.entry(module_name.clone()).or_default();
+
+        if module_entry.insert(action_name.clone(), Some(action_instance)).is_some() {
             unreachable!(
-                "Action insertion error: Action has an invalid state. Expected state 'ActionState::Requested', found '{}'.",
-                action_instance.state
+                "Action insertion error: Action '{}' in module '{}' is already active.",
+                action_name, module_name
             );
         }
-
-        *action_state = ActionState::Processing { current_stage: 0 };
-
-        let entry = self.map.entry(action_type_module.to_owned()).or_insert_with(|| (Vec::new(), HashMap::new()));
-        let (instances, entity_index) = entry;
-
-        if entity_index.contains_key(action_entity) {
-            unreachable!(
-                "Action insertion error: Entity {:?} already has an active action for target type '{}'.",
-                action_entity, action_type_module
-            );
-        }
-
-        let index = instances.len();
-        entity_index.insert(*action_entity, index);
-        instances.push(action_instance);
     }
 
-    pub fn advance_stage(&mut self, entity: Entity, module_type: &str) {
-        if let Some((instances, entity_index)) = self.map.get_mut(module_type) {
-            if let Some(&index) = entity_index.get(&entity) {
-                match &mut instances[index].state {
-                    ActionState::Processing { current_stage } => *current_stage += 1,
-                    _ => unreachable!()
-                }
-            } else {
-                unreachable!(
-                    "Action stage advancement error: No active action found for entity {:?} under target type '{}'.",
-                    entity, module_type
-                );
+    pub fn has_action(&self, module_name: &str, action_name: &str) -> bool {
+        self.map
+            .get(module_name)
+            .and_then(|actions| actions.get(action_name))
+            .into_iter()
+            .flatten()
+            .next()
+            .is_some()
+    }
+
+    pub fn remove_action(&mut self, module_name: &str, action_name: &str) {
+        if let Some(actions) = self.map.get_mut(module_name) {
+            actions.insert(action_name.to_owned(), None);
+        }
+    }
+
+    pub fn advance_stage(&mut self, module_name: &str, action_name: &str) {
+        if let Some(Some(instance)) = self.map.get_mut(module_name).and_then(|actions| actions.get_mut(action_name)) {
+            match &mut instance.state {
+                ActionState::Processing { current_stage } => *current_stage += 1,
+                _ => unreachable!("Action stage advancement error: Invalid state."),
             }
         } else {
             unreachable!(
-                "Action stage advancement error: No actions exist for target type '{}'.",
-                module_type
+                "Action stage advancement error: No active action '{}' found in module '{}'.",
+                action_name, module_name
             );
         }
-    }
-
-    pub fn has_action(&self, entity: Entity, module_type: &str) -> bool {
-        self.map
-            .get(module_type)
-            .and_then(|(_, entity_index)| entity_index.get(&entity))
-            .is_some()
     }
 }

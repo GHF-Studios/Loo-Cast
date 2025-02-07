@@ -45,7 +45,7 @@ fn test_action_framework_oneshot_system(world: &mut World) {
         world,
         "GPU",
         "GenerateTexture",
-        ActionIO::new(Box::new(generate_texture::Input(generate_texture::GenerateTextureInput {
+        ActionIO::new_input(Box::new(generate_texture::Input(generate_texture::GenerateTextureInput {
             shader_name: "example/path/to/shader.wgsl".to_string(), // TODO: Add real shader
             texture_size: CONFIG.get::<f32>("chunk/size") as usize
         }))),
@@ -57,7 +57,7 @@ fn test_action_framework_oneshot_system(world: &mut World) {
                 world,
                 "Chunk",
                 "Spawn",
-                ActionIO::new(Box::new(spawn::Input(spawn::SetupAndSpawnEntityInput {
+                ActionIO::new_input(Box::new(spawn::Input(spawn::SetupAndSpawnEntityInput {
                     chunk_coord: (0, 0),
                     chunk_owner: None,
                     metric_texture: output
@@ -68,7 +68,7 @@ fn test_action_framework_oneshot_system(world: &mut World) {
                 }))
             );
         }))
-    );
+    )
 }
 
 fn spawn_main_player_oneshot_system(mut commands: Commands) {

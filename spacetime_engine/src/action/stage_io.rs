@@ -10,12 +10,16 @@ pub struct OutputState {
 
 pub struct OutputStateBuilder;
 
+pub struct CallbackState {
+    data: Box<dyn Any + Send + Sync>,
+}
+
 pub struct ActionIO<T> {
     state: T,
 }
 
 impl ActionIO<InputState> {
-    pub fn new<I: Any + Send + Sync>(input: Box<I>) -> Self {
+    pub fn new_input<I: Any + Send + Sync>(input: Box<I>) -> Self {
         Self {
             state: InputState {
                 input,
@@ -68,7 +72,24 @@ impl ActionIO<OutputState> {
         self.state.output
     }
 
-    pub fn consume_cast<T: Any + Send + Sync>(self) -> Box<T> {
-        self.state.output.downcast().expect(&format!("Failed to consume and cast output: Type '{:?}' is not the correct type.", TypeId::of::<T>()))
+    pub fn consume_cast<O: Any + Send + Sync>(self) -> Box<O> {
+        self.state.output.downcast().expect(&format!("Failed to consume and cast output: Type '{:?}' is not the correct type.", TypeId::of::<O>()))
+    }
+}
+impl ActionIO<CallbackState> {
+    pub fn new_callback_data<D: Any + Send + Sync>(data: Box<D>) -> Self {
+        Self {
+            state: CallbackState {
+                data,
+            },
+        }
+    }
+
+    pub fn consume(self) -> Box<dyn Any + Send + Sync> {
+        self.state.data
+    }
+
+    pub fn consume_cast<D: Any + Send + Sync>(self) -> Box<D> {
+        self.state.data.downcast().expect(&format!("Failed to consume and cast output: Type '{:?}' is not the correct type.", TypeId::of::<D>()))
     }
 }

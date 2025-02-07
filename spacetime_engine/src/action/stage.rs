@@ -27,7 +27,7 @@ pub struct ActionStageEcsWhile {
 
 pub struct ActionStageOutput {
     pub entity: Entity,
-    pub module_type: String,
+    pub module_name: String,
     pub action_name: String,
     pub output: Box<dyn Any + Send + Sync>,
 }

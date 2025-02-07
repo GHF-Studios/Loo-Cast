@@ -7,7 +7,7 @@ use super::{
     events::ActionStageProcessedEvent,
     resources::{ActionMap, ActionTypeModuleRegistry},
     stage::{ActionStage, ActionStageEcs},
-    stage_io::ActionIO,
+    stage_io::{ActionIO, CallbackState},
     types::ActionState,
     ActionStageProcessedMessageReceiver, ActionStageProcessedMessageSender,
 };
@@ -34,28 +34,31 @@ pub(in super) fn action_tick_system(world: &mut World) {
 }
 
 fn process_active_actions(action_map: &mut ActionMap) {
-    for (module_type, (instances, _)) in action_map.map.iter_mut() {
-        for instance in instances.iter_mut() {
-            if instance.timeout_frames == 0 {
-                panic!(
-                    "Action timeout error: Entity {:?} running '{}' for target '{}' exceeded execution time.",
-                    instance.entity, instance.action_name, module_type
-                );
+    for (module_name, actions) in action_map.map.iter_mut() {
+        for (action_name, instance) in actions.iter_mut() {
+            if let Some(instance) = instance {
+                if instance.timeout_frames == 0 {
+                    panic!(
+                        "Action timeout error: Action '{}' in module '{}' exceeded execution time.",
+                        action_name, module_name
+                    );
+                }
+                instance.timeout_frames -= 1;
             }
-            instance.timeout_frames -= 1;
         }
     }
 }
 
+
 fn process_stage_events(
     action_map: &mut ActionMap,
     stage_event_reader: &mut EventReader<ActionStageProcessedEvent>,
-) -> Vec<(String, Entity)> {
+) -> Vec<(String, String)> {
     let mut completed_actions = Vec::new();
 
     for event in stage_event_reader.read() {
-        if let Some((instances, _)) = action_map.map.get_mut(&event.module_type) {
-            if let Some(instance) = instances.iter_mut().find(|a| a.entity == event.target_entity) {
+        if let Some(actions) = action_map.map.get_mut(&event.module_name) {
+            if let Some(instance) = actions.get_mut(&event.action_name).and_then(|a| a.as_mut()) {
                 match &mut instance.state {
                     ActionState::Processing { current_stage } => {
                         *current_stage += 1;
@@ -63,7 +66,7 @@ fn process_stage_events(
                         if *current_stage < instance.num_stages {
                             instance.timeout_frames = instance.num_stages * 30;
                         } else {
-                            completed_actions.push((event.module_type.clone(), event.target_entity));
+                            completed_actions.push((event.module_name.clone(), event.action_name.clone()));
                         }
                     }
                     _ => unreachable!("Unexpected state transition"),
@@ -77,30 +80,25 @@ fn process_stage_events(
 
 fn finalize_completed_actions(
     world: &mut World,
-    completed_actions: Vec<(String, Entity)>,
+    completed_actions: Vec<(String, String)>,
 ) {
     let mut system_state: SystemState<ResMut<ActionMap>> = SystemState::new(world);
     let mut action_map = system_state.get_mut(world);
 
     let mut callbacks = Vec::new();
 
-    for (module_type, entity) in completed_actions {
-        if let Some((instances, entity_index)) = action_map.map.get_mut(&module_type) {
-            if let Some(index) = entity_index.remove(&entity) {
-                let action = instances.swap_remove(index);
-                callbacks.push((action.callback, action.data_buffer));
-
-                if index < instances.len() {
-                    let swapped_entity = instances[index].entity;
-                    entity_index.insert(swapped_entity, index);
-                }
+    for (module_name, action_name) in completed_actions {
+        if let Some(actions) = action_map.map.get_mut(&module_name) {
+            if let Some(instance) = actions.remove(&action_name).flatten() {
+                callbacks.push((instance.callback, instance.data_buffer));
             }
         }
     }
 
     for (callback, data) in callbacks {
         if let Some(callback) = callback {
-            callback(world, data);
+            let io = ActionIO::new_callback_data(Box::new(data));
+            callback(world, io);
         }
     }
 }
@@ -110,36 +108,36 @@ pub(in super) fn action_execution_system(world: &mut World) {
     process_actions(world, actions_to_process, async_sender);
 }
 
-fn collect_action_data(world: &mut World) -> (Vec<(Entity, String, String, usize, ActionStage, Box<dyn Any + Send + Sync>)>, Sender<ActionStageProcessedEvent>) {
+fn collect_action_data(world: &mut World) -> (Vec<(String, String, usize, ActionStage, Box<dyn Any + Send + Sync>)>, Sender<ActionStageProcessedEvent>) {
     let mut system_state: SystemState<(ResMut<ActionMap>, ResMut<ActionTypeModuleRegistry>, Res<ActionStageProcessedMessageSender>)> = SystemState::new(world);
-    let (mut action_map, mut module_type_registry, async_sender) = system_state.get_mut(world);
+    let (mut action_map, mut module_name_registry, async_sender) = system_state.get_mut(world);
 
     let mut actions_to_process = Vec::new();
 
-    for (module_type, (instances, _)) in action_map.map.iter_mut() {
-        for instance in instances.iter_mut() {
-            if let ActionState::Processing { current_stage } = &instance.state {
-                let action_type = module_type_registry
-                    .get_action_type_mut(module_type, &instance.action_name)
-                    .unwrap_or_else(|| panic!("Action type `{}` not found in registry for `{}`",
-                        instance.action_name, module_type));
+    for (module_name, actions) in action_map.map.iter_mut() {
+        for (action_name, instance) in actions.iter_mut() {
+            if let Some(instance) = instance {
+                if let ActionState::Processing { current_stage } = &instance.state {
+                    let action_type = module_name_registry
+                        .get_action_type_mut(module_name, action_name)
+                        .unwrap();
 
-                let stage = std::mem::replace(
-                    &mut action_type.stages[*current_stage],
-                    ActionStage::Ecs(ActionStageEcs {
-                        name: "placeholder".to_string(),
-                        function: Box::new(|_, _| unreachable!()),
-                    }),
-                );
+                    let stage = std::mem::replace(
+                        &mut action_type.stages[*current_stage],
+                        ActionStage::Ecs(ActionStageEcs {
+                            name: "placeholder".to_string(),
+                            function: Box::new(|_, _| unreachable!()),
+                        }),
+                    );
 
-                actions_to_process.push((
-                    instance.entity,
-                    module_type.clone(),
-                    instance.action_name.clone(),
-                    *current_stage,
-                    stage,
-                    std::mem::replace(&mut instance.data_buffer, Box::new(())), // Move data out safely
-                ));
+                    actions_to_process.push((
+                        module_name.clone(),
+                        action_name.clone(),
+                        *current_stage,
+                        stage,
+                        std::mem::replace(&mut instance.data_buffer, Box::new(())),
+                    ));
+                }
             }
         }
     }
@@ -149,29 +147,32 @@ fn collect_action_data(world: &mut World) -> (Vec<(Entity, String, String, usize
 
 fn process_actions(
     world: &mut World,
-    mut actions_to_process: Vec<(Entity, String, String, usize, ActionStage, Box<dyn Any + Send + Sync>)>,
+    mut actions_to_process: Vec<(String, String, usize, ActionStage, Box<dyn Any + Send + Sync>)>,
     async_sender: Sender<ActionStageProcessedEvent>,
 ) {
     let mut stage_outputs = Vec::new();
 
-    for (entity, module_type, action_name, current_stage, mut stage, data_buffer) in actions_to_process.drain(..) {
+    for (module_name, action_name, current_stage, mut stage, data_buffer) in actions_to_process.drain(..) {
         let sender = async_sender.clone();
+
         match stage {
+            // **ECS Stage: Runs in immediate ECS context**
             ActionStage::Ecs(ref mut ecs_stage) => {
-                let io = ActionIO::new(Box::new(data_buffer));
+                let io = ActionIO::new_input(Box::new(data_buffer));
                 let function = &mut ecs_stage.function;
                 let output = (function)(io, world).consume();
 
                 stage_outputs.push((
-                    entity,
-                    module_type,
+                    module_name,
                     action_name,
                     current_stage,
                     output,
                 ));
             }
+
+            // **Async Stage: Runs in a separate task**
             ActionStage::Async(ref mut async_stage) => {
-                let io = ActionIO::new(Box::new(data_buffer));
+                let io = ActionIO::new_input(Box::new(data_buffer));
                 let function = &mut async_stage.function;
                 let future = (function)(io);
 
@@ -179,14 +180,44 @@ fn process_actions(
                     let output = future.await.consume();
                     sender
                         .send(ActionStageProcessedEvent {
-                            target_entity: entity,
-                            module_type: module_type.to_string(),
+                            module_name: module_name.to_string(),
                             action_name: action_name.to_string(),
                             stage_index: current_stage,
                             stage_output: output,
                         })
                         .unwrap();
                 });
+            }
+
+            // **EcsWhile Stage: Loops until a condition is met**
+            ActionStage::EcsWhile(ref mut ecs_while_stage) => {
+                let io = ActionIO::new_input(Box::new(data_buffer));
+                let function = &mut ecs_while_stage.function;
+
+                match (function)(io, world) {
+                    // **Condition met** → Stage is complete, output result
+                    Err(output) => {
+                        stage_outputs.push((
+                            module_name,
+                            action_name,
+                            current_stage,
+                            output.consume(),
+                        ));
+                    }
+
+                    // **Condition not met** → Loop again next frame
+                    Ok(new_input) => {
+                        let mut system_state: SystemState<ResMut<ActionMap>> = SystemState::new(world);
+                        let mut action_map = system_state.get_mut(world);
+
+                        if let Some(actions) = action_map.map.get_mut(&module_name) {
+                            if let Some(instance) = actions.get_mut(&action_name).and_then(|a| a.as_mut()) {
+                                instance.data_buffer = Box::new(new_input);
+                                instance.timeout_frames = instance.num_stages * 30; // Reset timeout
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -196,15 +227,14 @@ fn process_actions(
 
 fn apply_stage_outputs(
     world: &mut World,
-    stage_outputs: Vec<(Entity, String, String, usize, Box<dyn Any + Send + Sync>)>,
+    stage_outputs: Vec<(String, String, usize, Box<dyn Any + Send + Sync>)>,
 ) {
     let mut system_state: SystemState<EventWriter<ActionStageProcessedEvent>> = SystemState::new(world);
     let mut stage_event_writer = system_state.get_mut(world);
 
-    for (entity, module_type, action_name, stage_index, stage_output) in stage_outputs {
+    for (module_name, action_name, stage_index, stage_output) in stage_outputs {
         stage_event_writer.send(ActionStageProcessedEvent {
-            target_entity: entity,
-            module_type,
+            module_name,
             action_name,
             stage_index,
             stage_output,
