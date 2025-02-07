@@ -88,11 +88,14 @@ impl Plugin for SpacetimeEngineCorePlugin {
 
 fn pre_startup_system(
     mut commands: Commands,
-    oneshot_systems: Res<MainOneshotSystems>
+    oneshot_systems: Res<MainOneshotSystems>,
 ) {
-    let id = oneshot_systems.0["spawn_main_camera"];
+    let id = oneshot_systems.0["initialize_action_type_modules"];
     commands.run_system(id);
 
+    let id = oneshot_systems.0["spawn_main_camera"];
+    commands.run_system(id);
+    
     commands.spawn((
         PerfUiRoot::default(),
         PerfUiFramerateEntries::default(),

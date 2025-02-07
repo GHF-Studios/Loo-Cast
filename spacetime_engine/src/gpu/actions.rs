@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::action::{resources::ActionTypeModuleRegistry, target::ActionTypeModule};
 
-pub fn initialize_action_type_module(action_type_module_registry: &mut ResMut<ActionTypeModuleRegistry>) {
+pub fn initialize_action_type_module(action_type_module_registry: &mut ActionTypeModuleRegistry) {
     action_type_module_registry.register(
         ActionTypeModule {
             name: "GPU".to_owned(),

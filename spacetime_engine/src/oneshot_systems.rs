@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use bevy::{ecs::system::SystemId, prelude::*};
 use crate::action::functions::request_action;
+use crate::action::resources::ActionTypeModuleRegistry;
 use crate::action::stage_io::ActionIO;
 use crate::camera::components::MainCamera;
 use crate::config::statics::CONFIG;
@@ -16,6 +17,10 @@ impl FromWorld for MainOneshotSystems {
     fn from_world(world: &mut World) -> Self {
         let mut main_oneshot_systems: MainOneshotSystems = MainOneshotSystems(HashMap::new());
 
+        main_oneshot_systems.0.insert(
+            "initialize_action_type_modules".into(),
+            world.register_system(initialize_action_type_modules_oneshot_system)
+        );
         main_oneshot_systems.0.insert(
             "test_action_framework".into(),
             world.register_system(test_action_framework_oneshot_system)
@@ -35,6 +40,13 @@ impl FromWorld for MainOneshotSystems {
 
         main_oneshot_systems
     }
+}
+
+fn initialize_action_type_modules_oneshot_system(
+    mut action_type_module_registry: ResMut<ActionTypeModuleRegistry>
+) {
+    crate::chunk::actions::initialize_action_type_module(&mut action_type_module_registry);
+    crate::gpu::actions::initialize_action_type_module(&mut action_type_module_registry);
 }
 
 fn test_action_framework_oneshot_system(world: &mut World) {
