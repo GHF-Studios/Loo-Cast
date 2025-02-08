@@ -13,7 +13,7 @@ use spacetime_engine::*;
 // Add actual noise generation to chunks to procedurally generate a set of random positions to spawn test objects at to test the deferred loading of chunks
 // Chunks should not be forced to load in a single frame. Let's instead focus on keeping the experience smooth
 
-const ENABLE_BACKTRACE: bool = false;
+const ENABLE_BACKTRACE: bool = true;
 const REROUTE_LOGS_TO_FILE: bool = false;
 const LOG_LEVEL: Level = Level::INFO;
 const LOG_FILTER: &str = "info,spacetime_engine=debug";

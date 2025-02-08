@@ -8,7 +8,7 @@ use super::{
     resources::{ActionMap, ActionTypeModuleRegistry},
     stage::{ActionStage, ActionStageEcs},
     stage_io::{ActionIO, CallbackState},
-    types::ActionState,
+    types::{ActionState, RawActionData},
     ActionStageProcessedMessageReceiver, ActionStageProcessedMessageSender,
 };
 
@@ -97,7 +97,7 @@ fn finalize_completed_actions(
 
     for (callback, data) in callbacks {
         if let Some(callback) = callback {
-            let io = ActionIO::new_callback_data(Box::new(data));
+            let io = ActionIO::new_callback_data(RawActionData::new(data));
             callback(world, io);
         }
     }
@@ -158,7 +158,7 @@ fn process_actions(
         match stage {
             // **ECS Stage: Runs in immediate ECS context**
             ActionStage::Ecs(ref mut ecs_stage) => {
-                let io = ActionIO::new_input(Box::new(data_buffer));
+                let io = ActionIO::new_input(RawActionData::new(data_buffer));
                 let function = &mut ecs_stage.function;
                 let output = (function)(io, world).consume();
 
@@ -172,7 +172,7 @@ fn process_actions(
 
             // **Async Stage: Runs in a separate task**
             ActionStage::Async(ref mut async_stage) => {
-                let io = ActionIO::new_input(Box::new(data_buffer));
+                let io = ActionIO::new_input(RawActionData::new(data_buffer));
                 let function = &mut async_stage.function;
                 let future = (function)(io);
 
@@ -191,7 +191,7 @@ fn process_actions(
 
             // **EcsWhile Stage: Loops until a condition is met**
             ActionStage::EcsWhile(ref mut ecs_while_stage) => {
-                let io = ActionIO::new_input(Box::new(data_buffer));
+                let io = ActionIO::new_input(RawActionData::new(data_buffer));
                 let function = &mut ecs_while_stage.function;
 
                 match (function)(io, world) {

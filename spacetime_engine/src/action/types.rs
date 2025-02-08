@@ -1,7 +1,20 @@
-use std::any::Any;
+use std::any::{type_name, Any};
 use bevy::prelude::*;
 
 use super::{stage::ActionStage, stage_io::{ActionIO, CallbackState, InputState, OutputState}};
+
+pub struct RawActionData {
+    pub data: Box<dyn Any + Send + Sync>,
+    pub data_type_name: &'static str,
+}
+impl RawActionData {
+    pub fn new<D: Any + Send + Sync>(raw_data: D) -> Self {
+        Self {
+            data: Box::new(raw_data),
+            data_type_name: type_name::<D>(),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum ActionState {

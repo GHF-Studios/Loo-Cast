@@ -1,5 +1,7 @@
 use std::any::{Any, TypeId, type_name};
 
+use super::types::RawActionData;
+
 pub struct InputState {
     input: Box<dyn Any + Send + Sync>,
     input_type_name: &'static str,
@@ -22,11 +24,11 @@ pub struct ActionIO<T> {
 }
 
 impl ActionIO<InputState> {
-    pub fn new_input<I: Any + Send + Sync>(input: Box<I>) -> Self {
+    pub fn new_input(input: RawActionData) -> Self {
         Self {
             state: InputState {
-                input,
-                input_type_name: type_name::<I>(),
+                input: input.data,
+                input_type_name: input.data_type_name,
             },
         }
     }
@@ -83,11 +85,11 @@ impl ActionIO<OutputState> {
 }
 
 impl ActionIO<CallbackState> {
-    pub fn new_callback_data<D: Any + Send + Sync>(data: Box<D>) -> Self {
+    pub fn new_callback_data(callback_data: RawActionData) -> Self {
         Self {
             state: CallbackState {
-                data,
-                data_type_name: type_name::<D>(),
+                data: callback_data.data,
+                data_type_name: callback_data.data_type_name,
             },
         }
     }

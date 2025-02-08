@@ -3,8 +3,6 @@ use bevy::prelude::*;
 use crate::action::{resources::ActionTypeModuleRegistry, target::ActionTypeModule};
 
 // TODO: Create macro to define actions and their types in a more streamlined and natural way
-// TODO: Instead of an Action Target Type, we should register an Action Module Type, and integrate that change everywhere that's related
-
 pub fn initialize_action_type_module(action_type_module_registry: &mut ActionTypeModuleRegistry) {
     action_type_module_registry.register(
         ActionTypeModule {

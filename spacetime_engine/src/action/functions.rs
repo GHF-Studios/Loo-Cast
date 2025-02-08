@@ -1,14 +1,15 @@
+use std::any::Any;
 use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
 
-use super::{resources::{ActionMap, ActionTypeModuleRegistry}, stage_io::{ActionIO, CallbackState, InputState}, types::ActionInstance};
+use super::{resources::{ActionMap, ActionTypeModuleRegistry}, stage_io::{ActionIO, CallbackState, InputState}, types::{ActionInstance, RawActionData}};
 
 /// Attempts to start an action on an entity, ensuring it is valid
 pub fn request_action(
     world: &mut World,
     module_name: &str,
     action_name: &str,
-    params: ActionIO<InputState>,
+    params: RawActionData,
     callback: Option<Box<dyn FnOnce(&mut World, ActionIO<CallbackState>) + Send + Sync>>,
 ) -> Result<(), String> {
     let mut system_state: SystemState<(
@@ -39,7 +40,7 @@ pub fn request_action(
         Box::new(|_, _| unreachable!()),
     );
 
-    let io = ActionIO::new_input(Box::new(params));
+    let io = ActionIO::new_input(params);
     let io = validation_fn(io, world)?;
 
     let (mut action_registry, mut action_map) = system_state.get_mut(world);
