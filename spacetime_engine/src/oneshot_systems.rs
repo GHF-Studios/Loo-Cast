@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use bevy::render::renderer::{RenderAdapter, RenderDevice};
 use bevy::{ecs::system::SystemId, prelude::*};
 use crate::action::functions::request_action;
 use crate::action::resources::ActionTypeModuleRegistry;
@@ -54,6 +55,24 @@ fn initialize_action_type_modules_oneshot_system(
 fn test_action_framework_oneshot_system(world: &mut World) {
     use crate::gpu::actions::generate_texture;
     use crate::chunk::actions::spawn;
+    use bevy::render::render_resource::PipelineCache;
+    use bevy::ecs::system::SystemState;
+
+    let mut system_state: SystemState<(
+        Res<RenderDevice>,
+        Res<RenderAdapter>,
+    )> = SystemState::new(world);
+    let (render_device, render_adapter) = system_state.get_mut(world);
+
+    let render_device = render_device.clone();
+    let render_adapter = render_adapter.clone();
+
+    world.insert_resource(PipelineCache::new(
+        render_device,
+        render_adapter,
+        true,
+    ));
+
 
     if let Err(err) = request_action(
         world,
@@ -72,7 +91,7 @@ fn test_action_framework_oneshot_system(world: &mut World) {
                 "GPU",
                 "GenerateTexture",
                 RawActionData::new(generate_texture::Input(generate_texture::GenerateTextureInput {
-                    shader_name: "example/path/to/shader.wgsl".to_string(), // TODO: Add real shader
+                    shader_name: "example_shader".to_string(), // TODO: Add real shader
                     texture_size: CONFIG.get::<f32>("chunk/size") as usize
                 })),
                 Some(Box::new(|world, io| {

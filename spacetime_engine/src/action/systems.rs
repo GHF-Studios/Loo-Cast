@@ -1,7 +1,7 @@
 use std::any::Any;
 use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
-use bevy_consumable_event::ConsumableEventReader;
+use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 use crossbeam_channel::Sender;
 
 use super::{
@@ -15,7 +15,7 @@ use super::{
 
 pub(in super) fn async_stage_event_relay_system(
     receiver: ResMut<ActionStageProcessedMessageReceiver>,
-    mut action_event_writer: EventWriter<ActionStageProcessedEvent>, 
+    mut action_event_writer: ConsumableEventWriter<ActionStageProcessedEvent>, 
 ) {
     while let Ok(event) = receiver.0.try_recv() {
         action_event_writer.send(event);
@@ -72,7 +72,7 @@ fn process_active_actions(world: &mut World) {
                         }
                         instance.timeout_frames -= 1;
                     },
-                    ActionState::Processed { current_stage } => {}
+                    ActionState::Processed { .. } => {}
                 }
             }
         }
@@ -105,6 +105,10 @@ fn process_stage_events(world: &mut World) -> Vec<(String, String)> {
 
     for event in stage_event_reader.read() {
         let event = event.consume();
+        debug!(
+            "Action '{}' in module '{}' completed stage {}: Phase 2",
+            event.action_name, event.module_name, event.stage_index
+        );
         if let Some(actions) = action_map.map.get_mut(&event.module_name) {
             if let Some(instance) = actions.get_mut(&event.action_name).and_then(|a| a.as_mut()) {
                 match &mut instance.state {
@@ -298,7 +302,7 @@ fn apply_stage_outputs(
     stage_outputs: Vec<(String, String, usize, RawActionData)>,
 ) {
     let mut system_state: SystemState<(
-        EventWriter<ActionStageProcessedEvent>, 
+        ConsumableEventWriter<ActionStageProcessedEvent>, 
         ResMut<ActionMap>
     )> = SystemState::new(world);
     let (
@@ -307,6 +311,10 @@ fn apply_stage_outputs(
     ) = system_state.get_mut(world);
 
     for (module_name, action_name, stage_index, stage_output) in stage_outputs {
+        debug!(
+            "Action '{}' in module '{}' completed stage {}: Phase 1",
+            action_name, module_name, stage_index
+        );
         stage_event_writer.send(ActionStageProcessedEvent {
             module_name: module_name.clone(),
             action_name: action_name.clone(),
