@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 
-use super::{events::ActionStageProcessedEvent, target::ActionTypeModule, types::{ActionInstance, ActionState, ActionType}};
+use super::{events::ActionStageProcessedEvent, stage::{ActionStageEcsRender, ActionStageEcsRenderWhile}, target::ActionTypeModule, types::{ActionInstance, ActionState, ActionType, RawActionData}};
 
 #[derive(Resource, Default)]
 pub struct ActionTypeModuleRegistry {
@@ -54,11 +54,23 @@ pub struct ActionRequestBuffer {
     pub requests: Vec<ActionInstance>,
 }
 
-#[derive(Resource)]
-pub(in super) struct ActionStageProcessedMessageSender(pub Sender<ActionStageProcessedEvent>);
+#[derive(Resource, Default)]
+pub(in super) struct RenderStageQueue(pub Vec<(String, String, usize, ActionStageEcsRender, RawActionData)>);
+
+#[derive(Resource, Default)]
+pub(in super) struct RenderWhileStageQueue(pub Vec<(String, String, usize, ActionStageEcsRenderWhile, RawActionData)>);
 
 #[derive(Resource)]
-pub(in super) struct ActionStageProcessedMessageReceiver(pub Receiver<ActionStageProcessedEvent>);
+pub(in super) struct ActionStageProcessedMessageSenderAsync(pub Sender<ActionStageProcessedEvent>);
+
+#[derive(Resource)]
+pub(in super) struct ActionStageProcessedMessageReceiverAsync(pub Receiver<ActionStageProcessedEvent>);
+
+#[derive(Resource)]
+pub(in super) struct ActionStageProcessedMessageSenderRender(pub Sender<ActionStageProcessedEvent>);
+
+#[derive(Resource)]
+pub(in super) struct ActionStageProcessedMessageReceiverRender(pub Receiver<ActionStageProcessedEvent>);
 
 #[derive(Resource, Default, Debug)]
 pub struct ActionMap {
