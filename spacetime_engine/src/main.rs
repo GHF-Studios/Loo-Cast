@@ -24,7 +24,9 @@ fn main() {
         if ENABLE_BACKTRACE { "1" } else { "0" }
     );
 
-    let default_bevy_plugins = if REROUTE_LOGS_TO_FILE {
+    let mut bevy_plugins = DefaultPlugins.build();
+
+    if REROUTE_LOGS_TO_FILE {
         // Redirect logs to a file
         let file_appender = tracing_appender::rolling::daily("logs", "bevy_log.txt");
         let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
@@ -34,30 +36,29 @@ fn main() {
             .with_env_filter(LOG_FILTER)
             .with_writer(non_blocking)
             .init();
-
-        DefaultPlugins.build()
     } else {
-        DefaultPlugins
-            .set(LogPlugin {
-                filter: LOG_FILTER.into(),
-                level: LOG_LEVEL,
-                ..Default::default()
-            })
-            .set(WindowPlugin {
-                primary_window: Some(Window {
-                    present_mode: PresentMode::AutoNoVsync,
-                    title: "Loo Cast".to_string(),
-                    ..default()
-                }),
-                ..default()
-            })
-            .add(FrameTimeDiagnosticsPlugin)
-            .add(EntityCountDiagnosticsPlugin)
-            .add(SystemInformationDiagnosticsPlugin)
+        bevy_plugins = bevy_plugins.set(LogPlugin {
+            filter: LOG_FILTER.into(),
+            level: LOG_LEVEL,
+            ..Default::default()
+        });
     };
+    
+    bevy_plugins = bevy_plugins
+        .set(WindowPlugin {
+            primary_window: Some(Window {
+                present_mode: PresentMode::AutoNoVsync,
+                title: "Loo Cast".to_string(),
+                ..default()
+            }),
+            ..default()
+        })
+        .add(FrameTimeDiagnosticsPlugin)
+        .add(EntityCountDiagnosticsPlugin)
+        .add(SystemInformationDiagnosticsPlugin);
 
     App::new()
-        .add_plugins(default_bevy_plugins)
+        .add_plugins(bevy_plugins)
         .add_plugins(PerfUiPlugin)
         .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_plugins(SpacetimeEnginePlugins)

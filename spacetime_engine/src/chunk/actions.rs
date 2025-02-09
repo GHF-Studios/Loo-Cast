@@ -19,7 +19,7 @@ pub fn initialize_action_type_module(action_type_module_registry: &mut ActionTyp
 pub mod spawn {
     use bevy::prelude::*;
 
-    use crate::{action::{stage::{ActionStage, ActionStageAsync, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::ActionType}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
+    use crate::{action::{stage::{ActionStage, ActionStageAsync, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::{ActionType, RawActionData}}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
 
     pub struct Input(pub SetupAndSpawnEntityInput);
 
@@ -34,16 +34,22 @@ pub mod spawn {
     pub fn create_action_type() -> ActionType {
         ActionType {
             name: "Spawn".to_owned(),
-            validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<OutputState>, String> {
-                let (action_input, io) = io.get_input::<Input>();
+            primary_validation: Box::new(|io: ActionIO<InputState>| -> Result<ActionIO<InputState>, String> {
+                let (action_input, _) = io.get_input::<Input>();
+                let stage_input = action_input.0;
 
-                let target = world.query::<&ChunkComponent>().iter(world).find(|chunk| chunk.coord == action_input.0.chunk_coord);
+                Ok(ActionIO::new_input(RawActionData::new(stage_input)))
+            }),
+            secondary_validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<InputState>, String> {
+                let stage_input = io.get_input_ref::<SetupAndSpawnEntityInput>();
+
+                let target = world.query::<&ChunkComponent>().iter(world).find(|chunk| chunk.coord == stage_input.chunk_coord);
 
                 if target.is_some() {
                     return Err("Action validation error: Cannot spawn an already loaded chunk.".to_owned());
                 }
                 
-                Ok(io.set_output(action_input.0))
+                Ok(io)
             }),
             stages: vec![
                 ActionStage::Ecs(ActionStageEcs {
@@ -82,7 +88,7 @@ pub mod spawn {
                             chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
                         }
 
-                        io.set_output(Output(Ok(())))
+                        io.set_output(RawActionData::new(Output(Ok(()))))
                     }),
                 }),
             ],
@@ -93,7 +99,7 @@ pub mod spawn {
 pub mod despawn {
     use bevy::prelude::*;
 
-    use crate::{action::{stage::{ActionStage, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::ActionType}, chunk::{components::ChunkComponent, resources::ChunkManager}};
+    use crate::{action::{stage::{ActionStage, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::{ActionType, RawActionData}}, chunk::{components::ChunkComponent, resources::ChunkManager}};
 
     pub struct Input(pub FindAndDespawnEntityInput);
 
@@ -106,16 +112,22 @@ pub mod despawn {
     pub fn create_action_type() -> ActionType {
         ActionType {
             name: "Despawn".to_owned(),
-            validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<OutputState>, String> {
-                let (action_input, io) = io.get_input::<Input>();
+            primary_validation: Box::new(|io: ActionIO<InputState>| -> Result<ActionIO<InputState>, String> {
+                let (action_input, _) = io.get_input::<Input>();
+                let stage_input = action_input.0;
 
-                let target = world.query::<&ChunkComponent>().iter(world).find(|chunk| chunk.coord == action_input.0.chunk_coord);
+                Ok(ActionIO::new_input(RawActionData::new(stage_input)))
+            }),
+            secondary_validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<InputState>, String> {
+                let stage_input = io.get_input_ref::<FindAndDespawnEntityInput>();
+
+                let target = world.query::<&ChunkComponent>().iter(world).find(|chunk| chunk.coord == stage_input.chunk_coord);
 
                 if target.is_none() {
                     return Err("Action validation error: Cannot despawn an already unloaded chunk.".to_owned());
                 }
                 
-                Ok(io.set_output(action_input.0))
+                Ok(io)
             }),
             stages: vec![
                 ActionStage::Ecs(ActionStageEcs {
@@ -133,9 +145,9 @@ pub mod despawn {
                             .iter(world)
                             .find(|(_, chunk)| chunk.coord == chunk_coord) {
                             world.entity_mut(entity).despawn_recursive();
-                            io.set_output(Output(Ok(())))
+                            io.set_output(RawActionData::new(Output(Ok(()))))
                         } else {
-                            io.set_output(Output(Err("Could not find chunk entity.".to_owned())))
+                            io.set_output(RawActionData::new(Output(Err("Could not find chunk entity.".to_owned()))))
                         }
                     })
                 })
@@ -148,7 +160,7 @@ pub mod transfer_ownership {
     use bevy::prelude::*;
     use bevy::ecs::system::SystemState;
 
-    use crate::{action::{stage::{ActionStage, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::ActionType}, chunk::{components::ChunkComponent, resources::ChunkManager}};
+    use crate::{action::{stage::{ActionStage, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::{ActionType, RawActionData}}, chunk::{components::ChunkComponent, resources::ChunkManager}};
 
     pub struct Input(pub FindChunkAndTransferOwnershipInput);
     
@@ -162,16 +174,22 @@ pub mod transfer_ownership {
     pub fn create_action_type() -> ActionType {
         ActionType {
             name: "TransferOwnership".to_owned(),
-            validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<OutputState>, String> {
-                let (action_input, io) = io.get_input::<Input>();
+            primary_validation: Box::new(|io: ActionIO<InputState>| -> Result<ActionIO<InputState>, String> {
+                let (action_input, _) = io.get_input::<Input>();
+                let stage_input = action_input.0;
 
-                let target = world.query::<&ChunkComponent>().iter(world).find(|chunk| chunk.coord == action_input.0.chunk_coord);
+                Ok(ActionIO::new_input(RawActionData::new(stage_input)))
+            }),
+            secondary_validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<InputState>, String> {
+                let stage_input = io.get_input_ref::<FindChunkAndTransferOwnershipInput>();
+
+                let target = world.query::<&ChunkComponent>().iter(world).find(|chunk| chunk.coord == stage_input.chunk_coord);
 
                 if target.is_none() {
                     return Err("Action validation error: Cannot transfer ownership of an unloaded chunk.".to_owned());
                 }
                 
-                Ok(io.set_output(action_input.0))
+                Ok(io)
             }),
             stages: vec![
                 ActionStage::Ecs(ActionStageEcs {
@@ -195,7 +213,7 @@ pub mod transfer_ownership {
                         chunk.owner = Some(new_chunk_owner);
                         chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner);
 
-                        io.set_output(Output(Ok(())))
+                        io.set_output(RawActionData::new(Output(Ok(()))))
                     })
                 })
             ],

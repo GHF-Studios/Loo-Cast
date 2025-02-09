@@ -6,7 +6,7 @@ use super::{events::ActionStageProcessedEvent, target::ActionTypeModule, types::
 
 #[derive(Resource, Default)]
 pub struct ActionTypeModuleRegistry {
-    registry: HashMap<String, HashMap<String, ActionType>>,
+    pub(in super) registry: HashMap<String, HashMap<String, ActionType>>,
 }
 
 impl ActionTypeModuleRegistry {
@@ -32,6 +32,14 @@ impl ActionTypeModuleRegistry {
         self.registry.insert(action_type_module_name.clone(), registered_actions);
     }
 
+    pub fn get_action_module_type(&self, module_name: &str) -> Option<&HashMap<String, ActionType>> {
+        self.registry.get(module_name)
+    }
+
+    pub fn get_action_module_type_mut(&mut self, module_name: &str) -> Option<&mut HashMap<String, ActionType>> {
+        self.registry.get_mut(module_name)
+    }
+
     pub fn get_action_type(&self, module_name: &str, action_name: &str) -> Option<&ActionType> {
         self.registry.get(module_name)?.get(action_name)
     }
@@ -54,7 +62,7 @@ pub(in super) struct ActionStageProcessedMessageReceiver(pub Receiver<ActionStag
 
 #[derive(Resource, Default, Debug)]
 pub struct ActionMap {
-    pub map: HashMap<String, HashMap<String, Option<ActionInstance>>>,
+    pub(in super) map: HashMap<String, HashMap<String, Option<ActionInstance>>>,
 }
 
 impl ActionMap {

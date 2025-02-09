@@ -50,6 +50,7 @@ use oneshot_systems::MainOneshotSystems;
 //use core::CorePlugin;
 use debug::DebugPlugin;
 use follower::FollowerPlugin;
+use gpu::GpuPlugin;
 //use entity::EntityPlugin;
 //use math::MathPlugin;
 use player::PlayerPlugin;
@@ -69,6 +70,7 @@ impl PluginGroup for SpacetimeEnginePlugins {
             //.add(CorePlugin)
             .add(DebugPlugin)
             .add(FollowerPlugin)
+            .add(GpuPlugin)
             //.add(EntityPlugin)
             //.add(MathPlugin)
             .add(PlayerPlugin)

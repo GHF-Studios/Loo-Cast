@@ -5,8 +5,8 @@ pub mod actions;
 use bevy::prelude::*;
 use resources::*;
 
-pub(in crate) struct ActionPlugin;
-impl Plugin for ActionPlugin {
+pub(in crate) struct GpuPlugin;
+impl Plugin for GpuPlugin {
     fn build(&self, app: &mut App) {
         app
             .insert_resource(ShaderPipelineRegistry::default());

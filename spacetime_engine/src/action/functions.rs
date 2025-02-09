@@ -34,14 +34,17 @@ pub fn request_action(
 
     let num_stages = action_type.stages.len();
 
-    // Temporarily take ownership of the validation function
-    let validation_fn = std::mem::replace(
-        &mut action_type.validation,
-        Box::new(|_, _| unreachable!()),
+    // Temporarily take ownership of the primary validation function
+    let primary_validation_fn = std::mem::replace(
+        &mut action_type.primary_validation,
+        Box::new(|_| unreachable!()),
     );
 
     let io = ActionIO::new_input(params);
-    let io = validation_fn(io, world)?;
+    let io = match primary_validation_fn(io) {
+        Ok(io) => io,
+        Err(err) => return Err(format!("Action request error: Primary validation {}", err))
+    };
 
     let (mut action_registry, mut action_map) = system_state.get_mut(world);
 
@@ -52,13 +55,13 @@ pub fn request_action(
             action_name, module_name
         ))?;
 
-    // Restore the original validation function
-    let _ = std::mem::replace(&mut action_type.validation, validation_fn);
+    // Restore the original primary validation function
+    let _ = std::mem::replace(&mut action_type.primary_validation, primary_validation_fn);
 
     action_map.insert_action(ActionInstance::new_request(
         module_name.to_owned(),
         action_name.to_owned(),
-        io.consume(),
+        io.consume_raw(),
         callback,
         num_stages,
     ));

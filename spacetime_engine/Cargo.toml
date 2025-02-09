@@ -47,3 +47,4 @@ tokio = { version = "1.0", features = ["full"] }
 iyes_perf_ui = "0.3.0"
 toml = "0.8.19"
 crossbeam-channel = "0.5.14"
+bevy_consumable_event = "0.4.0"

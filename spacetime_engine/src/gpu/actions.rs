@@ -7,6 +7,7 @@ pub fn initialize_action_type_module(action_type_module_registry: &mut ActionTyp
         ActionTypeModule {
             name: "GPU".to_owned(),
             action_types: vec![
+                setup_texture_generator::create_action_type(),
                 generate_texture::create_action_type(),
             ],
         },
@@ -18,6 +19,7 @@ pub mod setup_texture_generator {
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
 
+    use crate::action::types::RawActionData;
     use crate::gpu::resources::ShaderPipelineRegistry;
     use crate::{action::{stage::{ActionStage, ActionStageAsync, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::ActionType}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
 
@@ -33,10 +35,14 @@ pub mod setup_texture_generator {
     pub fn create_action_type() -> ActionType {
         ActionType {
             name: "SetupTextureGenerator".to_owned(),
-            validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<OutputState>, String> {
-                let (action_input, io) = io.get_input::<Input>();
+            primary_validation: Box::new(|io: ActionIO<InputState>| -> Result<ActionIO<InputState>, String> {
+                let (action_input, _) = io.get_input::<Input>();
                 let stage_input = action_input.0;
-                Ok(io.set_output(stage_input))
+
+                Ok(ActionIO::new_input(RawActionData::new(stage_input)))
+            }),
+            secondary_validation: Box::new(|io: ActionIO<InputState>, _world: &mut World| -> Result<ActionIO<InputState>, String> {
+                Ok(io)
             }),
             stages: vec![
                 ActionStage::Ecs(ActionStageEcs {
@@ -57,7 +63,7 @@ pub mod setup_texture_generator {
                         // Read shader source from file
                         let shader_source = match std::fs::read_to_string(&shader_path) {
                             Ok(source) => source,
-                            Err(e) => return io.set_output(Output(Err(format!("Failed to read shader: {}", e)))),
+                            Err(e) => return io.set_output(RawActionData::new(Output(Err(format!("Failed to read shader: {}", e))))),
                         };
 
                         // Create shader
@@ -104,7 +110,7 @@ pub mod setup_texture_generator {
                         shader_pipeline_registry.shaders.insert(shader_name.to_string(), shader_handle);
                         shader_pipeline_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
                         
-                        io.set_output(Output(Ok(())))
+                        io.set_output(RawActionData::new(Output(Ok(()))))
                     }),
                 }),
             ],
@@ -117,7 +123,7 @@ pub mod generate_texture {
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use crate::gpu::resources::ShaderPipelineRegistry;
+    use crate::{action::types::RawActionData, gpu::resources::ShaderPipelineRegistry};
     use crate::action::{stage::{ActionStage, ActionStageEcsWhile, ActionStageEcs}, 
         stage_io::{ActionIO, InputState, OutputState}, types::ActionType};
 
@@ -161,34 +167,45 @@ pub mod generate_texture {
     pub fn create_action_type() -> ActionType {
         ActionType {
             name: "GenerateTexture".to_owned(),
-            validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<OutputState>, String> {
-                let (action_input, io) = io.get_input::<Input>();
+            primary_validation: Box::new(|io: ActionIO<InputState>| -> Result<ActionIO<InputState>, String> {
+                let (action_input, _) = io.get_input::<Input>();
                 let stage_input = action_input.0;
-                Ok(io.set_output(stage_input))
+
+                Ok(ActionIO::new_input(RawActionData::new(stage_input)))
+            }),
+            secondary_validation: Box::new(|io: ActionIO<InputState>, _world: &mut World| -> Result<ActionIO<InputState>, String> {
+                Ok(io)
             }),
             stages: vec![
                 // **1. ECS Stage: Prepare Compute Resources**
                 ActionStage::Ecs(ActionStageEcs {
                     name: "PrepareCompute".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
+                        debug!("Stage 1");
                         let (input, io) = io.get_input::<GenerateTextureInput>();
                         let shader_name = input.shader_name.clone();
                         let texture_size = input.texture_size;
 
+                        debug!("Stage 1: Episode 1");
                         let mut system_state: SystemState<(
                             Res<RenderDevice>,
                             ResMut<Assets<Image>>,
-                            Res<PipelineCache>,
                             Res<ShaderPipelineRegistry>,
                         )> = SystemState::new(world);
 
-                        let (render_device, mut images, pipeline_cache, shader_registry) = system_state.get_mut(world);
+                        let (render_device, mut images, shader_pipeline_registry) = system_state.get_mut(world);
 
-                        let pipeline_id = match shader_registry.pipelines.get(&shader_name) {
-                            Some(&id) => id,
-                            None => return io.set_output(Output(Err(format!("Pipeline not found for shader: {}", shader_name)))),
+                        debug!("Stage 1: Episode 2");
+                        let pipeline_id = match shader_pipeline_registry.pipelines.get(&shader_name) {
+                            Some(&id) => { 
+                                id 
+                            },
+                            None => { 
+                                unreachable!("Pipeline not found for shader: {}", shader_name)
+                            },
                         };
 
+                        debug!("Stage 1: Episode 3");
                         let texture = Image::new_fill(
                             Extent3d {
                                 width: texture_size as u32,
@@ -201,8 +218,10 @@ pub mod generate_texture {
                             RenderAssetUsages::MAIN_WORLD
                         );
 
+                        debug!("Stage 1: Episode 4");
                         let texture_handle = images.add(texture);
 
+                        debug!("Stage 1: Episode 5");
                         // Create a small status buffer to track compute completion
                         let status_buffer = render_device.create_buffer(&BufferDescriptor {
                             label: Some("Compute Status Buffer"),
@@ -211,11 +230,12 @@ pub mod generate_texture {
                             mapped_at_creation: false,
                         });
 
-                        io.set_output(PreparedPipeline {
+                        debug!("Stage 1: Episode 6");
+                        io.set_output(RawActionData::new(PreparedPipeline {
                             pipeline_id,
                             texture: texture_handle,
                             status_buffer,
-                        })
+                        }))
                     }),
                 }),
 
@@ -223,20 +243,21 @@ pub mod generate_texture {
                 ActionStage::EcsWhile(ActionStageEcsWhile {
                     name: "WaitForPipeline".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<InputState>, ActionIO<OutputState>> {
+                        debug!("Stage 2");
                         let input = io.get_input_ref::<PreparedPipeline>();
                         let pipeline_id = input.pipeline_id;
                 
                         let mut system_state: SystemState<Res<PipelineCache>> = SystemState::new(world);
                         let pipeline_cache = system_state.get(world);
                 
-                        if let Some(_) = pipeline_cache.get_compute_pipeline(pipeline_id) {
+                        if pipeline_cache.get_compute_pipeline(pipeline_id).is_some() {
                             let (input, io) = io.get_input::<PreparedPipeline>();
-                            Err(io.set_output(DispatchData {
+                            Err(io.set_output(RawActionData::new(DispatchData {
                                 pipeline_id,
                                 bind_group_layout: pipeline_cache.get_compute_pipeline(pipeline_id).unwrap().get_bind_group_layout(0).into(),
                                 texture: input.texture.clone(),
                                 status_buffer: input.status_buffer,
-                            }))
+                            })))
                         } else {
                             Ok(io)
                         }
@@ -247,6 +268,7 @@ pub mod generate_texture {
                 ActionStage::Ecs(ActionStageEcs {
                     name: "DispatchCompute".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
+                        debug!("Stage 3");
                         let (input, io) = io.get_input::<DispatchData>();
                         let pipeline_id = input.pipeline_id;
                         let bind_group_layout = input.bind_group_layout.clone();
@@ -285,7 +307,7 @@ pub mod generate_texture {
 
                         queue.submit(Some(encoder.finish()));
 
-                        io.set_output(ComputePending { texture, status_buffer })
+                        io.set_output(RawActionData::new(ComputePending { texture, status_buffer }))
                     }),
                 }),
 
@@ -293,6 +315,7 @@ pub mod generate_texture {
                 ActionStage::EcsWhile(ActionStageEcsWhile {
                     name: "WaitForCompute".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<InputState>, ActionIO<OutputState>> {
+                        debug!("Stage 4");
                         let input = io.get_input_ref::<ComputePending>();
                         let status_buffer = &input.status_buffer;
                     
@@ -303,7 +326,7 @@ pub mod generate_texture {
                                 // Mapping is done, move to next stage
                                 let (input, io) = io.get_input::<ComputePending>();
                                 world.remove_resource::<BufferMappingReceiver>(); // Cleanup temp resource
-                                return Err(io.set_output(Output(Ok(input.texture))));
+                                return Err(io.set_output(RawActionData::new(Output(Ok(input.texture)))));
                             }
                         } else {
                             // First run: create a channel and start the async mapping process
@@ -325,15 +348,6 @@ pub mod generate_texture {
                     
                         // Keep polling
                         Ok(io)
-                    }),
-                }),
-
-                // **5. ECS Stage: Return Final Output**
-                ActionStage::Ecs(ActionStageEcs {
-                    name: "FinalizeCompute".to_owned(),
-                    function: Box::new(|io: ActionIO<InputState>, _world: &mut World| -> ActionIO<OutputState> {
-                        let (input, io) = io.get_input::<Output>();
-                        io.set_output(input)
                     }),
                 }),
             ],

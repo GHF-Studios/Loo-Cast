@@ -8,11 +8,17 @@ pub struct RawActionData {
     pub data_type_name: &'static str,
 }
 impl RawActionData {
-    pub fn new<D: Any + Send + Sync>(raw_data: D) -> Self {
-        Self {
-            data: Box::new(raw_data),
+    pub fn new<D: Any + Send + Sync>(value: D) -> Self {
+        let wrapped_value = Self {
+            data: Box::new(value),
             data_type_name: type_name::<D>(),
+        };
+
+        if wrapped_value.data_type_name == "spacetime_engine::action::types::RawActionData" {
+            panic!("Attempted to create a RawActionData with a RawActionData data type.")
         }
+
+        wrapped_value
     }
 }
 
@@ -22,12 +28,16 @@ pub enum ActionState {
     Processing {
         current_stage: usize
     },
+    Processed {
+        current_stage: usize
+    }
 }
 impl std::fmt::Display for ActionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Requested => write!(f, "ActionState::Requested"),
             Self::Processing { current_stage } => write!(f, "ActionState::Processing(current_stage: {})", current_stage),
+            Self::Processed { current_stage } => write!(f, "ActionState::Processed(current_stage: {})", current_stage),
         }
     }
 }
@@ -39,7 +49,8 @@ impl ActionState {
 
 pub struct ActionType {
     pub name: String,
-    pub validation: Box<dyn Fn(ActionIO<InputState>, &mut World) -> Result<ActionIO<OutputState>, String> + Send + Sync>,
+    pub primary_validation: Box<dyn Fn(ActionIO<InputState>) -> Result<ActionIO<InputState>, String> + Send + Sync>,
+    pub secondary_validation: Box<dyn Fn(ActionIO<InputState>, &mut World) -> Result<ActionIO<InputState>, String> + Send + Sync>,
     pub stages: Vec<ActionStage>
 }
 
@@ -51,7 +62,7 @@ pub struct ActionInstance {
     pub module_name: String,
     pub action_name: String,
     pub state: ActionState,
-    pub data_buffer: Box<dyn Any + Send + Sync>,
+    pub data_buffer: RawActionData,
     pub callback: Option<Box<dyn FnOnce(&mut World, ActionIO<CallbackState>) + Send + Sync>>,
     pub num_stages: usize,
     pub timeout_frames: usize,
@@ -67,7 +78,7 @@ impl ActionInstance {
     pub(in super) fn new_request(
         module_name: String, 
         action_name: String, 
-        input_params: Box<dyn Any + Send + Sync>, 
+        input_params: RawActionData, 
         output_callback: Option<Box<dyn FnOnce(&mut World, ActionIO<CallbackState>) + Send + Sync>>,
         num_stages: usize,
     ) -> Self {

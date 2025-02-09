@@ -8,6 +8,7 @@ use crate::camera::components::MainCamera;
 use crate::config::statics::CONFIG;
 use crate::debug::components::TestObjectMovement;
 use crate::follower::components::{FollowerComponent, FollowerTargetComponent};
+use crate::gpu::actions::setup_texture_generator;
 use crate::player::bundles::PlayerBundle;
 use crate::debug::functions::spawn_test_object;
 
@@ -54,34 +55,54 @@ fn test_action_framework_oneshot_system(world: &mut World) {
     use crate::gpu::actions::generate_texture;
     use crate::chunk::actions::spawn;
 
-    request_action(
+    if let Err(err) = request_action(
         world,
         "GPU",
-        "GenerateTexture",
-        RawActionData::new(generate_texture::Input(generate_texture::GenerateTextureInput {
-            shader_name: "example/path/to/shader.wgsl".to_string(), // TODO: Add real shader
-            texture_size: CONFIG.get::<f32>("chunk/size") as usize
+        "SetupTextureGenerator",
+        RawActionData::new(setup_texture_generator::Input(setup_texture_generator::SetupPipelineInput {
+            shader_name: "example_shader", // TODO: Add real shader
+            shader_path: "example/path/to/shader.wgsl".to_string(), // TODO: Add real shader
         })),
         Some(Box::new(|world, io| {
-            debug!("Generated Metric Texture");
-            let output: Handle<Image> = *io.consume_cast();
+            io.consume_cast::<Result<(), String>>().unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });
+            debug!("Setup texture generator");
 
-            request_action(
+            if let Err(err) = request_action(
                 world,
-                "Chunk",
-                "Spawn",
-                RawActionData::new(spawn::Input(spawn::SetupAndSpawnEntityInput {
-                    chunk_coord: (0, 0),
-                    chunk_owner: None,
-                    metric_texture: output
+                "GPU",
+                "GenerateTexture",
+                RawActionData::new(generate_texture::Input(generate_texture::GenerateTextureInput {
+                    shader_name: "example/path/to/shader.wgsl".to_string(), // TODO: Add real shader
+                    texture_size: CONFIG.get::<f32>("chunk/size") as usize
                 })),
                 Some(Box::new(|world, io| {
-                    debug!("Spawned Chunk");
-                    let _output = io.consume();
+                    let output = io.consume_cast::<Result<Handle<Image>, String>>().unwrap_or_else(|err| { unreachable!("Failed to generate texture: {}", err) });
+                    debug!("Generated texture");
+        
+                    if let Err(err) = request_action(
+                        world,
+                        "Chunk",
+                        "Spawn",
+                        RawActionData::new(spawn::Input(spawn::SetupAndSpawnEntityInput {
+                            chunk_coord: (0, 0),
+                            chunk_owner: None,
+                            metric_texture: output
+                        })),
+                        Some(Box::new(|_world, io| {
+                            io.consume_cast::<Result<(), String>>().unwrap_or_else(|err| { unreachable!("Failed to spawn chunk: {}", err) });
+                            debug!("Spawned chunk");
+                        }))
+                    ) { 
+                        debug!("Failed to spawn chunk: Failed request: {}", err) 
+                    }
                 }))
-            ).unwrap();
+            ) { 
+                debug!("Failed to generate texture: Failed request: {}", err) 
+            }
         }))
-    ).unwrap();
+    ) {
+        debug!("Failed to setup texture generator: Failed request: {}", err)
+    }
 }
 
 fn spawn_main_player_oneshot_system(mut commands: Commands) {
