@@ -55,10 +55,15 @@ pub mod setup_texture_generator {
                         let mut system_state: SystemState<(
                             Res<RenderDevice>,
                             ResMut<Assets<Shader>>,
-                            Res<PipelineCache>,
+                            ResMut<PipelineCache>,
                             ResMut<ShaderPipelineRegistry>
                         )> = SystemState::new(world);
-                        let (render_device, mut shader_assets, pipeline_cache, mut shader_pipeline_registry) = system_state.get_mut(world);
+                        let (
+                            render_device, 
+                            mut shader_assets, 
+                            mut pipeline_cache, 
+                            mut shader_pipeline_registry
+                        ) = system_state.get_mut(world);
 
                         // Read shader source from file
                         let shader_source = match std::fs::read_to_string(&shader_path) {
@@ -106,6 +111,10 @@ pub mod setup_texture_generator {
                                 range: 0..4, // Example: A single 4-byte (u32) push constant
                             }],
                         });
+
+                        // TODO: Doing this manually is sketchy as fuck
+                        warn!("Doing this manually is sketchy as fuck");
+                        pipeline_cache.process_queue();
 
                         // Store shader & pipeline handles
                         shader_pipeline_registry.shaders.insert(shader_name.to_string(), shader_handle);
@@ -185,6 +194,7 @@ pub mod generate_texture {
                 ActionStage::Ecs(ActionStageEcs {
                     name: "PrepareCompute".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
+                        error!("Stage 1");
                         let (input, io) = io.get_input::<GenerateTextureInput>();
                         let shader_name = input.shader_name.clone();
                         let texture_size = input.texture_size;
@@ -201,8 +211,9 @@ pub mod generate_texture {
                             Some(&id) => { 
                                 id 
                             },
-                            None => { 
-                                unreachable!("Pipeline not found for shader: {}", shader_name)
+                            None => {
+                                // TODO: Bake fallability into the action type, instead of this rude abrupt panic
+                                unreachable!("Failed to generate texture: Pipeline not found for shader: {}", shader_name)
                             },
                         };
 
@@ -250,23 +261,41 @@ pub mod generate_texture {
                     name: "WaitForPipeline".to_owned(),
                     // TODO: Maybe instead of ActionStageEcsWhileOutcome use a future and handle the ecs while stage async-ly somehow??? 
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageEcsWhileOutcome {
+                        error!("Stage 2");
                         let input = io.get_input_ref::<PreparedPipeline>();
                         let pipeline_id = input.pipeline_id;
                 
                         let mut system_state: SystemState<Res<PipelineCache>> = SystemState::new(world);
                         let pipeline_cache = system_state.get(world);
                 
-                        if pipeline_cache.get_compute_pipeline(pipeline_id).is_none() {
-                            ActionStageEcsWhileOutcome::Waiting(io)
-                        } else {
-                            let (input, io) = io.get_input::<PreparedPipeline>();
-                            ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(DispatchData {
-                                pipeline_id,
-                                bind_group_layout: pipeline_cache.get_compute_pipeline(pipeline_id).unwrap().get_bind_group_layout(0).into(),
-                                texture: input.texture.clone(),
-                                status_buffer: input.status_buffer,
-                                readback_buffer: input.readback_buffer,
-                            })))
+                        match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
+                            CachedPipelineState::Queued => {
+                                error!("Queued");
+                                ActionStageEcsWhileOutcome::Waiting(io)
+                            },
+                            CachedPipelineState::Creating(_) => {
+                                error!("Creating");
+                                ActionStageEcsWhileOutcome::Waiting(io)
+                            },
+                            CachedPipelineState::Ok(pipeline) => {
+                                let (input, io) = io.get_input::<PreparedPipeline>();
+                                let compute_pipeline = match pipeline {
+                                    // TODO: Bake fallability into the action type, instead of this rude abrupt panic
+                                    Pipeline::RenderPipeline(_) => unreachable!("Failed to generate texture: Expected a compute pipeline"),
+                                    Pipeline::ComputePipeline(compute_pipeline) => compute_pipeline
+                                };
+                                ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(DispatchData {
+                                    pipeline_id,
+                                    bind_group_layout: compute_pipeline.get_bind_group_layout(0).into(),
+                                    texture: input.texture.clone(),
+                                    status_buffer: input.status_buffer,
+                                    readback_buffer: input.readback_buffer,
+                                })))
+                            },
+                            CachedPipelineState::Err(e) => {
+                                // TODO: Bake fallability into the action type, instead of this rude abrupt panic
+                                unreachable!("Failed to generate texture: Failed to create pipeline: {}", e);
+                            },
                         }
                     }),
                 }),
@@ -275,6 +304,7 @@ pub mod generate_texture {
                 ActionStage::Ecs(ActionStageEcs {
                     name: "DispatchCompute".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
+                        error!("Stage 3");
                         let (input, io) = io.get_input::<DispatchData>();
                         let pipeline_id = input.pipeline_id;
                         let bind_group_layout = input.bind_group_layout.clone();
@@ -322,6 +352,7 @@ pub mod generate_texture {
                 ActionStage::EcsWhile(ActionStageEcsWhile {
                     name: "WaitForCompute".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageEcsWhileOutcome {
+                        error!("Stage 4");
                         let input = io.get_input_ref::<ComputePending>();
                         let readback_buffer = &input.readback_buffer;
                         

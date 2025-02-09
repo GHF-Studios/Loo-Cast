@@ -14,7 +14,8 @@ impl RawActionData {
             data_type_name: type_name::<D>(),
         };
 
-        if wrapped_value.data_type_name == "spacetime_engine::action::types::RawActionData" {
+        // TODO: Inefficient! Cache the type name.
+        if wrapped_value.data_type_name == type_name::<RawActionData>() {
             panic!("Attempted to create a RawActionData with a RawActionData data type.")
         }
 

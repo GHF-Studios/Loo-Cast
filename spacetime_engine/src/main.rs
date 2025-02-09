@@ -8,10 +8,7 @@ use bevy::log::{Level, LogPlugin};
 use bevy_rapier2d::prelude::*;
 use spacetime_engine::*;
 
-// Maybe add object pooling for chunks?
-// Make it so chunks can exist in an intermediate state for several frames, so that we can implement deferred/non-blocking/asynchronous/parallelized/hardware-accelerated chunk spawning
-// Add actual noise generation to chunks to procedurally generate a set of random positions to spawn test objects at to test the deferred loading of chunks
-// Chunks should not be forced to load in a single frame. Let's instead focus on keeping the experience smooth
+// TODO: Remove unnecessary comments and cleanup warnings
 
 const ENABLE_BACKTRACE: bool = true;
 const REROUTE_LOGS_TO_FILE: bool = false;

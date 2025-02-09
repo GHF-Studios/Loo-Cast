@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use bevy::render::renderer::{RenderAdapter, RenderDevice};
 use bevy::{ecs::system::SystemId, prelude::*};
 use crate::action::functions::request_action;
 use crate::action::resources::ActionTypeModuleRegistry;
@@ -55,32 +54,14 @@ fn initialize_action_type_modules_oneshot_system(
 fn test_action_framework_oneshot_system(world: &mut World) {
     use crate::gpu::actions::generate_texture;
     use crate::chunk::actions::spawn;
-    use bevy::render::render_resource::PipelineCache;
-    use bevy::ecs::system::SystemState;
-
-    let mut system_state: SystemState<(
-        Res<RenderDevice>,
-        Res<RenderAdapter>,
-    )> = SystemState::new(world);
-    let (render_device, render_adapter) = system_state.get_mut(world);
-
-    let render_device = render_device.clone();
-    let render_adapter = render_adapter.clone();
-
-    world.insert_resource(PipelineCache::new(
-        render_device,
-        render_adapter,
-        true,
-    ));
-
 
     if let Err(err) = request_action(
         world,
         "GPU",
         "SetupTextureGenerator",
         RawActionData::new(setup_texture_generator::Input(setup_texture_generator::SetupPipelineInput {
-            shader_name: "example_shader", // TODO: Add real shader
-            shader_path: "assets/shaders/example_compute_uv.wgsl".to_string(), // TODO: Add real shader
+            shader_name: "example_compute_uv",
+            shader_path: "assets/shaders/example_compute_uv.wgsl".to_string(),
         })),
         Some(Box::new(|world, io| {
             io.consume_cast::<setup_texture_generator::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });
@@ -91,7 +72,7 @@ fn test_action_framework_oneshot_system(world: &mut World) {
                 "GPU",
                 "GenerateTexture",
                 RawActionData::new(generate_texture::Input(generate_texture::GenerateTextureInput {
-                    shader_name: "example_shader".to_string(), // TODO: Add real shader
+                    shader_name: "example_compute_uv".to_string(),
                     texture_size: CONFIG.get::<f32>("chunk/size") as usize
                 })),
                 Some(Box::new(|world, io| {

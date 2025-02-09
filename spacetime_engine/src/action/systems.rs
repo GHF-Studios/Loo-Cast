@@ -47,7 +47,6 @@ fn process_active_actions(world: &mut World) {
         for (action_name, instance) in actions.iter_mut() {
             let action_type = stolen_action_type_module_registry.get_action_type_mut(module_name, action_name).unwrap();
             if let Some(instance) = instance {
-                debug!("Processing action '{}' in module '{}': {:?}", action_name, module_name, instance.state);
                 match instance.state {
                     ActionState::Requested => {
                         let input = std::mem::replace(&mut instance.data_buffer, RawActionData::new(()));

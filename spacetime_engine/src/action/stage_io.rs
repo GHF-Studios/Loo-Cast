@@ -58,7 +58,6 @@ impl ActionIO<InputState> {
 
 impl ActionIO<OutputStateBuilder> {
     pub fn set_output(self, output: RawActionData) -> ActionIO<OutputState> {
-        debug!("Setting output with type: {}", output.data_type_name);
         ActionIO {
             state: OutputState {
                 output
