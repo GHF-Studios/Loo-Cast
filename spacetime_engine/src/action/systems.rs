@@ -105,22 +105,19 @@ fn process_stage_events(world: &mut World) -> Vec<(String, String)> {
 
     for event in stage_event_reader.read() {
         let event = event.consume();
-        debug!(
-            "Action '{}' in module '{}' completed stage {}: Phase 2",
-            event.action_name, event.module_name, event.stage_index
-        );
         if let Some(actions) = action_map.map.get_mut(&event.module_name) {
             if let Some(instance) = actions.get_mut(&event.action_name).and_then(|a| a.as_mut()) {
                 match &mut instance.state {
+                    // LEGACY code, will be removes soon
                     ActionState::Processing { current_stage } => {
-                        *current_stage += 1;
-
                         if *current_stage < instance.num_stages {
                             instance.timeout_frames = instance.num_stages * 30;
-                        } else {
-                            completed_actions.push((event.module_name.clone(), event.action_name.clone()));
                         }
-
+                    }
+                    // fancy new code
+                    ActionState::Processed { current_stage } => {
+                        *current_stage += 1;
+                        completed_actions.push((event.module_name.clone(), event.action_name.clone()));
                         instance.data_buffer = event.stage_output;
                     }
                     _ => unreachable!("Unexpected state transition"),
@@ -151,7 +148,7 @@ fn finalize_completed_actions(
 
     for (callback, data) in callbacks {
         if let Some(callback) = callback {
-            let io = ActionIO::new_callback_data(RawActionData::new(data));
+            let io = ActionIO::new_callback_data(data);
             callback(world, io);
         }
     }
@@ -311,10 +308,6 @@ fn apply_stage_outputs(
     ) = system_state.get_mut(world);
 
     for (module_name, action_name, stage_index, stage_output) in stage_outputs {
-        debug!(
-            "Action '{}' in module '{}' completed stage {}: Phase 1",
-            action_name, module_name, stage_index
-        );
         stage_event_writer.send(ActionStageProcessedEvent {
             module_name: module_name.clone(),
             action_name: action_name.clone(),

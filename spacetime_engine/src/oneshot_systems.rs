@@ -83,7 +83,7 @@ fn test_action_framework_oneshot_system(world: &mut World) {
             shader_path: "example/path/to/shader.wgsl".to_string(), // TODO: Add real shader
         })),
         Some(Box::new(|world, io| {
-            io.consume_cast::<Result<(), String>>().unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });
+            io.consume_cast::<setup_texture_generator::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });
             debug!("Setup texture generator");
 
             if let Err(err) = request_action(
@@ -95,7 +95,7 @@ fn test_action_framework_oneshot_system(world: &mut World) {
                     texture_size: CONFIG.get::<f32>("chunk/size") as usize
                 })),
                 Some(Box::new(|world, io| {
-                    let output = io.consume_cast::<Result<Handle<Image>, String>>().unwrap_or_else(|err| { unreachable!("Failed to generate texture: {}", err) });
+                    let output = io.consume_cast::<generate_texture::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to generate texture: {}", err) });
                     debug!("Generated texture");
         
                     if let Err(err) = request_action(
@@ -108,7 +108,7 @@ fn test_action_framework_oneshot_system(world: &mut World) {
                             metric_texture: output
                         })),
                         Some(Box::new(|_world, io| {
-                            io.consume_cast::<Result<(), String>>().unwrap_or_else(|err| { unreachable!("Failed to spawn chunk: {}", err) });
+                            io.consume_cast::<spawn::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to spawn chunk: {}", err) });
                             debug!("Spawned chunk");
                         }))
                     ) { 
