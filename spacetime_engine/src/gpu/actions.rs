@@ -61,7 +61,7 @@ pub mod setup_texture_generator {
                         let (
                             render_device, 
                             mut shader_assets, 
-                            mut pipeline_cache, 
+                            pipeline_cache, 
                             mut shader_pipeline_registry
                         ) = system_state.get_mut(world);
 
@@ -111,10 +111,6 @@ pub mod setup_texture_generator {
                                 range: 0..4, // Example: A single 4-byte (u32) push constant
                             }],
                         });
-
-                        // TODO: Doing this manually is sketchy as fuck
-                        warn!("Doing this manually is sketchy as fuck");
-                        pipeline_cache.process_queue();
 
                         // Store shader & pipeline handles
                         shader_pipeline_registry.shaders.insert(shader_name.to_string(), shader_handle);
