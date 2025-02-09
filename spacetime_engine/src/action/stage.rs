@@ -4,6 +4,11 @@ use futures::future::BoxFuture;
 
 use super::stage_io::*;
 
+pub enum ActionStageEcsWhileOutcome {
+    Waiting(ActionIO<InputState>),
+    Completed(ActionIO<OutputState>),
+}
+
 pub enum ActionStage {
     Ecs(ActionStageEcs),
     Async(ActionStageAsync),
@@ -22,7 +27,7 @@ pub struct ActionStageAsync {
 
 pub struct ActionStageEcsWhile {
     pub name: String,
-    pub function: Box<dyn FnMut(ActionIO<InputState>, &mut World) -> Result<ActionIO<InputState>, ActionIO<OutputState>> + Send + Sync>,
+    pub function: Box<dyn FnMut(ActionIO<InputState>, &mut World) -> ActionStageEcsWhileOutcome + Send + Sync>,
 }
 
 pub struct ActionStageOutput {

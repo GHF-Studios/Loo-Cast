@@ -7,7 +7,7 @@ use crossbeam_channel::Sender;
 use super::{
     events::ActionStageProcessedEvent,
     resources::{ActionMap, ActionTypeModuleRegistry},
-    stage::{ActionStage, ActionStageEcs},
+    stage::{ActionStage, ActionStageEcs, ActionStageEcsWhileOutcome},
     stage_io::{ActionIO, CallbackState, InputState},
     types::{ActionState, ActionType, RawActionData},
     ActionStageProcessedMessageReceiver, ActionStageProcessedMessageSender,
@@ -24,7 +24,8 @@ pub(in super) fn async_stage_event_relay_system(
 
 pub(in super) fn action_processing_system(world: &mut World) {
     process_active_actions(world);
-    let completed_actions = process_stage_events(world);
+    let (completed_stages, completed_actions) = process_stage_events(world);
+    finalize_completed_stages(world, completed_stages);
     finalize_completed_actions(world, completed_actions);
 }
 
@@ -46,6 +47,7 @@ fn process_active_actions(world: &mut World) {
         for (action_name, instance) in actions.iter_mut() {
             let action_type = stolen_action_type_module_registry.get_action_type_mut(module_name, action_name).unwrap();
             if let Some(instance) = instance {
+                debug!("Processing action '{}' in module '{}': {:?}", action_name, module_name, instance.state);
                 match instance.state {
                     ActionState::Requested => {
                         let input = std::mem::replace(&mut instance.data_buffer, RawActionData::new(()));
@@ -91,7 +93,7 @@ fn process_active_actions(world: &mut World) {
     *action_type_module_registry = stolen_action_type_module_registry;
 }
 
-fn process_stage_events(world: &mut World) -> Vec<(String, String)> {
+fn process_stage_events(world: &mut World) -> (Vec<(String, String, usize)>, Vec<(String, String)>) {
     let mut system_state: SystemState<(
         ResMut<ActionMap>, 
         ConsumableEventReader<ActionStageProcessedEvent>,
@@ -101,6 +103,7 @@ fn process_stage_events(world: &mut World) -> Vec<(String, String)> {
         mut stage_event_reader,
     ) = system_state.get_mut(world);
 
+    let mut completed_stages = Vec::new();
     let mut completed_actions = Vec::new();
 
     for event in stage_event_reader.read() {
@@ -108,16 +111,16 @@ fn process_stage_events(world: &mut World) -> Vec<(String, String)> {
         if let Some(actions) = action_map.map.get_mut(&event.module_name) {
             if let Some(instance) = actions.get_mut(&event.action_name).and_then(|a| a.as_mut()) {
                 match &mut instance.state {
-                    // LEGACY code, will be removes soon
-                    ActionState::Processing { current_stage } => {
+                    ActionState::Processed { current_stage } => {
                         if *current_stage < instance.num_stages {
                             instance.timeout_frames = instance.num_stages * 30;
+                            completed_stages.push((event.module_name.clone(), event.action_name.clone(), *current_stage));
+                        } 
+                        
+                        if *current_stage + 1 >= instance.num_stages {
+                            completed_actions.push((event.module_name.clone(), event.action_name.clone()));
                         }
-                    }
-                    // fancy new code
-                    ActionState::Processed { current_stage } => {
-                        *current_stage += 1;
-                        completed_actions.push((event.module_name.clone(), event.action_name.clone()));
+    
                         instance.data_buffer = event.stage_output;
                     }
                     _ => unreachable!("Unexpected state transition"),
@@ -126,12 +129,29 @@ fn process_stage_events(world: &mut World) -> Vec<(String, String)> {
         }
     }
 
-    completed_actions
+    (completed_stages, completed_actions)
+}
+
+fn finalize_completed_stages(world: &mut World, completed_stages: Vec<(String, String, usize)>) {
+    let mut system_state: SystemState<ResMut<ActionMap>> = SystemState::new(world);
+    let mut action_map = system_state.get_mut(world);
+
+    for (module_name, action_name, current_stage) in completed_stages {
+        if let Some(actions) = action_map.map.get_mut(&module_name) {
+            if let Some(instance) = actions.get_mut(&action_name).and_then(|a| a.as_mut()) {
+                if current_stage + 1 < instance.num_stages {
+                    instance.state = ActionState::Processing { current_stage: current_stage + 1 };
+                } else {
+                    instance.state = ActionState::Processed { current_stage };
+                }
+            }
+        }
+    }
 }
 
 fn finalize_completed_actions(
     world: &mut World,
-    completed_actions: Vec<(String, String)>,
+    completed_actions: Vec<(String, String)>
 ) {
     let mut system_state: SystemState<ResMut<ActionMap>> = SystemState::new(world);
     let mut action_map = system_state.get_mut(world);
@@ -213,6 +233,13 @@ fn progress_actions(
                 let function = &mut ecs_stage.function;
                 let output = (function)(io, world).consume_raw();
 
+                let mut action_map = SystemState::<ResMut<ActionMap>>::new(world).get_mut(world);
+                if let Some(actions) = action_map.map.get_mut(&module_name) {
+                    if let Some(instance) = actions.get_mut(&action_name).and_then(|a| a.as_mut()) {
+                        instance.state = ActionState::Processed { current_stage };
+                    }
+                }
+
                 let cloned_module_name = module_name.clone();
                 let cloned_action_name = action_name.clone();
 
@@ -255,18 +282,7 @@ fn progress_actions(
                 let cloned_action_name = action_name.clone();
 
                 match (function)(io, world) {
-                    // **Condition met** → Stage is complete, output result
-                    Err(output) => {
-                        stage_outputs.push((
-                            cloned_module_name,
-                            cloned_action_name,
-                            current_stage,
-                            output.consume_raw(),
-                        ));
-                    }
-
-                    // **Condition not met** → Loop again next frame
-                    Ok(input) => {
+                    ActionStageEcsWhileOutcome::Waiting(input) => {
                         let mut system_state: SystemState<ResMut<ActionMap>> = SystemState::new(world);
                         let mut action_map = system_state.get_mut(world);
 
@@ -276,6 +292,14 @@ fn progress_actions(
                                 instance.timeout_frames = instance.num_stages * 30; // Reset timeout
                             }
                         }
+                    },
+                    ActionStageEcsWhileOutcome::Completed(output) => {
+                        stage_outputs.push((
+                            cloned_module_name,
+                            cloned_action_name,
+                            current_stage,
+                            output.consume_raw(),
+                        ));
                     }
                 }
             }
@@ -318,7 +342,7 @@ fn apply_stage_outputs(
         if let Some(actions) = action_map.map.get_mut(&module_name) {
             if let Some(instance) = actions.get_mut(&action_name).and_then(|a| a.as_mut()) {
                 if let ActionState::Processing { current_stage } = &instance.state {
-                    if *current_stage == stage_index {
+                    if *current_stage + 1 == stage_index {
                         instance.state = ActionState::Processed { current_stage: *current_stage };
                     }
                 }

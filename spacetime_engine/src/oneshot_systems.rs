@@ -80,7 +80,7 @@ fn test_action_framework_oneshot_system(world: &mut World) {
         "SetupTextureGenerator",
         RawActionData::new(setup_texture_generator::Input(setup_texture_generator::SetupPipelineInput {
             shader_name: "example_shader", // TODO: Add real shader
-            shader_path: "example/path/to/shader.wgsl".to_string(), // TODO: Add real shader
+            shader_path: "assets/shaders/example_compute_uv.wgsl".to_string(), // TODO: Add real shader
         })),
         Some(Box::new(|world, io| {
             io.consume_cast::<setup_texture_generator::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });

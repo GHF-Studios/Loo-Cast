@@ -94,7 +94,6 @@ pub mod setup_texture_generator {
                         }
                         let bind_group_layout = shader_pipeline_registry.bind_group_layouts.get(shader_name).unwrap();
 
-
                         // Request pipeline creation in Bevy's PipelineCache
                         let pipeline_id = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
                             label: Some(format!("Pipeline for {}",shader_name).into()),
@@ -125,7 +124,7 @@ pub mod generate_texture {
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use crate::{action::types::RawActionData, gpu::resources::ShaderPipelineRegistry};
+    use crate::{action::{stage::ActionStageEcsWhileOutcome, types::RawActionData}, gpu::resources::ShaderPipelineRegistry};
     use crate::action::{stage::{ActionStage, ActionStageEcsWhile, ActionStageEcs}, 
         stage_io::{ActionIO, InputState, OutputState}, types::ActionType};
 
@@ -143,6 +142,7 @@ pub mod generate_texture {
         pub pipeline_id: CachedComputePipelineId,
         pub texture: Handle<Image>,
         pub status_buffer: Buffer,
+        pub readback_buffer: Buffer,
     }
 
     /// Data passed after pipeline is ready, before dispatch
@@ -151,12 +151,14 @@ pub mod generate_texture {
         pub bind_group_layout: BindGroupLayout,
         pub texture: Handle<Image>,
         pub status_buffer: Buffer,
+        pub readback_buffer: Buffer,
     }
 
     /// Data passed after dispatching compute
     pub struct ComputePending {
         pub texture: Handle<Image>,
         pub status_buffer: Buffer,
+        pub readback_buffer: Buffer,
     }
 
     /// Output (final texture handle)
@@ -218,11 +220,19 @@ pub mod generate_texture {
 
                         let texture_handle = images.add(texture);
 
-                        // Create a small status buffer to track compute completion
+                        // Create a status buffer (only STORAGE, used inside shader)
                         let status_buffer = render_device.create_buffer(&BufferDescriptor {
                             label: Some("Compute Status Buffer"),
                             size: std::mem::size_of::<u32>() as u64,
-                            usage: BufferUsages::STORAGE | BufferUsages::COPY_DST | BufferUsages::MAP_READ,
+                            usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC, // 🚀 Fix: No MAP_READ
+                            mapped_at_creation: false,
+                        });
+
+                        // Create a readback buffer (only COPY_DST | MAP_READ, used by CPU)
+                        let readback_buffer = render_device.create_buffer(&BufferDescriptor {
+                            label: Some("Readback Buffer"),
+                            size: std::mem::size_of::<u32>() as u64,
+                            usage: BufferUsages::COPY_DST | BufferUsages::MAP_READ, // 🚀 Fix: Separated readback buffer
                             mapped_at_creation: false,
                         });
 
@@ -230,6 +240,7 @@ pub mod generate_texture {
                             pipeline_id,
                             texture: texture_handle,
                             status_buffer,
+                            readback_buffer
                         }))
                     }),
                 }),
@@ -237,23 +248,25 @@ pub mod generate_texture {
                 // **2. EcsWhile Stage: Wait for Pipeline Compilation**
                 ActionStage::EcsWhile(ActionStageEcsWhile {
                     name: "WaitForPipeline".to_owned(),
-                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<InputState>, ActionIO<OutputState>> {
+                    // TODO: Maybe instead of ActionStageEcsWhileOutcome use a future and handle the ecs while stage async-ly somehow??? 
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageEcsWhileOutcome {
                         let input = io.get_input_ref::<PreparedPipeline>();
                         let pipeline_id = input.pipeline_id;
                 
                         let mut system_state: SystemState<Res<PipelineCache>> = SystemState::new(world);
                         let pipeline_cache = system_state.get(world);
                 
-                        if pipeline_cache.get_compute_pipeline(pipeline_id).is_some() {
+                        if pipeline_cache.get_compute_pipeline(pipeline_id).is_none() {
+                            ActionStageEcsWhileOutcome::Waiting(io)
+                        } else {
                             let (input, io) = io.get_input::<PreparedPipeline>();
-                            Err(io.set_output(RawActionData::new(DispatchData {
+                            ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(DispatchData {
                                 pipeline_id,
                                 bind_group_layout: pipeline_cache.get_compute_pipeline(pipeline_id).unwrap().get_bind_group_layout(0).into(),
                                 texture: input.texture.clone(),
                                 status_buffer: input.status_buffer,
+                                readback_buffer: input.readback_buffer,
                             })))
-                        } else {
-                            Ok(io)
                         }
                     }),
                 }),
@@ -267,6 +280,7 @@ pub mod generate_texture {
                         let bind_group_layout = input.bind_group_layout.clone();
                         let texture = input.texture;
                         let status_buffer = input.status_buffer;
+                        let readback_buffer = input.readback_buffer;
 
                         let mut system_state: SystemState<(
                             Res<RenderDevice>,
@@ -292,7 +306,7 @@ pub mod generate_texture {
                         let mut encoder = render_device.create_command_encoder(&CommandEncoderDescriptor { label: None });
                         let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor { label: None, timestamp_writes: None });
 
-                        compute_pass.set_pipeline(&pipeline);
+                        compute_pass.set_pipeline(pipeline);
                         compute_pass.set_bind_group(0, &bind_group, &[]);
                         compute_pass.dispatch_workgroups(8, 8, 1);
 
@@ -300,35 +314,34 @@ pub mod generate_texture {
 
                         queue.submit(Some(encoder.finish()));
 
-                        io.set_output(RawActionData::new(ComputePending { texture, status_buffer }))
+                        io.set_output(RawActionData::new(ComputePending { texture, status_buffer, readback_buffer }))
                     }),
                 }),
 
                 // **4. EcsWhile Stage: Wait for Compute Execution (Polling)**
                 ActionStage::EcsWhile(ActionStageEcsWhile {
                     name: "WaitForCompute".to_owned(),
-                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<InputState>, ActionIO<OutputState>> {
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageEcsWhileOutcome {
                         let input = io.get_input_ref::<ComputePending>();
-                        let status_buffer = &input.status_buffer;
-                    
+                        let readback_buffer = &input.readback_buffer;
+                        
+                        // TODO: This will break with multiple concurrent active gpu actions
                         let mapping_receiver = SystemState::<Option<ResMut<BufferMappingReceiver>>>::new(world).get_mut(world);
                         if let Some(receiver) = mapping_receiver {
-                            // Check if the mapping is completed by trying to receive a message
                             if receiver.0.try_recv().is_ok() {
-                                // Mapping is done, move to next stage
                                 let (input, io) = io.get_input::<ComputePending>();
-                                world.remove_resource::<BufferMappingReceiver>(); // Cleanup temp resource
-                                return Err(io.set_output(RawActionData::new(Output(Ok(input.texture)))));
+                                // TODO: This will break with multiple concurrent active gpu actions
+                                world.remove_resource::<BufferMappingReceiver>(); // Cleanup
+                                return ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(Output(Ok(input.texture)))));
                             }
                         } else {
-                            // First run: create a channel and start the async mapping process
                             let (sender, receiver) = unbounded();
+                            // TODO: This will break with multiple concurrent active gpu actions
                             world.insert_resource(BufferMappingReceiver(receiver));
-                        
-                            // Start async buffer mapping
+                
                             let render_device = SystemState::<Res<RenderDevice>>::new(world).get_mut(world);
                             render_device.map_buffer(
-                                &status_buffer.slice(..),
+                                &readback_buffer.slice(..),
                                 MapMode::Read,
                                 move |result| {
                                     if result.is_ok() {
@@ -337,9 +350,8 @@ pub mod generate_texture {
                                 },
                             );
                         }
-                    
-                        // Keep polling
-                        Ok(io)
+                        
+                        ActionStageEcsWhileOutcome::Waiting(io)
                     }),
                 }),
             ],

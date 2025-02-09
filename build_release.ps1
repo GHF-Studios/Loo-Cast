@@ -7,9 +7,9 @@ $looCastBuildSourceDir = ".\target\release"
 $engineProjectDir = ".\spacetime_engine"
 $engineBuildTargetDir = ".\build\release"
 
-# General application data folder
-$engineDataSourceDir = "$engineProjectDir\data"
-$engineDataTargetDir = "$engineBuildTargetDir\data"
+# General application assets folder
+$engineAssetsSourceDir = "$engineProjectDir\assets"
+$engineAssetsTargetDir = "$engineBuildTargetDir\assets"
 
 ########## PRE-PROCESS SOURCE AND TARGET DIRECTORIES ##########
 
@@ -41,13 +41,13 @@ Copy-Item -Path $engineExeFile.FullName -Destination $engineBuildTargetDir -Forc
 $enginePdbFile = Get-ChildItem -Path $looCastBuildSourceDir -Filter "spacetime_engine.pdb" -Recurse
 Copy-Item -Path $enginePdbFile.FullName -Destination $engineBuildTargetDir -Force
 
-########## COPY APPLICATION DATA FROM SOURCE TO TARGET ##########
+########## COPY APPLICATION ASSETS FROM SOURCE TO TARGET ##########
 
-# Ensure the data source directory exists
-if (Test-Path $engineDataSourceDir) {
-    # Copy the entire data directory to the target
-    Copy-Item -Path $engineDataSourceDir -Destination $engineDataTargetDir -Recurse -Force
-    Write-Host "Application data copied successfully."
+# Ensure the assets source directory exists
+if (Test-Path $engineAssetsSourceDir) {
+    # Copy the entire assets directory to the target
+    Copy-Item -Path $engineAssetsSourceDir -Destination $engineAssetsTargetDir -Recurse -Force
+    Write-Host "Application assets copied successfully."
 } else {
-    Write-Host "Source data directory does not exist: $engineDataSourceDir"
+    Write-Host "Source assets directory does not exist: $engineAssetsSourceDir"
 }
