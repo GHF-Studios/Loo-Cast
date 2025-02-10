@@ -37,6 +37,8 @@ impl Plugin for ActionPlugin {
             .insert_resource(ActionTypeModuleRegistry::default())
             .insert_resource(ActionRequestBuffer::default())
             .insert_resource(ActionMap::default())
+            .insert_resource(RenderStageQueue::default())
+            .insert_resource(RenderWhileStageQueue::default())
             .add_systems(PreUpdate, async_stage_event_relay_system)
             .add_systems(PostUpdate, action_processing_system.after(async_stage_event_relay_system))
             .add_systems(PostUpdate, action_execution_system.after(action_processing_system));

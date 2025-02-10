@@ -4,7 +4,7 @@ use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 use crossbeam_channel::Sender;
 
 use super::{
-    events::ActionStageProcessedEvent, resources::{ActionMap, ActionTypeModuleRegistry}, stage::{ActionStage, ActionStageEcs, ActionStageEcsWhileOutcome}, stage_io::{ActionIO, CallbackState, InputState}, types::{ActionState, ActionType, RawActionData}, ActionStageProcessedMessageReceiverAsync, ActionStageProcessedMessageSenderAsync, ActionStageProcessedMessageSenderRender, RenderStageQueue, RenderWhileStageQueue
+    events::ActionStageProcessedEvent, resources::{ActionMap, ActionTypeModuleRegistry}, stage::{ActionStage, ActionStageEcs, ActionStageEcsRender, ActionStageEcsRenderWhile, ActionStageEcsWhileOutcome}, stage_io::{ActionIO, CallbackState, InputState}, types::{ActionState, ActionType, RawActionData}, ActionStageProcessedMessageReceiverAsync, ActionStageProcessedMessageSenderAsync, ActionStageProcessedMessageSenderRender, RenderStageQueue, RenderWhileStageQueue
 };
 
 pub(in super) fn async_stage_event_relay_system(
@@ -16,8 +16,12 @@ pub(in super) fn async_stage_event_relay_system(
     }
 }
 
-pub(in super) fn process_render_stages_system(mut world: World) {
+// TODO: RenderStageQueue is stored in the main-app, not in the render-app! We need to extract it
+pub(in super) fn extract_render_stage_queue_system() {}
+
+pub(in super) fn process_render_stages_system(world: &mut World) {
     let drained_queue = {
+        // TODO: RenderStageQueue is stored in the main-app, not in the render-app!
         let mut queue = world.resource_mut::<RenderStageQueue>();
         std::mem::take(&mut queue.0)
     };
@@ -27,13 +31,14 @@ pub(in super) fn process_render_stages_system(mut world: World) {
     for (module_name, action_name, current_stage, mut stage, data_buffer) in drained_queue {
         let io = ActionIO::new_input(data_buffer);
         let function = &mut stage.function;
-        let output = (function)(io, &mut world).consume_raw();
+        let output = (function)(io, world).consume_raw();
 
         results.push(ActionStageProcessedEvent {
             module_name,
             action_name,
             stage_index: current_stage,
             stage_output: output,
+            stage_return: Some(ActionStage::EcsRender(stage))
         });
     }
 
@@ -44,7 +49,7 @@ pub(in super) fn process_render_stages_system(mut world: World) {
     }
 }
 
-pub(in super) fn process_render_while_stages_system(mut world: World) {
+pub(in super) fn process_render_while_stages_system(world: &mut World) {
     let drained_queue = {
         let mut queue = world.resource_mut::<RenderWhileStageQueue>();
         std::mem::take(&mut queue.0)
@@ -57,7 +62,7 @@ pub(in super) fn process_render_while_stages_system(mut world: World) {
         let io = ActionIO::new_input(data_buffer);
         let function = &mut stage.function;
 
-        match (function)(io, &mut world) {
+        match (function)(io, world) {
             ActionStageEcsWhileOutcome::Waiting(input) => {
                 remaining_stages.push((module_name, action_name, current_stage, stage, input.consume_raw()));
             }
@@ -67,6 +72,7 @@ pub(in super) fn process_render_while_stages_system(mut world: World) {
                     action_name,
                     stage_index: current_stage,
                     stage_output: output.consume_raw(),
+                    stage_return: Some(ActionStage::EcsRenderWhile(stage))
                 });
             }
         }
@@ -157,10 +163,12 @@ fn process_stage_events(world: &mut World) -> (Vec<(String, String, usize)>, Vec
     let mut system_state: SystemState<(
         ResMut<ActionMap>, 
         ConsumableEventReader<ActionStageProcessedEvent>,
+        ResMut<ActionTypeModuleRegistry>
     )> = SystemState::new(world);
     let (
         mut action_map, 
         mut stage_event_reader,
+        mut action_type_module_registry,
     ) = system_state.get_mut(world);
 
     let mut completed_stages = Vec::new();
@@ -185,6 +193,14 @@ fn process_stage_events(world: &mut World) -> (Vec<(String, String, usize)>, Vec
                     }
                     _ => unreachable!("Unexpected state transition"),
                 };
+
+                if let Some(stage) = event.stage_return {
+                    let action_type = action_type_module_registry
+                        .get_action_type_mut(&event.module_name, &event.action_name)
+                        .unwrap();
+
+                    action_type.stages[event.stage_index] = stage;
+                }
             }
         }
     }
@@ -328,6 +344,7 @@ fn progress_actions(
                             action_name: cloned_action_name,
                             stage_index: current_stage,
                             stage_output: output,
+                            stage_return: None,
                         })
                         .unwrap();
                 });
@@ -363,15 +380,23 @@ fn progress_actions(
             }
 
             // **ECS Render Stage → Queue for RenderApp**
-            // TODO: Fix this stage moving with AI and integrate in gpu/actions.rs
-            ActionStage::EcsRender(ecs_render_stage) => {
+            ActionStage::EcsRender(ref mut ecs_render_stage) => {
+                let ecs_render_stage = std::mem::replace(ecs_render_stage, ActionStageEcsRender {
+                    name: "placeholder".to_string(),
+                    function: Box::new(|_, _| unreachable!()),
+                });
+                
                 let mut render_queue = SystemState::<ResMut<RenderStageQueue>>::new(world).get_mut(world);
                 render_queue.0.push((module_name.clone(), action_name.clone(), current_stage, ecs_render_stage, data_buffer));
             }
 
             // **ECS RenderWhile Stage → Queue for RenderApp (Retries Until Completion)**
-            // TODO: Fix this stage moving with AI and integrate in gpu/actions.rs
-            ActionStage::EcsRenderWhile(ecs_render_while_stage) => {
+            ActionStage::EcsRenderWhile(ref mut ecs_render_while_stage) => {
+                let ecs_render_while_stage = std::mem::replace(ecs_render_while_stage, ActionStageEcsRenderWhile {
+                    name: "placeholder".to_string(),
+                    function: Box::new(|_, _| unreachable!()),
+                });
+
                 let mut render_while_queue = SystemState::<ResMut<RenderWhileStageQueue>>::new(world).get_mut(world);
                 render_while_queue.0.push((module_name.clone(), action_name.clone(), current_stage, ecs_render_while_stage, data_buffer));
             }
@@ -409,6 +434,7 @@ fn apply_stage_outputs(
             action_name: action_name.clone(),
             stage_index,
             stage_output,
+            stage_return: None,
         });
 
         if let Some(actions) = action_map.map.get_mut(&module_name) {

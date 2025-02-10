@@ -19,6 +19,7 @@ pub mod setup_texture_generator {
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
 
+    use crate::action::stage::ActionStageEcsRender;
     use crate::action::types::RawActionData;
     use crate::gpu::resources::ShaderPipelineRegistry;
     use crate::{action::{stage::{ActionStage, ActionStageAsync, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::ActionType}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
@@ -45,7 +46,7 @@ pub mod setup_texture_generator {
                 Ok(io)
             }),
             stages: vec![
-                ActionStage::Ecs(ActionStageEcs {
+                ActionStage::EcsRender(ActionStageEcsRender {
                     name: "SetupPipeline".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>();
@@ -129,7 +130,7 @@ pub mod generate_texture {
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use crate::{action::{stage::ActionStageEcsWhileOutcome, types::RawActionData}, gpu::resources::ShaderPipelineRegistry};
+    use crate::{action::{stage::{ActionStageEcsRender, ActionStageEcsWhileOutcome}, types::RawActionData}, gpu::resources::ShaderPipelineRegistry};
     use crate::action::{stage::{ActionStage, ActionStageEcsWhile, ActionStageEcs}, 
         stage_io::{ActionIO, InputState, OutputState}, types::ActionType};
 
@@ -296,8 +297,8 @@ pub mod generate_texture {
                     }),
                 }),
 
-                // **3. ECS Stage: Dispatch Compute Work**
-                ActionStage::Ecs(ActionStageEcs {
+                // NEW: **3. ECS Stage: Dispatch Compute Work**
+                ActionStage::EcsRender(ActionStageEcsRender {
                     name: "DispatchCompute".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         error!("Stage 3");
