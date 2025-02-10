@@ -46,7 +46,9 @@ impl Plugin for ActionPlugin {
         
         let render_app = app.sub_app_mut(RenderApp);
         render_app
-            .add_systems(Render, process_render_stages_system)
-            .add_systems(Render, process_render_while_stages_system);
+            .add_systems(ExtractSchedule, extract_render_stage_queue_system)
+            .add_systems(ExtractSchedule, extract_render_while_stage_queue_system)
+            .add_systems(Render, process_render_stages_system.after(extract_render_stage_queue_system))
+            .add_systems(Render, process_render_while_stages_system.after(extract_render_while_stage_queue_system));
     }
 }

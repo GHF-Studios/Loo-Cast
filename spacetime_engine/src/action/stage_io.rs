@@ -40,6 +40,16 @@ impl ActionIO<InputState> {
         })
     }
 
+    pub fn get_input_mut<I: Any + Send + Sync>(&mut self) -> &mut I {
+        self.state.input.data.downcast_mut::<I>().unwrap_or_else(|| {
+            panic!(
+                "Failed to get input: Correct type `{}`, provided type `{}`.",
+                self.state.input.data_type_name,
+                type_name::<I>()
+            )
+        })
+    }
+
     pub fn get_input<I: Any + Send + Sync>(self) -> (I, ActionIO<OutputStateBuilder>) {
         let expected = self.state.input.data_type_name;
         let actual = type_name::<I>();

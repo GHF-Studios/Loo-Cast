@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
+use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 use crossbeam_channel::Sender;
 
@@ -16,12 +17,46 @@ pub(in super) fn async_stage_event_relay_system(
     }
 }
 
-// TODO: RenderStageQueue is stored in the main-app, not in the render-app! We need to extract it
-pub(in super) fn extract_render_stage_queue_system() {}
+pub(in super) fn extract_render_stage_queue_system(world: &mut World) {
+    let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
+    let extracted_queue = match main_world.get_resource_mut::<RenderStageQueue>() {
+        Some(mut queue) => {
+            std::mem::take(&mut *queue)
+        },
+        None => unreachable!("Render stage queue resource not found"),
+    };
+
+    match world.get_resource_mut::<RenderStageQueue>() {
+        Some(mut queue) => {
+            *queue = extracted_queue;
+        },
+        None => {
+            world.insert_resource(extracted_queue);
+        }
+    }
+}
+
+pub(in super) fn extract_render_while_stage_queue_system(world: &mut World) {
+    let mut main_world = SystemState::<ResMut<MainWorld>>::new(world).get_mut(world);
+    let extracted_queue = match main_world.get_resource_mut::<RenderWhileStageQueue>() {
+        Some(mut queue) => {
+            std::mem::take(&mut *queue)
+        },
+        None => unreachable!("Render while stage queue resource not found"),
+    };
+
+    match world.get_resource_mut::<RenderWhileStageQueue>() {
+        Some(mut queue) => {
+            *queue = extracted_queue;
+        },
+        None => {
+            world.insert_resource(extracted_queue);
+        }
+    }
+}
 
 pub(in super) fn process_render_stages_system(world: &mut World) {
     let drained_queue = {
-        // TODO: RenderStageQueue is stored in the main-app, not in the render-app!
         let mut queue = world.resource_mut::<RenderStageQueue>();
         std::mem::take(&mut queue.0)
     };
@@ -305,6 +340,7 @@ fn progress_actions(
         match stage {
             // **ECS Stage: Runs in immediate ECS context**
             ActionStage::Ecs(ref mut ecs_stage) => {
+                debug!("Executing ECS Stage '{}'", ecs_stage.name);
                 let io = ActionIO::new_input(data_buffer);
                 let function = &mut ecs_stage.function;
                 let output = (function)(io, world).consume_raw();
@@ -327,31 +363,9 @@ fn progress_actions(
                 ));
             }
 
-            // **Async Stage: Runs non-blocking in a separate task**
-            ActionStage::Async(ref mut async_stage) => {
-                let io = ActionIO::new_input(data_buffer);
-                let function = &mut async_stage.function;
-                let future = (function)(io);
-
-                let cloned_module_name = module_name.clone();
-                let cloned_action_name = action_name.clone();
-
-                tokio::spawn(async move {
-                    let output = future.await.consume_raw();
-                    sender
-                        .send(ActionStageProcessedEvent {
-                            module_name: cloned_module_name,
-                            action_name: cloned_action_name,
-                            stage_index: current_stage,
-                            stage_output: output,
-                            stage_return: None,
-                        })
-                        .unwrap();
-                });
-            }
-
             // **EcsWhile Stage: Loops in immediate ECS context until a condition is met**
             ActionStage::EcsWhile(ref mut ecs_while_stage) => {
+                debug!("Executing ECS While Stage '{}'", ecs_while_stage.name);
                 let io = ActionIO::new_input(data_buffer);
                 let function = &mut ecs_while_stage.function;
 
@@ -381,6 +395,7 @@ fn progress_actions(
 
             // **ECS Render Stage → Queue for RenderApp**
             ActionStage::EcsRender(ref mut ecs_render_stage) => {
+                debug!("Executing ECS Render Stage '{}'", ecs_render_stage.name);
                 let ecs_render_stage = std::mem::replace(ecs_render_stage, ActionStageEcsRender {
                     name: "placeholder".to_string(),
                     function: Box::new(|_, _| unreachable!()),
@@ -392,6 +407,7 @@ fn progress_actions(
 
             // **ECS RenderWhile Stage → Queue for RenderApp (Retries Until Completion)**
             ActionStage::EcsRenderWhile(ref mut ecs_render_while_stage) => {
+                debug!("Executing ECS Render While Stage '{}'", ecs_render_while_stage.name);
                 let ecs_render_while_stage = std::mem::replace(ecs_render_while_stage, ActionStageEcsRenderWhile {
                     name: "placeholder".to_string(),
                     function: Box::new(|_, _| unreachable!()),
@@ -399,6 +415,30 @@ fn progress_actions(
 
                 let mut render_while_queue = SystemState::<ResMut<RenderWhileStageQueue>>::new(world).get_mut(world);
                 render_while_queue.0.push((module_name.clone(), action_name.clone(), current_stage, ecs_render_while_stage, data_buffer));
+            }
+
+            // **Async Stage: Runs non-blocking in a separate task**
+            ActionStage::Async(ref mut async_stage) => {
+                debug!("Executing Async Stage '{}'", async_stage.name);
+                let io = ActionIO::new_input(data_buffer);
+                let function = &mut async_stage.function;
+                let future = (function)(io);
+
+                let cloned_module_name = module_name.clone();
+                let cloned_action_name = action_name.clone();
+
+                tokio::spawn(async move {
+                    let output = future.await.consume_raw();
+                    sender
+                        .send(ActionStageProcessedEvent {
+                            module_name: cloned_module_name,
+                            action_name: cloned_action_name,
+                            stage_index: current_stage,
+                            stage_output: output,
+                            stage_return: None,
+                        })
+                        .unwrap();
+                });
             }
         }
 
