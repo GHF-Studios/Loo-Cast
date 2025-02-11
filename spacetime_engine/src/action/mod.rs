@@ -15,6 +15,9 @@ use events::*;
 use resources::*;
 use systems::*;
 
+pub const DEBUG_ACTION_MODULE: &str = "GPU";
+pub const DEBUG_ACTION_NAME: &str = "SetupTextureGenerator";
+pub const DEBUG_LOGGING_ENABLED: bool = true;
 pub(in crate) struct ActionPlugin;
 impl Plugin for ActionPlugin {
     fn build(&self, app: &mut App) {

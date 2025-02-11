@@ -56,20 +56,20 @@ pub mod setup_texture_generator {
                 //        })
                 //    }),
                 //}),
-                //ActionStage::Ecs(ActionStageEcs {
-                //    name: "DummyEcs".to_owned(),
-                //    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
-                //        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                //        io.set_output(RawActionData::new(input)) // Pass-through
-                //    }),
-                //}),
-                //ActionStage::EcsWhile(ActionStageEcsWhile {
-                //    name: "DummyEcsWhile".to_owned(),
-                //    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageEcsWhileOutcome {
-                //        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                //        ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(input))) // Pass-through
-                //    }),
-                //}),
+                ActionStage::Ecs(ActionStageEcs {
+                    name: "DummyEcs".to_owned(),
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
+                        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
+                        io.set_output(RawActionData::new(input)) // Pass-through
+                    }),
+                }),
+                ActionStage::EcsWhile(ActionStageEcsWhile {
+                    name: "DummyEcsWhile".to_owned(),
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageEcsWhileOutcome {
+                        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
+                        ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(input))) // Pass-through
+                    }),
+                }),
                 ActionStage::EcsRender(ActionStageEcsRender {
                     name: "DummyEcsRender".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {

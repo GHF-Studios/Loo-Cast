@@ -5,7 +5,7 @@ use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 use crossbeam_channel::Sender;
 
 use super::{
-    events::ActionStageProcessedEvent, resources::{ActionMap, ActionTypeModuleRegistry}, stage::{ActionStage, ActionStageEcs, ActionStageEcsRender, ActionStageEcsRenderWhile, ActionStageEcsWhileOutcome}, stage_io::{ActionIO, CallbackState, InputState}, types::{ActionState, ActionType, RawActionData}, ActionStageProcessedMessageReceiverAsync, ActionStageProcessedMessageSenderAsync, ActionStageProcessedMessageSenderRender, RenderStageQueue, RenderWhileStageQueue
+    events::ActionStageProcessedEvent, resources::{ActionMap, ActionTypeModuleRegistry}, stage::{ActionStage, ActionStageEcs, ActionStageEcsRender, ActionStageEcsRenderWhile, ActionStageEcsWhileOutcome}, stage_io::{ActionIO, CallbackState, InputState}, types::{ActionState, ActionType, RawActionData}, ActionStageProcessedMessageReceiverAsync, ActionStageProcessedMessageSenderAsync, ActionStageProcessedMessageSenderRender, RenderStageQueue, RenderWhileStageQueue, DEBUG_ACTION_MODULE, DEBUG_ACTION_NAME, DEBUG_LOGGING_ENABLED
 };
 
 pub(in super) fn async_stage_event_relay_system(
@@ -142,15 +142,21 @@ fn process_active_actions(world: &mut World) {
         mut action_type_module_registry
     ) = system_state.get_mut(world);
 
+    // Storing away resources using `std::mem::take`
     let mut stolen_action_map = std::mem::take(&mut *action_map);
     let mut stolen_action_type_module_registry = std::mem::take(&mut *action_type_module_registry);
 
     for (module_name, actions) in stolen_action_map.map.iter_mut() {
         for (action_name, instance) in actions.iter_mut() {
             let action_type = stolen_action_type_module_registry.get_action_type_mut(module_name, action_name).unwrap();
+            
             if let Some(instance) = instance {
                 match instance.state {
                     ActionState::Requested => {
+                        if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+                            debug!("Lifecycle Stage 2.1: Action `{}` enters Secondary Validation.", action_name);
+                        }
+
                         let input = std::mem::replace(&mut instance.data_buffer, RawActionData::new(()));
                         match (action_type.secondary_validation)(ActionIO::<InputState>::new_input(input), world) {
                             Ok(input) => {
@@ -162,6 +168,10 @@ fn process_active_actions(world: &mut World) {
                                     action_name, module_name, err
                                 );
                             }
+                        }
+
+                        if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+                            debug!("Lifecycle Stage 2.2: Secondary Validation Passed.");
                         }
 
                         instance.state = ActionState::Processing { current_stage: 0 };
@@ -189,7 +199,7 @@ fn process_active_actions(world: &mut World) {
         mut action_map, 
         mut action_type_module_registry
     ) = system_state.get_mut(world);
-
+    
     *action_map = stolen_action_map;
     *action_type_module_registry = stolen_action_type_module_registry;
 }
@@ -211,6 +221,14 @@ fn process_stage_events(world: &mut World) -> (Vec<(String, String, usize)>, Vec
 
     for event in stage_event_reader.read() {
         let event = event.consume();
+
+        if DEBUG_LOGGING_ENABLED && event.module_name == DEBUG_ACTION_MODULE && event.action_name == DEBUG_ACTION_NAME {
+            debug!(
+                "Lifecycle Stage 3.1: Stage {} completed for `{}` in module `{}`",
+                event.stage_index, event.action_name, event.module_name
+            );
+        }
+
         if let Some(actions) = action_map.map.get_mut(&event.module_name) {
             if let Some(instance) = actions.get_mut(&event.action_name).and_then(|a| a.as_mut()) {
                 match &mut instance.state {
@@ -250,26 +268,52 @@ fn finalize_completed_stages(world: &mut World, completed_stages: Vec<(String, S
     for (module_name, action_name, current_stage) in completed_stages {
         if let Some(actions) = action_map.map.get_mut(&module_name) {
             if let Some(instance) = actions.get_mut(&action_name).and_then(|a| a.as_mut()) {
+                
+                if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+                    debug!(
+                        "Lifecycle Stage 3.3: Completed stage {} for `{}` in module `{}`.",
+                        current_stage, action_name, module_name
+                    );
+                }
+
                 if current_stage + 1 < instance.num_stages {
                     instance.state = ActionState::Processing { current_stage: current_stage + 1 };
+
+                    if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+                        debug!(
+                            "Lifecycle Stage 3.4: Advancing to stage {} for `{}` in module `{}`.",
+                            current_stage + 1, action_name, module_name
+                        );
+                    }
                 } else {
                     instance.state = ActionState::Processed { current_stage };
+
+                    if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+                        debug!(
+                            "Lifecycle Stage 3.5: Final stage {} reached for `{}` in module `{}`.",
+                            current_stage, action_name, module_name
+                        );
+                    }
                 }
             }
         }
     }
 }
 
-fn finalize_completed_actions(
-    world: &mut World,
-    completed_actions: Vec<(String, String)>
-) {
+fn finalize_completed_actions(world: &mut World, completed_actions: Vec<(String, String)>) {
     let mut system_state: SystemState<ResMut<ActionMap>> = SystemState::new(world);
     let mut action_map = system_state.get_mut(world);
 
     let mut callbacks = Vec::new();
 
     for (module_name, action_name) in completed_actions {
+        if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+            debug!(
+                "Lifecycle Stage 4: Action `{}` in module `{}` fully completed. Triggering callback.",
+                action_name, module_name
+            );
+        }
+
         if let Some(actions) = action_map.map.get_mut(&module_name) {
             if let Some(instance) = actions.remove(&action_name).flatten() {
                 callbacks.push((instance.callback, instance.data_buffer));
@@ -337,10 +381,23 @@ fn progress_actions(
     for (module_name, action_name, current_stage, mut stage, data_buffer) in actions_to_process.drain(..) {
         let sender = async_sender.clone();
 
+        if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+            debug!(
+                "Lifecycle Stage 3.1: Starting execution of Stage {} for `{}` in module `{}`.",
+                current_stage, action_name, module_name
+            );
+        }
+
         match stage {
             // **ECS Stage: Runs in immediate ECS context**
             ActionStage::Ecs(ref mut ecs_stage) => {
-                debug!("Executing ECS Stage '{}'", ecs_stage.name);
+                if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+                    debug!(
+                        "Lifecycle Stage 3.2: Running ECS stage {} for `{}` in module `{}`.",
+                        current_stage, action_name, module_name
+                    );
+                }
+
                 let io = ActionIO::new_input(data_buffer);
                 let function = &mut ecs_stage.function;
                 let output = (function)(io, world).consume_raw();
@@ -365,7 +422,13 @@ fn progress_actions(
 
             // **EcsWhile Stage: Loops in immediate ECS context until a condition is met**
             ActionStage::EcsWhile(ref mut ecs_while_stage) => {
-                debug!("Executing ECS While Stage '{}'", ecs_while_stage.name);
+                if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+                    debug!(
+                        "Lifecycle Stage 3.2: Running ECS While stage {} for `{}` in module `{}`.",
+                        current_stage, action_name, module_name
+                    );
+                }
+
                 let io = ActionIO::new_input(data_buffer);
                 let function = &mut ecs_while_stage.function;
 
@@ -395,7 +458,13 @@ fn progress_actions(
 
             // **ECS Render Stage → Queue for RenderApp**
             ActionStage::EcsRender(ref mut ecs_render_stage) => {
-                debug!("Executing ECS Render Stage '{}'", ecs_render_stage.name);
+                if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+                    debug!(
+                        "Lifecycle Stage 3.2: Running ECS Render stage {} for `{}` in module `{}`.",
+                        current_stage, action_name, module_name
+                    );
+                }
+
                 let ecs_render_stage = std::mem::replace(ecs_render_stage, ActionStageEcsRender {
                     name: "placeholder".to_string(),
                     function: Box::new(|_, _| unreachable!()),
@@ -407,7 +476,13 @@ fn progress_actions(
 
             // **ECS RenderWhile Stage → Queue for RenderApp (Retries Until Completion)**
             ActionStage::EcsRenderWhile(ref mut ecs_render_while_stage) => {
-                debug!("Executing ECS Render While Stage '{}'", ecs_render_while_stage.name);
+                if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+                    debug!(
+                        "Lifecycle Stage 3.2: Running ECS Render While stage {} for `{}` in module `{}`.",
+                        current_stage, action_name, module_name
+                    );
+                }
+
                 let ecs_render_while_stage = std::mem::replace(ecs_render_while_stage, ActionStageEcsRenderWhile {
                     name: "placeholder".to_string(),
                     function: Box::new(|_, _| unreachable!()),
@@ -419,7 +494,13 @@ fn progress_actions(
 
             // **Async Stage: Runs non-blocking in a separate task**
             ActionStage::Async(ref mut async_stage) => {
-                debug!("Executing Async Stage '{}'", async_stage.name);
+                if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
+                    debug!(
+                        "Lifecycle Stage 3.2: Running Async stage {} for `{}` in module `{}`.",
+                        current_stage, action_name, module_name
+                    );
+                }
+
                 let io = ActionIO::new_input(data_buffer);
                 let function = &mut async_stage.function;
                 let future = (function)(io);
