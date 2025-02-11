@@ -8,6 +8,9 @@ use super::{
     events::ActionStageProcessedEvent, resources::{ActionMap, ActionTypeModuleRegistry}, stage::{ActionStage, ActionStageEcs, ActionStageEcsRender, ActionStageEcsRenderWhile, ActionStageEcsWhileOutcome}, stage_io::{ActionIO, CallbackState, InputState}, types::{ActionState, ActionType, RawActionData}, ActionStageProcessedMessageReceiverAsync, ActionStageProcessedMessageSenderAsync, ActionStageProcessedMessageSenderRender, RenderStageQueue, RenderWhileStageQueue, DEBUG_ACTION_MODULE, DEBUG_ACTION_NAME, DEBUG_LOGGING_ENABLED
 };
 
+
+// TODO: Unify the action framework by making deferred execution and outcome-based immediate return types, kind of like a custom future-like thing, yk? Then we can also easily solve the problem that currently a stage cannot abort, it must run to completion or panic. A future could help in bringing structure to errors to facilitate smoother error handling
+
 pub(in super) fn async_stage_event_relay_system(
     receiver: ResMut<ActionStageProcessedMessageReceiverAsync>,
     mut action_event_writer: ConsumableEventWriter<ActionStageProcessedEvent>, 
@@ -211,6 +214,8 @@ fn collect_action_data(world: &mut World) -> (Vec<(String, String, usize, Action
     for (module_name, actions) in action_map.map.iter_mut() {
         for (action_name, instance) in actions.iter_mut() {
             if let Some(instance) = instance {
+                // TODO: This whole TODO below me is wrapped in 'maybe'
+                // TODO: This whole TODO below me only applies to non-ecs stages!!!
                 /* TODO:    This can not distinguish between a fresh while stage and a while stage that has already been "polled".
                 *           We could add a "is_looping" to alongside "current_stage" to distinguish between the two,
                 *           and non-while actions would just have "is_looping" set to false from the beginning 
@@ -324,6 +329,7 @@ fn progress_actions(
                 }
             }
 
+            // TODO: Make these stages outcome-based too, so we can immediately return some sort of outcome, even if it is 'ask me later', and POSSIBLY add an error variant to the outcome
             // **ECS Render Stage → Queue for RenderApp**
             ActionStage::EcsRender(ref mut ecs_render_stage) => {
                 if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
@@ -342,6 +348,7 @@ fn progress_actions(
                 render_queue.0.push((module_name.clone(), action_name.clone(), current_stage, ecs_render_stage, data_buffer));
             }
 
+            // TODO: Make these stages outcome-based too, so we can immediately return some sort of outcome, even if it is 'ask me later', and POSSIBLY add an error variant to the outcome
             // **ECS RenderWhile Stage → Queue for RenderApp (Retries Until Completion)**
             ActionStage::EcsRenderWhile(ref mut ecs_render_while_stage) => {
                 if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
@@ -360,6 +367,7 @@ fn progress_actions(
                 render_while_queue.0.push((module_name.clone(), action_name.clone(), current_stage, ecs_render_while_stage, data_buffer));
             }
 
+            // TODO: Make these stages outcome-based too, so we can immediately return some sort of outcome, even if it is 'ask me later', and POSSIBLY add an error variant to the outcome
             // **Async Stage: Runs non-blocking in a separate task**
             ActionStage::Async(ref mut async_stage) => {
                 if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
