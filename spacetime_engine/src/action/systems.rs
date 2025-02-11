@@ -5,13 +5,21 @@ use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 use crossbeam_channel::Sender;
 
 use super::{
-    events::ActionStageProcessedEvent, resources::{ActionMap, ActionTypeModuleRegistry}, stage::{ActionStage, ActionStageEcs, ActionStageEcsRender, ActionStageEcsRenderWhile, ActionStageEcsWhileOutcome}, stage_io::{ActionIO, CallbackState, InputState}, types::{ActionState, ActionType, RawActionData}, ActionStageProcessedMessageReceiverAsync, ActionStageProcessedMessageSenderAsync, ActionStageProcessedMessageSenderRender, RenderStageQueue, RenderWhileStageQueue, DEBUG_ACTION_MODULE, DEBUG_ACTION_NAME, DEBUG_LOGGING_ENABLED
+    events::ActionStageProcessedEvent, resources::{ActionMap, ActionTypeModuleRegistry}, stage::{ActionStage, ActionStageEcs, ActionStageEcsRender, ActionStageEcsRenderWhile, ActionStageEcsWhileOutcome}, stage_io::{ActionIO, CallbackState, InputState}, types::{ActionState, ActionType, RawActionData}, ActionStageProcessedMessageReceiverAsync, ActionStageProcessedMessageReceiverRender, ActionStageProcessedMessageSenderAsync, ActionStageProcessedMessageSenderRender, AsyncStageQueue, RenderStageQueue, RenderWhileStageQueue, DEBUG_ACTION_MODULE, DEBUG_ACTION_NAME, DEBUG_LOGGING_ENABLED
 };
-
 
 // TODO: Unify the action framework by making deferred execution and outcome-based immediate return types, kind of like a custom future-like thing, yk? Then we can also easily solve the problem that currently a stage cannot abort, it must run to completion or panic. A future could help in bringing structure to errors to facilitate smoother error handling
 
-pub(in super) fn async_stage_event_relay_system(
+pub(in super) fn relay_render_stage_event_system(
+    receiver: ResMut<ActionStageProcessedMessageReceiverRender>,
+    mut action_event_writer: ConsumableEventWriter<ActionStageProcessedEvent>, 
+) {
+    while let Ok(event) = receiver.0.try_recv() {
+        action_event_writer.send(event);
+    }
+}
+
+pub(in super) fn relay_async_stage_event_system(
     receiver: ResMut<ActionStageProcessedMessageReceiverAsync>,
     mut action_event_writer: ConsumableEventWriter<ActionStageProcessedEvent>, 
 ) {
@@ -67,10 +75,13 @@ pub(in super) fn process_render_stages_system(world: &mut World) {
     let mut results = Vec::with_capacity(drained_queue.len());
 
     for (module_name, action_name, current_stage, mut stage, data_buffer) in drained_queue {
+        error!("Processing render stage for `{}` in module `{}`", action_name, module_name);
+
         let io = ActionIO::new_input(data_buffer);
         let function = &mut stage.function;
         let output = (function)(io, world).consume_raw();
 
+        // TODO: 2. We need to set the action state before sending the event
         results.push(ActionStageProcessedEvent {
             module_name,
             action_name,
@@ -105,6 +116,7 @@ pub(in super) fn process_render_while_stages_system(world: &mut World) {
                 remaining_stages.push((module_name, action_name, current_stage, stage, input.consume_raw()));
             }
             ActionStageEcsWhileOutcome::Completed(output) => {
+                // TODO: 2. We need to set the action state before sending the event
                 results.push(ActionStageProcessedEvent {
                     module_name,
                     action_name,
@@ -127,7 +139,7 @@ pub(in super) fn process_render_while_stages_system(world: &mut World) {
     }
 }
 
-// TODO: LEGACY TODO: While resources are stolen, validation can not access those resources! Maybe we just literally remove and reinsert them?
+// TODO: Unsure about this one: While resources are stolen, validation can not access those resources! Maybe we just literally remove and reinsert them?
 pub(in super) fn action_processing_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<ActionMap>, 
@@ -386,6 +398,7 @@ fn progress_actions(
 
                 tokio::spawn(async move {
                     let output = future.await.consume_raw();
+                    // TODO: 2. We need to set the action state before sending the event
                     sender
                         .send(ActionStageProcessedEvent {
                             module_name: cloned_module_name,
@@ -419,6 +432,7 @@ fn handle_immediate_stage_completions(
 ) {
     let mut stage_event_writer= SystemState::<ConsumableEventWriter<ActionStageProcessedEvent>>::new(world).get_mut(world);
     for (module_name, action_name, stage_index, stage_output) in stage_outputs {
+        // TODO: 2. We need to set the action state before sending the event
         stage_event_writer.send(ActionStageProcessedEvent {
             module_name: module_name.clone(),
             action_name: action_name.clone(),
@@ -429,6 +443,7 @@ fn handle_immediate_stage_completions(
     }
 }
 
+// TODO: 1. Extract the responsibility of transitioning the state of actions to a separate helper function so we can do it immediately wherever we need to
 pub(in super) fn action_completion_system(world: &mut World) {
     let mut system_state: SystemState<(
         ResMut<ActionMap>, 

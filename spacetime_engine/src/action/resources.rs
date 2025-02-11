@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 
-use super::{events::ActionStageProcessedEvent, stage::{ActionStageEcsRender, ActionStageEcsRenderWhile}, target::ActionTypeModule, types::{ActionInstance, ActionState, ActionType, RawActionData}};
+use super::{events::ActionStageProcessedEvent, stage::{ActionStageAsync, ActionStageEcsRender, ActionStageEcsRenderWhile}, target::ActionTypeModule, types::{ActionInstance, ActionState, ActionType, RawActionData}};
 
 #[derive(Resource, Default)]
 pub struct ActionTypeModuleRegistry {
@@ -53,6 +53,9 @@ impl ActionTypeModuleRegistry {
 pub struct ActionRequestBuffer {
     pub requests: Vec<ActionInstance>,
 }
+
+#[derive(Resource, Default)]
+pub(in super) struct AsyncStageQueue(pub Vec<(String, String, usize, ActionStageAsync, RawActionData)>);
 
 #[derive(Resource, Default)]
 pub(in super) struct RenderStageQueue(pub Vec<(String, String, usize, ActionStageEcsRender, RawActionData)>);

@@ -42,16 +42,21 @@ impl Plugin for ActionPlugin {
             .insert_resource(ActionMap::default())
             .insert_resource(RenderStageQueue::default())
             .insert_resource(RenderWhileStageQueue::default())
-            .add_systems(PreUpdate, async_stage_event_relay_system)
-            .add_systems(PostUpdate, action_processing_system.after(async_stage_event_relay_system))
+            .add_systems(PreUpdate, (
+                relay_render_stage_event_system, 
+                relay_async_stage_event_system
+            ))
+            .add_systems(PostUpdate, action_processing_system)
             .add_systems(PostUpdate, action_execution_system.after(action_processing_system))
             .add_systems(PostUpdate, action_completion_system.after(action_execution_system));
 
         
         let render_app = app.sub_app_mut(RenderApp);
         render_app
-            .add_systems(ExtractSchedule, extract_render_stage_queue_system)
-            .add_systems(ExtractSchedule, extract_render_while_stage_queue_system)
+            .add_systems(ExtractSchedule, (
+                extract_render_stage_queue_system,
+                extract_render_while_stage_queue_system
+            ))
             .add_systems(Render, process_render_stages_system.after(extract_render_stage_queue_system))
             .add_systems(Render, process_render_while_stages_system.after(extract_render_while_stage_queue_system));
     }
