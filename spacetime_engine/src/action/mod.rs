@@ -44,7 +44,8 @@ impl Plugin for ActionPlugin {
             .insert_resource(RenderWhileStageQueue::default())
             .add_systems(PreUpdate, async_stage_event_relay_system)
             .add_systems(PostUpdate, action_processing_system.after(async_stage_event_relay_system))
-            .add_systems(PostUpdate, action_execution_system.after(action_processing_system));
+            .add_systems(PostUpdate, action_execution_system.after(action_processing_system))
+            .add_systems(PostUpdate, action_completion_system.after(action_execution_system));
 
         
         let render_app = app.sub_app_mut(RenderApp);

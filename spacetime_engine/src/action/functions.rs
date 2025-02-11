@@ -12,10 +12,6 @@ pub fn request_action(
     params: RawActionData,
     callback: Option<Box<dyn FnOnce(&mut World, ActionIO<CallbackState>) + Send + Sync>>,
 ) -> Result<(), String> {
-    if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
-        debug!("Lifecycle Stage 1.1: Action `{}` requested in module `{}`.", action_name, module_name);
-    }
-
     let mut system_state: SystemState<(
         ResMut<ActionTypeModuleRegistry>,
         ResMut<ActionMap>,
@@ -38,13 +34,6 @@ pub fn request_action(
 
     let num_stages = action_type.stages.len();
 
-    if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
-        debug!(
-            "Lifecycle Stage 1.2: Primary validation begins for `{}` in module `{}`.",
-            action_name, module_name
-        );
-    }
-
     // Temporarily take ownership of the primary validation function
     let primary_validation_fn = std::mem::replace(
         &mut action_type.primary_validation,
@@ -56,13 +45,6 @@ pub fn request_action(
         Ok(io) => io,
         Err(err) => return Err(format!("Action request error: Primary validation {}", err))
     };
-
-    if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
-        debug!(
-            "Lifecycle Stage 1.3: Primary validation passed for `{}` in module `{}`.",
-            action_name, module_name
-        );
-    }
 
     let (mut action_registry, mut action_map) = system_state.get_mut(world);
 
@@ -76,13 +58,6 @@ pub fn request_action(
     // Restore the original primary validation function
     let _ = std::mem::replace(&mut action_type.primary_validation, primary_validation_fn);
 
-    if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
-        debug!(
-            "Lifecycle Stage 1.4: Action `{}` with {} stages is being inserted into ActionMap.",
-            action_name, num_stages
-        );
-    }
-
     action_map.insert_action(ActionInstance::new_request(
         module_name.to_owned(),
         action_name.to_owned(),
@@ -90,13 +65,6 @@ pub fn request_action(
         callback,
         num_stages,
     ));
-
-    if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && action_name == DEBUG_ACTION_NAME {
-        debug!(
-            "Lifecycle Stage 1.5: Action `{}` successfully inserted into ActionMap.",
-            action_name
-        );
-    }
 
     Ok(())
 }

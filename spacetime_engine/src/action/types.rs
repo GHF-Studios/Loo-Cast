@@ -46,6 +46,14 @@ impl ActionState {
     pub fn is_requested(&self) -> bool {
         matches!(self, Self::Requested)
     }
+
+    pub fn current_stage(&self) -> usize {
+        match self {
+            Self::Requested => 0,
+            Self::Processing { current_stage } => *current_stage,
+            Self::Processed { current_stage } => *current_stage,
+        }
+    }
 }
 
 pub struct ActionType {
