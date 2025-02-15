@@ -1,10 +1,8 @@
-use std::any::Any;
 use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
 
-use super::{resources::{ActionMap, ActionTypeModuleRegistry}, stage_io::{ActionIO, CallbackState, InputState}, types::{ActionInstance, RawActionData}, DEBUG_ACTION_MODULE, DEBUG_ACTION_NAME, DEBUG_LOGGING_ENABLED};
+use super::{resources::{ActionMap, ActionTypeModuleRegistry}, stage_io::{ActionIO, CallbackState}, types::{ActionInstance, RawActionData}};
 
-/// Attempts to start an action on an entity, ensuring it is valid
 pub fn request_action(
     world: &mut World,
     module_name: &str,
@@ -34,7 +32,6 @@ pub fn request_action(
 
     let num_stages = action_type.stages.len();
 
-    // Temporarily take ownership of the primary validation function
     let primary_validation_fn = std::mem::replace(
         &mut action_type.primary_validation,
         Box::new(|_| unreachable!()),
@@ -54,9 +51,8 @@ pub fn request_action(
             "Action request error: Action '{}' is not registered under module '{}'.",
             action_name, module_name
         ))?;
-
-    // Restore the original primary validation function
-    let _ = std::mem::replace(&mut action_type.primary_validation, primary_validation_fn);
+    
+    action_type.primary_validation = primary_validation_fn;
 
     action_map.insert_action(ActionInstance::new_request(
         module_name.to_owned(),

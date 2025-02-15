@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use crossbeam_channel::{Receiver, Sender};
 
-use super::{events::ActionStageProcessedEvent, stage::{ActionStageAsync, ActionStageEcsRender, ActionStageEcsRenderWhile}, target::ActionTypeModule, types::{ActionInstance, ActionState, ActionType, RawActionData}};
+use super::{stage::{ActionStageAsync, ActionStageEcs, ActionStageRender, ActionStageRenderWhile, ActionStageEcsWhile}, target::ActionTypeModule, types::{ActionInstance, ActionState, ActionType, RawActionData}};
 
 #[derive(Resource, Default)]
 pub struct ActionTypeModuleRegistry {
@@ -55,25 +55,49 @@ pub struct ActionRequestBuffer {
 }
 
 #[derive(Resource, Default)]
-pub(in super) struct AsyncStageQueue(pub Vec<(String, String, usize, ActionStageAsync, RawActionData)>);
+pub(in super) struct EcsStageCompletionEventQueue(pub Vec<(String, String, usize, ActionStageEcs, RawActionData)>);
 
 #[derive(Resource, Default)]
-pub(in super) struct RenderStageQueue(pub Vec<(String, String, usize, ActionStageEcsRender, RawActionData)>);
+pub(in super) struct EcsWhileStageCompletionEventQueue(pub Vec<(String, String, usize, ActionStageEcsWhile, RawActionData)>);
 
 #[derive(Resource, Default)]
-pub(in super) struct RenderWhileStageQueue(pub Vec<(String, String, usize, ActionStageEcsRenderWhile, RawActionData)>);
+pub(in super) struct RenderStageCompletionEventQueue(pub Vec<(String, String, usize, ActionStageRender, RawActionData)>);
+
+#[derive(Resource, Default)]
+pub(in super) struct RenderWhileStageCompletionEventQueue(pub Vec<(String, String, usize, ActionStageRenderWhile, RawActionData)>);
+
+#[derive(Resource, Default)]
+pub(in super) struct AsyncStageCompletionEventQueue(pub Vec<(String, String, usize, ActionStageAsync, RawActionData)>);
 
 #[derive(Resource)]
-pub(in super) struct ActionStageProcessedMessageSenderAsync(pub Sender<ActionStageProcessedEvent>);
+pub(in super) struct ActionStageCompletionEventSenderEcs(pub Sender<(String, String, usize, ActionStageEcs, RawActionData)>);
 
 #[derive(Resource)]
-pub(in super) struct ActionStageProcessedMessageReceiverAsync(pub Receiver<ActionStageProcessedEvent>);
+pub(in super) struct ActionStageCompletionEventReceiverEcs(pub Receiver<(String, String, usize, ActionStageEcs, RawActionData)>);
 
 #[derive(Resource)]
-pub(in super) struct ActionStageProcessedMessageSenderRender(pub Sender<ActionStageProcessedEvent>);
+pub(in super) struct ActionStageCompletionEventSenderEcsWhile(pub Sender<(String, String, usize, ActionStageEcsWhile, RawActionData)>);
 
 #[derive(Resource)]
-pub(in super) struct ActionStageProcessedMessageReceiverRender(pub Receiver<ActionStageProcessedEvent>);
+pub(in super) struct ActionStageCompletionEventReceiverEcsWhile(pub Receiver<(String, String, usize, ActionStageEcsWhile, RawActionData)>);
+
+#[derive(Resource)]
+pub(in super) struct ActionStageCompletionEventSenderRender(pub Sender<(String, String, usize, ActionStageRender, RawActionData)>);
+
+#[derive(Resource)]
+pub(in super) struct ActionStageCompletionEventReceiverRender(pub Receiver<(String, String, usize, ActionStageRender, RawActionData)>);
+
+#[derive(Resource)]
+pub(in super) struct ActionStageCompletionEventSenderRenderWhile(pub Sender<(String, String, usize, ActionStageRenderWhile, RawActionData)>);
+
+#[derive(Resource)]
+pub(in super) struct ActionStageCompletionEventReceiverRenderWhile(pub Receiver<(String, String, usize, ActionStageRenderWhile, RawActionData)>);
+
+#[derive(Resource)]
+pub(in super) struct ActionStageCompletionEventSenderAsync(pub Sender<(String, String, usize, ActionStageAsync, RawActionData)>);
+
+#[derive(Resource)]
+pub(in super) struct ActionStageCompletionEventReceiverAsync(pub Receiver<(String, String, usize, ActionStageAsync, RawActionData)>);
 
 #[derive(Resource, Default, Debug)]
 pub struct ActionMap {

@@ -7,8 +7,8 @@ use super::stage_io::*;
 pub enum ActionStage {
     Ecs(ActionStageEcs),
     EcsWhile(ActionStageEcsWhile),
-    EcsRender(ActionStageEcsRender),
-    EcsRenderWhile(ActionStageEcsRenderWhile),
+    Render(ActionStageRender),
+    RenderWhile(ActionStageRenderWhile),
     Async(ActionStageAsync),
 }
 
@@ -20,7 +20,7 @@ pub struct ActionStageOutput {
     pub output: Box<dyn Any + Send + Sync>,
 }
 
-pub enum ActionStageEcsWhileOutcome {
+pub enum ActionStageWhileOutcome {
     Waiting(ActionIO<InputState>),
     Completed(ActionIO<OutputState>),
 }
@@ -33,17 +33,17 @@ pub struct ActionStageEcs {
 
 pub struct ActionStageEcsWhile {
     pub name: String,
-    pub function: Box<dyn FnMut(ActionIO<InputState>, &mut World) -> ActionStageEcsWhileOutcome + Send + Sync>,
+    pub function: Box<dyn FnMut(ActionIO<InputState>, &mut World) -> ActionStageWhileOutcome + Send + Sync>,
 }
 
-pub struct ActionStageEcsRender {
+pub struct ActionStageRender {
     pub name: String,
     pub function: Box<dyn FnMut(ActionIO<InputState>, &mut World) -> ActionIO<OutputState> + Send + Sync>,
 }
 
-pub struct ActionStageEcsRenderWhile {
+pub struct ActionStageRenderWhile {
     pub name: String,
-    pub function: Box<dyn FnMut(ActionIO<InputState>, &mut World) -> ActionStageEcsWhileOutcome + Send + Sync>,
+    pub function: Box<dyn FnMut(ActionIO<InputState>, &mut World) -> ActionStageWhileOutcome + Send + Sync>,
 }
 
 pub struct ActionStageAsync {

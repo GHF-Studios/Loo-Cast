@@ -60,7 +60,7 @@ pub struct ActionType {
     pub name: String,
     pub primary_validation: Box<dyn Fn(ActionIO<InputState>) -> Result<ActionIO<InputState>, String> + Send + Sync>,
     pub secondary_validation: Box<dyn Fn(ActionIO<InputState>, &mut World) -> Result<ActionIO<InputState>, String> + Send + Sync>,
-    pub stages: Vec<ActionStage>
+    pub stages: Vec<Option<ActionStage>>
 }
 
 pub struct Action {

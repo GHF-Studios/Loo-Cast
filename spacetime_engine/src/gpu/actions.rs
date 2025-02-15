@@ -70,21 +70,21 @@ pub mod setup_texture_generator {
                 //        ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(input))) // Pass-through
                 //    }),
                 //}),
-                ActionStage::EcsRender(ActionStageEcsRender {
+                ActionStage::Render(ActionStageRender {
                     name: "DummyEcsRender1".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
                         io.set_output(RawActionData::new(input)) // Pass-through
                     }),
                 }),
-                ActionStage::EcsRender(ActionStageEcsRender {
+                ActionStage::Render(ActionStageRender {
                     name: "DummyEcsRender2".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
                         io.set_output(RawActionData::new(input)) // Pass-through
                     }),
                 }),
-                ActionStage::EcsRender(ActionStageEcsRender {
+                ActionStage::Render(ActionStageRender {
                     name: "DummyEcsRender3".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
@@ -98,7 +98,7 @@ pub mod setup_texture_generator {
                 //        ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(input))) // Pass-through
                 //    }),
                 //}),
-                ActionStage::EcsRender(ActionStageEcsRender {
+                ActionStage::Render(ActionStageRender {
                     name: "SetupPipeline".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>();
@@ -182,7 +182,7 @@ pub mod generate_texture {
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use crate::{action::{stage::{ActionStageEcsRender, ActionStageEcsWhileOutcome}, types::RawActionData}, gpu::resources::ShaderPipelineRegistry};
+    use crate::{action::{stage::{ActionStageRender, ActionStageWhileOutcome}, types::RawActionData}, gpu::resources::ShaderPipelineRegistry};
     use crate::action::{stage::{ActionStage, ActionStageEcsWhile, ActionStageEcs}, 
         stage_io::{ActionIO, InputState, OutputState}, types::ActionType};
 
@@ -309,7 +309,7 @@ pub mod generate_texture {
                 ActionStage::EcsWhile(ActionStageEcsWhile {
                     name: "WaitForPipeline".to_owned(),
                     // TODO: Maybe instead of ActionStageEcsWhileOutcome use a future and handle the ecs while stage async-ly somehow??? 
-                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageEcsWhileOutcome {
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageWhileOutcome {
                         debug!("Active Action Stage: Gpu::GenerateTexture::WaitForPipeline");
                         let input = io.get_input_ref::<PreparedPipeline>();
                         let pipeline_id = input.pipeline_id;
@@ -320,11 +320,11 @@ pub mod generate_texture {
                         match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
                             CachedPipelineState::Queued => {
                                 error!("Queued");
-                                ActionStageEcsWhileOutcome::Waiting(io)
+                                ActionStageWhileOutcome::Waiting(io)
                             },
                             CachedPipelineState::Creating(_) => {
                                 error!("Creating");
-                                ActionStageEcsWhileOutcome::Waiting(io)
+                                ActionStageWhileOutcome::Waiting(io)
                             },
                             CachedPipelineState::Ok(pipeline) => {
                                 let (input, io) = io.get_input::<PreparedPipeline>();
@@ -333,7 +333,7 @@ pub mod generate_texture {
                                     Pipeline::RenderPipeline(_) => unreachable!("Failed to generate texture: Expected a compute pipeline"),
                                     Pipeline::ComputePipeline(compute_pipeline) => compute_pipeline
                                 };
-                                ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(DispatchData {
+                                ActionStageWhileOutcome::Completed(io.set_output(RawActionData::new(DispatchData {
                                     pipeline_id,
                                     bind_group_layout: compute_pipeline.get_bind_group_layout(0).into(),
                                     texture: input.texture.clone(),
@@ -350,7 +350,7 @@ pub mod generate_texture {
                 }),
 
                 // NEW: **3. ECS Stage: Dispatch Compute Work**
-                ActionStage::EcsRender(ActionStageEcsRender {
+                ActionStage::Render(ActionStageRender {
                     name: "DispatchCompute".to_owned(),
                     function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         debug!("Active Action Stage: Gpu::GenerateTexture::DispatchCompute");
@@ -400,7 +400,7 @@ pub mod generate_texture {
                 // **4. EcsWhile Stage: Wait for Compute Execution (Polling)**
                 ActionStage::EcsWhile(ActionStageEcsWhile {
                     name: "WaitForCompute".to_owned(),
-                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageEcsWhileOutcome {
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageWhileOutcome {
                         debug!("Active Action Stage: Gpu::GenerateTexture::WaitForCompute");
                         let input = io.get_input_ref::<ComputePending>();
                         let readback_buffer = &input.readback_buffer;
@@ -410,7 +410,7 @@ pub mod generate_texture {
                             if receiver.0.try_recv().is_ok() {
                                 let (input, io) = io.get_input::<ComputePending>();
                                 world.remove_resource::<BufferMappingReceiver>(); // Cleanup
-                                return ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(Output(Ok(input.texture)))));
+                                return ActionStageWhileOutcome::Completed(io.set_output(RawActionData::new(Output(Ok(input.texture)))));
                             }
                         } else {
                             let (sender, receiver) = unbounded();
@@ -428,7 +428,7 @@ pub mod generate_texture {
                             );
                         }
                         
-                        ActionStageEcsWhileOutcome::Waiting(io)
+                        ActionStageWhileOutcome::Waiting(io)
                     }),
                 }),
             ],
