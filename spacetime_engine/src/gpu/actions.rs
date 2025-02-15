@@ -405,18 +405,15 @@ pub mod generate_texture {
                         let input = io.get_input_ref::<ComputePending>();
                         let readback_buffer = &input.readback_buffer;
                         
-                        // TODO: This will break with multiple concurrent active gpu actions
                         let mapping_receiver = SystemState::<Option<ResMut<BufferMappingReceiver>>>::new(world).get_mut(world);
                         if let Some(receiver) = mapping_receiver {
                             if receiver.0.try_recv().is_ok() {
                                 let (input, io) = io.get_input::<ComputePending>();
-                                // TODO: This will break with multiple concurrent active gpu actions
                                 world.remove_resource::<BufferMappingReceiver>(); // Cleanup
                                 return ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(Output(Ok(input.texture)))));
                             }
                         } else {
                             let (sender, receiver) = unbounded();
-                            // TODO: This will break with multiple concurrent active gpu actions
                             world.insert_resource(BufferMappingReceiver(receiver));
                 
                             let render_device = SystemState::<Res<RenderDevice>>::new(world).get_mut(world);
