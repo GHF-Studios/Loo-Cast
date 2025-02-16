@@ -2,7 +2,7 @@ use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 
 use crate::{chunk::components::ChunkComponent, chunk_loader::components::ChunkLoaderComponent, config::statics::CONFIG};
 
-use super::{enums::ChunkAction, errors::{DespawnError, SpawnError, TransferOwnershipError}, resources::ChunkRenderHandles, ChunkActionBuffer, ChunkManager};
+use super::{enums::ChunkWorkflow, errors::{DespawnError, SpawnError, TransferOwnershipError}, resources::ChunkRenderHandles, ChunkWorkflowBuffer, ChunkManager};
 
 pub(in crate) fn calculate_chunks_in_radius(position: Vec2, radius: u32) -> Vec<(i32, i32)> {
     let (center_chunk_x, center_chunk_y) = world_pos_to_chunk(position);
@@ -59,17 +59,17 @@ pub(in crate) fn chunk_pos_to_world(grid_coord: (i32, i32)) -> Vec2 {
     Vec2::new(chunk_x, chunk_y)
 }
 
-pub(in crate) fn process_chunk_action(
-    action: ChunkAction,
+pub(in crate) fn process_chunk_workflow(
+    workflow: ChunkWorkflow,
     commands: &mut Commands,
     chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
     chunk_loader_query: &Query<Entity, With<ChunkLoaderComponent>>,
     chunk_manager: &mut ChunkManager,
-    chunk_action_buffer: &mut ChunkActionBuffer,
+    chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
     chunk_render_handles: &ChunkRenderHandles,
 ) {
-    match action {
-        ChunkAction::Spawn { coord, new_owner: owner, .. } => {
+    match workflow {
+        ChunkWorkflow::Spawn { coord, new_owner: owner, .. } => {
             let quad_handle = chunk_render_handles.quad.clone();
             let material_handle = if (coord.0 + coord.1) % 2 == 0 {
                 chunk_render_handles.light_material.clone()
@@ -86,7 +86,7 @@ pub(in crate) fn process_chunk_action(
             if let Err(err) = spawn_chunk(
                 commands,
                 chunk_manager,
-                chunk_action_buffer,
+                chunk_workflow_buffer,
                 coord,
                 owner,
                 quad_handle,
@@ -95,13 +95,13 @@ pub(in crate) fn process_chunk_action(
                 panic!("Failed to spawn chunk '{:?}': {:?}", coord, err);
             }
         }
-        ChunkAction::Despawn { coord, .. } => {
-            if let Err(err) = despawn_chunk(commands, chunk_manager, chunk_action_buffer, chunk_query, coord) {
+        ChunkWorkflow::Despawn { coord, .. } => {
+            if let Err(err) = despawn_chunk(commands, chunk_manager, chunk_workflow_buffer, chunk_query, coord) {
                 panic!("Failed to despawn chunk '{:?}': {:?}", coord, err);
             }
         }
-        ChunkAction::TransferOwnership { coord, new_owner, .. } => {
-            if let Err(err) = transfer_chunk_ownership(chunk_manager, chunk_action_buffer, chunk_query, coord, new_owner)
+        ChunkWorkflow::TransferOwnership { coord, new_owner, .. } => {
+            if let Err(err) = transfer_chunk_ownership(chunk_manager, chunk_workflow_buffer, chunk_query, coord, new_owner)
             {
                 panic!("Failed to transfer ownership of chunk '{:?}': {:?}", coord, err);
             }
@@ -112,7 +112,7 @@ pub(in crate) fn process_chunk_action(
 pub(in crate) fn spawn_chunk(
     commands: &mut Commands,
     chunk_manager: &mut ChunkManager,
-    chunk_action_buffer: &mut ChunkActionBuffer,
+    chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>,
     quad_handle: Handle<Mesh>,
@@ -123,7 +123,7 @@ pub(in crate) fn spawn_chunk(
         return Err(SpawnError::AlreadySpawned { chunk_coord });
     }
     
-    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord);
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_workflow_buffer.get_workflow_states(&chunk_coord);
     if !is_spawning {
         return Err(SpawnError::NotSpawning { chunk_coord });
     }
@@ -160,7 +160,7 @@ pub(in crate) fn spawn_chunk(
     if let Some(chunk_owner) = chunk_owner {
         chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
     }
-    chunk_action_buffer.remove_action(&chunk_coord);
+    chunk_workflow_buffer.remove_workflow(&chunk_coord);
 
     Ok(())
 }
@@ -168,7 +168,7 @@ pub(in crate) fn spawn_chunk(
 pub(in crate) fn despawn_chunk(
     commands: &mut Commands,
     chunk_manager: &mut ChunkManager,
-    chunk_action_buffer: &mut ChunkActionBuffer,
+    chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
     chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
     chunk_coord: (i32, i32),
 ) -> Result<(), DespawnError> {
@@ -177,7 +177,7 @@ pub(in crate) fn despawn_chunk(
         return Err(DespawnError::AlreadyDespawned { chunk_coord });
     }
 
-    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord) ;
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_workflow_buffer.get_workflow_states(&chunk_coord) ;
     if is_spawning {
         return Err(DespawnError::AlreadyBeingSpawned { chunk_coord });
     }
@@ -194,14 +194,14 @@ pub(in crate) fn despawn_chunk(
             
             chunk_manager.loaded_chunks.remove(&chunk_coord);
             chunk_manager.owned_chunks.remove(&chunk_coord);
-            chunk_action_buffer.remove_action(&chunk_coord);
+            chunk_workflow_buffer.remove_workflow(&chunk_coord);
 
             Ok(())
         },
         None => {
             chunk_manager.loaded_chunks.remove(&chunk_coord);
             chunk_manager.owned_chunks.remove(&chunk_coord);
-            chunk_action_buffer.remove_action(&chunk_coord);
+            chunk_workflow_buffer.remove_workflow(&chunk_coord);
 
             Ok(())
         }
@@ -210,7 +210,7 @@ pub(in crate) fn despawn_chunk(
 
 pub(in crate) fn transfer_chunk_ownership(
     chunk_manager: &mut ChunkManager,
-    chunk_action_buffer: &mut ChunkActionBuffer,
+    chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
     chunk_query: &mut Query<(Entity, &mut ChunkComponent)>,
     chunk_coord: (i32, i32),
     new_chunk_owner: Entity
@@ -220,7 +220,7 @@ pub(in crate) fn transfer_chunk_ownership(
         return Err(TransferOwnershipError::AlreadyDespawned { chunk_coord });
     }
     
-    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord) ;
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_workflow_buffer.get_workflow_states(&chunk_coord) ;
     if is_spawning {
         return Err(TransferOwnershipError::AlreadyBeingSpawned { chunk_coord });
     }
@@ -241,7 +241,7 @@ pub(in crate) fn transfer_chunk_ownership(
     }
     chunk.owner = Some(new_chunk_owner);
     chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner);
-    chunk_action_buffer.remove_action(&chunk_coord);
+    chunk_workflow_buffer.remove_workflow(&chunk_coord);
 
     Ok(())
 }

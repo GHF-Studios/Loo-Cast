@@ -34,33 +34,33 @@ pub struct ExtractSystems;
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RenderSystems;
 
-pub(in crate) struct ActionPlugin;
-impl Plugin for ActionPlugin {
+pub(in crate) struct WorkflowPlugin;
+impl Plugin for WorkflowPlugin {
     fn build(&self, app: &mut App) {
         let (ecs_sender, ecs_receiver) = crossbeam_channel::unbounded();
-        let ecs_sender = ActionStageCompletionEventSenderEcs(ecs_sender);
-        let ecs_receiver = ActionStageCompletionEventReceiverEcs(ecs_receiver);
+        let ecs_sender = EcsStageCompletionEventSender(ecs_sender);
+        let ecs_receiver = EcsStageCompletionEventReceiver(ecs_receiver);
 
         let (ecs_while_sender, ecs_while_receiver) = crossbeam_channel::unbounded();
-        let ecs_while_sender = ActionStageCompletionEventSenderEcsWhile(ecs_while_sender);
-        let ecs_while_receiver = ActionStageCompletionEventReceiverEcsWhile(ecs_while_receiver);
+        let ecs_while_sender = EcsWhileStageCompletionEventSender(ecs_while_sender);
+        let ecs_while_receiver = EcsWhileStageCompletionEventReceiver(ecs_while_receiver);
 
         let (render_sender, render_receiver) = crossbeam_channel::unbounded();
-        let render_sender = ActionStageCompletionEventSenderRender(render_sender);
-        let render_receiver = ActionStageCompletionEventReceiverRender(render_receiver);
+        let render_sender = RenderStageCompletionEventSender(render_sender);
+        let render_receiver = WorkflowStageCompletionEventReceiverRender(render_receiver);
 
         let (render_while_sender, render_while_receiver) = crossbeam_channel::unbounded();
-        let render_while_sender = ActionStageCompletionEventSenderRenderWhile(render_while_sender);
-        let render_while_receiver = ActionStageCompletionEventReceiverRenderWhile(render_while_receiver);
+        let render_while_sender = WorkflowStageCompletionEventSenderRenderWhile(render_while_sender);
+        let render_while_receiver = WorkflowStageCompletionEventReceiverRenderWhile(render_while_receiver);
         
         let (async_sender, async_receiver) = crossbeam_channel::unbounded();
-        let async_sender = ActionStageCompletionEventSenderAsync(async_sender);
-        let async_receiver = ActionStageCompletionEventReceiverAsync(async_receiver);
+        let async_sender = WorkflowStageCompletionEventSenderAsync(async_sender);
+        let async_receiver = WorkflowStageCompletionEventReceiverAsync(async_receiver);
 
         app
-            .add_event::<ActionStageCompletionEvent>()
+            .add_event::<WorkflowStageCompletionEvent>()
             // TODO: Make persistent if the need arises
-            .add_consumable_event::<ActionStageCompletionEvent>()
+            .add_consumable_event::<WorkflowStageCompletionEvent>()
             .insert_resource(ecs_sender)
             .insert_resource(ecs_receiver)
             .insert_resource(ecs_while_sender)
@@ -71,30 +71,30 @@ impl Plugin for ActionPlugin {
             .insert_resource(render_while_receiver)
             .insert_resource(async_sender)
             .insert_resource(async_receiver)
-            .insert_resource(ActionTypeModuleRegistry::default())
-            .insert_resource(ActionRequestBuffer::default())
-            .insert_resource(ActionMap::default())
+            .insert_resource(WorkflowTypeModuleRegistry::default())
+            .insert_resource(WorkflowRequestBuffer::default())
+            .insert_resource(WorkflowMap::default())
             .insert_resource(EcsStageCompletionEventQueue::default())
             .insert_resource(EcsWhileStageCompletionEventQueue::default())
             .insert_resource(RenderStageCompletionEventQueue::default())
             .insert_resource(RenderWhileStageCompletionEventQueue::default())
             .insert_resource(AsyncStageCompletionEventQueue::default())
-            .add_systems(PreUpdate, action_request_system)
+            .add_systems(PreUpdate, workflow_request_system)
             .add_systems(PreUpdate, (
                 handle_ecs_stage_completion_event_system,
                 handle_ecs_while_stage_completion_event_system,
                 handle_render_stage_completion_event_system, 
                 handle_render_while_stage_completion_event_system,
                 handle_async_stage_completion_event_system
-            ).in_set(PreUpdateSystems).after(action_request_system))
+            ).in_set(PreUpdateSystems).after(workflow_request_system))
             .add_systems(Update, (
                 execute_ecs_stages_system,
                 execute_ecs_while_stages_system,
                 execute_async_stages_system
             ).in_set(UpdateSystems))
             .add_systems(PostUpdate, (
-                action_stage_execution_cleanup_system,
-                action_progression_system.after(action_stage_execution_cleanup_system)
+                stage_execution_cleanup_system,
+                workflow_progression_system.after(stage_execution_cleanup_system)
             ).in_set(PostUpdateSystems));
 
         let render_app = app.sub_app_mut(RenderApp);

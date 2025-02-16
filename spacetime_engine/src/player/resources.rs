@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 
 #[derive(Resource, Default)]
-pub struct PlayerActionQueue(pub Vec<PlayerAction>);
+pub struct PlayerWorkflowQueue(pub Vec<PlayerWorkflow>);
 
-pub enum PlayerAction {
+pub enum PlayerWorkflow {
     Spawn,
     Despawn(Entity),
 }

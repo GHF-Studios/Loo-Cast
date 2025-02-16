@@ -3,23 +3,23 @@ use std::collections::HashSet;
 use bevy::prelude::*;
 
 use crate::chunk::components::ChunkComponent;
-use crate::chunk::enums::ChunkAction;
+use crate::chunk::enums::ChunkWorkflow;
 use crate::chunk::functions::*;
-use crate::chunk::resources::{ChunkActionBuffer, ChunkManager};
+use crate::chunk::resources::{ChunkWorkflowBuffer, ChunkManager};
 
 use super::components::ChunkLoaderComponent;
 use super::functions::{load_chunk, unload_chunk};
 
-// TODO: Re-Validate chunk actions before the chunk unloading logic
+// TODO: Re-Validate chunk workflows before the chunk unloading logic
 pub(in crate) fn observe_on_add_chunk_loader(
     trigger: Trigger<OnAdd, ChunkLoaderComponent>,
     chunk_loader_query: Query<(Entity, &Transform, &mut ChunkLoaderComponent)>,
     chunk_manager: Res<ChunkManager>,
-    mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
+    mut chunk_workflow_buffer: ResMut<ChunkWorkflowBuffer>,
 ) {
     let loader_entity = trigger.entity();
 
-    // Phase 1: Re-Validate chunk actions
+    // Phase 1: Re-Validate chunk workflows
 
 
     // Phase 2: Perform chunk loading logic
@@ -50,7 +50,7 @@ pub(in crate) fn observe_on_add_chunk_loader(
 
         load_chunk(
             &chunk_manager, 
-            &mut chunk_action_buffer, 
+            &mut chunk_workflow_buffer, 
             loader.id,
             *chunk_coord, 
             Some(loader_entity),
@@ -60,13 +60,13 @@ pub(in crate) fn observe_on_add_chunk_loader(
     }
 }
 
-// TODO: Re-Validate chunk actions before the chunk unloading logic
+// TODO: Re-Validate chunk workflows before the chunk unloading logic
 pub(in crate) fn observe_on_remove_chunk_loader(
     trigger: Trigger<OnRemove, ChunkLoaderComponent>,
     chunk_query: Query<(Entity, &ChunkComponent)>,
     chunk_loader_query: Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     chunk_manager: Res<ChunkManager>,
-    mut chunk_action_buffer: ResMut<ChunkActionBuffer>,
+    mut chunk_workflow_buffer: ResMut<ChunkWorkflowBuffer>,
 ) {
     let loader_entity = trigger.entity();
     debug!("Handling removed chunk loader {}", loader_entity);
@@ -80,21 +80,21 @@ pub(in crate) fn observe_on_remove_chunk_loader(
         }
     };
 
-    // Phase 1: Re-Validate chunk actions
+    // Phase 1: Re-Validate chunk workflows
 
-    let mut invalid_actions = vec![];
-    for (chunk_coord, action) in chunk_action_buffer.iter().filter(|(_, action)| action.get_requester_id() == loader.id) {
-        match action {
-            ChunkAction::Spawn { .. } => {
-                invalid_actions.push(*chunk_coord);
+    let mut invalid_workflows = vec![];
+    for (chunk_coord, workflow) in chunk_workflow_buffer.iter().filter(|(_, workflow)| workflow.get_requester_id() == loader.id) {
+        match workflow {
+            ChunkWorkflow::Spawn { .. } => {
+                invalid_workflows.push(*chunk_coord);
             }
-            ChunkAction::Despawn { .. } => {}
-            ChunkAction::TransferOwnership { .. } => {}
+            ChunkWorkflow::Despawn { .. } => {}
+            ChunkWorkflow::TransferOwnership { .. } => {}
         }
     }
 
-    for chunk_coord in invalid_actions {
-        chunk_action_buffer.remove_action(&chunk_coord);
+    for chunk_coord in invalid_workflows {
+        chunk_workflow_buffer.remove_workflow(&chunk_coord);
     }
 
     // Phase 2: Perform chunk unloading logic
@@ -107,7 +107,7 @@ pub(in crate) fn observe_on_remove_chunk_loader(
         .iter()
         .filter_map(|(chunk, &owner)| {
             if owner == loader_entity { 
-                chunk_action_buffer.remove_action(chunk);
+                chunk_workflow_buffer.remove_workflow(chunk);
 
                 Some(chunk) 
             } else { 
@@ -125,7 +125,7 @@ pub(in crate) fn observe_on_remove_chunk_loader(
 
         unload_chunk(
             &chunk_manager,
-            &mut chunk_action_buffer,
+            &mut chunk_workflow_buffer,
             &chunk_query,
             &chunk_loader_query,
             loader.id,
