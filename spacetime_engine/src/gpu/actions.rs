@@ -1,12 +1,12 @@
-use crate::workflow::{resources::WorkflowTypeModuleRegistry, target::WorkflowTypeModule};
+use crate::action::{resources::ActionTypeModuleRegistry, target::ActionTypeModule};
 
-pub fn initialize_workflow_type_module(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-    workflow_type_module_registry.register(
-        WorkflowTypeModule {
+pub fn initialize_action_type_module(action_type_module_registry: &mut ActionTypeModuleRegistry) {
+    action_type_module_registry.register(
+        ActionTypeModule {
             name: "GPU".to_owned(),
-            workflow_types: vec![
-                setup_texture_generator::create_workflow_type(),
-                generate_texture::create_workflow_type(),
+            action_types: vec![
+                setup_texture_generator::create_action_type(),
+                generate_texture::create_action_type(),
             ],
         },
     );
@@ -17,10 +17,10 @@ pub mod setup_texture_generator {
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
 
-    use crate::workflow::stage::*;
-    use crate::workflow::types::RawWorkflowData;
+    use crate::action::stage::*;
+    use crate::action::types::RawActionData;
     use crate::gpu::resources::ShaderPipelineRegistry;
-    use crate::{workflow::{stage::WorkflowStage, stage_io::{WorkflowIO, InputState, OutputState}, types::WorkflowType}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
+    use crate::{action::{stage::ActionStage, stage_io::{ActionIO, InputState, OutputState}, types::ActionType}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
 
     pub struct Input(pub SetupPipelineInput);
 
@@ -31,61 +31,76 @@ pub mod setup_texture_generator {
 
     pub struct Output(pub Result<(), String>);
 
-    pub fn create_workflow_type() -> WorkflowType {
-        WorkflowType {
+    pub fn create_action_type() -> ActionType {
+        ActionType {
             name: "SetupTextureGenerator".to_owned(),
-            primary_validation: Box::new(|io: WorkflowIO<InputState>| -> Result<WorkflowIO<InputState>, String> {
-                let (workflow_input, _) = io.get_input::<Input>();
-                let stage_input = workflow_input.0;
+            primary_validation: Box::new(|io: ActionIO<InputState>| -> Result<ActionIO<InputState>, String> {
+                let (action_input, _) = io.get_input::<Input>();
+                let stage_input = action_input.0;
 
-                Ok(WorkflowIO::new_input(RawWorkflowData::new(stage_input)))
+                Ok(ActionIO::new_input(RawActionData::new(stage_input)))
             }),
-            secondary_validation: Box::new(|io: WorkflowIO<InputState>, _world: &mut World| -> Result<WorkflowIO<InputState>, String> {
+            secondary_validation: Box::new(|io: ActionIO<InputState>, _world: &mut World| -> Result<ActionIO<InputState>, String> {
                 Ok(io)
             }),
             stages: vec![
-                Some(WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
-                    name: "DummyAsync".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>| {
-                        Box::pin(async move {
-                            debug!("Active Workflow Stage: DummyAsync executed.");
-                            let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                            tokio::time::sleep(std::time::Duration::from_millis(50)).await; // Simulated async delay
-                            io.set_output(RawWorkflowData::new(input)) // Pass-through
-                        })
-                    }),
-                })),
-                Some(WorkflowStage::Ecs(WorkflowStageEcs {
-                    name: "DummyEcs".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
+                // TODO: Async is fully broken!
+                //ActionStage::Async(crate::action::stage::ActionStageAsync {
+                //    name: "DummyAsync".to_owned(),
+                //    function: Box::new(|io: ActionIO<InputState>| {
+                //        Box::pin(async move {
+                //            debug!("Active Action Stage: DummyAsync executed.");
+                //            let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
+                //            tokio::time::sleep(std::time::Duration::from_millis(50)).await; // Simulated async delay
+                //            io.set_output(RawActionData::new(input)) // Pass-through
+                //        })
+                //    }),
+                //}),
+                //ActionStage::Ecs(ActionStageEcs {
+                //    name: "DummyEcs".to_owned(),
+                //    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
+                //        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
+                //        io.set_output(RawActionData::new(input)) // Pass-through
+                //    }),
+                //}),
+                //ActionStage::EcsWhile(ActionStageEcsWhile {
+                //    name: "DummyEcsWhile".to_owned(),
+                //    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageEcsWhileOutcome {
+                //        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
+                //        ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(input))) // Pass-through
+                //    }),
+                //}),
+                ActionStage::Render(ActionStageRender {
+                    name: "DummyEcsRender1".to_owned(),
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                        io.set_output(RawWorkflowData::new(input)) // Pass-through
+                        io.set_output(RawActionData::new(input)) // Pass-through
                     }),
-                })),
-                Some(WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
-                    name: "DummyEcsWhile".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
+                }),
+                ActionStage::Render(ActionStageRender {
+                    name: "DummyEcsRender2".to_owned(),
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                        WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(input))) // Pass-through
+                        io.set_output(RawActionData::new(input)) // Pass-through
                     }),
-                })),
-                Some(WorkflowStage::Render(WorkflowStageRender {
-                    name: "DummyRender".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
+                }),
+                ActionStage::Render(ActionStageRender {
+                    name: "DummyEcsRender3".to_owned(),
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                        io.set_output(RawWorkflowData::new(input)) // Pass-through
+                        io.set_output(RawActionData::new(input)) // Pass-through
                     }),
-                })),
-                Some(WorkflowStage::RenderWhile(WorkflowStageRenderWhile {
-                    name: "DummyRenderWhile".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                        WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(input))) // Pass-through
-                    }),
-                })),
-                Some(WorkflowStage::Render(WorkflowStageRender {
+                }),
+                //ActionStage::EcsRenderWhile(ActionStageEcsRenderWhile {
+                //    name: "DummyEcsRenderWhile".to_owned(),
+                //    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageEcsWhileOutcome {
+                //        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
+                //        ActionStageEcsWhileOutcome::Completed(io.set_output(RawActionData::new(input))) // Pass-through
+                //    }),
+                //}),
+                ActionStage::Render(ActionStageRender {
                     name: "SetupPipeline".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>();
                         let shader_name = input.shader_name;
                         let shader_path = input.shader_path.clone();
@@ -107,7 +122,7 @@ pub mod setup_texture_generator {
                         let shader_source = match std::fs::read_to_string(&shader_path) {
                             Ok(source) => source,
                             Err(e) => {
-                                return io.set_output(RawWorkflowData::new(Output(Err(format!("Failed to read shader: {}", e)))))
+                                return io.set_output(RawActionData::new(Output(Err(format!("Failed to read shader: {}", e)))))
                             },
                         };
 
@@ -154,9 +169,9 @@ pub mod setup_texture_generator {
                         shader_pipeline_registry.shaders.insert(shader_name.to_string(), shader_handle);
                         shader_pipeline_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
                         
-                        io.set_output(RawWorkflowData::new(Output(Ok(()))))
+                        io.set_output(RawActionData::new(Output(Ok(()))))
                     }),
-                })),
+                }),
             ],
         }
     }
@@ -167,11 +182,11 @@ pub mod generate_texture {
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
     use crossbeam_channel::{unbounded, Receiver, Sender};
-    use crate::{workflow::{stage::{WorkflowStageRender, WorkflowStageWhileOutcome}, types::RawWorkflowData}, gpu::resources::ShaderPipelineRegistry};
-    use crate::workflow::{stage::{WorkflowStage, WorkflowStageEcsWhile, WorkflowStageEcs}, 
-        stage_io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
+    use crate::{action::{stage::{ActionStageRender, ActionStageWhileOutcome}, types::RawActionData}, gpu::resources::ShaderPipelineRegistry};
+    use crate::action::{stage::{ActionStage, ActionStageEcsWhile, ActionStageEcs}, 
+        stage_io::{ActionIO, InputState, OutputState}, types::ActionType};
 
-    /// Input to the workflow
+    /// Input to the action
     pub struct Input(pub GenerateTextureInput);
 
     /// Data needed for texture generation
@@ -211,24 +226,24 @@ pub mod generate_texture {
     #[derive(Resource)]
     struct BufferMappingReceiver(Receiver<()>);
 
-    pub fn create_workflow_type() -> WorkflowType {
-        WorkflowType {
+    pub fn create_action_type() -> ActionType {
+        ActionType {
             name: "GenerateTexture".to_owned(),
-            primary_validation: Box::new(|io: WorkflowIO<InputState>| -> Result<WorkflowIO<InputState>, String> {
-                let (workflow_input, _) = io.get_input::<Input>();
-                let stage_input = workflow_input.0;
+            primary_validation: Box::new(|io: ActionIO<InputState>| -> Result<ActionIO<InputState>, String> {
+                let (action_input, _) = io.get_input::<Input>();
+                let stage_input = action_input.0;
 
-                Ok(WorkflowIO::new_input(RawWorkflowData::new(stage_input)))
+                Ok(ActionIO::new_input(RawActionData::new(stage_input)))
             }),
-            secondary_validation: Box::new(|io: WorkflowIO<InputState>, _world: &mut World| -> Result<WorkflowIO<InputState>, String> {
+            secondary_validation: Box::new(|io: ActionIO<InputState>, _world: &mut World| -> Result<ActionIO<InputState>, String> {
                 Ok(io)
             }),
             stages: vec![
                 // **1. ECS Stage: Prepare Compute Resources**
-                Some(WorkflowStage::Ecs(WorkflowStageEcs {
+                ActionStage::Ecs(ActionStageEcs {
                     name: "PrepareCompute".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        debug!("Active Workflow Stage: Gpu::GenerateTexture::PrepareCompute");
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
+                        debug!("Active Action Stage: Gpu::GenerateTexture::PrepareCompute");
                         let (input, io) = io.get_input::<GenerateTextureInput>();
                         let shader_name = input.shader_name.clone();
                         let texture_size = input.texture_size;
@@ -246,7 +261,7 @@ pub mod generate_texture {
                                 id 
                             },
                             None => {
-                                // TODO: Bake fallability into the workflow type, instead of this rude abrupt panic
+                                // TODO: Bake fallability into the action type, instead of this rude abrupt panic
                                 unreachable!("Failed to generate texture: Pipeline not found for shader: {}", shader_name)
                             },
                         };
@@ -281,21 +296,21 @@ pub mod generate_texture {
                             mapped_at_creation: false,
                         });
 
-                        io.set_output(RawWorkflowData::new(PreparedPipeline {
+                        io.set_output(RawActionData::new(PreparedPipeline {
                             pipeline_id,
                             texture: texture_handle,
                             status_buffer,
                             readback_buffer
                         }))
                     }),
-                })),
+                }),
 
                 // **2. EcsWhile Stage: Wait for Pipeline Compilation**
-                Some(WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
+                ActionStage::EcsWhile(ActionStageEcsWhile {
                     name: "WaitForPipeline".to_owned(),
-                    // TODO: Maybe instead of WorkflowStageEcsWhileOutcome use a future and handle the ecs while stage async-ly somehow??? 
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                        debug!("Active Workflow Stage: Gpu::GenerateTexture::WaitForPipeline");
+                    // TODO: Maybe instead of ActionStageEcsWhileOutcome use a future and handle the ecs while stage async-ly somehow??? 
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageWhileOutcome {
+                        debug!("Active Action Stage: Gpu::GenerateTexture::WaitForPipeline");
                         let input = io.get_input_ref::<PreparedPipeline>();
                         let pipeline_id = input.pipeline_id;
                 
@@ -305,20 +320,20 @@ pub mod generate_texture {
                         match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
                             CachedPipelineState::Queued => {
                                 error!("Queued");
-                                WorkflowStageWhileOutcome::Waiting(io)
+                                ActionStageWhileOutcome::Waiting(io)
                             },
                             CachedPipelineState::Creating(_) => {
                                 error!("Creating");
-                                WorkflowStageWhileOutcome::Waiting(io)
+                                ActionStageWhileOutcome::Waiting(io)
                             },
                             CachedPipelineState::Ok(pipeline) => {
                                 let (input, io) = io.get_input::<PreparedPipeline>();
                                 let compute_pipeline = match pipeline {
-                                    // TODO: Bake fallability into the workflow type, instead of this rude abrupt panic
+                                    // TODO: Bake fallability into the action type, instead of this rude abrupt panic
                                     Pipeline::RenderPipeline(_) => unreachable!("Failed to generate texture: Expected a compute pipeline"),
                                     Pipeline::ComputePipeline(compute_pipeline) => compute_pipeline
                                 };
-                                WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(DispatchData {
+                                ActionStageWhileOutcome::Completed(io.set_output(RawActionData::new(DispatchData {
                                     pipeline_id,
                                     bind_group_layout: compute_pipeline.get_bind_group_layout(0).into(),
                                     texture: input.texture.clone(),
@@ -327,18 +342,18 @@ pub mod generate_texture {
                                 })))
                             },
                             CachedPipelineState::Err(e) => {
-                                // TODO: Bake fallability into the workflow type, instead of this rude abrupt panic
+                                // TODO: Bake fallability into the action type, instead of this rude abrupt panic
                                 unreachable!("Failed to generate texture: Failed to create pipeline: {}", e);
                             },
                         }
                     }),
-                })),
+                }),
 
                 // NEW: **3. ECS Stage: Dispatch Compute Work**
-                Some(WorkflowStage::Render(WorkflowStageRender {
+                ActionStage::Render(ActionStageRender {
                     name: "DispatchCompute".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        debug!("Active Workflow Stage: Gpu::GenerateTexture::DispatchCompute");
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
+                        debug!("Active Action Stage: Gpu::GenerateTexture::DispatchCompute");
                         let (input, io) = io.get_input::<DispatchData>();
                         let pipeline_id = input.pipeline_id;
                         let bind_group_layout = input.bind_group_layout.clone();
@@ -378,15 +393,15 @@ pub mod generate_texture {
 
                         queue.submit(Some(encoder.finish()));
 
-                        io.set_output(RawWorkflowData::new(ComputePending { texture, status_buffer, readback_buffer }))
+                        io.set_output(RawActionData::new(ComputePending { texture, status_buffer, readback_buffer }))
                     }),
-                })),
+                }),
 
                 // **4. EcsWhile Stage: Wait for Compute Execution (Polling)**
-                Some(WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
+                ActionStage::EcsWhile(ActionStageEcsWhile {
                     name: "WaitForCompute".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                        debug!("Active Workflow Stage: Gpu::GenerateTexture::WaitForCompute");
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionStageWhileOutcome {
+                        debug!("Active Action Stage: Gpu::GenerateTexture::WaitForCompute");
                         let input = io.get_input_ref::<ComputePending>();
                         let readback_buffer = &input.readback_buffer;
                         
@@ -395,7 +410,7 @@ pub mod generate_texture {
                             if receiver.0.try_recv().is_ok() {
                                 let (input, io) = io.get_input::<ComputePending>();
                                 world.remove_resource::<BufferMappingReceiver>(); // Cleanup
-                                return WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(Output(Ok(input.texture)))));
+                                return ActionStageWhileOutcome::Completed(io.set_output(RawActionData::new(Output(Ok(input.texture)))));
                             }
                         } else {
                             let (sender, receiver) = unbounded();
@@ -413,9 +428,9 @@ pub mod generate_texture {
                             );
                         }
                         
-                        WorkflowStageWhileOutcome::Waiting(io)
+                        ActionStageWhileOutcome::Waiting(io)
                     }),
-                })),
+                }),
             ],
         }
     }

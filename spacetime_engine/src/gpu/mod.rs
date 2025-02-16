@@ -1,6 +1,6 @@
 pub mod resources;
 
-pub mod workflows;
+pub mod actions;
 
 use bevy::prelude::*;
 use resources::*;

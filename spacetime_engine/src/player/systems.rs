@@ -2,17 +2,17 @@ use bevy::prelude::*;
 
 use crate::{config::statics::CONFIG, oneshot_systems::MainOneshotSystems};
 
-use super::{components::PlayerComponent, resources::{PlayerWorkflow, PlayerWorkflowQueue}};
+use super::{components::PlayerComponent, resources::{PlayerAction, PlayerActionQueue}};
 
 pub(in crate) fn update_player_system(
-    mut queue: ResMut<PlayerWorkflowQueue>,
+    mut queue: ResMut<PlayerActionQueue>,
     mut player_query: Query<(Entity, &mut Transform), With<PlayerComponent>>,
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
     if player_query.is_empty() {
         if keys.just_pressed(KeyCode::Space) {
-            queue.0.push(PlayerWorkflow::Spawn);
+            queue.0.push(PlayerAction::Spawn);
         }
         return;
     }
@@ -40,23 +40,23 @@ pub(in crate) fn update_player_system(
         transform.translation += direction * CONFIG.get::<f32>("player/movement_speed") * time.delta_seconds();
 
         if keys.just_pressed(KeyCode::Space) {
-            queue.0.push(PlayerWorkflow::Despawn(player_entity));
+            queue.0.push(PlayerAction::Despawn(player_entity));
         }
     }
 }
 
-pub(in crate) fn process_player_workflow_queue(
+pub(in crate) fn process_player_action_queue(
     mut commands: Commands,
-    mut queue: ResMut<PlayerWorkflowQueue>,
+    mut queue: ResMut<PlayerActionQueue>,
     main_oneshot_systems: Res<MainOneshotSystems>,
 ) {
-    for workflow in queue.0.drain(..) {
-        match workflow {
-            PlayerWorkflow::Spawn => {
+    for action in queue.0.drain(..) {
+        match action {
+            PlayerAction::Spawn => {
                 let id = main_oneshot_systems.0["spawn_main_player"];
                 commands.run_system(id);
             }
-            PlayerWorkflow::Despawn(entity) => {
+            PlayerAction::Despawn(entity) => {
                 commands.entity(entity).despawn_recursive();
             }
         }

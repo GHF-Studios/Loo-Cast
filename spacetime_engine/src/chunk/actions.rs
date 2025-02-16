@@ -1,14 +1,16 @@
-use crate::workflow::{resources::WorkflowTypeModuleRegistry, target::WorkflowTypeModule};
+use bevy::prelude::*;
 
-// TODO: Create macro to define workflows and their types in a more streamlined and natural way
-pub fn initialize_workflow_type_module(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
-    workflow_type_module_registry.register(
-        WorkflowTypeModule {
+use crate::action::{resources::ActionTypeModuleRegistry, target::ActionTypeModule};
+
+// TODO: Create macro to define actions and their types in a more streamlined and natural way
+pub fn initialize_action_type_module(action_type_module_registry: &mut ActionTypeModuleRegistry) {
+    action_type_module_registry.register(
+        ActionTypeModule {
             name: "Chunk".to_owned(),
-            workflow_types: vec![
-                spawn::create_workflow_type(),
-                despawn::create_workflow_type(),
-                transfer_ownership::create_workflow_type(),
+            action_types: vec![
+                spawn::create_action_type(),
+                despawn::create_action_type(),
+                transfer_ownership::create_action_type(),
             ],
         },
     );
@@ -17,7 +19,7 @@ pub fn initialize_workflow_type_module(workflow_type_module_registry: &mut Workf
 pub mod spawn {
     use bevy::prelude::*;
 
-    use crate::{workflow::{stage::{WorkflowStage, WorkflowStageEcs}, stage_io::{WorkflowIO, InputState, OutputState}, types::{WorkflowType, RawWorkflowData}}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
+    use crate::{action::{stage::{ActionStage, ActionStageAsync, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::{ActionType, RawActionData}}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
 
     pub struct Input(pub SetupAndSpawnEntityInput);
 
@@ -29,30 +31,30 @@ pub mod spawn {
 
     pub struct Output(pub Result<(), String>);
 
-    pub fn create_workflow_type() -> WorkflowType {
-        WorkflowType {
+    pub fn create_action_type() -> ActionType {
+        ActionType {
             name: "Spawn".to_owned(),
-            primary_validation: Box::new(|io: WorkflowIO<InputState>| -> Result<WorkflowIO<InputState>, String> {
-                let (workflow_input, _) = io.get_input::<Input>();
-                let stage_input = workflow_input.0;
+            primary_validation: Box::new(|io: ActionIO<InputState>| -> Result<ActionIO<InputState>, String> {
+                let (action_input, _) = io.get_input::<Input>();
+                let stage_input = action_input.0;
 
-                Ok(WorkflowIO::new_input(RawWorkflowData::new(stage_input)))
+                Ok(ActionIO::new_input(RawActionData::new(stage_input)))
             }),
-            secondary_validation: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> Result<WorkflowIO<InputState>, String> {
+            secondary_validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<InputState>, String> {
                 let stage_input = io.get_input_ref::<SetupAndSpawnEntityInput>();
 
                 let target = world.query::<&ChunkComponent>().iter(world).find(|chunk| chunk.coord == stage_input.chunk_coord);
 
                 if target.is_some() {
-                    return Err("Workflow validation error: Cannot spawn an already loaded chunk.".to_owned());
+                    return Err("Action validation error: Cannot spawn an already loaded chunk.".to_owned());
                 }
                 
                 Ok(io)
             }),
             stages: vec![
-                Some(WorkflowStage::Ecs(WorkflowStageEcs {
+                ActionStage::Ecs(ActionStageEcs {
                     name: "SetupAndSpawnEntity".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<SetupAndSpawnEntityInput>();
                         let chunk_coord = input.chunk_coord;
                         let chunk_owner = input.chunk_owner;
@@ -86,9 +88,9 @@ pub mod spawn {
                             chunk_manager.owned_chunks.insert(chunk_coord, chunk_owner);
                         }
 
-                        io.set_output(RawWorkflowData::new(Output(Ok(()))))
+                        io.set_output(RawActionData::new(Output(Ok(()))))
                     }),
-                })),
+                }),
             ],
         }
     }
@@ -97,7 +99,7 @@ pub mod spawn {
 pub mod despawn {
     use bevy::prelude::*;
 
-    use crate::{workflow::{stage::{WorkflowStage, WorkflowStageEcs}, stage_io::{WorkflowIO, InputState, OutputState}, types::{WorkflowType, RawWorkflowData}}, chunk::{components::ChunkComponent, resources::ChunkManager}};
+    use crate::{action::{stage::{ActionStage, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::{ActionType, RawActionData}}, chunk::{components::ChunkComponent, resources::ChunkManager}};
 
     pub struct Input(pub FindAndDespawnEntityInput);
 
@@ -107,30 +109,30 @@ pub mod despawn {
 
     pub struct Output(pub Result<(), String>);
 
-    pub fn create_workflow_type() -> WorkflowType {
-        WorkflowType {
+    pub fn create_action_type() -> ActionType {
+        ActionType {
             name: "Despawn".to_owned(),
-            primary_validation: Box::new(|io: WorkflowIO<InputState>| -> Result<WorkflowIO<InputState>, String> {
-                let (workflow_input, _) = io.get_input::<Input>();
-                let stage_input = workflow_input.0;
+            primary_validation: Box::new(|io: ActionIO<InputState>| -> Result<ActionIO<InputState>, String> {
+                let (action_input, _) = io.get_input::<Input>();
+                let stage_input = action_input.0;
 
-                Ok(WorkflowIO::new_input(RawWorkflowData::new(stage_input)))
+                Ok(ActionIO::new_input(RawActionData::new(stage_input)))
             }),
-            secondary_validation: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> Result<WorkflowIO<InputState>, String> {
+            secondary_validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<InputState>, String> {
                 let stage_input = io.get_input_ref::<FindAndDespawnEntityInput>();
 
                 let target = world.query::<&ChunkComponent>().iter(world).find(|chunk| chunk.coord == stage_input.chunk_coord);
 
                 if target.is_none() {
-                    return Err("Workflow validation error: Cannot despawn an already unloaded chunk.".to_owned());
+                    return Err("Action validation error: Cannot despawn an already unloaded chunk.".to_owned());
                 }
                 
                 Ok(io)
             }),
             stages: vec![
-                Some(WorkflowStage::Ecs(WorkflowStageEcs {
+                ActionStage::Ecs(ActionStageEcs {
                     name: "FindAndDespawnEntity".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<FindAndDespawnEntityInput>();
                         let chunk_coord = input.chunk_coord;
 
@@ -143,12 +145,12 @@ pub mod despawn {
                             .iter(world)
                             .find(|(_, chunk)| chunk.coord == chunk_coord) {
                             world.entity_mut(entity).despawn_recursive();
-                            io.set_output(RawWorkflowData::new(Output(Ok(()))))
+                            io.set_output(RawActionData::new(Output(Ok(()))))
                         } else {
-                            io.set_output(RawWorkflowData::new(Output(Err("Could not find chunk entity.".to_owned()))))
+                            io.set_output(RawActionData::new(Output(Err("Could not find chunk entity.".to_owned()))))
                         }
                     })
-                }))
+                })
             ],
         }
     }
@@ -158,7 +160,7 @@ pub mod transfer_ownership {
     use bevy::prelude::*;
     use bevy::ecs::system::SystemState;
 
-    use crate::{workflow::{stage::{WorkflowStage, WorkflowStageEcs}, stage_io::{WorkflowIO, InputState, OutputState}, types::{WorkflowType, RawWorkflowData}}, chunk::{components::ChunkComponent, resources::ChunkManager}};
+    use crate::{action::{stage::{ActionStage, ActionStageEcs}, stage_io::{ActionIO, InputState, OutputState}, types::{ActionType, RawActionData}}, chunk::{components::ChunkComponent, resources::ChunkManager}};
 
     pub struct Input(pub FindChunkAndTransferOwnershipInput);
     
@@ -169,30 +171,30 @@ pub mod transfer_ownership {
 
     pub struct Output(pub Result<(), String>);
 
-    pub fn create_workflow_type() -> WorkflowType {
-        WorkflowType {
+    pub fn create_action_type() -> ActionType {
+        ActionType {
             name: "TransferOwnership".to_owned(),
-            primary_validation: Box::new(|io: WorkflowIO<InputState>| -> Result<WorkflowIO<InputState>, String> {
-                let (workflow_input, _) = io.get_input::<Input>();
-                let stage_input = workflow_input.0;
+            primary_validation: Box::new(|io: ActionIO<InputState>| -> Result<ActionIO<InputState>, String> {
+                let (action_input, _) = io.get_input::<Input>();
+                let stage_input = action_input.0;
 
-                Ok(WorkflowIO::new_input(RawWorkflowData::new(stage_input)))
+                Ok(ActionIO::new_input(RawActionData::new(stage_input)))
             }),
-            secondary_validation: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> Result<WorkflowIO<InputState>, String> {
+            secondary_validation: Box::new(|io: ActionIO<InputState>, world: &mut World| -> Result<ActionIO<InputState>, String> {
                 let stage_input = io.get_input_ref::<FindChunkAndTransferOwnershipInput>();
 
                 let target = world.query::<&ChunkComponent>().iter(world).find(|chunk| chunk.coord == stage_input.chunk_coord);
 
                 if target.is_none() {
-                    return Err("Workflow validation error: Cannot transfer ownership of an unloaded chunk.".to_owned());
+                    return Err("Action validation error: Cannot transfer ownership of an unloaded chunk.".to_owned());
                 }
                 
                 Ok(io)
             }),
             stages: vec![
-                Some(WorkflowStage::Ecs(WorkflowStageEcs {
+                ActionStage::Ecs(ActionStageEcs {
                     name: "FindChunkAndTransferOwnership".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
+                    function: Box::new(|io: ActionIO<InputState>, world: &mut World| -> ActionIO<OutputState> {
                         let (input, io) = io.get_input::<FindChunkAndTransferOwnershipInput>();
                         let chunk_coord = input.chunk_coord;
                         let new_chunk_owner = input.new_chunk_owner;
@@ -211,9 +213,9 @@ pub mod transfer_ownership {
                         chunk.owner = Some(new_chunk_owner);
                         chunk_manager.owned_chunks.insert(chunk_coord, new_chunk_owner);
 
-                        io.set_output(RawWorkflowData::new(Output(Ok(()))))
+                        io.set_output(RawActionData::new(Output(Ok(()))))
                     })
-                }))
+                })
             ],
         }
     }
