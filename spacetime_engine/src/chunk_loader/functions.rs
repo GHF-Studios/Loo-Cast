@@ -2,9 +2,9 @@ use bevy::prelude::*;
 
 use crate::chunk::{
     components::ChunkComponent,
-    enums::{ChunkAction, ChunkActionPriority},
+    enums::{ChunkWorkflow, ChunkWorkflowPriority},
     functions::world_pos_to_chunk,
-    resources::{ChunkActionBuffer, ChunkManager},
+    resources::{ChunkWorkflowBuffer, ChunkManager},
 };
 
 use super::components::ChunkLoaderComponent;
@@ -13,21 +13,21 @@ fn calculate_spawn_priority(
     distance_squared: u32,
     radius_squared: u32,
     has_pending_despawn: bool,
-) -> ChunkActionPriority {
+) -> ChunkWorkflowPriority {
     let normalized_distance = distance_squared as f64 / radius_squared as f64;
 
     // Lower priority if a despawn is pending
     let adjustment = if has_pending_despawn { 0.5 } else { 1.0 };
     let priority_value = (i64::MAX as f64 * (1.0 - normalized_distance) * adjustment) as i64;
 
-    ChunkActionPriority::Deferred(priority_value)
+    ChunkWorkflowPriority::Deferred(priority_value)
 }
 
-fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) -> ChunkActionPriority {
+fn calculate_despawn_priority(distance_squared: u32, radius_squared: u32) -> ChunkWorkflowPriority {
     let normalized_distance = distance_squared as f64 / radius_squared as f64;
     let priority_value = (normalized_distance * i64::MAX as f64) as i64;
 
-    ChunkActionPriority::Deferred(priority_value)
+    ChunkWorkflowPriority::Deferred(priority_value)
 }
 
 fn is_chunk_in_loader_range(
@@ -47,7 +47,7 @@ fn is_chunk_in_loader_range(
 
 pub(in crate) fn load_chunk(
     chunk_manager: &ChunkManager,
-    chunk_action_buffer: &mut ChunkActionBuffer,
+    chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
     requester_id: u32,
     chunk_coord: (i32, i32),
     chunk_owner: Option<Entity>,
@@ -56,13 +56,13 @@ pub(in crate) fn load_chunk(
 ) {
     let is_loaded = chunk_manager.loaded_chunks.contains(&chunk_coord);
     let is_owned = chunk_manager.owned_chunks.contains_key(&chunk_coord);
-    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord);
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_workflow_buffer.get_workflow_states(&chunk_coord);
 
     if !is_loaded {
         if !is_spawning && !is_despawning && !is_transfering_ownership {
-            let has_pending_despawn = chunk_action_buffer.has_despawns();
+            let has_pending_despawn = chunk_workflow_buffer.has_despawns();
 
-            chunk_action_buffer.add_action(ChunkAction::Spawn {
+            chunk_workflow_buffer.add_workflow(ChunkWorkflow::Spawn {
                 requester_id,
                 coord: chunk_coord,
                 new_owner: chunk_owner,
@@ -74,18 +74,18 @@ pub(in crate) fn load_chunk(
             });
         }
     } else if !is_owned && !is_despawning && !is_transfering_ownership && chunk_owner.is_some() {
-        chunk_action_buffer.add_action(ChunkAction::TransferOwnership {
+        chunk_workflow_buffer.add_workflow(ChunkWorkflow::TransferOwnership {
             requester_id,
             coord: chunk_coord,
             new_owner: chunk_owner.unwrap(),
-            priority: ChunkActionPriority::Realtime,
+            priority: ChunkWorkflowPriority::Realtime,
         });
     }
 }
 
 pub(in crate) fn unload_chunk(
     chunk_manager: &ChunkManager,
-    chunk_action_buffer: &mut ChunkActionBuffer,
+    chunk_workflow_buffer: &mut ChunkWorkflowBuffer,
     chunk_query: &Query<(Entity, &ChunkComponent)>,
     chunk_loader_query: &Query<(Entity, &Transform, &ChunkLoaderComponent)>,
     requester_id: u32,
@@ -94,7 +94,7 @@ pub(in crate) fn unload_chunk(
     chunk_loader_radius_squared: u32,
 ) {
     let is_loaded = chunk_manager.is_loaded(&chunk_coord);
-    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_action_buffer.get_action_states(&chunk_coord);
+    let (is_spawning, is_despawning, is_transfering_ownership) = chunk_workflow_buffer.get_workflow_states(&chunk_coord);
 
     if is_loaded && !is_spawning && !is_despawning && !is_transfering_ownership {
         let chunk = match chunk_query.iter().find(|(_, chunk)| chunk.coord == chunk_coord) {
@@ -120,15 +120,15 @@ pub(in crate) fn unload_chunk(
             )
         }) {
             Some((new_owner, _, _)) => {
-                chunk_action_buffer.add_action(ChunkAction::TransferOwnership {
+                chunk_workflow_buffer.add_workflow(ChunkWorkflow::TransferOwnership {
                     requester_id,
                     coord: chunk_coord,
                     new_owner,
-                    priority: ChunkActionPriority::Realtime,
+                    priority: ChunkWorkflowPriority::Realtime,
                 });
             }
             None => {
-                chunk_action_buffer.add_action(ChunkAction::Despawn {
+                chunk_workflow_buffer.add_workflow(ChunkWorkflow::Despawn {
                     requester_id,
                     coord: chunk_coord,
                     priority: calculate_despawn_priority(chunk_loader_distance_squared, chunk_loader_radius_squared),

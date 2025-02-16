@@ -1,28 +1,28 @@
 use std::any::{Any, TypeId, type_name};
 use bevy::prelude::*;
 
-use super::types::RawActionData;
+use super::types::RawWorkflowData;
 
 pub struct InputState {
-    input: RawActionData,
+    input: RawWorkflowData,
 }
 
 pub struct OutputState {
-    output: RawActionData,
+    output: RawWorkflowData,
 }
 
 pub struct OutputStateBuilder;
 
 pub struct CallbackState {
-    callback_data: RawActionData,
+    callback_data: RawWorkflowData,
 }
 
-pub struct ActionIO<T> {
+pub struct WorkflowIO<T> {
     state: T,
 }
 
-impl ActionIO<InputState> {
-    pub fn new_input(input: RawActionData) -> Self {
+impl WorkflowIO<InputState> {
+    pub fn new_input(input: RawWorkflowData) -> Self {
         Self {
             state: InputState {
                 input
@@ -50,7 +50,7 @@ impl ActionIO<InputState> {
         })
     }
 
-    pub fn get_input<I: Any + Send + Sync>(self) -> (I, ActionIO<OutputStateBuilder>) {
+    pub fn get_input<I: Any + Send + Sync>(self) -> (I, WorkflowIO<OutputStateBuilder>) {
         let expected = self.state.input.data_type_name;
         let actual = type_name::<I>();
 
@@ -58,17 +58,17 @@ impl ActionIO<InputState> {
             panic!("Failed to get input: Correct type `{}`, provided type `{}`.", expected, actual)
         });
 
-        (input, ActionIO { state: OutputStateBuilder {} })
+        (input, WorkflowIO { state: OutputStateBuilder {} })
     }
 
-    pub(crate) fn consume_raw(self) -> RawActionData {
+    pub(crate) fn consume_raw(self) -> RawWorkflowData {
         self.state.input
     }
 }
 
-impl ActionIO<OutputStateBuilder> {
-    pub fn set_output(self, output: RawActionData) -> ActionIO<OutputState> {
-        ActionIO {
+impl WorkflowIO<OutputStateBuilder> {
+    pub fn set_output(self, output: RawWorkflowData) -> WorkflowIO<OutputState> {
+        WorkflowIO {
             state: OutputState {
                 output
             },
@@ -76,8 +76,8 @@ impl ActionIO<OutputStateBuilder> {
     }
 }
 
-impl ActionIO<OutputState> {
-    pub fn consume_raw(self) -> RawActionData {
+impl WorkflowIO<OutputState> {
+    pub fn consume_raw(self) -> RawWorkflowData {
         self.state.output
     }
 
@@ -94,8 +94,8 @@ impl ActionIO<OutputState> {
     }
 }
 
-impl ActionIO<CallbackState> {
-    pub fn new_callback_data(callback_data: RawActionData) -> Self {
+impl WorkflowIO<CallbackState> {
+    pub fn new_callback_data(callback_data: RawWorkflowData) -> Self {
         Self {
             state: CallbackState {
                 callback_data
@@ -103,7 +103,7 @@ impl ActionIO<CallbackState> {
         }
     }
 
-    pub fn consume(self) -> RawActionData {
+    pub fn consume(self) -> RawWorkflowData {
         self.state.callback_data
     }
 

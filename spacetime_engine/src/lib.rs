@@ -22,7 +22,7 @@ pub mod oneshot_systems;
 //pub mod traits;
 
 // Modules
-pub mod action;
+pub mod workflow;
 pub mod camera;
 //pub mod camera_2d_bundle;
 pub mod chunk;
@@ -40,7 +40,7 @@ pub mod player;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use iyes_perf_ui::{entries::{PerfUiFramerateEntries, PerfUiSystemEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
-use action::ActionPlugin;
+use workflow::WorkflowPlugin;
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
 use chunk::ChunkPlugin;
@@ -61,7 +61,7 @@ impl PluginGroup for SpacetimeEnginePlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add(SpacetimeEngineCorePlugin)
-            .add(ActionPlugin)
+            .add(WorkflowPlugin)
             .add(CameraPlugin)
             //.add(Camera2dBundlePlugin)
             .add(ChunkPlugin)
@@ -92,7 +92,7 @@ fn pre_startup_system(
     mut commands: Commands,
     oneshot_systems: Res<MainOneshotSystems>,
 ) {
-    let id = oneshot_systems.0["initialize_action_type_modules"];
+    let id = oneshot_systems.0["initialize_workflow_type_modules"];
     commands.run_system(id);
 
     let id = oneshot_systems.0["spawn_main_camera"];
@@ -109,7 +109,7 @@ fn pre_startup_system(
     //let id = oneshot_systems.0["spawn_main_test_objects"];
     //commands.run_system(id);
 
-    let id = oneshot_systems.0["test_action_framework"];
+    let id = oneshot_systems.0["test_workflow_framework"];
     commands.run_system(id);
 }
 

@@ -1,89 +1,89 @@
 use bevy::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(in crate) enum ChunkAction {
+pub(in crate) enum ChunkWorkflow {
     Spawn {
         requester_id: u32,
         coord: (i32, i32),
         new_owner: Option<Entity>,
-        priority: ChunkActionPriority,
+        priority: ChunkWorkflowPriority,
     },
     Despawn {
         requester_id: u32,
         coord: (i32, i32),
-        priority: ChunkActionPriority,
+        priority: ChunkWorkflowPriority,
     },
     TransferOwnership {
         requester_id: u32,
         coord: (i32, i32),
         new_owner: Entity,
-        priority: ChunkActionPriority,
+        priority: ChunkWorkflowPriority,
     }
 }
-impl ChunkAction {
+impl ChunkWorkflow {
     pub fn is_spawn(&self) -> bool {
-        matches!(self, ChunkAction::Spawn { .. })
+        matches!(self, ChunkWorkflow::Spawn { .. })
     }
 
     pub fn is_despawn(&self) -> bool {
-        matches!(self, ChunkAction::Despawn { .. })
+        matches!(self, ChunkWorkflow::Despawn { .. })
     }
 
     pub fn is_transfer_ownership(&self) -> bool {
-        matches!(self, ChunkAction::TransferOwnership { .. })
+        matches!(self, ChunkWorkflow::TransferOwnership { .. })
     }
 
     pub fn get_requester_id(&self) -> u32 {
         match self {
-            ChunkAction::Spawn { requester_id, .. }
-            | ChunkAction::Despawn { requester_id, .. }
-            | ChunkAction::TransferOwnership { requester_id, .. } => *requester_id
+            ChunkWorkflow::Spawn { requester_id, .. }
+            | ChunkWorkflow::Despawn { requester_id, .. }
+            | ChunkWorkflow::TransferOwnership { requester_id, .. } => *requester_id
         }
     }
 
     pub fn get_coord(&self) -> (i32, i32) {
         match self {
-            ChunkAction::Spawn { coord, .. }
-            | ChunkAction::Despawn { coord, .. }
-            | ChunkAction::TransferOwnership { coord, .. } => *coord
+            ChunkWorkflow::Spawn { coord, .. }
+            | ChunkWorkflow::Despawn { coord, .. }
+            | ChunkWorkflow::TransferOwnership { coord, .. } => *coord
         }
     }
 
-    pub fn get_priority(&self) -> ChunkActionPriority {
+    pub fn get_priority(&self) -> ChunkWorkflowPriority {
         match self {
-            ChunkAction::Spawn { priority, .. } => *priority,
-            ChunkAction::Despawn { priority, .. } => *priority,
-            ChunkAction::TransferOwnership { priority, .. } => *priority
+            ChunkWorkflow::Spawn { priority, .. } => *priority,
+            ChunkWorkflow::Despawn { priority, .. } => *priority,
+            ChunkWorkflow::TransferOwnership { priority, .. } => *priority
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ChunkActionPriority {
+pub enum ChunkWorkflowPriority {
     Deferred(i64),
     Realtime,
 }
 
-impl PartialOrd for ChunkActionPriority {
+impl PartialOrd for ChunkWorkflowPriority {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for ChunkActionPriority {
+impl Ord for ChunkWorkflowPriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self, other) {
-            (ChunkActionPriority::Realtime, ChunkActionPriority::Realtime) => std::cmp::Ordering::Equal,
-            (ChunkActionPriority::Realtime, _) => std::cmp::Ordering::Greater,
-            (_, ChunkActionPriority::Realtime) => std::cmp::Ordering::Less,
-            (ChunkActionPriority::Deferred(a), ChunkActionPriority::Deferred(b)) => b.cmp(a),
+            (ChunkWorkflowPriority::Realtime, ChunkWorkflowPriority::Realtime) => std::cmp::Ordering::Equal,
+            (ChunkWorkflowPriority::Realtime, _) => std::cmp::Ordering::Greater,
+            (_, ChunkWorkflowPriority::Realtime) => std::cmp::Ordering::Less,
+            (ChunkWorkflowPriority::Deferred(a), ChunkWorkflowPriority::Deferred(b)) => b.cmp(a),
         }
     }
 }
 
-impl Default for ChunkActionPriority {
+impl Default for ChunkWorkflowPriority {
     fn default() -> Self {
-        ChunkActionPriority::Deferred(0)
+        ChunkWorkflowPriority::Deferred(0)
     }
 }
 

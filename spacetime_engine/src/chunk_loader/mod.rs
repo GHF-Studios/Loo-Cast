@@ -3,7 +3,7 @@ pub mod functions;
 pub mod observers;
 pub mod systems;
 
-pub mod actions;
+pub mod workflows;
 
 use bevy::prelude::*;
 use observers::{observe_on_add_chunk_loader, observe_on_remove_chunk_loader};
