@@ -1,6 +1,8 @@
 use std::any::{type_name, Any};
 use bevy::prelude::*;
 
+use crate::config::statics::CONFIG;
+
 use super::{stage::WorkflowStage, stage_io::{WorkflowIO, CallbackState, InputState, OutputState}};
 
 pub struct RawWorkflowData {
@@ -91,7 +93,7 @@ impl WorkflowInstance {
         output_callback: Option<Box<dyn FnOnce(&mut World, WorkflowIO<CallbackState>) + Send + Sync>>,
         num_stages: usize,
     ) -> Self {
-        let timeout_frames = num_stages * 30;
+        let timeout_frames = num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");
 
         Self {
             module_name,

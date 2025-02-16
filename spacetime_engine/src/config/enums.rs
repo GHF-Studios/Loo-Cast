@@ -230,3 +230,29 @@ impl TryFrom<ConfigValue> for char {
         }
     }
 }
+impl TryFrom<ConfigValue> for isize {
+    type Error = String;
+
+    fn try_from(value: ConfigValue) -> Result<Self, Self::Error> {
+        match value {
+            ConfigValue::Integer(i) => Ok(i as isize),
+            _ => Err(format!("Cannot convert {:?} to isize", value)),
+        }
+    }
+}
+impl TryFrom<ConfigValue> for usize {
+    type Error = String;
+
+    fn try_from(value: ConfigValue) -> Result<Self, Self::Error> {
+        match value {
+            ConfigValue::Integer(i) => {
+                if i >= 0 {
+                    Ok(i as usize)
+                } else {
+                    Err(format!("Value {} out of range for usize", i))
+                }
+            }
+            _ => Err(format!("Cannot convert {:?} to usize", value)),
+        }
+    }
+}

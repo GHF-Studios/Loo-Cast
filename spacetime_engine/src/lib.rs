@@ -19,6 +19,7 @@ pub mod oneshot_systems;
 //pub mod constants;
 //pub mod decl_macros;
 //pub mod singletons;
+pub mod statics;
 //pub mod traits;
 
 // Modules

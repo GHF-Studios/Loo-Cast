@@ -62,6 +62,10 @@ impl Config {
         Ok(())
     }
 
+    // TODO: This has a critical design-flaw in regard to performance!!!
+    // Change this design somehow, or like, add to it, to allow more "inlined" or actually "static" config values
+    // The current design does a fair amount of stuff just to get a value that should effectively be static and constant.
+    // Maybe we can perform some build.rs/macro trickery.
     /// Generic getter with caching
     pub fn get<T>(&self, path: &str) -> T
     where

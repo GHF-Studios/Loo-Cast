@@ -14,3 +14,6 @@ default_radius = 64
 
 [player]
 movement_speed = 250.0
+
+[workflow]
+timeout_frames_per_stage = 10000000

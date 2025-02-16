@@ -3,6 +3,8 @@ use bevy::ecs::system::SystemState;
 use bevy::render::MainWorld;
 use bevy_consumable_event::{ConsumableEventReader, ConsumableEventWriter};
 
+use crate::{config::statics::CONFIG, statics::TOKIO_RUNTIME};
+
 use super::{
     events::WorkflowStageCompletionEvent, resources::{WorkflowMap, WorkflowTypeModuleRegistry}, stage::{WorkflowStage, WorkflowStageAsync, WorkflowStageEcs, WorkflowStageEcsWhile, WorkflowStageRender, WorkflowStageRenderWhile}, stage_io::{WorkflowIO, InputState}, types::{WorkflowState, RawWorkflowData}, WorkflowStageCompletionEventReceiverAsync, EcsStageCompletionEventReceiver, EcsWhileStageCompletionEventReceiver, WorkflowStageCompletionEventReceiverRender, WorkflowStageCompletionEventReceiverRenderWhile, WorkflowStageCompletionEventSenderAsync, EcsStageCompletionEventSender, EcsWhileStageCompletionEventSender, RenderStageCompletionEventSender, WorkflowStageCompletionEventSenderRenderWhile, AsyncStageCompletionEventQueue, EcsStageCompletionEventQueue, EcsWhileStageCompletionEventQueue, RenderStageCompletionEventQueue, RenderWhileStageCompletionEventQueue, DEBUG_ACTION_MODULE, DEBUG_ACTION_NAME, DEBUG_LOGGING_ENABLED
 };
@@ -160,11 +162,6 @@ pub(in super) fn execute_ecs_stages_system(world: &mut World) {
 pub(in super) fn execute_ecs_while_stages_system(world: &mut World) {
     // TODO: 1. Implement
     // TODO: Legcay code for stage 'EcsWhile':
-    //let io = WorkflowIO::new_input(data_buffer);
-    //let function = &mut ecs_while_stage.function;
-    //
-    //let cloned_module_name = module_name.clone();
-    //let cloned_workflow_name = workflow_name.clone();
     //
     //match (function)(io, world) {
     //    WorkflowStageEcsWhileOutcome::Waiting(input) => {
@@ -172,7 +169,7 @@ pub(in super) fn execute_ecs_while_stages_system(world: &mut World) {
     //        if let Some(workflows) = workflow_map.map.get_mut(&module_name) {
     //            if let Some(instance) = workflows.get_mut(&workflow_name).and_then(|a| a.as_mut()) {
     //                instance.data_buffer = input.consume_raw();
-    //                instance.timeout_frames = instance.num_stages * 30; // Reset timeout
+    //                instance.timeout_frames = instance.num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage"); // Reset timeout
     //            }
     //        }
     //    },
@@ -248,17 +245,27 @@ pub(in super) fn execute_async_stages_system(world: &mut World) {
         let cloned_module_name = module_name.clone();
         let cloned_workflow_name = workflow_name.clone();
 
-        tokio::spawn(async move {
-            let output = future.await.consume_raw();
-            
-            let _ = sender.send((
-                cloned_module_name,
-                cloned_workflow_name,
-                current_stage,
-                stage,
-                output
-            ));
+        let task_spawn_result = TOKIO_RUNTIME.lock().unwrap().block_on(async {
+            tokio::spawn(async move {
+                let output = future.await.consume_raw();
+                
+                let output_send_result = sender.send((
+                    cloned_module_name,
+                    cloned_workflow_name,
+                    current_stage,
+                    stage,
+                    output
+                ));
+
+                if let Err(err) = output_send_result {
+                    unreachable!("Async stage completion error: Output send error: {}", err);
+                }
+            }).await
         });
+
+        if let Err(err) = task_spawn_result {
+            unreachable!("Async stage execution error: Task spawn error: {}", err);
+        }
     }
 }
 
@@ -305,6 +312,7 @@ pub(in super) fn workflow_request_system(world: &mut World) {
                             debug!("Lifecycle Stage 2.2 @ {}: Secondary Validation Passed.", instance.state.current_stage());
                         }
 
+                        // TODO: This is not enough. We need to properly send some sort of workflow entrypoint event
                         instance.state = WorkflowState::Processing { current_stage: 0 };
                     },
                     WorkflowState::Processing { current_stage } => {
@@ -316,7 +324,9 @@ pub(in super) fn workflow_request_system(world: &mut World) {
                         }
                         instance.timeout_frames -= 1;
                     },
-                    WorkflowState::Processed { .. } => {}
+                    WorkflowState::Processed { .. } => {
+                        warn!("This message appearing may be bad, but it does not necessarily have to be, if nothing else seems to indicate any sort of failure!")
+                    }
                 }
             }
         }
@@ -335,7 +345,6 @@ pub(in super) fn workflow_request_system(world: &mut World) {
     *workflow_type_module_registry = stolen_workflow_type_module_registry;
 }
 
-// TODO: 3. Maybe: This is fucked.
 pub(in super) fn stage_execution_cleanup_system(world: &mut World) {
     let completed_executions = find_completed_workflow_stages(world);
     cleanup_completed_workflow_stages(world, completed_executions);
@@ -343,50 +352,61 @@ pub(in super) fn stage_execution_cleanup_system(world: &mut World) {
 
 fn find_completed_workflow_stages(world: &mut World) -> Vec<(String, String, usize, WorkflowStage, RawWorkflowData)> {
     let mut system_state: SystemState<(
-        ResMut<WorkflowTypeModuleRegistry>, 
+        ConsumableEventReader<WorkflowStageCompletionEvent>,
         ResMut<WorkflowMap>, 
     )> = SystemState::new(world);
     let (
-        mut module_name_registry, 
+        mut stage_completion_event_reader,
         mut workflow_map, 
     ) = system_state.get_mut(world);
 
-    let mut workflows_to_process = Vec::new();
+    let mut completed_workflow_stages = Vec::new();
 
-    for (module_name, workflows) in workflow_map.map.iter_mut() {
-        for (workflow_name, instance) in workflows.iter_mut() {
-            if let Some(instance) = instance {
-                /* TODO: 4. Maybe: For all Non-Ecs Stages: This can not distinguish between a fresh while stage and a while stage that has already been "polled".
-                *           We could add a "is_looping" to alongside "current_stage" to distinguish between the two,
-                *           and non-while workflows would just have "is_looping" set to false from the beginning 
-                *           and also have "is_looping" completely ignored in non-while stages' execution.
-                *           This inability to distinguish results in repeated polling of while stage, but not normal polling but polling as if the stage was fresh.
-                */
-                if let WorkflowState::Processing { current_stage } = &instance.state {
-                    let workflow_type = module_name_registry
-                        .get_workflow_type_mut(module_name, workflow_name)
-                        .unwrap();
+    for event in stage_completion_event_reader.read() {
+        let event = event.consume();
+        let module_name = event.module_name;
+        let workflow_name = event.workflow_name;
+        let stage_output = event.stage_output;
+        let stage_return = event.stage_return;
 
-                    let stage = std::mem::take(&mut workflow_type.stages[*current_stage]).unwrap();
+        let workflow_instance = workflow_map
+            .map
+            .get_mut(&module_name)
+            .and_then(|workflows| workflows.get_mut(&workflow_name))
+            .and_then(|a| a.as_mut());
 
-                    workflows_to_process.push((
-                        module_name.clone(),
-                        workflow_name.clone(),
-                        *current_stage,
-                        stage,
-                        std::mem::replace(&mut instance.data_buffer, RawWorkflowData::new(())),
-                    ));
+        if let Some(workflow_instance) = workflow_instance {
+            /* TODO: 4. Maybe: For all Non-Ecs Stages: This can not distinguish between a fresh while stage and a while stage that has already been "polled".
+            *           We could add a "is_looping" to alongside "current_stage" to distinguish between the two,
+            *           and non-while workflows would just have "is_looping" set to false from the beginning 
+            *           and also have "is_looping" completely ignored in non-while stages' execution.
+            *           This inability to distinguish results in repeated polling of while stage, but not normal polling but polling as if the stage was fresh.
+            */
+            if let WorkflowState::Processed { current_stage } = &workflow_instance.state {
+                if event.current_stage != *current_stage {
+                    unreachable!("Unexpected workflow state. Completion event is at stage '{}', but the workflow instance is at stage '{}'", event.current_stage, current_stage);
                 }
+                completed_workflow_stages.push((
+                    module_name.clone(),
+                    workflow_name.clone(),
+                    *current_stage,
+                    stage_return.unwrap(),
+                    stage_output,
+                ));
+            } else {
+                unreachable!("Unexpected workflow state. Expected 'WorkflowState::Processed(_)', got '{:?}'", workflow_instance.state);
             }
+        } else {
+            unreachable!("Workflow instance not found for module '{}' and workflow '{}'", module_name, workflow_name);
         }
     }
 
-    workflows_to_process
+    completed_workflow_stages
 }
 
 fn cleanup_completed_workflow_stages(
     world: &mut World,
-    mut workflows_to_process: Vec<(String, String, usize, WorkflowStage, RawWorkflowData)>,
+    mut completed_workflow_stages: Vec<(String, String, usize, WorkflowStage, RawWorkflowData)>,
 ) {
     let mut system_state: SystemState<(
         ResMut<EcsStageCompletionEventQueue>,
@@ -403,7 +423,7 @@ fn cleanup_completed_workflow_stages(
         mut async_stage_completion_event_queue,
     ) = system_state.get_mut(world);
 
-    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in workflows_to_process.drain(..) {
+    for (module_name, workflow_name, current_stage, mut stage, data_buffer) in completed_workflow_stages.drain(..) {
         if DEBUG_LOGGING_ENABLED && module_name == DEBUG_ACTION_MODULE && workflow_name == DEBUG_ACTION_NAME {
             debug!(
                 "Lifecycle Stage 3.1 @ {}: Starting execution of Stage for `{}` in module `{}`.",
@@ -532,9 +552,9 @@ pub(in super) fn workflow_progression_system(world: &mut World) {
         if let Some(workflows) = workflow_map.map.get_mut(&event.module_name) {
             if let Some(instance) = workflows.get_mut(&event.workflow_name).and_then(|a| a.as_mut()) {
                 match &mut instance.state {
-                    WorkflowState::Processing { current_stage } => {
+                    WorkflowState::Processed { current_stage } => {
                         instance.data_buffer = event.stage_output;
-                        instance.timeout_frames = instance.num_stages * 30;
+                        instance.timeout_frames = instance.num_stages * CONFIG.get::<usize>("workflow/timeout_frames_per_stage");
                         completed_stages.push((event.module_name.clone(), event.workflow_name.clone(), *current_stage));
 
                         if *current_stage + 1 >= instance.num_stages {
