@@ -20,7 +20,7 @@ pub mod setup_texture_generator {
     use crate::workflow::stage::*;
     use crate::workflow::types::RawWorkflowData;
     use crate::gpu::resources::ShaderPipelineRegistry;
-    use crate::{workflow::{stage::WorkflowStage, stage_io::{WorkflowIO, InputState, OutputState}, types::WorkflowType}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
+    use crate::workflow::{stage::WorkflowStage, stage_io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
 
     pub struct Input(pub SetupPipelineInput);
 
@@ -44,8 +44,8 @@ pub mod setup_texture_generator {
                 Ok(io)
             }),
             stages: vec![
-                WorkflowStage::Render(WorkflowStageRender {
-                    name: "SetupPipeline".to_owned(),
+                WorkflowStage::Ecs(WorkflowStageEcs {
+                    name: "SetupPhase1".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>();
                         let shader_name = input.shader_name;
@@ -53,18 +53,13 @@ pub mod setup_texture_generator {
 
                         let mut system_state: SystemState<(
                             ResMut<Assets<Shader>>,
-                            ResMut<ShaderPipelineRegistry>,
-                            Res<RenderDevice>,
-                            ResMut<PipelineCache>,
+                            Res<ShaderPipelineRegistry>,
                         )> = SystemState::new(world);
                         let (
                             mut shader_assets, 
-                            mut shader_pipeline_registry,
-                            render_device, 
-                            pipeline_cache, 
+                            shader_pipeline_registry,
                         ) = system_state.get_mut(world);
 
-                        // Read shader source from file
                         let shader_source = match std::fs::read_to_string(&shader_path) {
                             Ok(source) => source,
                             Err(e) => {
@@ -72,33 +67,50 @@ pub mod setup_texture_generator {
                             },
                         };
 
-                        // Create shader
                         let shader = Shader::from_wgsl(shader_source, shader_path.clone());
                         let shader_handle = shader_assets.add(shader);
 
-                        // Create Bind Group Layout
-                        if !shader_pipeline_registry.bind_group_layouts.contains_key(shader_name) {
-                            let bind_group_layout = render_device.create_bind_group_layout(
-                                Some("Compute Bind Group Layout"),
-                                &[
-                                    // Example: A storage buffer at binding 0
-                                    BindGroupLayoutEntry {
-                                        binding: 0,
-                                        visibility: ShaderStages::COMPUTE,
-                                        ty: BindingType::Buffer {
-                                            ty: BufferBindingType::Storage { read_only: false },
-                                            has_dynamic_offset: false,
-                                            min_binding_size: None,
-                                        },
-                                        count: None,
-                                    },
-                                ],
-                            );
-                            shader_pipeline_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
+                        if shader_pipeline_registry.bind_group_layouts.contains_key(shader_name) {
+                            // TODO: Remove these damn panics and unreachables and replace them with proper per-stage error handling and proper IO handling of errors
+                            unreachable!("Failed to setup texture generator: Shader '{}' already registered", shader_name)
                         }
-                        let bind_group_layout = shader_pipeline_registry.bind_group_layouts.get(shader_name).unwrap();
 
-                        // Request pipeline creation in Bevy's PipelineCache
+                        debug!("Executed ecs stage: SetupTextureGenerator::SetupPhase1");
+                        io.set_output(RawWorkflowData::new((input, shader_handle)))
+                    })
+                }),
+                WorkflowStage::Render(WorkflowStageRender {
+                    name: "SetupPhase2".to_owned(),
+                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
+                        let ((input, shader_handle), io) = io.get_input::<(SetupPipelineInput, Handle<Shader>)>();
+                        let shader_name = input.shader_name;
+
+                        let mut system_state: SystemState<(
+                            Res<RenderDevice>,
+                            Res<PipelineCache>,
+                        )> = SystemState::new(world);
+                        let (
+                            render_device, 
+                            pipeline_cache, 
+                        ) = system_state.get(world);
+
+                        let bind_group_layout = render_device.create_bind_group_layout(
+                            Some("Compute Bind Group Layout"),
+                            &[
+                                // Example: A storage buffer at binding 0
+                                BindGroupLayoutEntry {
+                                    binding: 0,
+                                    visibility: ShaderStages::COMPUTE,
+                                    ty: BindingType::StorageTexture {
+                                        access: StorageTextureAccess::WriteOnly,
+                                        format: TextureFormat::Rgba8Unorm,
+                                        view_dimension: TextureViewDimension::D2,
+                                    },
+                                    count: None,
+                                }
+                            ],
+                        );
+
                         let pipeline_id = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
                             label: Some(format!("Pipeline for {}",shader_name).into()),
                             layout: vec![bind_group_layout.clone()],
@@ -111,15 +123,38 @@ pub mod setup_texture_generator {
                             }],
                         });
 
-                        // Store shader & pipeline handles
+                        debug!("Executed render stage: SetupTextureGenerator::SetupPhase2");
+                        io.set_output(RawWorkflowData::new((input, shader_handle, bind_group_layout, pipeline_id)))
+                    })
+                }),
+                WorkflowStage::Ecs(WorkflowStageEcs {
+                    name: "SetupPhase3".to_owned(),
+                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
+                        let ((
+                            input, 
+                            shader_handle, 
+                            bind_group_layout, 
+                            pipeline_id
+                        ), io) = io.get_input::<(
+                            SetupPipelineInput, 
+                            Handle<Shader>, 
+                            BindGroupLayout, 
+                            CachedComputePipelineId
+                        )>();
+
+                        let shader_name = input.shader_name;
+
+                        let mut shader_pipeline_registry = SystemState::<ResMut<ShaderPipelineRegistry>>::new(world).get_mut(world);
+
                         shader_pipeline_registry.shaders.insert(shader_name.to_string(), shader_handle);
                         shader_pipeline_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
-                        
-                        debug!("Executed render stage: SetupTextureGenerator::SetupPipeline");
+                        shader_pipeline_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
+
+                        debug!("Executed ecs stage: SetupTextureGenerator::SetupPhase3");
                         io.set_output(RawWorkflowData::new(Output(Ok(()))))
-                    }),
+                    })
                 }),
-            ],
+            ]
         }
     }
 }
@@ -128,8 +163,8 @@ pub mod generate_texture {
     use bevy::{prelude::*, render::{render_asset::RenderAssetUsages, renderer::{RenderDevice, RenderQueue}}};
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
-    use crossbeam_channel::{unbounded, Receiver, Sender};
-    use crate::{workflow::{stage::{WorkflowStageRender, WorkflowStageWhileOutcome}, types::RawWorkflowData}, gpu::resources::ShaderPipelineRegistry};
+    use crossbeam_channel::{unbounded, Receiver};
+    use crate::{gpu::resources::ShaderPipelineRegistry, workflow::{stage::{WorkflowStageRender, WorkflowStageRenderWhile, WorkflowStageWhileOutcome}, types::RawWorkflowData}};
     use crate::workflow::{stage::{WorkflowStage, WorkflowStageEcsWhile, WorkflowStageEcs}, 
         stage_io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
 
@@ -252,8 +287,8 @@ pub mod generate_texture {
                     }),
                 }),
 
-                // **2. EcsWhile Stage: Wait for Pipeline Compilation**
-                WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
+                // **2. RenderWhile Stage: Wait for Pipeline Compilation**
+                WorkflowStage::RenderWhile(WorkflowStageRenderWhile {
                     name: "WaitForPipeline".to_owned(),
                     // TODO: Maybe instead of WorkflowStageEcsWhileOutcome use a future and handle the ecs while stage async-ly somehow??? 
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
@@ -266,11 +301,9 @@ pub mod generate_texture {
                 
                         match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
                             CachedPipelineState::Queued => {
-                                error!("Queued");
                                 WorkflowStageWhileOutcome::Waiting(io)
                             },
                             CachedPipelineState::Creating(_) => {
-                                error!("Creating");
                                 WorkflowStageWhileOutcome::Waiting(io)
                             },
                             CachedPipelineState::Ok(pipeline) => {
