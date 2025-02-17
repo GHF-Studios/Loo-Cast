@@ -54,17 +54,19 @@ pub struct WorkflowRequestBuffer {
     pub requests: Vec<WorkflowInstance>,
 }
 
+// -- Stage Buffers --
 #[derive(Resource, Default)]
-pub(in super) struct EcsStageCompletionEventQueue(pub Vec<(String, String, usize, WorkflowStageEcs, RawWorkflowData)>);
+pub(in super) struct EcsStageBuffer(pub Vec<(String, String, usize, WorkflowStageEcs, RawWorkflowData)>);
 #[derive(Resource, Default)]
-pub(in super) struct EcsWhileStageCompletionEventQueue(pub Vec<(String, String, usize, WorkflowStageEcsWhile, RawWorkflowData)>);
+pub(in super) struct EcsWhileStageBuffer(pub Vec<(String, String, usize, WorkflowStageEcsWhile, RawWorkflowData)>);
 #[derive(Resource, Default)]
-pub(in super) struct RenderStageCompletionEventQueue(pub Vec<(String, String, usize, WorkflowStageRender, RawWorkflowData)>);
+pub(in super) struct RenderStageBuffer(pub Vec<(String, String, usize, WorkflowStageRender, RawWorkflowData)>);
 #[derive(Resource, Default)]
-pub(in super) struct RenderWhileStageCompletionEventQueue(pub Vec<(String, String, usize, WorkflowStageRenderWhile, RawWorkflowData)>);
+pub(in super) struct RenderWhileStageBuffer(pub Vec<(String, String, usize, WorkflowStageRenderWhile, RawWorkflowData)>);
 #[derive(Resource, Default)]
-pub(in super) struct AsyncStageCompletionEventQueue(pub Vec<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
+pub(in super) struct AsyncStageBuffer(pub Vec<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
 
+// -- Stage Completion Event Senders --
 #[derive(Resource)]
 pub(in super) struct EcsStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageEcs, RawWorkflowData)>);
 #[derive(Resource)]
@@ -72,19 +74,21 @@ pub(in super) struct EcsWhileStageCompletionEventSender(pub Sender<(String, Stri
 #[derive(Resource)]
 pub(in super) struct RenderStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageRender, RawWorkflowData)>);
 #[derive(Resource)]
-pub(in super) struct WorkflowStageCompletionEventSenderRenderWhile(pub Sender<(String, String, usize, WorkflowStageRenderWhile, RawWorkflowData)>);
+pub(in super) struct RenderWhileStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageRenderWhile, RawWorkflowData)>);
 #[derive(Resource)]
-pub(in super) struct WorkflowStageCompletionEventSenderAsync(pub Sender<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
+pub(in super) struct AsyncStageCompletionEventSender(pub Sender<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
+
+// -- Stage Completion Event Receivers --
 #[derive(Resource)]
 pub(in super) struct EcsStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageEcs, RawWorkflowData)>);
 #[derive(Resource)]
 pub(in super) struct EcsWhileStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageEcsWhile, RawWorkflowData)>);
 #[derive(Resource)]
-pub(in super) struct WorkflowStageCompletionEventReceiverRender(pub Receiver<(String, String, usize, WorkflowStageRender, RawWorkflowData)>);
+pub(in super) struct RenderStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageRender, RawWorkflowData)>);
 #[derive(Resource)]
-pub(in super) struct WorkflowStageCompletionEventReceiverRenderWhile(pub Receiver<(String, String, usize, WorkflowStageRenderWhile, RawWorkflowData)>);
+pub(in super) struct RenderWhileStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageRenderWhile, RawWorkflowData)>);
 #[derive(Resource)]
-pub(in super) struct WorkflowStageCompletionEventReceiverAsync(pub Receiver<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
+pub(in super) struct AsyncStageCompletionEventReceiver(pub Receiver<(String, String, usize, WorkflowStageAsync, RawWorkflowData)>);
 
 #[derive(Resource, Default, Debug)]
 pub struct WorkflowMap {
@@ -125,7 +129,16 @@ impl WorkflowMap {
     pub fn advance_stage(&mut self, module_name: &str, workflow_name: &str) {
         if let Some(Some(instance)) = self.map.get_mut(module_name).and_then(|workflows| workflows.get_mut(workflow_name)) {
             match &mut instance.state {
-                WorkflowState::Processing { current_stage } => *current_stage += 1,
+                WorkflowState::Processing { current_stage , stage_completed: completed } => {
+                    if !*completed {
+                        unreachable!(
+                            "Workflow stage advancement error: Workflow '{}' in module '{}' is already completed.",
+                            workflow_name, module_name
+                        );
+                    }
+                    *current_stage += 1;
+                    *completed = false;
+                },
                 _ => unreachable!("Workflow stage advancement error: Invalid state."),
             }
         } else {

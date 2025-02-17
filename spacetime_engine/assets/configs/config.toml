@@ -16,4 +16,4 @@ default_radius = 64
 movement_speed = 250.0
 
 [workflow]
-timeout_frames_per_stage = 10000000
+timeout_frames_per_stage = 30

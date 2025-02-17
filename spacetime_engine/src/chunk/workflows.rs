@@ -50,7 +50,7 @@ pub mod spawn {
                 Ok(io)
             }),
             stages: vec![
-                Some(WorkflowStage::Ecs(WorkflowStageEcs {
+                WorkflowStage::Ecs(WorkflowStageEcs {
                     name: "SetupAndSpawnEntity".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
                         let (input, io) = io.get_input::<SetupAndSpawnEntityInput>();
@@ -88,7 +88,7 @@ pub mod spawn {
 
                         io.set_output(RawWorkflowData::new(Output(Ok(()))))
                     }),
-                })),
+                }),
             ],
         }
     }
@@ -128,7 +128,7 @@ pub mod despawn {
                 Ok(io)
             }),
             stages: vec![
-                Some(WorkflowStage::Ecs(WorkflowStageEcs {
+                WorkflowStage::Ecs(WorkflowStageEcs {
                     name: "FindAndDespawnEntity".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
                         let (input, io) = io.get_input::<FindAndDespawnEntityInput>();
@@ -148,7 +148,7 @@ pub mod despawn {
                             io.set_output(RawWorkflowData::new(Output(Err("Could not find chunk entity.".to_owned()))))
                         }
                     })
-                }))
+                })
             ],
         }
     }
@@ -190,7 +190,7 @@ pub mod transfer_ownership {
                 Ok(io)
             }),
             stages: vec![
-                Some(WorkflowStage::Ecs(WorkflowStageEcs {
+                WorkflowStage::Ecs(WorkflowStageEcs {
                     name: "FindChunkAndTransferOwnership".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
                         let (input, io) = io.get_input::<FindChunkAndTransferOwnershipInput>();
@@ -213,7 +213,7 @@ pub mod transfer_ownership {
 
                         io.set_output(RawWorkflowData::new(Output(Ok(()))))
                     })
-                }))
+                })
             ],
         }
     }

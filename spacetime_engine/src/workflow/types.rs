@@ -29,18 +29,15 @@ impl RawWorkflowData {
 pub enum WorkflowState {
     Requested,
     Processing {
-        current_stage: usize
+        current_stage: usize,
+        stage_completed: bool,
     },
-    Processed {
-        current_stage: usize
-    }
 }
 impl std::fmt::Display for WorkflowState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Requested => write!(f, "WorkflowState::Requested"),
-            Self::Processing { current_stage } => write!(f, "WorkflowState::Processing(current_stage: {})", current_stage),
-            Self::Processed { current_stage } => write!(f, "WorkflowState::Processed(current_stage: {})", current_stage),
+            Self::Processing { current_stage, stage_completed: completed } => write!(f, "WorkflowState::Processing(current_stage: {}, completed: {})", current_stage, completed),
         }
     }
 }
@@ -52,8 +49,7 @@ impl WorkflowState {
     pub fn current_stage(&self) -> usize {
         match self {
             Self::Requested => 0,
-            Self::Processing { current_stage } => *current_stage,
-            Self::Processed { current_stage } => *current_stage,
+            Self::Processing { current_stage, .. } => *current_stage,
         }
     }
 }
@@ -62,7 +58,7 @@ pub struct WorkflowType {
     pub name: String,
     pub primary_validation: Box<dyn Fn(WorkflowIO<InputState>) -> Result<WorkflowIO<InputState>, String> + Send + Sync>,
     pub secondary_validation: Box<dyn Fn(WorkflowIO<InputState>, &mut World) -> Result<WorkflowIO<InputState>, String> + Send + Sync>,
-    pub stages: Vec<Option<WorkflowStage>>
+    pub stages: Vec<WorkflowStage>
 }
 
 pub struct Workflow {

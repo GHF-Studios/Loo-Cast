@@ -30,6 +30,10 @@ impl WorkflowIO<InputState> {
         }
     }
 
+    pub fn is_input_type<I: Any + Send + Sync>(&self) -> bool {
+        self.state.input.data.is::<I>()
+    }
+
     pub fn get_input_ref<I: Any + Send + Sync>(&self) -> &I {
         self.state.input.data.downcast_ref::<I>().unwrap_or_else(|| {
             panic!(

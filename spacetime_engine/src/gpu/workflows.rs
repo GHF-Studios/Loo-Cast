@@ -44,46 +44,65 @@ pub mod setup_texture_generator {
                 Ok(io)
             }),
             stages: vec![
-                Some(WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
-                    name: "DummyAsync".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>| {
-                        Box::pin(async move {
-                            debug!("Active Workflow Stage: DummyAsync executed.");
-                            let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                            tokio::time::sleep(std::time::Duration::from_millis(50)).await; // Simulated async delay
-                            io.set_output(RawWorkflowData::new(input)) // Pass-through
-                        })
-                    }),
-                })),
-                Some(WorkflowStage::Ecs(WorkflowStageEcs {
-                    name: "DummyEcs".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                        io.set_output(RawWorkflowData::new(input)) // Pass-through
-                    }),
-                })),
-                Some(WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
-                    name: "DummyEcsWhile".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                        WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(input))) // Pass-through
-                    }),
-                })),
-                Some(WorkflowStage::Render(WorkflowStageRender {
-                    name: "DummyRender".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                        io.set_output(RawWorkflowData::new(input)) // Pass-through
-                    }),
-                })),
-                Some(WorkflowStage::RenderWhile(WorkflowStageRenderWhile {
-                    name: "DummyRenderWhile".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                        let (input, io) = io.get_input::<SetupPipelineInput>(); // Get input and consume io
-                        WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(input))) // Pass-through
-                    }),
-                })),
-                Some(WorkflowStage::Render(WorkflowStageRender {
+                //WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
+                //    name: "DummyAsync".to_owned(),
+                //    function: Box::new(|io: WorkflowIO<InputState>| {
+                //        Box::pin(async move {
+                //            let (input, io) = io.get_input::<SetupPipelineInput>();
+                //            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                //            debug!("Completed async stage: SetupTextureGenerator::DummyAsync");
+                //            io.set_output(RawWorkflowData::new(input))
+                //        })
+                //    }),
+                //}),
+                //WorkflowStage::Ecs(WorkflowStageEcs {
+                //    name: "DummyEcs".to_owned(),
+                //    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
+                //        let (input, io) = io.get_input::<SetupPipelineInput>();
+                //        debug!("Completed ecs stage: SetupTextureGenerator::DummyEcs");
+                //        io.set_output(RawWorkflowData::new(input))
+                //    }),
+                //}),
+                //WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
+                //    name: "DummyEcsWhile".to_owned(),
+                //    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
+                //        let (input, counter, io) = if io.is_input_type::<SetupPipelineInput>() {
+                //            let (input, io) = io.get_input::<SetupPipelineInput>();
+                //            let counter = 5;
+                //            (input, counter, io)
+                //        } else if io.is_input_type::<(SetupPipelineInput, usize)>() {
+                //            let ((input, counter), io) = io.get_input::<(SetupPipelineInput, usize)>();
+                //            (input, counter, io)
+                //        } else {
+                //            unreachable!("Invalid input type")
+                //        };
+                //
+                //        if counter > 0 {
+                //            debug!("Waited for ecs while stage: SetupTextureGenerator::DummyEcsWhile");
+                //            WorkflowStageWhileOutcome::Waiting(WorkflowIO::new_input(RawWorkflowData::new((input, counter - 1))))
+                //        } else {
+                //            debug!("Completed ecs while stage: SetupTextureGenerator::DummyEcsWhile");
+                //            WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(input)))
+                //        }
+                //    }),
+                //}),
+                //WorkflowStage::Render(WorkflowStageRender {
+                //    name: "DummyRender".to_owned(),
+                //    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
+                //        let (input, io) = io.get_input::<SetupPipelineInput>();
+                //        debug!("Completed render stage: SetupTextureGenerator::DummyRender");
+                //        io.set_output(RawWorkflowData::new(input))
+                //    }),
+                //}),
+                //WorkflowStage::RenderWhile(WorkflowStageRenderWhile {
+                //    name: "DummyRenderWhile".to_owned(),
+                //    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
+                //        let (input, io) = io.get_input::<SetupPipelineInput>();
+                //        debug!("Completed render while stage: SetupTextureGenerator::DummyRenderWhile");
+                //        WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(input)))
+                //    }),
+                //}),
+                WorkflowStage::Render(WorkflowStageRender {
                     name: "SetupPipeline".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
                         let (input, io) = io.get_input::<SetupPipelineInput>();
@@ -91,16 +110,16 @@ pub mod setup_texture_generator {
                         let shader_path = input.shader_path.clone();
 
                         let mut system_state: SystemState<(
-                            Res<RenderDevice>,
                             ResMut<Assets<Shader>>,
+                            ResMut<ShaderPipelineRegistry>,
+                            Res<RenderDevice>,
                             ResMut<PipelineCache>,
-                            ResMut<ShaderPipelineRegistry>
                         )> = SystemState::new(world);
                         let (
-                            render_device, 
                             mut shader_assets, 
+                            mut shader_pipeline_registry,
+                            render_device, 
                             pipeline_cache, 
-                            mut shader_pipeline_registry
                         ) = system_state.get_mut(world);
 
                         // Read shader source from file
@@ -154,9 +173,10 @@ pub mod setup_texture_generator {
                         shader_pipeline_registry.shaders.insert(shader_name.to_string(), shader_handle);
                         shader_pipeline_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
                         
+                        debug!("Executed render stage: SetupTextureGenerator::SetupPipeline");
                         io.set_output(RawWorkflowData::new(Output(Ok(()))))
                     }),
-                })),
+                }),
             ],
         }
     }
@@ -225,7 +245,7 @@ pub mod generate_texture {
             }),
             stages: vec![
                 // **1. ECS Stage: Prepare Compute Resources**
-                Some(WorkflowStage::Ecs(WorkflowStageEcs {
+                WorkflowStage::Ecs(WorkflowStageEcs {
                     name: "PrepareCompute".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
                         debug!("Active Workflow Stage: Gpu::GenerateTexture::PrepareCompute");
@@ -288,10 +308,10 @@ pub mod generate_texture {
                             readback_buffer
                         }))
                     }),
-                })),
+                }),
 
                 // **2. EcsWhile Stage: Wait for Pipeline Compilation**
-                Some(WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
+                WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
                     name: "WaitForPipeline".to_owned(),
                     // TODO: Maybe instead of WorkflowStageEcsWhileOutcome use a future and handle the ecs while stage async-ly somehow??? 
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
@@ -332,10 +352,10 @@ pub mod generate_texture {
                             },
                         }
                     }),
-                })),
+                }),
 
                 // NEW: **3. ECS Stage: Dispatch Compute Work**
-                Some(WorkflowStage::Render(WorkflowStageRender {
+                WorkflowStage::Render(WorkflowStageRender {
                     name: "DispatchCompute".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
                         debug!("Active Workflow Stage: Gpu::GenerateTexture::DispatchCompute");
@@ -380,10 +400,10 @@ pub mod generate_texture {
 
                         io.set_output(RawWorkflowData::new(ComputePending { texture, status_buffer, readback_buffer }))
                     }),
-                })),
+                }),
 
                 // **4. EcsWhile Stage: Wait for Compute Execution (Polling)**
-                Some(WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
+                WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
                     name: "WaitForCompute".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
                         debug!("Active Workflow Stage: Gpu::GenerateTexture::WaitForCompute");
@@ -415,7 +435,7 @@ pub mod generate_texture {
                         
                         WorkflowStageWhileOutcome::Waiting(io)
                     }),
-                })),
+                }),
             ],
         }
     }

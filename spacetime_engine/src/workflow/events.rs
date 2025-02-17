@@ -1,7 +1,13 @@
 use bevy::prelude::*;
-use std::any::Any;
 
 use super::{stage::WorkflowStage, types::RawWorkflowData};
+
+#[derive(Event)]
+pub(in crate) struct WorkflowStageInitializationEvent {
+    pub module_name: String,
+    pub workflow_name: String,
+    pub stage_input: RawWorkflowData,
+}
 
 #[derive(Event)]
 pub(in crate) struct WorkflowStageCompletionEvent {
@@ -9,5 +15,5 @@ pub(in crate) struct WorkflowStageCompletionEvent {
     pub workflow_name: String,
     pub current_stage: usize,
     pub stage_output: RawWorkflowData,
-    pub stage_return: Option<WorkflowStage>,
+    pub stage_return: WorkflowStage,
 }
