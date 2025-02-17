@@ -44,64 +44,6 @@ pub mod setup_texture_generator {
                 Ok(io)
             }),
             stages: vec![
-                //WorkflowStage::Async(crate::workflow::stage::WorkflowStageAsync {
-                //    name: "DummyAsync".to_owned(),
-                //    function: Box::new(|io: WorkflowIO<InputState>| {
-                //        Box::pin(async move {
-                //            let (input, io) = io.get_input::<SetupPipelineInput>();
-                //            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-                //            debug!("Completed async stage: SetupTextureGenerator::DummyAsync");
-                //            io.set_output(RawWorkflowData::new(input))
-                //        })
-                //    }),
-                //}),
-                //WorkflowStage::Ecs(WorkflowStageEcs {
-                //    name: "DummyEcs".to_owned(),
-                //    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                //        let (input, io) = io.get_input::<SetupPipelineInput>();
-                //        debug!("Completed ecs stage: SetupTextureGenerator::DummyEcs");
-                //        io.set_output(RawWorkflowData::new(input))
-                //    }),
-                //}),
-                //WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
-                //    name: "DummyEcsWhile".to_owned(),
-                //    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                //        let (input, counter, io) = if io.is_input_type::<SetupPipelineInput>() {
-                //            let (input, io) = io.get_input::<SetupPipelineInput>();
-                //            let counter = 5;
-                //            (input, counter, io)
-                //        } else if io.is_input_type::<(SetupPipelineInput, usize)>() {
-                //            let ((input, counter), io) = io.get_input::<(SetupPipelineInput, usize)>();
-                //            (input, counter, io)
-                //        } else {
-                //            unreachable!("Invalid input type")
-                //        };
-                //
-                //        if counter > 0 {
-                //            debug!("Waited for ecs while stage: SetupTextureGenerator::DummyEcsWhile");
-                //            WorkflowStageWhileOutcome::Waiting(WorkflowIO::new_input(RawWorkflowData::new((input, counter - 1))))
-                //        } else {
-                //            debug!("Completed ecs while stage: SetupTextureGenerator::DummyEcsWhile");
-                //            WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(input)))
-                //        }
-                //    }),
-                //}),
-                //WorkflowStage::Render(WorkflowStageRender {
-                //    name: "DummyRender".to_owned(),
-                //    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                //        let (input, io) = io.get_input::<SetupPipelineInput>();
-                //        debug!("Completed render stage: SetupTextureGenerator::DummyRender");
-                //        io.set_output(RawWorkflowData::new(input))
-                //    }),
-                //}),
-                //WorkflowStage::RenderWhile(WorkflowStageRenderWhile {
-                //    name: "DummyRenderWhile".to_owned(),
-                //    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                //        let (input, io) = io.get_input::<SetupPipelineInput>();
-                //        debug!("Completed render while stage: SetupTextureGenerator::DummyRenderWhile");
-                //        WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(input)))
-                //    }),
-                //}),
                 WorkflowStage::Render(WorkflowStageRender {
                     name: "SetupPipeline".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
