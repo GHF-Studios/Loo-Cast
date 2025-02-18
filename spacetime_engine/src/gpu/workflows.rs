@@ -70,8 +70,10 @@ pub mod setup_texture_generator {
                         let shader = Shader::from_wgsl(shader_source, shader_path.clone());
                         let shader_handle = shader_assets.add(shader);
 
+                        // TODO: Refactor so we generally check for duplicates in the registry, not just for bind group layouts
                         if shader_pipeline_registry.bind_group_layouts.contains_key(shader_name) {
                             // TODO: Remove these damn panics and unreachables and replace them with proper per-stage error handling and proper IO handling of errors
+                            // TODO: Bake fallability into the workflow type, instead of this rude abrupt panic
                             unreachable!("Failed to setup texture generator: Shader '{}' already registered", shader_name)
                         }
 
@@ -168,7 +170,7 @@ pub mod setup_texture_generator {
 }
 
 pub mod generate_texture {
-    use bevy::{prelude::*, render::{render_asset::RenderAssetUsages, renderer::{RenderDevice, RenderQueue}, texture::GpuImage}};
+    use bevy::{prelude::*, render::{renderer::{RenderDevice, RenderQueue}, texture::GpuImage}};
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
     use bevy::render::render_asset::RenderAssets;
@@ -398,7 +400,7 @@ pub mod generate_texture {
 
                 WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
                     name: "WaitForCompute".to_owned(),
-                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
+                    function: Box::new(|io: WorkflowIO<InputState>, _world: &mut World| -> WorkflowStageWhileOutcome {
                         let (_, receiver) = io.get_input_ref::<(ComputePending, Receiver<()>)>();
 
                         match receiver.try_recv() {

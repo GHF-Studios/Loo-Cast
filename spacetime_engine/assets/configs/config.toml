@@ -6,11 +6,11 @@ base_zoom_speed = 1.0
 follow_smoothness = 0.15
 
 [chunk]
-size = 8.0
+size = 16.0
 default_z = -10.0
 
 [chunk_loader]
-default_radius = 64
+default_radius = 8
 
 [player]
 movement_speed = 250.0

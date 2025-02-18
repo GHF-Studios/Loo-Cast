@@ -54,13 +54,62 @@ fn test_workflow_framework_oneshot_system(world: &mut World) {
     use crate::gpu::workflows::generate_texture;
     use crate::chunk::workflows::spawn;
 
+    //if let Err(err) = request_workflow(
+    //    world,
+    //    "GPU",
+    //    "SetupTextureGenerator",
+    //    RawWorkflowData::new(setup_texture_generator::Input(setup_texture_generator::SetupPipelineInput {
+    //        shader_name: "example_compute_uv",
+    //        shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
+    //    })),
+    //    Some(Box::new(|world, io| {
+    //        io.consume_cast::<setup_texture_generator::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });
+    //        debug!("Setup texture generator");
+    //
+    //        if let Err(err) = request_workflow(
+    //            world,
+    //            "GPU",
+    //            "GenerateTexture",
+    //            RawWorkflowData::new(generate_texture::Input(generate_texture::GenerateTextureInput {
+    //                shader_name: "example_compute_uv".to_string(),
+    //                texture_size: CONFIG.get::<f32>("chunk/size") as usize
+    //            })),
+    //            Some(Box::new(|world, io| {
+    //                let output = io.consume_cast::<generate_texture::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to generate texture: {}", err) });
+    //                debug!("Generated texture");
+    //    
+    //                if let Err(err) = request_workflow(
+    //                    world,
+    //                    "Chunk",
+    //                    "Spawn",
+    //                    RawWorkflowData::new(spawn::Input(spawn::SetupAndSpawnEntityInput {
+    //                        chunk_coord: (0, 0),
+    //                        chunk_owner: None,
+    //                        metric_texture: output
+    //                    })),
+    //                    Some(Box::new(|world, io| {
+    //                        io.consume_cast::<spawn::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to spawn chunk: {}", err) });
+    //                        debug!("Spawned chunk");
+    //                    }))
+    //                ) { 
+    //                    debug!("Failed to spawn chunk: Failed request: {}", err) 
+    //                }
+    //            }))
+    //        ) { 
+    //            debug!("Failed to generate texture: Failed request: {}", err) 
+    //        }
+    //    }))
+    //) {
+    //    debug!("Failed to setup texture generator: Failed request: {}", err)
+    //}
+
     if let Err(err) = request_workflow(
         world,
         "GPU",
         "SetupTextureGenerator",
         RawWorkflowData::new(setup_texture_generator::Input(setup_texture_generator::SetupPipelineInput {
             shader_name: "example_compute_uv",
-            shader_path: "assets/shaders/example_compute_uv.wgsl".to_string(),
+            shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
         })),
         Some(Box::new(|world, io| {
             io.consume_cast::<setup_texture_generator::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });
@@ -87,9 +136,156 @@ fn test_workflow_framework_oneshot_system(world: &mut World) {
                             chunk_owner: None,
                             metric_texture: output
                         })),
-                        Some(Box::new(|_world, io| {
+                        Some(Box::new(|world, io| {
                             io.consume_cast::<spawn::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to spawn chunk: {}", err) });
                             debug!("Spawned chunk");
+
+                            if let Err(err) = request_workflow(
+                                world,
+                                "GPU",
+                                "SetupTextureGenerator",
+                                RawWorkflowData::new(setup_texture_generator::Input(setup_texture_generator::SetupPipelineInput {
+                                    shader_name: "example_compute_uv",
+                                    shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
+                                })),
+                                Some(Box::new(|world, io| {
+                                    io.consume_cast::<setup_texture_generator::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });
+                                    debug!("Setup texture generator");
+                        
+                                    if let Err(err) = request_workflow(
+                                        world,
+                                        "GPU",
+                                        "GenerateTexture",
+                                        RawWorkflowData::new(generate_texture::Input(generate_texture::GenerateTextureInput {
+                                            shader_name: "example_compute_uv".to_string(),
+                                            texture_size: CONFIG.get::<f32>("chunk/size") as usize
+                                        })),
+                                        Some(Box::new(|world, io| {
+                                            let output = io.consume_cast::<generate_texture::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to generate texture: {}", err) });
+                                            debug!("Generated texture");
+                                
+                                            if let Err(err) = request_workflow(
+                                                world,
+                                                "Chunk",
+                                                "Spawn",
+                                                RawWorkflowData::new(spawn::Input(spawn::SetupAndSpawnEntityInput {
+                                                    chunk_coord: (0, 1),
+                                                    chunk_owner: None,
+                                                    metric_texture: output
+                                                })),
+                                                Some(Box::new(|world, io| {
+                                                    io.consume_cast::<spawn::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to spawn chunk: {}", err) });
+                                                    debug!("Spawned chunk");
+
+                                                    if let Err(err) = request_workflow(
+                                                        world,
+                                                        "GPU",
+                                                        "SetupTextureGenerator",
+                                                        RawWorkflowData::new(setup_texture_generator::Input(setup_texture_generator::SetupPipelineInput {
+                                                            shader_name: "example_compute_uv",
+                                                            shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
+                                                        })),
+                                                        Some(Box::new(|world, io| {
+                                                            io.consume_cast::<setup_texture_generator::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });
+                                                            debug!("Setup texture generator");
+                                                
+                                                            if let Err(err) = request_workflow(
+                                                                world,
+                                                                "GPU",
+                                                                "GenerateTexture",
+                                                                RawWorkflowData::new(generate_texture::Input(generate_texture::GenerateTextureInput {
+                                                                    shader_name: "example_compute_uv".to_string(),
+                                                                    texture_size: CONFIG.get::<f32>("chunk/size") as usize
+                                                                })),
+                                                                Some(Box::new(|world, io| {
+                                                                    let output = io.consume_cast::<generate_texture::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to generate texture: {}", err) });
+                                                                    debug!("Generated texture");
+                                                        
+                                                                    if let Err(err) = request_workflow(
+                                                                        world,
+                                                                        "Chunk",
+                                                                        "Spawn",
+                                                                        RawWorkflowData::new(spawn::Input(spawn::SetupAndSpawnEntityInput {
+                                                                            chunk_coord: (1, 0),
+                                                                            chunk_owner: None,
+                                                                            metric_texture: output
+                                                                        })),
+                                                                        Some(Box::new(|world, io| {
+                                                                            io.consume_cast::<spawn::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to spawn chunk: {}", err) });
+                                                                            debug!("Spawned chunk");
+
+                                                                            if let Err(err) = request_workflow(
+                                                                                world,
+                                                                                "GPU",
+                                                                                "SetupTextureGenerator",
+                                                                                RawWorkflowData::new(setup_texture_generator::Input(setup_texture_generator::SetupPipelineInput {
+                                                                                    shader_name: "example_compute_uv",
+                                                                                    shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
+                                                                                })),
+                                                                                Some(Box::new(|world, io| {
+                                                                                    io.consume_cast::<setup_texture_generator::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to setup texture generator: {}", err) });
+                                                                                    debug!("Setup texture generator");
+                                                                        
+                                                                                    if let Err(err) = request_workflow(
+                                                                                        world,
+                                                                                        "GPU",
+                                                                                        "GenerateTexture",
+                                                                                        RawWorkflowData::new(generate_texture::Input(generate_texture::GenerateTextureInput {
+                                                                                            shader_name: "example_compute_uv".to_string(),
+                                                                                            texture_size: CONFIG.get::<f32>("chunk/size") as usize
+                                                                                        })),
+                                                                                        Some(Box::new(|world, io| {
+                                                                                            let output = io.consume_cast::<generate_texture::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to generate texture: {}", err) });
+                                                                                            debug!("Generated texture");
+                                                                                
+                                                                                            if let Err(err) = request_workflow(
+                                                                                                world,
+                                                                                                "Chunk",
+                                                                                                "Spawn",
+                                                                                                RawWorkflowData::new(spawn::Input(spawn::SetupAndSpawnEntityInput {
+                                                                                                    chunk_coord: (1, 1),
+                                                                                                    chunk_owner: None,
+                                                                                                    metric_texture: output
+                                                                                                })),
+                                                                                                Some(Box::new(|world, io| {
+                                                                                                    io.consume_cast::<spawn::Output>().0.unwrap_or_else(|err| { unreachable!("Failed to spawn chunk: {}", err) });
+                                                                                                    debug!("Spawned chunk");
+                                                                                                }))
+                                                                                            ) { 
+                                                                                                debug!("Failed to spawn chunk: Failed request: {}", err) 
+                                                                                            }
+                                                                                        }))
+                                                                                    ) { 
+                                                                                        debug!("Failed to generate texture: Failed request: {}", err) 
+                                                                                    }
+                                                                                }))
+                                                                            ) {
+                                                                                debug!("Failed to setup texture generator: Failed request: {}", err)
+                                                                            }
+                                                                        }))
+                                                                    ) { 
+                                                                        debug!("Failed to spawn chunk: Failed request: {}", err) 
+                                                                    }
+                                                                }))
+                                                            ) { 
+                                                                debug!("Failed to generate texture: Failed request: {}", err) 
+                                                            }
+                                                        }))
+                                                    ) {
+                                                        debug!("Failed to setup texture generator: Failed request: {}", err)
+                                                    }
+                                                }))
+                                            ) { 
+                                                debug!("Failed to spawn chunk: Failed request: {}", err) 
+                                            }
+                                        }))
+                                    ) { 
+                                        debug!("Failed to generate texture: Failed request: {}", err) 
+                                    }
+                                }))
+                            ) {
+                                debug!("Failed to setup texture generator: Failed request: {}", err)
+                            }
                         }))
                     ) { 
                         debug!("Failed to spawn chunk: Failed request: {}", err) 

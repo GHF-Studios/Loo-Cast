@@ -58,18 +58,15 @@ pub mod spawn {
                         let chunk_owner = input.chunk_owner;
                         let metric_texture = input.metric_texture;
 
-                        let half_chunk_size = CONFIG.get::<f32>("chunk/size") / 2.0;
                         let default_chunk_z = CONFIG.get::<f32>("chunk/default_z");
 
                         let chunk_transform = Transform {
                             translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),
-                            scale: Vec3::new(half_chunk_size * 2.0, half_chunk_size * 2.0, 1.0),
                             ..Default::default()
                         };
 
                         world.spawn((
                             SpriteBundle {
-                                sprite: default(),
                                 texture: metric_texture.clone(),
                                 transform: chunk_transform,
                                 ..Default::default()
