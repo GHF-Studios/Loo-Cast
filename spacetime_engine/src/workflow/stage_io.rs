@@ -17,6 +17,8 @@ pub struct CallbackState {
     callback_data: RawWorkflowData,
 }
 
+// TODO: Rename and/or move this damn file
+// TODO: Rework this to allow more streamlined workflow io, with new concepts like data lanes, entry and exit points for lanes, etc. 
 pub struct WorkflowIO<T> {
     state: T,
 }

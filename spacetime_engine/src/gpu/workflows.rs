@@ -75,7 +75,6 @@ pub mod setup_texture_generator {
                             unreachable!("Failed to setup texture generator: Shader '{}' already registered", shader_name)
                         }
 
-                        debug!("Executed ecs stage: SetupTextureGenerator::SetupPhase1");
                         io.set_output(RawWorkflowData::new((input, shader_handle)))
                     })
                 }),
@@ -97,7 +96,7 @@ pub mod setup_texture_generator {
                         let bind_group_layout = render_device.create_bind_group_layout(
                             Some("Compute Bind Group Layout"),
                             &[
-                                // Example: A storage buffer at binding 0
+                                // Storage Texture
                                 BindGroupLayoutEntry {
                                     binding: 0,
                                     visibility: ShaderStages::COMPUTE,
@@ -107,7 +106,18 @@ pub mod setup_texture_generator {
                                         view_dimension: TextureViewDimension::D2,
                                     },
                                     count: None,
-                                }
+                                },
+                                // Parameter Buffer
+                                BindGroupLayoutEntry {
+                                    binding: 1,
+                                    visibility: ShaderStages::COMPUTE,
+                                    ty: BindingType::Buffer {
+                                        ty: BufferBindingType::Storage { read_only: false },
+                                        has_dynamic_offset: false,
+                                        min_binding_size: None,
+                                    },
+                                    count: None,
+                                },
                             ],
                         );
 
@@ -123,7 +133,6 @@ pub mod setup_texture_generator {
                             }],
                         });
 
-                        debug!("Executed render stage: SetupTextureGenerator::SetupPhase2");
                         io.set_output(RawWorkflowData::new((input, shader_handle, bind_group_layout, pipeline_id)))
                     })
                 }),
@@ -150,7 +159,6 @@ pub mod setup_texture_generator {
                         shader_pipeline_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
                         shader_pipeline_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
 
-                        debug!("Executed ecs stage: SetupTextureGenerator::SetupPhase3");
                         io.set_output(RawWorkflowData::new(Output(Ok(()))))
                     })
                 }),
@@ -160,9 +168,10 @@ pub mod setup_texture_generator {
 }
 
 pub mod generate_texture {
-    use bevy::{prelude::*, render::{render_asset::RenderAssetUsages, renderer::{RenderDevice, RenderQueue}}};
+    use bevy::{prelude::*, render::{render_asset::RenderAssetUsages, renderer::{RenderDevice, RenderQueue}, texture::GpuImage}};
     use bevy::ecs::system::SystemState;
     use bevy::render::render_resource::*;
+    use bevy::render::render_asset::RenderAssets;
     use crossbeam_channel::{unbounded, Receiver};
     use crate::{gpu::resources::ShaderPipelineRegistry, workflow::{stage::{WorkflowStageRender, WorkflowStageRenderWhile, WorkflowStageWhileOutcome}, types::RawWorkflowData}};
     use crate::workflow::{stage::{WorkflowStage, WorkflowStageEcsWhile, WorkflowStageEcs}, 
@@ -181,8 +190,7 @@ pub mod generate_texture {
     pub struct PreparedPipeline {
         pub pipeline_id: CachedComputePipelineId,
         pub texture: Handle<Image>,
-        pub status_buffer: Buffer,
-        pub readback_buffer: Buffer,
+        pub param_buffer: Buffer,
     }
 
     /// Data passed after pipeline is ready, before dispatch
@@ -190,23 +198,16 @@ pub mod generate_texture {
         pub pipeline_id: CachedComputePipelineId,
         pub bind_group_layout: BindGroupLayout,
         pub texture: Handle<Image>,
-        pub status_buffer: Buffer,
-        pub readback_buffer: Buffer,
+        pub param_buffer: Buffer,
     }
 
     /// Data passed after dispatching compute
     pub struct ComputePending {
         pub texture: Handle<Image>,
-        pub status_buffer: Buffer,
-        pub readback_buffer: Buffer,
     }
 
     /// Output (final texture handle)
     pub struct Output(pub Result<Handle<Image>, String>);
-
-    /// Temporary resource to track mapping completion
-    #[derive(Resource)]
-    struct BufferMappingReceiver(Receiver<()>);
 
     pub fn create_workflow_type() -> WorkflowType {
         WorkflowType {
@@ -221,11 +222,9 @@ pub mod generate_texture {
                 Ok(io)
             }),
             stages: vec![
-                // **1. ECS Stage: Prepare Compute Resources**
                 WorkflowStage::Ecs(WorkflowStageEcs {
                     name: "PrepareCompute".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        debug!("Active Workflow Stage: Gpu::GenerateTexture::PrepareCompute");
                         let (input, io) = io.get_input::<GenerateTextureInput>();
                         let shader_name = input.shader_name.clone();
                         let texture_size = input.texture_size;
@@ -248,51 +247,48 @@ pub mod generate_texture {
                             },
                         };
 
-                        let texture = Image::new_fill(
-                            Extent3d {
-                                width: texture_size as u32,
-                                height: texture_size as u32,
-                                depth_or_array_layers: 1,
+                        let texture = Image {
+                            texture_descriptor: TextureDescriptor {
+                                label: Some("Compute Shader Output Texture"),
+                                size: Extent3d {
+                                    width: texture_size as u32,
+                                    height: texture_size as u32,
+                                    depth_or_array_layers: 1,
+                                },
+                                mip_level_count: 1,
+                                sample_count: 1,
+                                dimension: TextureDimension::D2,
+                                format: TextureFormat::Rgba8Unorm,
+                                usage: TextureUsages::COPY_DST 
+                                    | TextureUsages::TEXTURE_BINDING 
+                                    | TextureUsages::STORAGE_BINDING,
+                                view_formats: &[],
                             },
-                            TextureDimension::D2,
-                            &[0, 0, 0, 0],
-                            TextureFormat::Rgba8Unorm,
-                            RenderAssetUsages::MAIN_WORLD
-                        );
+                            data: vec![0; texture_size * texture_size * 4],
+                            ..Default::default()
+                        };
 
                         let texture_handle = images.add(texture);
 
-                        // Create a status buffer (only STORAGE, used inside shader)
-                        let status_buffer = render_device.create_buffer(&BufferDescriptor {
-                            label: Some("Compute Status Buffer"),
-                            size: std::mem::size_of::<u32>() as u64,
-                            usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC, // 🚀 Fix: No MAP_READ
-                            mapped_at_creation: false,
-                        });
-
-                        // Create a readback buffer (only COPY_DST | MAP_READ, used by CPU)
-                        let readback_buffer = render_device.create_buffer(&BufferDescriptor {
-                            label: Some("Readback Buffer"),
-                            size: std::mem::size_of::<u32>() as u64,
-                            usage: BufferUsages::COPY_DST | BufferUsages::MAP_READ, // 🚀 Fix: Separated readback buffer
-                            mapped_at_creation: false,
+                        // Create a buffer for parameters
+                        let param_data: Vec<f32> = vec![1.0, 2.0, 3.0, 4.0]; // Example data, should come from input
+                        let param_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+                            label: Some("Parameter Buffer"),
+                            contents: bytemuck::cast_slice(&param_data),
+                            usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
                         });
 
                         io.set_output(RawWorkflowData::new(PreparedPipeline {
                             pipeline_id,
                             texture: texture_handle,
-                            status_buffer,
-                            readback_buffer
+                            param_buffer,
                         }))
                     }),
                 }),
 
-                // **2. RenderWhile Stage: Wait for Pipeline Compilation**
                 WorkflowStage::RenderWhile(WorkflowStageRenderWhile {
                     name: "WaitForPipeline".to_owned(),
-                    // TODO: Maybe instead of WorkflowStageEcsWhileOutcome use a future and handle the ecs while stage async-ly somehow??? 
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                        debug!("Active Workflow Stage: Gpu::GenerateTexture::WaitForPipeline");
                         let input = io.get_input_ref::<PreparedPipeline>();
                         let pipeline_id = input.pipeline_id;
                 
@@ -317,8 +313,7 @@ pub mod generate_texture {
                                     pipeline_id,
                                     bind_group_layout: compute_pipeline.get_bind_group_layout(0).into(),
                                     texture: input.texture.clone(),
-                                    status_buffer: input.status_buffer,
-                                    readback_buffer: input.readback_buffer,
+                                    param_buffer: input.param_buffer,
                                 })))
                             },
                             CachedPipelineState::Err(e) => {
@@ -329,17 +324,32 @@ pub mod generate_texture {
                     }),
                 }),
 
-                // NEW: **3. ECS Stage: Dispatch Compute Work**
+                WorkflowStage::RenderWhile(WorkflowStageRenderWhile {
+                    name: "WaitForTextureView".to_owned(),
+                    function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
+                        let input = io.get_input_ref::<DispatchData>();
+                
+                        let gpu_images = SystemState::<Res<RenderAssets<GpuImage>>>::new(world).get(world);
+                
+                        if let Some(gpu_image) = gpu_images.get(&input.texture) {
+                            let texture_view = gpu_image.texture_view.clone();
+                
+                            let (input, io) = io.get_input::<DispatchData>();
+                            return WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new((input, texture_view))));
+                        }
+                
+                        WorkflowStageWhileOutcome::Waiting(io)
+                    }),
+                }),
+                
                 WorkflowStage::Render(WorkflowStageRender {
                     name: "DispatchCompute".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
-                        debug!("Active Workflow Stage: Gpu::GenerateTexture::DispatchCompute");
-                        let (input, io) = io.get_input::<DispatchData>();
+                        let ((input, texture_view), io) = io.get_input::<(DispatchData, TextureView)>();
                         let pipeline_id = input.pipeline_id;
                         let bind_group_layout = input.bind_group_layout.clone();
                         let texture = input.texture;
-                        let status_buffer = input.status_buffer;
-                        let readback_buffer = input.readback_buffer;
+                        let param_buffer = input.param_buffer;
 
                         let mut system_state: SystemState<(
                             Res<RenderDevice>,
@@ -357,7 +367,11 @@ pub mod generate_texture {
                             &[
                                 BindGroupEntry {
                                     binding: 0,
-                                    resource: status_buffer.as_entire_binding(),
+                                    resource: BindingResource::TextureView(&texture_view),
+                                },
+                                BindGroupEntry {
+                                    binding: 1,
+                                    resource: param_buffer.as_entire_binding(),
                                 },
                             ],
                         );
@@ -373,42 +387,38 @@ pub mod generate_texture {
 
                         queue.submit(Some(encoder.finish()));
 
-                        io.set_output(RawWorkflowData::new(ComputePending { texture, status_buffer, readback_buffer }))
+                        let (sender, receiver) = unbounded();
+                        queue.on_submitted_work_done(move || {
+                            let _ = sender.send(());
+                        });
+
+                        io.set_output(RawWorkflowData::new((ComputePending { texture }, receiver)))
                     }),
                 }),
 
-                // **4. EcsWhile Stage: Wait for Compute Execution (Polling)**
                 WorkflowStage::EcsWhile(WorkflowStageEcsWhile {
                     name: "WaitForCompute".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowStageWhileOutcome {
-                        debug!("Active Workflow Stage: Gpu::GenerateTexture::WaitForCompute");
-                        let input = io.get_input_ref::<ComputePending>();
-                        let readback_buffer = &input.readback_buffer;
-                        
-                        let mapping_receiver = SystemState::<Option<ResMut<BufferMappingReceiver>>>::new(world).get_mut(world);
-                        if let Some(receiver) = mapping_receiver {
-                            if receiver.0.try_recv().is_ok() {
-                                let (input, io) = io.get_input::<ComputePending>();
-                                world.remove_resource::<BufferMappingReceiver>(); // Cleanup
-                                return WorkflowStageWhileOutcome::Completed(io.set_output(RawWorkflowData::new(Output(Ok(input.texture)))));
+                        let (_, receiver) = io.get_input_ref::<(ComputePending, Receiver<()>)>();
+
+                        match receiver.try_recv() {
+                            Ok(_) => {
+                                let ((input, _), io) = io.get_input::<(ComputePending, Receiver<()>)>();
+                                let io = io.set_output(RawWorkflowData::new(Output(Ok(input.texture))));
+                                WorkflowStageWhileOutcome::Completed(io)
+                            },
+                            Err(e) => {
+                                match e {
+                                    crossbeam_channel::TryRecvError::Empty => {
+                                        WorkflowStageWhileOutcome::Waiting(io)
+                                    },
+                                    crossbeam_channel::TryRecvError::Disconnected => {
+                                        unreachable!("Failed to generate texture: Compute pass receiver disconnected");
+                                    },
+                                }
                             }
-                        } else {
-                            let (sender, receiver) = unbounded();
-                            world.insert_resource(BufferMappingReceiver(receiver));
-                
-                            let render_device = SystemState::<Res<RenderDevice>>::new(world).get_mut(world);
-                            render_device.map_buffer(
-                                &readback_buffer.slice(..),
-                                MapMode::Read,
-                                move |result| {
-                                    if result.is_ok() {
-                                        let _ = sender.send(());
-                                    }
-                                },
-                            );
                         }
-                        
-                        WorkflowStageWhileOutcome::Waiting(io)
+
                     }),
                 }),
             ],

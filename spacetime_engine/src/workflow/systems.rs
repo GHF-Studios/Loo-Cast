@@ -114,7 +114,7 @@ pub(in super) fn poll_ecs_while_stage_buffer_system(world: &mut World) {
     }
 
     let mut buffer = world.resource_mut::<EcsWhileStageBuffer>();
-    std::mem::replace(&mut buffer.0, waiting_buffer);
+    buffer.0 = waiting_buffer;
 }
 
 pub(in super) fn poll_render_stage_buffer_system(world: &mut World) {
@@ -182,6 +182,9 @@ pub(in super) fn poll_render_while_stage_buffer_system(world: &mut World) {
             }
         }
     }
+
+    let mut buffer = world.resource_mut::<RenderWhileStageBuffer>();
+    buffer.0 = waiting_buffer;
 }
 
 pub(in super) fn poll_async_stage_buffer_system(world: &mut World) {
