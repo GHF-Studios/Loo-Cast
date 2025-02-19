@@ -9,6 +9,6 @@ pub(in crate) struct GpuPlugin;
 impl Plugin for GpuPlugin {
     fn build(&self, app: &mut App) {
         app
-            .insert_resource(ShaderPipelineRegistry::default());
+            .insert_resource(ShaderRegistry::default());
     }
 }

@@ -19,7 +19,7 @@ pub mod setup_texture_generator {
 
     use crate::workflow::stage::*;
     use crate::workflow::types::RawWorkflowData;
-    use crate::gpu::resources::ShaderPipelineRegistry;
+    use crate::gpu::resources::ShaderRegistry;
     use crate::workflow::{stage::WorkflowStage, stage_io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
 
     pub struct Input(pub SetupPipelineInput);
@@ -53,29 +53,26 @@ pub mod setup_texture_generator {
 
                         let mut system_state: SystemState<(
                             ResMut<Assets<Shader>>,
-                            Res<ShaderPipelineRegistry>,
+                            Res<ShaderRegistry>,
                         )> = SystemState::new(world);
                         let (
                             mut shader_assets, 
-                            shader_pipeline_registry,
+                            shader_registry,
                         ) = system_state.get_mut(world);
+
+                        if shader_registry.shaders.contains_key(shader_name) {
+                            unreachable!("Failed to setup texture generator: Shader '{}' already registered", shader_name)
+                        }
 
                         let shader_source = match std::fs::read_to_string(&shader_path) {
                             Ok(source) => source,
                             Err(e) => {
-                                return io.set_output(RawWorkflowData::new(Output(Err(format!("Failed to read shader: {}", e)))))
+                                unreachable!("Failed to read shader: {}", e)
                             },
                         };
 
                         let shader = Shader::from_wgsl(shader_source, shader_path.clone());
                         let shader_handle = shader_assets.add(shader);
-
-                        // TODO: Refactor so we generally check for duplicates in the registry, not just for bind group layouts
-                        if shader_pipeline_registry.bind_group_layouts.contains_key(shader_name) {
-                            // TODO: Remove these damn panics and unreachables and replace them with proper per-stage error handling and proper IO handling of errors
-                            // TODO: Bake fallability into the workflow type, instead of this rude abrupt panic
-                            unreachable!("Failed to setup texture generator: Shader '{}' already registered", shader_name)
-                        }
 
                         io.set_output(RawWorkflowData::new((input, shader_handle)))
                     })
@@ -155,11 +152,11 @@ pub mod setup_texture_generator {
 
                         let shader_name = input.shader_name;
 
-                        let mut shader_pipeline_registry = SystemState::<ResMut<ShaderPipelineRegistry>>::new(world).get_mut(world);
+                        let mut shader_registry = SystemState::<ResMut<ShaderRegistry>>::new(world).get_mut(world);
 
-                        shader_pipeline_registry.shaders.insert(shader_name.to_string(), shader_handle);
-                        shader_pipeline_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
-                        shader_pipeline_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
+                        shader_registry.shaders.insert(shader_name.to_string(), shader_handle);
+                        shader_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
+                        shader_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
 
                         io.set_output(RawWorkflowData::new(Output(Ok(()))))
                     })
@@ -175,7 +172,7 @@ pub mod generate_texture {
     use bevy::render::render_resource::*;
     use bevy::render::render_asset::RenderAssets;
     use crossbeam_channel::{unbounded, Receiver};
-    use crate::{gpu::resources::ShaderPipelineRegistry, workflow::{stage::{WorkflowStageRender, WorkflowStageRenderWhile, WorkflowStageWhileOutcome}, types::RawWorkflowData}};
+    use crate::{gpu::resources::ShaderRegistry, workflow::{stage::{WorkflowStageRender, WorkflowStageRenderWhile, WorkflowStageWhileOutcome}, types::RawWorkflowData}};
     use crate::workflow::{stage::{WorkflowStage, WorkflowStageEcsWhile, WorkflowStageEcs}, 
         stage_io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
 
@@ -234,17 +231,16 @@ pub mod generate_texture {
                         let mut system_state: SystemState<(
                             Res<RenderDevice>,
                             ResMut<Assets<Image>>,
-                            Res<ShaderPipelineRegistry>,
+                            Res<ShaderRegistry>,
                         )> = SystemState::new(world);
 
-                        let (render_device, mut images, shader_pipeline_registry) = system_state.get_mut(world);
+                        let (render_device, mut images, shader_registry) = system_state.get_mut(world);
 
-                        let pipeline_id = match shader_pipeline_registry.pipelines.get(&shader_name) {
+                        let pipeline_id = match shader_registry.pipelines.get(&shader_name) {
                             Some(&id) => { 
                                 id 
                             },
                             None => {
-                                // TODO: Bake fallability into the workflow type, instead of this rude abrupt panic
                                 unreachable!("Failed to generate texture: Pipeline not found for shader: {}", shader_name)
                             },
                         };
@@ -307,7 +303,6 @@ pub mod generate_texture {
                             CachedPipelineState::Ok(pipeline) => {
                                 let (input, io) = io.get_input::<PreparedPipeline>();
                                 let compute_pipeline = match pipeline {
-                                    // TODO: Bake fallability into the workflow type, instead of this rude abrupt panic
                                     Pipeline::RenderPipeline(_) => unreachable!("Failed to generate texture: Expected a compute pipeline"),
                                     Pipeline::ComputePipeline(compute_pipeline) => compute_pipeline
                                 };
@@ -319,7 +314,6 @@ pub mod generate_texture {
                                 })))
                             },
                             CachedPipelineState::Err(e) => {
-                                // TODO: Bake fallability into the workflow type, instead of this rude abrupt panic
                                 unreachable!("Failed to generate texture: Failed to create pipeline: {}", e);
                             },
                         }

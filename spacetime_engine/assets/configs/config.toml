@@ -6,7 +6,7 @@ base_zoom_speed = 1.0
 follow_smoothness = 0.15
 
 [chunk]
-size = 16.0
+size = 64.0
 default_z = -10.0
 
 [chunk_loader]
