@@ -181,7 +181,7 @@ pub mod generate_texture {
 
     /// Data needed for texture generation
     pub struct GenerateTextureInput {
-        pub shader_name: String,
+        pub shader_name: &'static str,
         pub texture_size: usize,
     }
 
@@ -225,7 +225,7 @@ pub mod generate_texture {
                     name: "PrepareCompute".to_owned(),
                     function: Box::new(|io: WorkflowIO<InputState>, world: &mut World| -> WorkflowIO<OutputState> {
                         let (input, io) = io.get_input::<GenerateTextureInput>();
-                        let shader_name = input.shader_name.clone();
+                        let shader_name = input.shader_name;
                         let texture_size = input.texture_size;
 
                         let mut system_state: SystemState<(
@@ -233,10 +233,9 @@ pub mod generate_texture {
                             ResMut<Assets<Image>>,
                             Res<ShaderRegistry>,
                         )> = SystemState::new(world);
-
                         let (render_device, mut images, shader_registry) = system_state.get_mut(world);
 
-                        let pipeline_id = match shader_registry.pipelines.get(&shader_name) {
+                        let pipeline_id = match shader_registry.pipelines.get(shader_name) {
                             Some(&id) => { 
                                 id 
                             },
@@ -275,7 +274,7 @@ pub mod generate_texture {
                             contents: bytemuck::cast_slice(&param_data),
                             usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
                         });
-
+                        
                         io.set_output(RawWorkflowData::new(PreparedPipeline {
                             pipeline_id,
                             texture: texture_handle,
