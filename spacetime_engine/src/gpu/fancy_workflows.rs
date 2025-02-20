@@ -95,7 +95,7 @@ workflow_mod! {
                             let (render_device, pipeline_cache, gpu_images) = system_state.get(world);
     
                             let bind_group_layout = render_device.create_bind_group_layout(
-                                Some("Compute Bind Group Layout"),
+                                None,
                                 &[
                                     // Texture buffer
                                     BindGroupLayoutEntry {
@@ -123,7 +123,7 @@ workflow_mod! {
                             );
     
                             let pipeline_id = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-                                label: Some(format!("Pipeline for {}", shader_name).into()),
+                                label: None,
                                 layout: vec![bind_group_layout.clone()],
                                 shader: shader_handle.clone(),
                                 shader_defs: vec![],
@@ -136,7 +136,7 @@ workflow_mod! {
 
                             State { shader_name, shader_handle, bind_group_layout, pipeline_id }
                         },
-                        fn Run |state, world| {
+                        fn RunWhile |state, world| {
                             match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
                                 CachedPipelineState::Queued | CachedPipelineState::Creating(_) => {
                                     Wait {}
@@ -209,7 +209,7 @@ workflow_mod! {
                     param_data: Vec<f32>,
                 }
                 impl GeneratorRequest<GeneratorParams> {
-                    pub fn on_entry(
+                    pub fn new(
                         shader_name: &'static str,
                         pipeline_id: CachedComputePipelineId,
                         bind_group_layout: BindGroupLayout,
@@ -227,7 +227,7 @@ workflow_mod! {
                         }
                     }
 
-                    pub fn on_await_texture_view(self, texture_view: TextureView) -> Self<PreparedGenerator> {
+                    pub fn set_texture_view(self, texture_view: TextureView) -> Self<PreparedGenerator> {
                         Self {
                             inner: PreparedGenerator {
                                 shader_name: self.inner.shader_name,
@@ -250,7 +250,7 @@ workflow_mod! {
                     param_buffer: Buffer,
                 }
                 impl GeneratorRequest<PreparedGenerator> {
-                    pub fn on_dispatch_compute(self, texture_handle: Handle<Image>, receiver: Receiver<()>) -> Self<DispatchedCompute> {
+                    pub fn track_dispatch(self, texture_handle: Handle<Image>, receiver: Receiver<()>) -> Self<DispatchedCompute> {
                         Self {
                             inner: DispatchedCompute {
                                 shader_name: self.inner.shader_name,
@@ -267,7 +267,7 @@ workflow_mod! {
                     receiver: Receiver<()>
                 }
                 impl GeneratorRequest<DispatchedCompute> {
-                    pub fn on_exit(self) -> (&'static str, Handle<Image>) {
+                    pub fn consume(self) -> (&'static str, Handle<Image>) {
                         (self.inner.shader_name, self.inner.texture_handle)
                     }
                 }
@@ -307,7 +307,7 @@ workflow_mod! {
                             }
 
                             let pipeline_id = shader_registry.pipelines.get(shader_name).unwrap();
-                            let bind_group_layout = shader_registry.pipelines.get(shader_name).unwrap();
+                            let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap();
 
                             let texture = Image {
                                 texture_descriptor: TextureDescriptor {
@@ -344,9 +344,12 @@ workflow_mod! {
                     ],
                 },
     
-                WaitForTextureView: RenderWhile {
+                GetTextureView: RenderWhile {
                     core_types: [
                         struct In {
+                            request: GeneratorRequest<GeneratorParams>,
+                        },
+                        struct State {
                             request: GeneratorRequest<GeneratorParams>,
                         },
                         struct Out {
@@ -354,7 +357,20 @@ workflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn Run |input, world| {
+                        fn Setup |input, world| {
+                            State { request: input.request }
+                        },
+                        fn RunWhile |state, world| {
+                            let gpu_images = SystemState::<Res<RenderAssets<GpuImage>>>::new(world).get(world);
+                
+                            if let Some(gpu_image) = gpu_images.get(&state.request.inner.texture_handle) {
+                                let texture_view = gpu_image.texture_view.clone();
+                
+                                let prepared_request = state.request.set_texture_view(texture_view);
+                                Out { request: prepared_request }
+                            } else {
+                                Wait {}
+                            }
                         },
                     ],
                 },
@@ -370,6 +386,54 @@ workflow_mod! {
                     ],
                     core_functions: [
                         fn Run |input, world| {
+                            let prepared = &input.request.inner;
+                            let shader_name = prepared.shader_name;
+                            let texture_view = &prepared.texture_view;
+                            let bind_group_layout = &prepared.bind_group_layout;
+                            let param_buffer = &prepared.param_buffer;
+                
+                            let mut system_state: SystemState<(
+                                Res<RenderDevice>,
+                                Res<RenderQueue>,
+                                Res<PipelineCache>,
+                            )> = SystemState::new(world);
+                            let (render_device, queue, pipeline_cache) = system_state.get_mut(world);
+                
+                            let pipeline = pipeline_cache.get_compute_pipeline(prepared.pipeline_id)
+                                .expect("Compute pipeline not found");
+                
+                            let bind_group = render_device.create_bind_group(
+                                Some("Compute Bind Group"),
+                                bind_group_layout,
+                                &[
+                                    BindGroupEntry {
+                                        binding: 0,
+                                        resource: BindingResource::TextureView(texture_view),
+                                    },
+                                    BindGroupEntry {
+                                        binding: 1,
+                                        resource: param_buffer.as_entire_binding(),
+                                    },
+                                ],
+                            );
+                
+                            let mut encoder = render_device.create_command_encoder(&CommandEncoderDescriptor { label: None });
+                            let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor { label: None, timestamp_writes: None });
+                
+                            compute_pass.set_pipeline(pipeline);
+                            compute_pass.set_bind_group(0, &bind_group, &[]);
+                            compute_pass.dispatch_workgroups(8, 8, 1);
+                            drop(compute_pass);
+                
+                            queue.submit(Some(encoder.finish()));
+                
+                            let (sender, receiver) = unbounded();
+                            queue.on_submitted_work_done(move || {
+                                let _ = sender.send(());
+                            });
+                
+                            let dispatched_request = input.request.track_dispatch(prepared.texture_handle.clone(), receiver);
+                            Out { request: dispatched_request }
                         },
                     ],
                 },
@@ -377,6 +441,9 @@ workflow_mod! {
                 WaitForCompute: EcsWhile {
                     core_types: [
                         struct In {
+                            request: GeneratorRequest<DispatchedCompute>,
+                        },
+                        struct State {
                             request: GeneratorRequest<DispatchedCompute>,
                         },
                         struct Out {
@@ -390,7 +457,24 @@ workflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn Run |input, world| {
+                        fn Setup |input, world| {
+                            State { request: input.request }
+                        },
+                        fn RunWhile |state, world| {
+                            let receiver = &state.request.inner.receiver;
+                
+                            match receiver.try_recv() {
+                                Ok(_) => {
+                                    let (shader_name, texture_handle) = state.request.consume();
+                                    Out { shader_name, texture_handle }
+                                },
+                                Err(crossbeam_channel::TryRecvError::Empty) => {
+                                    Wait {}
+                                },
+                                Err(crossbeam_channel::TryRecvError::Disconnected) => {
+                                    Err::ComputePassReceiverDisconnected { shader_name: state.request.inner.shader_name }
+                                },
+                            }
                         },
                     ],
                 },
