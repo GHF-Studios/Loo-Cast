@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use crate::config::statics::CONFIG;
 
-use super::{stage::WorkflowStage, stage_io::{WorkflowIO, CallbackState, InputState, OutputState}};
+use super::{stage::WorkflowStage, io::{WorkflowIO, CallbackState, InputState, OutputState}};
 
 pub struct RawWorkflowData {
     pub data: Box<dyn Any + Send + Sync>,
@@ -52,6 +52,11 @@ impl WorkflowState {
             Self::Processing { current_stage, .. } => *current_stage,
         }
     }
+}
+
+pub struct WorkflowTypeModule {
+    pub name: String,
+    pub workflow_types: Vec<WorkflowType>
 }
 
 pub struct WorkflowType {

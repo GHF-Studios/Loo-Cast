@@ -7,6 +7,7 @@ pub mod resources;
 pub mod systems;
 
 pub mod workflows;
+//pub mod fancy_workflow_expanded;
 
 use bevy::prelude::*;
 use resources::{ChunkWorkflowBuffer, ChunkManager};

@@ -2,7 +2,7 @@ use std::any::Any;
 use bevy::prelude::*;
 use futures::future::BoxFuture;
 
-use super::stage_io::*;
+use super::io::*;
 
 pub enum WorkflowStage {
     Ecs(WorkflowStageEcs),

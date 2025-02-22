@@ -1,6 +1,5 @@
-use crate::workflow::{resources::WorkflowTypeModuleRegistry, target::WorkflowTypeModule};
+use crate::workflow::{resources::WorkflowTypeModuleRegistry, types::WorkflowTypeModule};
 
-// TODO: Create macro to define workflows and their types in a more streamlined and natural way
 pub fn initialize_workflow_type_module(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
     workflow_type_module_registry.register(
         WorkflowTypeModule {
@@ -17,7 +16,7 @@ pub fn initialize_workflow_type_module(workflow_type_module_registry: &mut Workf
 pub mod spawn {
     use bevy::prelude::*;
 
-    use crate::{workflow::{stage::{WorkflowStage, WorkflowStageEcs}, stage_io::{WorkflowIO, InputState, OutputState}, types::{WorkflowType, RawWorkflowData}}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
+    use crate::{workflow::{stage::{WorkflowStage, WorkflowStageEcs}, io::{WorkflowIO, InputState, OutputState}, types::{WorkflowType, RawWorkflowData}}, chunk::{components::ChunkComponent, functions::chunk_pos_to_world, resources::ChunkManager}, config::statics::CONFIG};
 
     pub struct Input(pub SetupAndSpawnEntityInput);
 
@@ -94,7 +93,7 @@ pub mod spawn {
 pub mod despawn {
     use bevy::prelude::*;
 
-    use crate::{workflow::{stage::{WorkflowStage, WorkflowStageEcs}, stage_io::{WorkflowIO, InputState, OutputState}, types::{WorkflowType, RawWorkflowData}}, chunk::{components::ChunkComponent, resources::ChunkManager}};
+    use crate::{workflow::{stage::{WorkflowStage, WorkflowStageEcs}, io::{WorkflowIO, InputState, OutputState}, types::{WorkflowType, RawWorkflowData}}, chunk::{components::ChunkComponent, resources::ChunkManager}};
 
     pub struct Input(pub FindAndDespawnEntityInput);
 
@@ -155,7 +154,7 @@ pub mod transfer_ownership {
     use bevy::prelude::*;
     use bevy::ecs::system::SystemState;
 
-    use crate::{workflow::{stage::{WorkflowStage, WorkflowStageEcs}, stage_io::{WorkflowIO, InputState, OutputState}, types::{WorkflowType, RawWorkflowData}}, chunk::{components::ChunkComponent, resources::ChunkManager}};
+    use crate::{workflow::{stage::{WorkflowStage, WorkflowStageEcs}, io::{WorkflowIO, InputState, OutputState}, types::{WorkflowType, RawWorkflowData}}, chunk::{components::ChunkComponent, resources::ChunkManager}};
 
     pub struct Input(pub FindChunkAndTransferOwnershipInput);
     

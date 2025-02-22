@@ -1,4 +1,4 @@
-use crate::workflow::{resources::WorkflowTypeModuleRegistry, target::WorkflowTypeModule};
+use crate::workflow::{resources::WorkflowTypeModuleRegistry, types::WorkflowTypeModule};
 
 pub fn initialize_workflow_type_module(workflow_type_module_registry: &mut WorkflowTypeModuleRegistry) {
     workflow_type_module_registry.register(
@@ -20,7 +20,7 @@ pub mod setup_texture_generator {
     use crate::workflow::stage::*;
     use crate::workflow::types::RawWorkflowData;
     use crate::gpu::resources::ShaderRegistry;
-    use crate::workflow::{stage::WorkflowStage, stage_io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
+    use crate::workflow::{stage::WorkflowStage, io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
 
     pub struct Input(pub SetupPipelineInput);
 
@@ -174,7 +174,7 @@ pub mod generate_texture {
     use crossbeam_channel::{unbounded, Receiver};
     use crate::{gpu::resources::ShaderRegistry, workflow::{stage::{WorkflowStageRender, WorkflowStageRenderWhile, WorkflowStageWhileOutcome}, types::RawWorkflowData}};
     use crate::workflow::{stage::{WorkflowStage, WorkflowStageEcsWhile, WorkflowStageEcs}, 
-        stage_io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
+        io::{WorkflowIO, InputState, OutputState}, types::WorkflowType};
 
     /// Input to the workflow
     pub struct Input(pub GenerateTextureInput);

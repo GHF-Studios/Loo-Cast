@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::ecs::system::SystemState;
 
-use super::{resources::{WorkflowMap, WorkflowTypeModuleRegistry}, stage_io::{WorkflowIO, CallbackState}, types::{WorkflowInstance, RawWorkflowData}};
+use super::{resources::{WorkflowMap, WorkflowTypeModuleRegistry}, io::{WorkflowIO, CallbackState}, types::{WorkflowInstance, RawWorkflowData}};
 
 pub fn request_workflow(
     world: &mut World,

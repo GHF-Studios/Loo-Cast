@@ -7,17 +7,17 @@ workflow_mod! {
             user_types: [],
             user_functions: [],
             stages: [
-                SetupPhase1: Ecs {
+                SetupPhase1 {
                     core_types: [
-                        struct In { 
+                        struct Input { 
                             shader_name: &'static str, 
                             shader_path: String 
                         },
-                        struct Out {
+                        struct Output {
                             shader_name: &'static str, 
                             shader_handle: Handle<Shader>,
                         },
-                        enum Err {
+                        enum Error {
                             ShaderAlreadyRegistered { 
                                 shader_name: &'static str 
                             },
@@ -28,7 +28,7 @@ workflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn Run |&mut input, world| {
+                        fn RunEcs |input, world| {
                             let shader_name = input.shader_name;
                             let shader_path = input.shader_path;
         
@@ -39,23 +39,23 @@ workflow_mod! {
                             let (mut shader_assets, shader_registry) = system_state.get_mut(world);
         
                             if shader_registry.shaders.contains_key(shader_name) {
-                                return Err::ShaderAlreadyRegistered { shader_name }
+                                return Err(Error::ShaderAlreadyRegistered { shader_name })
                             }
         
                             let shader_source = std::fs::read_to_string(&shader_path)
-                                .map_err(|e| Err::FailedToReadShader { shader_name, error: e })?;
+                                .map_err(|e| Error::FailedToReadShader { shader_name, error: e })?;
                             
                             let shader = Shader::from_wgsl(shader_source, shader_path.clone());
                             let shader_handle = shader_assets.add(shader);
         
-                            Out { shader_name, shader_handle }
+                            Ok(Output { shader_name, shader_handle })
                         },
                     ],
                 },
     
-                SetupPhase2: RenderWhile {
+                SetupPhase2 {
                     core_types: [
-                        struct In {
+                        struct Input {
                             shader_name: &'static str, 
                             shader_handle: Handle<Shader>
                         },
@@ -63,15 +63,15 @@ workflow_mod! {
                             shader_name: &'static str, 
                             shader_handle: Handle<Shader>,
                             bind_group_layout: BindGroupLayout, 
-                            pipeline_id: CachedComputePipelineId ,
-                        }
-                        struct Out { 
+                            pipeline_id: CachedComputePipelineId,
+                        },
+                        struct Output { 
                             shader_name: &'static str, 
                             shader_handle: Handle<Shader>, 
-                            pipeline_id: CachedComputePipelineId 
+                            pipeline_id: CachedComputePipelineId,
                             bind_group_layout: BindGroupLayout, 
                         },
-                        enum Err {
+                        enum Error {
                             ExpectedComputePipelineGotRenderPipeline {
                                 shader_name: String,
                                 pipeline_id: CachedComputePipelineId,
@@ -83,7 +83,7 @@ workflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn Setup |input, world| {
+                        fn SetupRenderWhile |input, world| {
                             let shader_name = input.shader_name;
                             let shader_handle = input.shader_handle;
     
@@ -134,31 +134,31 @@ workflow_mod! {
                                 }],
                             });
 
-                            State { shader_name, shader_handle, bind_group_layout, pipeline_id }
+                            Ok(State { shader_name, shader_handle, bind_group_layout, pipeline_id })
                         },
-                        fn RunWhile |state, world| {
+                        fn RunRenderWhile |state, world| {
                             match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
                                 CachedPipelineState::Queued | CachedPipelineState::Creating(_) => {
-                                    Wait {}
+                                    Ok(Wait(state))
                                 },
                                 CachedPipelineState::Err(err) => {
-                                    Err::FailedToCreatePipeline { 
+                                    Err(Error::FailedToCreatePipeline { 
                                         shader_name, 
                                         err 
-                                    }
+                                    })
                                 },
                                 CachedPipelineState::Ok(pipeline) => {
                                     match pipeline {
-                                        Pipeline::RenderPipeline(_) => Err::ExpectedComputePipelineGotRenderPipeline {
+                                        Pipeline::RenderPipeline(_) => Err(Error::ExpectedComputePipelineGotRenderPipeline {
                                             shader_name: state.shader_name,
                                             pipeline_id: state.pipeline_id
-                                        },
-                                        Pipeline::ComputePipeline(_) => Out { 
+                                        }),
+                                        Pipeline::ComputePipeline(_) => Ok(Done(Output { 
                                             shader_name, 
                                             shader_handle, 
                                             pipeline_id, 
                                             bind_group_layout
-                                        }
+                                        }))
                                     }
                                 },
                             }
@@ -166,17 +166,17 @@ workflow_mod! {
                     ],
                 },
     
-                SetupPhase3: Ecs {
+                SetupPhase3 {
                     core_types: [
-                        struct In { 
+                        struct Input { 
                             shader_name: &'static str, 
                             shader_handle: Handle<Shader>, 
-                            pipeline_id: CachedComputePipelineId 
+                            pipeline_id: CachedComputePipelineId,
                             bind_group_layout: BindGroupLayout, 
                         },
                     ],
                     core_functions: [
-                        fn Run |input, world| {
+                        fn RunEcs |input, world| {
                             let shader_name = input.shader_name;
                             let shader_handle = input.shader_handle;
                             let bind_group_layout = input.bind_group_layout;
@@ -187,8 +187,6 @@ workflow_mod! {
                             shader_registry.shaders.insert(shader_name.to_string(), shader_handle);
                             shader_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
                             shader_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
-        
-                            Out {}
                         },
                     ],
                 }
@@ -274,24 +272,24 @@ workflow_mod! {
             ],
             user_functions: [],
             stages: [
-                PrepareRequest: Ecs {
+                PrepareRequest {
                     core_types: [
-                        struct In {
+                        struct Input {
                             shader_name: &'static str,
                             texture_size: usize,
                             param_data: Vec<f32>,
                         },
-                        struct Out {
+                        struct Output {
                             request: GeneratorRequest<GeneratorParams>,
                         },
-                        enum Err {
+                        enum Error {
                             GeneratorNotFound {
                                 shader_name: &'static str,
                             },
                         },
                     ],
                     core_functions: [
-                        fn Run |input, world| {
+                        fn RunEcs |input, world| {
                             let shader_name = input.shader_name;
                             let texture_size = input.texture_size;
                             let param_data = input.param_data;
@@ -303,7 +301,7 @@ workflow_mod! {
                             let (mut images, shader_registry) = system_state.get_mut(world);
 
                             if !shader_registry.shaders.get(shader_name) {
-                                return Err::GeneratorNotFound { shader_name }
+                                return Err(Error::GeneratorNotFound { shader_name })
                             }
 
                             let pipeline_id = shader_registry.pipelines.get(shader_name).unwrap();
@@ -311,7 +309,7 @@ workflow_mod! {
 
                             let texture = Image {
                                 texture_descriptor: TextureDescriptor {
-                                    label: Some("Compute Shader Output Texture"),
+                                    label: Some("Compute Shader Outputput Texture"),
                                     size: Extent3d {
                                         width: texture_size as u32,
                                         height: texture_size as u32,
@@ -339,53 +337,53 @@ workflow_mod! {
                                 param_data
                             );
 
-                            Out { request }
+                            Ok(Output { request })
                         },
                     ],
                 },
     
-                GetTextureView: RenderWhile {
+                GetTextureView {
                     core_types: [
-                        struct In {
+                        struct Input {
                             request: GeneratorRequest<GeneratorParams>,
                         },
                         struct State {
                             request: GeneratorRequest<GeneratorParams>,
                         },
-                        struct Out {
+                        struct Output {
                             request: GeneratorRequest<PreparedGenerator>,
                         },
                     ],
                     core_functions: [
-                        fn Setup |input, world| {
+                        fn SetupRenderWhile |input, world| {
                             State { request: input.request }
                         },
-                        fn RunWhile |state, world| {
+                        fn RunRenderWhile |state, world| {
                             let gpu_images = SystemState::<Res<RenderAssets<GpuImage>>>::new(world).get(world);
                 
                             if let Some(gpu_image) = gpu_images.get(&state.request.inner.texture_handle) {
                                 let texture_view = gpu_image.texture_view.clone();
                 
                                 let prepared_request = state.request.set_texture_view(texture_view);
-                                Out { request: prepared_request }
+                                Done(Output { request: prepared_request })
                             } else {
-                                Wait {}
+                                Wait(state)
                             }
                         },
                     ],
                 },
     
-                DispatchCompute: Render {
+                DispatchCompute {
                     core_types: [
-                        struct In {
+                        struct Input {
                             request: GeneratorRequest<PreparedGenerator>,
                         },
-                        struct Out {
+                        struct Output {
                             request: GeneratorRequest<DispatchedCompute>,
                         },
                     ],
                     core_functions: [
-                        fn Run |input, world| {
+                        fn RunRender |input, world| {
                             let prepared = &input.request.inner;
                             let shader_name = prepared.shader_name;
                             let texture_view = &prepared.texture_view;
@@ -433,46 +431,46 @@ workflow_mod! {
                             });
                 
                             let dispatched_request = input.request.track_dispatch(prepared.texture_handle.clone(), receiver);
-                            Out { request: dispatched_request }
+                            Output { request: dispatched_request }
                         },
                     ],
                 },
     
-                WaitForCompute: EcsWhile {
+                WaitForCompute {
                     core_types: [
-                        struct In {
+                        struct Input {
                             request: GeneratorRequest<DispatchedCompute>,
                         },
                         struct State {
                             request: GeneratorRequest<DispatchedCompute>,
                         },
-                        struct Out {
+                        struct Output {
                             shader_name: &'static str,
                             texture_handle: Handle<Image>,
                         },
-                        enum Err {
+                        enum Error {
                             ComputePassReceiverDisconnected {
                                 shader_name: &'static str,
                             },
                         },
                     ],
                     core_functions: [
-                        fn Setup |input, world| {
-                            State { request: input.request }
+                        fn SetupEcsWhile |input, world| {
+                            Ok(State { request: input.request })
                         },
-                        fn RunWhile |state, world| {
+                        fn RunEcsWhile |state, world| {
                             let receiver = &state.request.inner.receiver;
                 
                             match receiver.try_recv() {
                                 Ok(_) => {
                                     let (shader_name, texture_handle) = state.request.consume();
-                                    Out { shader_name, texture_handle }
+                                    Ok(Done(Output { shader_name, texture_handle }))
                                 },
                                 Err(crossbeam_channel::TryRecvError::Empty) => {
-                                    Wait {}
+                                    Ok(Wait(state))
                                 },
                                 Err(crossbeam_channel::TryRecvError::Disconnected) => {
-                                    Err::ComputePassReceiverDisconnected { shader_name: state.request.inner.shader_name }
+                                    Err(Error::ComputePassReceiverDisconnected { shader_name: state.request.inner.shader_name })
                                 },
                             }
                         },
