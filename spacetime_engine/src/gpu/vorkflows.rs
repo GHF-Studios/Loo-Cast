@@ -1,11 +1,25 @@
-use workflow::prelude::*;
-
-workflow_mod! {
+vorkflow_mod! {
     name: "Gpu", 
-    workflows: [
+    vorkflows: [
         SetupTextureGenerator {
-            user_types: [],
-            user_functions: [],
+            user_imports: {
+                pub use crate::gpu::resources::ShaderRegistry;
+    
+                pub use bevy::prelude::{World, Handle, Shader, Res, ResMut, Assets};
+                pub use bevy::ecs::system::SystemState;
+                pub use bevy::render::render_resource::{
+                    BindGroupLayout, CachedComputePipelineId, 
+                    PipelineCache, BindGroupLayoutEntry, ShaderStages, 
+                    BindingType, StorageTextureAccess, TextureFormat, 
+                    TextureViewDimension, BufferBindingType, PushConstantRange, 
+                    CachedPipelineState, Pipeline, ComputePipelineDescriptor
+                };
+                pub use bevy::render::render_asset::RenderAssets;
+                pub use bevy::render::texture::GpuImage;
+                pub use bevy::render::renderer::RenderDevice;
+            },
+            user_types: {},
+            user_functions: {},
             stages: [
                 SetupPhase1 {
                     core_types: [
@@ -77,8 +91,8 @@ workflow_mod! {
                                 pipeline_id: CachedComputePipelineId,
                             },
                             FailedToCreatePipeline {
-                                shader_name: String,
-                                err: PipelineCacheError,
+                                shader_name: &'static str,
+                                pipeline_cache_err: String,
                             }
                         },
                     ],
@@ -133,10 +147,17 @@ workflow_mod! {
                                     range: 0..4,
                                 }],
                             });
-
+    
                             Ok(State { shader_name, shader_handle, bind_group_layout, pipeline_id })
                         },
                         fn RunRenderWhile |state, world| {
+                            let shader_name = state.shader_name;
+                            let shader_handle = state.shader_handle.clone();
+                            let bind_group_layout = state.bind_group_layout.clone();
+                            let pipeline_id = state.pipeline_id.clone();
+    
+                            let pipeline_cache = SystemState::<Res::<PipelineCache>>::new(world).get(world);
+    
                             match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
                                 CachedPipelineState::Queued | CachedPipelineState::Creating(_) => {
                                     Ok(Wait(state))
@@ -144,7 +165,7 @@ workflow_mod! {
                                 CachedPipelineState::Err(err) => {
                                     Err(Error::FailedToCreatePipeline { 
                                         shader_name, 
-                                        err 
+                                        pipeline_cache_err: format!("{}", err)
                                     })
                                 },
                                 CachedPipelineState::Ok(pipeline) => {
@@ -194,17 +215,36 @@ workflow_mod! {
         },
 
         GenerateTexture {
-            user_types: [
+            user_imports: {
+                pub use crate::gpu::resources::ShaderRegistry;
+    
+                pub use bevy::prelude::{Handle, World, Res, ResMut, Assets, Image};
+                pub use bevy::render::render_resource::{
+                    CachedComputePipelineId, BindGroupLayout, 
+                    Buffer, TextureView, TextureDescriptor, Extent3d, 
+                    TextureDimension, TextureFormat, TextureUsages, 
+                    BufferInitDescriptor, BufferUsages, CommandEncoderDescriptor,
+                    ComputePassDescriptor
+                };
+                pub use bevy::ecs::system::SystemState;
+                pub use bevy::render::render_asset::RenderAssets;
+                pub use bevy::render::texture::GpuImage;
+                pub use bevy::render::renderer::{RenderDevice, RenderQueue};
+                pub use bevy::render::render_resource::{PipelineCache, BindGroupEntry, BindingResource};
+    
+                pub use crossbeam_channel::Receiver;
+            },
+            user_types: {
                 struct GeneratorRequest<T> {
-                    inner: T
+                    pub inner: T
                 }
                 
                 struct GeneratorParams {
-                    shader_name: &'static str,
-                    pipeline_id: CachedComputePipelineId,
-                    bind_group_layout: BindGroupLayout,
-                    texture_handle: Handle<Image>,
-                    param_data: Vec<f32>,
+                    pub shader_name: &'static str,
+                    pub pipeline_id: CachedComputePipelineId,
+                    pub bind_group_layout: BindGroupLayout,
+                    pub texture_handle: Handle<Image>,
+                    pub param_buffer: Buffer,
                 }
                 impl GeneratorRequest<GeneratorParams> {
                     pub fn new(
@@ -212,7 +252,7 @@ workflow_mod! {
                         pipeline_id: CachedComputePipelineId,
                         bind_group_layout: BindGroupLayout,
                         texture_handle: Handle<Image>,
-                        param_data: Vec<f32>,
+                        param_buffer: Buffer,
                     ) -> Self {
                         Self {
                             inner: GeneratorParams {
@@ -220,7 +260,7 @@ workflow_mod! {
                                 pipeline_id,
                                 bind_group_layout,
                                 texture,
-                                param_data,
+                                param_buffer,
                             }
                         }
                     }
@@ -240,12 +280,12 @@ workflow_mod! {
                 }
                 
                 struct PreparedGenerator {
-                    shader_name: &'static str,
-                    pipeline_id: CachedComputePipelineId,
-                    bind_group_layout: BindGroupLayout,
-                    texture_handle: Handle<Image>,
-                    texture_view: TextureView,
-                    param_buffer: Buffer,
+                    pub shader_name: &'static str,
+                    pub pipeline_id: CachedComputePipelineId,
+                    pub bind_group_layout: BindGroupLayout,
+                    pub texture_handle: Handle<Image>,
+                    pub texture_view: TextureView,
+                    pub param_buffer: Buffer,
                 }
                 impl GeneratorRequest<PreparedGenerator> {
                     pub fn track_dispatch(self, texture_handle: Handle<Image>, receiver: Receiver<()>) -> Self<DispatchedCompute> {
@@ -260,17 +300,17 @@ workflow_mod! {
                 }
                 
                 struct DispatchedCompute {
-                    shader_name: &'static str,
-                    texture_handle: Handle<Image>,
-                    receiver: Receiver<()>
+                    pub shader_name: &'static str,
+                    pub texture_handle: Handle<Image>,
+                    pub receiver: Receiver<()>
                 }
                 impl GeneratorRequest<DispatchedCompute> {
                     pub fn consume(self) -> (&'static str, Handle<Image>) {
                         (self.inner.shader_name, self.inner.texture_handle)
                     }
                 }
-            ],
-            user_functions: [],
+            },
+            user_functions: {},
             stages: [
                 PrepareRequest {
                     core_types: [
@@ -295,17 +335,18 @@ workflow_mod! {
                             let param_data = input.param_data;
 
                             let mut system_state: SystemState<(
+                                Res<RenderDevice>,
                                 ResMut<Assets<Image>>,
                                 Res<ShaderRegistry>,
                             )> = SystemState::new(world);
-                            let (mut images, shader_registry) = system_state.get_mut(world);
+                            let (render_device, mut images, shader_registry) = system_state.get_mut(world);
 
-                            if !shader_registry.shaders.get(shader_name) {
+                            if shader_registry.shaders.get(shader_name).is_none() {
                                 return Err(Error::GeneratorNotFound { shader_name })
                             }
 
-                            let pipeline_id = shader_registry.pipelines.get(shader_name).unwrap();
-                            let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap();
+                            let pipeline_id = shader_registry.pipelines.get(shader_name).unwrap().clone();
+                            let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap().clone();
 
                             let texture = Image {
                                 texture_descriptor: TextureDescriptor {
@@ -329,12 +370,18 @@ workflow_mod! {
                             };
                             let texture_handle = images.add(texture);
 
-                            let request = GeneratorRequest<GeneratorParams>::new(
+                            let param_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+                                label: Some("Parameter Buffer"),
+                                contents: bytemuck::cast_slice(&param_data),
+                                usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
+                            });
+
+                            let request = GeneratorRequest::new(
                                 shader_name, 
                                 pipeline_id, 
                                 bind_group_layout, 
                                 texture_handle, 
-                                param_data
+                                param_buffer
                             );
 
                             Ok(Output { request })
@@ -355,7 +402,7 @@ workflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn SetupRenderWhile |input, world| {
+                        fn SetupRenderWhile |input, _world| {
                             State { request: input.request }
                         },
                         fn RunRenderWhile |state, world| {
@@ -385,9 +432,10 @@ workflow_mod! {
                     core_functions: [
                         fn RunRender |input, world| {
                             let prepared = &input.request.inner;
-                            let shader_name = prepared.shader_name;
-                            let texture_view = &prepared.texture_view;
+                            let pipeline_id = prepared.pipeline_id.clone();
                             let bind_group_layout = &prepared.bind_group_layout;
+                            let texture_handle = prepared.texture_handle.clone();
+                            let texture_view = &prepared.texture_view;
                             let param_buffer = &prepared.param_buffer;
                 
                             let mut system_state: SystemState<(
@@ -397,7 +445,7 @@ workflow_mod! {
                             )> = SystemState::new(world);
                             let (render_device, queue, pipeline_cache) = system_state.get_mut(world);
                 
-                            let pipeline = pipeline_cache.get_compute_pipeline(prepared.pipeline_id)
+                            let pipeline = pipeline_cache.get_compute_pipeline(pipeline_id)
                                 .expect("Compute pipeline not found");
                 
                             let bind_group = render_device.create_bind_group(
@@ -425,12 +473,12 @@ workflow_mod! {
                 
                             queue.submit(Some(encoder.finish()));
                 
-                            let (sender, receiver) = unbounded();
+                            let (sender, receiver) = crossbeam_channel::unbounded();
                             queue.on_submitted_work_done(move || {
                                 let _ = sender.send(());
                             });
                 
-                            let dispatched_request = input.request.track_dispatch(prepared.texture_handle.clone(), receiver);
+                            let dispatched_request = input.request.track_dispatch(texture_handle, receiver);
                             Output { request: dispatched_request }
                         },
                     ],
@@ -455,7 +503,7 @@ workflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn SetupEcsWhile |input, world| {
+                        fn SetupEcsWhile |input, _world| {
                             Ok(State { request: input.request })
                         },
                         fn RunEcsWhile |state, world| {

@@ -5,6 +5,47 @@ use crate::config::statics::CONFIG;
 
 use super::{stage::VorkflowStage, io::{VorkflowIO, CallbackState, InputState, OutputState}};
 
+pub enum Outcome<S, O> {
+    Wait(S),
+    Done(O)
+}
+
+pub struct EcsFn(pub fn(world: &mut World));
+pub struct EcsInFn<Input>(pub fn(input: Input, world: &mut World));
+pub struct EcsOutFn<Output>(pub fn(world: &mut World) -> Output);
+pub struct EcsErrFn<Error>(pub fn(world: &mut World) -> Result<(), Error>);
+pub struct EcsInOutFn<Input, Output>(pub fn(input: Input, world: &mut World) -> Output);
+pub struct EcsInErrFn<Input, Error>(pub fn(input: Input, world: &mut World) -> Result<(), Error>);
+pub struct EcsOutErrFn<Output, Error>(pub fn(world: &mut World) -> Result<Output, Error>);
+pub struct EcsInOutErrFn<Input, Output, Error>(pub fn(input: Input, world: &mut World) -> Result<Output, Error>);
+
+pub struct EcsWhileFn<State>(pub fn(world: &mut World) -> Outcome<State, ()>);
+pub struct EcsWhileInFn<Input, State>(pub fn(input: Input, world: &mut World) -> Outcome<State, ()>);
+pub struct EcsWhileOutFn<State, Output>(pub fn(world: &mut World) -> Outcome<State, Output>);
+pub struct EcsWhileErrFn<State, Error>(pub fn(world: &mut World) -> Outcome<State, Result<(), Error>>);
+pub struct EcsWhileInOutFn<Input, State, Output>(pub fn(input: Input, world: &mut World) -> Outcome<State, Output>);
+pub struct EcsWhileInErrFn<Input, State, Error>(pub fn(input: Input, world: &mut World) -> Outcome<State, Result<(), Error>>);
+pub struct EcsWhileOutErrFn<State, Output, Error>(pub fn(world: &mut World) -> Outcome<State, Result<Output, Error>>);
+pub struct EcsWhileInOutErrFn<Input, State, Output, Error>(pub fn(input: Input, world: &mut World) -> Outcome<State, Result<Output, Error>>);
+
+pub struct RenderFn(pub fn(world: &mut World));
+pub struct RenderInFn<Input>(pub fn(input: Input, world: &mut World));
+pub struct RenderOutFn<Output>(pub fn(world: &mut World) -> Output);
+pub struct RenderErrFn<Error>(pub fn(world: &mut World) -> Result<(), Error>);
+pub struct RenderInOutFn<Input, Output>(pub fn(input: Input, world: &mut World) -> Output);
+pub struct RenderInErrFn<Input, Error>(pub fn(input: Input, world: &mut World) -> Result<(), Error>);
+pub struct RenderOutErrFn<Output, Error>(pub fn(world: &mut World) -> Result<Output, Error>);
+pub struct RenderInOutErrFn<Input, Output, Error>(pub fn(input: Input, world: &mut World) -> Result<Output, Error>);
+
+pub struct RenderWhileFn<State>(pub fn(world: &mut World) -> Outcome<State, ()>);
+pub struct RenderWhileInFn<Input, State>(pub fn(input: Input, world: &mut World) -> Outcome<State, ()>);
+pub struct RenderWhileOutFn<State, Output>(pub fn(world: &mut World) -> Outcome<State, Output>);
+pub struct RenderWhileErrFn<State, Error>(pub fn(world: &mut World) -> Outcome<State, Result<(), Error>>);
+pub struct RenderWhileInOutFn<Input, State, Output>(pub fn(input: Input, world: &mut World) -> Outcome<State, Output>);
+pub struct RenderWhileInErrFn<Input, State, Error>(pub fn(input: Input, world: &mut World) -> Outcome<State, Result<(), Error>>);
+pub struct RenderWhileOutErrFn<State, Output, Error>(pub fn(world: &mut World) -> Outcome<State, Result<Output, Error>>);
+pub struct RenderWhileInOutErrFn<Input, State, Output, Error>(pub fn(input: Input, world: &mut World) -> Outcome<State, Result<Output, Error>>);
+
 pub struct RawVorkflowData {
     pub data: Box<dyn Any + Send + Sync>,
     pub data_type_name: &'static str,

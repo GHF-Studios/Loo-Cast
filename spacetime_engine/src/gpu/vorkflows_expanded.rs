@@ -1,23 +1,48 @@
-use bevy::prelude::*;
-use crate::prelude::*;
-// Other imports and code before the actual macro "invocation"
-
-// TODO: GPT: Given that I have this internal code, how can I sort of "re-export" some things publicly in a less verbose and more usable manner?
-
-mod chunk_workflows {
+mod gpu_vorkflows {
+    pub const NAME: &str = "Gpu";
     pub mod setup_texture_generator {
-        pub mod user_types {}
-        pub mod user_functions {}
+        pub const NAME: &str = "SetupTextureGenerator";
+        pub mod vorkflow_imports {
+            // Automatic imports
+            pub use super::user_types::*;
+            pub use super::user_functions::*;
+            
+            pub use crate::vorkflow::types::{Outcome, Outcome::Wait, Outcome::Done};
+
+            // User imports
+            pub use crate::gpu::resources::ShaderRegistry;
+
+            pub use bevy::prelude::{World, Handle, Shader, Res, ResMut, Assets};
+            pub use bevy::ecs::system::SystemState;
+            pub use bevy::render::render_resource::{
+                BindGroupLayout, CachedComputePipelineId, 
+                PipelineCache, BindGroupLayoutEntry, ShaderStages, 
+                BindingType, StorageTextureAccess, TextureFormat, 
+                TextureViewDimension, BufferBindingType, PushConstantRange, 
+                CachedPipelineState, Pipeline, ComputePipelineDescriptor
+            };
+            pub use bevy::render::render_asset::RenderAssets;
+            pub use bevy::render::texture::GpuImage;
+            pub use bevy::render::renderer::RenderDevice;
+        }
+        pub mod user_types {
+            use super::vorkflow_imports::*;
+        }
+        pub mod user_functions {
+            use super::vorkflow_imports::*;
+        }
         pub mod stages {
             pub mod setup_phase_1 {
                 pub mod core_types {
+                    pub use super::super::super::vorkflow_imports::*;
+
                     pub struct Input { 
-                        shader_name: &'static str, 
-                        shader_path: String 
+                        pub shader_name: &'static str, 
+                        pub shader_path: String 
                     }
                     pub struct Output {
-                        shader_name: &'static str, 
-                        shader_handle: Handle<Shader>,
+                        pub shader_name: &'static str, 
+                        pub shader_handle: Handle<Shader>,
                     }
                     pub enum Error {
                         ShaderAlreadyRegistered { 
@@ -32,7 +57,7 @@ mod chunk_workflows {
                 pub mod core_functions {
                     use super::core_types::*;
 
-                    pub fn run_ecs(input: Input, world: &mut World) -> Result<(), Error> {
+                    pub fn run_ecs(input: Input, world: &mut World) -> Result<Output, Error> {
                         let shader_name = input.shader_name;
                         let shader_path = input.shader_path;
     
@@ -58,30 +83,32 @@ mod chunk_workflows {
             }
             pub mod setup_phase_2 {
                 pub mod core_types {
+                    pub use super::super::super::vorkflow_imports::*;
+
                     pub struct Input {
-                        shader_name: &'static str, 
-                        shader_handle: Handle<Shader>
+                        pub shader_name: &'static str, 
+                        pub shader_handle: Handle<Shader>
                     }
                     pub struct State {
-                        shader_name: &'static str, 
-                        shader_handle: Handle<Shader>,
-                        bind_group_layout: BindGroupLayout, 
-                        pipeline_id: CachedComputePipelineId,
+                        pub shader_name: &'static str, 
+                        pub shader_handle: Handle<Shader>,
+                        pub bind_group_layout: BindGroupLayout, 
+                        pub pipeline_id: CachedComputePipelineId,
                     }
                     pub struct Output { 
-                        shader_name: &'static str, 
-                        shader_handle: Handle<Shader>, 
-                        pipeline_id: CachedComputePipelineId,
-                        bind_group_layout: BindGroupLayout, 
+                        pub shader_name: &'static str, 
+                        pub shader_handle: Handle<Shader>, 
+                        pub pipeline_id: CachedComputePipelineId,
+                        pub bind_group_layout: BindGroupLayout, 
                     }
                     pub enum Error {
                         ExpectedComputePipelineGotRenderPipeline {
-                            shader_name: String,
+                            shader_name: &'static str,
                             pipeline_id: CachedComputePipelineId,
                         },
                         FailedToCreatePipeline {
-                            shader_name: String,
-                            err: PipelineCacheError,
+                            shader_name: &'static str,
+                            pipeline_cache_err: String,
                         }
                     }
                 }
@@ -143,6 +170,13 @@ mod chunk_workflows {
                     }
 
                     pub fn run_render_while(state: State, world: &mut World) -> Result<Outcome<State, Output>, Error> {
+                        let shader_name = state.shader_name;
+                        let shader_handle = state.shader_handle.clone();
+                        let bind_group_layout = state.bind_group_layout.clone();
+                        let pipeline_id = state.pipeline_id.clone();
+
+                        let pipeline_cache = SystemState::<Res::<PipelineCache>>::new(world).get(world);
+
                         match pipeline_cache.get_compute_pipeline_state(pipeline_id) {
                             CachedPipelineState::Queued | CachedPipelineState::Creating(_) => {
                                 Ok(Wait(state))
@@ -150,7 +184,7 @@ mod chunk_workflows {
                             CachedPipelineState::Err(err) => {
                                 Err(Error::FailedToCreatePipeline { 
                                     shader_name, 
-                                    err 
+                                    pipeline_cache_err: format!("{}", err)
                                 })
                             },
                             CachedPipelineState::Ok(pipeline) => {
@@ -173,11 +207,13 @@ mod chunk_workflows {
             }
             pub mod setup_phase_3 {
                 pub mod core_types {
+                    pub use super::super::super::vorkflow_imports::*;
+
                     pub struct Input { 
-                        shader_name: &'static str, 
-                        shader_handle: Handle<Shader>, 
-                        pipeline_id: CachedComputePipelineId,
-                        bind_group_layout: BindGroupLayout, 
+                        pub shader_name: &'static str, 
+                        pub shader_handle: Handle<Shader>, 
+                        pub pipeline_id: CachedComputePipelineId,
+                        pub bind_group_layout: BindGroupLayout, 
                     }
                 }
                 pub mod core_functions {
@@ -200,17 +236,46 @@ mod chunk_workflows {
         }
     }
     pub mod generate_texture {
+        pub const NAME: &str = "GenerateTexture";
+        pub mod vorkflow_imports {
+            // Automatic imports
+            pub use super::user_types::*;
+            pub use super::user_functions::*;
+            
+            pub use crate::vorkflow::types::{Outcome, Outcome::Wait, Outcome::Done};
+
+            // User imports
+            pub use crate::gpu::resources::ShaderRegistry;
+
+            pub use bevy::prelude::{Handle, World, Res, ResMut, Assets, Image};
+            pub use bevy::render::render_resource::{
+                CachedComputePipelineId, BindGroupLayout, 
+                Buffer, TextureView, TextureDescriptor, Extent3d, 
+                TextureDimension, TextureFormat, TextureUsages, 
+                BufferInitDescriptor, BufferUsages, CommandEncoderDescriptor,
+                ComputePassDescriptor
+            };
+            pub use bevy::ecs::system::SystemState;
+            pub use bevy::render::render_asset::RenderAssets;
+            pub use bevy::render::texture::GpuImage;
+            pub use bevy::render::renderer::{RenderDevice, RenderQueue};
+            pub use bevy::render::render_resource::{PipelineCache, BindGroupEntry, BindingResource};
+
+            pub use crossbeam_channel::Receiver;
+        }
         pub mod user_types {
-            struct GeneratorRequest<T> {
-                inner: T
+            use super::vorkflow_imports::*;
+
+            pub struct GeneratorRequest<T> {
+                pub inner: T
             }
             
-            struct GeneratorParams {
-                shader_name: &'static str,
-                pipeline_id: CachedComputePipelineId,
-                bind_group_layout: BindGroupLayout,
-                texture_handle: Handle<Image>,
-                param_data: Vec<f32>,
+            pub struct GeneratorParams {
+                pub shader_name: &'static str,
+                pub pipeline_id: CachedComputePipelineId,
+                pub bind_group_layout: BindGroupLayout,
+                pub texture_handle: Handle<Image>,
+                pub param_buffer: Buffer,
             }
             impl GeneratorRequest<GeneratorParams> {
                 pub fn new(
@@ -218,21 +283,21 @@ mod chunk_workflows {
                     pipeline_id: CachedComputePipelineId,
                     bind_group_layout: BindGroupLayout,
                     texture_handle: Handle<Image>,
-                    param_data: Vec<f32>,
+                    param_buffer: Buffer,
                 ) -> Self {
                     Self {
                         inner: GeneratorParams {
                             shader_name,
                             pipeline_id,
                             bind_group_layout,
-                            texture,
-                            param_data,
+                            texture_handle,
+                            param_buffer,
                         }
                     }
                 }
 
-                pub fn set_texture_view(self, texture_view: TextureView) -> Self<PreparedGenerator> {
-                    Self {
+                pub fn set_texture_view(self, texture_view: TextureView) -> GeneratorRequest<PreparedGenerator> {
+                    GeneratorRequest {
                         inner: PreparedGenerator {
                             shader_name: self.inner.shader_name,
                             pipeline_id: self.inner.pipeline_id,
@@ -245,30 +310,30 @@ mod chunk_workflows {
                 }
             }
             
-            struct PreparedGenerator {
-                shader_name: &'static str,
-                pipeline_id: CachedComputePipelineId,
-                bind_group_layout: BindGroupLayout,
-                texture_handle: Handle<Image>,
-                texture_view: TextureView,
-                param_buffer: Buffer,
+            pub struct PreparedGenerator {
+                pub shader_name: &'static str,
+                pub pipeline_id: CachedComputePipelineId,
+                pub bind_group_layout: BindGroupLayout,
+                pub texture_handle: Handle<Image>,
+                pub texture_view: TextureView,
+                pub param_buffer: Buffer,
             }
             impl GeneratorRequest<PreparedGenerator> {
-                pub fn track_dispatch(self, texture_handle: Handle<Image>, receiver: Receiver<()>) -> Self<DispatchedCompute> {
-                    Self {
+                pub fn track_dispatch(self, texture_handle: Handle<Image>, receiver: Receiver<()>) -> GeneratorRequest<DispatchedCompute> {
+                    GeneratorRequest {
                         inner: DispatchedCompute {
                             shader_name: self.inner.shader_name,
-                            texture,
+                            texture_handle,
                             receiver,
                         }
                     }
                 }
             }
             
-            struct DispatchedCompute {
-                shader_name: &'static str,
-                texture_handle: Handle<Image>,
-                receiver: Receiver<()>
+            pub struct DispatchedCompute {
+                pub shader_name: &'static str,
+                pub texture_handle: Handle<Image>,
+                pub receiver: Receiver<()>
             }
             impl GeneratorRequest<DispatchedCompute> {
                 pub fn consume(self) -> (&'static str, Handle<Image>) {
@@ -276,17 +341,21 @@ mod chunk_workflows {
                 }
             }
         }
-        pub mod user_functions {}
+        pub mod user_functions {
+            use super::vorkflow_imports::*;
+        }
         pub mod stages {
             pub mod prepare_request {
                 pub mod core_types {
+                    pub use super::super::super::vorkflow_imports::*;
+
                     pub struct Input {
-                        shader_name: &'static str,
-                        texture_size: usize,
-                        param_data: Vec<f32>,
+                        pub shader_name: &'static str,
+                        pub texture_size: usize,
+                        pub param_data: Vec<f32>,
                     }
                     pub struct Output {
-                        request: GeneratorRequest<GeneratorParams>,
+                        pub request: GeneratorRequest<GeneratorParams>,
                     }
                     pub enum Error {
                         GeneratorNotFound {
@@ -303,17 +372,18 @@ mod chunk_workflows {
                         let param_data = input.param_data;
 
                         let mut system_state: SystemState<(
+                            Res<RenderDevice>,
                             ResMut<Assets<Image>>,
                             Res<ShaderRegistry>,
                         )> = SystemState::new(world);
-                        let (mut images, shader_registry) = system_state.get_mut(world);
+                        let (render_device, mut images, shader_registry) = system_state.get_mut(world);
 
-                        if !shader_registry.shaders.get(shader_name) {
+                        if shader_registry.shaders.get(shader_name).is_none() {
                             return Err(Error::GeneratorNotFound { shader_name })
                         }
 
-                        let pipeline_id = shader_registry.pipelines.get(shader_name).unwrap();
-                        let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap();
+                        let pipeline_id = shader_registry.pipelines.get(shader_name).unwrap().clone();
+                        let bind_group_layout = shader_registry.bind_group_layouts.get(shader_name).unwrap().clone();
 
                         let texture = Image {
                             texture_descriptor: TextureDescriptor {
@@ -337,12 +407,18 @@ mod chunk_workflows {
                         };
                         let texture_handle = images.add(texture);
 
-                        let request = GeneratorRequest<GeneratorParams>::new(
+                        let param_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+                            label: Some("Parameter Buffer"),
+                            contents: bytemuck::cast_slice(&param_data),
+                            usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
+                        });
+
+                        let request = GeneratorRequest::new(
                             shader_name, 
                             pipeline_id, 
                             bind_group_layout, 
                             texture_handle, 
-                            param_data
+                            param_buffer
                         );
 
                         Ok(Output { request })
@@ -351,20 +427,22 @@ mod chunk_workflows {
             }
             pub mod get_texture_view {
                 pub mod core_types {
+                    pub use super::super::super::vorkflow_imports::*;
+
                     pub struct Input {
-                        request: GeneratorRequest<GeneratorParams>,
+                        pub request: GeneratorRequest<GeneratorParams>,
                     }
                     pub struct State {
-                        request: GeneratorRequest<GeneratorParams>,
+                        pub request: GeneratorRequest<GeneratorParams>,
                     }
                     pub struct Output {
-                        request: GeneratorRequest<PreparedGenerator>,
+                        pub request: GeneratorRequest<PreparedGenerator>,
                     }
                 }
                 pub mod core_functions {
                     use super::core_types::*;
 
-                    pub fn setup_render_while(input: Input, world: &mut World) -> State {
+                    pub fn setup_render_while(input: Input, _world: &mut World) -> State {
                         State { request: input.request }
                     }
 
@@ -384,11 +462,13 @@ mod chunk_workflows {
             }
             pub mod dispatch_compute {
                 pub mod core_types {
+                    pub use super::super::super::vorkflow_imports::*;
+
                     pub struct Input {
-                        request: GeneratorRequest<PreparedGenerator>,
+                        pub request: GeneratorRequest<PreparedGenerator>,
                     }
                     pub struct Output {
-                        request: GeneratorRequest<DispatchedCompute>,
+                        pub request: GeneratorRequest<DispatchedCompute>,
                     }
                 }
                 pub mod core_functions {
@@ -396,9 +476,10 @@ mod chunk_workflows {
 
                     pub fn run_render(input: Input, world: &mut World) -> Output {
                         let prepared = &input.request.inner;
-                        let shader_name = prepared.shader_name;
-                        let texture_view = &prepared.texture_view;
+                        let pipeline_id = prepared.pipeline_id.clone();
                         let bind_group_layout = &prepared.bind_group_layout;
+                        let texture_handle = prepared.texture_handle.clone();
+                        let texture_view = &prepared.texture_view;
                         let param_buffer = &prepared.param_buffer;
             
                         let mut system_state: SystemState<(
@@ -408,7 +489,7 @@ mod chunk_workflows {
                         )> = SystemState::new(world);
                         let (render_device, queue, pipeline_cache) = system_state.get_mut(world);
             
-                        let pipeline = pipeline_cache.get_compute_pipeline(prepared.pipeline_id)
+                        let pipeline = pipeline_cache.get_compute_pipeline(pipeline_id)
                             .expect("Compute pipeline not found");
             
                         let bind_group = render_device.create_bind_group(
@@ -436,27 +517,29 @@ mod chunk_workflows {
             
                         queue.submit(Some(encoder.finish()));
             
-                        let (sender, receiver) = unbounded();
+                        let (sender, receiver) = crossbeam_channel::unbounded();
                         queue.on_submitted_work_done(move || {
                             let _ = sender.send(());
                         });
-            
-                        let dispatched_request = input.request.track_dispatch(prepared.texture_handle.clone(), receiver);
+                        
+                        let dispatched_request = input.request.track_dispatch(texture_handle, receiver);
                         Output { request: dispatched_request }
                     }
                 }
             }
             pub mod wait_for_compute {
                 pub mod core_types {
+                    pub use super::super::super::vorkflow_imports::*;
+
                     pub struct Input {
-                        request: GeneratorRequest<DispatchedCompute>,
+                        pub request: GeneratorRequest<DispatchedCompute>,
                     }
                     pub struct State {
-                        request: GeneratorRequest<DispatchedCompute>,
+                        pub request: GeneratorRequest<DispatchedCompute>,
                     }
                     pub struct Output {
-                        shader_name: &'static str,
-                        texture_handle: Handle<Image>,
+                        pub shader_name: &'static str,
+                        pub texture_handle: Handle<Image>,
                     }
                     pub enum Error {
                         ComputePassReceiverDisconnected {
@@ -467,7 +550,7 @@ mod chunk_workflows {
                 pub mod core_functions {
                     use super::core_types::*;
 
-                    pub fn setup_ecs_while(input: Input, world: &mut World) -> State {
+                    pub fn setup_ecs_while(input: Input, _world: &mut World) -> Result<State, Error> {
                         Ok(State { request: input.request })
                     }
 

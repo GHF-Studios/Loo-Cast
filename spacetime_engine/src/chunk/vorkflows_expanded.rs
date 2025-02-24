@@ -1,11 +1,7 @@
-use bevy::prelude::*;
-use crate::prelude::*;
-// Other imports and code before the actual macro "invocation"
-
-// TODO: GPT: Given that I have this internal code, how can I sort of "re-export" some things publicly in a less verbose and more usable manner?
-
 mod chunk_workflows {
+    pub const NAME: &str = "Chunk";
     pub mod spawn_chunk {
+        pub const NAME: &str = "SpawnChunk";
         pub mod user_types {}
         pub mod user_functions {}
         pub mod stages {
@@ -68,6 +64,7 @@ mod chunk_workflows {
         }
     }
     pub mod despawn_chunk {
+        pub const NAME: &str = "DespawnChunk";
         pub mod user_types {}
         pub mod user_functions {}
         pub mod stages {
@@ -108,6 +105,7 @@ mod chunk_workflows {
         }
     }
     pub mod transfer_chunk_ownership {
+        pub const NAME: &str = "TransferChunkOwnership";
         pub mod user_types {}
         pub mod user_functions {}
         pub mod stages {

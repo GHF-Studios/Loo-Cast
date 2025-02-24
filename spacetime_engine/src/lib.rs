@@ -23,7 +23,6 @@ pub mod statics;
 //pub mod traits;
 
 // Modules
-pub mod workflow;
 pub mod camera;
 //pub mod camera_2d_bundle;
 pub mod chunk;
@@ -38,6 +37,8 @@ pub mod gpu;
 //pub mod math;
 pub mod player;
 //pub mod sprite_bundle;
+pub mod vorkflow;
+pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use iyes_perf_ui::{entries::{PerfUiFramerateEntries, PerfUiSystemEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
