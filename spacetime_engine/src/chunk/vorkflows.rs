@@ -6,6 +6,13 @@ workflow_mod! {
             user_functions: [],
             stages: [
                 ValidateAndSpawn {
+                    user_imports: {
+                        pub use bevy::prelude::{Entity, Handle, Image, World, Query, ResMut, Transform, SpriteBundle};
+                        pub use bevy::ecs::system::SystemState;
+            
+                        pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
+                        pub use crate::config::statics::CONFIG;
+                    },
                     core_types: [
                         struct Input { 
                             chunk_coord: (i32, i32), 
@@ -21,23 +28,20 @@ workflow_mod! {
                             let chunk_coord = input.chunk_coord;
                             let chunk_owner = input.chunk_owner;
                             let metric_texture = input.metric_texture;
-
-                            let mut system_state: SystemState<(
-                                Query<&ChunkComponent>,
-                                ResMut<ChunkManager>,
-                            )> = SystemState::new(world);
-                            let (chunk_query, mut chunk_manager) = system_state.get_mut(world);
-
+    
+                            let mut system_state = SystemState::<Query::<&ChunkComponent>>::new(world);
+                            let chunk_query = system_state.get(world);
+    
                             if chunk_query.iter().any(|chunk| chunk.coord == chunk_coord) {
                                 return Err(Error::ChunkAlreadyLoaded { chunk_coord });
                             }
-
+    
                             let default_chunk_z = CONFIG.get::<f32>("chunk/default_z");
                             let chunk_transform = Transform {
                                 translation: chunk_pos_to_world(chunk_coord).extend(default_chunk_z),
                                 ..Default::default()
                             };
-
+    
                             world.spawn((
                                 SpriteBundle {
                                     texture: metric_texture.clone(),
@@ -49,12 +53,13 @@ workflow_mod! {
                                     owner: chunk_owner,
                                 },
                             ));
-
+    
+                            let mut chunk_manager = SystemState::<ResMut::<ChunkManager>>::new(world).get_mut(world);
                             chunk_manager.loaded_chunks.insert(chunk_coord);
                             if let Some(owner) = chunk_owner {
                                 chunk_manager.owned_chunks.insert(chunk_coord, owner);
                             }
-
+    
                             Ok(())
                         },
                     ],
@@ -66,6 +71,12 @@ workflow_mod! {
             user_functions: [],
             stages: [
                 FindAndDespawn {
+                    user_imports: {
+                        pub use bevy::prelude::{Entity, World, Query, ResMut, DespawnRecursiveExt};
+                        pub use bevy::ecs::system::SystemState;
+            
+                        pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
+                    },
                     core_types: [
                         struct Input { 
                             chunk_coord: (i32, i32) 
@@ -104,6 +115,12 @@ workflow_mod! {
             user_functions: [],
             stages: [
                 FindAndTransferOwnership {
+                    user_imports: {
+                        pub use bevy::prelude::{Entity, World, Query, ResMut};
+                        pub use bevy::ecs::system::SystemState;
+            
+                        pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
+                    },
                     core_types: [
                         struct Input { 
                             chunk_coord: (i32, i32), 
