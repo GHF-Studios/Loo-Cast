@@ -31,6 +31,31 @@ pub enum CoreType {
     Enum(CoreEnum),
 }
 
+impl CoreTypes {
+    /// Returns a unique identifier for the CoreTypes permutation.
+    pub fn permutation(&self) -> &'static str {
+        match self {
+            CoreTypes::None => "None",
+            CoreTypes::Input { .. } => "Input",
+            CoreTypes::InputOutput { .. } => "InputOutput",
+            CoreTypes::InputError { .. } => "InputError",
+            CoreTypes::InputOutputError { .. } => "InputOutputError",
+            CoreTypes::Output { .. } => "Output",
+            CoreTypes::OutputError { .. } => "OutputError",
+            CoreTypes::Error { .. } => "Error",
+
+            CoreTypes::While { .. } => "While",
+            CoreTypes::InputWhile { .. } => "InputWhile",
+            CoreTypes::InputWhileOutput { .. } => "InputWhileOutput",
+            CoreTypes::InputWhileError { .. } => "InputWhileError",
+            CoreTypes::InputWhileOutputError { .. } => "InputWhileOutputError",
+            CoreTypes::WhileOutput { .. } => "WhileOutput",
+            CoreTypes::WhileOutputError { .. } => "WhileOutputError",
+            CoreTypes::WhileError { .. } => "WhileError",
+        }
+    }
+}
+
 impl Parse for CoreTypes {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let mut input_type: Option<CoreType> = None;

@@ -1,10 +1,46 @@
+use proc_macro2::Span;
 use syn::{parse::Parse, spanned::Spanned, Ident, Token, Result, Block, Signature, ItemFn, braced};
 use quote::ToTokens;
+
+use super::core_type::CoreTypes;
 
 /// Represents all valid function sets for different stage types.
 pub enum CoreFunctions {
     Single(CoreFunction),  // One function (RunEcs, RunRender, RunAsync)
     WhileFunctions { setup: CoreFunction, run: CoreFunction }, // Setup + Run functions for While stages
+}
+
+impl CoreFunctions {
+    /// Returns a unique identifier for the CoreFunctions permutation.
+    pub fn permutation(&self) -> &'static str {
+        match self {
+            CoreFunctions::Single(func) => match func.function_type {
+                CoreFunctionType::RunEcs => "InputOutputError",  // Mirrors CoreTypes::InputOutputError
+                CoreFunctionType::RunRender => "InputOutputError",
+                CoreFunctionType::RunAsync => "InputOutputError",
+                _ => "Invalid", // Should never happen
+            },
+            CoreFunctions::WhileFunctions { .. } => "While", // Mirrors CoreTypes::While*
+        }
+    }
+
+    /// Validates that the provided functions match the expected core type pattern.
+    pub fn validate(&self, core_types: &CoreTypes) -> Result<()> {
+        let expected = core_types.permutation();
+        let actual = self.permutation();
+
+        if expected != actual {
+            return Err(syn::Error::new(
+                Span::call_site(),
+                format!(
+                    "Mismatch between CoreTypes ({}) and CoreFunctions ({}). Ensure function signatures align with expected input, output, and error types.",
+                    expected, actual
+                ),
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 impl Parse for CoreFunctions {
