@@ -2,17 +2,17 @@ workflow_mod! {
     name: "Chunk",
     workflows: [
         SpawnChunk {
-            user_types: [],
-            user_functions: [],
+            user_imports: {
+                pub use bevy::prelude::{Entity, Handle, Image, World, Query, ResMut, Transform, SpriteBundle};
+                pub use bevy::ecs::system::SystemState;
+    
+                pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
+                pub use crate::config::statics::CONFIG;
+            },
+            user_types: {},
+            user_functions: {},
             stages: [
                 ValidateAndSpawn {
-                    user_imports: {
-                        pub use bevy::prelude::{Entity, Handle, Image, World, Query, ResMut, Transform, SpriteBundle};
-                        pub use bevy::ecs::system::SystemState;
-            
-                        pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
-                        pub use crate::config::statics::CONFIG;
-                    },
                     core_types: [
                         struct Input { 
                             chunk_coord: (i32, i32), 
@@ -67,16 +67,16 @@ workflow_mod! {
             ],
         },
         DespawnChunk {
-            user_types: [],
-            user_functions: [],
+            user_imports: {
+                pub use bevy::prelude::{Entity, World, Query, ResMut, DespawnRecursiveExt};
+                pub use bevy::ecs::system::SystemState;
+    
+                pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
+            },
+            user_types: {},
+            user_functions: {},
             stages: [
                 FindAndDespawn {
-                    user_imports: {
-                        pub use bevy::prelude::{Entity, World, Query, ResMut, DespawnRecursiveExt};
-                        pub use bevy::ecs::system::SystemState;
-            
-                        pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
-                    },
                     core_types: [
                         struct Input { 
                             chunk_coord: (i32, i32) 
@@ -111,16 +111,16 @@ workflow_mod! {
             ],
         },
         TransferChunkOwnership {
-            user_types: [],
-            user_functions: [],
+            user_imports: {
+                pub use bevy::prelude::{Entity, World, Query, ResMut};
+                pub use bevy::ecs::system::SystemState;
+    
+                pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
+            },
+            user_types: {},
+            user_functions: {},
             stages: [
                 FindAndTransferOwnership {
-                    user_imports: {
-                        pub use bevy::prelude::{Entity, World, Query, ResMut};
-                        pub use bevy::ecs::system::SystemState;
-            
-                        pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
-                    },
                     core_types: [
                         struct Input { 
                             chunk_coord: (i32, i32), 
