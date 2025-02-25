@@ -1,16 +1,9 @@
-mod core_function;
-mod core_type;
-mod stage;
-mod use_statement;
-mod user_function;
-mod user_type;
-
-use core_function::*;
-use core_type::*;
-use stage::*;
-use use_statement::*;
-use user_function::*;
-use user_type::*;
+use super::core_function::*;
+use super::core_type::*;
+use super::stage::*;
+use super::use_statement::*;
+use super::user_function::*;
+use super::user_type::*;
 use syn::{parse::Parse, Result, Ident, Token};
 
 /// Represents the entire `vorkflow_mod! { ... }` macro input.

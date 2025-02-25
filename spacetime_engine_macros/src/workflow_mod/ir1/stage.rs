@@ -17,10 +17,10 @@ impl Parse for Stages {
 
 /// Represents a single stage inside a workflow.
 pub struct Stage {
-    name: Ident,                // Name of the stage (e.g., "ValidateAndSpawn")
-    stage_type: StageType,      // Type of stage (Ecs, EcsWhile, etc.)
-    core_types: CoreTypes,      // Input, Output, Error, State
-    core_functions: CoreFunctions, // Function implementations
+    pub name: Ident,                // Name of the stage (e.g., "ValidateAndSpawn")
+    pub stage_type: StageType,      // Type of stage (Ecs, EcsWhile, etc.)
+    pub core_types: CoreTypes,      // Input, Output, Error, State
+    pub core_functions: CoreFunctions, // Function implementations
 }
 
 impl Parse for Stage {
