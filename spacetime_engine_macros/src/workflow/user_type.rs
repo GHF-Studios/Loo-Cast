@@ -2,10 +2,23 @@ use syn::{parse::Parse, spanned::Spanned, Ident, Token, Result, ItemStruct, Item
 use syn::parse::ParseStream;
 use quote::ToTokens;
 
+/// Represents a collection of user-defined types.
+pub struct UserTypes(pub Vec<UserType>);
+
+impl Parse for UserTypes {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut types = Vec::new();
+        while !input.is_empty() {
+            types.push(input.parse()?);
+        }
+        Ok(UserTypes(types))
+    }
+}
+
 /// Represents a parsed user-defined type (struct or enum only).
 #[derive(Debug)]
 pub struct UserType {
-    pub item: AllowedUserItem, // Struct or Enum
+    pub item: AllowedUserItem, // Struct, Enum, or Type Alias
     pub impls: Vec<String>,    // Allowed impl blocks (as strings)
 }
 
@@ -14,6 +27,7 @@ pub struct UserType {
 pub enum AllowedUserItem {
     Struct(String),
     Enum(String),
+    TypeAlias(String),
 }
 
 impl Parse for UserType {
@@ -53,10 +67,17 @@ impl Parse for UserType {
             }
 
             Ok(user_type)
+        } else if lookahead.peek(Token![type]) {
+            let type_alias: syn::ItemType = input.parse()?;
+            let item_str = type_alias.to_token_stream().to_string();
+            Ok(UserType {
+                item: AllowedUserItem::TypeAlias(item_str),
+                impls,
+            })
         } else {
             Err(syn::Error::new(
                 input.span(),
-                "Expected a `struct` or `enum`. Other items (modules, functions, type aliases, trait impls, etc.) are not allowed.",
+                "Expected a `struct`, `enum`, or `type` alias. Other items (modules, functions, trait impls, etc.) are not allowed.",
             ))
         }
     }
@@ -80,6 +101,7 @@ fn validate_impl(item_impl: &ItemImpl, user_type: &UserType) -> Result<()> {
     let expected_name = match &user_type.item {
         AllowedUserItem::Struct(name) => name.split_whitespace().nth(1).unwrap_or("").to_string(),
         AllowedUserItem::Enum(name) => name.split_whitespace().nth(1).unwrap_or("").to_string(),
+        AllowedUserItem::TypeAlias(name) => name.split_whitespace().nth(1).unwrap_or("").to_string(),
     };
 
     if type_name.as_deref() != Some(&expected_name) {

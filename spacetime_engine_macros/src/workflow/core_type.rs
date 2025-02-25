@@ -2,48 +2,73 @@ use syn::{parse::Parse, Ident, Token, Result, braced, punctuated::Punctuated};
 use syn::parse::ParseStream;
 use quote::ToTokens;
 
-/// Represents one permutation of the 4 available core types.
-#[derive(Debug)]
-pub struct CoreTypes {
-    pub input: Option<CoreStruct>,
-    pub output: Option<CoreStruct>,
-    pub error: Option<CoreEnum>,
-    pub state: Option<CoreStruct>,
+/// Represents all valid permutations of core types in a stage.
+pub enum CoreTypes {
+    // Standard stages
+    None,
+    Input { input: CoreType },
+    InputOutput { input: CoreType, output: CoreType },
+    InputError { input: CoreType, error: CoreType },
+    InputOutputError { input: CoreType, output: CoreType, error: CoreType },
+    Output { output: CoreType },
+    OutputError { output: CoreType, error: CoreType },
+    Error { error: CoreType },
+
+    // While stages (must include `state`)
+    While { state: CoreType },
+    InputWhile { input: CoreType, state: CoreType },
+    InputWhileOutput { input: CoreType, state: CoreType, output: CoreType },
+    InputWhileError { input: CoreType, state: CoreType, error: CoreType },
+    InputWhileOutputError { input: CoreType, state: CoreType, output: CoreType, error: CoreType },
+    WhileOutput { state: CoreType, output: CoreType },
+    WhileOutputError { state: CoreType, output: CoreType, error: CoreType },
+    WhileError { state: CoreType, error: CoreType },
+}
+
+/// Represents either a struct or an enum.
+pub enum CoreType {
+    Struct(CoreStruct),
+    Enum(CoreEnum),
 }
 
 impl Parse for CoreTypes {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let mut core_types = CoreTypes {
-            input: None,
-            output: None,
-            error: None,
-            state: None,
-        };
+    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
+        let mut input_type: Option<CoreType> = None;
+        let mut state_type: Option<CoreType> = None;
+        let mut output_type: Option<CoreType> = None;
+        let mut error_type: Option<CoreType> = None;
 
         while !input.is_empty() {
             let lookahead = input.lookahead1();
             if lookahead.peek(Token![struct]) {
                 let core_struct: CoreStruct = input.parse()?;
-                match core_struct.name.as_str() {
-                    "Input" => core_types.input = Some(core_struct),
-                    "Output" => core_types.output = Some(core_struct),
-                    "State" => core_types.state = Some(core_struct),
+                let core_type = CoreType::Struct(core_struct);
+                match core_type {
+                    CoreType::Struct(ref s) if s.name == "Input" => input_type = Some(core_type),
+                    CoreType::Struct(ref s) if s.name == "State" => state_type = Some(core_type),
+                    CoreType::Struct(ref s) if s.name == "Output" => output_type = Some(core_type),
+                    CoreType::Struct(ref s) if s.name == "Error" => error_type = Some(core_type),
                     _ => {
                         return Err(syn::Error::new(
                             input.span(),
-                            format!("Unexpected struct name `{}` in core types. Expected `Input`, `Output`, or `State`.", core_struct.name),
+                            "Unexpected struct name. Expected `Input`, `State`, `Output`, or `Error`.",
                         ))
                     }
                 }
             } else if lookahead.peek(Token![enum]) {
                 let core_enum: CoreEnum = input.parse()?;
-                if core_enum.name == "Error" {
-                    core_types.error = Some(core_enum);
-                } else {
-                    return Err(syn::Error::new(
-                        input.span(),
-                        format!("Unexpected enum name `{}` in core types. Expected `Error`.", core_enum.name),
-                    ));
+                let core_type = CoreType::Enum(core_enum);
+                match core_type {
+                    CoreType::Enum(ref e) if e.name == "Input" => input_type = Some(core_type),
+                    CoreType::Enum(ref e) if e.name == "State" => state_type = Some(core_type),
+                    CoreType::Enum(ref e) if e.name == "Output" => output_type = Some(core_type),
+                    CoreType::Enum(ref e) if e.name == "Error" => error_type = Some(core_type),
+                    _ => {
+                        return Err(syn::Error::new(
+                            input.span(),
+                            "Unexpected enum name. Expected `Input`, `State`, `Output`, or `Error`.",
+                        ))
+                    }
                 }
             } else {
                 return Err(syn::Error::new(
@@ -53,9 +78,31 @@ impl Parse for CoreTypes {
             }
         }
 
-        Ok(core_types)
+        // Construct the correct variant based on what was found
+        match (input_type, output_type, error_type, state_type) {
+            // Standard stages
+            (None, None, None, None) => Ok(CoreTypes::None),
+            (Some(input), None, None, None) => Ok(CoreTypes::Input { input }),
+            (Some(input), Some(output), None, None) => Ok(CoreTypes::InputOutput { input, output }),
+            (Some(input), None, Some(error), None) => Ok(CoreTypes::InputError { input, error }),
+            (Some(input), Some(output), Some(error), None) => Ok(CoreTypes::InputOutputError { input, output, error }),
+            (None, Some(output), None, None) => Ok(CoreTypes::Output { output }),
+            (None, Some(output), Some(error), None) => Ok(CoreTypes::OutputError { output, error }),
+            (None, None, Some(error), None) => Ok(CoreTypes::Error { error }),
+
+            // While stages
+            (None, None, None, Some(state)) => Ok(CoreTypes::While { state }),
+            (Some(input), None, None, Some(state)) => Ok(CoreTypes::InputWhile { input, state }),
+            (Some(input), None, Some(error), Some(state)) => Ok(CoreTypes::InputWhileError { input, state, error }),
+            (Some(input), Some(output), None, Some(state)) => Ok(CoreTypes::InputWhileOutput { input, state, output }),
+            (Some(input), Some(output), Some(error), Some(state)) => Ok(CoreTypes::InputWhileOutputError { input, state, output, error }),
+            (None, Some(output), None, Some(state)) => Ok(CoreTypes::WhileOutput { state, output }),
+            (None, Some(output), Some(error), Some(state)) => Ok(CoreTypes::WhileOutputError { state, output, error }),
+            (None, None, Some(error), Some(state)) => Ok(CoreTypes::WhileError { state, error }),
+        }
     }
 }
+
 
 /// Represents a parsed struct (with forced `pub` access).
 #[derive(Debug)]

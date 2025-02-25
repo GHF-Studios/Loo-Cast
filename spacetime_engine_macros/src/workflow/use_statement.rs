@@ -1,6 +1,19 @@
 use syn::{parse::Parse, Ident, Path, Token, Visibility, Result};
 use quote::ToTokens;
 
+/// Represents a collection of parsed `use` statements.
+pub struct UseStatements(pub Vec<UseStatement>);
+
+impl Parse for UseStatements {
+    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
+        let mut imports = Vec::new();
+        while !input.is_empty() {
+            imports.push(input.parse()?);
+        }
+        Ok(UseStatements(imports))
+    }
+}
+
 /// Represents a parsed Rust `use` statement.
 #[derive(Debug)]
 pub struct UseStatement {
@@ -30,13 +43,4 @@ impl Parse for UseStatement {
 
         Ok(UseStatement { visibility, path })
     }
-}
-
-/// Parses multiple `use` statements from a block of Rust code.
-pub fn parseuse_statementr_imports(input: syn::parse::ParseStream) -> Result<Vec<UseStatement>> {
-    let mut imports = Vec::new();
-    while !input.is_empty() {
-        imports.push(input.parse()?);
-    }
-    Ok(imports)
 }
