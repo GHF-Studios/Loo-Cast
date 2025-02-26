@@ -6,27 +6,24 @@ use super::core_type::CoreTypes;
 
 // TODO: This entire module is fucked. Rework it!
 
-/// Represents all valid function sets for different stage types.
 pub enum CoreFunctions {
     Single(CoreFunction),  // One function (RunEcs, RunRender, RunAsync)
     WhileFunctions { setup: CoreFunction, run: CoreFunction }, // Setup + Run functions for While stages
 }
 
 impl CoreFunctions {
-    /// Returns a unique identifier for the CoreFunctions permutation.
     pub fn permutation(&self) -> &'static str {
         match self {
             CoreFunctions::Single(func) => match func.function_type {
-                CoreFunctionType::RunEcs => "InputOutputError",  // Mirrors CoreTypes::InputOutputError
+                CoreFunctionType::RunEcs => "InputOutputError",
                 CoreFunctionType::RunRender => "InputOutputError",
                 CoreFunctionType::RunAsync => "InputOutputError",
-                _ => "Invalid", // Should never happen
+                _ => "Invalid",
             },
-            CoreFunctions::WhileFunctions { .. } => "While", // Mirrors CoreTypes::While*
+            CoreFunctions::WhileFunctions { .. } => "While",
         }
     }
 
-    /// Validates that the provided functions match the expected core type pattern.
     pub fn validate(&self, core_types: &CoreTypes) -> Result<()> {
         let expected = core_types.permutation();
         let actual = self.permutation();
@@ -81,7 +78,6 @@ impl Parse for CoreFunctions {
     }
 }
 
-/// Enum for function types within a stage.
 pub enum CoreFunctionType {
     RunEcs,
     RunRender,
@@ -93,7 +89,6 @@ pub enum CoreFunctionType {
 }
 
 impl CoreFunctionType {
-    /// Checks if this function type is correctly paired with another (e.g., SetupEcsWhile → RunEcsWhile).
     fn is_setup_pair(&self, other: &CoreFunctionType) -> bool {
         matches!(
             (self, other),
@@ -105,7 +100,7 @@ impl CoreFunctionType {
 
 impl Parse for CoreFunctionType {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        let func_name: Ident = input.parse()?; // Expect function name (e.g., "RunEcs")
+        let func_name: Ident = input.parse()?;
 
         match func_name.to_string().as_str() {
             "RunEcs" => Ok(CoreFunctionType::RunEcs),

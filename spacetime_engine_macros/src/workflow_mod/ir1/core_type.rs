@@ -3,9 +3,7 @@ use syn::{parse::Parse, Ident, Token, Result, braced, punctuated::Punctuated};
 use syn::parse::ParseStream;
 use quote::ToTokens;
 
-/// Represents all valid permutations of core types in a stage.
 pub enum CoreTypes {
-    // Standard stages
     None,
     Input { input: CoreType },
     InputOutput { input: CoreType, output: CoreType },
@@ -15,7 +13,6 @@ pub enum CoreTypes {
     OutputError { output: CoreType, error: CoreType },
     Error { error: CoreType },
 
-    // While stages (must include `state`)
     While { state: CoreType },
     InputWhile { input: CoreType, state: CoreType },
     InputWhileOutput { input: CoreType, state: CoreType, output: CoreType },
@@ -26,35 +23,9 @@ pub enum CoreTypes {
     WhileError { state: CoreType, error: CoreType },
 }
 
-/// Represents either a struct or an enum.
 pub enum CoreType {
     Struct(CoreStruct),
     Enum(CoreEnum),
-}
-
-impl CoreTypes {
-    /// Returns a unique identifier for the CoreTypes permutation.
-    pub fn permutation(&self) -> &'static str {
-        match self {
-            CoreTypes::None => "None",
-            CoreTypes::Input { .. } => "Input",
-            CoreTypes::InputOutput { .. } => "InputOutput",
-            CoreTypes::InputError { .. } => "InputError",
-            CoreTypes::InputOutputError { .. } => "InputOutputError",
-            CoreTypes::Output { .. } => "Output",
-            CoreTypes::OutputError { .. } => "OutputError",
-            CoreTypes::Error { .. } => "Error",
-
-            CoreTypes::While { .. } => "While",
-            CoreTypes::InputWhile { .. } => "InputWhile",
-            CoreTypes::InputWhileOutput { .. } => "InputWhileOutput",
-            CoreTypes::InputWhileError { .. } => "InputWhileError",
-            CoreTypes::InputWhileOutputError { .. } => "InputWhileOutputError",
-            CoreTypes::WhileOutput { .. } => "WhileOutput",
-            CoreTypes::WhileOutputError { .. } => "WhileOutputError",
-            CoreTypes::WhileError { .. } => "WhileError",
-        }
-    }
 }
 
 impl Parse for CoreTypes {
@@ -104,9 +75,7 @@ impl Parse for CoreTypes {
             }
         }
 
-        // Construct the correct variant based on what was found
         match (input_type, output_type, error_type, state_type) {
-            // Standard stages
             (None, None, None, None) => Ok(CoreTypes::None),
             (Some(input), None, None, None) => Ok(CoreTypes::Input { input }),
             (Some(input), Some(output), None, None) => Ok(CoreTypes::InputOutput { input, output }),
@@ -116,7 +85,6 @@ impl Parse for CoreTypes {
             (None, Some(output), Some(error), None) => Ok(CoreTypes::OutputError { output, error }),
             (None, None, Some(error), None) => Ok(CoreTypes::Error { error }),
 
-            // While stages
             (None, None, None, Some(state)) => Ok(CoreTypes::While { state }),
             (Some(input), None, None, Some(state)) => Ok(CoreTypes::InputWhile { input, state }),
             (Some(input), None, Some(error), Some(state)) => Ok(CoreTypes::InputWhileError { input, state, error }),
@@ -130,7 +98,6 @@ impl Parse for CoreTypes {
 }
 
 
-/// Represents a parsed struct (with forced `pub` access).
 #[derive(Debug)]
 pub struct CoreStruct {
     pub name: TokenStream,

@@ -1,8 +1,7 @@
 use proc_macro2::TokenStream;
-use syn::{parse::Parse, ItemFn, Result, braced};
-use quote::ToTokens;
+use syn::{parse::Parse, ItemFn, Result};
+use quote::{quote, ToTokens};
 
-/// Represents a collection of user-defined functions.
 pub struct UserFunctions(pub Vec<UserFunction>);
 
 impl Parse for UserFunctions {
@@ -15,26 +14,33 @@ impl Parse for UserFunctions {
     }
 }
 
-/// Represents a parsed user-defined function.
+impl UserFunctions {
+    pub fn generate(self) -> TokenStream {
+        let functions: Vec<TokenStream> = self.0.into_iter().map(|func| func.generate()).collect();
+
+        quote! {
+            #(#functions)*
+        }
+    }
+}
+
 pub struct UserFunction {
-    pub signature: TokenStream, // Function signature (name, parameters, return type)
-    pub body: TokenStream,      // Function body
+    pub item_fn: TokenStream,
 }
 
 impl Parse for UserFunction {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        // Parse the function as a standard Rust function
         let func: ItemFn = input.parse()?;
-
-        // Extract function signature
-        let signature = func.sig.to_token_stream();
-
-        // Extract function body
-        let body = func.block.to_token_stream();
+        let item_fn = func.to_token_stream();
 
         Ok(UserFunction {
-            signature,
-            body,
+            item_fn,
         })
+    }
+}
+
+impl UserFunction {
+    pub fn generate(self) -> TokenStream {
+        self.item_fn
     }
 }

@@ -18,8 +18,8 @@ impl From<crate::workflow_mod::ir1::user_type::UserTypes> for UserTypes {
 
 impl UserTypes {
     /// Generates Rust code for all user-defined types.
-    pub fn generate(&self) -> TokenStream {
-        let types: Vec<TokenStream> = self.items.iter().map(|ty| ty.generate()).collect();
+    pub fn generate(self) -> TokenStream {
+        let types: Vec<TokenStream> = self.items.into_iter().map(|ty| ty.generate()).collect();
 
         quote! {
             #(#types)*
@@ -27,9 +27,8 @@ impl UserTypes {
     }
 }
 
-/// Represents a user-defined type (struct, enum, or type alias).
 pub struct UserType {
-    pub tokens: TokenStream, // Just store the full raw Rust code
+    pub tokens: TokenStream,
 }
 
 impl From<crate::workflow_mod::ir1::user_type::UserType> for UserType {
@@ -51,8 +50,7 @@ impl From<crate::workflow_mod::ir1::user_type::UserType> for UserType {
 }
 
 impl UserType {
-    /// Generates Rust code for the user-defined type.
-    pub fn generate(&self) -> TokenStream {
-        self.tokens.clone()
+    pub fn generate(self) -> TokenStream {
+        self.tokens
     }
 }

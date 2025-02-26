@@ -1,5 +1,6 @@
 use syn::{parse::Parse, Ident, Path, Token, Visibility, Result};
-use quote::ToTokens;
+use quote::{quote, ToTokens};
+use proc_macro2::TokenStream;
 
 /// Represents a collection of parsed `use` statements.
 pub struct UseStatements(pub Vec<UseStatement>);
@@ -11,6 +12,17 @@ impl Parse for UseStatements {
             imports.push(input.parse()?);
         }
         Ok(UseStatements(imports))
+    }
+}
+
+impl UseStatements {
+    /// Generates Rust code for all `use` statements.
+    pub fn generate(self) -> TokenStream {
+        let imports: Vec<TokenStream> = self.0.into_iter().map(|stmt| stmt.generate()).collect();
+
+        quote! {
+            #(#imports)*
+        }
     }
 }
 
@@ -42,5 +54,18 @@ impl Parse for UseStatement {
         })?;
 
         Ok(UseStatement { visibility, path })
+    }
+}
+
+impl UseStatement {
+    /// Generates a single `use` statement.
+    pub fn generate(self) -> TokenStream {
+        let path = self.path;
+        // TODO: Fix visibility being optional
+        let visibility = self.visibility.map(|v| v.into_token_stream()).expect("DIGGAAAAAAAAAA VISIBILITY IS NICH OPTIONAL AMENA");
+
+        quote! {
+            #visibility use #path;
+        }
     }
 }

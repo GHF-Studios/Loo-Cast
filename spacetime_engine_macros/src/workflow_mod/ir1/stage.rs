@@ -1,8 +1,9 @@
 use syn::{parse::Parse, Result, Ident, Token};
+use proc_macro2::TokenStream;
+use quote::quote;
 use super::core_type::CoreTypes;
 use super::core_function::{CoreFunctions, CoreFunctionType};
 
-/// Represents a collection of stages in a workflow.
 pub struct Stages(pub Vec<Stage>);
 
 impl Parse for Stages {
@@ -15,23 +16,31 @@ impl Parse for Stages {
     }
 }
 
-/// Represents a single stage inside a workflow.
+impl Stages {
+    pub fn generate(self) -> TokenStream {
+        let stages: Vec<TokenStream> = self.0.into_iter().map(Stage::generate).collect();
+        quote! {
+            #(#stages)*
+        }
+    }
+}
+
 pub struct Stage {
-    pub name: Ident,                // Name of the stage (e.g., "ValidateAndSpawn")
-    pub stage_type: StageType,      // Type of stage (Ecs, EcsWhile, etc.)
-    pub core_types: CoreTypes,      // Input, Output, Error, State
-    pub core_functions: CoreFunctions, // Function implementations
+    pub name: Ident,
+    pub stage_type: StageType,
+    pub core_types: CoreTypes,
+    pub core_functions: CoreFunctions,
 }
 
 impl Parse for Stage {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         // Parse stage name
         let name: Ident = input.parse()?;
-        let _: Token![,] = input.parse()?; // Expect a comma
+        let _: Token![,] = input.parse()?;
 
         // Parse core types
         let core_types: CoreTypes = input.parse()?;
-        let _: Token![,] = input.parse()?; // Expect a comma
+        let _: Token![,] = input.parse()?;
 
         // Parse core functions
         let core_functions: CoreFunctions = input.parse()?;
@@ -48,6 +57,22 @@ impl Parse for Stage {
             core_types,
             core_functions,
         })
+    }
+}
+
+impl Stage {
+    pub fn generate(self) -> TokenStream {
+        let name = self.name;
+        let core_types = self.core_types.generate();
+        let core_functions = self.core_functions.generate();
+
+        quote! {
+            pub mod #name {
+                #core_types
+
+                #core_functions
+            }
+        }
     }
 }
 
@@ -71,7 +96,7 @@ impl StageType {
                 CoreFunctionType::RunAsync => Ok(StageType::Async),
                 _ => Err(syn::Error::new(
                     func.signature.name.span(),
-                    "Invalid function type for a single-function stage.",
+                    "Invalid function type for a single-function stage. Expected RunEcs or RunRender or RunAsync.",
                 )),
             },
             CoreFunctions::WhileFunctions { setup, run } => match (&setup.function_type, &run.function_type) {

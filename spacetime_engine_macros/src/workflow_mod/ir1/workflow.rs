@@ -29,9 +29,9 @@ impl Parse for WorkflowModule {
 }
 
 impl WorkflowModule {
-    pub fn generate(&self) -> TokenStream {
-        let name = &self.name;
-        let workflows: Vec<TokenStream> = self.workflows.iter().map(Workflow::generate).collect();
+    pub fn generate(self) -> TokenStream {
+        let name = self.name;
+        let workflows: Vec<TokenStream> = self.workflows.into_iter().map(Workflow::generate).collect();
 
         quote! {
             mod #name {
@@ -77,8 +77,8 @@ impl Parse for Workflow {
 }
 
 impl Workflow {
-    pub fn generate(&self) -> TokenStream {
-        let name = &self.name;
+    pub fn generate(self) -> TokenStream {
+        let name = self.name;
         let imports = self.user_imports.generate();
         let user_types = self.user_types.generate();
         let user_functions = self.user_functions.generate();

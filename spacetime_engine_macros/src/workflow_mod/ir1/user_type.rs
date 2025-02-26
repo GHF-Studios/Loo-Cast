@@ -1,9 +1,10 @@
 use proc_macro2::TokenStream;
 use syn::{parse::Parse, spanned::Spanned, Token, Result, ItemStruct, ItemEnum, ItemImpl};
 use syn::parse::ParseStream;
-use quote::ToTokens;
+use quote::{ToTokens, quote};
 
-/// Represents a collection of user-defined types.
+// TODO: This entire module is fucked. Rework it!
+
 pub struct UserTypes(pub Vec<UserType>);
 
 impl Parse for UserTypes {
@@ -16,19 +17,20 @@ impl Parse for UserTypes {
     }
 }
 
-/// Represents a parsed user-defined type (struct or enum only).
-#[derive(Debug)]
-pub struct UserType {
-    pub item: AllowedUserItem, // Struct, Enum, or Type Alias
-    pub impls: Vec<TokenStream>,    // Allowed impl blocks (as strings)
+impl UserTypes {
+    /// Generates Rust code for all user-defined types.
+    pub fn generate(self) -> TokenStream {
+        let types: Vec<TokenStream> = self.0.into_iter().map(|ty| ty.generate()).collect();
+
+        quote! {
+            #(#types)*
+        }
+    }
 }
 
-/// The allowed user-defined Rust types.
 #[derive(Debug)]
-pub enum AllowedUserItem {
-    Struct(TokenStream),
-    Enum(TokenStream),
-    TypeAlias(TokenStream),
+pub struct UserType {
+    pub tokens: TokenStream,
 }
 
 impl Parse for UserType {
@@ -38,9 +40,9 @@ impl Parse for UserType {
 
         if lookahead.peek(Token![struct]) {
             let item: ItemStruct = input.parse()?;
-            let item_stream = item.to_token_stream();
+            let item = item.to_token_stream();
             let mut user_type = UserType {
-                item: AllowedUserItem::Struct(item_stream),
+                item,
                 impls,
             };
 
@@ -54,9 +56,9 @@ impl Parse for UserType {
             Ok(user_type)
         } else if lookahead.peek(Token![enum]) {
             let item: ItemEnum = input.parse()?;
-            let item_stream = item.to_token_stream();
+            let item = item.to_token_stream();
             let mut user_type = UserType {
-                item: AllowedUserItem::Enum(item_stream),
+                item,
                 impls,
             };
 
@@ -70,9 +72,9 @@ impl Parse for UserType {
             Ok(user_type)
         } else if lookahead.peek(Token![type]) {
             let type_alias: syn::ItemType = input.parse()?;
-            let item_stream = type_alias.to_token_stream();
+            let item = type_alias.to_token_stream();
             Ok(UserType {
-                item: AllowedUserItem::TypeAlias(item_stream),
+                item,
                 impls,
             })
         } else {
@@ -81,6 +83,13 @@ impl Parse for UserType {
                 "Expected a `struct`, `enum`, or `type` alias. Other items (modules, functions, trait impls, etc.) are not allowed.",
             ))
         }
+    }
+}
+
+impl UserType {
+    /// Generates Rust code for the user-defined type.
+    pub fn generate(self) -> TokenStream {
+        self.tokens
     }
 }
 
