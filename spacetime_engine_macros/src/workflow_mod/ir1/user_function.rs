@@ -1,3 +1,4 @@
+use proc_macro2::TokenStream;
 use syn::{parse::Parse, ItemFn, Result, braced};
 use quote::ToTokens;
 
@@ -16,8 +17,8 @@ impl Parse for UserFunctions {
 
 /// Represents a parsed user-defined function.
 pub struct UserFunction {
-    pub signature: String, // Function signature (name, parameters, return type)
-    pub body: String,      // Function body
+    pub signature: TokenStream, // Function signature (name, parameters, return type)
+    pub body: TokenStream,      // Function body
 }
 
 impl Parse for UserFunction {
@@ -26,10 +27,10 @@ impl Parse for UserFunction {
         let func: ItemFn = input.parse()?;
 
         // Extract function signature
-        let signature = func.sig.to_token_stream().to_string();
+        let signature = func.sig.to_token_stream();
 
         // Extract function body
-        let body = func.block.to_token_stream().to_string();
+        let body = func.block.to_token_stream();
 
         Ok(UserFunction {
             signature,

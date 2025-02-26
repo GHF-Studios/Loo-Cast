@@ -1,6 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
+use crate::workflow_mod::ir1::user_type::AllowedUserItem;
+
 /// Represents a collection of user-defined types.
 pub struct UserTypes {
     pub items: Vec<UserType>,
@@ -32,8 +34,18 @@ pub struct UserType {
 
 impl From<crate::workflow_mod::ir1::user_type::UserType> for UserType {
     fn from(ir1: crate::workflow_mod::ir1::user_type::UserType) -> Self {
+        let item = match ir1.item {
+            AllowedUserItem::Struct(item) => item,
+            AllowedUserItem::Enum(item) => item,
+            AllowedUserItem::TypeAlias(item) => item,
+        };
+        let impls = ir1.impls;
+
         Self {
-            tokens: ir1.to_token_stream(),
+            tokens: quote!{
+                #item
+                #(#impls)*
+            },
         }
     }
 }

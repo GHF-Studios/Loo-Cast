@@ -4,7 +4,9 @@ use super::stage::*;
 use super::use_statement::*;
 use super::user_function::*;
 use super::user_type::*;
+use proc_macro2::TokenStream;
 use syn::{parse::Parse, Result, Ident, Token};
+use quote::quote;
 
 /// Represents the entire `vorkflow_mod! { ... }` macro input.
 pub struct WorkflowModule {
@@ -23,6 +25,19 @@ impl Parse for WorkflowModule {
         }
 
         Ok(WorkflowModule { name, workflows })
+    }
+}
+
+impl WorkflowModule {
+    pub fn generate(&self) -> TokenStream {
+        let name = &self.name;
+        let workflows: Vec<TokenStream> = self.workflows.iter().map(Workflow::generate).collect();
+
+        quote! {
+            mod #name {
+                #(#workflows)*
+            }
+        }
     }
 }
 
@@ -58,5 +73,24 @@ impl Parse for Workflow {
             user_functions,
             stages,
         })
+    }
+}
+
+impl Workflow {
+    pub fn generate(&self) -> TokenStream {
+        let name = &self.name;
+        let imports = self.user_imports.generate();
+        let user_types = self.user_types.generate();
+        let user_functions = self.user_functions.generate();
+        let stages = self.stages.generate();
+
+        quote! {
+            pub mod #name {
+                #imports
+                #user_types
+                #user_functions
+                #stages
+            }
+        }
     }
 }

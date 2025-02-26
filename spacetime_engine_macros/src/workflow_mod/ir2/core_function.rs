@@ -9,8 +9,13 @@ pub struct CoreFunctions {
 
 impl From<crate::workflow_mod::ir1::core_function::CoreFunctions> for CoreFunctions {
     fn from(ir1: crate::workflow_mod::ir1::core_function::CoreFunctions) -> Self {
+        let ir1_functions = match ir1 {
+            crate::workflow_mod::ir1::core_function::CoreFunctions::Single(run) => vec![run],
+            crate::workflow_mod::ir1::core_function::CoreFunctions::WhileFunctions { setup, run } => vec![setup, run]
+        };
+
         Self {
-            functions: ir1.0.into_iter().map(CoreFunction::from).collect(),
+            functions: ir1_functions.into_iter().map(CoreFunction::from).collect(),
         }
     }
 }
@@ -64,7 +69,7 @@ impl CoreFunction {
 pub struct CoreFunctionSignature {
     pub name: Ident,
     pub params: Vec<CoreFunctionParam>,
-    pub return_type: Option<String>, // Example: "Result<Output, Error>"
+    pub return_type: Option<TokenStream>, // Example: "Result<Output, Error>"
 }
 
 impl From<crate::workflow_mod::ir1::core_function::CoreFunctionSignature> for CoreFunctionSignature {
@@ -80,7 +85,7 @@ impl From<crate::workflow_mod::ir1::core_function::CoreFunctionSignature> for Co
 /// Represents a function parameter.
 pub struct CoreFunctionParam {
     pub name: Ident,
-    pub ty: String, // Example: "World &mut"
+    pub ty: TokenStream, // Example: "World &mut"
 }
 
 impl From<crate::workflow_mod::ir1::core_function::CoreFunctionParam> for CoreFunctionParam {

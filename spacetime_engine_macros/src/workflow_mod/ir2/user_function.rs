@@ -32,8 +32,11 @@ pub struct UserFunction {
 
 impl From<crate::workflow_mod::ir1::user_function::UserFunction> for UserFunction {
     fn from(ir1: crate::workflow_mod::ir1::user_function::UserFunction) -> Self {
+        let signature = ir1.signature;
+        let body = ir1.body;
+
         Self {
-            tokens: ir1.to_token_stream(),
+            tokens: quote!{#signature, #body},
         }
     }
 }

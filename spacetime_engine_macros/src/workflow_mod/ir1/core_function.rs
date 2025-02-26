@@ -1,8 +1,10 @@
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream};
 use syn::{parse::Parse, spanned::Spanned, Ident, Token, Result, Block, Signature, ItemFn, braced};
 use quote::ToTokens;
 
 use super::core_type::CoreTypes;
+
+// TODO: This entire module is fucked. Rework it!
 
 /// Represents all valid function sets for different stage types.
 pub enum CoreFunctions {
@@ -79,13 +81,6 @@ impl Parse for CoreFunctions {
     }
 }
 
-/// Represents a single function inside a stage.
-pub struct CoreFunction {
-    pub function_type: CoreFunctionType,   // Function type (RunEcs, SetupEcsWhile, etc.)
-    pub signature: CoreFunctionSignature, // Parameters & return type
-    pub body: String,                  // Raw Rust function body
-}
-
 /// Enum for function types within a stage.
 pub enum CoreFunctionType {
     RunEcs,
@@ -132,13 +127,20 @@ impl Parse for CoreFunctionType {
 pub struct CoreFunctionSignature {
     pub name: Ident,
     pub params: Vec<CoreFunctionParam>,
-    pub return_type: Option<String>, // Example: "Result<Output, Error>"
+    pub return_type: Option<TokenStream>, // Example: "Result<Output, Error>"
 }
 
 /// Represents a function parameter.
 pub struct CoreFunctionParam {
     pub name: Ident,
-    pub ty: String, // Example: "&mut World"
+    pub ty: TokenStream, // Example: "&mut World"
+}
+
+/// Represents a single function inside a stage.
+pub struct CoreFunction {
+    pub function_type: CoreFunctionType,   // Function type (RunEcs, SetupEcsWhile, etc.)
+    pub signature: CoreFunctionSignature, // Parameters & return type
+    pub body: TokenStream,                  // Raw Rust function body
 }
 
 impl Parse for CoreFunction {
@@ -160,7 +162,7 @@ impl Parse for CoreFunction {
                         syn::Pat::Ident(ident) => ident.ident.clone(),
                         _ => return Err(syn::Error::new(pat_type.span(), "Unexpected function parameter format.")),
                     };
-                    let ty = pat_type.ty.to_token_stream().to_string();
+                    let ty = pat_type.ty.to_token_stream();
                     Ok(CoreFunctionParam { name, ty })
                 }
                 _ => Err(syn::Error::new(arg.span(), "Unexpected function parameter format.")),
@@ -169,12 +171,12 @@ impl Parse for CoreFunction {
 
         // Extract return type
         let return_type = match &func.sig.output {
-            syn::ReturnType::Type(_, ty) => Some(ty.to_token_stream().to_string()),
+            syn::ReturnType::Type(_, ty) => Some(ty.to_token_stream()),
             syn::ReturnType::Default => None,
         };
 
         // Extract function body
-        let body = func.block.to_token_stream().to_string();
+        let body = func.block.to_token_stream();
 
         let signature = CoreFunctionSignature {
             name: func.sig.ident.clone(),

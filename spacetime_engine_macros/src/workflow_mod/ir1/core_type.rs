@@ -1,3 +1,4 @@
+use proc_macro2::TokenStream;
 use syn::{parse::Parse, Ident, Token, Result, braced, punctuated::Punctuated};
 use syn::parse::ParseStream;
 use quote::ToTokens;
@@ -69,10 +70,10 @@ impl Parse for CoreTypes {
                 let core_struct: CoreStruct = input.parse()?;
                 let core_type = CoreType::Struct(core_struct);
                 match core_type {
-                    CoreType::Struct(ref s) if s.name == "Input" => input_type = Some(core_type),
-                    CoreType::Struct(ref s) if s.name == "State" => state_type = Some(core_type),
-                    CoreType::Struct(ref s) if s.name == "Output" => output_type = Some(core_type),
-                    CoreType::Struct(ref s) if s.name == "Error" => error_type = Some(core_type),
+                    CoreType::Struct(ref s) if s.name.to_string() == "Input" => input_type = Some(core_type),
+                    CoreType::Struct(ref s) if s.name.to_string() == "State" => state_type = Some(core_type),
+                    CoreType::Struct(ref s) if s.name.to_string() == "Output" => output_type = Some(core_type),
+                    CoreType::Struct(ref s) if s.name.to_string() == "Error" => error_type = Some(core_type),
                     _ => {
                         return Err(syn::Error::new(
                             input.span(),
@@ -84,10 +85,10 @@ impl Parse for CoreTypes {
                 let core_enum: CoreEnum = input.parse()?;
                 let core_type = CoreType::Enum(core_enum);
                 match core_type {
-                    CoreType::Enum(ref e) if e.name == "Input" => input_type = Some(core_type),
-                    CoreType::Enum(ref e) if e.name == "State" => state_type = Some(core_type),
-                    CoreType::Enum(ref e) if e.name == "Output" => output_type = Some(core_type),
-                    CoreType::Enum(ref e) if e.name == "Error" => error_type = Some(core_type),
+                    CoreType::Enum(ref e) if e.name.to_string() == "Input" => input_type = Some(core_type),
+                    CoreType::Enum(ref e) if e.name.to_string() == "State" => state_type = Some(core_type),
+                    CoreType::Enum(ref e) if e.name.to_string() == "Output" => output_type = Some(core_type),
+                    CoreType::Enum(ref e) if e.name.to_string() == "Error" => error_type = Some(core_type),
                     _ => {
                         return Err(syn::Error::new(
                             input.span(),
@@ -132,7 +133,7 @@ impl Parse for CoreTypes {
 /// Represents a parsed struct (with forced `pub` access).
 #[derive(Debug)]
 pub struct CoreStruct {
-    pub name: String,
+    pub name: TokenStream,
     pub fields: Vec<CoreField>,
 }
 
@@ -148,7 +149,7 @@ impl Parse for CoreStruct {
             .collect();
 
         Ok(CoreStruct {
-            name: name.to_string(),
+            name: name.to_token_stream(),
             fields,
         })
     }
@@ -157,8 +158,8 @@ impl Parse for CoreStruct {
 /// Represents a single field in a struct.
 #[derive(Debug)]
 pub struct CoreField {
-    pub name: String,
-    pub ty: String,
+    pub name: TokenStream,
+    pub ty: TokenStream,
 }
 
 impl Parse for CoreField {
@@ -168,8 +169,8 @@ impl Parse for CoreField {
         let ty: syn::Type = input.parse()?;
 
         Ok(CoreField {
-            name: name.to_string(),
-            ty: ty.to_token_stream().to_string(),
+            name: name.to_token_stream(),
+            ty: ty.to_token_stream(),
         })
     }
 }
@@ -177,7 +178,7 @@ impl Parse for CoreField {
 /// Represents a parsed enum with struct-like variants.
 #[derive(Debug)]
 pub struct CoreEnum {
-    pub name: String,
+    pub name: TokenStream,
     pub variants: Vec<CoreEnumVariant>,
 }
 
@@ -193,7 +194,7 @@ impl Parse for CoreEnum {
             .collect();
 
         Ok(CoreEnum {
-            name: name.to_string(),
+            name: name.into_token_stream(),
             variants,
         })
     }
@@ -202,7 +203,7 @@ impl Parse for CoreEnum {
 /// Represents a single variant in an enum.
 #[derive(Debug)]
 pub struct CoreEnumVariant {
-    pub name: String,
+    pub name: TokenStream,
     pub fields: Vec<CoreField>,
 }
 
@@ -217,7 +218,7 @@ impl Parse for CoreEnumVariant {
             .collect();
 
         Ok(CoreEnumVariant {
-            name: name.to_string(),
+            name: name.into_token_stream(),
             fields,
         })
     }

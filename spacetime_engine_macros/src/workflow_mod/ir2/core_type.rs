@@ -4,19 +4,41 @@ use syn::Ident;
 
 /// Represents the fully expanded core types in a stage.
 pub struct CoreTypes {
-    pub input: Option<CoreStruct>,   // Fully formatted struct (or `None`)
-    pub output: Option<CoreStruct>,  // Fully formatted struct (or `None`)
-    pub error: Option<CoreEnum>,     // Fully formatted enum (or `None`)
-    pub state: Option<CoreStruct>,   // Fully formatted struct (or `None`)
+    pub input: Option<CoreType>,
+    pub state: Option<CoreType>,
+    pub output: Option<CoreType>,
+    pub error: Option<CoreType>,
 }
 
 impl From<crate::workflow_mod::ir1::core_type::CoreTypes> for CoreTypes {
     fn from(ir1: crate::workflow_mod::ir1::core_type::CoreTypes) -> Self {
+        let (input, output, error, state) = match ir1 {
+            // Standard stages
+            crate::workflow_mod::ir1::core_type::CoreTypes::None => (None, None, None, None),
+            crate::workflow_mod::ir1::core_type::CoreTypes::Input { input } => (Some(input.into()), None, None, None),
+            crate::workflow_mod::ir1::core_type::CoreTypes::InputOutput { input, output } => (Some(input.into()), None, Some(output.into()), None),
+            crate::workflow_mod::ir1::core_type::CoreTypes::InputError { input, error } => (Some(input.into()), None, None, Some(error.into())),
+            crate::workflow_mod::ir1::core_type::CoreTypes::InputOutputError { input, output, error } => (Some(input.into()), None, Some(output.into()), Some(error.into())),
+            crate::workflow_mod::ir1::core_type::CoreTypes::Output { output } => (None, None, Some(output.into()), None),
+            crate::workflow_mod::ir1::core_type::CoreTypes::OutputError { output, error } => (None, None, Some(output.into()), Some(error.into())),
+            crate::workflow_mod::ir1::core_type::CoreTypes::Error { error } => (None, None, None, Some(error.into())),
+        
+            // While stages (must include `state`)
+            crate::workflow_mod::ir1::core_type::CoreTypes::While { state } => (None, Some(state.into()), None, None),
+            crate::workflow_mod::ir1::core_type::CoreTypes::InputWhile { input, state } => (Some(input.into()), Some(state.into()), None, None),
+            crate::workflow_mod::ir1::core_type::CoreTypes::InputWhileOutput { input, state, output } => (Some(input.into()), Some(state.into()), Some(output.into()), None),
+            crate::workflow_mod::ir1::core_type::CoreTypes::InputWhileError { input, state, error } => (Some(input.into()), Some(state.into()), None, Some(error.into())),
+            crate::workflow_mod::ir1::core_type::CoreTypes::InputWhileOutputError { input, state, output, error } => (Some(input.into()), Some(state.into()), Some(output.into()), Some(error.into())),
+            crate::workflow_mod::ir1::core_type::CoreTypes::WhileOutput { state, output } => (None, Some(state.into()), Some(output.into()), None),
+            crate::workflow_mod::ir1::core_type::CoreTypes::WhileOutputError { state, output, error } => (None, Some(state.into()), Some(output.into()), Some(error.into())),
+            crate::workflow_mod::ir1::core_type::CoreTypes::WhileError { state, error } => (None, Some(state.into()), None, Some(error.into())),
+        };
+
         Self {
-            input: ir1.input.map(CoreStruct::from),
-            output: ir1.output.map(CoreStruct::from),
-            error: ir1.error.map(CoreEnum::from),
-            state: ir1.state.map(CoreStruct::from),
+            input,
+            output,
+            error,
+            state,
         }
     }
 }
@@ -24,10 +46,10 @@ impl From<crate::workflow_mod::ir1::core_type::CoreTypes> for CoreTypes {
 impl CoreTypes {
     /// Generates Rust code for all core types.
     pub fn generate(&self) -> TokenStream {
-        let input = self.input.as_ref().map(CoreStruct::generate);
-        let output = self.output.as_ref().map(CoreStruct::generate);
-        let error = self.error.as_ref().map(CoreEnum::generate);
-        let state = self.state.as_ref().map(CoreStruct::generate);
+        let input = self.input.as_ref().map(CoreType::generate);
+        let output = self.output.as_ref().map(CoreType::generate);
+        let error = self.error.as_ref().map(CoreType::generate);
+        let state = self.state.as_ref().map(CoreType::generate);
 
         quote! {
             #input
@@ -38,9 +60,16 @@ impl CoreTypes {
     }
 }
 
+
+/// Represents a parsed core type.
+pub enum CoreType {
+    Struct(CoreStruct),
+    Enum(CoreEnum),
+}
+
 /// Represents a parsed struct in core types.
 pub struct CoreStruct {
-    pub name: Ident,
+    pub name: TokenStream,
     pub fields: Vec<CoreField>,
 }
 
@@ -69,8 +98,8 @@ impl CoreStruct {
 
 /// Represents a single field in a core struct.
 pub struct CoreField {
-    pub name: Ident,
-    pub ty: String, // Simple String type
+    pub name: TokenStream,
+    pub ty: TokenStream, // Simple String type
 }
 
 impl From<crate::workflow_mod::ir1::core_type::CoreField> for CoreField {
@@ -96,7 +125,7 @@ impl CoreField {
 
 /// Represents a parsed enum in core types.
 pub struct CoreEnum {
-    pub name: Ident,
+    pub name: TokenStream,
     pub variants: Vec<CoreEnumVariant>,
 }
 
@@ -125,7 +154,7 @@ impl CoreEnum {
 
 /// Represents a single variant in a core enum.
 pub struct CoreEnumVariant {
-    pub name: Ident,
+    pub name: TokenStream,
     pub fields: Vec<CoreField>,
 }
 
