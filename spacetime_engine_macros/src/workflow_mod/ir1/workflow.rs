@@ -2,15 +2,14 @@ use super::core_function::*;
 use super::core_type::*;
 use super::stage::*;
 use super::use_statement::*;
-use super::user_function::*;
-use super::user_type::*;
+use super::user_item::*; // Replaces user_function & user_type
 use proc_macro2::TokenStream;
 use syn::{parse::Parse, Result, Ident, Token};
 use quote::quote;
 
 /// Represents the entire `vorkflow_mod! { ... }` macro input.
 pub struct WorkflowModule {
-    pub name: Ident,            // Name of the module (e.g., "Gpu", "Chunk")
+    pub name: Ident,             // Name of the module (e.g., "Gpu", "Chunk")
     pub workflows: Vec<Workflow>, // Collection of workflows
 }
 
@@ -45,8 +44,7 @@ impl WorkflowModule {
 pub struct Workflow {
     pub name: Ident,                  // Name of the workflow (e.g., "SpawnChunk")
     pub user_imports: UseStatements,  
-    pub user_types: UserTypes,        
-    pub user_functions: UserFunctions, 
+    pub user_items: UserItems,         // Unified user-defined items (was user_types & user_functions)
     pub stages: Stages,                // Collection of stages
 }
 
@@ -58,10 +56,7 @@ impl Parse for Workflow {
         let user_imports: UseStatements = input.parse()?;
         let _: Token![,] = input.parse()?; // Expect a comma
 
-        let user_types: UserTypes = input.parse()?;
-        let _: Token![,] = input.parse()?; // Expect a comma
-
-        let user_functions: UserFunctions = input.parse()?;
+        let user_items: UserItems = input.parse()?; // Replaces separate user_types and user_functions
         let _: Token![,] = input.parse()?; // Expect a comma
 
         let stages: Stages = input.parse()?; // Now parsing stages!
@@ -69,8 +64,7 @@ impl Parse for Workflow {
         Ok(Workflow {
             name,
             user_imports,
-            user_types,
-            user_functions,
+            user_items,
             stages,
         })
     }
@@ -80,15 +74,13 @@ impl Workflow {
     pub fn generate(self) -> TokenStream {
         let name = self.name;
         let imports = self.user_imports.generate();
-        let user_types = self.user_types.generate();
-        let user_functions = self.user_functions.generate();
+        let user_items = self.user_items.generate();
         let stages = self.stages.generate();
 
         quote! {
             pub mod #name {
                 #imports
-                #user_types
-                #user_functions
+                #user_items
                 #stages
             }
         }
