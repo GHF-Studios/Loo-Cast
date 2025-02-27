@@ -41,7 +41,7 @@ vorkflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn RunEcs |input, world| {
+                        fn RunEcs |input, world| -> Result<Output, Error> {
                             let shader_name = input.shader_name;
                             let shader_path = input.shader_path;
         
@@ -96,7 +96,7 @@ vorkflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn SetupRenderWhile |input, world| {
+                        fn SetupRenderWhile |input, world| -> Result<State, Error> {
                             let shader_name = input.shader_name;
                             let shader_handle = input.shader_handle;
     
@@ -149,7 +149,7 @@ vorkflow_mod! {
     
                             Ok(State { shader_name, shader_handle, bind_group_layout, pipeline_id })
                         },
-                        fn RunRenderWhile |state, world| {
+                        fn RunRenderWhile |state, world| -> Result<Outcome<State, Output>, Error> {
                             let shader_name = state.shader_name;
                             let shader_handle = state.shader_handle.clone();
                             let bind_group_layout = state.bind_group_layout.clone();
@@ -327,7 +327,7 @@ vorkflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn RunEcs |input, world| {
+                        fn RunEcs |input, world| -> Result<Output, Error> {
                             let shader_name = input.shader_name;
                             let texture_size = input.texture_size;
                             let param_data = input.param_data;
@@ -400,10 +400,10 @@ vorkflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn SetupRenderWhile |input, _world| {
+                        fn SetupRenderWhile |input, _world| -> State {
                             State { request: input.request }
                         },
-                        fn RunRenderWhile |state, world| {
+                        fn RunRenderWhile |state, world| -> Outcome<State, Output> {
                             let gpu_images = SystemState::<Res<RenderAssets<GpuImage>>>::new(world).get(world);
                 
                             if let Some(gpu_image) = gpu_images.get(&state.request.inner.texture_handle) {
@@ -428,7 +428,7 @@ vorkflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn RunRender |input, world| {
+                        fn RunRender |input, world| -> Output {
                             let prepared = &input.request.inner;
                             let pipeline_id = prepared.pipeline_id.clone();
                             let bind_group_layout = &prepared.bind_group_layout;
@@ -501,10 +501,10 @@ vorkflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn SetupEcsWhile |input, _world| {
+                        fn SetupEcsWhile |input, _world| -> Result<State, Error> {
                             Ok(State { request: input.request })
                         },
-                        fn RunEcsWhile |state, world| {
+                        fn RunEcsWhile |state, world| -> Result<Outcome<State, Output>, Error> {
                             let receiver = &state.request.inner.receiver;
                 
                             match receiver.try_recv() {

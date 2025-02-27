@@ -1,112 +1,111 @@
-use syn::{parse::Parse, Result, Ident, Token};
-use proc_macro2::TokenStream;
-use quote::quote;
+use syn::{parse::Parse, Ident, Token, Result, braced, parse::ParseStream};
 use super::core_type::CoreTypes;
-use super::core_function::{CoreFunctions, CoreFunctionType};
+use super::core_function::CoreFunctions;
 
-pub struct Stages(pub Vec<Stage>);
+/// Concrete Stage Types
+pub struct Ecs;
+pub struct EcsWhile;
+pub struct Render;
+pub struct RenderWhile;
+pub struct Async;
 
-impl Parse for Stages {
-    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        let mut stages = Vec::new();
-        while !input.is_empty() {
-            stages.push(input.parse()?);
-        }
-        Ok(Stages(stages))
-    }
+/// Enum to store different stage types with type-level enforcement
+pub enum Stage {
+    Ecs(TypedStage<Ecs>),
+    EcsWhile(TypedStage<EcsWhile>),
+    Render(TypedStage<Render>),
+    RenderWhile(TypedStage<RenderWhile>),
+    Async(TypedStage<Async>),
 }
 
-impl Stages {
-    pub fn generate(self) -> TokenStream {
-        let stages: Vec<TokenStream> = self.0.into_iter().map(Stage::generate).collect();
-        quote! {
-            #(#stages)*
-        }
-    }
-}
-
-pub struct Stage {
+/// Represents a stage inside a workflow
+pub struct TypedStage<T> {
     pub name: Ident,
-    pub stage_type: StageType,
-    pub core_types: CoreTypes,
-    pub core_functions: CoreFunctions,
+    pub core_types: CoreTypes<T>,
+    pub core_functions: CoreFunctions<T>,
 }
 
+/// Parses the `StageIR` enum and dispatches to the correct type without consuming the Ident.
 impl Parse for Stage {
-    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        // Parse stage name
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.fork(); // Peek ahead without consuming
+        let stage_name: Ident = lookahead.parse()?; // Read the Ident without consuming input
+
+        match stage_name.to_string().as_str() {
+            "Ecs" => input.parse().map(Stage::Ecs),
+            "EcsWhile" => input.parse().map(Stage::EcsWhile),
+            "Render" => input.parse().map(Stage::Render),
+            "RenderWhile" => input.parse().map(Stage::RenderWhile),
+            "Async" => input.parse().map(Stage::Async),
+            _ => Err(input.error("Invalid stage type")),
+        }
+    }
+}
+
+/// Explicitly implement parsing for each stage type to enforce constraints.
+
+impl Parse for TypedStage<Ecs> {
+    fn parse(input: ParseStream) -> Result<Self> {
         let name: Ident = input.parse()?;
-        let _: Token![,] = input.parse()?;
+        let content;
+        braced!(content in input);
 
-        // Parse core types
-        let core_types: CoreTypes = input.parse()?;
-        let _: Token![,] = input.parse()?;
+        let core_types: CoreTypes<Ecs> = content.parse()?;
+        let core_functions: CoreFunctions<Ecs> = content.parse()?;
 
-        // Parse core functions
-        let core_functions: CoreFunctions = input.parse()?;
-
-        // Validate function permutations against core type permutations
-        core_functions.validate(&core_types)?;
-
-        // Infer stage type based on core functions
-        let stage_type = StageType::infer(&core_functions)?;
-
-        Ok(Stage {
-            name,
-            stage_type,
-            core_types,
-            core_functions,
-        })
+        Ok(TypedStage { name, core_types, core_functions })
     }
 }
 
-impl Stage {
-    pub fn generate(self) -> TokenStream {
-        let name = self.name;
-        let core_types = self.core_types.generate();
-        let core_functions = self.core_functions.generate();
+impl Parse for TypedStage<EcsWhile> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name: Ident = input.parse()?;
+        let content;
+        braced!(content in input);
 
-        quote! {
-            pub mod #name {
-                #core_types
+        let core_types: CoreTypes<EcsWhile> = content.parse()?;
+        let core_functions: CoreFunctions<EcsWhile> = content.parse()?;
 
-                #core_functions
-            }
-        }
+        Ok(TypedStage { name, core_types, core_functions })
     }
 }
 
-/// Enum for the five possible stage types.
-#[derive(Debug)]
-pub enum StageType {
-    Ecs,
-    EcsWhile,
-    Render,
-    RenderWhile,
-    Async,
+impl Parse for TypedStage<Render> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name: Ident = input.parse()?;
+        let content;
+        braced!(content in input);
+
+        let core_types: CoreTypes<Render> = content.parse()?;
+        let core_functions: CoreFunctions<Render> = content.parse()?;
+
+        Ok(TypedStage { name, core_types, core_functions })
+    }
 }
 
-impl StageType {
-    /// Infers the `StageType` from provided core functions.
-    fn infer(core_functions: &CoreFunctions) -> Result<Self> {
-        match core_functions {
-            CoreFunctions::Single(func) => match func.function_type {
-                CoreFunctionType::RunEcs => Ok(StageType::Ecs),
-                CoreFunctionType::RunRender => Ok(StageType::Render),
-                CoreFunctionType::RunAsync => Ok(StageType::Async),
-                _ => Err(syn::Error::new(
-                    func.signature.name.span(),
-                    "Invalid function type for a single-function stage. Expected RunEcs or RunRender or RunAsync.",
-                )),
-            },
-            CoreFunctions::WhileFunctions { setup, run } => match (&setup.function_type, &run.function_type) {
-                (CoreFunctionType::SetupEcsWhile, CoreFunctionType::RunEcsWhile) => Ok(StageType::EcsWhile),
-                (CoreFunctionType::SetupRenderWhile, CoreFunctionType::RunRenderWhile) => Ok(StageType::RenderWhile),
-                _ => Err(syn::Error::new(
-                    run.signature.name.span(),
-                    "Invalid setup-run function pair. Expected (SetupEcsWhile, RunEcsWhile) or (SetupRenderWhile, RunRenderWhile).",
-                )),
-            },
-        }
+impl Parse for TypedStage<RenderWhile> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name: Ident = input.parse()?;
+        let content;
+        braced!(content in input);
+
+        let core_types: CoreTypes<RenderWhile> = content.parse()?;
+        let core_functions: CoreFunctions<RenderWhile> = content.parse()?;
+
+        Ok(TypedStage { name, core_types, core_functions })
+    }
+}
+
+impl Parse for TypedStage<Async> {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name: Ident = input.parse()?;
+        let content;
+        braced!(content in input);
+
+        let core_types: CoreTypes<Async> = content.parse()?;
+        
+        let core_functions: CoreFunctions<Async> = content.parse()?;
+
+        Ok(TypedStage { name, core_types, core_functions })
     }
 }

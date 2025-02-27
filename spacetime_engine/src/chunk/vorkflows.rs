@@ -25,7 +25,7 @@ workflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn RunEcs |input, world| {
+                        fn RunEcs |input, world| -> Result<(), Error> {
                             let chunk_coord = input.chunk_coord;
                             let chunk_owner = input.chunk_owner;
                             let metric_texture = input.metric_texture;
@@ -86,7 +86,7 @@ workflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn RunEcs |input, world| {
+                        fn RunEcs |input, world| -> Result<(), Error> {
                             let chunk_coord = input.chunk_coord;
 
                             let mut system_state: SystemState<(
@@ -130,7 +130,7 @@ workflow_mod! {
                         },
                     ],
                     core_functions: [
-                        fn RunEcs |input, world| {
+                        fn RunEcs |input, world| -> Result<(), Error> {
                             let chunk_coord = input.chunk_coord;
                             let new_owner = input.new_owner;
 
