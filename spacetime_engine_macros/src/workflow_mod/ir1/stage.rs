@@ -1,4 +1,4 @@
-use syn::{parse::Parse, Ident, Token, Result, braced, parse::ParseStream};
+use syn::{parse::Parse, Ident, Result, braced, parse::ParseStream};
 use super::core_type::CoreTypes;
 use super::core_function::CoreFunctions;
 

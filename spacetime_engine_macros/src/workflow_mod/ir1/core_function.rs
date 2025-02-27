@@ -139,31 +139,61 @@ impl Parse for CoreFunction {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let _: Token![fn] = input.parse()?;
         let function_type: CoreFunctionType = input.parse()?;
-        let func: ItemFn = input.parse()?;
+        let _: Token![|] = input.parse()?;
 
-        let params: Vec<CoreFunctionParam> = func.sig.inputs.iter().map(|arg| {
-            match arg {
-                FnArg::Typed(pat_type) => {
-                    let name = match &*pat_type.pat {
-                        syn::Pat::Ident(ident) => ident.ident.clone(),
-                        _ => return Err(syn::Error::new(pat_type.span(), "Unexpected function parameter format.")),
-                    };
-                    let ty = pat_type.ty.to_token_stream();
-                    Ok(CoreFunctionParam { name, ty })
-                }
-                _ => Err(syn::Error::new(arg.span(), "Unexpected function parameter format.")),
-            }
-        }).collect::<Result<Vec<_>>>()?;
+        
 
-        let return_type = match &func.sig.output {
-            ReturnType::Type(_, ty) => Some(ty.to_token_stream()),
-            ReturnType::Default => None,
+
+
+
+
+
+
+
+
+
+        // Parse parameters, which are in `|param1, param2|` format
+        let params_content;
+        syn::bracketed!(params_content in input);
+        let params: Vec<CoreFunctionParam> = params_content
+            .parse_terminated::<_, Token![,]>(|p| {
+                let name: Ident = p.parse()?;
+                Ok(CoreFunctionParam { name, ty: quote! { /* Type inferred later */ } })
+            })?
+            .into_iter()
+            .collect();
+
+        // Parse optional return type (`-> Type`)
+        let return_type = if input.peek(Token![->]) {
+            let _: Token![->] = input.parse()?;
+            Some(input.parse::<syn::Type>()?.to_token_stream())
+        } else {
+            None
         };
 
-        let body = func.block.to_token_stream();
+        // Parse function body
+        let body: syn::Block = input.parse()?;
+        let body_tokens = body.to_token_stream();
+
+        // Transform parsed signature into a valid Rust function signature
+        let param_types = match function_type {
+            CoreFunctionType::RunEcs
+            | CoreFunctionType::RunRender
+            | CoreFunctionType::RunEcsWhile
+            | CoreFunctionType::RunRenderWhile => {
+                quote! { input: Input, world: &mut World }
+            }
+            CoreFunctionType::SetupEcsWhile
+            | CoreFunctionType::SetupRenderWhile => {
+                quote! { input: Input }
+            }
+            CoreFunctionType::RunAsync => {
+                quote! { input: Input }
+            }
+        };
 
         let signature = CoreFunctionSignature {
-            name: func.sig.ident.clone(),
+            name: function_name.clone(),
             params,
             return_type,
         };
@@ -171,10 +201,10 @@ impl Parse for CoreFunction {
         let core_function = CoreFunction {
             function_type,
             signature,
-            body,
+            body: body_tokens,
         };
 
-        core_function.validate()?;
+        core_function.validate()?; // Ensure correctness
         Ok(core_function)
     }
 }

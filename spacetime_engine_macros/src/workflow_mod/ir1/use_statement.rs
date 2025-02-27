@@ -1,4 +1,4 @@
-use syn::{parse::Parse, Ident, Path, Token, Visibility, Result};
+use syn::{parse::Parse, Path, Token, Visibility, Result};
 use quote::{quote, ToTokens};
 use proc_macro2::TokenStream;
 

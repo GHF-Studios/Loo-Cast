@@ -12,7 +12,7 @@ pub struct WorkflowModule {
 impl Parse for WorkflowModule {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let name: Ident = input.parse()?; 
-        input.parse::<Token![,]>()?; // Expect a comma
+        input.parse::<Token![,]>()?;
 
         let mut workflows = Vec::new();
         while !input.is_empty() {
