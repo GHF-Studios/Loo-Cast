@@ -11,8 +11,7 @@ workflow_mod! {
                 pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
                 pub use crate::config::statics::CONFIG;
             },
-            user_types: {},
-            user_functions: {},
+            user_items: {},
             stages: [
                 ValidateAndSpawn {
                     core_types: [
@@ -75,8 +74,7 @@ workflow_mod! {
     
                 pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
             },
-            user_types: {},
-            user_functions: {},
+            user_items: {},
             stages: [
                 FindAndDespawn {
                     core_types: [
@@ -119,8 +117,7 @@ workflow_mod! {
     
                 pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
             },
-            user_types: {},
-            user_functions: {},
+            user_items: {},
             stages: [
                 FindAndTransferOwnership {
                     core_types: [

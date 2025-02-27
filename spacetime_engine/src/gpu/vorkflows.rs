@@ -18,8 +18,7 @@ vorkflow_mod! {
                 pub use bevy::render::texture::GpuImage;
                 pub use bevy::render::renderer::RenderDevice;
             },
-            user_types: {},
-            user_functions: {},
+            user_items: {},
             stages: [
                 SetupPhase1 {
                     core_types: [
@@ -234,7 +233,7 @@ vorkflow_mod! {
     
                 pub use crossbeam_channel::Receiver;
             },
-            user_types: {
+            user_items: {
                 struct GeneratorRequest<T> {
                     pub inner: T
                 }
@@ -310,7 +309,6 @@ vorkflow_mod! {
                     }
                 }
             },
-            user_functions: {},
             stages: [
                 PrepareRequest {
                     core_types: [

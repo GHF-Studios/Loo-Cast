@@ -2,12 +2,12 @@ mod chunk_workflows {
     pub const NAME: &str = "Chunk";
     pub mod spawn_chunk {
         pub const NAME: &str = "SpawnChunk";
-        pub mod vorkflow_imports {
+        pub mod workflow_imports {
             // Automatic imports
             pub use super::user_types::*;
             pub use super::user_functions::*;
             
-            pub use crate::vorkflow::types::{Outcome, Outcome::Wait, Outcome::Done};
+            pub use crate::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
 
             // User imports
             pub use bevy::prelude::{Entity, Handle, Image, World, Query, ResMut, Transform, SpriteBundle};
@@ -21,7 +21,7 @@ mod chunk_workflows {
         pub mod stages {
             pub mod validate_and_spawn {
                 pub mod core_types {
-                    pub use super::super::super::vorkflow_imports::*;
+                    pub use super::super::super::workflow_imports::*;
 
                     pub struct Input { 
                         pub chunk_coord: (i32, i32), 
@@ -79,12 +79,12 @@ mod chunk_workflows {
     }
     pub mod despawn_chunk {
         pub const NAME: &str = "DespawnChunk";
-        pub mod vorkflow_imports {
+        pub mod workflow_imports {
             // Automatic imports
             pub use super::user_types::*;
             pub use super::user_functions::*;
             
-            pub use crate::vorkflow::types::{Outcome, Outcome::Wait, Outcome::Done};
+            pub use crate::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
 
             // User imports
             pub use bevy::prelude::{Entity, World, Query, ResMut, DespawnRecursiveExt};
@@ -97,7 +97,7 @@ mod chunk_workflows {
         pub mod stages {
             pub mod find_and_despawn {
                 pub mod core_types {
-                    pub use super::super::super::vorkflow_imports::*;
+                    pub use super::super::super::workflow_imports::*;
                     
                     pub struct Input {
                         pub chunk_coord: (i32, i32) 
@@ -135,12 +135,12 @@ mod chunk_workflows {
     }
     pub mod transfer_chunk_ownership {
         pub const NAME: &str = "TransferChunkOwnership";
-        pub mod vorkflow_imports {
+        pub mod workflow_imports {
             // Automatic imports
             pub use super::user_types::*;
             pub use super::user_functions::*;
             
-            pub use crate::vorkflow::types::{Outcome, Outcome::Wait, Outcome::Done};
+            pub use crate::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
 
             // User imports
             pub use bevy::prelude::{Entity, World, Query, ResMut};
@@ -153,7 +153,7 @@ mod chunk_workflows {
         pub mod stages {
             pub mod find_and_transfer_ownership {
                 pub mod core_types {
-                    pub use super::super::super::vorkflow_imports::*;
+                    pub use super::super::super::workflow_imports::*;
                     
                     pub struct Input {
                         pub chunk_coord: (i32, i32), 
