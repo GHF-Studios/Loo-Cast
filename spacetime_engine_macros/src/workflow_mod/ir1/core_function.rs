@@ -1,83 +1,8 @@
-use proc_macro2::{Span, TokenStream};
-use syn::{parse::Parse, spanned::Spanned, Ident, Token, Result, Block, Signature, ItemFn, braced};
-use quote::ToTokens;
+use proc_macro2::{TokenStream, Span};
+use syn::{parse::Parse, spanned::Spanned, Ident, Token, Result, ItemFn, FnArg, ReturnType};
+use quote::{quote, ToTokens};
 
-use super::core_type::CoreTypes;
-
-// TODO: This entire module is fucked. Rework it!
-
-pub enum CoreFunctions {
-    Single(CoreFunction),  // One function (RunEcs, RunRender, RunAsync)
-    WhileFunctions { setup: CoreFunction, run: CoreFunction }, // Setup + Run functions for While stages
-}
-
-impl CoreFunctions {
-    pub fn permutation(&self) -> &'static str {
-        match self {
-            CoreFunctions::Single(func) => match func.function_type {
-                CoreFunctionType::RunEcs => "InputOutputError",
-                CoreFunctionType::RunRender => "InputOutputError",
-                CoreFunctionType::RunAsync => "InputOutputError",
-                _ => "Invalid",
-            },
-            CoreFunctions::WhileFunctions { .. } => "While",
-        }
-    }
-
-    pub fn validate(&self, core_types: &CoreTypes) -> Result<()> {
-        let expected = core_types.permutation();
-        let actual = self.permutation();
-
-        if expected != actual {
-            return Err(syn::Error::new(
-                Span::call_site(),
-                format!(
-                    "Mismatch between CoreTypes ({}) and CoreFunctions ({}). Ensure function signatures align with expected input, output, and error types.",
-                    expected, actual
-                ),
-            ));
-        }
-
-        Ok(())
-    }
-}
-
-impl Parse for CoreFunctions {
-    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        let mut functions = Vec::new();
-
-        while !input.is_empty() {
-            functions.push(input.parse()?);
-        }
-
-        match functions.len() {
-            1 => Ok(CoreFunctions::Single(functions.remove(0))),
-            2 => {
-                let setup = functions.remove(0);
-                let run = functions.remove(0);
-                
-                // Ensure setup and run functions are of the same type (EcsWhile or RenderWhile)
-                if !setup.function_type.is_setup_pair(&run.function_type) {
-                    return Err(syn::Error::new(
-                        run.signature.name.span(),
-                        "Mismatched setup and run function types (e.g., SetupEcsWhile paired with RunRenderWhile is invalid)."
-                    ));
-                }
-                
-                Ok(CoreFunctions::WhileFunctions { setup, run })
-            }
-            0 => Err(syn::Error::new(
-                input.span(),
-                "Expected at least one core function, but found none."
-            )),
-            n => Err(syn::Error::new(
-                input.span(),
-                format!("Invalid number of core functions: expected 1 or 2, but found {}.", n),
-            )),
-        }
-    }
-}
-
+/// Enum representing the type of a core function.
 pub enum CoreFunctionType {
     RunEcs,
     RunRender,
@@ -89,7 +14,8 @@ pub enum CoreFunctionType {
 }
 
 impl CoreFunctionType {
-    fn is_setup_pair(&self, other: &CoreFunctionType) -> bool {
+    /// Ensures that a setup function is correctly paired with a run function.
+    fn is_valid_setup_pair(&self, other: &CoreFunctionType) -> bool {
         matches!(
             (self, other),
             (CoreFunctionType::SetupEcsWhile, CoreFunctionType::RunEcsWhile)
@@ -122,37 +48,31 @@ impl Parse for CoreFunctionType {
 pub struct CoreFunctionSignature {
     pub name: Ident,
     pub params: Vec<CoreFunctionParam>,
-    pub return_type: Option<TokenStream>, // Example: "Result<Output, Error>"
+    pub return_type: Option<TokenStream>,
 }
 
 /// Represents a function parameter.
 pub struct CoreFunctionParam {
     pub name: Ident,
-    pub ty: TokenStream, // Example: "&mut World"
+    pub ty: TokenStream,
 }
 
 /// Represents a single function inside a stage.
 pub struct CoreFunction {
-    pub function_type: CoreFunctionType,   // Function type (RunEcs, SetupEcsWhile, etc.)
-    pub signature: CoreFunctionSignature, // Parameters & return type
-    pub body: TokenStream,                  // Raw Rust function body
+    pub function_type: CoreFunctionType,
+    pub signature: CoreFunctionSignature,
+    pub body: TokenStream,
 }
 
 impl Parse for CoreFunction {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        // Expect `fn`
         let _: Token![fn] = input.parse()?;
-
-        // Parse function type (e.g., RunEcs, RunRender, etc.)
         let function_type: CoreFunctionType = input.parse()?;
-
-        // Parse the function signature
         let func: ItemFn = input.parse()?;
 
-        // Extract parameters
         let params: Vec<CoreFunctionParam> = func.sig.inputs.iter().map(|arg| {
             match arg {
-                syn::FnArg::Typed(pat_type) => {
+                FnArg::Typed(pat_type) => {
                     let name = match &*pat_type.pat {
                         syn::Pat::Ident(ident) => ident.ident.clone(),
                         _ => return Err(syn::Error::new(pat_type.span(), "Unexpected function parameter format.")),
@@ -164,13 +84,11 @@ impl Parse for CoreFunction {
             }
         }).collect::<Result<Vec<_>>>()?;
 
-        // Extract return type
         let return_type = match &func.sig.output {
-            syn::ReturnType::Type(_, ty) => Some(ty.to_token_stream()),
-            syn::ReturnType::Default => None,
+            ReturnType::Type(_, ty) => Some(ty.to_token_stream()),
+            ReturnType::Default => None,
         };
 
-        // Extract function body
         let body = func.block.to_token_stream();
 
         let signature = CoreFunctionSignature {
@@ -185,43 +103,71 @@ impl Parse for CoreFunction {
             body,
         };
 
-        core_function.validate_signature()?;
+        core_function.validate()?;
         Ok(core_function)
     }
 }
 
 impl CoreFunction {
-    /// Ensures that the function signature aligns with its function type.
-    fn validate_signature(&self) -> Result<()> {
+    fn validate(&self) -> Result<()> {
+        use CoreFunctionType::*;
+
         let expects_input = matches!(
             self.function_type,
-            CoreFunctionType::RunEcs | CoreFunctionType::RunRender | CoreFunctionType::RunAsync | CoreFunctionType::RunEcsWhile | CoreFunctionType::RunRenderWhile
+            RunEcs | RunRender | RunAsync | RunEcsWhile | RunRenderWhile
         );
 
-        let expects_output = matches!(
+        let expects_world_param = matches!(
             self.function_type,
-            CoreFunctionType::RunEcs | CoreFunctionType::RunRender | CoreFunctionType::RunAsync | CoreFunctionType::RunEcsWhile | CoreFunctionType::RunRenderWhile
+            RunEcs | RunRender | RunEcsWhile | RunRenderWhile
         );
 
-        let expects_error = matches!(
-            self.function_type,
-            CoreFunctionType::RunEcs | CoreFunctionType::RunRender | CoreFunctionType::RunAsync | CoreFunctionType::RunEcsWhile | CoreFunctionType::RunRenderWhile
-        );
+        let is_async = matches!(self.function_type, RunAsync);
 
-        let has_input = !self.signature.params.is_empty();
-        let has_output = self.signature.return_type.is_some();
-        let has_error = self.signature.return_type.as_ref().map(|r| r.contains("Result<")).unwrap_or(false);
+        let has_input = self.signature.params.iter().any(|param| param.name.to_string() == "input");
+        let has_world_param = self.signature.params.iter().any(|param| param.ty.to_string().contains("&mut World"));
+        
+        if expects_world_param && !has_world_param {
+            return Err(syn::Error::new(
+                self.signature.name.span(),
+                "Expected `world: &mut World` parameter, but it is missing."
+            ));
+        }
 
-        if expects_input != has_input {
-            return Err(syn::Error::new(self.signature.name.span(), "Function signature mismatch: Incorrect input parameter presence."));
+        if is_async && has_world_param {
+            return Err(syn::Error::new(
+                self.signature.name.span(),
+                "Async functions cannot take `world: &mut World` as a parameter."
+            ));
         }
-        if expects_output != has_output {
-            return Err(syn::Error::new(self.signature.name.span(), "Function signature mismatch: Incorrect output return presence."));
-        }
-        if expects_error != has_error {
-            return Err(syn::Error::new(self.signature.name.span(), "Function signature mismatch: Expected Result<> return type but got something else."));
+
+        if expects_input && !has_input {
+            return Err(syn::Error::new(
+                self.signature.name.span(),
+                "Function signature mismatch: Expected an `input` parameter."
+            ));
         }
 
         Ok(())
+    }
+
+    /// Generates the Rust function based on the function type.
+    pub fn generate(&self) -> TokenStream {
+        let name = &self.signature.name;
+        let body = &self.body;
+        
+        let params = self.signature.params.iter().map(|p| {
+            let name = &p.name;
+            let ty = &p.ty;
+            quote! { #name: #ty }
+        });
+
+        let return_type = self.signature.return_type.as_ref().map(|r| quote! { -> #r }).unwrap_or(quote! {});
+
+        quote! {
+            pub fn #name(#(#params),*) #return_type {
+                #body
+            }
+        }
     }
 }
