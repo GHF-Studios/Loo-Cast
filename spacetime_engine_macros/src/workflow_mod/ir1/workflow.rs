@@ -69,25 +69,25 @@ impl Parse for Workflow {
 
         let _: super::kw::user_imports = content.parse()?;
         content.parse::<Token![:]>()?;
-        let inner_content;
-        braced!(inner_content in content);
-        let user_imports: UseStatements = inner_content.parse()?;
+        let user_imports_content;
+        braced!(user_imports_content in content);
+        let user_imports: UseStatements = user_imports_content.parse()?;
 
         content.parse::<Token![,]>()?;
 
         let _: super::kw::user_items = content.parse()?;
         content.parse::<Token![:]>()?;
-        let inner_content;
-        braced!(inner_content in content);
-        let user_items: UserItems = inner_content.parse()?; 
+        let user_items_content;
+        braced!(user_items_content in content);
+        let user_items: UserItems = user_items_content.parse()?; 
 
         content.parse::<Token![,]>()?;
 
         let _: super::kw::stages = content.parse()?;
         content.parse::<Token![:]>()?;
-        let inner_content;
-        bracketed!(inner_content in content);
-        let stages: Stages = inner_content.parse()?;
+        let stages_content;
+        bracketed!(stages_content in content);
+        let stages: Stages = stages_content.parse()?;
         
         let lookahead = content.lookahead1();
         if lookahead.peek(Token![,]) {

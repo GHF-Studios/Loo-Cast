@@ -29,14 +29,27 @@ pub struct TypedStage<T> {
 impl Parse for Stage {
     fn parse(input: ParseStream) -> Result<Self> {
         let lookahead = input.fork();
-        let stage_name: Ident = lookahead.parse()?;
 
-        match stage_name.to_string().as_str() {
-            "Ecs" => input.parse().map(Stage::Ecs),
-            "EcsWhile" => input.parse().map(Stage::EcsWhile),
-            "Render" => input.parse().map(Stage::Render),
-            "RenderWhile" => input.parse().map(Stage::RenderWhile),
-            "Async" => input.parse().map(Stage::Async),
+        let _stage_name: Ident = lookahead.parse()?;
+        let _: Token![:] = lookahead.parse()?;
+        let stage_type: Ident = lookahead.parse()?;
+
+        match stage_type.to_string().as_str() {
+            "Ecs" => {
+                input.parse::<TypedStage::<Ecs>>().map(Stage::Ecs)
+            },
+            "EcsWhile" => {
+                input.parse::<TypedStage::<EcsWhile>>().map(Stage::EcsWhile)
+            },
+            "Render" => {
+                input.parse::<TypedStage::<Render>>().map(Stage::Render)
+            },
+            "RenderWhile" => {
+                input.parse::<TypedStage::<RenderWhile>>().map(Stage::RenderWhile)
+            },
+            "Async" => {
+                input.parse::<TypedStage::<Async>>().map(Stage::Async)
+            },
             _ => Err(input.error("Invalid stage type")),
         }
     }
@@ -54,85 +67,150 @@ impl Stage {
     }
 }
 
-
 impl Parse for TypedStage<Ecs> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name: Ident = input.parse()?;
-        let content;
-        braced!(content in input);
+        let stage_name: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let _stage_type: Ident = input.parse()?;
 
-        let core_types: CoreTypes<Ecs> = content.parse()?;
-        let core_functions: CoreFunctions<Ecs> = content.parse()?;
+        let stage_content;
+        braced!(stage_content in input);
 
-        Ok(TypedStage { name, core_types, core_functions })
+        let _: super::kw::core_types = stage_content.parse()?;
+        stage_content.parse::<Token![:]>()?;
+        let core_types_content;
+        bracketed!(core_types_content in stage_content);
+        let core_types: CoreTypes<Ecs> = core_types_content.parse()?;
+
+        let _: Token![,] = stage_content.parse()?;
+        
+        let _: super::kw::core_functions = stage_content.parse()?;
+        stage_content.parse::<Token![:]>()?;
+        let core_functions_content;
+        bracketed!(core_functions_content in stage_content);
+        let core_functions: CoreFunctions<Ecs> = core_functions_content.parse()?;
+
+        Ok(TypedStage { name: stage_name, core_types, core_functions })
     }
 }
 
 impl Parse for TypedStage<EcsWhile> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name: Ident = input.parse()?;
-        let content;
-        braced!(content in input);
+        let stage_name: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let _stage_type: Ident = input.parse()?;
 
-        let core_types: CoreTypes<EcsWhile> = content.parse()?;
-        let core_functions: CoreFunctions<EcsWhile> = content.parse()?;
+        let stage_content;
+        braced!(stage_content in input);
 
-        Ok(TypedStage { name, core_types, core_functions })
+        let _: super::kw::core_types = stage_content.parse()?;
+        stage_content.parse::<Token![:]>()?;
+        let core_types_content;
+        bracketed!(core_types_content in stage_content);
+        let core_types: CoreTypes<EcsWhile> = core_types_content.parse()?;
+
+        let _: Token![,] = stage_content.parse()?;
+        
+        let _: super::kw::core_functions = stage_content.parse()?;
+        stage_content.parse::<Token![:]>()?;
+        let core_functions_content;
+        bracketed!(core_functions_content in stage_content);
+        let core_functions: CoreFunctions<EcsWhile> = core_functions_content.parse()?;
+
+        Ok(TypedStage { name: stage_name, core_types, core_functions })
     }
 }
 
 impl Parse for TypedStage<Render> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name: Ident = input.parse()?;
-        let content;
-        braced!(content in input);
+        let stage_name: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let _stage_type: Ident = input.parse()?;
 
-        let core_types: CoreTypes<Render> = content.parse()?;
-        let core_functions: CoreFunctions<Render> = content.parse()?;
+        let stage_content;
+        braced!(stage_content in input);
 
-        Ok(TypedStage { name, core_types, core_functions })
+        let _: super::kw::core_types = stage_content.parse()?;
+        stage_content.parse::<Token![:]>()?;
+        let core_types_content;
+        bracketed!(core_types_content in stage_content);
+        let core_types: CoreTypes<Render> = core_types_content.parse()?;
+
+        let _: Token![,] = stage_content.parse()?;
+        
+        let _: super::kw::core_functions = stage_content.parse()?;
+        stage_content.parse::<Token![:]>()?;
+        let core_functions_content;
+        bracketed!(core_functions_content in stage_content);
+        let core_functions: CoreFunctions<Render> = core_functions_content.parse()?;
+
+        Ok(TypedStage { name: stage_name, core_types, core_functions })
     }
 }
 
 impl Parse for TypedStage<RenderWhile> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name: Ident = input.parse()?;
-        let content;
-        braced!(content in input);
+        let stage_name: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let _stage_type: Ident = input.parse()?;
 
-        let core_types: CoreTypes<RenderWhile> = content.parse()?;
-        let core_functions: CoreFunctions<RenderWhile> = content.parse()?;
+        let stage_content;
+        braced!(stage_content in input);
 
-        Ok(TypedStage { name, core_types, core_functions })
+        let _: super::kw::core_types = stage_content.parse()?;
+        stage_content.parse::<Token![:]>()?;
+        let core_types_content;
+        bracketed!(core_types_content in stage_content);
+        let core_types: CoreTypes<RenderWhile> = core_types_content.parse()?;
+
+        let _: Token![,] = stage_content.parse()?;
+        
+        let _: super::kw::core_functions = stage_content.parse()?;
+        stage_content.parse::<Token![:]>()?;
+        let core_functions_content;
+        bracketed!(core_functions_content in stage_content);
+        let core_functions: CoreFunctions<RenderWhile> = core_functions_content.parse()?;
+
+        Ok(TypedStage { name: stage_name, core_types, core_functions })
     }
 }
 
 impl Parse for TypedStage<Async> {
     fn parse(input: ParseStream) -> Result<Self> {
-        let name: Ident = input.parse()?;
-        let content;
-        braced!(content in input);
+        let stage_name: Ident = input.parse()?;
+        let _: Token![:] = input.parse()?;
+        let _stage_type: Ident = input.parse()?;
 
-        let core_types: CoreTypes<Async> = content.parse()?;
+        let stage_content;
+        braced!(stage_content in input);
+
+        let _: super::kw::core_types = stage_content.parse()?;
+        stage_content.parse::<Token![:]>()?;
+        let core_types_content;
+        bracketed!(core_types_content in stage_content);
+        let core_types: CoreTypes<Async> = core_types_content.parse()?;
+
+        let _: Token![,] = stage_content.parse()?;
         
-        let core_functions: CoreFunctions<Async> = content.parse()?;
+        let _: super::kw::core_functions = stage_content.parse()?;
+        stage_content.parse::<Token![:]>()?;
+        let core_functions_content;
+        bracketed!(core_functions_content in stage_content);
+        let core_functions: CoreFunctions<Async> = core_functions_content.parse()?;
 
-        Ok(TypedStage { name, core_types, core_functions })
+        Ok(TypedStage { name: stage_name, core_types, core_functions })
     }
 }
 
 impl Parse for Stages {
     fn parse(input: ParseStream) -> Result<Self> {
-        let content;
-        bracketed!(content in input);
-
         let mut stages = Vec::new();
-        while !content.is_empty() {
-            stages.push(content.parse()?);
+        while !input.is_empty() {
+            stages.push(input.parse()?);
 
-            let lookahead = content.lookahead1();
+            let lookahead = input.lookahead1();
             if lookahead.peek(Token![,]) {
-                let _ = content.parse::<Token![,]>()?;
+                let _ = input.parse::<Token![,]>()?;
             }
         }
 

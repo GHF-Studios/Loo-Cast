@@ -1,55 +1,60 @@
 use std::marker::PhantomData;
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use syn::{parse::Parse, spanned::Spanned, Ident, Token, Result};
 use quote::{quote, ToTokens};
 use super::stage::{Ecs, EcsWhile, Render, RenderWhile, Async};
 
 pub enum CoreFunctionType {
-    RunEcs,
-    RunRender,
-    RunAsync,
-    SetupEcsWhile,
-    RunEcsWhile,
-    SetupRenderWhile,
-    RunRenderWhile,
+    RunEcs { span: Span },
+    RunRender { span: Span },
+    RunAsync { span: Span },
+    SetupEcsWhile { span: Span },
+    RunEcsWhile { span: Span },
+    SetupRenderWhile { span: Span },
+    RunRenderWhile { span: Span },
 }
 
 impl std::fmt::Display for CoreFunctionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CoreFunctionType::RunEcs => write!(f, "run_ecs"),
-            CoreFunctionType::RunRender => write!(f, "run_render"),
-            CoreFunctionType::RunAsync => write!(f, "run_async"),
-            CoreFunctionType::SetupEcsWhile => write!(f, "setup_ecs_while"),
-            CoreFunctionType::RunEcsWhile => write!(f, "run_ecs_while"),
-            CoreFunctionType::SetupRenderWhile => write!(f, "setup_render_while"),
-            CoreFunctionType::RunRenderWhile => write!(f, "run_render_while"),
+            CoreFunctionType::RunEcs { .. } => write!(f, "run_ecs"),
+            CoreFunctionType::RunRender { .. } => write!(f, "run_render"),
+            CoreFunctionType::RunAsync { .. } => write!(f, "run_async"),
+            CoreFunctionType::SetupEcsWhile { .. } => write!(f, "setup_ecs_while"),
+            CoreFunctionType::RunEcsWhile { .. } => write!(f, "run_ecs_while"),
+            CoreFunctionType::SetupRenderWhile { .. } => write!(f, "setup_render_while"),
+            CoreFunctionType::RunRenderWhile { .. } => write!(f, "run_render_while"),
         }
     }
 }
 
 impl CoreFunctionType {
-    fn is_valid_setup_pair(&self, other: &CoreFunctionType) -> bool {
-        matches!(
-            (self, other),
-            (CoreFunctionType::SetupEcsWhile, CoreFunctionType::RunEcsWhile)
-                | (CoreFunctionType::SetupRenderWhile, CoreFunctionType::RunRenderWhile)
-        )
+    pub fn span(&self) -> Span {
+        match self {
+            CoreFunctionType::RunEcs { span } => *span,
+            CoreFunctionType::RunRender { span } => *span,
+            CoreFunctionType::RunAsync { span } => *span,
+            CoreFunctionType::SetupEcsWhile { span } => *span,
+            CoreFunctionType::RunEcsWhile { span } => *span,
+            CoreFunctionType::SetupRenderWhile { span } => *span,
+            CoreFunctionType::RunRenderWhile { span } => *span,
+        }
     }
 }
 
 impl Parse for CoreFunctionType {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let func_name: Ident = input.parse()?;
+        let span = func_name.span();
 
         match func_name.to_string().as_str() {
-            "RunEcs" => Ok(CoreFunctionType::RunEcs),
-            "RunRender" => Ok(CoreFunctionType::RunRender),
-            "RunAsync" => Ok(CoreFunctionType::RunAsync),
-            "SetupEcsWhile" => Ok(CoreFunctionType::SetupEcsWhile),
-            "RunEcsWhile" => Ok(CoreFunctionType::RunEcsWhile),
-            "SetupRenderWhile" => Ok(CoreFunctionType::SetupRenderWhile),
-            "RunRenderWhile" => Ok(CoreFunctionType::RunRenderWhile),
+            "RunEcs" => Ok(CoreFunctionType::RunEcs { span }),
+            "RunRender" => Ok(CoreFunctionType::RunRender { span }),
+            "RunAsync" => Ok(CoreFunctionType::RunAsync { span }),
+            "SetupEcsWhile" => Ok(CoreFunctionType::SetupEcsWhile { span }),
+            "RunEcsWhile" => Ok(CoreFunctionType::RunEcsWhile { span }),
+            "SetupRenderWhile" => Ok(CoreFunctionType::SetupRenderWhile { span }),
+            "RunRenderWhile" => Ok(CoreFunctionType::RunRenderWhile { span }),
             _ => Err(syn::Error::new(
                 func_name.span(),
                 "Invalid function type. Expected one of: RunEcs, RunRender, RunAsync, SetupEcsWhile, RunEcsWhile, SetupRenderWhile, RunRenderWhile."
@@ -59,7 +64,6 @@ impl Parse for CoreFunctionType {
 }
 
 pub struct CoreFunctionSignature {
-    pub function_name: Ident,
     pub function_type: CoreFunctionType,
     pub has_input: bool,
     pub has_state: bool,
@@ -83,7 +87,6 @@ impl Parse for CoreFunction {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let _: Token![fn] = input.parse()?;
         let function_type: CoreFunctionType = input.parse()?;
-        let function_name: Ident = input.parse()?;
 
         // --- Parse `| ... |` parameter list ---
         let _ = input.parse::<Token![|]>()?;
@@ -163,7 +166,7 @@ impl Parse for CoreFunction {
         let mut has_outcome = false;
         let requires_outcome = matches!(
             function_type,
-            CoreFunctionType::RunEcsWhile | CoreFunctionType::RunRenderWhile
+            CoreFunctionType::RunEcsWhile { .. } | CoreFunctionType::RunRenderWhile { .. }
         );
 
         if input.peek(Token![->]) {
@@ -268,17 +271,16 @@ impl Parse for CoreFunction {
 
         match (requires_outcome, has_outcome) {
             (false, true) => {
-                return Err(syn::Error::new(function_name.span(), format!("Outcome is forbidden by function type `{}`.", function_name)));
+                return Err(syn::Error::new(function_type.span(), format!("Outcome is forbidden by function type `{}`.", function_type)));
             },
             (true, false) => {
-                return Err(syn::Error::new(function_name.span(), format!("Outcome is required by function type `{}`.", function_name)));
+                return Err(syn::Error::new(function_type.span(), format!("Outcome is required by function type `{}`.", function_type)));
             },
             _ => {}
         };
 
         // --- Finish parsing ---
         let signature = CoreFunctionSignature {
-            function_name,
             function_type,
             has_input,
             has_state,
@@ -300,7 +302,7 @@ impl Parse for CoreFunction {
 impl CoreFunction {
     pub fn generate(&self) -> TokenStream {
         let function_name = format!("{}", self.signature.function_type);
-        let function_name: Ident = Ident::new(&function_name, self.signature.function_name.span());
+        let function_name: Ident = Ident::new(&function_name, self.signature.function_type.span());
         let has_input = self.signature.has_input;
         let has_state = self.signature.has_state;
         let has_output = self.signature.has_output;
@@ -308,7 +310,7 @@ impl CoreFunction {
         let body = &self.body;
 
         match self.signature.function_type {
-            CoreFunctionType::RunEcs | CoreFunctionType::RunRender | CoreFunctionType::RunAsync => {
+            CoreFunctionType::RunEcs { .. } | CoreFunctionType::RunRender { .. } | CoreFunctionType::RunAsync { .. } => {
                 match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote!{
@@ -368,7 +370,7 @@ impl CoreFunction {
                     }
                 }
             },
-            CoreFunctionType::SetupEcsWhile | CoreFunctionType::SetupRenderWhile => {
+            CoreFunctionType::SetupEcsWhile { .. } | CoreFunctionType::SetupRenderWhile { .. } => {
                 match (has_input, has_state, has_error) {
                     (false, false, false) => {
                         quote!{
@@ -428,7 +430,7 @@ impl CoreFunction {
                     }
                 }
             },
-            CoreFunctionType::RunEcsWhile | CoreFunctionType::RunRenderWhile => {
+            CoreFunctionType::RunEcsWhile { .. } | CoreFunctionType::RunRenderWhile { .. } => {
                 match (has_state, has_output, has_error) {
                     (false, false, false) => {
                         quote!{
@@ -500,8 +502,8 @@ pub enum CoreFunctions<T> {
 impl Parse for CoreFunctions<Ecs> {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let run: CoreFunction = input.parse()?;
-        if !matches!(run.signature.function_type, CoreFunctionType::RunEcs) {
-            return Err(syn::Error::new(run.signature.function_name.span(), "Expected a `RunEcs` function in Ecs stage."));
+        if !matches!(run.signature.function_type, CoreFunctionType::RunEcs { .. }) {
+            return Err(syn::Error::new(run.signature.function_type.span(), "Expected a `RunEcs` function in Ecs stage."));
         }
         Ok(CoreFunctions::Default { phantom_data: PhantomData, run })
     }
@@ -512,11 +514,11 @@ impl Parse for CoreFunctions<EcsWhile> {
         let setup: CoreFunction = input.parse()?;
         let run: CoreFunction = input.parse()?;
 
-        if !matches!(setup.signature.function_type, CoreFunctionType::SetupEcsWhile) {
-            return Err(syn::Error::new(setup.signature.function_name.span(), "Expected a `SetupEcsWhile` function as the first function in EcsWhile stage."));
+        if !matches!(setup.signature.function_type, CoreFunctionType::SetupEcsWhile { .. }) {
+            return Err(syn::Error::new(setup.signature.function_type.span(), "Expected a `SetupEcsWhile` function as the first function in EcsWhile stage."));
         }
-        if !matches!(run.signature.function_type, CoreFunctionType::RunEcsWhile) {
-            return Err(syn::Error::new(run.signature.function_name.span(), "Expected a `RunEcsWhile` function as the second function in EcsWhile stage."));
+        if !matches!(run.signature.function_type, CoreFunctionType::RunEcsWhile { .. }) {
+            return Err(syn::Error::new(run.signature.function_type.span(), "Expected a `RunEcsWhile` function as the second function in EcsWhile stage."));
         }
 
         Ok(CoreFunctions::While { phantom_data: PhantomData, setup, run })
@@ -526,8 +528,8 @@ impl Parse for CoreFunctions<EcsWhile> {
 impl Parse for CoreFunctions<Render> {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let run: CoreFunction = input.parse()?;
-        if !matches!(run.signature.function_type, CoreFunctionType::RunRender) {
-            return Err(syn::Error::new(run.signature.function_name.span(), "Expected a `RunRender` function in Render stage."));
+        if !matches!(run.signature.function_type, CoreFunctionType::RunRender { .. }) {
+            return Err(syn::Error::new(run.signature.function_type.span(), "Expected a `RunRender` function in Render stage."));
         }
         Ok(CoreFunctions::Default { phantom_data: PhantomData, run })
     }
@@ -538,11 +540,11 @@ impl Parse for CoreFunctions<RenderWhile> {
         let setup: CoreFunction = input.parse()?;
         let run: CoreFunction = input.parse()?;
 
-        if !matches!(setup.signature.function_type, CoreFunctionType::SetupRenderWhile) {
-            return Err(syn::Error::new(setup.signature.function_name.span(), "Expected a `SetupRenderWhile` function as the first function in RenderWhile stage."));
+        if !matches!(setup.signature.function_type, CoreFunctionType::SetupRenderWhile { .. }) {
+            return Err(syn::Error::new(setup.signature.function_type.span(), "Expected a `SetupRenderWhile` function as the first function in RenderWhile stage."));
         }
-        if !matches!(run.signature.function_type, CoreFunctionType::RunRenderWhile) {
-            return Err(syn::Error::new(run.signature.function_name.span(), "Expected a `RunRenderWhile` function as the second function in RenderWhile stage."));
+        if !matches!(run.signature.function_type, CoreFunctionType::RunRenderWhile { .. }) {
+            return Err(syn::Error::new(run.signature.function_type.span(), "Expected a `RunRenderWhile` function as the second function in RenderWhile stage."));
         }
 
         Ok(CoreFunctions::While { phantom_data: PhantomData, setup, run })
@@ -552,8 +554,8 @@ impl Parse for CoreFunctions<RenderWhile> {
 impl Parse for CoreFunctions<Async> {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let run: CoreFunction = input.parse()?;
-        if !matches!(run.signature.function_type, CoreFunctionType::RunAsync) {
-            return Err(syn::Error::new(run.signature.function_name.span(), "Expected a `RunAsync` function in Async stage."));
+        if !matches!(run.signature.function_type, CoreFunctionType::RunAsync { .. }) {
+            return Err(syn::Error::new(run.signature.function_type.span(), "Expected a `RunAsync` function in Async stage."));
         }
         Ok(CoreFunctions::Default { phantom_data: PhantomData, run })
     }

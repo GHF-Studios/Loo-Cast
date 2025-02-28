@@ -22,16 +22,16 @@ workflow_mod! {
             },
             user_items: {},
             stages: [
-                SetupPhase1 {
+                SetupPhase1: Ecs {
                     core_types: [
                         struct Input { 
                             shader_name: &'static str, 
                             shader_path: String 
-                        },
+                        }
                         struct Output {
                             shader_name: &'static str, 
                             shader_handle: Handle<Shader>,
-                        },
+                        }
                         enum Error {
                             ShaderAlreadyRegistered { 
                                 shader_name: &'static str 
@@ -40,7 +40,7 @@ workflow_mod! {
                                 shader_name: &'static str, 
                                 error: std::io::Error 
                             }
-                        },
+                        }
                     ],
                     core_functions: [
                         fn RunEcs |input, world| -> Result<Output, Error> {
@@ -64,7 +64,7 @@ workflow_mod! {
                             let shader_handle = shader_assets.add(shader);
         
                             Ok(Output { shader_name, shader_handle })
-                        },
+                        }
                     ],
                 },
     
@@ -73,19 +73,19 @@ workflow_mod! {
                         struct Input {
                             shader_name: &'static str, 
                             shader_handle: Handle<Shader>
-                        },
+                        }
                         struct State {
                             shader_name: &'static str, 
                             shader_handle: Handle<Shader>,
                             bind_group_layout: BindGroupLayout, 
                             pipeline_id: CachedComputePipelineId,
-                        },
+                        }
                         struct Output { 
                             shader_name: &'static str, 
                             shader_handle: Handle<Shader>, 
                             pipeline_id: CachedComputePipelineId,
                             bind_group_layout: BindGroupLayout, 
-                        },
+                        }
                         enum Error {
                             ExpectedComputePipelineGotRenderPipeline {
                                 shader_name: String,
@@ -95,7 +95,7 @@ workflow_mod! {
                                 shader_name: &'static str,
                                 pipeline_cache_err: String,
                             }
-                        },
+                        }
                     ],
                     core_functions: [
                         fn SetupRenderWhile |input, world| -> Result<State, Error> {
@@ -150,7 +150,7 @@ workflow_mod! {
                             });
     
                             Ok(State { shader_name, shader_handle, bind_group_layout, pipeline_id })
-                        },
+                        }
                         fn RunRenderWhile |state, world| -> Result<Outcome<State, Output>, Error> {
                             let shader_name = state.shader_name;
                             let shader_handle = state.shader_handle.clone();
@@ -195,7 +195,7 @@ workflow_mod! {
                             shader_handle: Handle<Shader>, 
                             pipeline_id: CachedComputePipelineId,
                             bind_group_layout: BindGroupLayout, 
-                        },
+                        }
                     ],
                     core_functions: [
                         fn RunEcs |input, world| {
@@ -209,7 +209,7 @@ workflow_mod! {
                             shader_registry.shaders.insert(shader_name.to_string(), shader_handle);
                             shader_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
                             shader_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
-                        },
+                        }
                     ],
                 }
             ],
