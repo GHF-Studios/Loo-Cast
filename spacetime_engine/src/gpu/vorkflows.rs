@@ -1,8 +1,8 @@
 use spacetime_engine_macros::workflow_mod;
 
 workflow_mod! {
-    name: "Gpu", 
-    vorkflows: [
+    name: "Gpu",
+    workflows: [
         SetupTextureGenerator {
             user_imports: {
                 pub use crate::gpu::resources::ShaderRegistry;

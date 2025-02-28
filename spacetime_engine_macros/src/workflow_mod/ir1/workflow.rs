@@ -1,4 +1,5 @@
-use syn::{parse::Parse, Ident, Token, Result};
+use syn::bracketed;
+use syn::{parse::Parse, Ident, Token, Result, LitStr};
 use quote::quote;
 use proc_macro2::TokenStream;
 use super::stage::Stage;
@@ -12,12 +13,29 @@ pub struct WorkflowModule {
 
 impl Parse for WorkflowModule {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        let name: Ident = input.parse()?; 
+        let name_label: Ident = input.parse()?;
+        if name_label != "name" {
+            return Err(syn::Error::new(name_label.span(), "Expected 'name'"));
+        }
+        input.parse::<Token![:]>()?;
+        let name: LitStr = input.parse()?; 
+        let name = Ident::new(&name.value(), name.span());
+
         input.parse::<Token![,]>()?;
+
+        
+        let workflows_label: Ident = input.parse()?;
+        if workflows_label != "workflows" {
+            return Err(syn::Error::new(workflows_label.span(), "Expected 'workflows'"));
+        }
+        input.parse::<Token![:]>()?;
+
+        let content;
+        bracketed!(content in input);
 
         let mut workflows = Vec::new();
         while !input.is_empty() {
-            workflows.push(input.parse()?);
+            workflows.push(content.parse()?);
         }
 
         Ok(WorkflowModule { name, workflows })
