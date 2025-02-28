@@ -66,7 +66,7 @@ workflow_mod! {
                             Ok(Output { shader_name, shader_handle })
                         }
                     ],
-                },
+                }
     
                 SetupPhase2: RenderWhile {
                     core_types: [
@@ -186,7 +186,7 @@ workflow_mod! {
                             }
                         }
                     ],
-                },
+                }
     
                 SetupPhase3: Ecs {
                     core_types: [
@@ -210,10 +210,10 @@ workflow_mod! {
                             shader_registry.pipelines.insert(shader_name.to_string(), pipeline_id);
                             shader_registry.bind_group_layouts.insert(shader_name.to_string(), bind_group_layout);
                         }
-                    ],
+                    ]
                 }
-            ],
-        },
+            ]
+        }
 
         GenerateTexture {
             user_imports: {
@@ -387,7 +387,7 @@ workflow_mod! {
                             Ok(Output { request })
                         }
                     ],
-                },
+                }
     
                 GetTextureView: RenderWhile {
                     core_types: [
@@ -402,7 +402,7 @@ workflow_mod! {
                         }
                     ],
                     core_functions: [
-                        fn SetupRenderWhile |input, _world| -> State {
+                        fn SetupRenderWhile |input, world| -> State {
                             State { request: input.request }
                         }
                         fn RunRenderWhile |state, world| -> Outcome<State, Output> {
@@ -418,7 +418,7 @@ workflow_mod! {
                             }
                         }
                     ],
-                },
+                }
     
                 DispatchCompute: Render {
                     core_types: [
@@ -482,20 +482,20 @@ workflow_mod! {
                             Output { request: dispatched_request }
                         }
                     ],
-                },
+                }
     
                 WaitForCompute: EcsWhile {
                     core_types: [
                         struct Input {
                             request: GeneratorRequest<DispatchedCompute>,
-                        },
+                        }
                         struct State {
                             request: GeneratorRequest<DispatchedCompute>,
-                        },
+                        }
                         struct Output {
                             shader_name: &'static str,
                             texture_handle: Handle<Image>,
-                        },
+                        }
                         enum Error {
                             ComputePassReceiverDisconnected {
                                 shader_name: &'static str,
@@ -503,7 +503,7 @@ workflow_mod! {
                         }
                     ],
                     core_functions: [
-                        fn SetupEcsWhile |input, _world| -> Result<State, Error> {
+                        fn SetupEcsWhile |input, world| -> Result<State, Error> {
                             Ok(State { request: input.request })
                         }
                         fn RunEcsWhile |state, world| -> Result<Outcome<State, Output>, Error> {
@@ -522,9 +522,9 @@ workflow_mod! {
                                 },
                             }
                         }
-                    ],
-                },
-            ],
-        },
-    ],
+                    ]
+                }
+            ]
+        }
+    ]
 }

@@ -183,7 +183,6 @@ impl Parse for CoreFunction {
             }
         
             let mut parse_state = Expected::Any;
-            let mut parse_state_stack = Vec::new();
         
             while parse_state != Expected::Done {
                 let (ident, ident_span) = if input.peek(Token![_]) {
@@ -205,31 +204,28 @@ impl Parse for CoreFunction {
                 match (parse_state, ident.as_str()) {
                     (Expected::Any, "Result") => {
                         has_error = true;
-                        parse_state_stack.push(Expected::Any);
                         parse_state = Expected::ResultFirst;
                         let _ = input.parse::<Token![<]>()?;
                     }
                     (Expected::Any, "Outcome") => {
                         has_outcome = true;
-                        parse_state_stack.push(Expected::Any);
                         parse_state = Expected::OutcomeFirst;
                         let _ = input.parse::<Token![<]>()?;
                     }
                     (Expected::Any, "State") => {
                         has_state = true;
-                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
+                        parse_state = Expected::Done;
                     }
                     (Expected::Any, "Output") => {
                         has_output = true;
-                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
+                        parse_state = Expected::Done;
                     }
                     (Expected::Any, "_" | "()") => {
-                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
+                        parse_state = Expected::Done;
                     }
 
                     (Expected::ResultFirst, "Outcome") => {
                         has_outcome = true;
-                        parse_state_stack.push(Expected::ResultFirst);
                         parse_state = Expected::OutcomeFirst;
                         let _ = input.parse::<Token![<]>()?;
                     }
@@ -249,7 +245,7 @@ impl Parse for CoreFunction {
                     }
 
                     (Expected::ResultSecond, "Error") => {
-                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
+                        parse_state = Expected::Done;
                         let _ = input.parse::<Token![>]>()?;
                     }
                     (Expected::ResultSecond, _) => {
@@ -267,13 +263,26 @@ impl Parse for CoreFunction {
                     }
 
                     (Expected::OutcomeSecond, "Output") => {
+
                         has_output = true;
-                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
-                        let _ = input.parse::<Token![>]>()?;
+                        if has_error {
+                            let _ = input.parse::<Token![>]>()?;
+                            let _ = input.parse::<Token![,]>()?;
+                            parse_state = Expected::ResultSecond;
+                        } else {
+                            let _ = input.parse::<Token![>]>()?;
+                            parse_state = Expected::Done;
+                        }
                     }
                     (Expected::OutcomeSecond, "_" | "()") => {
-                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
-                        let _ = input.parse::<Token![>]>()?;
+                        if has_error {
+                            let _ = input.parse::<Token![>]>()?;
+                            let _ = input.parse::<Token![,]>()?;
+                            parse_state = Expected::ResultSecond;
+                        } else {
+                            let _ = input.parse::<Token![>]>()?;
+                            parse_state = Expected::Done;
+                        }
                     }
 
                     _ => {

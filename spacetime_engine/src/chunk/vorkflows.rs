@@ -63,10 +63,11 @@ workflow_mod! {
     
                             Ok(())
                         }
-                    ],
-                },
-            ],
-        },
+                    ]
+                }
+            ]
+        }
+
         DespawnChunk {
             user_imports: {
                 pub use bevy::prelude::{Entity, World, Query, ResMut, DespawnRecursiveExt};
@@ -106,10 +107,11 @@ workflow_mod! {
                                 Err(Error::ChunkNotLoaded { chunk_coord })
                             }
                         }
-                    ],
-                },
-            ],
-        },
+                    ]
+                }
+            ]
+        }
+
         TransferChunkOwnership {
             user_imports: {
                 pub use bevy::prelude::{Entity, World, Query, ResMut};
@@ -153,9 +155,9 @@ workflow_mod! {
                                 Err(Error::ChunkNotLoaded { chunk_coord })
                             }
                         }
-                    ],
-                },
-            ],
-        },
-    ],
+                    ]
+                }
+            ]
+        }
+    ]
 }
