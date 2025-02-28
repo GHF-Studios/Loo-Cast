@@ -1,4 +1,4 @@
-use syn::{parse::Parse, Ident, Result, braced, parse::ParseStream};
+use syn::{parse::Parse, Ident, Result, Token, braced, bracketed, parse::ParseStream};
 use quote::quote;
 use proc_macro2::TokenStream;
 use super::core_type::CoreTypes;
@@ -9,6 +9,10 @@ pub struct EcsWhile;
 pub struct Render;
 pub struct RenderWhile;
 pub struct Async;
+
+pub struct Stages {
+    pub stages: Vec<Stage>,
+}
 
 pub enum Stage {
     Ecs(TypedStage<Ecs>),
@@ -116,6 +120,25 @@ impl Parse for TypedStage<Async> {
         let core_functions: CoreFunctions<Async> = content.parse()?;
 
         Ok(TypedStage { name, core_types, core_functions })
+    }
+}
+
+impl Parse for Stages {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        bracketed!(content in input);
+
+        let mut stages = Vec::new();
+        while !content.is_empty() {
+            stages.push(content.parse()?);
+
+            let lookahead = content.lookahead1();
+            if lookahead.peek(Token![,]) {
+                let _ = content.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(Stages { stages })
     }
 }
 

@@ -1,8 +1,7 @@
-use syn::bracketed;
-use syn::{parse::Parse, Ident, Token, Result, LitStr};
+use syn::{parse::Parse, Ident, Token, braced, bracketed, Result, LitStr};
 use quote::quote;
 use proc_macro2::TokenStream;
-use super::stage::Stage;
+use super::stage::Stages;
 use super::use_statement::UseStatements;
 use super::user_item::UserItems;
 
@@ -13,6 +12,7 @@ pub struct WorkflowModule {
 
 impl Parse for WorkflowModule {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
+        // TODO: Implement some custom keyword that can be parsed. A fun activity quite indeed :D
         let name_label: Ident = input.parse()?;
         if name_label != "name" {
             return Err(syn::Error::new(name_label.span(), "Expected 'name'"));
@@ -60,24 +60,20 @@ pub struct Workflow {
     pub name: Ident,                 
     pub user_imports: UseStatements,  
     pub user_items: UserItems,      
-    pub stages: Vec<Stage>,         
+    pub stages: Stages,         
 }
 
 impl Parse for Workflow {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let name: Ident = input.parse()?; 
+        let content;
+        braced!(content in input);
+
+        let user_imports: UseStatements = content.parse()?;
         input.parse::<Token![,]>()?;
 
-        let user_imports: UseStatements = input.parse()?;
+        let user_items: UserItems = content.parse()?; 
         input.parse::<Token![,]>()?;
-
-        let user_items: UserItems = input.parse()?; 
-        input.parse::<Token![,]>()?;
-
-        let mut stages = Vec::new();
-        while !input.is_empty() {
-            stages.push(input.parse()?);
-        }
 
         Ok(Workflow { name, user_imports, user_items, stages })
     }
