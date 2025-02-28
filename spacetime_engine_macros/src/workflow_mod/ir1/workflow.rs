@@ -1,35 +1,32 @@
 use syn::{parse::Parse, Ident, Token, braced, bracketed, Result, LitStr};
 use quote::quote;
 use proc_macro2::TokenStream;
+use heck::ToSnakeCase;
+use crate::workflow_mod::ir1::stage;
+
 use super::stage::Stages;
 use super::use_statement::UseStatements;
 use super::user_item::UserItems;
 
 pub struct WorkflowModule {
-    pub name: Ident,  
-    pub workflows: Vec<Workflow>,  
+    pub pascal_case_name: Ident,
+    pub snake_case_name: Ident,
+    pub workflows: Vec<Workflow>,
 }
 
 impl Parse for WorkflowModule {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        // TODO: Implement some custom keyword that can be parsed. A fun activity quite indeed :D
-        let name_label: Ident = input.parse()?;
-        if name_label != "name" {
-            return Err(syn::Error::new(name_label.span(), "Expected 'name'"));
-        }
+        let _: super::kw::name = input.parse()?;
         input.parse::<Token![:]>()?;
         let name: LitStr = input.parse()?; 
-        let name = Ident::new(&name.value(), name.span());
+        let pascal_case_name = Ident::new(&name.value(), name.span());
+        let snake_case_name = name.value().to_snake_case();
+        let snake_case_name = Ident::new(&snake_case_name, name.span());
 
         input.parse::<Token![,]>()?;
 
-        
-        let workflows_label: Ident = input.parse()?;
-        if workflows_label != "workflows" {
-            return Err(syn::Error::new(workflows_label.span(), "Expected 'workflows'"));
-        }
+        let _: super::kw::workflows = input.parse()?;
         input.parse::<Token![:]>()?;
-
         let content;
         bracketed!(content in input);
 
@@ -38,13 +35,13 @@ impl Parse for WorkflowModule {
             workflows.push(content.parse()?);
         }
 
-        Ok(WorkflowModule { name, workflows })
+        Ok(WorkflowModule { pascal_case_name, snake_case_name, workflows })
     }
 }
 
 impl WorkflowModule {
     pub fn generate(self) -> TokenStream {
-        let module_name = &self.name;
+        let module_name = &self.pascal_case_name;
         let workflows = self.workflows.into_iter().map(|w| w.generate());
 
         quote! {
@@ -66,14 +63,36 @@ pub struct Workflow {
 impl Parse for Workflow {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let name: Ident = input.parse()?; 
+        
         let content;
         braced!(content in input);
 
-        let user_imports: UseStatements = content.parse()?;
-        input.parse::<Token![,]>()?;
+        let _: super::kw::user_imports = content.parse()?;
+        content.parse::<Token![:]>()?;
+        let inner_content;
+        braced!(inner_content in content);
+        let user_imports: UseStatements = inner_content.parse()?;
 
-        let user_items: UserItems = content.parse()?; 
-        input.parse::<Token![,]>()?;
+        content.parse::<Token![,]>()?;
+
+        let _: super::kw::user_items = content.parse()?;
+        content.parse::<Token![:]>()?;
+        let inner_content;
+        braced!(inner_content in content);
+        let user_items: UserItems = inner_content.parse()?; 
+
+        content.parse::<Token![,]>()?;
+
+        let _: super::kw::stages = content.parse()?;
+        content.parse::<Token![:]>()?;
+        let inner_content;
+        bracketed!(inner_content in content);
+        let stages: Stages = inner_content.parse()?;
+        
+        let lookahead = content.lookahead1();
+        if lookahead.peek(Token![,]) {
+            let _ = content.parse::<Token![,]>()?;
+        }
 
         Ok(Workflow { name, user_imports, user_items, stages })
     }
@@ -84,7 +103,7 @@ impl Workflow {
         let workflow_name = &self.name;
         let imports = self.user_imports.generate();
         let user_items = self.user_items.generate();
-        let stages = self.stages.into_iter().map(|s| s.generate());
+        let stages = self.stages.0.into_iter().map(|s| s.generate());
 
         quote! {
             pub mod #workflow_name {

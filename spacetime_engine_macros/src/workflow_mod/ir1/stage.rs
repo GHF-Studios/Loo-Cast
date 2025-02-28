@@ -10,9 +10,7 @@ pub struct Render;
 pub struct RenderWhile;
 pub struct Async;
 
-pub struct Stages {
-    pub stages: Vec<Stage>,
-}
+pub struct Stages(pub Vec<Stage>);
 
 pub enum Stage {
     Ecs(TypedStage<Ecs>),
@@ -138,7 +136,7 @@ impl Parse for Stages {
             }
         }
 
-        Ok(Stages { stages })
+        Ok(Stages(stages))
     }
 }
 
