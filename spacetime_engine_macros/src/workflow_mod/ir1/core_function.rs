@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 use proc_macro2::{Span, TokenStream};
-use syn::{parse::Parse, spanned::Spanned, Ident, Token, Result};
+use syn::{parenthesized, parse::Parse, spanned::Spanned, Ident, Result, Token};
 use quote::{quote, ToTokens};
 use super::stage::{Ecs, EcsWhile, Render, RenderWhile, Async};
 
@@ -186,9 +186,23 @@ impl Parse for CoreFunction {
             let mut parse_state_stack = Vec::new();
         
             while parse_state != Expected::Done {
-                let first: Ident = input.parse()?;
-            
-                match (parse_state, first.to_string().as_str()) {
+                let (ident, ident_span) = if input.peek(Token![_]) {
+                    let underscore = input.parse::<Token![_]>()?;
+                    ("_".to_string(), underscore.span())
+                } else if input.peek(syn::token::Paren) {
+                    let content;
+                    parenthesized!(content in input);
+                    if !content.is_empty() {
+                        let content_str = content.to_string();
+                        return Err(syn::Error::new(content.span(), format!("Expected no content in parantheses! Found content: `{}`", content_str)));
+                    }
+                    ("()".to_string(), content.span())
+                } else {
+                    let ident = input.parse::<Ident>()?;
+                    (ident.to_string(), ident.span())
+                };
+
+                match (parse_state, ident.as_str()) {
                     (Expected::Any, "Result") => {
                         has_error = true;
                         parse_state_stack.push(Expected::Any);
@@ -239,7 +253,7 @@ impl Parse for CoreFunction {
                         let _ = input.parse::<Token![>]>()?;
                     }
                     (Expected::ResultSecond, _) => {
-                        return Err(syn::Error::new(first.span(), format!("Unexpected return type: `{}`. Expected: `Error`", first)));
+                        return Err(syn::Error::new(ident_span, format!("Unexpected return type: `{}`. Expected: `Error`", ident)));
                     }
 
                     (Expected::OutcomeFirst, "State") => {
@@ -263,7 +277,7 @@ impl Parse for CoreFunction {
                     }
 
                     _ => {
-                        return Err(syn::Error::new(first.span(), format!("Unexpected return type: `{}`", first)));
+                        return Err(syn::Error::new(ident_span, format!("Unexpected return type: `{}`", ident)));
                     }
                 }
             }
