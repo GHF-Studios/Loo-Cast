@@ -171,12 +171,12 @@ impl Parse for CoreFunction {
         
             #[derive(Clone, PartialEq, Eq)]
             enum Expected {
-                Any,           // First value in return type
-                ResultFirst,   // First value inside Result<T, E>
-                ResultSecond,  // Second value inside Result<T, E>
-                OutcomeFirst,  // First value inside Outcome<S, O>
-                OutcomeSecond, // Second value inside Outcome<S, O>
-                Done,          // Parsing is complete
+                Any,
+                ResultFirst,
+                ResultSecond,
+                OutcomeFirst,
+                OutcomeSecond,
+                Done,
             }
         
             let mut parse_state = Expected::Any;
@@ -186,7 +186,6 @@ impl Parse for CoreFunction {
                 let first: Ident = input.parse()?;
             
                 match (parse_state, first.to_string().as_str()) {
-                    // Expect any
                     (Expected::Any, "Result") => {
                         has_error = true;
                         parse_state_stack.push(Expected::Any);
@@ -211,7 +210,6 @@ impl Parse for CoreFunction {
                         parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
                     }
 
-                    // Expect first result value
                     (Expected::ResultFirst, "Outcome") => {
                         has_outcome = true;
                         parse_state_stack.push(Expected::ResultFirst);
@@ -233,7 +231,6 @@ impl Parse for CoreFunction {
                         let _ = input.parse::<Token![,]>()?;
                     }
 
-                    // Expect second result value
                     (Expected::ResultSecond, "Error") => {
                         parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
                         let _ = input.parse::<Token![>]>()?;
@@ -242,7 +239,6 @@ impl Parse for CoreFunction {
                         return Err(syn::Error::new(first.span(), format!("Unexpected return type: `{}`. Expected: `Error`", first)));
                     }
 
-                    // Expect first outcome value
                     (Expected::OutcomeFirst, "State") => {
                         has_state = true;
                         parse_state = Expected::OutcomeSecond;
@@ -253,7 +249,6 @@ impl Parse for CoreFunction {
                         let _ = input.parse::<Token![,]>()?;
                     }
 
-                    // Expect second outcome value
                     (Expected::OutcomeSecond, "Output") => {
                         has_output = true;
                         parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
@@ -264,7 +259,6 @@ impl Parse for CoreFunction {
                         let _ = input.parse::<Token![>]>()?;
                     }
 
-                    // Expect the unexpected
                     _ => {
                         return Err(syn::Error::new(first.span(), format!("Unexpected return type: `{}`", first)));
                     }
@@ -323,13 +317,111 @@ impl CoreFunction {
                             }
                         }
                     }
+                    (false, false, true) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Result<(), Error> {
+                                #body
+                            }
+                        }
+                    }
+                    (false, true, false) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Output {
+                                #body
+                            }
+                        }
+                    }
+                    (false, true, true) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Result<Output, Error> {
+                                #body
+                            }
+                        }
+                    }
+                    (true, false, false) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World, input: &Input) {
+                                #body
+                            }
+                        }
+                    }
+                    (true, false, true) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World, input: &Input) -> Result<(), Error> {
+                                #body
+                            }
+                        }
+                    }
+                    (true, true, false) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World, input: &Input) -> Output {
+                                #body
+                            }
+                        }
+                    }
+                    (true, true, true) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World, input: &Input) -> Result<Output, Error> {
+                                #body
+                            }
+                        }
+                    }
                 }
             },
             CoreFunctionType::SetupEcsWhile | CoreFunctionType::SetupRenderWhile => {
-                match (has_input, has_state, has_output, has_error) {
-                    (false, false, false, false) => {
+                match (has_input, has_state, has_error) {
+                    (false, false, false) => {
                         quote!{
                             pub fn #function_name(world: &mut World) {
+                                #body
+                            }
+                        }
+                    }
+                    (false, false, true) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Result<(), Error> {
+                                #body
+                            }
+                        }
+                    }
+                    (false, true, false) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> State {
+                                #body
+                            }
+                        }
+                    }
+                    (false, true, true) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Result<State, Error> {
+                                #body
+                            }
+                        }
+                    }
+                    (true, false, false) => {
+                        quote!{
+                            pub fn #function_name(input: Input, world: &mut World) {
+                                #body
+                            }
+                        }
+                    }
+                    (true, false, true) => {
+                        quote!{
+                            pub fn #function_name(input: Input, world: &mut World) -> Result<(), Error> {
+                                #body
+                            }
+                        }
+                    }
+                    (true, true, false) => {
+                        quote!{
+                            pub fn #function_name(input: Input, world: &mut World) -> State {
+                                #body
+                            }
+                        }
+                    }
+                    (true, true, true) => {
+                        quote!{
+                            pub fn #function_name(input: Input, world: &mut World) -> Result<State, Error> {
                                 #body
                             }
                         }
@@ -337,10 +429,59 @@ impl CoreFunction {
                 }
             },
             CoreFunctionType::RunEcsWhile | CoreFunctionType::RunRenderWhile => {
-                match (has_input, has_state, has_output, has_error) {
-                    (false, false, false, false) => {
+                match (has_state, has_output, has_error) {
+                    (false, false, false) => {
                         quote!{
                             pub fn #function_name(world: &mut World) -> Outcome<(), ()> {
+                                #body
+                            }
+                        }
+                    }
+                    (false, false, true) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Result<Outcome<(), ()>, Error> {
+                                #body
+                            }
+                        }
+                    }
+                    (false, true, false) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Outcome<(), Output> {
+                                #body
+                            }
+                        }
+                    }
+                    (false, true, true) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Result<Outcome<(), Output>, Error> {
+                                #body
+                            }
+                        }
+                    }
+                    (true, false, false) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Outcome<State, ()> {
+                                #body
+                            }
+                        }
+                    }
+                    (true, false, true) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Result<Outcome<State, ()>, Error> {
+                                #body
+                            }
+                        }
+                    }
+                    (true, true, false) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Outcome<State, Output> {
+                                #body
+                            }
+                        }
+                    }
+                    (true, true, true) => {
+                        quote!{
+                            pub fn #function_name(world: &mut World) -> Result<Outcome<State, Output>, Error> {
                                 #body
                             }
                         }

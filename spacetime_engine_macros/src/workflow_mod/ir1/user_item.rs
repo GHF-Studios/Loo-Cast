@@ -2,7 +2,6 @@ use proc_macro2::TokenStream;
 use syn::{parse::Parse, Item, Result};
 use quote::{quote, ToTokens};
 
-/// Represents a collection of user-defined Rust items (structs, enums, functions, etc.).
 pub struct UserItems(pub Vec<UserItem>);
 
 impl Parse for UserItems {
@@ -16,7 +15,6 @@ impl Parse for UserItems {
 }
 
 impl UserItems {
-    /// Generates Rust code for all user-defined items.
     pub fn generate(self) -> TokenStream {
         let items: Vec<TokenStream> = self.0.into_iter().map(|item| item.generate()).collect();
 
@@ -26,7 +24,6 @@ impl UserItems {
     }
 }
 
-/// Represents any valid Rust item that can appear inside a module.
 pub struct UserItem {
     pub tokens: TokenStream,
 }

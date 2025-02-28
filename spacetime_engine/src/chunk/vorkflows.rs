@@ -1,4 +1,4 @@
-use spacetime_engine_macros::workflow_mod::workflow_mod;
+use spacetime_engine_macros::workflow_mod;
 
 workflow_mod! {
     name: "Chunk",

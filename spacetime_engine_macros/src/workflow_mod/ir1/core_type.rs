@@ -4,20 +4,17 @@ use quote::{quote, ToTokens};
 use proc_macro2::TokenStream;
 use super::stage::{Ecs, EcsWhile, Render, RenderWhile, Async};
 
-/// Marker types for CoreType generic argument
 pub struct Input;
 pub struct State;
 pub struct Output;
 pub struct Error;
 
-/// Represents any core type (Input, State, Output, or Error)
 pub enum CoreType<T> {
     Struct(ItemStruct, PhantomData<T>),
     Enum(ItemEnum, PhantomData<T>),
 }
 
 impl<T> CoreType<T> {
-    /// Generates Rust code for a single core type.
     pub fn generate(&self) -> TokenStream {
         match self {
             CoreType::Struct(item, _) => item.to_token_stream(),
@@ -26,7 +23,6 @@ impl<T> CoreType<T> {
     }
 }
 
-/// Holds all core types for a stage
 pub struct CoreTypes<T> {
     pub phantom_data: PhantomData<T>,
     pub input: Option<CoreType<Input>>,
@@ -268,7 +264,6 @@ impl Parse for CoreTypes<Async> {
 }
 
 impl<T> CoreTypes<T> {
-    /// Generates Rust code for the `core_types` module inside a stage.
     pub fn generate(&self) -> TokenStream {
         let input = self.input.as_ref().map(|t| t.generate());
         let state = self.state.as_ref().map(|t| t.generate());

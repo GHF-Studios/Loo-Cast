@@ -4,14 +4,12 @@ use proc_macro2::TokenStream;
 use super::core_type::CoreTypes;
 use super::core_function::CoreFunctions;
 
-/// Concrete Stage Types
 pub struct Ecs;
 pub struct EcsWhile;
 pub struct Render;
 pub struct RenderWhile;
 pub struct Async;
 
-/// Enum to store different stage types with type-level enforcement
 pub enum Stage {
     Ecs(TypedStage<Ecs>),
     EcsWhile(TypedStage<EcsWhile>),
@@ -20,18 +18,16 @@ pub enum Stage {
     Async(TypedStage<Async>),
 }
 
-/// Represents a stage inside a workflow
 pub struct TypedStage<T> {
     pub name: Ident,
     pub core_types: CoreTypes<T>,
     pub core_functions: CoreFunctions<T>,
 }
 
-/// Parses the `StageIR` enum and dispatches to the correct type without consuming the Ident.
 impl Parse for Stage {
     fn parse(input: ParseStream) -> Result<Self> {
-        let lookahead = input.fork(); // Peek ahead without consuming
-        let stage_name: Ident = lookahead.parse()?; // Read the Ident without consuming input
+        let lookahead = input.fork();
+        let stage_name: Ident = lookahead.parse()?;
 
         match stage_name.to_string().as_str() {
             "Ecs" => input.parse().map(Stage::Ecs),
@@ -56,7 +52,6 @@ impl Stage {
     }
 }
 
-/// Explicitly implement parsing for each stage type to enforce constraints.
 
 impl Parse for TypedStage<Ecs> {
     fn parse(input: ParseStream) -> Result<Self> {
