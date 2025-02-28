@@ -16,6 +16,34 @@ pub enum CoreFunctionType {
     RunRenderWhile,
 }
 
+impl std::fmt::Debug for CoreFunctionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CoreFunctionType::RunEcs => write!(f, "RunEcs"),
+            CoreFunctionType::RunRender => write!(f, "RunRender"),
+            CoreFunctionType::RunAsync => write!(f, "RunAsync"),
+            CoreFunctionType::SetupEcsWhile => write!(f, "SetupEcsWhile"),
+            CoreFunctionType::RunEcsWhile => write!(f, "RunEcsWhile"),
+            CoreFunctionType::SetupRenderWhile => write!(f, "SetupRenderWhile"),
+            CoreFunctionType::RunRenderWhile => write!(f, "RunRenderWhile"),
+        }
+    }
+}
+
+impl std::fmt::Display for CoreFunctionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CoreFunctionType::RunEcs => write!(f, "run_ecs"),
+            CoreFunctionType::RunRender => write!(f, "run_render"),
+            CoreFunctionType::RunAsync => write!(f, "run_async"),
+            CoreFunctionType::SetupEcsWhile => write!(f, "setup_ecs_while"),
+            CoreFunctionType::RunEcsWhile => write!(f, "run_ecs_while"),
+            CoreFunctionType::SetupRenderWhile => write!(f, "setup_render_while"),
+            CoreFunctionType::RunRenderWhile => write!(f, "run_render_while"),
+        }
+    }
+}
+
 impl CoreFunctionType {
     /// Ensures that a setup function is correctly paired with a run function.
     fn is_valid_setup_pair(&self, other: &CoreFunctionType) -> bool {
@@ -49,9 +77,14 @@ impl Parse for CoreFunctionType {
 
 /// Represents a parsed function signature.
 pub struct CoreFunctionSignature {
-    pub name: Ident,
-    pub params: Vec<CoreFunctionParam>,
-    pub return_type: Option<TokenStream>,
+    pub function_name: Ident,
+    pub function_type: CoreFunctionType,
+    pub has_input: bool,
+    pub has_state: bool,
+    pub has_world: bool,
+    pub has_output: bool,
+    pub has_error: bool,
+    pub has_outcome: bool,
 }
 
 /// Represents a function parameter.
@@ -62,7 +95,6 @@ pub struct CoreFunctionParam {
 
 /// Represents a single function inside a stage.
 pub struct CoreFunction {
-    pub function_type: CoreFunctionType,
     pub signature: CoreFunctionSignature,
     pub body: TokenStream,
 }
@@ -76,8 +108,8 @@ pub enum CoreFunctions<T> {
 impl Parse for CoreFunctions<Ecs> {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let run: CoreFunction = input.parse()?;
-        if !matches!(run.function_type, CoreFunctionType::RunEcs) {
-            return Err(syn::Error::new(run.signature.name.span(), "Expected a `RunEcs` function in Ecs stage."));
+        if !matches!(run.signature.function_type, CoreFunctionType::RunEcs) {
+            return Err(syn::Error::new(run.signature.function_name.span(), "Expected a `RunEcs` function in Ecs stage."));
         }
         Ok(CoreFunctions::Default { phantom_data: PhantomData, run })
     }
@@ -88,11 +120,11 @@ impl Parse for CoreFunctions<EcsWhile> {
         let setup: CoreFunction = input.parse()?;
         let run: CoreFunction = input.parse()?;
 
-        if !matches!(setup.function_type, CoreFunctionType::SetupEcsWhile) {
-            return Err(syn::Error::new(setup.signature.name.span(), "Expected a `SetupEcsWhile` function as the first function in EcsWhile stage."));
+        if !matches!(setup.signature.function_type, CoreFunctionType::SetupEcsWhile) {
+            return Err(syn::Error::new(setup.signature.function_name.span(), "Expected a `SetupEcsWhile` function as the first function in EcsWhile stage."));
         }
-        if !matches!(run.function_type, CoreFunctionType::RunEcsWhile) {
-            return Err(syn::Error::new(run.signature.name.span(), "Expected a `RunEcsWhile` function as the second function in EcsWhile stage."));
+        if !matches!(run.signature.function_type, CoreFunctionType::RunEcsWhile) {
+            return Err(syn::Error::new(run.signature.function_name.span(), "Expected a `RunEcsWhile` function as the second function in EcsWhile stage."));
         }
 
         Ok(CoreFunctions::While { phantom_data: PhantomData, setup, run })
@@ -102,8 +134,8 @@ impl Parse for CoreFunctions<EcsWhile> {
 impl Parse for CoreFunctions<Render> {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let run: CoreFunction = input.parse()?;
-        if !matches!(run.function_type, CoreFunctionType::RunRender) {
-            return Err(syn::Error::new(run.signature.name.span(), "Expected a `RunRender` function in Render stage."));
+        if !matches!(run.signature.function_type, CoreFunctionType::RunRender) {
+            return Err(syn::Error::new(run.signature.function_name.span(), "Expected a `RunRender` function in Render stage."));
         }
         Ok(CoreFunctions::Default { phantom_data: PhantomData, run })
     }
@@ -114,11 +146,11 @@ impl Parse for CoreFunctions<RenderWhile> {
         let setup: CoreFunction = input.parse()?;
         let run: CoreFunction = input.parse()?;
 
-        if !matches!(setup.function_type, CoreFunctionType::SetupRenderWhile) {
-            return Err(syn::Error::new(setup.signature.name.span(), "Expected a `SetupRenderWhile` function as the first function in RenderWhile stage."));
+        if !matches!(setup.signature.function_type, CoreFunctionType::SetupRenderWhile) {
+            return Err(syn::Error::new(setup.signature.function_name.span(), "Expected a `SetupRenderWhile` function as the first function in RenderWhile stage."));
         }
-        if !matches!(run.function_type, CoreFunctionType::RunRenderWhile) {
-            return Err(syn::Error::new(run.signature.name.span(), "Expected a `RunRenderWhile` function as the second function in RenderWhile stage."));
+        if !matches!(run.signature.function_type, CoreFunctionType::RunRenderWhile) {
+            return Err(syn::Error::new(run.signature.function_name.span(), "Expected a `RunRenderWhile` function as the second function in RenderWhile stage."));
         }
 
         Ok(CoreFunctions::While { phantom_data: PhantomData, setup, run })
@@ -128,8 +160,8 @@ impl Parse for CoreFunctions<RenderWhile> {
 impl Parse for CoreFunctions<Async> {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let run: CoreFunction = input.parse()?;
-        if !matches!(run.function_type, CoreFunctionType::RunAsync) {
-            return Err(syn::Error::new(run.signature.name.span(), "Expected a `RunAsync` function in Async stage."));
+        if !matches!(run.signature.function_type, CoreFunctionType::RunAsync) {
+            return Err(syn::Error::new(run.signature.function_name.span(), "Expected a `RunAsync` function in Async stage."));
         }
         Ok(CoreFunctions::Default { phantom_data: PhantomData, run })
     }
@@ -139,136 +171,222 @@ impl Parse for CoreFunction {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
         let _: Token![fn] = input.parse()?;
         let function_type: CoreFunctionType = input.parse()?;
-        let _: Token![|] = input.parse()?;
+        let function_name: Ident = input.parse()?;
 
+        // --- Parse `| ... |` parameter list ---
+        let _ = input.parse::<Token![|]>()?;
         
+        let mut has_input = false;
+        let mut has_state = false;
+        let mut has_world = false;
 
-
-
-
-
-
-
-
-
-
-        // Parse parameters, which are in `|param1, param2|` format
-        let params_content;
-        syn::bracketed!(params_content in input);
-        let params: Vec<CoreFunctionParam> = params_content
-            .parse_terminated::<_, Token![,]>(|p| {
-                let name: Ident = p.parse()?;
-                Ok(CoreFunctionParam { name, ty: quote! { /* Type inferred later */ } })
-            })?
-            .into_iter()
-            .collect();
-
-        // Parse optional return type (`-> Type`)
-        let return_type = if input.peek(Token![->]) {
-            let _: Token![->] = input.parse()?;
-            Some(input.parse::<syn::Type>()?.to_token_stream())
-        } else {
-            None
-        };
-
-        // Parse function body
-        let body: syn::Block = input.parse()?;
-        let body_tokens = body.to_token_stream();
-
-        // Transform parsed signature into a valid Rust function signature
-        let param_types = match function_type {
-            CoreFunctionType::RunEcs
-            | CoreFunctionType::RunRender
-            | CoreFunctionType::RunEcsWhile
-            | CoreFunctionType::RunRenderWhile => {
-                quote! { input: Input, world: &mut World }
+        while !input.peek(Token![|]) {
+            let param_name: Ident = input.parse()?;
+            
+            if !has_input && !has_state && has_world {
+                return Err(syn::Error::new(param_name.span(), "Parameters cannot appear after `world`"))
             }
-            CoreFunctionType::SetupEcsWhile
-            | CoreFunctionType::SetupRenderWhile => {
-                quote! { input: Input }
+            if has_input && !has_state && has_world {
+                return Err(syn::Error::new(param_name.span(), "Parameters cannot appear after `input` and `world`"))
             }
-            CoreFunctionType::RunAsync => {
-                quote! { input: Input }
+            if !has_input && has_state && has_world {
+                return Err(syn::Error::new(param_name.span(), "Parameters cannot appear after `state` and `world`"))
             }
-        };
 
-        let signature = CoreFunctionSignature {
-            name: function_name.clone(),
-            params,
-            return_type,
-        };
+            match param_name.to_string().as_str() {
+                "input" => {
+                    if has_input {
+                        return Err(syn::Error::new(param_name.span(), "Duplicate parameter: `input`"));
+                    }
+                    if has_state {
+                        return Err(syn::Error::new(param_name.span(), "Parameter `input` cannot be used with `state`"));
+                    }
+                    has_input = true; 
+                }
+                "state" => {
+                    if has_state {
+                        return Err(syn::Error::new(param_name.span(), "Duplicate parameter: `state`"));
+                    }
+                    if has_input {
+                        return Err(syn::Error::new(param_name.span(), "Parameter `state` cannot be used with `input`"));
+                    }
+                    has_state = true; 
+                }
+                "world" => {
+                    has_world = true; 
+                }
+                _ => {
+                    match (has_input, has_state) {
+                        (false, false) => {
+                            return Err(syn::Error::new(param_name.span(), "Unexpected parameter name. Expected: `input`, `state`, or `world`"));
+                        },
+                        (true, false) => {
+                            return Err(syn::Error::new(param_name.span(), "Unexpected parameter name. Expected: `world`"))
+                        },
+                        (false, true) => {
+                            return Err(syn::Error::new(param_name.span(), "Unexpected parameter name. Expected: `world`"))
+                        },
+                        _ => {
+                            return Err(syn::Error::new(param_name.span(), "Unexpected parameter name. Expected: `input`, `state`, or `world`"))
+                        }
+                    }
+                },
+            }
 
-        let core_function = CoreFunction {
+            if input.peek(Token![,]) {
+                let comma: Token![,] = input.parse()?;
+
+                if has_world {
+                    return Err(syn::Error::new(comma.span(), "Parameters cannot appear after `world`"))
+                }
+            }
+        }
+
+        let _ = input.parse::<Token![|]>()?;
+
+        // --- Parse return type ---
+        let mut has_output = false;
+        let mut has_error = false;
+        let mut has_state = false;
+        let mut has_outcome = false;
+        let requires_outcome = matches!(
             function_type,
-            signature,
-            body: body_tokens,
-        };
-
-        core_function.validate()?; // Ensure correctness
-        Ok(core_function)
-    }
-}
-
-impl CoreFunction {
-    fn validate(&self) -> Result<()> {
-        use CoreFunctionType::*;
-
-        let expects_input = matches!(
-            self.function_type,
-            RunEcs | RunRender | RunAsync | RunEcsWhile | RunRenderWhile
+            CoreFunctionType::RunEcsWhile | CoreFunctionType::RunRenderWhile
         );
 
-        let expects_world_param = matches!(
-            self.function_type,
-            RunEcs | RunRender | RunEcsWhile | RunRenderWhile
-        );
-
-        let is_async = matches!(self.function_type, RunAsync);
-
-        let has_input = self.signature.params.iter().any(|param| param.name.to_string() == "input");
-        let has_world_param = self.signature.params.iter().any(|param| param.ty.to_string().contains("&mut World"));
+        if input.peek(Token![->]) {
+            let _: Token![->] = input.parse()?;
         
-        if expects_world_param && !has_world_param {
-            return Err(syn::Error::new(
-                self.signature.name.span(),
-                "Expected `world: &mut World` parameter, but it is missing."
-            ));
-        }
-
-        if is_async && has_world_param {
-            return Err(syn::Error::new(
-                self.signature.name.span(),
-                "Async functions cannot take `world: &mut World` as a parameter."
-            ));
-        }
-
-        if expects_input && !has_input {
-            return Err(syn::Error::new(
-                self.signature.name.span(),
-                "Function signature mismatch: Expected an `input` parameter."
-            ));
-        }
-
-        Ok(())
-    }
-
-    /// Generates the Rust function based on the function type.
-    pub fn generate(&self) -> TokenStream {
-        let name = &self.signature.name;
-        let body = &self.body;
+            #[derive(Clone, PartialEq, Eq)]
+            enum Expected {
+                Any,           // First value in return type
+                ResultFirst,   // First value inside Result<T, E>
+                ResultSecond,  // Second value inside Result<T, E>
+                OutcomeFirst,  // First value inside Outcome<S, O>
+                OutcomeSecond, // Second value inside Outcome<S, O>
+                Done,          // Parsing is complete
+            }
         
-        let params = self.signature.params.iter().map(|p| {
-            let name = &p.name;
-            let ty = &p.ty;
-            quote! { #name: #ty }
-        });
+            let mut parse_state = Expected::Any;
+            let mut parse_state_stack = Vec::new();
+        
+            while parse_state != Expected::Done {
+                let first: Ident = input.parse()?;
+            
+                match (parse_state, first.to_string().as_str()) {
+                    // Expect any
+                    (Expected::Any, "Result") => {
+                        has_error = true;
+                        parse_state_stack.push(Expected::Any);
+                        parse_state = Expected::ResultFirst;
+                        let _ = input.parse::<Token![<]>()?;
+                    }
+                    (Expected::Any, "Outcome") => {
+                        has_outcome = true;
+                        parse_state_stack.push(Expected::Any);
+                        parse_state = Expected::OutcomeFirst;
+                        let _ = input.parse::<Token![<]>()?;
+                    }
+                    (Expected::Any, "State") => {
+                        has_state = true;
+                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
+                    }
+                    (Expected::Any, "Output") => {
+                        has_output = true;
+                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
+                    }
+                    (Expected::Any, "_" | "()") => {
+                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
+                    }
 
-        let return_type = self.signature.return_type.as_ref().map(|r| quote! { -> #r }).unwrap_or(quote! {});
+                    // Expect first result value
+                    (Expected::ResultFirst, "Outcome") => {
+                        has_outcome = true;
+                        parse_state_stack.push(Expected::ResultFirst);
+                        parse_state = Expected::OutcomeFirst;
+                        let _ = input.parse::<Token![<]>()?;
+                    }
+                    (Expected::ResultFirst, "State") => {
+                        has_state = true;
+                        parse_state = Expected::ResultSecond;
+                        let _ = input.parse::<Token![,]>()?;
+                    }
+                    (Expected::ResultFirst, "Output") => {
+                        has_output = true;
+                        parse_state = Expected::ResultSecond;
+                        let _ = input.parse::<Token![,]>()?;
+                    }
+                    (Expected::ResultFirst, "_" | "()") => {
+                        parse_state = Expected::ResultSecond;
+                        let _ = input.parse::<Token![,]>()?;
+                    }
 
-        quote! {
-            pub fn #name(#(#params),*) #return_type {
-                #body
+                    // Expect second result value
+                    (Expected::ResultSecond, "Error") => {
+                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
+                        let _ = input.parse::<Token![>]>()?;
+                    }
+                    (Expected::ResultSecond, _) => {
+                        return Err(syn::Error::new(first.span(), format!("Unexpected return type: `{}`. Expected: `Error`", first)));
+                    }
+
+                    // Expect first outcome value
+                    (Expected::OutcomeFirst, "State") => {
+                        has_state = true;
+                        parse_state = Expected::OutcomeSecond;
+                        let _ = input.parse::<Token![,]>()?;
+                    }
+                    (Expected::OutcomeFirst, "_" | "()") => {
+                        parse_state = Expected::OutcomeSecond;
+                        let _ = input.parse::<Token![,]>()?;
+                    }
+
+                    // Expect second outcome value
+                    (Expected::OutcomeSecond, "Output") => {
+                        has_output = true;
+                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
+                        let _ = input.parse::<Token![>]>()?;
+                    }
+                    (Expected::OutcomeSecond, "_" | "()") => {
+                        parse_state = parse_state_stack.pop().unwrap_or(Expected::Done);
+                        let _ = input.parse::<Token![>]>()?;
+                    }
+
+                    // Expect the unexpected
+                    _ => {
+                        return Err(syn::Error::new(first.span(), format!("Unexpected return type: `{}`", first)));
+                    }
+                }
             }
         }
+
+        match (requires_outcome, has_outcome) {
+            (false, true) => {
+                return Err(syn::Error::new(function_name.span(), format!("Outcome is forbidden by function type `{}`.", function_name)));
+            },
+            (true, false) => {
+                return Err(syn::Error::new(function_name.span(), format!("Outcome is required by function type `{}`.", function_name)));
+            },
+            _ => {}
+        };
+
+        // --- Finish parsing ---
+        let signature = CoreFunctionSignature {
+            function_name,
+            function_type,
+            has_input,
+            has_state,
+            has_world,
+            has_output,
+            has_error,
+            has_outcome,
+        };
+        
+        let body: syn::Block = input.parse()?;
+
+        Ok(CoreFunction {
+            signature,
+            body: body.to_token_stream(),
+        })
     }
 }
