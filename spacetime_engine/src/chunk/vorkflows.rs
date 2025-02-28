@@ -13,16 +13,16 @@ workflow_mod! {
             },
             user_items: {},
             stages: [
-                ValidateAndSpawn {
+                ValidateAndSpawn: Ecs {
                     core_types: [
                         struct Input { 
                             chunk_coord: (i32, i32), 
                             chunk_owner: Option<Entity>, 
                             metric_texture: Handle<Image> 
-                        },
+                        }
                         enum Error {
                             ChunkAlreadyLoaded { chunk_coord: (i32, i32) },
-                        },
+                        }
                     ],
                     core_functions: [
                         fn RunEcs |input, world| -> Result<(), Error> {
@@ -62,7 +62,7 @@ workflow_mod! {
                             }
     
                             Ok(())
-                        },
+                        }
                     ],
                 },
             ],
@@ -76,14 +76,14 @@ workflow_mod! {
             },
             user_items: {},
             stages: [
-                FindAndDespawn {
+                FindAndDespawn: Ecs {
                     core_types: [
                         struct Input { 
                             chunk_coord: (i32, i32) 
-                        },
+                        }
                         enum Error {
                             ChunkNotLoaded { chunk_coord: (i32, i32) },
-                        },
+                        }
                     ],
                     core_functions: [
                         fn RunEcs |input, world| -> Result<(), Error> {
@@ -105,7 +105,7 @@ workflow_mod! {
                             } else {
                                 Err(Error::ChunkNotLoaded { chunk_coord })
                             }
-                        },
+                        }
                     ],
                 },
             ],
@@ -119,15 +119,15 @@ workflow_mod! {
             },
             user_items: {},
             stages: [
-                FindAndTransferOwnership {
+                FindAndTransferOwnership: Ecs {
                     core_types: [
                         struct Input { 
                             chunk_coord: (i32, i32), 
                             new_owner: Entity 
-                        },
+                        }
                         enum Error {
                             ChunkNotLoaded { chunk_coord: (i32, i32) },
-                        },
+                        }
                     ],
                     core_functions: [
                         fn RunEcs |input, world| -> Result<(), Error> {
@@ -152,7 +152,7 @@ workflow_mod! {
                             } else {
                                 Err(Error::ChunkNotLoaded { chunk_coord })
                             }
-                        },
+                        }
                     ],
                 },
             ],

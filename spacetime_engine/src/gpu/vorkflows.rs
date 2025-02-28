@@ -68,7 +68,7 @@ workflow_mod! {
                     ],
                 },
     
-                SetupPhase2 {
+                SetupPhase2: RenderWhile {
                     core_types: [
                         struct Input {
                             shader_name: &'static str, 
@@ -184,11 +184,11 @@ workflow_mod! {
                                     }
                                 },
                             }
-                        },
+                        }
                     ],
                 },
     
-                SetupPhase3 {
+                SetupPhase3: Ecs {
                     core_types: [
                         struct Input { 
                             shader_name: &'static str, 
@@ -312,21 +312,21 @@ workflow_mod! {
                 }
             },
             stages: [
-                PrepareRequest {
+                PrepareRequest: Ecs {
                     core_types: [
                         struct Input {
                             shader_name: &'static str,
                             texture_size: usize,
                             param_data: Vec<f32>,
-                        },
+                        }
                         struct Output {
                             request: GeneratorRequest<GeneratorParams>,
-                        },
+                        }
                         enum Error {
                             GeneratorNotFound {
                                 shader_name: &'static str,
                             },
-                        },
+                        }
                     ],
                     core_functions: [
                         fn RunEcs |input, world| -> Result<Output, Error> {
@@ -385,26 +385,26 @@ workflow_mod! {
                             );
 
                             Ok(Output { request })
-                        },
+                        }
                     ],
                 },
     
-                GetTextureView {
+                GetTextureView: RenderWhile {
                     core_types: [
                         struct Input {
                             request: GeneratorRequest<GeneratorParams>,
-                        },
+                        }
                         struct State {
                             request: GeneratorRequest<GeneratorParams>,
-                        },
+                        }
                         struct Output {
                             request: GeneratorRequest<PreparedGenerator>,
-                        },
+                        }
                     ],
                     core_functions: [
                         fn SetupRenderWhile |input, _world| -> State {
                             State { request: input.request }
-                        },
+                        }
                         fn RunRenderWhile |state, world| -> Outcome<State, Output> {
                             let gpu_images = SystemState::<Res<RenderAssets<GpuImage>>>::new(world).get(world);
                 
@@ -416,18 +416,18 @@ workflow_mod! {
                             } else {
                                 Wait(state)
                             }
-                        },
+                        }
                     ],
                 },
     
-                DispatchCompute {
+                DispatchCompute: Render {
                     core_types: [
                         struct Input {
                             request: GeneratorRequest<PreparedGenerator>,
-                        },
+                        }
                         struct Output {
                             request: GeneratorRequest<DispatchedCompute>,
-                        },
+                        }
                     ],
                     core_functions: [
                         fn RunRender |input, world| -> Output {
@@ -480,11 +480,11 @@ workflow_mod! {
                 
                             let dispatched_request = input.request.track_dispatch(texture_handle, receiver);
                             Output { request: dispatched_request }
-                        },
+                        }
                     ],
                 },
     
-                WaitForCompute {
+                WaitForCompute: EcsWhile {
                     core_types: [
                         struct Input {
                             request: GeneratorRequest<DispatchedCompute>,
@@ -500,12 +500,12 @@ workflow_mod! {
                             ComputePassReceiverDisconnected {
                                 shader_name: &'static str,
                             },
-                        },
+                        }
                     ],
                     core_functions: [
                         fn SetupEcsWhile |input, _world| -> Result<State, Error> {
                             Ok(State { request: input.request })
-                        },
+                        }
                         fn RunEcsWhile |state, world| -> Result<Outcome<State, Output>, Error> {
                             let receiver = &state.request.inner.receiver;
                 
@@ -521,7 +521,7 @@ workflow_mod! {
                                     Err(Error::ComputePassReceiverDisconnected { shader_name: state.request.inner.shader_name })
                                 },
                             }
-                        },
+                        }
                     ],
                 },
             ],
