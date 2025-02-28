@@ -1,9 +1,10 @@
 use syn::{parse::Parse, Ident, Token, Result};
+use quote::quote;
+use proc_macro2::TokenStream;
 use super::stage::Stage;
 use super::use_statement::UseStatements;
 use super::user_item::UserItems;
 
-/// Represents the entire `workflow_mod! { ... }` macro input.
 pub struct WorkflowModule {
     pub name: Ident,  
     pub workflows: Vec<Workflow>,  
@@ -23,7 +24,20 @@ impl Parse for WorkflowModule {
     }
 }
 
-/// Represents an individual workflow inside the module.
+impl WorkflowModule {
+    pub fn generate(self) -> TokenStream {
+        let module_name = &self.name;
+        let workflows = self.workflows.into_iter().map(|w| w.generate());
+
+        quote! {
+            pub mod #module_name {
+                pub const NAME: &str = stringify!(#module_name);
+                #(#workflows)*
+            }
+        }
+    }
+}
+
 pub struct Workflow {
     pub name: Ident,                 
     pub user_imports: UseStatements,  
@@ -48,5 +62,38 @@ impl Parse for Workflow {
         }
 
         Ok(Workflow { name, user_imports, user_items, stages })
+    }
+}
+
+impl Workflow {
+    pub fn generate(self) -> TokenStream {
+        let workflow_name = &self.name;
+        let imports = self.user_imports.generate();
+        let user_items = self.user_items.generate();
+        let stages = self.stages.into_iter().map(|s| s.generate());
+
+        quote! {
+            pub mod #workflow_name {
+                pub const NAME: &str = stringify!(#workflow_name);
+                
+                pub mod workflow_imports {
+                    // Automatic imports
+                    pub use super::user_types::*;
+                    pub use super::user_functions::*;
+                    pub use crate::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
+                    
+                    // User imports
+                    #imports
+                }
+
+                pub mod user_types {
+                    #user_items
+                }
+
+                pub mod stages {
+                    #(#stages)*
+                }
+            }
+        }
     }
 }

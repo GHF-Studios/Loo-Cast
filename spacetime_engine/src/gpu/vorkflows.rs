@@ -1,4 +1,4 @@
-vorkflow_mod! {
+workflow_mod! {
     name: "Gpu", 
     vorkflows: [
         SetupTextureGenerator {

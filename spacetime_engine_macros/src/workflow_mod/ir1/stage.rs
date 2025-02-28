@@ -1,4 +1,6 @@
 use syn::{parse::Parse, Ident, Result, braced, parse::ParseStream};
+use quote::quote;
+use proc_macro2::TokenStream;
 use super::core_type::CoreTypes;
 use super::core_function::CoreFunctions;
 
@@ -38,6 +40,18 @@ impl Parse for Stage {
             "RenderWhile" => input.parse().map(Stage::RenderWhile),
             "Async" => input.parse().map(Stage::Async),
             _ => Err(input.error("Invalid stage type")),
+        }
+    }
+}
+
+impl Stage {
+    pub fn generate(self) -> TokenStream {
+        match self {
+            Stage::Ecs(stage) => stage.generate(),
+            Stage::EcsWhile(stage) => stage.generate(),
+            Stage::Render(stage) => stage.generate(),
+            Stage::RenderWhile(stage) => stage.generate(),
+            Stage::Async(stage) => stage.generate(),
         }
     }
 }
@@ -107,5 +121,105 @@ impl Parse for TypedStage<Async> {
         let core_functions: CoreFunctions<Async> = content.parse()?;
 
         Ok(TypedStage { name, core_types, core_functions })
+    }
+}
+
+impl TypedStage<Ecs> {
+    pub fn generate(self) -> TokenStream {
+        let stage_name = &self.name;
+        let core_types = self.core_types.generate();
+        let core_functions = self.core_functions.generate();
+
+        quote! {
+            pub mod #stage_name {
+                pub mod core_types {
+                    #core_types
+                }
+
+                pub mod core_functions {
+                    #core_functions
+                }
+            }
+        }
+    }
+}
+
+impl TypedStage<EcsWhile> {
+    pub fn generate(self) -> TokenStream {
+        let stage_name = &self.name;
+        let core_types = self.core_types.generate();
+        let core_functions = self.core_functions.generate();
+
+        quote! {
+            pub mod #stage_name {
+                pub mod core_types {
+                    #core_types
+                }
+
+                pub mod core_functions {
+                    #core_functions
+                }
+            }
+        }
+    }
+}
+
+impl TypedStage<Render> {
+    pub fn generate(self) -> TokenStream {
+        let stage_name = &self.name;
+        let core_types = self.core_types.generate();
+        let core_functions = self.core_functions.generate();
+
+        quote! {
+            pub mod #stage_name {
+                pub mod core_types {
+                    #core_types
+                }
+
+                pub mod core_functions {
+                    #core_functions
+                }
+            }
+        }
+    }
+}
+
+impl TypedStage<RenderWhile> {
+    pub fn generate(self) -> TokenStream {
+        let stage_name = &self.name;
+        let core_types = self.core_types.generate();
+        let core_functions = self.core_functions.generate();
+
+        quote! {
+            pub mod #stage_name {
+                pub mod core_types {
+                    #core_types
+                }
+
+                pub mod core_functions {
+                    #core_functions
+                }
+            }
+        }
+    }
+}
+
+impl TypedStage<Async> {
+    pub fn generate(self) -> TokenStream {
+        let stage_name = &self.name;
+        let core_types = self.core_types.generate();
+        let core_functions = self.core_functions.generate();
+
+        quote! {
+            pub mod #stage_name {
+                pub mod core_types {
+                    #core_types
+                }
+
+                pub mod core_functions {
+                    #core_functions
+                }
+            }
+        }
     }
 }

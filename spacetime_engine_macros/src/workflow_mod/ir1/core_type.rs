@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 use syn::{parse::Parse, ItemStruct, ItemEnum, Result, parse::ParseStream};
+use quote::{quote, ToTokens};
+use proc_macro2::TokenStream;
 use super::stage::{Ecs, EcsWhile, Render, RenderWhile, Async};
 
 /// Marker types for CoreType generic argument
@@ -12,6 +14,16 @@ pub struct Error;
 pub enum CoreType<T> {
     Struct(ItemStruct, PhantomData<T>),
     Enum(ItemEnum, PhantomData<T>),
+}
+
+impl<T> CoreType<T> {
+    /// Generates Rust code for a single core type.
+    pub fn generate(&self) -> TokenStream {
+        match self {
+            CoreType::Struct(item, _) => item.to_token_stream(),
+            CoreType::Enum(item, _) => item.to_token_stream(),
+        }
+    }
 }
 
 /// Holds all core types for a stage
@@ -252,5 +264,22 @@ impl Parse for CoreTypes<Async> {
         }
 
         Ok(CoreTypes { phantom_data: PhantomData, input: input_type, state: None, output: output_type, error: error_type })
+    }
+}
+
+impl<T> CoreTypes<T> {
+    /// Generates Rust code for the `core_types` module inside a stage.
+    pub fn generate(&self) -> TokenStream {
+        let input = self.input.as_ref().map(|t| t.generate());
+        let state = self.state.as_ref().map(|t| t.generate());
+        let output = self.output.as_ref().map(|t| t.generate());
+        let error = self.error.as_ref().map(|t| t.generate());
+
+        quote! {
+            #input
+            #state
+            #output
+            #error
+        }
     }
 }
