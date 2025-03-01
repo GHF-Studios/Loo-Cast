@@ -94,7 +94,7 @@ workflow_mod! {
                                 Query<(Entity, &ChunkComponent)>,
                                 ResMut<ChunkManager>,
                             )> = SystemState::new(world);
-                            let (mut chunk_query, mut chunk_manager) = system_state.get_mut(world);
+                            let (chunk_query, mut chunk_manager) = system_state.get_mut(world);
 
                             if let Some((entity, _)) = chunk_query.iter().find(|(_, chunk)| chunk.coord == chunk_coord) {
                                 chunk_manager.loaded_chunks.remove(&chunk_coord);

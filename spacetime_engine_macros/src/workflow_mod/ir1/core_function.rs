@@ -337,58 +337,42 @@ impl CoreFunction {
                 match (has_input, has_output, has_error) {
                     (false, false, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) #body
                         }
                     }
                     (false, false, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<(), Error> {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) -> Result<(), Error> #body
                         }
                     }
                     (false, true, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Output {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) -> Output #body
                         }
                     }
                     (false, true, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<Output, Error> {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) -> Result<Output, Error> #body
                         }
                     }
                     (true, false, false) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) {
-                                #body
-                            }
+                            pub fn #function_name(input: Input, world: &mut World) #body
                         }
                     }
                     (true, false, true) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> Result<(), Error> {
-                                #body
-                            }
+                            pub fn #function_name(input: Input, world: &mut World) -> Result<(), Error> #body
                         }
                     }
                     (true, true, false) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> Output {
-                                #body
-                            }
+                            pub fn #function_name(input: Input, world: &mut World) -> Output #body
                         }
                     }
                     (true, true, true) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> Result<Output, Error> {
-                                #body
-                            }
+                            pub fn #function_name(input: Input, world: &mut World) -> Result<Output, Error> #body
                         }
                     }
                 }
@@ -397,58 +381,42 @@ impl CoreFunction {
                 match (has_input, has_state, has_error) {
                     (false, false, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) #body
                         }
                     }
                     (false, false, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<(), Error> {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) -> Result<(), Error> #body
                         }
                     }
                     (false, true, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> State {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) -> State #body
                         }
                     }
                     (false, true, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<State, Error> {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) -> Result<State, Error> #body
                         }
                     }
                     (true, false, false) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) {
-                                #body
-                            }
+                            pub fn #function_name(input: Input, world: &mut World) #body
                         }
                     }
                     (true, false, true) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> Result<(), Error> {
-                                #body
-                            }
+                            pub fn #function_name(input: Input, world: &mut World) -> Result<(), Error> #body
                         }
                     }
                     (true, true, false) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> State {
-                                #body
-                            }
+                            pub fn #function_name(input: Input, world: &mut World) -> State #body
                         }
                     }
                     (true, true, true) => {
                         quote!{
-                            pub fn #function_name(input: Input, world: &mut World) -> Result<State, Error> {
-                                #body
-                            }
+                            pub fn #function_name(input: Input, world: &mut World) -> Result<State, Error> #body
                         }
                     }
                 }
@@ -457,58 +425,42 @@ impl CoreFunction {
                 match (has_state, has_output, has_error) {
                     (false, false, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Outcome<(), ()> {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) -> Outcome<(), ()> #body
                         }
                     }
                     (false, false, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<Outcome<(), ()>, Error> {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) -> Result<Outcome<(), ()>, Error> #body
                         }
                     }
                     (false, true, false) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Outcome<(), Output> {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) -> Outcome<(), Output> #body
                         }
                     }
                     (false, true, true) => {
                         quote!{
-                            pub fn #function_name(world: &mut World) -> Result<Outcome<(), Output>, Error> {
-                                #body
-                            }
+                            pub fn #function_name(world: &mut World) -> Result<Outcome<(), Output>, Error> #body
                         }
                     }
                     (true, false, false) => {
                         quote!{
-                            pub fn #function_name(state: State, world: &mut World) -> Outcome<State, ()> {
-                                #body
-                            }
+                            pub fn #function_name(state: State, world: &mut World) -> Outcome<State, ()> #body
                         }
                     }
                     (true, false, true) => {
                         quote!{
-                            pub fn #function_name(state: State, world: &mut World) -> Result<Outcome<State, ()>, Error> {
-                                #body
-                            }
+                            pub fn #function_name(state: State, world: &mut World) -> Result<Outcome<State, ()>, Error> #body
                         }
                     }
                     (true, true, false) => {
                         quote!{
-                            pub fn #function_name(state: State, world: &mut World) -> Outcome<State, Output> {
-                                #body
-                            }
+                            pub fn #function_name(state: State, world: &mut World) -> Outcome<State, Output> #body
                         }
                     }
                     (true, true, true) => {
                         quote!{
-                            pub fn #function_name(state: State, world: &mut World) -> Result<Outcome<State, Output>, Error> {
-                                #body
-                            }
+                            pub fn #function_name(state: State, world: &mut World) -> Result<Outcome<State, Output>, Error> #body
                         }
                     }
                 }
