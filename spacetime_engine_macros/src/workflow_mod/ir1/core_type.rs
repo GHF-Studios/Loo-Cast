@@ -1,8 +1,34 @@
 use std::marker::PhantomData;
-use syn::{parse::Parse, ItemStruct, ItemEnum, Result, parse::ParseStream};
+use syn::{parse::{Parse, ParseStream}, token::Pub, Fields, ItemEnum, ItemStruct, Result, Visibility};
 use quote::{quote, ToTokens};
 use proc_macro2::TokenStream;
 use super::stage::{Ecs, EcsWhile, Render, RenderWhile, Async};
+
+fn align_core_struct(item: &mut ItemStruct) {
+    let span = item.ident.span();
+    
+    item.vis = Visibility::Public(Pub(span));
+
+    match &mut item.fields {
+        Fields::Named(named) => {
+            for field in &mut named.named {
+                field.vis = Visibility::Public(Pub(span));
+            }
+        }
+        Fields::Unnamed(unnamed) => {
+            for field in &mut unnamed.unnamed {
+                field.vis = Visibility::Public(Pub(span));
+            }
+        }
+        Fields::Unit => {}
+    }
+}
+
+fn align_core_enum(item: &mut ItemEnum) {
+    let span = item.ident.span();
+
+    item.vis = Visibility::Public(Pub(span));
+}
 
 pub struct Input;
 pub struct State;
@@ -38,29 +64,35 @@ impl Parse for CoreTypes<Ecs> {
         let mut error_type = None;
 
         while !input.is_empty() {
-            let item: syn::Item = input.parse()?;
+            let mut item: syn::Item = input.parse()?;
             match item {
-                syn::Item::Struct(ref s) if s.ident == "Input" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Input" => {
+                    align_core_struct(s);
                     if input_type.is_some() { return Err(input.error("Duplicate Input type")); }
                     input_type = Some(CoreType::<Input>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Input" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Input" => {
+                    align_core_enum(e);
                     if input_type.is_some() { return Err(input.error("Duplicate Input type")); }
                     input_type = Some(CoreType::<Input>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "Output" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Output" => {
+                    align_core_struct(s);
                     if output_type.is_some() { return Err(input.error("Duplicate Output type")); }
                     output_type = Some(CoreType::<Output>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Output" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Output" => {
+                    align_core_enum(e);
                     if output_type.is_some() { return Err(input.error("Duplicate Output type")); }
                     output_type = Some(CoreType::<Output>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "Error" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Error" => {
+                    align_core_struct(s);
                     if error_type.is_some() { return Err(input.error("Duplicate Error type")); }
                     error_type = Some(CoreType::<Error>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Error" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Error" => {
+                    align_core_enum(e);
                     if error_type.is_some() { return Err(input.error("Duplicate Error type")); }
                     error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
                 },
@@ -83,37 +115,45 @@ impl Parse for CoreTypes<EcsWhile> {
         let mut error_type = None;
 
         while !input.is_empty() {
-            let item: syn::Item = input.parse()?;
+            let mut item: syn::Item = input.parse()?;
             match item {
-                syn::Item::Struct(ref s) if s.ident == "Input" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Input" => {
+                    align_core_struct(s);
                     if input_type.is_some() { return Err(input.error("Duplicate Input type")); }
                     input_type = Some(CoreType::<Input>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Input" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Input" => {
+                    align_core_enum(e);
                     if input_type.is_some() { return Err(input.error("Duplicate Input type")); }
                     input_type = Some(CoreType::<Input>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "State" => {
+                syn::Item::Struct(ref mut s) if s.ident == "State" => {
+                    align_core_struct(s);
                     if state_type.is_some() { return Err(input.error("Duplicate State type")); }
                     state_type = Some(CoreType::<State>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "State" => {
+                syn::Item::Enum(ref mut e) if e.ident == "State" => {
+                    align_core_enum(e);
                     if state_type.is_some() { return Err(input.error("Duplicate State type")); }
                     state_type = Some(CoreType::<State>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "Output" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Output" => {
+                    align_core_struct(s);
                     if output_type.is_some() { return Err(input.error("Duplicate Output type")); }
                     output_type = Some(CoreType::<Output>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Output" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Output" => {
+                    align_core_enum(e);
                     if output_type.is_some() { return Err(input.error("Duplicate Output type")); }
                     output_type = Some(CoreType::<Output>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "Error" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Error" => {
+                    align_core_struct(s);
                     if error_type.is_some() { return Err(input.error("Duplicate Error type")); }
                     error_type = Some(CoreType::<Error>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Error" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Error" => {
+                    align_core_enum(e);
                     if error_type.is_some() { return Err(input.error("Duplicate Error type")); }
                     error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
                 },
@@ -132,29 +172,35 @@ impl Parse for CoreTypes<Render> {
         let mut error_type = None;
 
         while !input.is_empty() {
-            let item: syn::Item = input.parse()?;
+            let mut item: syn::Item = input.parse()?;
             match item {
-                syn::Item::Struct(ref s) if s.ident == "Input" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Input" => {
+                    align_core_struct(s);
                     if input_type.is_some() { return Err(input.error("Duplicate Input type")); }
                     input_type = Some(CoreType::<Input>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Input" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Input" => {
+                    align_core_enum(e);
                     if input_type.is_some() { return Err(input.error("Duplicate Input type")); }
                     input_type = Some(CoreType::<Input>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "Output" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Output" => {
+                    align_core_struct(s);
                     if output_type.is_some() { return Err(input.error("Duplicate Output type")); }
                     output_type = Some(CoreType::<Output>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Output" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Output" => {
+                    align_core_enum(e);
                     if output_type.is_some() { return Err(input.error("Duplicate Output type")); }
                     output_type = Some(CoreType::<Output>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "Error" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Error" => {
+                    align_core_struct(s);
                     if error_type.is_some() { return Err(input.error("Duplicate Error type")); }
                     error_type = Some(CoreType::<Error>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Error" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Error" => {
+                    align_core_enum(e);
                     if error_type.is_some() { return Err(input.error("Duplicate Error type")); }
                     error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
                 },
@@ -177,37 +223,45 @@ impl Parse for CoreTypes<RenderWhile> {
         let mut error_type = None;
 
         while !input.is_empty() {
-            let item: syn::Item = input.parse()?;
+            let mut item: syn::Item = input.parse()?;
             match item {
-                syn::Item::Struct(ref s) if s.ident == "Input" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Input" => {
+                    align_core_struct(s);
                     if input_type.is_some() { return Err(input.error("Duplicate Input type")); }
                     input_type = Some(CoreType::<Input>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Input" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Input" => {
+                    align_core_enum(e);
                     if input_type.is_some() { return Err(input.error("Duplicate Input type")); }
                     input_type = Some(CoreType::<Input>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "State" => {
+                syn::Item::Struct(ref mut s) if s.ident == "State" => {
+                    align_core_struct(s);
                     if state_type.is_some() { return Err(input.error("Duplicate State type")); }
                     state_type = Some(CoreType::<State>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "State" => {
+                syn::Item::Enum(ref mut e) if e.ident == "State" => {
+                    align_core_enum(e);
                     if state_type.is_some() { return Err(input.error("Duplicate State type")); }
                     state_type = Some(CoreType::<State>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "Output" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Output" => {
+                    align_core_struct(s);
                     if output_type.is_some() { return Err(input.error("Duplicate Output type")); }
                     output_type = Some(CoreType::<Output>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Output" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Output" => {
+                    align_core_enum(e);
                     if output_type.is_some() { return Err(input.error("Duplicate Output type")); }
                     output_type = Some(CoreType::<Output>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "Error" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Error" => {
+                    align_core_struct(s);
                     if error_type.is_some() { return Err(input.error("Duplicate Error type")); }
                     error_type = Some(CoreType::<Error>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Error" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Error" => {
+                    align_core_enum(e);
                     if error_type.is_some() { return Err(input.error("Duplicate Error type")); }
                     error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
                 },
@@ -226,29 +280,35 @@ impl Parse for CoreTypes<Async> {
         let mut error_type = None;
 
         while !input.is_empty() {
-            let item: syn::Item = input.parse()?;
+            let mut item: syn::Item = input.parse()?;
             match item {
-                syn::Item::Struct(ref s) if s.ident == "Input" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Input" => {
+                    align_core_struct(s);
                     if input_type.is_some() { return Err(input.error("Duplicate Input type")); }
                     input_type = Some(CoreType::<Input>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Input" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Input" => {
+                    align_core_enum(e);
                     if input_type.is_some() { return Err(input.error("Duplicate Input type")); }
                     input_type = Some(CoreType::<Input>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "Output" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Output" => {
+                    align_core_struct(s);
                     if output_type.is_some() { return Err(input.error("Duplicate Output type")); }
                     output_type = Some(CoreType::<Output>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Output" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Output" => {
+                    align_core_enum(e);
                     if output_type.is_some() { return Err(input.error("Duplicate Output type")); }
                     output_type = Some(CoreType::<Output>::Enum(e.clone(), PhantomData));
                 },
-                syn::Item::Struct(ref s) if s.ident == "Error" => {
+                syn::Item::Struct(ref mut s) if s.ident == "Error" => {
+                    align_core_struct(s);
                     if error_type.is_some() { return Err(input.error("Duplicate Error type")); }
                     error_type = Some(CoreType::<Error>::Struct(s.clone(), PhantomData));
                 },
-                syn::Item::Enum(ref e) if e.ident == "Error" => {
+                syn::Item::Enum(ref mut e) if e.ident == "Error" => {
+                    align_core_enum(e);
                     if error_type.is_some() { return Err(input.error("Duplicate Error type")); }
                     error_type = Some(CoreType::<Error>::Enum(e.clone(), PhantomData));
                 },

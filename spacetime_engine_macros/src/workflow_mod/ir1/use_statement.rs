@@ -1,8 +1,13 @@
-use syn::{parse::Parse, ItemUse, Path, Result, Token, Visibility};
+use syn::{parse::Parse, punctuated::Punctuated, spanned::Spanned, token::{In, Paren, Pub}, Ident, ItemUse, Path, PathSegment, Result, Token, VisRestricted, Visibility};
 use quote::{quote, ToTokens};
 use proc_macro2::TokenStream;
 
 pub struct UseStatements(pub Vec<UseStatement>);
+
+#[derive(Debug)]
+pub struct UseStatement {
+    pub use_statement: ItemUse,
+}
 
 impl Parse for UseStatements {
     fn parse(input: syn::parse::ParseStream) -> Result<Self> {
@@ -11,6 +16,38 @@ impl Parse for UseStatements {
             imports.push(input.parse()?);
         }
         Ok(UseStatements(imports))
+    }
+}
+
+impl Parse for UseStatement {
+    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
+        let use_statement: ItemUse = input.parse()?;
+
+        match use_statement.vis {
+            Visibility::Inherited => {
+                let use_statement = quote!(#use_statement).to_string();
+                let use_statement = format!("pub(super) {}", use_statement);
+                let use_statement: ItemUse = syn::parse_str(&use_statement)?;
+
+                Ok(UseStatement { use_statement })
+            }
+            Visibility::Restricted(vis) => {
+                Err(syn::Error::new(
+                    vis.span(), 
+                        "Use statements may not have an explicit visibility, 
+                        because the visibility is automatically set to `pub(super)`."
+                    )
+                )
+            },
+            Visibility::Public(vis) => {
+                Err(syn::Error::new(
+                    vis.span(), 
+                        "Use statements may not have an explicit visibility, 
+                        because the visibility is automatically set to `pub(super)`."
+                    )
+                )
+            }
+        }
     }
 }
 
@@ -27,21 +64,6 @@ impl UseStatements {
             // User imports
             #(#imports)*
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct UseStatement {
-    pub use_statement: ItemUse,
-}
-
-impl Parse for UseStatement {
-    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
-        let use_statement: ItemUse = input.parse().map_err(|_| {
-            syn::Error::new(input.span(), "Expected a valid Rust path after `use`.")
-        })?;
-
-        Ok(UseStatement { use_statement })
     }
 }
 

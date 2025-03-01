@@ -5,20 +5,20 @@ workflow_mod! {
     workflows: [
         SetupTextureGenerator {
             user_imports: {
-                pub use crate::gpu::resources::ShaderRegistry;
-    
-                pub use bevy::prelude::{Handle, Shader, Res, ResMut, Assets};
-                pub use bevy::ecs::system::SystemState;
-                pub use bevy::render::render_resource::{
+                use bevy::prelude::{Handle, Shader, Res, ResMut, Assets};
+                use bevy::ecs::system::SystemState;
+                use bevy::render::render_resource::{
                     BindGroupLayout, CachedComputePipelineId, 
                     PipelineCache, BindGroupLayoutEntry, ShaderStages, 
                     BindingType, StorageTextureAccess, TextureFormat, 
                     TextureViewDimension, BufferBindingType, PushConstantRange, 
                     CachedPipelineState, Pipeline, ComputePipelineDescriptor
                 };
-                pub use bevy::render::render_asset::RenderAssets;
-                pub use bevy::render::texture::GpuImage;
-                pub use bevy::render::renderer::RenderDevice;
+                use bevy::render::render_asset::RenderAssets;
+                use bevy::render::texture::GpuImage;
+                use bevy::render::renderer::RenderDevice;
+                
+                use crate::gpu::resources::ShaderRegistry;
             },
             user_items: {},
             stages: [
@@ -45,7 +45,7 @@ workflow_mod! {
                     core_functions: [
                         fn RunEcs |input, world| -> Result<Output, Error> {
                             let shader_name = input.shader_name;
-                            let shader_path = input.shader_path;
+                            let shader_path = &input.shader_path;
         
                             let mut system_state: SystemState<(
                                 ResMut<Assets<Shader>>,
@@ -57,7 +57,7 @@ workflow_mod! {
                                 return Err(Error::ShaderAlreadyRegistered { shader_name })
                             }
         
-                            let shader_source = std::fs::read_to_string(&shader_path)
+                            let shader_source = std::fs::read_to_string(shader_path)
                                 .map_err(|e| Error::FailedToReadShader { shader_name, error: e })?;
                             
                             let shader = Shader::from_wgsl(shader_source, shader_path.clone());
@@ -172,7 +172,7 @@ workflow_mod! {
                                 CachedPipelineState::Ok(pipeline) => {
                                     match pipeline {
                                         Pipeline::RenderPipeline(_) => Err(Error::ExpectedComputePipelineGotRenderPipeline {
-                                            shader_name: state.shader_name,
+                                            shader_name: state.shader_name.to_string(),
                                             pipeline_id: state.pipeline_id
                                         }),
                                         Pipeline::ComputePipeline(_) => Ok(Done(Output { 
@@ -217,30 +217,29 @@ workflow_mod! {
 
         GenerateTexture {
             user_imports: {
-                pub use crate::gpu::resources::ShaderRegistry;
-    
-                pub use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
-                pub use bevy::render::render_resource::{
+                use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
+                use bevy::render::render_resource::{
                     CachedComputePipelineId, BindGroupLayout, 
                     Buffer, TextureView, TextureDescriptor, Extent3d, 
                     TextureDimension, TextureFormat, TextureUsages, 
                     BufferInitDescriptor, BufferUsages, CommandEncoderDescriptor,
                     ComputePassDescriptor
                 };
-                pub use bevy::ecs::system::SystemState;
-                pub use bevy::render::render_asset::RenderAssets;
-                pub use bevy::render::texture::GpuImage;
-                pub use bevy::render::renderer::{RenderDevice, RenderQueue};
-                pub use bevy::render::render_resource::{PipelineCache, BindGroupEntry, BindingResource};
-    
-                pub use crossbeam_channel::Receiver;
+                use bevy::ecs::system::SystemState;
+                use bevy::render::render_asset::RenderAssets;
+                use bevy::render::texture::GpuImage;
+                use bevy::render::renderer::{RenderDevice, RenderQueue};
+                use bevy::render::render_resource::{PipelineCache, BindGroupEntry, BindingResource};
+                use crossbeam_channel::Receiver;
+
+                use crate::gpu::resources::ShaderRegistry;
             },
             user_items: {
-                struct GeneratorRequest<T> {
+                pub struct GeneratorRequest<T> {
                     pub inner: T
                 }
                 
-                struct GeneratorParams {
+                pub struct GeneratorParams {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
                     pub bind_group_layout: BindGroupLayout,
@@ -260,14 +259,14 @@ workflow_mod! {
                                 shader_name,
                                 pipeline_id,
                                 bind_group_layout,
-                                texture,
+                                texture_handle,
                                 param_buffer,
                             }
                         }
                     }
 
-                    pub fn set_texture_view(self, texture_view: TextureView) -> Self<PreparedGenerator> {
-                        Self {
+                    pub fn set_texture_view(self, texture_view: TextureView) -> GeneratorRequest<PreparedGenerator> {
+                        GeneratorRequest {
                             inner: PreparedGenerator {
                                 shader_name: self.inner.shader_name,
                                 pipeline_id: self.inner.pipeline_id,
@@ -280,7 +279,7 @@ workflow_mod! {
                     }
                 }
                 
-                struct PreparedGenerator {
+                pub struct PreparedGenerator {
                     pub shader_name: &'static str,
                     pub pipeline_id: CachedComputePipelineId,
                     pub bind_group_layout: BindGroupLayout,
@@ -289,18 +288,18 @@ workflow_mod! {
                     pub param_buffer: Buffer,
                 }
                 impl GeneratorRequest<PreparedGenerator> {
-                    pub fn track_dispatch(self, texture_handle: Handle<Image>, receiver: Receiver<()>) -> Self<DispatchedCompute> {
-                        Self {
+                    pub fn track_dispatch(self, texture_handle: Handle<Image>, receiver: Receiver<()>) -> GeneratorRequest<DispatchedCompute> {
+                        GeneratorRequest {
                             inner: DispatchedCompute {
                                 shader_name: self.inner.shader_name,
-                                texture,
+                                texture_handle,
                                 receiver,
                             }
                         }
                     }
                 }
                 
-                struct DispatchedCompute {
+                pub struct DispatchedCompute {
                     pub shader_name: &'static str,
                     pub texture_handle: Handle<Image>,
                     pub receiver: Receiver<()>

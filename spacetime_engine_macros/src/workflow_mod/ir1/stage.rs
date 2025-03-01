@@ -1,6 +1,7 @@
 use syn::{parse::Parse, Ident, Result, Token, braced, bracketed, parse::ParseStream};
 use quote::quote;
 use proc_macro2::TokenStream;
+use heck::ToSnakeCase;
 use super::core_type::CoreTypes;
 use super::core_function::CoreFunctions;
 
@@ -220,17 +221,26 @@ impl Parse for Stages {
 
 impl TypedStage<Ecs> {
     pub fn generate(self) -> TokenStream {
-        let stage_name = &self.name;
+        let stage_ident = &self.name;
+        let stage_name = stage_ident.to_string();
+        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
 
         quote! {
-            pub mod #stage_name {
+            pub mod #stage_ident {
+                pub const NAME: &str = stringify!(#stage_name);
+                
                 pub mod core_types {
+                    use super::super::super::workflow_imports::*;
+
                     #core_types
                 }
 
                 pub mod core_functions {
+                    use super::super::super::workflow_imports::*;
+                    use super::core_types::*;
+
                     #core_functions
                 }
             }
@@ -240,17 +250,26 @@ impl TypedStage<Ecs> {
 
 impl TypedStage<EcsWhile> {
     pub fn generate(self) -> TokenStream {
-        let stage_name = &self.name;
+        let stage_ident = &self.name;
+        let stage_name = stage_ident.to_string();
+        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
 
         quote! {
-            pub mod #stage_name {
+            pub mod #stage_ident {
+                pub const NAME: &str = stringify!(#stage_name);
+                
                 pub mod core_types {
+                    use super::super::super::workflow_imports::*;
+
                     #core_types
                 }
 
                 pub mod core_functions {
+                    use super::super::super::workflow_imports::*;
+                    use super::core_types::*;
+
                     #core_functions
                 }
             }
@@ -260,17 +279,26 @@ impl TypedStage<EcsWhile> {
 
 impl TypedStage<Render> {
     pub fn generate(self) -> TokenStream {
-        let stage_name = &self.name;
+        let stage_ident = &self.name;
+        let stage_name = stage_ident.to_string();
+        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
 
         quote! {
-            pub mod #stage_name {
+            pub mod #stage_ident {
+                pub const NAME: &str = stringify!(#stage_name);
+                
                 pub mod core_types {
+                    use super::super::super::workflow_imports::*;
+
                     #core_types
                 }
 
                 pub mod core_functions {
+                    use super::super::super::workflow_imports::*;
+                    use super::core_types::*;
+
                     #core_functions
                 }
             }
@@ -280,17 +308,26 @@ impl TypedStage<Render> {
 
 impl TypedStage<RenderWhile> {
     pub fn generate(self) -> TokenStream {
-        let stage_name = &self.name;
+        let stage_ident = &self.name;
+        let stage_name = stage_ident.to_string();
+        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
 
         quote! {
-            pub mod #stage_name {
+            pub mod #stage_ident {
+                pub const NAME: &str = stringify!(#stage_name);
+                
                 pub mod core_types {
+                    use super::super::super::workflow_imports::*;
+
                     #core_types
                 }
 
                 pub mod core_functions {
+                    use super::super::super::workflow_imports::*;
+                    use super::core_types::*;
+
                     #core_functions
                 }
             }
@@ -300,17 +337,26 @@ impl TypedStage<RenderWhile> {
 
 impl TypedStage<Async> {
     pub fn generate(self) -> TokenStream {
-        let stage_name = &self.name;
+        let stage_ident = &self.name;
+        let stage_name = stage_ident.to_string();
+        let stage_ident = Ident::new(stage_name.as_str().to_snake_case().as_str(), stage_ident.span());
         let core_types = self.core_types.generate();
         let core_functions = self.core_functions.generate();
 
         quote! {
-            pub mod #stage_name {
+            pub mod #stage_ident {
+                pub const NAME: &str = stringify!(#stage_name);
+                
                 pub mod core_types {
+                    use super::super::super::workflow_imports::*;
+
                     #core_types
                 }
 
                 pub mod core_functions {
+                    use super::super::super::workflow_imports::*;
+                    use super::core_types::*;
+
                     #core_functions
                 }
             }

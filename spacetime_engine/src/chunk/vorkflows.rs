@@ -1,35 +1,15 @@
 use spacetime_engine_macros::workflow_mod;
 
 workflow_mod! {
-    name: "Test",
-    workflows: [
-        Alpha {
-            user_imports: {},
-            user_items: {},
-            stages: [
-                Phase1: Ecs {
-                    core_types: [],
-                    core_functions: [
-                        fn RunEcs |world| {
-                            
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-}
-
-workflow_mod! {
     name: "Chunk",
     workflows: [
         SpawnChunk {
             user_imports: {
-                pub use bevy::prelude::{Entity, Handle, Image, Query, ResMut, Transform, SpriteBundle};
-                pub use bevy::ecs::system::SystemState;
+                use bevy::prelude::{Entity, Handle, Image, Query, ResMut, Transform, SpriteBundle};
+                use bevy::ecs::system::SystemState;
     
-                pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
-                pub use crate::config::statics::CONFIG;
+                use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
+                use crate::config::statics::CONFIG;
             },
             user_items: {},
             stages: [
@@ -48,7 +28,7 @@ workflow_mod! {
                         fn RunEcs |input, world| -> Result<(), Error> {
                             let chunk_coord = input.chunk_coord;
                             let chunk_owner = input.chunk_owner;
-                            let metric_texture = input.metric_texture;
+                            let metric_texture = input.metric_texture.clone();
     
                             let mut system_state = SystemState::<Query::<&ChunkComponent>>::new(world);
                             let chunk_query = system_state.get(world);
@@ -65,7 +45,7 @@ workflow_mod! {
     
                             world.spawn((
                                 SpriteBundle {
-                                    texture: metric_texture.clone(),
+                                    texture: metric_texture,
                                     transform: chunk_transform,
                                     ..Default::default()
                                 },
@@ -90,10 +70,10 @@ workflow_mod! {
 
         DespawnChunk {
             user_imports: {
-                pub use bevy::prelude::{Entity, Query, ResMut, DespawnRecursiveExt};
-                pub use bevy::ecs::system::SystemState;
+                use bevy::prelude::{Entity, Query, ResMut, DespawnRecursiveExt};
+                use bevy::ecs::system::SystemState;
     
-                pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
+                use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
             },
             user_items: {},
             stages: [
@@ -134,10 +114,10 @@ workflow_mod! {
 
         TransferChunkOwnership {
             user_imports: {
-                pub use bevy::prelude::{Entity, Query, ResMut};
-                pub use bevy::ecs::system::SystemState;
+                use bevy::prelude::{Entity, Query, ResMut};
+                use bevy::ecs::system::SystemState;
     
-                pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
+                use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
             },
             user_items: {},
             stages: [

@@ -2,15 +2,12 @@ use syn::{parse::Parse, Ident, Token, braced, bracketed, Result, LitStr};
 use quote::quote;
 use proc_macro2::TokenStream;
 use heck::ToSnakeCase;
-use crate::workflow_mod::ir1::stage;
-
 use super::stage::Stages;
 use super::use_statement::UseStatements;
 use super::user_item::UserItems;
 
 pub struct WorkflowModule {
-    pub pascal_case_name: Ident,
-    pub snake_case_name: Ident,
+    pub name: Ident,
     pub workflows: Vec<Workflow>,
 }
 
@@ -19,9 +16,7 @@ impl Parse for WorkflowModule {
         let _: super::kw::name = input.parse()?;
         input.parse::<Token![:]>()?;
         let name: LitStr = input.parse()?; 
-        let pascal_case_name = Ident::new(&name.value(), name.span());
-        let snake_case_name = name.value().to_snake_case();
-        let snake_case_name = Ident::new(&snake_case_name, name.span());
+        let name = Ident::new(&name.value(), name.span());
 
         input.parse::<Token![,]>()?;
 
@@ -35,17 +30,19 @@ impl Parse for WorkflowModule {
             workflows.push(content.parse()?);
         }
 
-        Ok(WorkflowModule { pascal_case_name, snake_case_name, workflows })
+        Ok(WorkflowModule { name, workflows })
     }
 }
 
 impl WorkflowModule {
     pub fn generate(self) -> TokenStream {
-        let module_name = &self.pascal_case_name;
+        let module_ident = &self.name;
+        let module_name = module_ident.to_string();
+        let module_ident = Ident::new(module_name.as_str().to_snake_case().as_str(), module_ident.span());
         let workflows = self.workflows.into_iter().map(|w| w.generate());
 
         quote! {
-            pub mod #module_name {
+            pub mod #module_ident {
                 pub const NAME: &str = stringify!(#module_name);
                 #(#workflows)*
             }
@@ -100,13 +97,15 @@ impl Parse for Workflow {
 
 impl Workflow {
     pub fn generate(self) -> TokenStream {
-        let workflow_name = &self.name;
+        let workflow_ident = &self.name;
+        let workflow_name = workflow_ident.to_string();
+        let workflow_ident = Ident::new(workflow_name.as_str().to_snake_case().as_str(), workflow_ident.span());
         let imports = self.user_imports.generate();
         let user_items = self.user_items.generate();
         let stages = self.stages.0.into_iter().map(|s| s.generate());
 
         quote! {
-            pub mod #workflow_name {
+            pub mod #workflow_ident {
                 pub const NAME: &str = stringify!(#workflow_name);
                 
                 pub mod workflow_imports {
@@ -114,6 +113,8 @@ impl Workflow {
                 }
 
                 pub mod user_items {
+                    use super::workflow_imports::*;
+
                     #user_items
                 }
 
