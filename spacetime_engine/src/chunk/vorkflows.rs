@@ -1,11 +1,31 @@
 use spacetime_engine_macros::workflow_mod;
 
 workflow_mod! {
+    name: "Test",
+    workflows: [
+        Alpha {
+            user_imports: {},
+            user_items: {},
+            stages: [
+                Phase1: Ecs {
+                    core_types: [],
+                    core_functions: [
+                        fn RunEcs |world| {
+                            
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+
+workflow_mod! {
     name: "Chunk",
     workflows: [
         SpawnChunk {
             user_imports: {
-                pub use bevy::prelude::{Entity, Handle, Image, World, Query, ResMut, Transform, SpriteBundle};
+                pub use bevy::prelude::{Entity, Handle, Image, Query, ResMut, Transform, SpriteBundle};
                 pub use bevy::ecs::system::SystemState;
     
                 pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager, functions::chunk_pos_to_world};
@@ -70,7 +90,7 @@ workflow_mod! {
 
         DespawnChunk {
             user_imports: {
-                pub use bevy::prelude::{Entity, World, Query, ResMut, DespawnRecursiveExt};
+                pub use bevy::prelude::{Entity, Query, ResMut, DespawnRecursiveExt};
                 pub use bevy::ecs::system::SystemState;
     
                 pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};
@@ -114,7 +134,7 @@ workflow_mod! {
 
         TransferChunkOwnership {
             user_imports: {
-                pub use bevy::prelude::{Entity, World, Query, ResMut};
+                pub use bevy::prelude::{Entity, Query, ResMut};
                 pub use bevy::ecs::system::SystemState;
     
                 pub(crate) use crate::chunk::{components::ChunkComponent, resources::ChunkManager};

@@ -31,7 +31,7 @@ impl Parse for WorkflowModule {
         bracketed!(content in input);
 
         let mut workflows = Vec::new();
-        while !input.is_empty() {
+        while !content.is_empty() {
             workflows.push(content.parse()?);
         }
 
@@ -110,16 +110,10 @@ impl Workflow {
                 pub const NAME: &str = stringify!(#workflow_name);
                 
                 pub mod workflow_imports {
-                    // Automatic imports
-                    pub use super::user_types::*;
-                    pub use super::user_functions::*;
-                    pub use crate::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
-                    
-                    // User imports
                     #imports
                 }
 
-                pub mod user_types {
+                pub mod user_items {
                     #user_items
                 }
 

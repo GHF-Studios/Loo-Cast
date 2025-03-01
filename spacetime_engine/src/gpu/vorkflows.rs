@@ -7,7 +7,7 @@ workflow_mod! {
             user_imports: {
                 pub use crate::gpu::resources::ShaderRegistry;
     
-                pub use bevy::prelude::{World, Handle, Shader, Res, ResMut, Assets};
+                pub use bevy::prelude::{Handle, Shader, Res, ResMut, Assets};
                 pub use bevy::ecs::system::SystemState;
                 pub use bevy::render::render_resource::{
                     BindGroupLayout, CachedComputePipelineId, 
@@ -65,7 +65,7 @@ workflow_mod! {
         
                             Ok(Output { shader_name, shader_handle })
                         }
-                    ],
+                    ]
                 }
     
                 SetupPhase2: RenderWhile {
@@ -185,7 +185,7 @@ workflow_mod! {
                                 },
                             }
                         }
-                    ],
+                    ]
                 }
     
                 SetupPhase3: Ecs {
@@ -219,7 +219,7 @@ workflow_mod! {
             user_imports: {
                 pub use crate::gpu::resources::ShaderRegistry;
     
-                pub use bevy::prelude::{Handle, World, Res, ResMut, Assets, Image};
+                pub use bevy::prelude::{Handle, Res, ResMut, Assets, Image};
                 pub use bevy::render::render_resource::{
                     CachedComputePipelineId, BindGroupLayout, 
                     Buffer, TextureView, TextureDescriptor, Extent3d, 
@@ -386,7 +386,7 @@ workflow_mod! {
 
                             Ok(Output { request })
                         }
-                    ],
+                    ]
                 }
     
                 GetTextureView: RenderWhile {
@@ -417,7 +417,7 @@ workflow_mod! {
                                 Wait(state)
                             }
                         }
-                    ],
+                    ]
                 }
     
                 DispatchCompute: Render {
@@ -481,7 +481,7 @@ workflow_mod! {
                             let dispatched_request = input.request.track_dispatch(texture_handle, receiver);
                             Output { request: dispatched_request }
                         }
-                    ],
+                    ]
                 }
     
                 WaitForCompute: EcsWhile {

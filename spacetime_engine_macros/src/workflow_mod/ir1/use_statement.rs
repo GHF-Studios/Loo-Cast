@@ -19,6 +19,12 @@ impl UseStatements {
         let imports: Vec<TokenStream> = self.0.into_iter().map(|stmt| stmt.generate()).collect();
 
         quote! {
+            // Automatic imports
+            pub use super::user_items::*;
+            pub use crate::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
+            pub use bevy::prelude::World;
+            
+            // User imports
             #(#imports)*
         }
     }
