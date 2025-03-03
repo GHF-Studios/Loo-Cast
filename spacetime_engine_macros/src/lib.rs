@@ -2,7 +2,7 @@ mod workflow_mod;
 
 use proc_macro::TokenStream;
 use syn::parse_macro_input;
-use workflow_mod::ir1::workflow::WorkflowModule;
+use workflow_mod::workflow::WorkflowModule;
 
 #[proc_macro]
 pub fn workflow_mod(input: TokenStream) -> TokenStream {

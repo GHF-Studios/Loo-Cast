@@ -37,7 +37,6 @@ pub mod gpu;
 //pub mod math;
 pub mod player;
 //pub mod sprite_bundle;
-pub mod vorkflow;
 pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};

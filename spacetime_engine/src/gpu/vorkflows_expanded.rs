@@ -1,13 +1,13 @@
-mod gpu_vorkflows {
+mod gpu_workflows {
     pub const NAME: &str = "Gpu";
     pub mod setup_texture_generator {
         pub const NAME: &str = "SetupTextureGenerator";
-        pub mod vorkflow_imports {
+        pub mod workflow_imports {
             // Automatic imports
             pub use super::user_types::*;
             pub use super::user_functions::*;
             
-            pub use crate::vorkflow::types::{Outcome, Outcome::Wait, Outcome::Done};
+            pub use crate::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
 
             // User imports
             pub use crate::gpu::resources::ShaderRegistry;
@@ -26,15 +26,15 @@ mod gpu_vorkflows {
             pub use bevy::render::renderer::RenderDevice;
         }
         pub mod user_types {
-            use super::vorkflow_imports::*;
+            use super::workflow_imports::*;
         }
         pub mod user_functions {
-            use super::vorkflow_imports::*;
+            use super::workflow_imports::*;
         }
         pub mod stages {
             pub mod setup_phase_1 {
                 pub mod core_types {
-                    pub use super::super::super::vorkflow_imports::*;
+                    pub use super::super::super::workflow_imports::*;
 
                     pub struct Input { 
                         pub shader_name: &'static str, 
@@ -83,7 +83,7 @@ mod gpu_vorkflows {
             }
             pub mod setup_phase_2 {
                 pub mod core_types {
-                    pub use super::super::super::vorkflow_imports::*;
+                    pub use super::super::super::workflow_imports::*;
 
                     pub struct Input {
                         pub shader_name: &'static str, 
@@ -207,7 +207,7 @@ mod gpu_vorkflows {
             }
             pub mod setup_phase_3 {
                 pub mod core_types {
-                    pub use super::super::super::vorkflow_imports::*;
+                    pub use super::super::super::workflow_imports::*;
 
                     pub struct Input { 
                         pub shader_name: &'static str, 
@@ -237,12 +237,12 @@ mod gpu_vorkflows {
     }
     pub mod generate_texture {
         pub const NAME: &str = "GenerateTexture";
-        pub mod vorkflow_imports {
+        pub mod workflow_imports {
             // Automatic imports
             pub use super::user_types::*;
             pub use super::user_functions::*;
             
-            pub use crate::vorkflow::types::{Outcome, Outcome::Wait, Outcome::Done};
+            pub use crate::workflow::types::{Outcome, Outcome::Wait, Outcome::Done};
 
             // User imports
             pub use crate::gpu::resources::ShaderRegistry;
@@ -264,7 +264,7 @@ mod gpu_vorkflows {
             pub use crossbeam_channel::Receiver;
         }
         pub mod user_types {
-            use super::vorkflow_imports::*;
+            use super::workflow_imports::*;
 
             pub struct GeneratorRequest<T> {
                 pub inner: T
@@ -342,12 +342,12 @@ mod gpu_vorkflows {
             }
         }
         pub mod user_functions {
-            use super::vorkflow_imports::*;
+            use super::workflow_imports::*;
         }
         pub mod stages {
             pub mod prepare_request {
                 pub mod core_types {
-                    pub use super::super::super::vorkflow_imports::*;
+                    pub use super::super::super::workflow_imports::*;
 
                     pub struct Input {
                         pub shader_name: &'static str,
@@ -427,7 +427,7 @@ mod gpu_vorkflows {
             }
             pub mod get_texture_view {
                 pub mod core_types {
-                    pub use super::super::super::vorkflow_imports::*;
+                    pub use super::super::super::workflow_imports::*;
 
                     pub struct Input {
                         pub request: GeneratorRequest<GeneratorParams>,
@@ -462,7 +462,7 @@ mod gpu_vorkflows {
             }
             pub mod dispatch_compute {
                 pub mod core_types {
-                    pub use super::super::super::vorkflow_imports::*;
+                    pub use super::super::super::workflow_imports::*;
 
                     pub struct Input {
                         pub request: GeneratorRequest<PreparedGenerator>,
@@ -529,7 +529,7 @@ mod gpu_vorkflows {
             }
             pub mod wait_for_compute {
                 pub mod core_types {
-                    pub use super::super::super::vorkflow_imports::*;
+                    pub use super::super::super::workflow_imports::*;
 
                     pub struct Input {
                         pub request: GeneratorRequest<DispatchedCompute>,
