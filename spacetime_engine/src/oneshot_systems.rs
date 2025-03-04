@@ -46,11 +46,24 @@ impl FromWorld for MainOneshotSystems {
 fn initialize_workflow_type_modules_oneshot_system(
     mut workflow_type_module_registry: ResMut<WorkflowTypeModuleRegistry>
 ) {
+    
+
+    /*
     crate::chunk::workflows::initialize_workflow_type_module(&mut workflow_type_module_registry);
     crate::gpu::workflows::initialize_workflow_type_module(&mut workflow_type_module_registry);
+    */
 }
 
 fn test_workflow_framework_oneshot_system(world: &mut World) {
+    let texture_generator_setup = 
+        setup_workflow!(Gpu, SetupTextureGenerator)
+        .with_input(Input {
+            shader_name: "texture_generators/example_compute_uv",
+            shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
+        });
+    let future_result = dispatch_workflow!(texture_generator_setup);
+
+    /*
     use crate::gpu::workflows::generate_texture;
     use crate::chunk::workflows::spawn;
 
@@ -102,6 +115,7 @@ fn test_workflow_framework_oneshot_system(world: &mut World) {
     ) {
         debug!("Failed to setup texture generator: Failed request: {}", err)
     }
+    */
 }
 
 fn spawn_main_player_oneshot_system(mut commands: Commands) {
