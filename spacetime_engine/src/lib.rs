@@ -41,6 +41,7 @@ pub mod workflow;
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use iyes_perf_ui::{entries::{PerfUiFramerateEntries, PerfUiSystemEntries}, prelude::{PerfUiEntryEntityCount, PerfUiRoot}};
+use statics::TOKIO_RUNTIME;
 use workflow::WorkflowPlugin;
 use camera::CameraPlugin;
 //use camera_2d_bundle::Camera2dBundlePlugin;
@@ -85,7 +86,8 @@ impl Plugin for SpacetimeEngineCorePlugin {
         app
             .init_resource::<MainOneshotSystems>()
             .add_systems(PreStartup, pre_startup_system)
-            .add_systems(Startup, startup_system);
+            .add_systems(Startup, startup_system)
+            .add_systems(PostStartup, post_startup_system);
     }
 }
 
@@ -116,4 +118,45 @@ fn pre_startup_system(
 
 fn startup_system() {
     
+}
+
+fn post_startup_system() {
+    ASYNC_RUNTIME.spawn_task(|| async move {
+        workflow!(gpu, setup_texture_generator, Input {
+            shader_name: "texture_generators/example_compute_uv",
+            shader_path: "assets/shaders/texture_generators/example_compute_uv.wgsl".to_string(),
+        }).await?;
+
+        let texture = workflow!(gpu, generate_texture, Input {
+            shader_name: "texture_generators/example_compute_uv",
+            texture_size: crate::config::statics::CONFIG.get::<f32>("chunk/size") as usize
+        }).await?;
+
+        workflow!(chunk, spawn, Input {
+            chunk_coord: (0, 0),
+            chunk_owner: None,
+            metric_texture: texture,
+        }).await?;
+
+        Ok(())
+    });
+}
+
+fn update_system() {
+    use crossbeam_channel::Receiver;
+
+    fn poll_workflow_ecs_ioe(request_rx: Receiver<WorkflowRequest>) {
+        while let Ok(request) = request_rx.0.try_recv() {
+            tokio::spawn(async move {
+                match resolve_workflow!(request.workflow).await {
+                    Ok(response) => {
+                        request.response_tx.send(result).unwrap();
+                    }
+                    Err(e) => {
+                        panic!("Failed to execute workflow: {:?}", e);
+                    }
+                };
+            });
+        }
+    }
 }

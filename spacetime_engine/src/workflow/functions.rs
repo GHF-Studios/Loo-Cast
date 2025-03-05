@@ -3,6 +3,24 @@ use bevy::ecs::system::SystemState;
 
 use super::{resources::{WorkflowMap, WorkflowTypeModuleRegistry}, io::{WorkflowIO, CallbackState}, types::{WorkflowInstance, RawWorkflowData}};
 
+pub async fn request_workflow_ioe<W>(
+    world: &mut World,
+    input: W::Input,
+) -> Result<W::Output, W::Error>
+where
+    W: WorkflowType,
+{
+    let sender = world.resource::<WorkflowRequestSender>().0.clone();
+    let (response_tx, response_rx) = crossbeam_channel::bounded(1);
+
+    sender.send(WorkflowRequest::<W> {
+        input,
+        response_tx,
+    }).unwrap();
+
+    response_rx.recv_async().await.unwrap()
+}
+
 pub fn request_workflow(
     world: &mut World,
     module_name: &str,
